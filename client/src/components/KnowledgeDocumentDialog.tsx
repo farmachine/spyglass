@@ -1,7 +1,8 @@
+import { useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { insertKnowledgeDocumentSchema } from "@shared/schema";
+import { Upload, X, FileText, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,17 +22,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { KnowledgeDocument } from "@shared/schema";
 
-const knowledgeDocumentFormSchema = insertKnowledgeDocumentSchema.omit({ projectId: true }).extend({
+const knowledgeDocumentFormSchema = z.object({
+  displayName: z.string().min(1, "Display name is required"),
   description: z.string().min(1, "Description is required to guide AI extraction"),
+  file: z.any().optional(),
 });
 
 type KnowledgeDocumentForm = z.infer<typeof knowledgeDocumentFormSchema>;
@@ -39,18 +36,16 @@ type KnowledgeDocumentForm = z.infer<typeof knowledgeDocumentFormSchema>;
 interface KnowledgeDocumentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (data: KnowledgeDocumentForm) => Promise<void>;
+  onSave: (data: { fileName: string; fileType: string; fileSize: number; description: string }) => Promise<void>;
   document?: KnowledgeDocument | null;
   isLoading?: boolean;
 }
 
-const FILE_TYPES = [
-  { value: "pdf", label: "PDF Document" },
-  { value: "docx", label: "Word Document" },
-  { value: "txt", label: "Text File" },
-  { value: "xlsx", label: "Excel Spreadsheet" },
-  { value: "csv", label: "CSV File" },
+const ACCEPTED_FILE_TYPES = [
+  ".pdf", ".docx", ".doc", ".txt", ".xlsx", ".xls", ".csv"
 ];
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export default function KnowledgeDocumentDialog({ 
   open, 
@@ -59,24 +54,102 @@ export default function KnowledgeDocumentDialog({
   document,
   isLoading = false 
 }: KnowledgeDocumentDialogProps) {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
+
   const form = useForm<KnowledgeDocumentForm>({
     resolver: zodResolver(knowledgeDocumentFormSchema),
     defaultValues: {
-      fileName: document?.fileName || "",
-      fileType: document?.fileType || "pdf",
-      fileSize: document?.fileSize || 0,
+      displayName: document?.fileName || "",
       description: document?.description || "",
     },
   });
 
+  const validateFile = (file: File): string | null => {
+    const extension = `.${file.name.split('.').pop()?.toLowerCase()}`;
+    
+    if (!ACCEPTED_FILE_TYPES.includes(extension)) {
+      return `File type ${extension} is not supported. Please use: ${ACCEPTED_FILE_TYPES.join(", ")}`;
+    }
+    
+    if (file.size > MAX_FILE_SIZE) {
+      return `File size must be less than ${MAX_FILE_SIZE / (1024 * 1024)}MB`;
+    }
+    
+    return null;
+  };
+
+  const handleFileSelect = useCallback((file: File) => {
+    const error = validateFile(file);
+    if (error) {
+      setFileError(error);
+      setSelectedFile(null);
+      return;
+    }
+    
+    setFileError(null);
+    setSelectedFile(file);
+    
+    // Auto-fill display name if empty
+    if (!form.getValues("displayName")) {
+      form.setValue("displayName", file.name.split('.').slice(0, -1).join('.'));
+    }
+  }, [form]);
+
+  const handleDrag = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileSelect(e.dataTransfer.files[0]);
+    }
+  }, [handleFileSelect]);
+
+  const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleFileSelect(e.target.files[0]);
+    }
+  }, [handleFileSelect]);
+
   const handleSubmit = async (data: KnowledgeDocumentForm) => {
+    if (!document && !selectedFile) {
+      setFileError("Please select a file to upload");
+      return;
+    }
+
     try {
-      await onSave(data);
+      const submitData = {
+        fileName: document ? document.fileName : selectedFile!.name,
+        fileType: document ? document.fileType : selectedFile!.name.split('.').pop()?.toLowerCase() || "unknown",
+        fileSize: document ? document.fileSize : selectedFile!.size,
+        description: data.description,
+      };
+
+      await onSave(submitData);
       form.reset();
+      setSelectedFile(null);
+      setFileError(null);
       onOpenChange(false);
     } catch (error) {
       console.error("Failed to save knowledge document:", error);
     }
+  };
+
+  const removeFile = () => {
+    setSelectedFile(null);
+    setFileError(null);
   };
 
   return (
@@ -84,73 +157,96 @@ export default function KnowledgeDocumentDialog({
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>
-            {document ? "Edit Knowledge Document" : "Add Knowledge Document"}
+            {document ? "Edit Knowledge Document" : "Upload Knowledge Document"}
           </DialogTitle>
           <DialogDescription>
-            Add reference documents to improve AI extraction accuracy. These documents provide context and examples for better data extraction.
+            Upload reference documents to improve AI extraction accuracy. These documents provide context and examples for better data extraction.
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="fileName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>File Name</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="document.pdf"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            {!document && (
+              <div className="space-y-4">
+                <div
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                    dragActive 
+                      ? "border-blue-500 bg-blue-50" 
+                      : "border-gray-300 hover:border-gray-400"
+                  }`}
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                >
+                  {selectedFile ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-center gap-3">
+                        <FileText className="h-8 w-8 text-blue-600" />
+                        <div className="text-left">
+                          <p className="font-medium text-gray-900">{selectedFile.name}</p>
+                          <p className="text-sm text-gray-500">
+                            {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={removeFile}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <Upload className="h-12 w-12 text-gray-400 mx-auto" />
+                      <div>
+                        <p className="text-lg font-medium text-gray-900">
+                          Drop your file here, or 
+                          <label className="text-blue-600 hover:text-blue-500 cursor-pointer ml-1">
+                            browse
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept={ACCEPTED_FILE_TYPES.join(",")}
+                              onChange={handleFileInput}
+                            />
+                          </label>
+                        </p>
+                        <p className="text-sm text-gray-500 mt-2">
+                          Supports: PDF, Word, Excel, CSV, Text files (max 10MB)
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
-              <FormField
-                control={form.control}
-                name="fileType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>File Type</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select file type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {FILE_TYPES.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
+                {fileError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{fileError}</AlertDescription>
+                  </Alert>
                 )}
-              />
-            </div>
+              </div>
+            )}
 
             <FormField
               control={form.control}
-              name="fileSize"
+              name="displayName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>File Size (bytes)</FormLabel>
+                  <FormLabel>Display Name</FormLabel>
                   <FormControl>
                     <Input
-                      type="number"
-                      placeholder="0"
+                      placeholder="Enter a display name for this document"
                       {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                     />
                   </FormControl>
+                  <p className="text-sm text-gray-500">
+                    A friendly name to identify this document in the knowledge base.
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}
@@ -187,7 +283,7 @@ export default function KnowledgeDocumentDialog({
                 Cancel
               </Button>
               <Button type="submit" disabled={isLoading}>
-                {isLoading ? "Saving..." : document ? "Update Document" : "Add Document"}
+                {isLoading ? "Uploading..." : document ? "Update Document" : "Upload Document"}
               </Button>
             </DialogFooter>
           </form>
