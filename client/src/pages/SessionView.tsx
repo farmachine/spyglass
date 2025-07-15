@@ -109,14 +109,17 @@ export default function SessionView() {
     );
   }
 
-  // Parse extracted data from the nested structure
+  // Parse extracted data from the session
   let extractedData: any = {};
   try {
     if (session.extractedData) {
       const parsedData = JSON.parse(session.extractedData);
-      // Extract the actual data from the nested structure
+      // Check if it's the new nested structure or simple flat structure
       if (parsedData.processed_documents && parsedData.processed_documents[0]) {
         extractedData = parsedData.processed_documents[0].extraction_result?.extracted_data || {};
+      } else {
+        // Simple flat structure for sample/legacy data
+        extractedData = parsedData;
       }
     }
   } catch (error) {
