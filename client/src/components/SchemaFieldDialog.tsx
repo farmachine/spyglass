@@ -1,0 +1,170 @@
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import type { ProjectSchemaField } from "@shared/schema";
+
+const fieldTypes = ["TEXT", "NUMBER", "DATE", "BOOLEAN"] as const;
+
+const schemaFieldFormSchema = z.object({
+  fieldName: z.string().min(1, "Field name is required"),
+  fieldType: z.enum(fieldTypes),
+  description: z.string().optional(),
+  orderIndex: z.number().default(0),
+});
+
+type SchemaFieldForm = z.infer<typeof schemaFieldFormSchema>;
+
+interface SchemaFieldDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (data: SchemaFieldForm) => Promise<void>;
+  field?: ProjectSchemaField | null;
+  isLoading?: boolean;
+}
+
+export default function SchemaFieldDialog({ 
+  open, 
+  onOpenChange, 
+  onSave, 
+  field, 
+  isLoading = false 
+}: SchemaFieldDialogProps) {
+  const form = useForm<SchemaFieldForm>({
+    resolver: zodResolver(schemaFieldFormSchema),
+    defaultValues: {
+      fieldName: field?.fieldName || "",
+      fieldType: (field?.fieldType as typeof fieldTypes[number]) || "TEXT",
+      description: field?.description || "",
+      orderIndex: field?.orderIndex || 0,
+    },
+  });
+
+  const handleSubmit = async (data: SchemaFieldForm) => {
+    try {
+      await onSave(data);
+      form.reset();
+      onOpenChange(false);
+    } catch (error) {
+      // Error handling is done in parent component
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>
+            {field ? "Edit Schema Field" : "Add Schema Field"}
+          </DialogTitle>
+          <DialogDescription>
+            Define a global field that applies to the entire document set.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="fieldName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Field Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Company Name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="fieldType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Field Type</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select field type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="TEXT">Text</SelectItem>
+                      <SelectItem value="NUMBER">Number</SelectItem>
+                      <SelectItem value="DATE">Date</SelectItem>
+                      <SelectItem value="BOOLEAN">Boolean</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Describe this field..."
+                      className="resize-none"
+                      rows={3}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {isLoading ? "Saving..." : field ? "Update Field" : "Add Field"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
