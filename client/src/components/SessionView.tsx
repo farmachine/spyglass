@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ArrowLeft, Edit3, Save, X, FileText, CheckCircle } from "lucide-react";
+import { ArrowLeft, Edit3, Save, X, FileText, CheckCircle, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,8 @@ interface SessionViewProps {
 }
 
 export default function SessionView({ session, project }: SessionViewProps) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [editingFields, setEditingFields] = useState<Set<string>>(new Set());
+  const [isVerifying, setIsVerifying] = useState(false);
   const [formData, setFormData] = useState(() => {
     if (!session.extractedData) return {};
     
@@ -36,7 +37,7 @@ export default function SessionView({ session, project }: SessionViewProps) {
     }
   });
 
-  const handleSave = async () => {
+  const handleSaveField = async (fieldKey: string) => {
     try {
       const response = await fetch(`/api/sessions/${session.id}/data`, {
         method: 'PATCH',
@@ -50,13 +51,54 @@ export default function SessionView({ session, project }: SessionViewProps) {
         throw new Error('Failed to save data');
       }
       
-      setIsEditing(false);
-      // Optionally show success message
-      alert('Data saved successfully!');
+      // Remove field from editing set
+      setEditingFields(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(fieldKey);
+        return newSet;
+      });
     } catch (error) {
       console.error('Error saving data:', error);
-      alert('Failed to save data. Please try again.');
+      alert('Failed to save field. Please try again.');
     }
+  };
+
+  const handleVerify = async () => {
+    setIsVerifying(true);
+    try {
+      const response = await fetch(`/api/sessions/${session.id}/data`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ extractedData: formData }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to verify session');
+      }
+      
+      // The API already sets status to 'verified' in the backend
+      alert('Session verified successfully!');
+      window.location.reload(); // Refresh to show updated status
+    } catch (error) {
+      console.error('Error verifying session:', error);
+      alert('Failed to verify session. Please try again.');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const toggleFieldEdit = (fieldKey: string) => {
+    setEditingFields(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(fieldKey)) {
+        newSet.delete(fieldKey);
+      } else {
+        newSet.add(fieldKey);
+      }
+      return newSet;
+    });
   };
 
   const updateFormField = (fieldName: string, value: any) => {
@@ -88,13 +130,14 @@ export default function SessionView({ session, project }: SessionViewProps) {
     });
   };
 
-  const renderFormField = (fieldName: string, fieldType: string, value: any) => {
+  const renderFormField = (fieldName: string, fieldType: string, value: any, fieldKey: string) => {
+    const isFieldEditing = editingFields.has(fieldKey);
     const commonProps = {
       id: fieldName,
       value: value || '',
       onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => 
         updateFormField(fieldName, e.target.value),
-      disabled: !isEditing
+      disabled: !isFieldEditing
     };
 
     switch (fieldType) {
@@ -128,14 +171,16 @@ export default function SessionView({ session, project }: SessionViewProps) {
     index: number,
     propertyName: string,
     propertyType: string,
-    value: any
+    value: any,
+    fieldKey: string
   ) => {
+    const isFieldEditing = editingFields.has(fieldKey);
     const commonProps = {
       id: `${collectionName}-${index}-${propertyName}`,
       value: value || '',
       onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => 
         updateCollectionItem(collectionName, index, propertyName, e.target.value),
-      disabled: !isEditing
+      disabled: !isFieldEditing
     };
 
     switch (propertyType) {
@@ -190,21 +235,23 @@ export default function SessionView({ session, project }: SessionViewProps) {
                   session.status
                 )}
               </Badge>
-              {isEditing ? (
-                <>
-                  <Button onClick={handleSave} size="sm">
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Changes
-                  </Button>
-                  <Button onClick={() => setIsEditing(false)} size="sm" variant="outline">
-                    <X className="h-4 w-4 mr-2" />
-                    Cancel
-                  </Button>
-                </>
-              ) : (
-                <Button onClick={() => setIsEditing(true)} size="sm" variant="outline">
-                  <Edit3 className="h-4 w-4 mr-2" />
-                  Edit Data
+              {session.status !== 'verified' && (
+                <Button 
+                  onClick={handleVerify} 
+                  size="sm"
+                  disabled={isVerifying}
+                >
+                  {isVerifying ? (
+                    <>
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                      Verifying...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Verify
+                    </>
+                  )}
                 </Button>
               )}
             </div>
@@ -235,7 +282,40 @@ export default function SessionView({ session, project }: SessionViewProps) {
                       <Label htmlFor={field.fieldName} className="text-sm font-medium">
                         {field.fieldName}
                       </Label>
-                      {renderFormField(field.fieldName, field.fieldType, formData[field.fieldName])}
+                      <div className="flex items-center gap-2">
+                        {renderFormField(field.fieldName, field.fieldType, formData[field.fieldName], field.fieldName)}
+                        <div className="flex gap-1">
+                          {editingFields.has(field.fieldName) ? (
+                            <>
+                              <Button
+                                onClick={() => handleSaveField(field.fieldName)}
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0"
+                              >
+                                <Save className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                onClick={() => toggleFieldEdit(field.fieldName)}
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              onClick={() => toggleFieldEdit(field.fieldName)}
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0"
+                            >
+                              <Edit3 className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
                       {field.description && (
                         <p className="text-xs text-muted-foreground">{field.description}</p>
                       )}
@@ -264,15 +344,13 @@ export default function SessionView({ session, project }: SessionViewProps) {
                         {collectionData.length} item(s) found
                       </p>
                     </div>
-                    {isEditing && (
-                      <Button 
-                        onClick={() => addCollectionItem(collection.collectionName)}
-                        size="sm"
-                        variant="outline"
-                      >
-                        Add {collection.collectionName.slice(0, -1)}
-                      </Button>
-                    )}
+                    <Button 
+                      onClick={() => addCollectionItem(collection.collectionName)}
+                      size="sm"
+                      variant="outline"
+                    >
+                      Add {collection.collectionName.slice(0, -1)}
+                    </Button>
                   </div>
 
                   {collectionData.length > 0 ? (
@@ -280,16 +358,14 @@ export default function SessionView({ session, project }: SessionViewProps) {
                       {collectionData.map((item: any, index: number) => (
                         <Card key={index} className="relative">
                           <CardContent className="pt-6">
-                            {isEditing && (
-                              <Button
-                                onClick={() => removeCollectionItem(collection.collectionName, index)}
-                                size="sm"
-                                variant="destructive"
-                                className="absolute top-4 right-4"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            )}
+                            <Button
+                              onClick={() => removeCollectionItem(collection.collectionName, index)}
+                              size="sm"
+                              variant="destructive"
+                              className="absolute top-4 right-4"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               {collection.properties.map(property => (
                                 <div key={property.id} className="space-y-2">
@@ -299,13 +375,47 @@ export default function SessionView({ session, project }: SessionViewProps) {
                                   >
                                     {property.propertyName}
                                   </Label>
-                                  {renderCollectionField(
-                                    collection.collectionName,
-                                    index,
-                                    property.propertyName,
-                                    property.propertyType,
-                                    item[property.propertyName]
-                                  )}
+                                  <div className="flex items-center gap-2">
+                                    {renderCollectionField(
+                                      collection.collectionName,
+                                      index,
+                                      property.propertyName,
+                                      property.propertyType,
+                                      item[property.propertyName],
+                                      `${collection.collectionName}-${index}-${property.propertyName}`
+                                    )}
+                                    <div className="flex gap-1">
+                                      {editingFields.has(`${collection.collectionName}-${index}-${property.propertyName}`) ? (
+                                        <>
+                                          <Button
+                                            onClick={() => handleSaveField(`${collection.collectionName}-${index}-${property.propertyName}`)}
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-8 w-8 p-0"
+                                          >
+                                            <Save className="h-3 w-3" />
+                                          </Button>
+                                          <Button
+                                            onClick={() => toggleFieldEdit(`${collection.collectionName}-${index}-${property.propertyName}`)}
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-8 w-8 p-0"
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </>
+                                      ) : (
+                                        <Button
+                                          onClick={() => toggleFieldEdit(`${collection.collectionName}-${index}-${property.propertyName}`)}
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-8 w-8 p-0"
+                                        >
+                                          <Edit3 className="h-3 w-3" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </div>
                                   {property.description && (
                                     <p className="text-xs text-muted-foreground">{property.description}</p>
                                   )}
@@ -321,34 +431,26 @@ export default function SessionView({ session, project }: SessionViewProps) {
                       <p className="text-muted-foreground">
                         No {collection.collectionName.toLowerCase()} data was extracted from the documents
                       </p>
-                      {isEditing && (
-                        <Button 
-                          onClick={() => addCollectionItem(collection.collectionName)}
-                          size="sm"
-                          variant="outline"
-                          className="mt-4"
-                        >
-                          Add {collection.collectionName.slice(0, -1)} Manually
-                        </Button>
-                      )}
+                      <Button 
+                        onClick={() => addCollectionItem(collection.collectionName)}
+                        size="sm"
+                        variant="outline"
+                        className="mt-4"
+                      >
+                        Add {collection.collectionName.slice(0, -1)} Manually
+                      </Button>
                     </div>
                   )}
                 </div>
               );
             })}
 
-            {/* Complete Missing Fields Button */}
-            {!isEditing && (
-              <div className="text-center pt-8">
-                <p className="text-sm text-gray-500 mb-4">
-                  Complete missing fields or upload additional documents to enable verification.
-                </p>
-                <Button onClick={() => setIsEditing(true)} variant="outline">
-                  <Edit3 className="h-4 w-4 mr-2" />
-                  Complete Missing Fields
-                </Button>
-              </div>
-            )}
+            {/* Information Text */}
+            <div className="text-center pt-8">
+              <p className="text-sm text-gray-500 mb-4">
+                Click the edit icon next to any field to modify the extracted data. Use the "Verify" button when all data is correct.
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
