@@ -439,15 +439,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       // Call Python extraction script
-      const python = spawn('python', ['-c', `
+      const python = spawn('python3', ['-c', `
 import sys
 import json
 sys.path.append('.')
-from ai_extraction import process_extraction_session
-
-data = json.loads(sys.stdin.read())
-result = process_extraction_session(data)
-print(json.dumps(result))
+try:
+    from ai_extraction import process_extraction_session
+    data = json.loads(sys.stdin.read())
+    result = process_extraction_session(data)
+    print(json.dumps(result))
+except Exception as e:
+    print(json.dumps({"error": str(e)}))
+    sys.exit(1)
 `]);
       
       python.stdin.write(JSON.stringify(extractionData));

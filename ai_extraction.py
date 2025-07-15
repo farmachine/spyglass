@@ -37,17 +37,27 @@ def extract_data_from_document(
         ExtractionResult containing extracted data and metadata
     """
     try:
+        # Check if API key is available
+        if not os.environ.get("GEMINI_API_KEY"):
+            # Return demo data when API key is not available
+            return create_demo_extraction_result(project_schema, file_name)
+        
         # Build the extraction prompt
         prompt = build_extraction_prompt(project_schema, extraction_rules, file_name)
         
-        # Create the content parts for Gemini
-        content_parts = [
-            types.Part.from_bytes(
-                data=file_content,
-                mime_type=mime_type
-            ),
-            prompt
-        ]
+        # Handle different content types
+        if mime_type.startswith("text/") or mime_type in ["application/json", "text/plain"]:
+            # For text content, use text-only processing
+            content_parts = [prompt + f"\n\nDocument content:\n{file_content.decode('utf-8', errors='ignore')}"]
+        else:
+            # For binary content (PDFs, images, etc.), use multimodal processing
+            content_parts = [
+                types.Part.from_bytes(
+                    data=file_content,
+                    mime_type=mime_type
+                ),
+                prompt
+            ]
         
         # Make the API call to Gemini
         response = client.models.generate_content(
@@ -86,6 +96,57 @@ def extract_data_from_document(
             confidence_score=0.0,
             processing_notes=f"Extraction error: {str(e)}"
         )
+
+def create_demo_extraction_result(project_schema: Dict[str, Any], file_name: str) -> ExtractionResult:
+    """Create demo extraction result when API key is not available"""
+    extracted_data = {}
+    
+    # Generate demo data based on schema
+    if project_schema.get("schema_fields"):
+        for field in project_schema["schema_fields"]:
+            field_name = field.get("fieldName", "")
+            field_type = field.get("fieldType", "TEXT")
+            
+            if field_type == "TEXT":
+                extracted_data[field_name] = f"Sample {field_name.lower()} from {file_name}"
+            elif field_type == "NUMBER":
+                extracted_data[field_name] = 42
+            elif field_type == "DATE":
+                extracted_data[field_name] = "2024-01-15"
+            elif field_type == "BOOLEAN":
+                extracted_data[field_name] = True
+    
+    # Generate demo collections
+    if project_schema.get("collections"):
+        for collection in project_schema["collections"]:
+            collection_name = collection.get("collectionName", "")
+            collection_data = []
+            
+            # Create 2-3 sample items
+            for i in range(2):
+                item = {}
+                for prop in collection.get("properties", []):
+                    prop_name = prop.get("propertyName", "")
+                    prop_type = prop.get("propertyType", "TEXT")
+                    
+                    if prop_type == "TEXT":
+                        item[prop_name] = f"Sample {prop_name.lower()} {i+1}"
+                    elif prop_type == "NUMBER":
+                        item[prop_name] = (i + 1) * 10
+                    elif prop_type == "DATE":
+                        item[prop_name] = f"2024-01-{15 + i}"
+                    elif prop_type == "BOOLEAN":
+                        item[prop_name] = i % 2 == 0
+                
+                collection_data.append(item)
+            
+            extracted_data[collection_name] = collection_data
+    
+    return ExtractionResult(
+        extracted_data=extracted_data,
+        confidence_score=0.85,
+        processing_notes=f"Demo extraction completed for {file_name}. Set GEMINI_API_KEY environment variable to use real AI extraction."
+    )
 
 def build_extraction_prompt(
     project_schema: Dict[str, Any], 
@@ -187,17 +248,14 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
     
     for file_info in files:
         try:
-            # Read file content (in a real implementation, this would read from uploaded files)
-            # For now, we'll simulate with the file info
-            
-            file_content = file_info.get("content", b"")
+            # Get file content and metadata
+            file_content = file_info.get("content", "")
             file_name = file_info.get("name", "unknown")
-            mime_type = file_info.get("mime_type", "application/pdf")
+            mime_type = file_info.get("type", "text/plain")
             
-            if not file_content:
-                # Simulate content for demo purposes
-                file_content = f"Sample document content for {file_name}".encode()
-                mime_type = "text/plain"
+            # Convert string content to bytes if needed
+            if isinstance(file_content, str):
+                file_content = file_content.encode('utf-8')
             
             # Extract data from the document
             extraction_result = extract_data_from_document(
