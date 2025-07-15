@@ -192,6 +192,7 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
                               setEditingDocument(doc);
                               setKnowledgeDialogOpen(true);
                             }}
+                            disabled={deleteKnowledgeDocument.isPending}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -199,6 +200,7 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDeleteKnowledgeDocument(doc.id)}
+                            disabled={deleteKnowledgeDocument.isPending}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -295,6 +297,7 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
                               setEditingRule(rule);
                               setRuleDialogOpen(true);
                             }}
+                            disabled={deleteExtractionRule.isPending}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -302,6 +305,7 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDeleteExtractionRule(rule.id)}
+                            disabled={deleteExtractionRule.isPending}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
