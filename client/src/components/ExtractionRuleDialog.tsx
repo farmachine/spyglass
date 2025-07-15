@@ -28,12 +28,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { X } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import type { ExtractionRule, ProjectWithDetails } from "@shared/schema";
 
 const extractionRuleFormSchema = insertExtractionRuleSchema.omit({ projectId: true }).extend({
   ruleContent: z.string().min(1, "Rule content is required to guide AI extraction"),
-});
+  targetFields: z.array(z.string()).optional(),
+}).omit({ targetField: true });
 
 type ExtractionRuleForm = z.infer<typeof extractionRuleFormSchema>;
 
@@ -58,7 +61,9 @@ export default function ExtractionRuleDialog({
     resolver: zodResolver(extractionRuleFormSchema),
     defaultValues: {
       ruleName: rule?.ruleName || "",
-      targetField: rule?.targetField === "" || !rule?.targetField ? "__none__" : rule.targetField,
+      targetFields: rule?.targetField ? 
+        (rule.targetField === "" ? [] : rule.targetField.split(", ").filter(f => f.trim() !== "")) : 
+        [],
       ruleContent: rule?.ruleContent || "",
       isActive: rule?.isActive ?? true,
     },
@@ -82,11 +87,15 @@ export default function ExtractionRuleDialog({
 
   const handleSubmit = async (data: ExtractionRuleForm) => {
     try {
-      // Convert "__none__" back to empty string for storage
+      // Convert targetFields array back to single targetField for storage
       const processedData = {
         ...data,
-        targetField: data.targetField === "__none__" ? "" : data.targetField
+        targetField: data.targetFields && data.targetFields.length > 0 ? 
+          data.targetFields.join(", ") : 
+          ""
       };
+      // Remove targetFields from the processed data
+      delete (processedData as any).targetFields;
       await onSave(processedData);
       form.reset();
       onOpenChange(false);
@@ -125,25 +134,62 @@ export default function ExtractionRuleDialog({
             
             <FormField
               control={form.control}
-              name="targetField"
+              name="targetFields"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Target Field (Optional)</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select target field" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="__none__">None (applies to all fields)</SelectItem>
-                      {targetFieldOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormLabel>Target Fields (Optional)</FormLabel>
+                  <div className="space-y-2">
+                    {/* Selected fields display */}
+                    {field.value && field.value.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {field.value.map((selectedField) => (
+                          <Badge 
+                            key={selectedField} 
+                            variant="secondary" 
+                            className="flex items-center gap-1"
+                          >
+                            {targetFieldOptions.find(opt => opt.value === selectedField)?.label || selectedField}
+                            <X 
+                              className="h-3 w-3 cursor-pointer" 
+                              onClick={() => {
+                                const newValue = field.value?.filter(f => f !== selectedField) || [];
+                                field.onChange(newValue);
+                              }}
+                            />
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Add field selector */}
+                    <Select 
+                      onValueChange={(value) => {
+                        if (value && !field.value?.includes(value)) {
+                          const newValue = [...(field.value || []), value];
+                          field.onChange(newValue);
+                        }
+                      }}
+                      value=""
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Add target field" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {targetFieldOptions
+                          .filter(option => !field.value?.includes(option.value))
+                          .map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <FormDescription>
+                    Choose specific fields this rule applies to, or leave empty for all fields
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
