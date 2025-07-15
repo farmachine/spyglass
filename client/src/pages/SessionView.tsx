@@ -135,6 +135,19 @@ export default function SessionView() {
     }
   };
 
+  const handleUnvalidate = async (fieldName: string) => {
+    const validation = getValidation(fieldName);
+    if (validation) {
+      await updateValidationMutation.mutateAsync({
+        id: validation.id,
+        data: {
+          validationStatus: "pending",
+          manuallyVerified: false
+        }
+      });
+    }
+  };
+
   const renderFieldWithValidation = (fieldName: string, value: any) => {
     const validation = getValidation(fieldName);
     const isEditing = editingField === fieldName;
@@ -174,10 +187,19 @@ export default function SessionView() {
         {validation && (
           <div className="flex items-center gap-2">
             {validation.validationStatus === 'valid' ? (
-              <Badge variant="default" className="bg-green-100 text-green-800">
-                <CheckCircle className="h-3 w-3 mr-1" />
-                Valid
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="default" className="bg-green-100 text-green-800">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Valid
+                </Badge>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleUnvalidate(fieldName)}
+                >
+                  Unvalidate
+                </Button>
+              </div>
             ) : (
               <div className="flex items-center gap-2">
                 <Badge variant="destructive" className="bg-red-100 text-red-800">
