@@ -149,7 +149,32 @@ export default function SessionView() {
 
   const handleEdit = (fieldName: string, currentValue: string) => {
     setEditingField(fieldName);
-    setEditValue(currentValue);
+    
+    // Handle date field formatting
+    const fieldType = getFieldType(fieldName);
+    if (fieldType === 'DATE') {
+      // If the current value is null, undefined, or "null", set empty string
+      if (!currentValue || currentValue === 'null' || currentValue === 'undefined') {
+        setEditValue('');
+      } else {
+        // Try to parse and format the date properly
+        try {
+          const date = new Date(currentValue);
+          if (!isNaN(date.getTime())) {
+            // Format as YYYY-MM-DD for date input
+            const formattedDate = date.toISOString().split('T')[0];
+            setEditValue(formattedDate);
+          } else {
+            setEditValue('');
+          }
+        } catch (error) {
+          setEditValue('');
+        }
+      }
+    } else {
+      // For non-date fields, handle null/undefined values
+      setEditValue(currentValue === 'null' || currentValue === 'undefined' ? '' : currentValue);
+    }
   };
 
   const handleSave = async (fieldName: string) => {
@@ -201,6 +226,28 @@ export default function SessionView() {
     }
     
     return 'TEXT'; // Default fallback
+  };
+
+  const formatDateForDisplay = (value: any) => {
+    if (!value || value === 'null' || value === 'undefined') {
+      return 'Not set';
+    }
+    
+    try {
+      const date = new Date(value);
+      if (!isNaN(date.getTime())) {
+        // Format as a readable date
+        return date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+      }
+    } catch (error) {
+      // If parsing fails, return the original value
+    }
+    
+    return String(value);
   };
 
   const renderFieldWithValidation = (fieldName: string, value: any) => {
@@ -255,7 +302,9 @@ export default function SessionView() {
             </div>
           ) : (
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-sm text-gray-900">{String(value)}</span>
+              <span className="text-sm text-gray-900">
+                {fieldType === 'DATE' ? formatDateForDisplay(value) : String(value)}
+              </span>
               <Button
                 size="sm"
                 variant="ghost"
