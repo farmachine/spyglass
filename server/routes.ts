@@ -539,17 +539,33 @@ except Exception as e:
             extractedData: JSON.stringify(result)
           });
           
+          // Clear existing field validations for this session
+          const existingValidations = await storage.getFieldValidations(sessionId);
+          for (const validation of existingValidations) {
+            await storage.deleteFieldValidation(validation.id);
+          }
+          
           // Create field validations from the extraction results
           if (result.processed_documents && result.processed_documents.length > 0) {
             for (const doc of result.processed_documents) {
               const fieldValidations = doc.extraction_result?.field_validations || [];
               for (const validation of fieldValidations) {
+                // Extract record index from field name if present
+                const fieldName = validation.field_name;
+                const recordIndexMatch = fieldName.match(/\[(\d+)\]$/);
+                const recordIndex = recordIndexMatch ? parseInt(recordIndexMatch[1]) : 0;
+                
+                // Extract collection name from field name
+                const isCollectionProperty = fieldName.includes('.');
+                const collectionName = isCollectionProperty ? fieldName.split('.')[0] : null;
+                
                 await storage.createFieldValidation({
                   sessionId,
-                  fieldType: validation.field_name.includes('.') ? 'collection_property' : 'schema_field',
+                  fieldType: isCollectionProperty ? 'collection_property' : 'schema_field',
                   fieldId: validation.field_id,
-                  collectionName: validation.field_name.includes('.') ? validation.field_name.split('.')[0] : null,
-                  recordIndex: 0,
+                  fieldName: fieldName,
+                  collectionName,
+                  recordIndex,
                   extractedValue: validation.extracted_value,
                   validationStatus: validation.validation_status,
                   aiReasoning: validation.ai_reasoning,

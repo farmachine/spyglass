@@ -144,8 +144,8 @@ def create_demo_extraction_result(project_schema: Dict[str, Any], file_name: str
             collection_name = collection.get("collectionName", "")
             collection_data = []
             
-            # Create 2-3 sample items
-            for i in range(2):
+            # Create 3-4 sample items to demonstrate dynamic validation
+            for i in range(3):
                 item = {}
                 for prop in collection.get("properties", []):
                     prop_name = prop.get("propertyName", "")
@@ -281,8 +281,10 @@ def generate_field_validations(
                         prop_type = prop.get("propertyType", "TEXT")
                         
                         extracted_value = record.get(prop_name) if isinstance(record, dict) else None
+                        # Create field name with record index for proper UI matching
+                        field_name_with_index = f"{collection_name}.{prop_name}[{record_index}]"
                         validation = create_field_validation(
-                            prop_id, prop_name, prop_type, extracted_value, overall_confidence,
+                            prop_id, field_name_with_index, prop_type, extracted_value, overall_confidence,
                             is_collection=True, collection_name=collection_name, record_index=record_index
                         )
                         validations.append(validation)
