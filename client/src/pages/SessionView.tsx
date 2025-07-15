@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { 
@@ -129,6 +130,7 @@ export default function SessionView() {
 
   // Get session status based on field verification
   const getSessionStatus = () => {
+    if (validations.length === 0) return 'in_progress';
     const allVerified = validations.every(v => v.validationStatus === 'valid');
     return allVerified ? 'verified' : 'in_progress';
   };
@@ -167,9 +169,32 @@ export default function SessionView() {
     }
   };
 
+  const getFieldType = (fieldName: string) => {
+    // Check schema fields first
+    for (const field of project.schemaFields) {
+      if (field.fieldName === fieldName) {
+        return field.fieldType;
+      }
+    }
+    
+    // Check collection properties
+    for (const collection of project.collections) {
+      if (fieldName.startsWith(collection.collectionName + '.')) {
+        const propertyName = fieldName.split('.')[1].split('[')[0]; // Remove [index] if present
+        const property = collection.properties.find(p => p.propertyName === propertyName);
+        if (property) {
+          return property.propertyType;
+        }
+      }
+    }
+    
+    return 'TEXT'; // Default fallback
+  };
+
   const renderFieldWithValidation = (fieldName: string, value: any) => {
     const validation = getValidation(fieldName);
     const isEditing = editingField === fieldName;
+    const fieldType = getFieldType(fieldName);
     
     return (
       <div key={fieldName} className="flex items-center gap-3 p-3 border rounded-lg">
@@ -177,11 +202,38 @@ export default function SessionView() {
           <Label className="text-sm font-medium text-gray-700">{fieldName}</Label>
           {isEditing ? (
             <div className="flex items-center gap-2 mt-1">
-              <Input
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                className="flex-1"
-              />
+              {fieldType === 'DATE' ? (
+                <Input
+                  type="date"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  className="flex-1"
+                />
+              ) : fieldType === 'NUMBER' ? (
+                <Input
+                  type="number"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  className="flex-1"
+                />
+              ) : fieldType === 'BOOLEAN' ? (
+                <Select value={editValue} onValueChange={setEditValue}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select value" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">True</SelectItem>
+                    <SelectItem value="false">False</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  type="text"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  className="flex-1"
+                />
+              )}
               <Button size="sm" onClick={() => handleSave(fieldName)}>
                 Save
               </Button>
