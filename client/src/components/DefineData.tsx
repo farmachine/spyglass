@@ -312,19 +312,6 @@ export default function DefineData({ project }: DefineDataProps) {
             Configure the data structure and fields for extraction
           </p>
         </div>
-        <Button 
-          className="bg-blue-600 hover:bg-blue-700"
-          onClick={() => {
-            if (activeTab === "schema") {
-              setSchemaFieldDialog({ open: true, field: null });
-            } else {
-              setCollectionDialog({ open: true, collection: null });
-            }
-          }}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          {activeTab === "schema" ? "Add Field" : "Create Collection"}
-        </Button>
       </div>
 
       {/* Main Object Name Section */}
@@ -410,13 +397,6 @@ export default function DefineData({ project }: DefineDataProps) {
                   <p className="text-sm text-gray-600 mb-6">
                     Define global fields that apply to the entire document set
                   </p>
-                  <Button 
-                    variant="outline"
-                    onClick={() => setSchemaFieldDialog({ open: true, field: null })}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Schema Field
-                  </Button>
                 </div>
               ) : (
                 <Table>
@@ -469,6 +449,18 @@ export default function DefineData({ project }: DefineDataProps) {
                   </TableBody>
                 </Table>
               )}
+              
+              {/* Always show Add Field button */}
+              <div className="mt-4 pt-4 border-t">
+                <Button 
+                  variant="outline"
+                  onClick={() => setSchemaFieldDialog({ open: true, field: null })}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Field
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -491,13 +483,6 @@ export default function DefineData({ project }: DefineDataProps) {
                   <p className="text-sm text-gray-600 mb-6">
                     Define object types (like Employees, Assets, etc.) with their properties
                   </p>
-                  <Button 
-                    variant="outline"
-                    onClick={() => setCollectionDialog({ open: true, collection: null })}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Collection
-                  </Button>
                 </div>
               ) : (
                 <div className="space-y-6">
@@ -631,6 +616,18 @@ export default function DefineData({ project }: DefineDataProps) {
                   ))}
                 </div>
               )}
+              
+              {/* Always show Add Collection button */}
+              <div className="mt-6 pt-4 border-t">
+                <Button 
+                  variant="outline"
+                  onClick={() => setCollectionDialog({ open: true, collection: null })}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Collection
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
