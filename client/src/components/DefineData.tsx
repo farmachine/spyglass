@@ -427,60 +427,77 @@ export default function DefineData({ project }: DefineDataProps) {
                             </Button>
                           </div>
                         ) : (
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Property Name</TableHead>
-                                <TableHead>Type</TableHead>
-                                <TableHead>Description</TableHead>
-                                <TableHead className="w-24">Actions</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {collection.properties.map((property) => (
-                                <TableRow key={property.id}>
-                                  <TableCell className="font-medium">{property.propertyName}</TableCell>
-                                  <TableCell>
-                                    <Badge className={fieldTypeColors[property.propertyType as keyof typeof fieldTypeColors]}>
-                                      {property.propertyType}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell className="text-gray-600">
-                                    {property.description || "-"}
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex gap-2">
-                                      <Button 
-                                        variant="ghost" 
-                                        size="sm"
-                                        onClick={() => setPropertyDialog({ 
-                                          open: true, 
-                                          property, 
-                                          collectionId: collection.id,
-                                          collectionName: collection.collectionName 
-                                        })}
-                                      >
-                                        <Edit className="h-4 w-4" />
-                                      </Button>
-                                      <Button 
-                                        variant="ghost" 
-                                        size="sm" 
-                                        className="text-red-600"
-                                        onClick={() => setDeleteDialog({ 
-                                          open: true, 
-                                          type: "property", 
-                                          id: property.id, 
-                                          name: property.propertyName 
-                                        })}
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                  </TableCell>
+                          <div className="space-y-4">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Property Name</TableHead>
+                                  <TableHead>Type</TableHead>
+                                  <TableHead>Description</TableHead>
+                                  <TableHead className="w-24">Actions</TableHead>
                                 </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
+                              </TableHeader>
+                              <TableBody>
+                                {collection.properties.map((property) => (
+                                  <TableRow key={property.id}>
+                                    <TableCell className="font-medium">{property.propertyName}</TableCell>
+                                    <TableCell>
+                                      <Badge className={fieldTypeColors[property.propertyType as keyof typeof fieldTypeColors]}>
+                                        {property.propertyType}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-gray-600">
+                                      {property.description || "-"}
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex gap-2">
+                                        <Button 
+                                          variant="ghost" 
+                                          size="sm"
+                                          onClick={() => setPropertyDialog({ 
+                                            open: true, 
+                                            property, 
+                                            collectionId: collection.id,
+                                            collectionName: collection.collectionName 
+                                          })}
+                                        >
+                                          <Edit className="h-4 w-4" />
+                                        </Button>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="sm" 
+                                          className="text-red-600"
+                                          onClick={() => setDeleteDialog({ 
+                                            open: true, 
+                                            type: "property", 
+                                            id: property.id, 
+                                            name: property.propertyName 
+                                          })}
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                            <div className="flex justify-start">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => setPropertyDialog({ 
+                                  open: true, 
+                                  property: null, 
+                                  collectionId: collection.id,
+                                  collectionName: collection.collectionName 
+                                })}
+                              >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add Another Property
+                              </Button>
+                            </div>
+                          </div>
                         )}
                       </CardContent>
                     </Card>
