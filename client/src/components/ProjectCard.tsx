@@ -34,20 +34,27 @@ export default function ProjectCard({ project }: ProjectCardProps) {
   const { toast } = useToast();
 
   const handleDelete = async () => {
+    // Prevent double-clicks by disabling the delete dialog immediately
+    setDeleteDialogOpen(false);
+    
     try {
       await deleteProject.mutateAsync(project.id);
       toast({
         title: "Project deleted",
         description: "The project has been successfully deleted.",
       });
-    } catch (error) {
+    } catch (error: any) {
+      // More specific error handling
+      const errorMessage = error?.response?.status === 404 
+        ? "Project has already been deleted." 
+        : "Failed to delete the project. Please try again.";
+      
       toast({
         title: "Error",
-        description: "Failed to delete the project. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
-    setDeleteDialogOpen(false);
   };
 
   const formatDate = (date: Date | string) => {
