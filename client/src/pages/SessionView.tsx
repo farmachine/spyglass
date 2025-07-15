@@ -59,23 +59,26 @@ export default function SessionView() {
       });
     },
     onSuccess: async () => {
+      // First invalidate and wait for the validations to update
       await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
       
-      // Update session status based on verification
-      const updatedValidations = queryClient.getQueryData<FieldValidation[]>(['/api/sessions', sessionId, 'validations']);
-      if (updatedValidations) {
-        const allVerified = updatedValidations.every(v => v.validationStatus === 'valid');
-        const newStatus = allVerified ? 'verified' : 'in_progress';
-        
-        // Update session status in database
-        await apiRequest(`/api/sessions/${sessionId}`, {
-          method: 'PUT',
-          body: JSON.stringify({ status: newStatus })
-        });
-        
-        // Invalidate session query to update UI
-        queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
-      }
+      // Small delay to ensure query cache is updated
+      setTimeout(async () => {
+        const updatedValidations = queryClient.getQueryData<FieldValidation[]>(['/api/sessions', sessionId, 'validations']);
+        if (updatedValidations && updatedValidations.length > 0) {
+          const allVerified = updatedValidations.every(v => v.validationStatus === 'valid');
+          const newStatus = allVerified ? 'verified' : 'in_progress';
+          
+          // Update session status in database
+          await apiRequest(`/api/sessions/${sessionId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ status: newStatus })
+          });
+          
+          // Invalidate session query to update UI
+          queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
+        }
+      }, 100);
       
       toast({
         title: "Field updated",
@@ -265,7 +268,7 @@ export default function SessionView() {
                       {collection.properties.map((property) => {
                         const value = item[property.propertyName];
                         if (value !== undefined) {
-                          const fieldName = `${collection.collectionName}.${property.propertyName}`;
+                          const fieldName = `${collection.collectionName}.${property.propertyName}[${index}]`;
                           return renderFieldWithValidation(fieldName, value);
                         }
                         return null;
