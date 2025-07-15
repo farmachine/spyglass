@@ -190,16 +190,13 @@ export default function AllData({ project }: AllDataProps) {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {session.extractedData ? (
-                        <Link href={`/projects/${project.id}/sessions/${session.id}`}>
-                          <Button size="sm" variant="outline">
-                            <ExternalLink className="h-4 w-4 mr-2" />
-                            Open
-                          </Button>
-                        </Link>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">No data</span>
-                      )}
+                      {/* Always show Open button for sessions with validations */}
+                      <Link href={`/projects/${project.id}/sessions/${session.id}`}>
+                        <Button size="sm" variant="outline">
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          Open
+                        </Button>
+                      </Link>
                     </TableCell>
                   </TableRow>
                 ))}
