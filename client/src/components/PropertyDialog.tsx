@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -60,12 +61,24 @@ export default function PropertyDialog({
   const form = useForm<PropertyForm>({
     resolver: zodResolver(propertyFormSchema),
     defaultValues: {
-      propertyName: property?.propertyName || "",
-      propertyType: (property?.propertyType as typeof propertyTypes[number]) || "TEXT",
-      description: property?.description || "",
-      orderIndex: property?.orderIndex || 0,
+      propertyName: "",
+      propertyType: "TEXT",
+      description: "",
+      orderIndex: 0,
     },
   });
+
+  // Reset form with new values when property prop changes
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        propertyName: property?.propertyName || "",
+        propertyType: (property?.propertyType as typeof propertyTypes[number]) || "TEXT",
+        description: property?.description || "",
+        orderIndex: property?.orderIndex || 0,
+      });
+    }
+  }, [property, open, form]);
 
   const handleSubmit = async (data: PropertyForm) => {
     try {

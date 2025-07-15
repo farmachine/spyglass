@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -58,12 +59,24 @@ export default function SchemaFieldDialog({
   const form = useForm<SchemaFieldForm>({
     resolver: zodResolver(schemaFieldFormSchema),
     defaultValues: {
-      fieldName: field?.fieldName || "",
-      fieldType: (field?.fieldType as typeof fieldTypes[number]) || "TEXT",
-      description: field?.description || "",
-      orderIndex: field?.orderIndex || 0,
+      fieldName: "",
+      fieldType: "TEXT",
+      description: "",
+      orderIndex: 0,
     },
   });
+
+  // Reset form with new values when field prop changes
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        fieldName: field?.fieldName || "",
+        fieldType: (field?.fieldType as typeof fieldTypes[number]) || "TEXT",
+        description: field?.description || "",
+        orderIndex: field?.orderIndex || 0,
+      });
+    }
+  }, [field, open, form]);
 
   const handleSubmit = async (data: SchemaFieldForm) => {
     try {

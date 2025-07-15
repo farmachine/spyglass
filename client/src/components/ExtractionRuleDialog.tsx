@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -61,14 +62,26 @@ export default function ExtractionRuleDialog({
   const form = useForm<ExtractionRuleForm>({
     resolver: zodResolver(extractionRuleFormSchema),
     defaultValues: {
-      ruleName: rule?.ruleName || "",
-      targetFields: rule?.targetField ? 
-        (rule.targetField === "" ? [] : rule.targetField.split(", ").filter(f => f.trim() !== "")) : 
-        [],
-      ruleContent: rule?.ruleContent || "",
-      isActive: rule?.isActive ?? true,
+      ruleName: "",
+      targetFields: [],
+      ruleContent: "",
+      isActive: true,
     },
   });
+
+  // Reset form with new values when rule prop changes
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        ruleName: rule?.ruleName || "",
+        targetFields: rule?.targetField ? 
+          (rule.targetField === "" ? [] : rule.targetField.split(", ").filter(f => f.trim() !== "")) : 
+          [],
+        ruleContent: rule?.ruleContent || "",
+        isActive: rule?.isActive ?? true,
+      });
+    }
+  }, [rule, open, form]);
 
   // Build target field options from project schema
   const targetFieldOptions = [

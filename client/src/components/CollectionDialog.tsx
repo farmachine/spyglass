@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -48,11 +49,22 @@ export default function CollectionDialog({
   const form = useForm<CollectionForm>({
     resolver: zodResolver(collectionFormSchema),
     defaultValues: {
-      collectionName: collection?.collectionName || "",
-      description: collection?.description || "",
-      orderIndex: collection?.orderIndex || 0,
+      collectionName: "",
+      description: "",
+      orderIndex: 0,
     },
   });
+
+  // Reset form with new values when collection prop changes
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        collectionName: collection?.collectionName || "",
+        description: collection?.description || "",
+        orderIndex: collection?.orderIndex || 0,
+      });
+    }
+  }, [collection, open, form]);
 
   const handleSubmit = async (data: CollectionForm) => {
     try {
