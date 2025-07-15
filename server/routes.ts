@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { spawn } from "child_process";
 import { storage } from "./storage";
 import { 
   insertProjectSchema,
@@ -424,8 +425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sessionId = parseInt(req.params.sessionId);
       const { files, project_data } = req.body;
       
-      // Import the Python AI extraction module
-      const { spawn } = require('child_process');
+      // Use the imported spawn function
       
       // Prepare data for Python script
       const extractionData = {
