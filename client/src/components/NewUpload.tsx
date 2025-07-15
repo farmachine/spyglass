@@ -1,80 +1,440 @@
-import { Upload, Plus, FileText, X } from "lucide-react";
+import React, { useState, useCallback } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Upload, X, FileText, AlertCircle, Play, CheckCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useCreateExtractionSession } from "@/hooks/useExtractionSessions";
 import type { ProjectWithDetails } from "@shared/schema";
+
+const uploadFormSchema = z.object({
+  sessionName: z.string().min(1, "Session name is required"),
+  description: z.string().optional(),
+  files: z.any().optional(),
+});
+
+type UploadForm = z.infer<typeof uploadFormSchema>;
 
 interface NewUploadProps {
   project: ProjectWithDetails;
 }
 
+const ACCEPTED_FILE_TYPES = [
+  ".pdf", ".docx", ".doc", ".txt", ".xlsx", ".xls", ".csv"
+];
+
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+const MAX_FILES = 10;
+
+interface UploadedFile {
+  file: File;
+  id: string;
+  status: "pending" | "uploading" | "processing" | "completed" | "error";
+  progress: number;
+  error?: string;
+}
+
 export default function NewUpload({ project }: NewUploadProps) {
+  const [selectedFiles, setSelectedFiles] = useState<UploadedFile[]>([]);
+  const [dragActive, setDragActive] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  const createExtractionSession = useCreateExtractionSession(project.id);
+
+  const form = useForm<UploadForm>({
+    resolver: zodResolver(uploadFormSchema),
+    defaultValues: {
+      sessionName: "",
+      description: "",
+    },
+  });
+
+  const validateFile = (file: File): string | null => {
+    const extension = `.${file.name.split('.').pop()?.toLowerCase()}`;
+    
+    if (!ACCEPTED_FILE_TYPES.includes(extension)) {
+      return `File type ${extension} is not supported. Please use: ${ACCEPTED_FILE_TYPES.join(", ")}`;
+    }
+    
+    if (file.size > MAX_FILE_SIZE) {
+      return `File size must be less than ${MAX_FILE_SIZE / (1024 * 1024)}MB`;
+    }
+    
+    return null;
+  };
+
+  const handleFilesSelect = useCallback((files: FileList) => {
+    const newFiles: UploadedFile[] = [];
+    const errors: string[] = [];
+
+    if (selectedFiles.length + files.length > MAX_FILES) {
+      errors.push(`Maximum ${MAX_FILES} files allowed`);
+      return;
+    }
+
+    Array.from(files).forEach((file) => {
+      const error = validateFile(file);
+      if (error) {
+        errors.push(`${file.name}: ${error}`);
+        return;
+      }
+
+      const isDuplicate = selectedFiles.some(f => f.file.name === file.name && f.file.size === file.size);
+      if (isDuplicate) {
+        errors.push(`${file.name}: File already selected`);
+        return;
+      }
+
+      newFiles.push({
+        file,
+        id: Math.random().toString(36).substr(2, 9),
+        status: "pending",
+        progress: 0,
+      });
+    });
+
+    if (errors.length > 0) {
+      // In a real app, show these errors in a toast or alert
+      console.error("File validation errors:", errors);
+    }
+
+    setSelectedFiles(prev => [...prev, ...newFiles]);
+  }, [selectedFiles]);
+
+  const handleDrag = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files) {
+      handleFilesSelect(e.dataTransfer.files);
+    }
+  }, [handleFilesSelect]);
+
+  const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      handleFilesSelect(e.target.files);
+    }
+  }, [handleFilesSelect]);
+
+  const removeFile = (id: string) => {
+    setSelectedFiles(prev => prev.filter(f => f.id !== id));
+  };
+
+  const simulateFileProcessing = async (files: UploadedFile[]) => {
+    // Simulate file upload and processing
+    for (const fileData of files) {
+      setSelectedFiles(prev => prev.map(f => 
+        f.id === fileData.id ? { ...f, status: "uploading" } : f
+      ));
+
+      // Simulate upload progress
+      for (let progress = 0; progress <= 100; progress += 10) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        setSelectedFiles(prev => prev.map(f => 
+          f.id === fileData.id ? { ...f, progress } : f
+        ));
+      }
+
+      setSelectedFiles(prev => prev.map(f => 
+        f.id === fileData.id ? { ...f, status: "processing" } : f
+      ));
+
+      // Simulate processing time
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      setSelectedFiles(prev => prev.map(f => 
+        f.id === fileData.id ? { ...f, status: "completed", progress: 100 } : f
+      ));
+    }
+  };
+
+  const handleSubmit = async (data: UploadForm) => {
+    if (selectedFiles.length === 0) {
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      // Create extraction session
+      await createExtractionSession.mutateAsync({
+        sessionName: data.sessionName,
+        description: data.description || null,
+        documentCount: selectedFiles.length,
+        status: "in_progress",
+      });
+
+      // Simulate file processing
+      await simulateFileProcessing(selectedFiles);
+
+      // Reset form
+      form.reset();
+      setSelectedFiles([]);
+    } catch (error) {
+      console.error("Failed to start extraction session:", error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const canStartExtraction = selectedFiles.length > 0 && 
+    (project.schemaFields.length > 0 || project.collections.length > 0);
+
+  const getStatusIcon = (status: UploadedFile['status']) => {
+    switch (status) {
+      case "pending": return <Clock className="h-4 w-4 text-gray-400" />;
+      case "uploading": case "processing": return <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full" />;
+      case "completed": return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case "error": return <AlertCircle className="h-4 w-4 text-red-600" />;
+      default: return null;
+    }
+  };
+
+  const getStatusText = (status: UploadedFile['status']) => {
+    switch (status) {
+      case "pending": return "Ready";
+      case "uploading": return "Uploading...";
+      case "processing": return "Processing...";
+      case "completed": return "Complete";
+      case "error": return "Error";
+      default: return status;
+    }
+  };
+
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h2 className="text-2xl font-semibold text-gray-900">New Upload</h2>
-          <p className="text-sm text-gray-600 mt-1">
-            Upload documents to extract data for this project
-          </p>
-        </div>
-        <Button className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="h-4 w-4 mr-2" />
-          Add More Documents
-        </Button>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-semibold text-gray-900">New Upload</h2>
+        <p className="text-gray-600 mt-1">
+          Upload documents for AI-powered data extraction using your defined schema.
+        </p>
       </div>
 
-      {/* Upload Section */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Document Upload</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
-            <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Drop files here or click to browse
-            </h3>
-            <p className="text-sm text-gray-500">
-              Supports PDF, DOC, DOCX, XLS, XLSX files
-            </p>
-          </div>
+      {!canStartExtraction && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            You need to define at least one schema field or object collection in the "Define Data" tab before uploading documents.
+          </AlertDescription>
+        </Alert>
+      )}
 
-          {/* Sample uploaded files - this would be dynamic */}
-          <div className="mt-6">
-            <h4 className="text-sm font-medium text-gray-900 mb-3">Uploaded Files</h4>
-            <div className="flex flex-wrap gap-3">
-              {/* This would be populated from actual uploads */}
-              <div className="flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-2 rounded-md text-sm">
-                <FileText className="h-4 w-4" />
-                sample_document.pdf
-                <button className="text-red-500 hover:text-red-700">
-                  <X className="h-4 w-4" />
-                </button>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Upload Area */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Upload Documents</CardTitle>
+            <CardDescription>
+              Select or drag files to start the extraction process
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div
+              className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                dragActive 
+                  ? "border-blue-500 bg-blue-50" 
+                  : "border-gray-300 hover:border-gray-400"
+              }`}
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+            >
+              <Upload className="h-8 w-8 text-gray-400 mx-auto mb-4" />
+              <div>
+                <p className="text-lg font-medium text-gray-900">
+                  Drop files here, or{" "}
+                  <label className="text-blue-600 hover:text-blue-500 cursor-pointer">
+                    browse
+                    <input
+                      type="file"
+                      className="hidden"
+                      multiple
+                      accept={ACCEPTED_FILE_TYPES.join(",")}
+                      onChange={handleFileInput}
+                      disabled={isProcessing}
+                    />
+                  </label>
+                </p>
+                <p className="text-sm text-gray-500 mt-2">
+                  Supports: PDF, Word, Excel, CSV, Text files (max {MAX_FILES} files, {MAX_FILE_SIZE / (1024 * 1024)}MB each)
+                </p>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Extraction Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Extraction Status</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <div className="text-gray-500 mb-4">
-              <Upload className="h-12 w-12 mx-auto opacity-50" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No documents uploaded yet
-            </h3>
-            <p className="text-sm text-gray-600">
-              Upload documents to begin data extraction based on your project schema
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+            {selectedFiles.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="font-medium text-gray-900">Selected Files ({selectedFiles.length})</h4>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {selectedFiles.map((fileData) => (
+                    <div key={fileData.id} className="flex items-center gap-3 p-2 bg-gray-50 rounded">
+                      <FileText className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {fileData.file.name}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(fileData.status)}
+                          <span className="text-xs text-gray-500">
+                            {getStatusText(fileData.status)}
+                          </span>
+                          {fileData.status === "uploading" && (
+                            <Progress value={fileData.progress} className="flex-1 h-1" />
+                          )}
+                        </div>
+                      </div>
+                      {!isProcessing && fileData.status === "pending" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile(fileData.id)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Session Configuration */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Extraction Session</CardTitle>
+            <CardDescription>
+              Configure how this upload session should be processed
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="sessionName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Session Name</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., Q4 2024 Employee Data"
+                          {...field}
+                          disabled={isProcessing}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description (Optional)</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Additional context about this upload session..."
+                          {...field}
+                          disabled={isProcessing}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="pt-4">
+                  <h4 className="font-medium text-gray-900 mb-2">Extraction Schema</h4>
+                  <div className="space-y-2">
+                    {project.schemaFields.length > 0 && (
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Project Fields ({project.schemaFields.length})</p>
+                        <div className="flex flex-wrap gap-1">
+                          {project.schemaFields.slice(0, 3).map((field) => (
+                            <Badge key={field.id} variant="outline" className="text-xs">
+                              {field.fieldName}
+                            </Badge>
+                          ))}
+                          {project.schemaFields.length > 3 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{project.schemaFields.length - 3} more
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {project.collections.length > 0 && (
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Object Collections ({project.collections.length})</p>
+                        <div className="flex flex-wrap gap-1">
+                          {project.collections.slice(0, 3).map((collection) => (
+                            <Badge key={collection.id} variant="secondary" className="text-xs">
+                              {collection.collectionName}
+                            </Badge>
+                          ))}
+                          {project.collections.length > 3 && (
+                            <Badge variant="secondary" className="text-xs">
+                              +{project.collections.length - 3} more
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <Button 
+                  type="submit" 
+                  disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
+                  className="w-full"
+                >
+                  {isProcessing ? (
+                    <>
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-4 w-4 mr-2" />
+                      Start Extraction
+                    </>
+                  )}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

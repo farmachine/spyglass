@@ -7,7 +7,8 @@ import {
   insertObjectCollectionSchema,
   insertCollectionPropertySchema,
   insertKnowledgeDocumentSchema,
-  insertExtractionRuleSchema
+  insertExtractionRuleSchema,
+  insertExtractionSessionSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -370,6 +371,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Failed to delete extraction rule" });
+    }
+  });
+
+  // Extraction Sessions
+  app.get("/api/projects/:projectId/sessions", async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const sessions = await storage.getExtractionSessions(projectId);
+      res.json(sessions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch extraction sessions" });
+    }
+  });
+
+  app.post("/api/projects/:projectId/sessions", async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const result = insertExtractionSessionSchema.safeParse({ ...req.body, projectId });
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid extraction session data", errors: result.error.errors });
+      }
+      
+      const session = await storage.createExtractionSession(result.data);
+      res.status(201).json(session);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create extraction session" });
+    }
+  });
+
+  app.patch("/api/sessions/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = insertExtractionSessionSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid extraction session data", errors: result.error.errors });
+      }
+      
+      const session = await storage.updateExtractionSession(id, result.data);
+      if (!session) {
+        return res.status(404).json({ message: "Extraction session not found" });
+      }
+      res.json(session);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update extraction session" });
     }
   });
 
