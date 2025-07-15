@@ -9,7 +9,8 @@ import {
   insertCollectionPropertySchema,
   insertKnowledgeDocumentSchema,
   insertExtractionRuleSchema,
-  insertExtractionSessionSchema
+  insertExtractionSessionSchema,
+  insertFieldValidationSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -507,6 +508,27 @@ except Exception as e:
             extractedData: JSON.stringify(result)
           });
           
+          // Create field validations from the extraction results
+          if (result.processed_documents && result.processed_documents.length > 0) {
+            for (const doc of result.processed_documents) {
+              const fieldValidations = doc.extraction_result?.field_validations || [];
+              for (const validation of fieldValidations) {
+                await storage.createFieldValidation({
+                  sessionId,
+                  fieldType: validation.field_name.includes('.') ? 'collection_property' : 'schema_field',
+                  fieldId: validation.field_id,
+                  collectionName: validation.field_name.includes('.') ? validation.field_name.split('.')[0] : null,
+                  recordIndex: 0,
+                  extractedValue: validation.extracted_value,
+                  validationStatus: validation.validation_status,
+                  aiReasoning: validation.ai_reasoning,
+                  manuallyVerified: false,
+                  confidenceScore: validation.confidence_score
+                });
+              }
+            }
+          }
+          
           res.json(result);
         } catch (parseError: any) {
           console.error('Error parsing Python output:', parseError);
@@ -520,6 +542,79 @@ except Exception as e:
     } catch (error) {
       console.error("Error processing extraction session:", error);
       res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Field Validations
+  app.get("/api/sessions/:sessionId/validations", async (req, res) => {
+    try {
+      const sessionId = parseInt(req.params.sessionId);
+      const validations = await storage.getFieldValidations(sessionId);
+      res.json(validations);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch field validations" });
+    }
+  });
+
+  app.post("/api/sessions/:sessionId/validations", async (req, res) => {
+    try {
+      const sessionId = parseInt(req.params.sessionId);
+      const result = insertFieldValidationSchema.safeParse({
+        ...req.body,
+        sessionId
+      });
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid field validation data", errors: result.error.errors });
+      }
+      
+      const validation = await storage.createFieldValidation(result.data);
+      res.status(201).json(validation);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create field validation" });
+    }
+  });
+
+  app.put("/api/validations/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = insertFieldValidationSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid validation data", errors: result.error.errors });
+      }
+      
+      const validation = await storage.updateFieldValidation(id, result.data);
+      if (!validation) {
+        return res.status(404).json({ message: "Field validation not found" });
+      }
+      res.json(validation);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update field validation" });
+    }
+  });
+
+  app.delete("/api/validations/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteFieldValidation(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Field validation not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete field validation" });
+    }
+  });
+
+  app.get("/api/sessions/:sessionId/with-validations", async (req, res) => {
+    try {
+      const sessionId = parseInt(req.params.sessionId);
+      const session = await storage.getSessionWithValidations(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      res.json(session);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch session with validations" });
     }
   });
 

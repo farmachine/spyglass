@@ -6,6 +6,7 @@ import {
   extractionSessions,
   knowledgeDocuments,
   extractionRules,
+  fieldValidations,
   type Project, 
   type InsertProject,
   type ProjectSchemaField,
@@ -20,6 +21,9 @@ import {
   type InsertKnowledgeDocument,
   type ExtractionRule,
   type InsertExtractionRule,
+  type FieldValidation,
+  type InsertFieldValidation,
+  type ExtractionSessionWithValidation,
   type ProjectWithDetails
 } from "@shared/schema";
 
@@ -66,6 +70,13 @@ export interface IStorage {
   createExtractionRule(rule: InsertExtractionRule): Promise<ExtractionRule>;
   updateExtractionRule(id: number, rule: Partial<InsertExtractionRule>): Promise<ExtractionRule | undefined>;
   deleteExtractionRule(id: number): Promise<boolean>;
+
+  // Field Validations
+  getFieldValidations(sessionId: number): Promise<FieldValidation[]>;
+  createFieldValidation(validation: InsertFieldValidation): Promise<FieldValidation>;
+  updateFieldValidation(id: number, validation: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined>;
+  deleteFieldValidation(id: number): Promise<boolean>;
+  getSessionWithValidations(sessionId: number): Promise<ExtractionSessionWithValidation | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -76,6 +87,7 @@ export class MemStorage implements IStorage {
   private extractionSessions: Map<number, ExtractionSession>;
   private knowledgeDocuments: Map<number, KnowledgeDocument>;
   private extractionRules: Map<number, ExtractionRule>;
+  private fieldValidations: Map<number, FieldValidation>;
   
   private currentProjectId: number;
   private currentFieldId: number;
@@ -84,6 +96,7 @@ export class MemStorage implements IStorage {
   private currentSessionId: number;
   private currentDocumentId: number;
   private currentRuleId: number;
+  private currentValidationId: number;
 
   constructor() {
     this.projects = new Map();
@@ -93,6 +106,7 @@ export class MemStorage implements IStorage {
     this.extractionSessions = new Map();
     this.knowledgeDocuments = new Map();
     this.extractionRules = new Map();
+    this.fieldValidations = new Map();
     
     this.currentProjectId = 1;
     this.currentFieldId = 1;
@@ -101,6 +115,7 @@ export class MemStorage implements IStorage {
     this.currentSessionId = 1;
     this.currentDocumentId = 1;
     this.currentRuleId = 1;
+    this.currentValidationId = 1;
     
     // Initialize with sample data for development
     this.initializeSampleData();
@@ -521,6 +536,53 @@ export class MemStorage implements IStorage {
 
   async deleteExtractionRule(id: number): Promise<boolean> {
     return this.extractionRules.delete(id);
+  }
+
+  // Field Validations
+  async getFieldValidations(sessionId: number): Promise<FieldValidation[]> {
+    return Array.from(this.fieldValidations.values())
+      .filter(validation => validation.sessionId === sessionId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async createFieldValidation(insertValidation: InsertFieldValidation): Promise<FieldValidation> {
+    const id = this.currentValidationId++;
+    const validation: FieldValidation = {
+      ...insertValidation,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.fieldValidations.set(id, validation);
+    return validation;
+  }
+
+  async updateFieldValidation(id: number, updateData: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined> {
+    const existingValidation = this.fieldValidations.get(id);
+    if (!existingValidation) return undefined;
+
+    const updatedValidation = { 
+      ...existingValidation, 
+      ...updateData, 
+      updatedAt: new Date() 
+    };
+    this.fieldValidations.set(id, updatedValidation);
+    return updatedValidation;
+  }
+
+  async deleteFieldValidation(id: number): Promise<boolean> {
+    return this.fieldValidations.delete(id);
+  }
+
+  async getSessionWithValidations(sessionId: number): Promise<ExtractionSessionWithValidation | undefined> {
+    const session = this.extractionSessions.get(sessionId);
+    if (!session) return undefined;
+
+    const fieldValidations = await this.getFieldValidations(sessionId);
+    return {
+      ...session,
+      fieldValidations
+    };
   }
 }
 

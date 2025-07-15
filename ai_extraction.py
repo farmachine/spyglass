@@ -11,10 +11,20 @@ from pydantic import BaseModel
 # Initialize Gemini client
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
+class FieldValidationResult(BaseModel):
+    field_id: int
+    field_name: str
+    field_type: str
+    extracted_value: Optional[str]
+    validation_status: str  # 'valid', 'invalid', 'pending'
+    ai_reasoning: Optional[str]
+    confidence_score: int  # 0-100
+
 class ExtractionResult(BaseModel):
     extracted_data: Dict[str, Any]
     confidence_score: float
     processing_notes: str
+    field_validations: List[FieldValidationResult]
 
 def extract_data_from_document(
     file_content: bytes,
@@ -76,10 +86,18 @@ def extract_data_from_document(
         # Parse the JSON response
         result_data = json.loads(response.text)
         
+        # Generate field validations for the extracted data
+        field_validations = generate_field_validations(
+            project_schema, 
+            result_data.get("extracted_data", {}), 
+            result_data.get("confidence_score", 0.0)
+        )
+        
         return ExtractionResult(
             extracted_data=result_data.get("extracted_data", {}),
             confidence_score=result_data.get("confidence_score", 0.0),
-            processing_notes=result_data.get("processing_notes", "")
+            processing_notes=result_data.get("processing_notes", ""),
+            field_validations=field_validations
         )
         
     except json.JSONDecodeError as e:
@@ -87,7 +105,8 @@ def extract_data_from_document(
         return ExtractionResult(
             extracted_data={},
             confidence_score=0.0,
-            processing_notes=f"JSON parsing error: {str(e)}"
+            processing_notes=f"JSON parsing error: {str(e)}",
+            field_validations=[]
         )
     except Exception as e:
         logging.error(f"Error during document extraction: {e}")
@@ -96,7 +115,8 @@ def extract_data_from_document(
         return ExtractionResult(
             extracted_data={},
             confidence_score=0.0,
-            processing_notes=f"Extraction error: {str(e)}"
+            processing_notes=f"Extraction error: {str(e)}",
+            field_validations=[]
         )
 
 def create_demo_extraction_result(project_schema: Dict[str, Any], file_name: str) -> ExtractionResult:
@@ -144,10 +164,14 @@ def create_demo_extraction_result(project_schema: Dict[str, Any], file_name: str
             
             extracted_data[collection_name] = collection_data
     
+    # Generate demo field validations
+    field_validations = generate_field_validations(project_schema, extracted_data, 0.85)
+    
     return ExtractionResult(
         extracted_data=extracted_data,
         confidence_score=0.85,
-        processing_notes=f"Demo extraction completed for {file_name}. Set GEMINI_API_KEY environment variable to use real AI extraction."
+        processing_notes=f"Demo extraction completed for {file_name}. Set GEMINI_API_KEY environment variable to use real AI extraction.",
+        field_validations=field_validations
     )
 
 def build_extraction_prompt(
@@ -221,6 +245,119 @@ Analyze the document now and provide the extracted data in the exact JSON format
     
     return prompt
 
+def generate_field_validations(
+    project_schema: Dict[str, Any], 
+    extracted_data: Dict[str, Any], 
+    overall_confidence: float
+) -> List[FieldValidationResult]:
+    """Generate field validation results based on extracted data"""
+    
+    validations = []
+    
+    # Validate schema fields
+    if project_schema.get("schema_fields"):
+        for field in project_schema["schema_fields"]:
+            field_id = field.get("id", 0)
+            field_name = field.get("fieldName", "")
+            field_type = field.get("fieldType", "TEXT")
+            
+            extracted_value = extracted_data.get(field_name)
+            validation = create_field_validation(
+                field_id, field_name, field_type, extracted_value, overall_confidence
+            )
+            validations.append(validation)
+    
+    # Validate collection properties
+    if project_schema.get("collections"):
+        for collection in project_schema["collections"]:
+            collection_name = collection.get("collectionName", "")
+            collection_data = extracted_data.get(collection_name, [])
+            
+            if isinstance(collection_data, list):
+                for record_index, record in enumerate(collection_data):
+                    for prop in collection.get("properties", []):
+                        prop_id = prop.get("id", 0)
+                        prop_name = prop.get("propertyName", "")
+                        prop_type = prop.get("propertyType", "TEXT")
+                        
+                        extracted_value = record.get(prop_name) if isinstance(record, dict) else None
+                        validation = create_field_validation(
+                            prop_id, prop_name, prop_type, extracted_value, overall_confidence,
+                            is_collection=True, collection_name=collection_name, record_index=record_index
+                        )
+                        validations.append(validation)
+    
+    return validations
+
+def create_field_validation(
+    field_id: int, 
+    field_name: str, 
+    field_type: str, 
+    extracted_value: Any, 
+    overall_confidence: float,
+    is_collection: bool = False,
+    collection_name: str = "",
+    record_index: int = 0
+) -> FieldValidationResult:
+    """Create a field validation result with AI reasoning"""
+    
+    validation_status = "pending"
+    ai_reasoning = None
+    confidence_score = int(overall_confidence * 100)
+    
+    # Determine validation status based on extracted value
+    if extracted_value is None or extracted_value == "":
+        validation_status = "invalid"
+        context = f"collection '{collection_name}' record {record_index + 1}" if is_collection else "document"
+        ai_reasoning = f"Could not locate {field_name} information in the {context}. Field appears to be missing or not clearly stated in the provided documents."
+        confidence_score = 0
+    else:
+        # Validate based on field type
+        if field_type == "NUMBER":
+            try:
+                float(str(extracted_value))
+                validation_status = "valid"
+                ai_reasoning = f"Successfully extracted numeric value: {extracted_value}"
+            except (ValueError, TypeError):
+                validation_status = "invalid"
+                ai_reasoning = f"Extracted value '{extracted_value}' is not a valid number format"
+                confidence_score = 0
+        elif field_type == "DATE":
+            # Simple date validation
+            if isinstance(extracted_value, str) and len(extracted_value) >= 8:
+                validation_status = "valid"
+                ai_reasoning = f"Successfully extracted date value: {extracted_value}"
+            else:
+                validation_status = "invalid"
+                ai_reasoning = f"Extracted value '{extracted_value}' does not appear to be a valid date format"
+                confidence_score = 0
+        elif field_type == "BOOLEAN":
+            if isinstance(extracted_value, bool) or str(extracted_value).lower() in ['true', 'false', 'yes', 'no']:
+                validation_status = "valid"
+                ai_reasoning = f"Successfully extracted boolean value: {extracted_value}"
+            else:
+                validation_status = "invalid"
+                ai_reasoning = f"Extracted value '{extracted_value}' is not a valid boolean (true/false)"
+                confidence_score = 0
+        else:  # TEXT
+            if isinstance(extracted_value, str) and len(extracted_value.strip()) > 0:
+                validation_status = "valid"
+                ai_reasoning = f"Successfully extracted text value: {extracted_value}"
+            else:
+                validation_status = "invalid"
+                ai_reasoning = f"Extracted text value is empty or invalid"
+                confidence_score = 0
+    
+    return FieldValidationResult(
+        field_id=field_id,
+        field_name=field_name,
+        field_type=field_type,
+        extracted_value=str(extracted_value) if extracted_value is not None else None,
+        validation_status=validation_status,
+        ai_reasoning=ai_reasoning,
+        confidence_score=confidence_score
+    )
+
 def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Process an entire extraction session with multiple documents
@@ -288,7 +425,8 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
                 extraction_result = ExtractionResult(
                     extracted_data={},
                     confidence_score=0.0,
-                    processing_notes=f"No content received for file: {file_name}"
+                    processing_notes=f"No content received for file: {file_name}",
+                    field_validations=[]
                 )
             else:
                 # Extract data from the document
@@ -324,7 +462,8 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
                 "extraction_result": {
                     "extracted_data": {},
                     "confidence_score": 0.0,
-                    "processing_notes": f"Processing error: {str(e)}"
+                    "processing_notes": f"Processing error: {str(e)}",
+                    "field_validations": []
                 },
                 "status": "error"
             })

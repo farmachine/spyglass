@@ -1,10 +1,11 @@
-import React from "react";
-import { Database, CheckCircle, Clock, ExternalLink, Calendar } from "lucide-react";
+import React, { useState } from "react";
+import { Database, CheckCircle, Clock, ExternalLink, Calendar, ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Link } from "wouter";
+import SessionView from "./SessionView";
 import type { ProjectWithDetails } from "@shared/schema";
 
 interface AllDataProps {
@@ -12,6 +13,8 @@ interface AllDataProps {
 }
 
 export default function AllData({ project }: AllDataProps) {
+  const [selectedSession, setSelectedSession] = useState<number | null>(null);
+  
   const formatDate = (date: Date | string) => {
     return new Date(date).toLocaleDateString('en-US', {
       month: 'short',
@@ -21,6 +24,26 @@ export default function AllData({ project }: AllDataProps) {
       minute: '2-digit'
     });
   };
+
+  // If a session is selected, show its detailed view
+  if (selectedSession) {
+    return (
+      <div>
+        <div className="mb-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSelectedSession(null)}
+            className="mb-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to All Sessions
+          </Button>
+        </div>
+        <SessionView sessionId={selectedSession} project={project} />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -132,12 +155,14 @@ export default function AllData({ project }: AllDataProps) {
                     </TableCell>
                     <TableCell>
                       {session.extractedData ? (
-                        <Link href={`/projects/${project.id}/sessions/${session.id}`}>
-                          <Button size="sm" variant="outline">
-                            <ExternalLink className="h-4 w-4 mr-2" />
-                            Open
-                          </Button>
-                        </Link>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => setSelectedSession(session.id)}
+                        >
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          Open
+                        </Button>
                       ) : (
                         <span className="text-sm text-muted-foreground">No data</span>
                       )}

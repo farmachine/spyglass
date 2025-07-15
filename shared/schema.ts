@@ -48,6 +48,23 @@ export const extractionSessions = pgTable("extraction_sessions", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// New table for field-level validation tracking
+export const fieldValidations = pgTable("field_validations", {
+  id: serial("id").primaryKey(),
+  sessionId: integer("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
+  fieldType: text("field_type").notNull(), // 'schema_field' or 'collection_property'
+  fieldId: integer("field_id").notNull(), // references projectSchemaFields.id or collectionProperties.id
+  collectionName: text("collection_name"), // for collection properties only
+  recordIndex: integer("record_index").default(0), // for collection properties, which record instance
+  extractedValue: text("extracted_value"),
+  validationStatus: text("validation_status").default("pending").notNull(), // 'valid', 'invalid', 'pending', 'manual'
+  aiReasoning: text("ai_reasoning"), // AI explanation for validation status
+  manuallyVerified: boolean("manually_verified").default(false).notNull(),
+  confidenceScore: integer("confidence_score").default(0), // 0-100
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const knowledgeDocuments = pgTable("knowledge_documents", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
@@ -105,6 +122,12 @@ export const insertExtractionRuleSchema = createInsertSchema(extractionRules).om
   createdAt: true,
 });
 
+export const insertFieldValidationSchema = createInsertSchema(fieldValidations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type Project = typeof projects.$inferSelect;
 export type InsertProject = z.infer<typeof insertProjectSchema>;
@@ -120,6 +143,11 @@ export type KnowledgeDocument = typeof knowledgeDocuments.$inferSelect;
 export type InsertKnowledgeDocument = z.infer<typeof insertKnowledgeDocumentSchema>;
 export type ExtractionRule = typeof extractionRules.$inferSelect;
 export type InsertExtractionRule = z.infer<typeof insertExtractionRuleSchema>;
+export type FieldValidation = typeof fieldValidations.$inferSelect;
+export type InsertFieldValidation = z.infer<typeof insertFieldValidationSchema>;
+
+// Validation status types
+export type ValidationStatus = 'valid' | 'invalid' | 'pending' | 'manual';
 
 // Extended types with relations
 export type ProjectWithDetails = Project & {
@@ -130,4 +158,27 @@ export type ProjectWithDetails = Project & {
   sessions: ExtractionSession[];
   knowledgeDocuments: KnowledgeDocument[];
   extractionRules: ExtractionRule[];
+};
+
+// Enhanced extraction session with validation data
+export type ExtractionSessionWithValidation = ExtractionSession & {
+  fieldValidations: FieldValidation[];
+};
+
+// Enhanced field types with validation
+export type ValidatedField = {
+  fieldId: number;
+  fieldName: string;
+  fieldType: string;
+  extractedValue: string | null;
+  validationStatus: ValidationStatus;
+  aiReasoning: string | null;
+  manuallyVerified: boolean;
+  confidenceScore: number;
+};
+
+export type ValidatedCollectionRecord = {
+  recordIndex: number;
+  collectionName: string;
+  properties: ValidatedField[];
 };
