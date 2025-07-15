@@ -250,7 +250,10 @@ export default function NewUpload({ project }: NewUploadProps) {
       });
 
       // Redirect to session view for record review
-      setLocation(`/projects/${project.id}/sessions/${session.id}`);
+      // Use setTimeout to ensure query invalidations don't interfere with navigation
+      setTimeout(() => {
+        setLocation(`/projects/${project.id}/sessions/${session.id}`);
+      }, 100);
       
       // Reset form
       form.reset();

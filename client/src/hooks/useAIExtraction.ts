@@ -28,8 +28,11 @@ export function useProcessExtraction() {
     },
     onSuccess: (_, { project_data }) => {
       if (project_data?.id) {
-        queryClient.invalidateQueries({ queryKey: ["/api/projects", project_data.id] });
-        queryClient.invalidateQueries({ queryKey: ["/api/projects", project_data.id, "sessions"] });
+        // Delay query invalidation to avoid interfering with navigation
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ["/api/projects", project_data.id] });
+          queryClient.invalidateQueries({ queryKey: ["/api/projects", project_data.id, "sessions"] });
+        }, 200);
       }
     },
   });
