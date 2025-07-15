@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Edit3 } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -283,25 +283,95 @@ export default function SessionView() {
     );
   };
 
+  const navItems = [
+    { id: "upload", label: "New Upload", icon: Upload, href: `/projects/${projectId}?tab=upload` },
+    { id: "data", label: "All Data", icon: Database, href: `/projects/${projectId}?tab=all-data` },
+    { id: "knowledge", label: "Knowledge/Rules", icon: Brain, href: `/projects/${projectId}?tab=knowledge` },
+    { id: "define", label: "Define Data", icon: Settings, href: `/projects/${projectId}?tab=define` },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto py-8 px-4">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <Link href={`/projects/${projectId}`}>
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Project
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{session.sessionName}</h1>
-            <p className="text-gray-600">{session.description}</p>
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="flex items-center gap-4">
+            <Link href="/">
+              <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                <Home className="h-4 w-4" />
+                Dashboard
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-900">
+                {session.sessionName}
+              </h1>
+              {session.description && (
+                <p className="text-sm text-gray-600 mt-1">
+                  {session.description}
+                </p>
+              )}
+            </div>
+            <Badge variant={getSessionStatus() === 'verified' ? 'default' : 'secondary'}>
+              {getSessionStatus() === 'verified' ? 'Verified' : 'In Progress'}
+            </Badge>
           </div>
-          <Badge variant={getSessionStatus() === 'verified' ? 'default' : 'secondary'}>
-            {getSessionStatus() === 'verified' ? 'Verified' : 'In Progress'}
-          </Badge>
         </div>
+      </div>
+
+      <div className="flex h-[calc(100vh-80px)]">
+        {/* Sidebar */}
+        <div className="w-64 bg-white border-r border-gray-200">
+          <div className="p-6">
+            <div className="mb-6">
+              <div className="text-lg font-semibold text-gray-900 mb-1">
+                {project.name}
+              </div>
+              <div className="text-sm text-gray-600">
+                {project.description || "Data extraction project"}
+              </div>
+            </div>
+
+            <nav className="space-y-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = item.id === 'data'; // Highlight "All Data" since we're in session view
+                
+                return (
+                  <Link key={item.id} href={item.href}>
+                    <button
+                      className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                        isActive
+                          ? "bg-blue-50 text-blue-700 border-l-4 border-blue-600 ml-[-1px]"
+                          : "text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      <Icon className={`h-4 w-4 ${isActive ? "text-blue-600" : "text-gray-400"}`} />
+                      {item.label}
+                    </button>
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 p-8">
+          <div className="max-w-4xl mx-auto">
+            {/* Session Header */}
+            <div className="flex items-center gap-4 mb-8">
+              <Link href={`/projects/${projectId}?tab=all-data`}>
+                <Button variant="outline" size="sm">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to All Data
+                </Button>
+              </Link>
+              <div className="flex-1">
+                <h2 className="text-2xl font-bold text-gray-900">Record Review</h2>
+                <p className="text-gray-600">Review and verify extracted data</p>
+              </div>
+            </div>
 
         {/* Project Schema Fields */}
         <Card className="mb-8">
@@ -350,6 +420,8 @@ export default function SessionView() {
             </Card>
           );
         })}
+          </div>
+        </div>
       </div>
     </div>
   );

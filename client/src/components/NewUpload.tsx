@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Upload, X, FileText, AlertCircle, Play, CheckCircle, Clock } from "lucide-react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +55,7 @@ export default function NewUpload({ project }: NewUploadProps) {
   const [selectedFiles, setSelectedFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [, setLocation] = useLocation();
   
   const createExtractionSession = useCreateExtractionSession(project.id);
   const processExtraction = useProcessExtraction();
@@ -247,6 +249,9 @@ export default function NewUpload({ project }: NewUploadProps) {
         description: `${selectedFiles.length} file(s) processed and data extracted successfully.`,
       });
 
+      // Redirect to session view for record review
+      setLocation(`/projects/${project.id}/sessions/${session.id}`);
+      
       // Reset form
       form.reset();
       setSelectedFiles([]);
