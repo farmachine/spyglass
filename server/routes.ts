@@ -5,7 +5,9 @@ import {
   insertProjectSchema,
   insertProjectSchemaFieldSchema,
   insertObjectCollectionSchema,
-  insertCollectionPropertySchema
+  insertCollectionPropertySchema,
+  insertKnowledgeDocumentSchema,
+  insertExtractionRuleSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -254,6 +256,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Failed to delete property" });
+    }
+  });
+
+  // Knowledge Documents
+  app.get("/api/projects/:projectId/knowledge", async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const documents = await storage.getKnowledgeDocuments(projectId);
+      res.json(documents);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch knowledge documents" });
+    }
+  });
+
+  app.post("/api/projects/:projectId/knowledge", async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const result = insertKnowledgeDocumentSchema.safeParse({ ...req.body, projectId });
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid knowledge document data", errors: result.error.errors });
+      }
+      
+      const document = await storage.createKnowledgeDocument(result.data);
+      res.status(201).json(document);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create knowledge document" });
+    }
+  });
+
+  app.patch("/api/knowledge/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = insertKnowledgeDocumentSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid knowledge document data", errors: result.error.errors });
+      }
+      
+      const document = await storage.updateKnowledgeDocument(id, result.data);
+      if (!document) {
+        return res.status(404).json({ message: "Knowledge document not found" });
+      }
+      res.json(document);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update knowledge document" });
+    }
+  });
+
+  app.delete("/api/knowledge/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteKnowledgeDocument(id);
+      if (!success) {
+        return res.status(404).json({ message: "Knowledge document not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete knowledge document" });
+    }
+  });
+
+  // Extraction Rules
+  app.get("/api/projects/:projectId/rules", async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const rules = await storage.getExtractionRules(projectId);
+      res.json(rules);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch extraction rules" });
+    }
+  });
+
+  app.post("/api/projects/:projectId/rules", async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const result = insertExtractionRuleSchema.safeParse({ ...req.body, projectId });
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid extraction rule data", errors: result.error.errors });
+      }
+      
+      const rule = await storage.createExtractionRule(result.data);
+      res.status(201).json(rule);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create extraction rule" });
+    }
+  });
+
+  app.patch("/api/rules/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = insertExtractionRuleSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid extraction rule data", errors: result.error.errors });
+      }
+      
+      const rule = await storage.updateExtractionRule(id, result.data);
+      if (!rule) {
+        return res.status(404).json({ message: "Extraction rule not found" });
+      }
+      res.json(rule);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update extraction rule" });
+    }
+  });
+
+  app.delete("/api/rules/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteExtractionRule(id);
+      if (!success) {
+        return res.status(404).json({ message: "Extraction rule not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete extraction rule" });
     }
   });
 

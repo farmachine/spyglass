@@ -4,6 +4,8 @@ import {
   objectCollections, 
   collectionProperties, 
   extractionSessions,
+  knowledgeDocuments,
+  extractionRules,
   type Project, 
   type InsertProject,
   type ProjectSchemaField,
@@ -14,6 +16,10 @@ import {
   type InsertCollectionProperty,
   type ExtractionSession,
   type InsertExtractionSession,
+  type KnowledgeDocument,
+  type InsertKnowledgeDocument,
+  type ExtractionRule,
+  type InsertExtractionRule,
   type ProjectWithDetails
 } from "@shared/schema";
 
@@ -48,6 +54,18 @@ export interface IStorage {
   getExtractionSessions(projectId: number): Promise<ExtractionSession[]>;
   createExtractionSession(session: InsertExtractionSession): Promise<ExtractionSession>;
   updateExtractionSession(id: number, session: Partial<InsertExtractionSession>): Promise<ExtractionSession | undefined>;
+
+  // Knowledge Documents
+  getKnowledgeDocuments(projectId: number): Promise<KnowledgeDocument[]>;
+  createKnowledgeDocument(document: InsertKnowledgeDocument): Promise<KnowledgeDocument>;
+  updateKnowledgeDocument(id: number, document: Partial<InsertKnowledgeDocument>): Promise<KnowledgeDocument | undefined>;
+  deleteKnowledgeDocument(id: number): Promise<boolean>;
+
+  // Extraction Rules
+  getExtractionRules(projectId: number): Promise<ExtractionRule[]>;
+  createExtractionRule(rule: InsertExtractionRule): Promise<ExtractionRule>;
+  updateExtractionRule(id: number, rule: Partial<InsertExtractionRule>): Promise<ExtractionRule | undefined>;
+  deleteExtractionRule(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -56,12 +74,16 @@ export class MemStorage implements IStorage {
   private objectCollections: Map<number, ObjectCollection>;
   private collectionProperties: Map<number, CollectionProperty>;
   private extractionSessions: Map<number, ExtractionSession>;
+  private knowledgeDocuments: Map<number, KnowledgeDocument>;
+  private extractionRules: Map<number, ExtractionRule>;
   
   private currentProjectId: number;
   private currentFieldId: number;
   private currentCollectionId: number;
   private currentPropertyId: number;
   private currentSessionId: number;
+  private currentDocumentId: number;
+  private currentRuleId: number;
 
   constructor() {
     this.projects = new Map();
@@ -69,12 +91,16 @@ export class MemStorage implements IStorage {
     this.objectCollections = new Map();
     this.collectionProperties = new Map();
     this.extractionSessions = new Map();
+    this.knowledgeDocuments = new Map();
+    this.extractionRules = new Map();
     
     this.currentProjectId = 1;
     this.currentFieldId = 1;
     this.currentCollectionId = 1;
     this.currentPropertyId = 1;
     this.currentSessionId = 1;
+    this.currentDocumentId = 1;
+    this.currentRuleId = 1;
   }
 
   // Projects
@@ -110,11 +136,21 @@ export class MemStorage implements IStorage {
       .filter(session => session.projectId === id)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
+    const knowledgeDocuments = Array.from(this.knowledgeDocuments.values())
+      .filter(doc => doc.projectId === id)
+      .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+
+    const extractionRules = Array.from(this.extractionRules.values())
+      .filter(rule => rule.projectId === id)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
     return {
       ...project,
       schemaFields,
       collections,
-      sessions
+      sessions,
+      knowledgeDocuments,
+      extractionRules
     };
   }
 
@@ -292,6 +328,70 @@ export class MemStorage implements IStorage {
     const updatedSession = { ...session, ...updateData };
     this.extractionSessions.set(id, updatedSession);
     return updatedSession;
+  }
+
+  // Knowledge Documents
+  async getKnowledgeDocuments(projectId: number): Promise<KnowledgeDocument[]> {
+    return Array.from(this.knowledgeDocuments.values())
+      .filter(doc => doc.projectId === projectId)
+      .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+  }
+
+  async createKnowledgeDocument(insertDocument: InsertKnowledgeDocument): Promise<KnowledgeDocument> {
+    const id = this.currentDocumentId++;
+    const document: KnowledgeDocument = {
+      ...insertDocument,
+      id,
+      uploadedAt: new Date(),
+    };
+    this.knowledgeDocuments.set(id, document);
+    return document;
+  }
+
+  async updateKnowledgeDocument(id: number, updateData: Partial<InsertKnowledgeDocument>): Promise<KnowledgeDocument | undefined> {
+    const existingDocument = this.knowledgeDocuments.get(id);
+    if (!existingDocument) return undefined;
+
+    const updatedDocument = { ...existingDocument, ...updateData };
+    this.knowledgeDocuments.set(id, updatedDocument);
+    return updatedDocument;
+  }
+
+  async deleteKnowledgeDocument(id: number): Promise<boolean> {
+    return this.knowledgeDocuments.delete(id);
+  }
+
+  // Extraction Rules
+  async getExtractionRules(projectId: number): Promise<ExtractionRule[]> {
+    return Array.from(this.extractionRules.values())
+      .filter(rule => rule.projectId === projectId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async createExtractionRule(insertRule: InsertExtractionRule): Promise<ExtractionRule> {
+    const id = this.currentRuleId++;
+    const rule: ExtractionRule = {
+      ...insertRule,
+      id,
+      targetField: insertRule.targetField || null,
+      isActive: insertRule.isActive ?? true,
+      createdAt: new Date(),
+    };
+    this.extractionRules.set(id, rule);
+    return rule;
+  }
+
+  async updateExtractionRule(id: number, updateData: Partial<InsertExtractionRule>): Promise<ExtractionRule | undefined> {
+    const existingRule = this.extractionRules.get(id);
+    if (!existingRule) return undefined;
+
+    const updatedRule = { ...existingRule, ...updateData };
+    this.extractionRules.set(id, updatedRule);
+    return updatedRule;
+  }
+
+  async deleteExtractionRule(id: number): Promise<boolean> {
+    return this.extractionRules.delete(id);
   }
 }
 

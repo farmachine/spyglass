@@ -43,6 +43,27 @@ export const extractionSessions = pgTable("extraction_sessions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const knowledgeDocuments = pgTable("knowledge_documents", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  fileName: text("file_name").notNull(),
+  fileType: text("file_type").notNull(), // pdf, docx, txt, etc.
+  fileSize: integer("file_size").notNull(),
+  description: text("description").notNull(),
+  uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+});
+
+export const extractionRules = pgTable("extraction_rules", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  ruleName: text("rule_name").notNull(),
+  ruleType: text("rule_type").notNull(), // validation, formatting, classification
+  targetField: text("target_field"), // which field/property this rule applies to
+  ruleContent: text("rule_content").notNull(), // the actual rule logic/description
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertProjectSchema = createInsertSchema(projects).omit({
   id: true,
@@ -67,6 +88,16 @@ export const insertExtractionSessionSchema = createInsertSchema(extractionSessio
   createdAt: true,
 });
 
+export const insertKnowledgeDocumentSchema = createInsertSchema(knowledgeDocuments).omit({
+  id: true,
+  uploadedAt: true,
+});
+
+export const insertExtractionRuleSchema = createInsertSchema(extractionRules).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type Project = typeof projects.$inferSelect;
 export type InsertProject = z.infer<typeof insertProjectSchema>;
@@ -78,6 +109,10 @@ export type CollectionProperty = typeof collectionProperties.$inferSelect;
 export type InsertCollectionProperty = z.infer<typeof insertCollectionPropertySchema>;
 export type ExtractionSession = typeof extractionSessions.$inferSelect;
 export type InsertExtractionSession = z.infer<typeof insertExtractionSessionSchema>;
+export type KnowledgeDocument = typeof knowledgeDocuments.$inferSelect;
+export type InsertKnowledgeDocument = z.infer<typeof insertKnowledgeDocumentSchema>;
+export type ExtractionRule = typeof extractionRules.$inferSelect;
+export type InsertExtractionRule = z.infer<typeof insertExtractionRuleSchema>;
 
 // Extended types with relations
 export type ProjectWithDetails = Project & {
@@ -86,4 +121,6 @@ export type ProjectWithDetails = Project & {
     properties: CollectionProperty[];
   })[];
   sessions: ExtractionSession[];
+  knowledgeDocuments: KnowledgeDocument[];
+  extractionRules: ExtractionRule[];
 };
