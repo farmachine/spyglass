@@ -24,7 +24,7 @@ import type { ObjectCollection } from "@shared/schema";
 
 const collectionFormSchema = z.object({
   collectionName: z.string().min(1, "Collection name is required"),
-  description: z.string().optional(),
+  description: z.string().min(1, "Description is required - this helps the AI understand what objects to extract"),
   orderIndex: z.number().default(0),
 });
 
@@ -72,7 +72,7 @@ export default function CollectionDialog({
             {collection ? "Edit Collection" : "Create Collection"}
           </DialogTitle>
           <DialogDescription>
-            Define an object type with properties that can create multiple records.
+            Define an object type with properties that can create multiple records. The description helps the AI understand what objects to extract.
           </DialogDescription>
         </DialogHeader>
         
@@ -97,15 +97,18 @@ export default function CollectionDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description (Optional)</FormLabel>
+                  <FormLabel>Description *</FormLabel>
                   <FormControl>
                     <Textarea 
-                      placeholder="Describe this object collection..."
+                      placeholder="Tell the AI what objects to look for (e.g., 'Employee records with personal and job information listed in tables or sections')"
                       className="resize-none"
                       rows={3}
                       {...field}
                     />
                   </FormControl>
+                  <p className="text-sm text-muted-foreground">
+                    This description guides the AI to identify and extract these objects
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}

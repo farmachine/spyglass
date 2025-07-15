@@ -34,7 +34,7 @@ const fieldTypes = ["TEXT", "NUMBER", "DATE", "BOOLEAN"] as const;
 const schemaFieldFormSchema = z.object({
   fieldName: z.string().min(1, "Field name is required"),
   fieldType: z.enum(fieldTypes),
-  description: z.string().optional(),
+  description: z.string().min(1, "Description is required - this helps the AI understand what to extract"),
   orderIndex: z.number().default(0),
 });
 
@@ -83,7 +83,7 @@ export default function SchemaFieldDialog({
             {field ? "Edit Schema Field" : "Add Schema Field"}
           </DialogTitle>
           <DialogDescription>
-            Define a global field that applies to the entire document set.
+            Define a global field that applies to the entire document set. The description helps the AI understand what to look for during extraction.
           </DialogDescription>
         </DialogHeader>
         
@@ -132,15 +132,18 @@ export default function SchemaFieldDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description (Optional)</FormLabel>
+                  <FormLabel>Description *</FormLabel>
                   <FormControl>
                     <Textarea 
-                      placeholder="Describe this field..."
+                      placeholder="Tell the AI what to look for in this field (e.g., 'The company name as it appears in the document header')"
                       className="resize-none"
                       rows={3}
                       {...field}
                     />
                   </FormControl>
+                  <p className="text-sm text-muted-foreground">
+                    This description guides the AI during data extraction
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}

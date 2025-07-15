@@ -34,7 +34,7 @@ const propertyTypes = ["TEXT", "NUMBER", "DATE", "BOOLEAN"] as const;
 const propertyFormSchema = z.object({
   propertyName: z.string().min(1, "Property name is required"),
   propertyType: z.enum(propertyTypes),
-  description: z.string().optional(),
+  description: z.string().min(1, "Description is required - this helps the AI understand what to extract"),
   orderIndex: z.number().default(0),
 });
 
@@ -85,7 +85,7 @@ export default function PropertyDialog({
             {property ? "Edit Property" : "Add Property"}
           </DialogTitle>
           <DialogDescription>
-            Add a property to the "{collectionName}" collection.
+            Add a property to the "{collectionName}" collection. The description helps the AI understand what data to extract for this property.
           </DialogDescription>
         </DialogHeader>
         
@@ -134,15 +134,18 @@ export default function PropertyDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description (Optional)</FormLabel>
+                  <FormLabel>Description *</FormLabel>
                   <FormControl>
                     <Textarea 
-                      placeholder="Describe this property..."
+                      placeholder="Tell the AI what to look for (e.g., 'The employee's full name as listed in the document' or 'Annual salary amount in dollars')"
                       className="resize-none"
                       rows={3}
                       {...field}
                     />
                   </FormControl>
+                  <p className="text-sm text-muted-foreground">
+                    This description guides the AI during data extraction
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}
