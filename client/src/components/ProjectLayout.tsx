@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, Upload, Database, Brain, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,6 +20,31 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<ActiveTab>("upload");
   const { data: project, isLoading, error } = useProject(projectId);
+
+  // Read URL parameters to set active tab
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tab = urlParams.get('tab');
+    
+    if (tab) {
+      switch (tab) {
+        case 'upload':
+          setActiveTab('upload');
+          break;
+        case 'all-data':
+          setActiveTab('data');
+          break;
+        case 'knowledge':
+          setActiveTab('knowledge');
+          break;
+        case 'define':
+          setActiveTab('define');
+          break;
+        default:
+          setActiveTab('upload');
+      }
+    }
+  }, []);
 
   if (error) {
     return (
