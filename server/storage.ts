@@ -314,18 +314,22 @@ export class MemStorage implements IStorage {
     const session: ExtractionSession = {
       ...insertSession,
       id,
+      description: insertSession.description || null,
+      documentCount: insertSession.documentCount || 0,
       status: insertSession.status || "in_progress",
+      extractedData: null,
       createdAt: new Date(),
+      updatedAt: new Date(),
     };
     this.extractionSessions.set(id, session);
     return session;
   }
 
-  async updateExtractionSession(id: number, updateData: Partial<InsertExtractionSession>): Promise<ExtractionSession | undefined> {
+  async updateExtractionSession(id: number, updateData: any): Promise<ExtractionSession | undefined> {
     const session = this.extractionSessions.get(id);
     if (!session) return undefined;
 
-    const updatedSession = { ...session, ...updateData };
+    const updatedSession = { ...session, ...updateData, updatedAt: new Date() };
     this.extractionSessions.set(id, updatedSession);
     return updatedSession;
   }

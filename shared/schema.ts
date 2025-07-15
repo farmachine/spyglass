@@ -39,8 +39,13 @@ export const collectionProperties = pgTable("collection_properties", {
 export const extractionSessions = pgTable("extraction_sessions", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
-  status: text("status").default("in_progress").notNull(), // in_progress, verified
+  sessionName: text("session_name").notNull(),
+  description: text("description"),
+  documentCount: integer("document_count").notNull().default(0),
+  status: text("status").default("in_progress").notNull(), // in_progress, completed, verified, error
+  extractedData: text("extracted_data"), // Store AI extraction results as JSON string
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const knowledgeDocuments = pgTable("knowledge_documents", {
@@ -86,6 +91,8 @@ export const insertCollectionPropertySchema = createInsertSchema(collectionPrope
 export const insertExtractionSessionSchema = createInsertSchema(extractionSessions).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
+  extractedData: true,
 });
 
 export const insertKnowledgeDocumentSchema = createInsertSchema(knowledgeDocuments).omit({

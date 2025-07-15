@@ -19,6 +19,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateExtractionSession } from "@/hooks/useExtractionSessions";
+import { useProcessExtraction } from "@/hooks/useAIExtraction";
+import { useToast } from "@/hooks/use-toast";
 import type { ProjectWithDetails } from "@shared/schema";
 
 const uploadFormSchema = z.object({
@@ -54,6 +56,8 @@ export default function NewUpload({ project }: NewUploadProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   
   const createExtractionSession = useCreateExtractionSession(project.id);
+  const processExtraction = useProcessExtraction();
+  const { toast } = useToast();
 
   const form = useForm<UploadForm>({
     resolver: zodResolver(uploadFormSchema),
@@ -182,21 +186,52 @@ export default function NewUpload({ project }: NewUploadProps) {
 
     try {
       // Create extraction session
-      await createExtractionSession.mutateAsync({
+      const session = await createExtractionSession.mutateAsync({
         sessionName: data.sessionName,
         description: data.description || null,
         documentCount: selectedFiles.length,
         status: "in_progress",
       });
 
-      // Simulate file processing
+      // Simulate file upload progress
       await simulateFileProcessing(selectedFiles);
+
+      // Prepare file data for AI processing
+      const filesData = selectedFiles.map(fileData => ({
+        name: fileData.file.name,
+        size: fileData.file.size,
+        type: fileData.file.type,
+        content: `Sample content for ${fileData.file.name}` // In real implementation, this would be the actual file content
+      }));
+
+      // Process with AI
+      setSelectedFiles(prev => prev.map(f => ({ ...f, status: "processing" as const })));
+      
+      await processExtraction.mutateAsync({
+        sessionId: session.id,
+        files: filesData,
+        project_data: project
+      });
+
+      // Mark files as completed
+      setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
+
+      toast({
+        title: "AI extraction completed",
+        description: `${selectedFiles.length} file(s) processed and data extracted successfully.`,
+      });
 
       // Reset form
       form.reset();
       setSelectedFiles([]);
     } catch (error) {
       console.error("Failed to start extraction session:", error);
+      setSelectedFiles(prev => prev.map(f => ({ ...f, status: "error" as const })));
+      toast({
+        title: "Processing failed",
+        description: "There was an error processing your files. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsProcessing(false);
     }

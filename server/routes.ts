@@ -418,6 +418,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Process extraction session with AI
+  app.post("/api/sessions/:sessionId/process", async (req, res) => {
+    try {
+      const sessionId = parseInt(req.params.sessionId);
+      const { files, project_data } = req.body;
+      
+      // Import the Python AI extraction module
+      const { spawn } = require('child_process');
+      
+      // Prepare data for Python script
+      const extractionData = {
+        session_id: sessionId,
+        files: files || [],
+        project_schema: {
+          schema_fields: project_data?.schemaFields || [],
+          collections: project_data?.collections || []
+        },
+        extraction_rules: project_data?.extractionRules || []
+      };
+      
+      // Call Python extraction script
+      const python = spawn('python', ['-c', `
+import sys
+import json
+sys.path.append('.')
+from ai_extraction import process_extraction_session
+
+data = json.loads(sys.stdin.read())
+result = process_extraction_session(data)
+print(json.dumps(result))
+`]);
+      
+      python.stdin.write(JSON.stringify(extractionData));
+      python.stdin.end();
+      
+      let output = '';
+      let error = '';
+      
+      python.stdout.on('data', (data: any) => {
+        output += data.toString();
+      });
+      
+      python.stderr.on('data', (data: any) => {
+        error += data.toString();
+      });
+      
+      python.on('close', async (code: any) => {
+        if (code !== 0) {
+          console.error('Python script error:', error);
+          return res.status(500).json({ 
+            message: "AI extraction failed", 
+            error: error 
+          });
+        }
+        
+        try {
+          const result = JSON.parse(output);
+          
+          // Update session status
+          await storage.updateExtractionSession(sessionId, {
+            status: "completed",
+            extractedData: JSON.stringify(result)
+          });
+          
+          res.json(result);
+        } catch (parseError: any) {
+          console.error('Error parsing Python output:', parseError);
+          res.status(500).json({ 
+            message: "Failed to parse extraction results",
+            error: parseError?.message || "Unknown parse error"
+          });
+        }
+      });
+      
+    } catch (error) {
+      console.error("Error processing extraction session:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
