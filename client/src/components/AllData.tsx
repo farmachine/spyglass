@@ -41,7 +41,8 @@ export default function AllData({ project }: AllDataProps) {
       }
       return validations;
     },
-    enabled: project.sessions.length > 0
+    enabled: project.sessions.length > 0,
+    refetchOnWindowFocus: false
   });
 
   // Get verification status for a session
