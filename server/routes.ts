@@ -432,6 +432,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper function to generate initial field validations for a new session
+  const generateInitialFieldValidations = async (sessionId: number, projectId: number) => {
+    const project = await storage.getProjectWithDetails(projectId);
+    if (!project) return;
+
+    // Create validations for schema fields
+    for (const field of project.schemaFields) {
+      await storage.createFieldValidation({
+        sessionId,
+        fieldType: 'schema_field',
+        fieldId: field.id,
+        fieldName: field.fieldName,
+        collectionName: null,
+        recordIndex: 0,
+        extractedValue: null,
+        validationStatus: 'pending',
+        aiReasoning: null,
+        manuallyVerified: false,
+        confidenceScore: 0
+      });
+    }
+
+    // Create validations for collection properties
+    for (const collection of project.collections) {
+      for (const property of collection.properties) {
+        // Create at least one instance for each collection property
+        await storage.createFieldValidation({
+          sessionId,
+          fieldType: 'collection_property',
+          fieldId: property.id,
+          fieldName: `${collection.collectionName}.${property.propertyName}[0]`,
+          collectionName: collection.collectionName,
+          recordIndex: 0,
+          extractedValue: null,
+          validationStatus: 'pending',
+          aiReasoning: null,
+          manuallyVerified: false,
+          confidenceScore: 0
+        });
+      }
+    }
+  };
+
   app.post("/api/projects/:projectId/sessions", async (req, res) => {
     try {
       const projectId = parseInt(req.params.projectId);
@@ -441,6 +484,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const session = await storage.createExtractionSession(result.data);
+      
+      // Generate initial field validations for the new session
+      await generateInitialFieldValidations(session.id, projectId);
+      
       res.status(201).json(session);
     } catch (error) {
       res.status(500).json({ message: "Failed to create extraction session" });
@@ -553,13 +600,10 @@ except Exception as e:
             extractedData: JSON.stringify(result)
           });
           
-          // Clear existing field validations for this session
+          // Get existing field validations for this session
           const existingValidations = await storage.getFieldValidations(sessionId);
-          for (const validation of existingValidations) {
-            await storage.deleteFieldValidation(validation.id);
-          }
           
-          // Create field validations from the extraction results
+          // Update field validations from the extraction results
           if (result.processed_documents && result.processed_documents.length > 0) {
             for (const doc of result.processed_documents) {
               const fieldValidations = doc.extraction_result?.field_validations || [];
@@ -573,19 +617,33 @@ except Exception as e:
                 const isCollectionProperty = fieldName.includes('.');
                 const collectionName = isCollectionProperty ? fieldName.split('.')[0] : null;
                 
-                await storage.createFieldValidation({
-                  sessionId,
-                  fieldType: isCollectionProperty ? 'collection_property' : 'schema_field',
-                  fieldId: validation.field_id,
-                  fieldName: fieldName,
-                  collectionName,
-                  recordIndex,
-                  extractedValue: validation.extracted_value,
-                  validationStatus: validation.validation_status,
-                  aiReasoning: validation.ai_reasoning,
-                  manuallyVerified: false,
-                  confidenceScore: validation.confidence_score
-                });
+                // Try to find existing validation for this field
+                const existingValidation = existingValidations.find(v => v.fieldName === fieldName);
+                
+                if (existingValidation) {
+                  // Update existing validation
+                  await storage.updateFieldValidation(existingValidation.id, {
+                    extractedValue: validation.extracted_value,
+                    validationStatus: validation.validation_status,
+                    aiReasoning: validation.ai_reasoning,
+                    confidenceScore: validation.confidence_score
+                  });
+                } else {
+                  // Create new validation if it doesn't exist
+                  await storage.createFieldValidation({
+                    sessionId,
+                    fieldType: isCollectionProperty ? 'collection_property' : 'schema_field',
+                    fieldId: validation.field_id,
+                    fieldName: fieldName,
+                    collectionName,
+                    recordIndex,
+                    extractedValue: validation.extracted_value,
+                    validationStatus: validation.validation_status,
+                    aiReasoning: validation.ai_reasoning,
+                    manuallyVerified: false,
+                    confidenceScore: validation.confidence_score
+                  });
+                }
               }
             }
           }
