@@ -58,7 +58,7 @@ export default function ExtractionRuleDialog({
     resolver: zodResolver(extractionRuleFormSchema),
     defaultValues: {
       ruleName: rule?.ruleName || "",
-      targetField: rule?.targetField || "",
+      targetField: rule?.targetField === "" || !rule?.targetField ? "__none__" : rule.targetField,
       ruleContent: rule?.ruleContent || "",
       isActive: rule?.isActive ?? true,
     },
@@ -82,7 +82,12 @@ export default function ExtractionRuleDialog({
 
   const handleSubmit = async (data: ExtractionRuleForm) => {
     try {
-      await onSave(data);
+      // Convert "__none__" back to empty string for storage
+      const processedData = {
+        ...data,
+        targetField: data.targetField === "__none__" ? "" : data.targetField
+      };
+      await onSave(processedData);
       form.reset();
       onOpenChange(false);
     } catch (error) {
@@ -131,7 +136,7 @@ export default function ExtractionRuleDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">None (applies to all fields)</SelectItem>
+                      <SelectItem value="__none__">None (applies to all fields)</SelectItem>
                       {targetFieldOptions.map((option) => (
                         <SelectItem key={option.value} value={option.value}>
                           {option.label}
