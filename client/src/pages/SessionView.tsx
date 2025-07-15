@@ -449,10 +449,9 @@ export default function SessionView() {
           const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
           
           // Determine how many instances we need to show
-          const maxRecordIndex = Math.max(
-            ...(collectionData ? collectionData.length - 1 : [-1]),
-            ...(collectionValidations.length > 0 ? collectionValidations.map(v => v.recordIndex) : [-1])
-          );
+          const dataLength = collectionData ? collectionData.length - 1 : -1;
+          const validationIndices = collectionValidations.length > 0 ? collectionValidations.map(v => v.recordIndex) : [];
+          const maxRecordIndex = Math.max(dataLength, ...validationIndices, -1);
           
           if (maxRecordIndex < 0) return null;
 
