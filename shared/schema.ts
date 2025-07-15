@@ -58,7 +58,6 @@ export const extractionRules = pgTable("extraction_rules", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   ruleName: text("rule_name").notNull(),
-  ruleType: text("rule_type").notNull(), // validation, formatting, classification
   targetField: text("target_field"), // which field/property this rule applies to
   ruleContent: text("rule_content").notNull(), // the actual rule logic/description
   isActive: boolean("is_active").default(true).notNull(),

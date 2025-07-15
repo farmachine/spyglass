@@ -98,14 +98,7 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  const getRuleTypeColor = (type: string) => {
-    switch (type) {
-      case "validation": return "bg-blue-100 text-blue-800";
-      case "formatting": return "bg-green-100 text-green-800";
-      case "classification": return "bg-purple-100 text-purple-800";
-      default: return "bg-gray-100 text-gray-800";
-    }
-  };
+
 
   return (
     <div className="p-8">
@@ -278,9 +271,6 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               <h4 className="font-medium text-gray-900">{rule.ruleName}</h4>
-                              <Badge className={getRuleTypeColor(rule.ruleType)}>
-                                {rule.ruleType}
-                              </Badge>
                               {rule.targetField && (
                                 <Badge variant="outline" className="text-xs">
                                   Target: {rule.targetField}
@@ -340,6 +330,7 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
         onSave={handleSaveExtractionRule}
         rule={editingRule}
         isLoading={createExtractionRule.isPending || updateExtractionRule.isPending}
+        project={project}
       />
     </div>
   );

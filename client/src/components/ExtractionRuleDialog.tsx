@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import type { ExtractionRule } from "@shared/schema";
+import type { ExtractionRule, ProjectWithDetails } from "@shared/schema";
 
 const extractionRuleFormSchema = insertExtractionRuleSchema.omit({ projectId: true }).extend({
   ruleContent: z.string().min(1, "Rule content is required to guide AI extraction"),
@@ -43,34 +43,42 @@ interface ExtractionRuleDialogProps {
   onSave: (data: ExtractionRuleForm) => Promise<void>;
   rule?: ExtractionRule | null;
   isLoading?: boolean;
+  project: ProjectWithDetails;
 }
-
-const RULE_TYPES = [
-  { value: "validation", label: "Validation Rule", description: "Check data accuracy and completeness" },
-  { value: "formatting", label: "Formatting Rule", description: "Standardize data format and structure" },
-  { value: "classification", label: "Classification Rule", description: "Categorize and classify extracted data" },
-];
 
 export default function ExtractionRuleDialog({ 
   open, 
   onOpenChange, 
   onSave, 
   rule,
-  isLoading = false 
+  isLoading = false,
+  project
 }: ExtractionRuleDialogProps) {
   const form = useForm<ExtractionRuleForm>({
     resolver: zodResolver(extractionRuleFormSchema),
     defaultValues: {
       ruleName: rule?.ruleName || "",
-      ruleType: rule?.ruleType || "validation",
       targetField: rule?.targetField || "",
       ruleContent: rule?.ruleContent || "",
       isActive: rule?.isActive ?? true,
     },
   });
 
-  const selectedRuleType = form.watch("ruleType");
-  const selectedRuleTypeInfo = RULE_TYPES.find(type => type.value === selectedRuleType);
+  // Build target field options from project schema
+  const targetFieldOptions = [
+    // Project schema fields
+    ...project.schemaFields.map(field => ({
+      value: field.fieldName,
+      label: field.fieldName,
+    })),
+    // Collection properties
+    ...project.collections.flatMap(collection =>
+      collection.properties.map(property => ({
+        value: `${collection.collectionName} --> ${property.propertyName}`,
+        label: `${collection.collectionName} --> ${property.propertyName}`,
+      }))
+    ),
+  ];
 
   const handleSubmit = async (data: ExtractionRuleForm) => {
     try {
@@ -95,7 +103,7 @@ export default function ExtractionRuleDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="ruleName"
@@ -103,64 +111,34 @@ export default function ExtractionRuleDialog({
                 <FormItem>
                   <FormLabel>Rule Name</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="Date Format Validation"
-                      {...field}
-                    />
+                    <Input placeholder="Enter rule name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
-            <FormField
-              control={form.control}
-              name="ruleType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Rule Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select rule type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {RULE_TYPES.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          <div className="flex flex-col">
-                            <span>{type.label}</span>
-                            <span className="text-sm text-gray-500">{type.description}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {selectedRuleTypeInfo && (
-                    <p className="text-sm text-gray-600">
-                      {selectedRuleTypeInfo.description}
-                    </p>
-                  )}
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
+            
             <FormField
               control={form.control}
               name="targetField"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Target Field (Optional)</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Leave empty to apply to all fields"
-                      {...field}
-                    />
-                  </FormControl>
-                  <p className="text-sm text-gray-500">
-                    Specify a field or property name to apply this rule to a specific field only.
-                  </p>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select target field" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="">None (applies to all fields)</SelectItem>
+                      {targetFieldOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
