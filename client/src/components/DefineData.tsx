@@ -63,7 +63,6 @@ export default function DefineData({ project }: DefineDataProps) {
   const deleteCollection = useDeleteCollection();
 
   // Property mutations
-  const createProperty = useCreateProperty(propertyDialog.collectionId || 0);
   const updateProperty = useUpdateProperty();
   const deleteProperty = useDeleteProperty();
 
@@ -152,7 +151,19 @@ export default function DefineData({ project }: DefineDataProps) {
   const handleCreateProperty = async (data: any) => {
     if (!propertyDialog.collectionId) return;
     try {
-      await createProperty.mutateAsync(data);
+      // Use the API directly for property creation
+      const response = await fetch(`/api/collections/${propertyDialog.collectionId}/properties`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) throw new Error('Failed to create property');
+      
+      // Invalidate queries to refresh the data
+      const { queryClient } = await import('@/lib/queryClient');
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id] });
+      
       toast({
         title: "Property added",
         description: "Collection property has been added successfully.",
@@ -511,7 +522,7 @@ export default function DefineData({ project }: DefineDataProps) {
         onSave={propertyDialog.property ? handleUpdateProperty : handleCreateProperty}
         property={propertyDialog.property}
         collectionName={propertyDialog.collectionName}
-        isLoading={createProperty.isPending || updateProperty.isPending}
+        isLoading={updateProperty.isPending}
       />
 
       {/* Delete Confirmation Dialog */}
