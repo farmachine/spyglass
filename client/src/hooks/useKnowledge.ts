@@ -19,10 +19,10 @@ export function useCreateKnowledgeDocument(projectId: number) {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (document: Omit<InsertKnowledgeDocument, "projectId">) => 
+    mutationFn: (document: { fileName: string; displayName: string; fileType: string; fileSize: number; description: string }) => 
       apiRequest(`/api/projects/${projectId}/knowledge`, {
         method: "POST",
-        body: JSON.stringify(document),
+        body: JSON.stringify({ ...document, projectId }),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });

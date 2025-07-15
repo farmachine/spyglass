@@ -176,7 +176,7 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
                           <FileIcon className="h-5 w-5 text-blue-600 mt-1" />
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-medium text-gray-900">{doc.fileName}</h4>
+                              <h4 className="font-medium text-gray-900">{doc.displayName || doc.fileName}</h4>
                               <Badge variant="secondary" className="text-xs">
                                 {doc.fileType.toUpperCase()}
                               </Badge>

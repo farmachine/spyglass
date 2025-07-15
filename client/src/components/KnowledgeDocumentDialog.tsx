@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -36,7 +36,7 @@ type KnowledgeDocumentForm = z.infer<typeof knowledgeDocumentFormSchema>;
 interface KnowledgeDocumentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (data: { fileName: string; fileType: string; fileSize: number; description: string }) => Promise<void>;
+  onSave: (data: { fileName: string; displayName: string; fileType: string; fileSize: number; description: string }) => Promise<void>;
   document?: KnowledgeDocument | null;
   isLoading?: boolean;
 }
@@ -61,10 +61,25 @@ export default function KnowledgeDocumentDialog({
   const form = useForm<KnowledgeDocumentForm>({
     resolver: zodResolver(knowledgeDocumentFormSchema),
     defaultValues: {
-      displayName: document?.fileName || "",
+      displayName: document?.displayName || "",
       description: document?.description || "",
     },
   });
+
+  // Reset form when document changes (for edit mode)
+  React.useEffect(() => {
+    if (document) {
+      form.reset({
+        displayName: document.displayName || "",
+        description: document.description || "",
+      });
+    } else {
+      form.reset({
+        displayName: "",
+        description: "",
+      });
+    }
+  }, [document, form]);
 
   const validateFile = (file: File): string | null => {
     const extension = `.${file.name.split('.').pop()?.toLowerCase()}`;
@@ -132,6 +147,7 @@ export default function KnowledgeDocumentDialog({
     try {
       const submitData = {
         fileName: document ? document.fileName : selectedFile!.name,
+        displayName: data.displayName,
         fileType: document ? document.fileType : selectedFile!.name.split('.').pop()?.toLowerCase() || "unknown",
         fileSize: document ? document.fileSize : selectedFile!.size,
         description: data.description,

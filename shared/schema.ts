@@ -47,6 +47,7 @@ export const knowledgeDocuments = pgTable("knowledge_documents", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   fileName: text("file_name").notNull(),
+  displayName: text("display_name").notNull(),
   fileType: text("file_type").notNull(), // pdf, docx, txt, etc.
   fileSize: integer("file_size").notNull(),
   description: text("description").notNull(),
