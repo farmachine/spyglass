@@ -42,7 +42,8 @@ export default function AllData({ project }: AllDataProps) {
       return validations;
     },
     enabled: project.sessions.length > 0,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    staleTime: 0  // Make sure data is always fresh
   });
 
   // Get verification status for a session

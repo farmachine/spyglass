@@ -66,6 +66,9 @@ export default function SessionView() {
       // Also invalidate the AllData project-level validation query
       await queryClient.invalidateQueries({ queryKey: ['/api/validations/project', projectId] });
       
+      // Force refetch of the AllData query
+      await queryClient.refetchQueries({ queryKey: ['/api/validations/project', projectId] });
+      
       // Small delay to ensure query cache is updated
       setTimeout(async () => {
         const updatedValidations = queryClient.getQueryData<FieldValidation[]>(['/api/sessions', sessionId, 'validations']);
