@@ -91,6 +91,8 @@ def extract_data_from_document(
         )
     except Exception as e:
         logging.error(f"Error during document extraction: {e}")
+        import traceback
+        logging.error(f"Full traceback: {traceback.format_exc()}")
         return ExtractionResult(
             extracted_data={},
             confidence_score=0.0,
@@ -229,6 +231,9 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         Dictionary with processing results
     """
+    logging.basicConfig(level=logging.INFO)
+    logging.info(f"Processing extraction session: {session_data.get('session_id')}")
+    
     results = {
         "session_id": session_data.get("session_id"),
         "processed_documents": [],
@@ -243,6 +248,10 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
     project_schema = session_data.get("project_schema", {})
     extraction_rules = session_data.get("extraction_rules", [])
     
+    logging.info(f"Files to process: {len(files)}")
+    logging.info(f"Project schema: {project_schema}")
+    logging.info(f"Extraction rules: {len(extraction_rules)}")
+    
     total_confidence = 0.0
     successful_count = 0
     
@@ -253,18 +262,45 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
             file_name = file_info.get("name", "unknown")
             mime_type = file_info.get("type", "text/plain")
             
-            # Convert string content to bytes if needed
-            if isinstance(file_content, str):
-                file_content = file_content.encode('utf-8')
+            logging.info(f"Processing file: {file_name}, type: {mime_type}")
+            logging.info(f"Content length: {len(str(file_content))}")
             
-            # Extract data from the document
-            extraction_result = extract_data_from_document(
-                file_content=file_content,
-                file_name=file_name,
-                mime_type=mime_type,
-                project_schema=project_schema,
-                extraction_rules=extraction_rules
-            )
+            # Handle base64 encoded content
+            if isinstance(file_content, str):
+                if file_content.startswith('data:'):
+                    # Remove data URL prefix
+                    file_content = file_content.split(',', 1)[1] if ',' in file_content else file_content
+                
+                try:
+                    # Try to decode as base64 first
+                    file_content = base64.b64decode(file_content)
+                    logging.info(f"Successfully decoded base64 content, size: {len(file_content)} bytes")
+                except Exception as e:
+                    # If not base64, treat as plain text
+                    file_content = file_content.encode('utf-8')
+                    logging.info(f"Treating as plain text: {str(e)}")
+            elif isinstance(file_content, bytes):
+                logging.info(f"Content already in bytes format")
+            
+            # Check if we have actual content to process
+            if not file_content or len(file_content) == 0:
+                logging.warning(f"No content found for file: {file_name}")
+                extraction_result = ExtractionResult(
+                    extracted_data={},
+                    confidence_score=0.0,
+                    processing_notes=f"No content received for file: {file_name}"
+                )
+            else:
+                # Extract data from the document
+                logging.info(f"Starting extraction for {file_name}")
+                extraction_result = extract_data_from_document(
+                    file_content=file_content,
+                    file_name=file_name,
+                    mime_type=mime_type,
+                    project_schema=project_schema,
+                    extraction_rules=extraction_rules
+                )
+                logging.info(f"Extraction completed for {file_name}, confidence: {extraction_result.confidence_score}")
             
             # Record the result
             document_result = {
@@ -281,6 +317,8 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
             
         except Exception as e:
             logging.error(f"Error processing file {file_info.get('name', 'unknown')}: {e}")
+            import traceback
+            logging.error(f"Full traceback: {traceback.format_exc()}")
             results["processed_documents"].append({
                 "file_name": file_info.get("name", "unknown"),
                 "extraction_result": {

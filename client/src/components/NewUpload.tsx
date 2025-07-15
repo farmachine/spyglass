@@ -197,11 +197,37 @@ export default function NewUpload({ project }: NewUploadProps) {
       await simulateFileProcessing(selectedFiles);
 
       // Prepare file data for AI processing
-      const filesData = selectedFiles.map(fileData => ({
-        name: fileData.file.name,
-        size: fileData.file.size,
-        type: fileData.file.type,
-        content: `Sample content for ${fileData.file.name}` // In real implementation, this would be the actual file content
+      const filesData = await Promise.all(selectedFiles.map(async (fileData) => {
+        try {
+          // Read file content as base64
+          const base64Content = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              if (typeof reader.result === 'string') {
+                resolve(reader.result);
+              } else {
+                reject(new Error('Failed to read file as data URL'));
+              }
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(fileData.file);
+          });
+
+          return {
+            name: fileData.file.name,
+            size: fileData.file.size,
+            type: fileData.file.type,
+            content: base64Content
+          };
+        } catch (error) {
+          console.error(`Failed to read file ${fileData.file.name}:`, error);
+          return {
+            name: fileData.file.name,
+            size: fileData.file.size,
+            type: fileData.file.type,
+            content: ""
+          };
+        }
       }));
 
       // Process with AI
