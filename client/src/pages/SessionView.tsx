@@ -108,10 +108,16 @@ export default function SessionView() {
     );
   }
 
-  // Parse extracted data
+  // Parse extracted data from the nested structure
   let extractedData: any = {};
   try {
-    extractedData = session.extractedData ? JSON.parse(session.extractedData) : {};
+    if (session.extractedData) {
+      const parsedData = JSON.parse(session.extractedData);
+      // Extract the actual data from the nested structure
+      if (parsedData.processed_documents && parsedData.processed_documents[0]) {
+        extractedData = parsedData.processed_documents[0].extraction_result?.extracted_data || {};
+      }
+    }
   } catch (error) {
     console.error('Failed to parse extracted data:', error);
   }
