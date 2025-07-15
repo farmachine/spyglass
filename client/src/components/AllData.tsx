@@ -1,11 +1,12 @@
 import React from "react";
-import { Database, CheckCircle, Clock, ExternalLink, Calendar } from "lucide-react";
+import { Database, CheckCircle, Clock, ExternalLink, Calendar, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Link } from "wouter";
-import type { ProjectWithDetails } from "@shared/schema";
+import { useQuery } from "@tanstack/react-query";
+import type { ProjectWithDetails, FieldValidation } from "@shared/schema";
 
 interface AllDataProps {
   project: ProjectWithDetails;
@@ -21,6 +22,50 @@ export default function AllData({ project }: AllDataProps) {
       minute: '2-digit'
     });
   };
+
+  // Fetch validation data for all sessions
+  const { data: allValidations = [] } = useQuery<FieldValidation[]>({
+    queryKey: ['/api/validations/project', project.id],
+    queryFn: async () => {
+      const validations: FieldValidation[] = [];
+      for (const session of project.sessions) {
+        try {
+          const response = await fetch(`/api/sessions/${session.id}/validations`);
+          if (response.ok) {
+            const sessionValidations = await response.json();
+            validations.push(...sessionValidations);
+          }
+        } catch (error) {
+          console.error(`Failed to fetch validations for session ${session.id}:`, error);
+        }
+      }
+      return validations;
+    },
+    enabled: project.sessions.length > 0
+  });
+
+  // Get verification status for a session
+  const getVerificationStatus = (sessionId: number): 'verified' | 'in_progress' | 'pending' => {
+    const sessionValidations = allValidations.filter(v => v.sessionId === sessionId);
+    if (sessionValidations.length === 0) return 'pending';
+    
+    const allVerified = sessionValidations.every(v => v.validationStatus === 'valid');
+    return allVerified ? 'verified' : 'in_progress';
+  };
+
+  // Calculate verification stats
+  const getVerificationStats = () => {
+    const stats = { verified: 0, in_progress: 0, pending: 0 };
+    
+    for (const session of project.sessions) {
+      const status = getVerificationStatus(session.id);
+      stats[status]++;
+    }
+    
+    return stats;
+  };
+
+  const verificationStats = getVerificationStats();
 
   return (
     <div>
@@ -48,11 +93,11 @@ export default function AllData({ project }: AllDataProps) {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center">
-              <CheckCircle className="h-8 w-8 text-green-600" />
+              <Clock className="h-8 w-8 text-orange-600" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Verified</p>
+                <p className="text-sm font-medium text-gray-600">In Progress</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {project.sessions.filter(s => s.status === 'verified').length}
+                  {verificationStats.in_progress}
                 </p>
               </div>
             </div>
@@ -62,11 +107,11 @@ export default function AllData({ project }: AllDataProps) {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center">
-              <Clock className="h-8 w-8 text-orange-600" />
+              <CheckCircle className="h-8 w-8 text-green-600" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Completed</p>
+                <p className="text-sm font-medium text-gray-600">Verified</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {project.sessions.filter(s => s.status === 'completed').length}
+                  {verificationStats.verified}
                 </p>
               </div>
             </div>
@@ -112,17 +157,24 @@ export default function AllData({ project }: AllDataProps) {
                     </TableCell>
                     <TableCell>{session.documentCount}</TableCell>
                     <TableCell>
-                      <Badge
-                        variant={
-                          session.status === 'verified'
-                            ? 'default'
-                            : session.status === 'completed'
-                            ? 'secondary'
-                            : 'outline'
-                        }
-                      >
-                        {session.status}
-                      </Badge>
+                      {(() => {
+                        const verificationStatus = getVerificationStatus(session.id);
+                        return (
+                          <Badge
+                            variant={
+                              verificationStatus === 'verified'
+                                ? 'default'
+                                : verificationStatus === 'in_progress'
+                                ? 'secondary'
+                                : 'outline'
+                            }
+                          >
+                            {verificationStatus === 'verified' ? 'Verified' : 
+                             verificationStatus === 'in_progress' ? 'In Progress' : 
+                             'Pending'}
+                          </Badge>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
