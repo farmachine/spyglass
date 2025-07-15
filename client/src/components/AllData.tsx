@@ -51,6 +51,11 @@ export default function AllData({ project }: AllDataProps) {
     if (sessionValidations.length === 0) return 'pending';
     
     const allVerified = sessionValidations.every(v => v.validationStatus === 'valid');
+    
+    // Debug logging
+    console.log(`Session ${sessionId} - Validations: ${sessionValidations.length}, All verified: ${allVerified}`);
+    console.log(`Session ${sessionId} - Status breakdown:`, sessionValidations.map(v => ({ field: v.fieldName, status: v.validationStatus })));
+    
     return allVerified ? 'verified' : 'in_progress';
   };
 
