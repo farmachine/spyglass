@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CheckCircle, AlertCircle, Edit3 } from "lucide-react";
+import { ArrowLeft, Edit3 } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { 
@@ -58,11 +58,28 @@ export default function SessionView() {
         body: JSON.stringify(params.data)
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+      
+      // Update session status based on verification
+      const updatedValidations = queryClient.getQueryData<FieldValidation[]>(['/api/sessions', sessionId, 'validations']);
+      if (updatedValidations) {
+        const allVerified = updatedValidations.every(v => v.validationStatus === 'valid');
+        const newStatus = allVerified ? 'verified' : 'in_progress';
+        
+        // Update session status in database
+        await apiRequest(`/api/sessions/${sessionId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ status: newStatus })
+        });
+        
+        // Invalidate session query to update UI
+        queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
+      }
+      
       toast({
         title: "Field updated",
-        description: "The field has been successfully updated.",
+        description: "The field verification has been updated.",
       });
     }
   });
@@ -101,6 +118,12 @@ export default function SessionView() {
     return validations.find(v => v.fieldName === fieldName);
   };
 
+  // Get session status based on field verification
+  const getSessionStatus = () => {
+    const allVerified = validations.every(v => v.validationStatus === 'valid');
+    return allVerified ? 'verified' : 'in_progress';
+  };
+
   const handleEdit = (fieldName: string, currentValue: string) => {
     setEditingField(fieldName);
     setEditValue(currentValue);
@@ -122,27 +145,14 @@ export default function SessionView() {
     setEditValue("");
   };
 
-  const handleValidate = async (fieldName: string) => {
+  const handleVerificationToggle = async (fieldName: string, isVerified: boolean) => {
     const validation = getValidation(fieldName);
     if (validation) {
       await updateValidationMutation.mutateAsync({
         id: validation.id,
         data: {
-          validationStatus: "valid",
-          manuallyVerified: true
-        }
-      });
-    }
-  };
-
-  const handleUnvalidate = async (fieldName: string) => {
-    const validation = getValidation(fieldName);
-    if (validation) {
-      await updateValidationMutation.mutateAsync({
-        id: validation.id,
-        data: {
-          validationStatus: "pending",
-          manuallyVerified: false
+          validationStatus: isVerified ? "valid" : "pending",
+          manuallyVerified: isVerified
         }
       });
     }
@@ -186,35 +196,14 @@ export default function SessionView() {
         
         {validation && (
           <div className="flex items-center gap-2">
-            {validation.validationStatus === 'valid' ? (
-              <div className="flex items-center gap-2">
-                <Badge variant="default" className="bg-green-100 text-green-800">
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Valid
-                </Badge>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleUnvalidate(fieldName)}
-                >
-                  Unvalidate
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Badge variant="destructive" className="bg-red-100 text-red-800">
-                  <AlertCircle className="h-3 w-3 mr-1" />
-                  {validation.validationStatus}
-                </Badge>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleValidate(fieldName)}
-                >
-                  Validate
-                </Button>
-              </div>
-            )}
+            <Checkbox
+              id={`verify-${fieldName}`}
+              checked={validation.validationStatus === 'valid'}
+              onCheckedChange={(checked) => handleVerificationToggle(fieldName, checked === true)}
+            />
+            <Label htmlFor={`verify-${fieldName}`} className="text-sm">
+              {validation.validationStatus === 'valid' ? 'Verified' : 'Unverified'}
+            </Label>
           </div>
         )}
       </div>
@@ -236,8 +225,8 @@ export default function SessionView() {
             <h1 className="text-3xl font-bold text-gray-900">{session.sessionName}</h1>
             <p className="text-gray-600">{session.description}</p>
           </div>
-          <Badge variant={session.status === 'completed' ? 'default' : 'secondary'}>
-            {session.status}
+          <Badge variant={getSessionStatus() === 'verified' ? 'default' : 'secondary'}>
+            {getSessionStatus() === 'verified' ? 'Verified' : 'In Progress'}
           </Badge>
         </div>
 

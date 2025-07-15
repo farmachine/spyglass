@@ -400,6 +400,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/sessions/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = insertExtractionSessionSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid session data", errors: result.error.errors });
+      }
+      
+      const session = await storage.updateExtractionSession(id, result.data);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      res.json(session);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update session" });
+    }
+  });
+
   app.post("/api/projects/:projectId/sessions", async (req, res) => {
     try {
       const projectId = parseInt(req.params.projectId);
