@@ -129,6 +129,7 @@ export class MemStorage implements IStorage {
       name: "Sample Invoice Processing",
       description: "Extract data from invoices and receipts",
       mainObjectName: "Invoice",
+      isInitialSetupComplete: true,
       createdAt: new Date(),
     };
     this.projects.set(1, project);

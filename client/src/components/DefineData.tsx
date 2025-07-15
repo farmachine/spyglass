@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Settings, Plus, Edit, Trash2, Database, FileText, Tag } from "lucide-react";
+import { Settings, Plus, Edit, Trash2, Database, FileText, Tag, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -273,8 +273,38 @@ export default function DefineData({ project }: DefineDataProps) {
     setDeleteDialog({ open: false });
   };
 
+  // Check if this is a new project without data schema
+  const isNewProject = !project.isInitialSetupComplete && 
+    (!project.schemaFields || project.schemaFields.length === 0) &&
+    (!project.collections || project.collections.length === 0);
+
   return (
     <div>
+      {/* Welcome Message for New Projects */}
+      {isNewProject && (
+        <div className="mb-8 p-6 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-start gap-4">
+            <Lightbulb className="h-6 w-6 text-blue-600 mt-0.5" />
+            <div>
+              <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                Welcome to {project.name}!
+              </h3>
+              <p className="text-blue-800 mb-4">
+                Before you can start extracting data, you need to define what information you want to capture from your documents. This helps the AI understand exactly what to look for.
+              </p>
+              <div className="space-y-2 text-sm text-blue-700">
+                <p><strong>Step 1:</strong> Set your "Main Object Name" below (e.g., "Invoice", "Contract", "Report")</p>
+                <p><strong>Step 2:</strong> Add fields for the main document data (e.g., "Total Amount", "Date", "Company Name")</p>
+                <p><strong>Step 3:</strong> Optionally, create collections for repeating items (e.g., "Line Items", "Signers")</p>
+              </div>
+              <p className="text-blue-800 mt-4 font-medium">
+                Once you've defined your data schema, the other tabs will become available for uploading and processing documents.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">Define Data Schema</h2>

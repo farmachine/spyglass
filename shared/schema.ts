@@ -7,6 +7,7 @@ export const projects = pgTable("projects", {
   name: text("name").notNull(),
   description: text("description"),
   mainObjectName: text("main_object_name").default("Session"),
+  isInitialSetupComplete: boolean("is_initial_setup_complete").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

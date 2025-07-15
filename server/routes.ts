@@ -105,6 +105,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const field = await storage.createProjectSchemaField(result.data);
+      
+      // Mark project as setup complete if this is the first field
+      const project = await storage.getProject(projectId);
+      if (project && !project.isInitialSetupComplete) {
+        await storage.updateProject(projectId, { isInitialSetupComplete: true });
+      }
+      
       res.status(201).json(field);
     } catch (error) {
       res.status(500).json({ message: "Failed to create schema field" });
@@ -165,6 +172,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const collection = await storage.createObjectCollection(result.data);
+      
+      // Mark project as setup complete if this is the first collection
+      const project = await storage.getProject(projectId);
+      if (project && !project.isInitialSetupComplete) {
+        await storage.updateProject(projectId, { isInitialSetupComplete: true });
+      }
+      
       res.status(201).json(collection);
     } catch (error) {
       res.status(500).json({ message: "Failed to create collection" });

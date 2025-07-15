@@ -21,10 +21,23 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>("upload");
   const { data: project, isLoading, error } = useProject(projectId);
 
-  // Read URL parameters to set active tab
+  // Read URL parameters and handle welcome flow
   useEffect(() => {
+    if (!project) return;
+    
     const urlParams = new URLSearchParams(window.location.search);
     const tab = urlParams.get('tab');
+    
+    // Check if initial setup is complete
+    const isSetupComplete = project.isInitialSetupComplete || 
+      (project.schemaFields && project.schemaFields.length > 0) ||
+      (project.collections && project.collections.length > 0);
+    
+    // For new projects, always start with 'define' tab
+    if (!isSetupComplete) {
+      setActiveTab('define');
+      return;
+    }
     
     if (tab) {
       switch (tab) {
@@ -44,7 +57,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
           setActiveTab('upload');
       }
     }
-  }, []);
+  }, [project]);
 
   if (error) {
     return (
@@ -115,11 +128,16 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
     );
   }
 
+  // Check if initial setup is complete
+  const isSetupComplete = project.isInitialSetupComplete || 
+    (project.schemaFields && project.schemaFields.length > 0) ||
+    (project.collections && project.collections.length > 0);
+
   const navItems = [
-    { id: "upload" as const, label: `New ${project.mainObjectName || "Session"}`, icon: Upload },
-    { id: "data" as const, label: `All ${project.mainObjectName || "Session"} Data`, icon: Database },
-    { id: "knowledge" as const, label: "Knowledge/Rules", icon: Brain },
-    { id: "define" as const, label: "Define Data", icon: Settings },
+    { id: "upload" as const, label: `New ${project.mainObjectName || "Session"}`, icon: Upload, disabled: !isSetupComplete },
+    { id: "data" as const, label: `All ${project.mainObjectName || "Session"} Data`, icon: Database, disabled: !isSetupComplete },
+    { id: "knowledge" as const, label: "Knowledge/Rules", icon: Brain, disabled: !isSetupComplete },
+    { id: "define" as const, label: "Define Data", icon: Settings, disabled: false },
   ];
 
   const renderActiveContent = () => {
@@ -181,18 +199,24 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
+                const isDisabled = item.disabled;
                 
                 return (
                   <button
                     key={item.id}
-                    onClick={() => setActiveTab(item.id)}
+                    onClick={() => !isDisabled && setActiveTab(item.id)}
+                    disabled={isDisabled}
                     className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                      isActive
+                      isDisabled
+                        ? "text-gray-400 cursor-not-allowed opacity-50"
+                        : isActive
                         ? "bg-blue-50 text-blue-700 border-l-4 border-blue-600 ml-[-1px]"
                         : "text-gray-700 hover:bg-gray-50"
                     }`}
                   >
-                    <Icon className={`h-4 w-4 ${isActive ? "text-blue-600" : "text-gray-400"}`} />
+                    <Icon className={`h-4 w-4 ${
+                      isDisabled ? "text-gray-300" : isActive ? "text-blue-600" : "text-gray-400"
+                    }`} />
                     {item.label}
                   </button>
                 );
