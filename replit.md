@@ -59,6 +59,8 @@ Preferred communication style: Simple, everyday language.
 - ✓ Enhanced navigation with disabled states for incomplete projects until first schema field/collection is added
 - ✓ Added always-visible "Add Field" and "Create Collection" buttons for easy line-by-line data entry
 - ✓ Improved UI consistency by moving action buttons to dedicated sections within each tab
+- ✓ Fixed date field editing functionality with proper null value handling and date formatting
+- ✓ Enhanced date display to show "Not set" for empty values and readable format for valid dates
 
 ## Current Status
 
