@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Data - Project View</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .header {
+            background: white;
+            padding: 20px 40px;
+            border-bottom: 1px solid #e0e0e0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .project-container {
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+        
+        .sidebar {
+            width: 250px;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            padding: 20px 0;
+        }
+        
+        .sidebar-header {
+            padding: 0 20px 20px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 20px;
+        }
+        
+        .project-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 4px;
+        }
+        
+        .project-description {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        
+        .nav-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .nav-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .nav-item.active {
+            background: #e8f4f8;
+            border-left-color: #3498db;
+            color: #3498db;
+        }
+        
+        .nav-item.active .nav-text {
+            font-weight: 600;
+        }
+        
+        .nav-text {
+            font-size: 14px;
+        }
+        
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+        
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .page-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .filter-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .filter-select {
+            padding: 8px 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 14px;
+            background: white;
+        }
+        
+        .search-input {
+            padding: 8px 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 200px;
+        }
+        
+        .data-table {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .table-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .table-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+        
+        .table-subtitle {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        .data-sessions-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .data-sessions-table th,
+        .data-sessions-table td {
+            padding: 16px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .data-sessions-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+        
+        .data-sessions-table td {
+            font-size: 14px;
+        }
+        
+        .data-sessions-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .status-verified {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-in-progress {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-draft {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .progress-bar {
+            width: 100px;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            display: inline-block;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #27ae60;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-fill.partial {
+            background: #f39c12;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .action-btn {
+            padding: 6px 12px;
+            border: 1px solid #e0e0e0;
+            background: white;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .action-btn:hover {
+            background: #f8f9fa;
+        }
+        
+        .action-btn.primary {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        
+        .action-btn.primary:hover {
+            background: #2980b9;
+        }
+        
+        .action-btn.success {
+            background: #27ae60;
+            color: white;
+            border-color: #27ae60;
+        }
+        
+        .action-btn.success:hover {
+            background: #219a52;
+        }
+        
+        .action-btn.danger {
+            color: #e74c3c;
+            border-color: #e74c3c;
+        }
+        
+        .action-btn.danger:hover {
+            background: #fdf2f2;
+        }
+        
+        .date-created {
+            color: #7f8c8d;
+            font-size: 13px;
+        }
+        
+        .company-name {
+            font-weight: 500;
+            color: #2c3e50;
+            margin-bottom: 4px;
+        }
+        
+        .document-count {
+            color: #7f8c8d;
+            font-size: 13px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7f8c8d;
+        }
+        
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        
+        .empty-title {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+        
+        .empty-subtitle {
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        
+        .new-upload-btn {
+            background: #3498db;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .new-upload-btn:hover {
+            background: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Document Data Extraction</h1>
+    </div>
+    
+    <div class="project-container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="project-name">Pension Scheme Analysis</div>
+                <div class="project-description">Extract pension scheme data and employee records</div>
+            </div>
+            
+            <div class="nav-item">
+                <div class="nav-text">New Upload</div>
+            </div>
+            <div class="nav-item active">
+                <div class="nav-text">All Data</div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-text">Knowledge/Rules</div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-text">Define Data</div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="page-header">
+                <div class="page-title">All Data Sessions</div>
+                <div class="filter-controls">
+                    <select class="filter-select">
+                        <option>All Statuses</option>
+                        <option>Verified</option>
+                        <option>In Progress</option>
+                        <option>Draft</option>
+                    </select>
+                    <input class="search-input" type="text" placeholder="Search sessions...">
+                </div>
+            </div>
+            
+            <div class="data-table">
+                <div class="table-header">
+                    <div class="table-title">Extraction Sessions</div>
+                    <div class="table-subtitle">12 total sessions • 8 verified • 4 in progress</div>
+                </div>
+                
+                <div class="table-container">
+                    <table class="data-sessions-table">
+                        <thead>
+                            <tr>
+                                <th>Session Details</th>
+                                <th>Status</th>
+                                <th>Progress</th>
+                                <th>Records</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div class="company-name">ABC Corporation Ltd</div>
+                                    <div class="document-count">3 documents uploaded</div>
+                                </td>
+                                <td>
+                                    <span class="status-badge status-verified">Verified</span>
+                                </td>
+                                <td>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 100%"></div>
+                                    </div>
+                                    <div style="margin-top: 4px; font-size: 12px; color: #7f8c8d;">100% Complete</div>
+                                </td>
+                                <td>
+                                    <div>23 employees</div>
+                                    <div style="font-size: 12px; color: #7f8c8d;">6 scheme fields</div>
+                                </td>
+                                <td>
+                                    <div class="date-created">2 days ago</div>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="action-btn primary">View</button>
+                                        <button class="action-btn">Export</button>
+                                        <button class="action-btn danger">Delete</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="company-name">XYZ Manufacturing</div>
+                                    <div class="document-count">2 documents uploaded</div>
+                                </td>
+                                <td>
+                                    <span class="status-badge status-in-progress">In Progress</span>
+                                </td>
+                                <td>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill partial" style="width: 75%"></div>
+                                    </div>
+                                    <div style="margin-top: 4px; font-size: 12px; color: #7f8c8d;">75% Complete</div>
+                                </td>
+                                <td>
+                                    <div>45 employees</div>
+                                    <div style="font-size: 12px; color: #7f8c8d;">6 scheme fields</div>
+                                </td>
+                                <td>
+                                    <div class="date-created">1 day ago</div>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="action-btn success">Continue</button>
+                                        <button class="action-btn">Export</button>
+                                        <button class="action-btn danger">Delete</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="company-name">Global Services Inc</div>
+                                    <div class="document-count">5 documents uploaded</div>
+                                </td>
+                                <td>
+                                    <span class="status-badge status-verified">Verified</span>
+                                </td>
+                                <td>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 100%"></div>
+                                    </div>
+                                    <div style="margin-top: 4px; font-size: 12px; color: #7f8c8d;">100% Complete</div>
+                                </td>
+                                <td>
+                                    <div>67 employees</div>
+                                    <div style="font-size: 12px; color: #7f8c8d;">6 scheme fields</div>
+                                </td>
+                                <td>
+                                    <div class="date-created">3 days ago</div>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="action-btn primary">View</button>
+                                        <button class="action-btn">Export</button>
+                                        <button class="action-btn danger">Delete</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="company-name">Tech Solutions Ltd</div>
+                                    <div class="document-count">1 document uploaded</div>
+                                </td>
+                                <td>
+                                    <span class="status-badge status-in-progress">In Progress</span>
+                                </td>
+                                <td>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill partial" style="width: 45%"></div>
+                                    </div>
+                                    <div style="margin-top: 4px; font-size: 12px; color: #7f8c8d;">45% Complete</div>
+                                </td>
+                                <td>
+                                    <div>12 employees</div>
+                                    <div style="font-size: 12px; color: #7f8c8d;">6 scheme fields</div>
+                                </td>
+                                <td>
+                                    <div class="date-created">4 hours ago</div>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="action-btn success">Continue</button>
+                                        <button class="action-btn">Export</button>
+                                        <button class="action-btn danger">Delete</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="company-name">Retail Group PLC</div>
+                                    <div class="document-count">4 documents uploaded</div>
+                                </td>
+                                <td>
+                                    <span class="status-badge status-verified">Verified</span>
+                                </td>
+                                <td>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 100%"></div>
+                                    </div>
+                                    <div style="margin-top: 4px; font-size: 12px; color: #7f8c8d;">100% Complete</div>
+                                </td>
+                                <td>
+                                    <div>89 employees</div>
+                                    <div style="font-size: 12px; color: #7f8c8d;">6 scheme fields</div>
+                                </td>
+                                <td>
+                                    <div class="date-created">5 days ago</div>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="action-btn primary">View</button>
+                                        <button class="action-btn">Export</button>
+                                        <button class="action-btn danger">Delete</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="company-name">Healthcare Partners</div>
+                                    <div class="document-count">2 documents uploaded</div>
+                                </td>
+                                <td>
+                                    <span class="status-badge status-in-progress">In Progress</span>
+                                </td>
+                                <td>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill partial" style="width: 60%"></div>
+                                    </div>
+                                    <div style="margin-top: 4px; font-size: 12px; color: #7f8c8d;">60% Complete</div>
+                                </td>
+                                <td>
+                                    <div>34 employees</div>
+                                    <div style="font-size: 12px; color: #7f8c8d;">6 scheme fields</div>
+                                </td>
+                                <td>
+                                    <div class="date-created">6 hours ago</div>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="action-btn success">Continue</button>
+                                        <button class="action-btn">Export</button>
+                                        <button class="action-btn danger">Delete</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
