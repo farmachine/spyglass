@@ -19,7 +19,7 @@ export default function AllData({ project }: AllDataProps) {
   };
 
   return (
-    <div className="p-8">
+    <div>
       <div className="mb-8">
         <h2 className="text-2xl font-semibold text-gray-900">All Data</h2>
         <p className="text-sm text-gray-600 mt-1">

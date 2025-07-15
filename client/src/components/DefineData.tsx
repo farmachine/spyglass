@@ -236,7 +236,7 @@ export default function DefineData({ project }: DefineDataProps) {
   };
 
   return (
-    <div className="p-8">
+    <div>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">Define Data Schema</h2>
