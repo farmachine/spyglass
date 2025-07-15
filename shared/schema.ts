@@ -6,6 +6,7 @@ export const projects = pgTable("projects", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
+  mainObjectName: text("main_object_name").default("Session"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -47,19 +47,28 @@ Preferred communication style: Simple, everyday language.
 - ✓ Integrated manual override functionality for field validation
 - ✓ Added validation progress tracking and completion percentage display
 - ✓ Updated AllData component to show session validation details
+- ✓ Implemented Main Object Name feature with dynamic UI renaming throughout application
+- ✓ Added mainObjectName field to projects database schema with default "Session" value
+- ✓ Created editable Main Object Name section in DefineData component with inline editing
+- ✓ Updated all UI components to dynamically use Main Object Name (NewUpload, AllData, SessionView, ProjectLayout)
+- ✓ Enhanced tab navigation and headers to reflect custom object naming (e.g., "Invoice Data", "Upload New Contract")
+- ✓ Applied contextual naming to field labels, buttons, and descriptions throughout interface
 
 ## Current Status
 
-**Phase 6 Complete**: Comprehensive Field Validation System
+**Phase 7 Complete**: Dynamic Main Object Name Feature
 - Complete project management with dashboard and detailed views
 - Four-tab navigation: New Upload, Define Data, Knowledge/Rules, All Data
 - Schema definition with global fields and object collections
 - Knowledge base with document upload and extraction rules
 - File upload system with drag-and-drop, validation, and progress tracking
 - Extraction session management with status tracking and data overview
-- **Field-level validation with visual indicators and AI-driven explanations**
-- **Manual override system for invalid fields with inline editing**
-- **Progress tracking showing validation completion percentages**
+- Field-level validation with visual indicators and AI-driven explanations
+- Manual override system for invalid fields with inline editing
+- Progress tracking showing validation completion percentages
+- **Dynamic Main Object Name system that contextualizes the entire interface**
+- **Customizable object naming (e.g., "Invoice", "Contract", "Report") with real-time UI updates**
+- **Contextual field labels and navigation that adapt to user's domain**
 - Full CRUD operations for all entities with proper error handling
 - Responsive UI with modern design and accessibility features
 

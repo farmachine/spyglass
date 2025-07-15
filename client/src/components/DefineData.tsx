@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Settings, Plus, Edit, Trash2, Database, FileText } from "lucide-react";
+import { Settings, Plus, Edit, Trash2, Database, FileText, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,6 +22,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { 
   useCreateSchemaField, 
@@ -34,6 +36,7 @@ import {
   useUpdateProperty,
   useDeleteProperty
 } from "@/hooks/useSchema";
+import { useUpdateProject } from "@/hooks/useProjects";
 import SchemaFieldDialog from "./SchemaFieldDialog";
 import CollectionDialog from "./CollectionDialog";
 import PropertyDialog from "./PropertyDialog";
@@ -49,6 +52,8 @@ export default function DefineData({ project }: DefineDataProps) {
   const [collectionDialog, setCollectionDialog] = useState<{ open: boolean; collection?: ObjectCollection | null }>({ open: false });
   const [propertyDialog, setPropertyDialog] = useState<{ open: boolean; property?: CollectionProperty | null; collectionId?: number; collectionName?: string }>({ open: false });
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type?: string; id?: number; name?: string }>({ open: false });
+  const [mainObjectName, setMainObjectName] = useState(project.mainObjectName || "Session");
+  const [isEditingMainObjectName, setIsEditingMainObjectName] = useState(false);
 
   const { toast } = useToast();
 
@@ -65,6 +70,9 @@ export default function DefineData({ project }: DefineDataProps) {
   // Property mutations
   const updateProperty = useUpdateProperty();
   const deleteProperty = useDeleteProperty();
+  
+  // Project mutations
+  const updateProject = useUpdateProject();
 
   const fieldTypeColors = {
     TEXT: "bg-blue-100 text-blue-800",
@@ -197,6 +205,36 @@ export default function DefineData({ project }: DefineDataProps) {
     }
   };
 
+  // Main Object Name handler
+  const handleMainObjectNameSave = async () => {
+    if (!mainObjectName.trim()) {
+      toast({
+        title: "Error",
+        description: "Main object name cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      await updateProject.mutateAsync({ 
+        id: project.id, 
+        project: { mainObjectName: mainObjectName.trim() } 
+      });
+      toast({
+        title: "Main object name updated",
+        description: "The main object name has been updated successfully.",
+      });
+      setIsEditingMainObjectName(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update main object name. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Delete handler
   const handleDelete = async () => {
     if (!deleteDialog.id || !deleteDialog.type) return;
@@ -259,10 +297,69 @@ export default function DefineData({ project }: DefineDataProps) {
         </Button>
       </div>
 
+      {/* Main Object Name Section */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Tag className="h-5 w-5" />
+            Main Object Name
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <Label htmlFor="mainObjectName" className="text-sm font-medium">
+                What type of object are you extracting data from?
+              </Label>
+              <p className="text-sm text-gray-600 mb-2">
+                This will replace "Session" throughout the interface (e.g. "Invoice", "Contract", "Report")
+              </p>
+              {isEditingMainObjectName ? (
+                <div className="flex gap-2">
+                  <Input
+                    id="mainObjectName"
+                    value={mainObjectName}
+                    onChange={(e) => setMainObjectName(e.target.value)}
+                    placeholder="e.g. Invoice, Contract, Report"
+                    className="flex-1"
+                  />
+                  <Button size="sm" onClick={handleMainObjectNameSave}>
+                    Save
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => {
+                      setMainObjectName(project.mainObjectName || "Session");
+                      setIsEditingMainObjectName(false);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-medium text-blue-600">
+                    {project.mainObjectName || "Session"}
+                  </span>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    onClick={() => setIsEditingMainObjectName(true)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="schema">Project Schema</TabsTrigger>
-          <TabsTrigger value="collections">Object Collections</TabsTrigger>
+          <TabsTrigger value="schema">{project.mainObjectName || "Session"} Data</TabsTrigger>
+          <TabsTrigger value="collections">Items related to {project.mainObjectName || "Session"}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="schema" className="mt-6">
@@ -270,7 +367,7 @@ export default function DefineData({ project }: DefineDataProps) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Database className="h-5 w-5" />
-                Global Project Fields
+                {project.mainObjectName || "Session"} Data Fields
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -351,7 +448,7 @@ export default function DefineData({ project }: DefineDataProps) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
-                Object Collections
+                Items related to {project.mainObjectName || "Session"}
               </CardTitle>
             </CardHeader>
             <CardContent>

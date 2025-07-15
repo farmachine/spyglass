@@ -77,7 +77,7 @@ export default function AllData({ project }: AllDataProps) {
   return (
     <div>
       <div className="mb-8">
-        <h2 className="text-2xl font-semibold text-gray-900">All Data</h2>
+        <h2 className="text-2xl font-semibold text-gray-900">All {project.mainObjectName || "Session"} Data</h2>
         <p className="text-sm text-gray-600 mt-1">
           View extracted data and manage all extraction sessions for this project
         </p>
@@ -90,7 +90,7 @@ export default function AllData({ project }: AllDataProps) {
             <div className="flex items-center">
               <Database className="h-8 w-8 text-blue-600" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Sessions</p>
+                <p className="text-sm font-medium text-gray-600">Total {project.mainObjectName || "Session"}s</p>
                 <p className="text-2xl font-bold text-gray-900">{project.sessions.length}</p>
               </div>
             </div>
@@ -129,15 +129,15 @@ export default function AllData({ project }: AllDataProps) {
       {/* Sessions Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Extraction Sessions</CardTitle>
+          <CardTitle>{project.mainObjectName || "Session"} Extraction Sessions</CardTitle>
         </CardHeader>
         <CardContent>
           {project.sessions.length === 0 ? (
             <div className="text-center py-8">
               <Database className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No extraction sessions</h3>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No {(project.mainObjectName || "session").toLowerCase()} extractions</h3>
               <p className="mt-1 text-sm text-gray-500">
-                Upload documents to start extracting data
+                Upload documents to start extracting {(project.mainObjectName || "session").toLowerCase()} data
               </p>
             </div>
           ) : (

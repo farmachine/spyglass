@@ -116,8 +116,8 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   }
 
   const navItems = [
-    { id: "upload" as const, label: "New Upload", icon: Upload },
-    { id: "data" as const, label: "All Data", icon: Database },
+    { id: "upload" as const, label: `New ${project.mainObjectName || "Session"}`, icon: Upload },
+    { id: "data" as const, label: `All ${project.mainObjectName || "Session"} Data`, icon: Database },
     { id: "knowledge" as const, label: "Knowledge/Rules", icon: Brain },
     { id: "define" as const, label: "Define Data", icon: Settings },
   ];

@@ -295,7 +295,7 @@ export default function NewUpload({ project }: NewUploadProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold text-gray-900">New Upload</h2>
+        <h2 className="text-2xl font-semibold text-gray-900">Upload New {project.mainObjectName || "Session"}</h2>
         <p className="text-gray-600 mt-1">
           Upload documents for AI-powered data extraction using your defined schema.
         </p>
@@ -394,9 +394,9 @@ export default function NewUpload({ project }: NewUploadProps) {
         {/* Session Configuration */}
         <Card>
           <CardHeader>
-            <CardTitle>Extraction Session</CardTitle>
+            <CardTitle>{project.mainObjectName || "Session"} Configuration</CardTitle>
             <CardDescription>
-              Configure how this upload session should be processed
+              Configure how this {(project.mainObjectName || "session").toLowerCase()} should be processed
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -407,10 +407,10 @@ export default function NewUpload({ project }: NewUploadProps) {
                   name="sessionName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Session Name</FormLabel>
+                      <FormLabel>{project.mainObjectName || "Session"} Name</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="e.g., Q4 2024 Employee Data"
+                          placeholder={`e.g., Q4 2024 ${project.mainObjectName || "Session"} Data`}
                           {...field}
                           disabled={isProcessing}
                         />
