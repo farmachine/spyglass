@@ -56,6 +56,7 @@ export interface IStorage {
 
   // Extraction Sessions
   getExtractionSessions(projectId: number): Promise<ExtractionSession[]>;
+  getExtractionSession(id: number): Promise<ExtractionSession | undefined>;
   createExtractionSession(session: InsertExtractionSession): Promise<ExtractionSession>;
   updateExtractionSession(id: number, session: Partial<InsertExtractionSession>): Promise<ExtractionSession | undefined>;
 
@@ -582,6 +583,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.extractionSessions.values())
       .filter(session => session.projectId === projectId)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async getExtractionSession(id: number): Promise<ExtractionSession | undefined> {
+    return this.extractionSessions.get(id);
   }
 
   async createExtractionSession(insertSession: InsertExtractionSession): Promise<ExtractionSession> {
