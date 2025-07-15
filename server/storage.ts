@@ -101,6 +101,131 @@ export class MemStorage implements IStorage {
     this.currentSessionId = 1;
     this.currentDocumentId = 1;
     this.currentRuleId = 1;
+    
+    // Initialize with sample data for development
+    this.initializeSampleData();
+  }
+  
+  private initializeSampleData() {
+    // Create a sample project
+    const project = {
+      id: 1,
+      name: "Sample Invoice Processing",
+      description: "Extract data from invoices and receipts",
+      createdAt: new Date(),
+    };
+    this.projects.set(1, project);
+    this.currentProjectId = 2;
+    
+    // Add sample schema fields
+    const schemaFields = [
+      {
+        id: 1,
+        projectId: 1,
+        fieldName: "Total Amount",
+        fieldType: "NUMBER" as const,
+        description: "The total amount of the invoice",
+        orderIndex: 1,
+      },
+      {
+        id: 2,
+        projectId: 1,
+        fieldName: "Invoice Date",
+        fieldType: "DATE" as const,
+        description: "The date when the invoice was issued",
+        orderIndex: 2,
+      },
+      {
+        id: 3,
+        projectId: 1,
+        fieldName: "Vendor Name",
+        fieldType: "TEXT" as const,
+        description: "The name of the vendor or supplier",
+        orderIndex: 3,
+      },
+    ];
+    
+    schemaFields.forEach(field => this.projectSchemaFields.set(field.id, field));
+    this.currentFieldId = 4;
+    
+    // Add sample collection
+    const collection = {
+      id: 1,
+      projectId: 1,
+      collectionName: "Line Items",
+      description: "Individual items listed on the invoice",
+      orderIndex: 1,
+      createdAt: new Date(),
+    };
+    this.objectCollections.set(1, collection);
+    this.currentCollectionId = 2;
+    
+    // Add sample collection properties
+    const properties = [
+      {
+        id: 1,
+        collectionId: 1,
+        propertyName: "Description",
+        propertyType: "TEXT" as const,
+        description: "Description of the item",
+        orderIndex: 1,
+      },
+      {
+        id: 2,
+        collectionId: 1,
+        propertyName: "Quantity",
+        propertyType: "NUMBER" as const,
+        description: "Number of items",
+        orderIndex: 2,
+      },
+      {
+        id: 3,
+        collectionId: 1,
+        propertyName: "Unit Price",
+        propertyType: "NUMBER" as const,
+        description: "Price per unit",
+        orderIndex: 3,
+      },
+    ];
+    
+    properties.forEach(prop => this.collectionProperties.set(prop.id, prop));
+    this.currentPropertyId = 4;
+    
+    // Add sample extraction session
+    const session = {
+      id: 1,
+      projectId: 1,
+      sessionName: "Invoice Batch 001",
+      description: "Processing monthly invoices",
+      documentCount: 3,
+      status: "completed" as const,
+      extractedData: JSON.stringify({
+        "Total Amount": 1250.75,
+        "Invoice Date": "2024-01-15",
+        "Vendor Name": "ABC Supplies Inc.",
+        "Line Items": [
+          {
+            "Description": "Office Supplies",
+            "Quantity": 10,
+            "Unit Price": 25.50
+          },
+          {
+            "Description": "Printer Paper",
+            "Quantity": 5,
+            "Unit Price": 45.15
+          },
+          {
+            "Description": "Ink Cartridges",
+            "Quantity": 3,
+            "Unit Price": 85.20
+          }
+        ]
+      }),
+      createdAt: new Date(Date.now() - 86400000), // 1 day ago
+      updatedAt: new Date(Date.now() - 86400000),
+    };
+    this.extractionSessions.set(1, session);
+    this.currentSessionId = 2;
   }
 
   // Projects
