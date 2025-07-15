@@ -123,6 +123,7 @@ export class MemStorage implements IStorage {
     const project: Project = {
       ...insertProject,
       id,
+      description: insertProject.description || null,
       createdAt: new Date(),
     };
     this.projects.set(id, project);
@@ -175,6 +176,8 @@ export class MemStorage implements IStorage {
     const field: ProjectSchemaField = {
       ...insertField,
       id,
+      description: insertField.description || null,
+      orderIndex: insertField.orderIndex || null,
     };
     this.projectSchemaFields.set(id, field);
     return field;
@@ -205,6 +208,8 @@ export class MemStorage implements IStorage {
     const collection: ObjectCollection = {
       ...insertCollection,
       id,
+      description: insertCollection.description || null,
+      orderIndex: insertCollection.orderIndex || null,
       createdAt: new Date(),
     };
     this.objectCollections.set(id, collection);
@@ -241,6 +246,8 @@ export class MemStorage implements IStorage {
     const property: CollectionProperty = {
       ...insertProperty,
       id,
+      description: insertProperty.description || null,
+      orderIndex: insertProperty.orderIndex || null,
     };
     this.collectionProperties.set(id, property);
     return property;
@@ -271,6 +278,7 @@ export class MemStorage implements IStorage {
     const session: ExtractionSession = {
       ...insertSession,
       id,
+      status: insertSession.status || "in_progress",
       createdAt: new Date(),
     };
     this.extractionSessions.set(id, session);
