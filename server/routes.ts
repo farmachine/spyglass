@@ -419,6 +419,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update extracted data for a session
+  app.patch("/api/sessions/:sessionId/data", async (req, res) => {
+    try {
+      const sessionId = parseInt(req.params.sessionId);
+      const { extractedData } = req.body;
+      
+      const session = await storage.updateExtractionSession(sessionId, {
+        extractedData: JSON.stringify(extractedData),
+        status: 'verified'
+      });
+      
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      
+      res.json(session);
+    } catch (error) {
+      console.error("Error updating extracted data:", error);
+      res.status(500).json({ message: "Failed to update extracted data" });
+    }
+  });
+
   // Process extraction session with AI
   app.post("/api/sessions/:sessionId/process", async (req, res) => {
     try {
