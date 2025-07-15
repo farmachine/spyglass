@@ -430,8 +430,11 @@ export default function SessionView() {
           <CardContent className="space-y-4">
             {project.schemaFields.map((field) => {
               const value = extractedData[field.fieldName];
-              if (value !== undefined) {
-                return renderFieldWithValidation(field.fieldName, value);
+              const validation = validations.find(v => v.fieldName === field.fieldName);
+              
+              // Show field if it has a value OR if there's a validation for it
+              if (value !== undefined || validation) {
+                return renderFieldWithValidation(field.fieldName, value ?? validation?.extractedValue ?? null);
               }
               return null;
             })}
@@ -441,7 +444,17 @@ export default function SessionView() {
         {/* Collections */}
         {project.collections.map((collection) => {
           const collectionData = extractedData[collection.collectionName];
-          if (!collectionData || !Array.isArray(collectionData)) return null;
+          
+          // Get all validations for this collection
+          const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
+          
+          // Determine how many instances we need to show
+          const maxRecordIndex = Math.max(
+            ...(collectionData ? collectionData.length - 1 : [-1]),
+            ...(collectionValidations.length > 0 ? collectionValidations.map(v => v.recordIndex) : [-1])
+          );
+          
+          if (maxRecordIndex < 0) return null;
 
           return (
             <Card key={collection.id} className="mb-8">
@@ -450,21 +463,28 @@ export default function SessionView() {
                 <p className="text-sm text-gray-600">{collection.description}</p>
               </CardHeader>
               <CardContent>
-                {collectionData.map((item, index) => (
-                  <div key={index} className="mb-6 p-4 bg-gray-50 rounded-lg">
-                    <h4 className="font-medium mb-4">Item {index + 1}</h4>
-                    <div className="space-y-4">
-                      {collection.properties.map((property) => {
-                        const value = item[property.propertyName];
-                        if (value !== undefined) {
+                {Array.from({ length: maxRecordIndex + 1 }, (_, index) => {
+                  const item = collectionData?.[index] || {};
+                  
+                  return (
+                    <div key={index} className="mb-6 p-4 bg-gray-50 rounded-lg">
+                      <h4 className="font-medium mb-4">Item {index + 1}</h4>
+                      <div className="space-y-4">
+                        {collection.properties.map((property) => {
+                          const value = item[property.propertyName];
                           const fieldName = `${collection.collectionName}.${property.propertyName}[${index}]`;
-                          return renderFieldWithValidation(fieldName, value);
-                        }
-                        return null;
-                      })}
+                          const validation = validations.find(v => v.fieldName === fieldName);
+                          
+                          // Show property if it has a value OR if there's a validation for it
+                          if (value !== undefined || validation) {
+                            return renderFieldWithValidation(fieldName, value ?? validation?.extractedValue ?? null);
+                          }
+                          return null;
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </CardContent>
             </Card>
           );
