@@ -29,6 +29,8 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
   const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState<KnowledgeDocument | null>(null);
   const [editingRule, setEditingRule] = useState<ExtractionRule | null>(null);
+  const [deletingRuleId, setDeletingRuleId] = useState<number | null>(null);
+  const [deletingDocId, setDeletingDocId] = useState<number | null>(null);
 
   // Knowledge Documents
   const { data: knowledgeDocuments = [], isLoading: knowledgeLoading } = useKnowledgeDocuments(project.id);
@@ -58,11 +60,16 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
   };
 
   const handleDeleteKnowledgeDocument = async (id: number) => {
+    if (deletingDocId === id) return; // Prevent double-click
+    
+    setDeletingDocId(id);
     try {
       await deleteKnowledgeDocument.mutateAsync(id);
       toast({ title: "Document deleted successfully" });
     } catch (error) {
       toast({ title: "Failed to delete document", variant: "destructive" });
+    } finally {
+      setDeletingDocId(null);
     }
   };
 
@@ -82,11 +89,16 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
   };
 
   const handleDeleteExtractionRule = async (id: number) => {
+    if (deletingRuleId === id) return; // Prevent double-click
+    
+    setDeletingRuleId(id);
     try {
       await deleteExtractionRule.mutateAsync(id);
       toast({ title: "Rule deleted successfully" });
     } catch (error) {
       toast({ title: "Failed to delete rule", variant: "destructive" });
+    } finally {
+      setDeletingRuleId(null);
     }
   };
 
@@ -192,7 +204,7 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
                               setEditingDocument(doc);
                               setKnowledgeDialogOpen(true);
                             }}
-                            disabled={deleteKnowledgeDocument.isPending}
+                            disabled={deletingDocId === doc.id}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -200,7 +212,7 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDeleteKnowledgeDocument(doc.id)}
-                            disabled={deleteKnowledgeDocument.isPending}
+                            disabled={deletingDocId === doc.id}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -297,7 +309,7 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
                               setEditingRule(rule);
                               setRuleDialogOpen(true);
                             }}
-                            disabled={deleteExtractionRule.isPending}
+                            disabled={deletingRuleId === rule.id}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -305,7 +317,7 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDeleteExtractionRule(rule.id)}
-                            disabled={deleteExtractionRule.isPending}
+                            disabled={deletingRuleId === rule.id}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
