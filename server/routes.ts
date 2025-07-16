@@ -728,36 +728,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Helper function to generate initial field validations for a new session
   const generateInitialFieldValidations = async (sessionId: number, projectId: number) => {
-    const project = await storage.getProjectWithDetails(projectId);
-    if (!project) return;
+    try {
+      const project = await storage.getProjectWithDetails(projectId);
+      if (!project) {
+        console.error(`Project ${projectId} not found for session ${sessionId}`);
+        return;
+      }
 
-    // Create validations for schema fields
-    for (const field of project.schemaFields) {
-      await storage.createFieldValidation({
-        sessionId,
-        fieldType: 'schema_field',
-        fieldId: field.id,
-        fieldName: field.fieldName,
-        collectionName: null,
-        recordIndex: 0,
-        extractedValue: null,
-        validationStatus: 'pending',
-        aiReasoning: null,
-        manuallyVerified: false,
-        confidenceScore: 0
-      });
-    }
+      console.log(`Generating validations for session ${sessionId}, project ${projectId}`);
+      console.log(`Schema fields: ${project.schemaFields.length}, Collections: ${project.collections.length}`);
 
-    // Create validations for collection properties
-    for (const collection of project.collections) {
-      for (const property of collection.properties) {
-        // Create at least one instance for each collection property
+      // Create validations for schema fields
+      for (const field of project.schemaFields) {
         await storage.createFieldValidation({
           sessionId,
-          fieldType: 'collection_property',
-          fieldId: property.id,
-          fieldName: `${collection.collectionName}.${property.propertyName}[0]`,
-          collectionName: collection.collectionName,
+          fieldType: 'schema_field',
+          fieldId: field.id,
+          fieldName: field.fieldName,
+          collectionName: null,
           recordIndex: 0,
           extractedValue: null,
           validationStatus: 'pending',
@@ -766,6 +754,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
           confidenceScore: 0
         });
       }
+
+      // Create validations for collection properties
+      for (const collection of project.collections) {
+        const properties = await storage.getCollectionProperties(collection.id);
+        console.log(`Collection ${collection.collectionName} has ${properties.length} properties`);
+        
+        for (const property of properties) {
+          // Create at least one instance for each collection property
+          await storage.createFieldValidation({
+            sessionId,
+            fieldType: 'collection_property',
+            fieldId: property.id,
+            fieldName: `${collection.collectionName}.${property.propertyName}[0]`,
+            collectionName: collection.collectionName,
+            recordIndex: 0,
+            extractedValue: null,
+            validationStatus: 'pending',
+            aiReasoning: null,
+            manuallyVerified: false,
+            confidenceScore: 0
+          });
+        }
+      }
+    } catch (error) {
+      console.error(`Error generating initial field validations for session ${sessionId}:`, error);
+      throw error;
     }
   };
 
