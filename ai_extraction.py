@@ -80,9 +80,11 @@ def extract_data_from_document(
         
         # Build dynamic JSON schema based on project schema
         extracted_data_schema = build_dynamic_schema(project_schema)
+        logging.info(f"Generated schema: {extracted_data_schema}")
         
         # Make the API call to Gemini with structured JSON schema
         logging.info("Making API call to Gemini...")
+        logging.info(f"Content parts type: {type(content_parts)}, length: {len(content_parts)}")
         try:
             response = client.models.generate_content(
                 model="gemini-2.5-pro", 
@@ -111,11 +113,15 @@ def extract_data_from_document(
                 )
             )
             logging.info("API call completed successfully")
+            logging.info(f"Response object type: {type(response)}")
+            logging.info(f"Response text: '{response.text}'")
+            logging.info(f"Response text length: {len(response.text) if response.text else 0}")
         except Exception as api_error:
             logging.error(f"API call failed: {api_error}")
             raise api_error
         
         if not response.text:
+            logging.error("No response text from Gemini API")
             raise Exception("No response from Gemini API")
             
         # Clean and parse the JSON response
