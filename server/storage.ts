@@ -159,7 +159,7 @@ export class MemStorage implements IStorage {
     // Create sample organization
     const org: Organization = {
       id: 1,
-      name: "Demo Organization", 
+      name: "ACME Corporation", 
       description: "Sample organization for testing",
       createdAt: new Date()
     };
@@ -168,8 +168,8 @@ export class MemStorage implements IStorage {
     // Create sample admin user (password: "password")
     const adminUser: User = {
       id: 1,
-      email: "admin@demo.com",
-      passwordHash: "$2a$10$N9qo8uLOickgx2ZMRZoMye.Uo/FdY2y7u4dOPVoE5jxlkrFJ1xBCG",
+      email: "admin@acme.com",
+      passwordHash: "$2b$10$3okWosohJ1kYB2mvuz1ieuZTTrUIbDcEv3O2D/sWc01cyvlhqN88C",
       name: "Admin User",
       organizationId: 1,
       role: "admin",
