@@ -76,6 +76,7 @@ export default function OrganizationConfig() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users", organizationId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/organizations"] });
       setCreateUserOpen(false);
       toast({ title: "User created successfully" });
     },
@@ -90,6 +91,7 @@ export default function OrganizationConfig() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users", organizationId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/organizations"] });
       toast({ title: "User status updated successfully" });
     },
   });

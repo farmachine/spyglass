@@ -37,7 +37,7 @@ import {
 
 export interface IStorage {
   // Organizations
-  getOrganizations(): Promise<Organization[]>;
+  getOrganizations(): Promise<(Organization & { userCount: number })[]>;
   getOrganization(id: number): Promise<Organization | undefined>;
   getOrganizationWithUsers(id: number): Promise<OrganizationWithUsers | undefined>;
   createOrganization(organization: InsertOrganization): Promise<Organization>;
@@ -485,8 +485,14 @@ export class MemStorage implements IStorage {
   }
 
   // Organizations
-  async getOrganizations(): Promise<Organization[]> {
-    return Array.from(this.organizations.values()).sort((a, b) => 
+  async getOrganizations(): Promise<(Organization & { userCount: number })[]> {
+    const orgs = Array.from(this.organizations.values());
+    const orgsWithUserCount = orgs.map(org => {
+      const userCount = Array.from(this.users.values()).filter(u => u.organizationId === org.id).length;
+      return { ...org, userCount };
+    });
+    
+    return orgsWithUserCount.sort((a, b) => 
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   }
