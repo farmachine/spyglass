@@ -45,6 +45,9 @@ Preferred communication style: Simple, everyday language.
 - ✓ Removed user registration functionality - system is now invitation-only
 - ✓ Removed registration routes from both frontend and backend
 - ✓ Created production admin account (joshfarm@gmail.com) with full admin privileges in primary organization
+- → Diagnosed AI extraction issues: API calls succeeding but returning empty responses
+- → Identified API key conflict between GOOGLE_API_KEY and GEMINI_API_KEY
+- → Verified Gemini API connectivity with standalone test script - API is functional
 
 **January 15, 2025**
 - ✓ Built complete project dashboard with CRUD operations
