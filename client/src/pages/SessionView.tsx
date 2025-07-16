@@ -333,18 +333,22 @@ export default function SessionView() {
           )}
         </div>
         
-        {validation && (
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id={`verify-${fieldName}`}
-              checked={validation.validationStatus === 'valid'}
-              onCheckedChange={(checked) => handleVerificationToggle(fieldName, checked === true)}
-            />
-            <Label htmlFor={`verify-${fieldName}`} className="text-sm">
-              {validation.validationStatus === 'valid' ? 'Verified' : 'Unverified'}
-            </Label>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {validation ? (
+            <>
+              <Checkbox
+                id={`verify-${fieldName}`}
+                checked={validation.validationStatus === 'valid'}
+                onCheckedChange={(checked) => handleVerificationToggle(fieldName, checked === true)}
+              />
+              <Label htmlFor={`verify-${fieldName}`} className="text-sm">
+                {validation.validationStatus === 'valid' ? 'Verified' : 'Unverified'}
+              </Label>
+            </>
+          ) : (
+            <div className="text-xs text-gray-400">No validation data</div>
+          )}
+        </div>
       </div>
     );
   };

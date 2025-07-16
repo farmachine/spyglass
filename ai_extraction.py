@@ -92,8 +92,8 @@ def extract_data_from_document(
         
         # Make the API call to Gemini with structured JSON schema and retry logic
         import time
-        max_retries = 3
-        retry_delay = 2  # Start with 2 seconds
+        max_retries = 5  # Increased from 3
+        retry_delay = 5  # Increased from 2 seconds
         
         for attempt in range(max_retries):
             logging.info(f"Making API call to Gemini (attempt {attempt + 1}/{max_retries})...")
