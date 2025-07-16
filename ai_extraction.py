@@ -83,8 +83,20 @@ def extract_data_from_document(
         if not response.text:
             raise Exception("No response from Gemini API")
             
-        # Parse the JSON response
-        result_data = json.loads(response.text)
+        # Clean and parse the JSON response
+        raw_response = response.text.strip()
+        logging.info(f"Raw AI response: {raw_response[:500]}...")
+        
+        # Try to clean common JSON issues
+        cleaned_response = raw_response
+        # Remove any leading/trailing non-JSON content
+        if '{' in cleaned_response and '}' in cleaned_response:
+            start_idx = cleaned_response.find('{')
+            end_idx = cleaned_response.rfind('}') + 1
+            cleaned_response = cleaned_response[start_idx:end_idx]
+        
+        logging.info(f"Cleaned response: {cleaned_response[:500]}...")
+        result_data = json.loads(cleaned_response)
         
         # Generate field validations for the extracted data
         field_validations = generate_field_validations(
@@ -221,26 +233,31 @@ INSTRUCTIONS:
 6. Provide a confidence score (0.0 to 1.0) based on data clarity and completeness
 7. Add processing notes about any challenges or assumptions made
 
-RESPONSE FORMAT (JSON):
+CRITICAL: You must respond with VALID JSON only. Do not include any comments, explanations, or text outside the JSON structure.
+
+RESPONSE FORMAT - Valid JSON only:
 {
   "extracted_data": {
-    // Global fields as key-value pairs
-    "field_name": "extracted_value",
-    
-    // Object collections as arrays
-    "collection_name": [
-      {
-        "property_name": "value",
-        // ... other properties
-      }
-      // ... more instances
-    ]
+    "field_name": "extracted_value"
   },
   "confidence_score": 0.95,
   "processing_notes": "Document was clear and well-structured. All required fields found."
 }
 
-Analyze the document now and provide the extracted data in the exact JSON format specified above.
+For collections, use this structure:
+{
+  "extracted_data": {
+    "collection_name": [
+      {
+        "property_name": "value"
+      }
+    ]
+  },
+  "confidence_score": 0.95,
+  "processing_notes": "Extraction notes here"
+}
+
+Return only valid JSON without any additional text, comments, or formatting.
 """
     
     return prompt
