@@ -1228,49 +1228,181 @@ class PostgreSQLStorage implements IStorage {
     return result.rowCount > 0;
   }
 
-  // Minimal implementations for other methods to prevent errors
-  async getProjectSchemaFields(projectId: number): Promise<ProjectSchemaField[]> { return []; }
+  // Project Schema Fields
+  async getProjectSchemaFields(projectId: number): Promise<ProjectSchemaField[]> {
+    const result = await this.db
+      .select()
+      .from(projectSchemaFields)
+      .where(eq(projectSchemaFields.projectId, projectId))
+      .orderBy(projectSchemaFields.orderIndex);
+    return result;
+  }
   async createProjectSchemaField(field: InsertProjectSchemaField): Promise<ProjectSchemaField> { 
     const result = await this.db.insert(projectSchemaFields).values(field).returning();
     return result[0];
   }
-  async updateProjectSchemaField(id: number, field: Partial<InsertProjectSchemaField>): Promise<ProjectSchemaField | undefined> { return undefined; }
-  async deleteProjectSchemaField(id: number): Promise<boolean> { return false; }
-  async getObjectCollections(projectId: number): Promise<ObjectCollection[]> { return []; }
+  async updateProjectSchemaField(id: number, field: Partial<InsertProjectSchemaField>): Promise<ProjectSchemaField | undefined> {
+    const result = await this.db
+      .update(projectSchemaFields)
+      .set(field)
+      .where(eq(projectSchemaFields.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteProjectSchemaField(id: number): Promise<boolean> {
+    const result = await this.db
+      .delete(projectSchemaFields)
+      .where(eq(projectSchemaFields.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Object Collections
+  async getObjectCollections(projectId: number): Promise<ObjectCollection[]> {
+    const result = await this.db
+      .select()
+      .from(objectCollections)
+      .where(eq(objectCollections.projectId, projectId))
+      .orderBy(objectCollections.orderIndex);
+    return result;
+  }
   async createObjectCollection(collection: InsertObjectCollection): Promise<ObjectCollection> { 
     const result = await this.db.insert(objectCollections).values(collection).returning();
     return result[0];
   }
-  async updateObjectCollection(id: number, collection: Partial<InsertObjectCollection>): Promise<ObjectCollection | undefined> { return undefined; }
-  async deleteObjectCollection(id: number): Promise<boolean> { return false; }
-  async getCollectionProperties(collectionId: number): Promise<CollectionProperty[]> { return []; }
+  async updateObjectCollection(id: number, collection: Partial<InsertObjectCollection>): Promise<ObjectCollection | undefined> {
+    const result = await this.db
+      .update(objectCollections)
+      .set(collection)
+      .where(eq(objectCollections.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteObjectCollection(id: number): Promise<boolean> {
+    const result = await this.db
+      .delete(objectCollections)
+      .where(eq(objectCollections.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Collection Properties
+  async getCollectionProperties(collectionId: number): Promise<CollectionProperty[]> {
+    const result = await this.db
+      .select()
+      .from(collectionProperties)
+      .where(eq(collectionProperties.collectionId, collectionId))
+      .orderBy(collectionProperties.orderIndex);
+    return result;
+  }
   async createCollectionProperty(property: InsertCollectionProperty): Promise<CollectionProperty> { 
     const result = await this.db.insert(collectionProperties).values(property).returning();
     return result[0];
   }
-  async updateCollectionProperty(id: number, property: Partial<InsertCollectionProperty>): Promise<CollectionProperty | undefined> { return undefined; }
-  async deleteCollectionProperty(id: number): Promise<boolean> { return false; }
-  async getExtractionSessions(projectId: number): Promise<ExtractionSession[]> { return []; }
-  async getExtractionSession(id: number): Promise<ExtractionSession | undefined> { return undefined; }
+  async updateCollectionProperty(id: number, property: Partial<InsertCollectionProperty>): Promise<CollectionProperty | undefined> {
+    const result = await this.db
+      .update(collectionProperties)
+      .set(property)
+      .where(eq(collectionProperties.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteCollectionProperty(id: number): Promise<boolean> {
+    const result = await this.db
+      .delete(collectionProperties)
+      .where(eq(collectionProperties.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Extraction Sessions
+  async getExtractionSessions(projectId: number): Promise<ExtractionSession[]> {
+    const result = await this.db
+      .select()
+      .from(extractionSessions)
+      .where(eq(extractionSessions.projectId, projectId))
+      .orderBy(extractionSessions.createdAt);
+    return result;
+  }
+
+  async getExtractionSession(id: number): Promise<ExtractionSession | undefined> {
+    const result = await this.db
+      .select()
+      .from(extractionSessions)
+      .where(eq(extractionSessions.id, id))
+      .limit(1);
+    return result[0];
+  }
   async createExtractionSession(session: InsertExtractionSession): Promise<ExtractionSession> { 
     const result = await this.db.insert(extractionSessions).values(session).returning();
     return result[0];
   }
-  async updateExtractionSession(id: number, session: Partial<InsertExtractionSession>): Promise<ExtractionSession | undefined> { return undefined; }
-  async getKnowledgeDocuments(projectId: number): Promise<KnowledgeDocument[]> { return []; }
+  async updateExtractionSession(id: number, session: Partial<InsertExtractionSession>): Promise<ExtractionSession | undefined> {
+    const result = await this.db
+      .update(extractionSessions)
+      .set(session)
+      .where(eq(extractionSessions.id, id))
+      .returning();
+    return result[0];
+  }
+
+  // Knowledge Documents
+  async getKnowledgeDocuments(projectId: number): Promise<KnowledgeDocument[]> {
+    const result = await this.db
+      .select()
+      .from(knowledgeDocuments)
+      .where(eq(knowledgeDocuments.projectId, projectId))
+      .orderBy(knowledgeDocuments.uploadedAt);
+    return result;
+  }
   async createKnowledgeDocument(document: InsertKnowledgeDocument): Promise<KnowledgeDocument> { 
     const result = await this.db.insert(knowledgeDocuments).values(document).returning();
     return result[0];
   }
-  async updateKnowledgeDocument(id: number, document: Partial<InsertKnowledgeDocument>): Promise<KnowledgeDocument | undefined> { return undefined; }
-  async deleteKnowledgeDocument(id: number): Promise<boolean> { return false; }
-  async getExtractionRules(projectId: number): Promise<ExtractionRule[]> { return []; }
+  async updateKnowledgeDocument(id: number, document: Partial<InsertKnowledgeDocument>): Promise<KnowledgeDocument | undefined> {
+    const result = await this.db
+      .update(knowledgeDocuments)
+      .set(document)
+      .where(eq(knowledgeDocuments.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteKnowledgeDocument(id: number): Promise<boolean> {
+    const result = await this.db
+      .delete(knowledgeDocuments)
+      .where(eq(knowledgeDocuments.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Extraction Rules
+  async getExtractionRules(projectId: number): Promise<ExtractionRule[]> {
+    const result = await this.db
+      .select()
+      .from(extractionRules)
+      .where(eq(extractionRules.projectId, projectId))
+      .orderBy(extractionRules.createdAt);
+    return result;
+  }
   async createExtractionRule(rule: InsertExtractionRule): Promise<ExtractionRule> { 
     const result = await this.db.insert(extractionRules).values(rule).returning();
     return result[0];
   }
-  async updateExtractionRule(id: number, rule: Partial<InsertExtractionRule>): Promise<ExtractionRule | undefined> { return undefined; }
-  async deleteExtractionRule(id: number): Promise<boolean> { return false; }
+  async updateExtractionRule(id: number, rule: Partial<InsertExtractionRule>): Promise<ExtractionRule | undefined> {
+    const result = await this.db
+      .update(extractionRules)
+      .set(rule)
+      .where(eq(extractionRules.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteExtractionRule(id: number): Promise<boolean> {
+    const result = await this.db
+      .delete(extractionRules)
+      .where(eq(extractionRules.id, id));
+    return result.rowCount > 0;
+  }
   async getFieldValidations(sessionId: number): Promise<FieldValidation[]> { return []; }
   async createFieldValidation(validation: InsertFieldValidation): Promise<FieldValidation> { 
     const result = await this.db.insert(fieldValidations).values(validation).returning();
@@ -1281,7 +1413,7 @@ class PostgreSQLStorage implements IStorage {
   async getSessionWithValidations(sessionId: number): Promise<ExtractionSessionWithValidation | undefined> { return undefined; }
 }
 
-// Use PostgreSQL storage in production, MemStorage for development
-export const storage = process.env.DATABASE_URL && process.env.NODE_ENV === 'production'
+// Use PostgreSQL storage when DATABASE_URL is available, MemStorage otherwise
+export const storage = process.env.DATABASE_URL
   ? new PostgreSQLStorage()
   : new MemStorage();
