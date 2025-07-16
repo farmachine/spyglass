@@ -869,11 +869,15 @@ except Exception as e:
       let error = '';
       
       python.stdout.on('data', (data: any) => {
-        output += data.toString();
+        const outputText = data.toString();
+        console.log('Python stdout chunk:', outputText.substring(0, 200) + '...');
+        output += outputText;
       });
       
       python.stderr.on('data', (data: any) => {
-        error += data.toString();
+        const errorText = data.toString();
+        console.log('Python stderr:', errorText);
+        error += errorText;
       });
       
       python.on('close', async (code: any) => {
@@ -886,7 +890,9 @@ except Exception as e:
         }
         
         try {
+          console.log('Raw Python output:', output.substring(0, 500) + '...');
           const result = JSON.parse(output);
+          console.log('Parsed Python result:', JSON.stringify(result, null, 2).substring(0, 500) + '...');
           
           // Update session status
           await storage.updateExtractionSession(sessionId, {
