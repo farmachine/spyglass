@@ -513,6 +513,9 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
                     extraction_rules=extraction_rules
                 )
                 logging.info(f"Extraction completed for {file_name}, confidence: {extraction_result.confidence_score}")
+                logging.info(f"Field validations created: {len(extraction_result.field_validations)}")
+                for v in extraction_result.field_validations[:3]:  # Log first 3 for debugging
+                    logging.info(f"  - {v.field_name}: {v.validation_status}")
             
             # Record the result
             document_result = {
