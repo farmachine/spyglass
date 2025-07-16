@@ -88,19 +88,7 @@ export default function Login() {
             </Button>
           </form>
 
-          <Separator />
 
-          <div className="text-center text-sm">
-            <span className="text-gray-600 dark:text-gray-400">
-              Don't have an account?{" "}
-            </span>
-            <Link 
-              href="/register" 
-              className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
-            >
-              Sign up
-            </Link>
-          </div>
 
 
         </CardContent>

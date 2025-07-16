@@ -12,14 +12,13 @@ import SessionView from "@/pages/SessionView";
 import AdminPanel from "@/pages/AdminPanel";
 import OrganizationConfig from "@/pages/OrganizationConfig";
 import Login from "@/pages/Login";
-import Register from "@/pages/Register";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
-      <Route path="/register" component={Register} />
+
       <Route path="/">
         <ProtectedRoute>
           <Dashboard />

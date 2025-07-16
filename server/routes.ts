@@ -22,45 +22,6 @@ import { authenticateToken, requireAdmin, generateToken, comparePassword, hashPa
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication Routes
-  app.post("/api/auth/register", async (req, res) => {
-    try {
-      const result = registerUserSchema.safeParse(req.body);
-      if (!result.success) {
-        return res.status(400).json({ message: "Invalid registration data", errors: result.error.errors });
-      }
-
-      // Check if user already exists
-      const existingUser = await storage.getUserByEmail(result.data.email);
-      if (existingUser) {
-        return res.status(409).json({ message: "User already exists with this email" });
-      }
-
-      // Create user
-      const user = await storage.createUser(result.data);
-      
-      // Generate token
-      const token = generateToken({
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        organizationId: user.organizationId,
-        role: user.role,
-        isTemporaryPassword: user.isTemporaryPassword || false
-      });
-
-      // Remove password hash from response
-      const { passwordHash, ...userResponse } = user;
-      
-      res.status(201).json({ 
-        user: userResponse, 
-        token,
-        message: "User registered successfully" 
-      });
-    } catch (error) {
-      console.error("Registration error:", error);
-      res.status(500).json({ message: "Failed to register user" });
-    }
-  });
 
   app.post("/api/auth/login", async (req, res) => {
     try {
