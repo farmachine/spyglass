@@ -46,9 +46,14 @@ def extract_data_from_document(
     Returns:
         ExtractionResult containing extracted data and metadata
     """
+    logging.info(f"=== EXTRACT_DATA_FROM_DOCUMENT CALLED ===")
+    logging.info(f"File: {file_name}, Size: {len(file_content)} bytes, MIME: {mime_type}")
+    
     try:
         # Check if API key is available
         api_key = os.environ.get("GEMINI_API_KEY")
+        logging.info(f"API key check: {'FOUND' if api_key else 'NOT FOUND'}")
+        
         if not api_key:
             logging.warning("GEMINI_API_KEY not found, using demo data")
             return create_demo_extraction_result(project_schema, file_name)
