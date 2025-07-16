@@ -54,6 +54,7 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
         toast({ title: "Document added successfully" });
       }
       setEditingDocument(null);
+      setKnowledgeDialogOpen(false);
     } catch (error) {
       toast({ title: "Failed to save document", variant: "destructive" });
     }

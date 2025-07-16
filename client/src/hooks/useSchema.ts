@@ -119,6 +119,10 @@ export function useDeleteCollection() {
     onSuccess: () => {
       // Invalidate all project queries since we don't know which project this collection belonged to
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/collections"] });
+    },
+    onError: (error: any) => {
+      console.error("Delete collection error:", error);
     },
   });
 }

@@ -49,5 +49,8 @@ export function useDeleteProject() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
     },
+    onError: (error: any) => {
+      console.error("Delete project error:", error);
+    },
   });
 }

@@ -351,9 +351,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Project Schema Fields
-  app.get("/api/projects/:projectId/schema", async (req, res) => {
+  app.get("/api/projects/:projectId/schema", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const projectId = parseInt(req.params.projectId);
+      // Verify project belongs to user's organization
+      const project = await storage.getProject(projectId, req.user!.organizationId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
       const fields = await storage.getProjectSchemaFields(projectId);
       res.json(fields);
     } catch (error) {
@@ -361,7 +367,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/projects/:projectId/schema", async (req, res) => {
+  app.post("/api/projects/:projectId/schema", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const projectId = parseInt(req.params.projectId);
       const result = insertProjectSchemaFieldSchema.safeParse({
@@ -418,9 +424,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Object Collections
-  app.get("/api/projects/:projectId/collections", async (req, res) => {
+  app.get("/api/projects/:projectId/collections", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const projectId = parseInt(req.params.projectId);
+      // Verify project belongs to user's organization
+      const project = await storage.getProject(projectId, req.user!.organizationId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
       const collections = await storage.getObjectCollections(projectId);
       res.json(collections);
     } catch (error) {
@@ -428,7 +440,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/projects/:projectId/collections", async (req, res) => {
+  app.post("/api/projects/:projectId/collections", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const projectId = parseInt(req.params.projectId);
       const result = insertObjectCollectionSchema.safeParse({
@@ -453,7 +465,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/collections/:id", async (req, res) => {
+  app.put("/api/collections/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = parseInt(req.params.id);
       const result = insertObjectCollectionSchema.partial().safeParse(req.body);
@@ -471,15 +483,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/collections/:id", async (req, res) => {
+  app.delete("/api/collections/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = parseInt(req.params.id);
+      
+      // First, get the collection to verify organization access
+      const collection = await storage.getObjectCollection(id);
+      if (!collection) {
+        return res.status(404).json({ message: "Collection not found" });
+      }
+      
+      // Verify the collection's project belongs to user's organization
+      const project = await storage.getProject(collection.projectId, req.user!.organizationId);
+      if (!project) {
+        return res.status(404).json({ message: "Collection not found" });
+      }
+      
       const deleted = await storage.deleteObjectCollection(id);
       if (!deleted) {
         return res.status(404).json({ message: "Collection not found" });
       }
       res.status(204).send();
     } catch (error) {
+      console.error("Delete collection error:", error);
       res.status(500).json({ message: "Failed to delete collection" });
     }
   });

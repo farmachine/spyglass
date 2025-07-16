@@ -763,6 +763,10 @@ export class MemStorage implements IStorage {
       .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
   }
 
+  async getObjectCollection(id: number): Promise<ObjectCollection | undefined> {
+    return this.objectCollections.get(id);
+  }
+
   async createObjectCollection(insertCollection: InsertObjectCollection): Promise<ObjectCollection> {
     const id = this.currentCollectionId++;
     const collection: ObjectCollection = {
@@ -1265,6 +1269,15 @@ class PostgreSQLStorage implements IStorage {
       .where(eq(objectCollections.projectId, projectId))
       .orderBy(objectCollections.orderIndex);
     return result;
+  }
+
+  async getObjectCollection(id: number): Promise<ObjectCollection | undefined> {
+    const result = await this.db
+      .select()
+      .from(objectCollections)
+      .where(eq(objectCollections.id, id))
+      .limit(1);
+    return result[0];
   }
   async createObjectCollection(collection: InsertObjectCollection): Promise<ObjectCollection> { 
     const result = await this.db.insert(objectCollections).values(collection).returning();
