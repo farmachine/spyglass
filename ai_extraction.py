@@ -100,12 +100,16 @@ def extract_data_from_document(
             logging.info(f"Content parts type: {type(content_parts)}, length: {len(content_parts)}")
             
             try:
+                # Try gemini-2.5-flash first as it's more reliable
+                model_to_use = "gemini-2.5-flash" if attempt == 0 else "gemini-2.5-pro"
+                logging.info(f"Using model: {model_to_use}")
+                
                 response = client.models.generate_content(
-                    model="gemini-2.5-pro", 
+                    model=model_to_use, 
                     contents=content_parts,
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
-                        temperature=0.0,  # Use 0 temperature for deterministic JSON output
+                        temperature=0.1,  # Slightly higher temperature for more robust responses
                         max_output_tokens=8192,
                         response_schema={
                             "type": "object",
@@ -152,8 +156,15 @@ def extract_data_from_document(
                 logging.error(f"Full traceback: {traceback.format_exc()}")
                 raise api_error
         
-        if not response.text:
+        if not response.text or response.text.strip() == "":
             logging.error("No response text from Gemini API")
+            logging.error(f"Response object: {response}")
+            logging.error(f"Response candidates: {getattr(response, 'candidates', 'No candidates')}")
+            if hasattr(response, 'candidates') and response.candidates:
+                for i, candidate in enumerate(response.candidates):
+                    logging.error(f"Candidate {i}: {candidate}")
+                    if hasattr(candidate, 'content'):
+                        logging.error(f"Candidate {i} content: {candidate.content}")
             raise Exception("No response from Gemini API")
             
         # Clean and parse the JSON response
