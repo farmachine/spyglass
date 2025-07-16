@@ -46,7 +46,7 @@ export default function UserProfile() {
         <DropdownMenuItem className="cursor-pointer">
           <Building2 className="mr-2 h-4 w-4" />
           <div className="flex flex-col">
-            <span className="text-sm">{user.organization.name}</span>
+            <span className="text-sm">{user.organization?.name || "Organization"}</span>
             <span className="text-xs text-muted-foreground">
               Role: {user.role === "admin" ? "Administrator" : "User"}
             </span>

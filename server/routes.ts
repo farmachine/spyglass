@@ -78,6 +78,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
+      // Get user with organization data
+      const userWithOrg = await storage.getUserWithOrganization(user.id);
+      if (!userWithOrg) {
+        return res.status(500).json({ message: "Failed to get user organization data" });
+      }
+
       // Generate token
       const token = generateToken({
         id: user.id,
@@ -88,7 +94,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Remove password hash from response
-      const { passwordHash, ...userResponse } = user;
+      const { passwordHash, ...userResponse } = userWithOrg;
 
       res.json({ 
         user: userResponse, 
