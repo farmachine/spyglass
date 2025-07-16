@@ -110,7 +110,7 @@ def extract_data_from_document(
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
                         temperature=0.1,  # Slightly higher temperature for more robust responses
-                        max_output_tokens=4096,  # Reduced to leave room for input
+                        max_output_tokens=2048,  # Further reduced to prevent token limits
                         response_schema={
                             "type": "object",
                             "properties": {
@@ -156,7 +156,22 @@ def extract_data_from_document(
                 logging.error(f"Full traceback: {traceback.format_exc()}")
                 raise api_error
         
-        if not response.text or response.text.strip() == "":
+        # Handle different response structures
+        response_text = ""
+        if hasattr(response, 'text') and response.text:
+            response_text = response.text
+        elif hasattr(response, 'candidates') and response.candidates:
+            # Try to extract text from candidates
+            for candidate in response.candidates:
+                if hasattr(candidate, 'content') and candidate.content:
+                    if hasattr(candidate.content, 'parts') and candidate.content.parts:
+                        for part in candidate.content.parts:
+                            if hasattr(part, 'text') and part.text:
+                                response_text += part.text
+                    elif hasattr(candidate.content, 'text') and candidate.content.text:
+                        response_text += candidate.content.text
+        
+        if not response_text or response_text.strip() == "":
             logging.error("No response text from Gemini API")
             logging.error(f"Response object: {response}")
             logging.error(f"Response candidates: {getattr(response, 'candidates', 'No candidates')}")
@@ -165,7 +180,12 @@ def extract_data_from_document(
                     logging.error(f"Candidate {i}: {candidate}")
                     if hasattr(candidate, 'content'):
                         logging.error(f"Candidate {i} content: {candidate.content}")
+                        if hasattr(candidate.content, 'parts'):
+                            logging.error(f"Candidate {i} parts: {candidate.content.parts}")
             raise Exception("No response from Gemini API")
+        
+        # Use extracted response text
+        response.text = response_text
             
         # Clean and parse the JSON response
         raw_response = response.text.strip()
