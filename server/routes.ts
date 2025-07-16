@@ -149,6 +149,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User Management Routes (Admin only)
+  app.get("/api/users/:organizationId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const organizationId = parseInt(req.params.organizationId);
+      if (isNaN(organizationId)) {
+        return res.status(400).json({ message: "Invalid organization ID" });
+      }
+
+      const users = await storage.getUsers(organizationId);
+      res.json(users);
+    } catch (error) {
+      console.error("Get users error:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.post("/api/users", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const result = registerUserSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid user data", errors: result.error.errors });
+      }
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(result.data.email);
+      if (existingUser) {
+        return res.status(409).json({ message: "User with this email already exists" });
+      }
+
+      const user = await storage.createUser(result.data);
+      
+      // Remove password hash from response
+      const { passwordHash, ...userResponse } = user;
+      res.status(201).json(userResponse);
+    } catch (error) {
+      console.error("Create user error:", error);
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
+  app.post("/api/organizations", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const result = insertOrganizationSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid organization data", errors: result.error.errors });
+      }
+
+      const organization = await storage.createOrganization(result.data);
+      res.status(201).json(organization);
+    } catch (error) {
+      console.error("Create organization error:", error);
+      res.status(500).json({ message: "Failed to create organization" });
+    }
+  });
+
   // Projects (with authentication and organization filtering)
   app.get("/api/projects", authenticateToken, async (req: AuthRequest, res) => {
     try {
