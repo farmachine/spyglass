@@ -102,10 +102,7 @@ export default function Login() {
             </Link>
           </div>
 
-          <div className="text-center text-xs text-gray-500 dark:text-gray-400">
-            Demo credentials:<br />
-            admin@acme.com / password
-          </div>
+
         </CardContent>
       </Card>
     </div>

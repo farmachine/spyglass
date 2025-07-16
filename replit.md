@@ -41,6 +41,7 @@ Preferred communication style: Simple, everyday language.
 - ✓ Added reset password dialog in Organization Config with form validation for temporary password input
 - ✓ Updated API endpoints to handle custom temporary passwords instead of auto-generated ones
 - ✓ Verified end-to-end workflow: admin sets custom temp password → user receives it → forced password change on login
+- ✓ Removed demo credentials from login screen for production-ready appearance
 
 **January 15, 2025**
 - ✓ Built complete project dashboard with CRUD operations
