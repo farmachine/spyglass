@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCreateExtractionSession } from "@/hooks/useExtractionSessions";
 import { useProcessExtraction } from "@/hooks/useAIExtraction";
 import { useProjectSchemaFields, useObjectCollections } from "@/hooks/useSchema";
+import { useExtractionRules } from "@/hooks/useKnowledge";
 import { useToast } from "@/hooks/use-toast";
 import type { ProjectWithDetails } from "@shared/schema";
 
@@ -65,6 +66,7 @@ export default function NewUpload({ project }: NewUploadProps) {
   // Fetch schema data for validation
   const { data: schemaFields = [] } = useProjectSchemaFields(project.id);
   const { data: collections = [] } = useObjectCollections(project.id);
+  const { data: extractionRules = [] } = useExtractionRules(project.id);
 
   const form = useForm<UploadForm>({
     resolver: zodResolver(uploadFormSchema),
@@ -240,10 +242,20 @@ export default function NewUpload({ project }: NewUploadProps) {
       // Process with AI
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "processing" as const })));
       
+      // Get project schema and collections for AI processing
+      const projectSchema = schemaFields || [];
+      const projectCollections = collections || [];
+      const projectRules = extractionRules || [];
+
       await processExtraction.mutateAsync({
         sessionId: session.id,
         files: filesData,
-        project_data: project
+        project_data: {
+          ...project,
+          schemaFields: projectSchema,
+          collections: projectCollections,
+          extractionRules: projectRules
+        }
       });
 
       // Mark files as completed
