@@ -519,6 +519,7 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
             else:
                 # Extract data from the document
                 logging.info(f"Starting extraction for {file_name}")
+                logging.info(f"About to call extract_data_from_document with file size: {len(file_content)} bytes")
                 extraction_result = extract_data_from_document(
                     file_content=file_content,
                     file_name=file_name,
@@ -526,6 +527,7 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
                     project_schema=project_schema,
                     extraction_rules=extraction_rules
                 )
+                logging.info(f"extract_data_from_document returned, type: {type(extraction_result)}")
                 logging.info(f"Extraction completed for {file_name}, confidence: {extraction_result.confidence_score}")
                 logging.info(f"Field validations created: {len(extraction_result.field_validations)}")
                 for v in extraction_result.field_validations[:3]:  # Log first 3 for debugging
