@@ -513,6 +513,7 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
                 logging.info(f"Content already in bytes format")
             
             # Check if we have actual content to process
+            logging.info(f"Content check - file_content type: {type(file_content)}, length: {len(file_content) if file_content else 0}")
             if not file_content or len(file_content) == 0:
                 logging.warning(f"No content found for file: {file_name}")
                 extraction_result = ExtractionResult(
