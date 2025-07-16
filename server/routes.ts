@@ -10,48 +10,186 @@ import {
   insertKnowledgeDocumentSchema,
   insertExtractionRuleSchema,
   insertExtractionSessionSchema,
-  insertFieldValidationSchema
+  insertFieldValidationSchema,
+  insertOrganizationSchema,
+  insertUserSchema,
+  loginSchema,
+  registerUserSchema
 } from "@shared/schema";
+import { authenticateToken, requireAdmin, generateToken, comparePassword, hashPassword, type AuthRequest } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Projects
-  app.get("/api/projects", async (req, res) => {
+  // Authentication Routes
+  app.post("/api/auth/register", async (req, res) => {
     try {
-      const projects = await storage.getProjects();
+      const result = registerUserSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid registration data", errors: result.error.errors });
+      }
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(result.data.email);
+      if (existingUser) {
+        return res.status(409).json({ message: "User already exists with this email" });
+      }
+
+      // Create user
+      const user = await storage.createUser(result.data);
+      
+      // Generate token
+      const token = generateToken({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        organizationId: user.organizationId,
+        role: user.role
+      });
+
+      // Remove password hash from response
+      const { passwordHash, ...userResponse } = user;
+      
+      res.status(201).json({ 
+        user: userResponse, 
+        token,
+        message: "User registered successfully" 
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ message: "Failed to register user" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const result = loginSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid login data", errors: result.error.errors });
+      }
+
+      // Find user by email
+      const user = await storage.getUserByEmail(result.data.email);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      // Verify password
+      const isValidPassword = await comparePassword(result.data.password, user.passwordHash);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      // Generate token
+      const token = generateToken({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        organizationId: user.organizationId,
+        role: user.role
+      });
+
+      // Remove password hash from response
+      const { passwordHash, ...userResponse } = user;
+
+      res.json({ 
+        user: userResponse, 
+        token,
+        message: "Login successful" 
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Failed to login" });
+    }
+  });
+
+  app.get("/api/auth/me", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const user = await storage.getUserWithOrganization(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Remove password hash from response
+      const { passwordHash, ...userResponse } = user;
+      res.json(userResponse);
+    } catch (error) {
+      console.error("Get user error:", error);
+      res.status(500).json({ message: "Failed to get user data" });
+    }
+  });
+
+  // Organization Routes (Admin only)
+  app.get("/api/organizations", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const organizations = await storage.getOrganizations();
+      res.json(organizations);
+    } catch (error) {
+      console.error("Get organizations error:", error);
+      res.status(500).json({ message: "Failed to fetch organizations" });
+    }
+  });
+
+  app.post("/api/organizations", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const result = insertOrganizationSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid organization data", errors: result.error.errors });
+      }
+
+      const organization = await storage.createOrganization(result.data);
+      res.status(201).json(organization);
+    } catch (error) {
+      console.error("Create organization error:", error);
+      res.status(500).json({ message: "Failed to create organization" });
+    }
+  });
+
+  // Projects (with authentication and organization filtering)
+  app.get("/api/projects", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const projects = await storage.getProjects(req.user!.organizationId);
       res.json(projects);
     } catch (error) {
+      console.error("Get projects error:", error);
       res.status(500).json({ message: "Failed to fetch projects" });
     }
   });
 
-  app.get("/api/projects/:id", async (req, res) => {
+  app.get("/api/projects/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = parseInt(req.params.id);
-      const project = await storage.getProjectWithDetails(id);
+      const project = await storage.getProjectWithDetails(id, req.user!.organizationId);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
       res.json(project);
     } catch (error) {
+      console.error("Get project error:", error);
       res.status(500).json({ message: "Failed to fetch project" });
     }
   });
 
-  app.post("/api/projects", async (req, res) => {
+  app.post("/api/projects", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const result = insertProjectSchema.safeParse(req.body);
       if (!result.success) {
         return res.status(400).json({ message: "Invalid project data", errors: result.error.errors });
       }
       
-      const project = await storage.createProject(result.data);
+      // Add organizationId to the project data
+      const projectData = {
+        ...result.data,
+        organizationId: req.user!.organizationId
+      };
+      
+      const project = await storage.createProject(projectData);
       res.status(201).json(project);
     } catch (error) {
+      console.error("Create project error:", error);
       res.status(500).json({ message: "Failed to create project" });
     }
   });
 
-  app.put("/api/projects/:id", async (req, res) => {
+  app.put("/api/projects/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = parseInt(req.params.id);
       const result = insertProjectSchema.partial().safeParse(req.body);
@@ -59,20 +197,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid project data", errors: result.error.errors });
       }
       
-      const project = await storage.updateProject(id, result.data);
+      const project = await storage.updateProject(id, result.data, req.user!.organizationId);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
       res.json(project);
     } catch (error) {
+      console.error("Update project error:", error);
       res.status(500).json({ message: "Failed to update project" });
     }
   });
 
-  app.delete("/api/projects/:id", async (req, res) => {
+  app.delete("/api/projects/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteProject(id);
+      const deleted = await storage.deleteProject(id, req.user!.organizationId);
       if (!deleted) {
         return res.status(404).json({ message: "Project not found" });
       }

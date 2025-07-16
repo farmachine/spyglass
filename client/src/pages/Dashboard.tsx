@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useProjects } from "@/hooks/useProjects";
 import ProjectCard from "@/components/ProjectCard";
 import CreateProjectDialog from "@/components/CreateProjectDialog";
+import UserProfile from "@/components/UserProfile";
 
 export default function Dashboard() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -42,13 +43,16 @@ export default function Dashboard() {
                 Manage your data extraction projects
               </p>
             </div>
-            <Button
-              onClick={() => setCreateDialogOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              New Project
-            </Button>
+            <div className="flex items-center gap-4">
+              <Button
+                onClick={() => setCreateDialogOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Project
+              </Button>
+              <UserProfile />
+            </div>
           </div>
         </div>
       </div>

@@ -7,6 +7,8 @@ import {
   knowledgeDocuments,
   extractionRules,
   fieldValidations,
+  organizations,
+  users,
   type Project, 
   type InsertProject,
   type ProjectSchemaField,
@@ -24,17 +26,40 @@ import {
   type FieldValidation,
   type InsertFieldValidation,
   type ExtractionSessionWithValidation,
-  type ProjectWithDetails
+  type ProjectWithDetails,
+  type Organization,
+  type InsertOrganization,
+  type User,
+  type InsertUser,
+  type OrganizationWithUsers,
+  type UserWithOrganization
 } from "@shared/schema";
 
 export interface IStorage {
-  // Projects
-  getProjects(): Promise<Project[]>;
-  getProject(id: number): Promise<Project | undefined>;
-  getProjectWithDetails(id: number): Promise<ProjectWithDetails | undefined>;
+  // Organizations
+  getOrganizations(): Promise<Organization[]>;
+  getOrganization(id: number): Promise<Organization | undefined>;
+  getOrganizationWithUsers(id: number): Promise<OrganizationWithUsers | undefined>;
+  createOrganization(organization: InsertOrganization): Promise<Organization>;
+  updateOrganization(id: number, organization: Partial<InsertOrganization>): Promise<Organization | undefined>;
+  deleteOrganization(id: number): Promise<boolean>;
+
+  // Users
+  getUsers(organizationId: number): Promise<User[]>;
+  getUser(id: number): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserWithOrganization(id: number): Promise<UserWithOrganization | undefined>;
+  createUser(user: InsertUser & { password: string }): Promise<User>;
+  updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
+  deleteUser(id: number): Promise<boolean>;
+
+  // Projects (organization-filtered)
+  getProjects(organizationId?: number): Promise<Project[]>;
+  getProject(id: number, organizationId?: number): Promise<Project | undefined>;
+  getProjectWithDetails(id: number, organizationId?: number): Promise<ProjectWithDetails | undefined>;
   createProject(project: InsertProject): Promise<Project>;
-  updateProject(id: number, project: Partial<InsertProject>): Promise<Project | undefined>;
-  deleteProject(id: number): Promise<boolean>;
+  updateProject(id: number, project: Partial<InsertProject>, organizationId?: number): Promise<Project | undefined>;
+  deleteProject(id: number, organizationId?: number): Promise<boolean>;
 
   // Project Schema Fields
   getProjectSchemaFields(projectId: number): Promise<ProjectSchemaField[]>;
@@ -81,6 +106,8 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
+  private organizations: Map<number, Organization>;
+  private users: Map<number, User>;
   private projects: Map<number, Project>;
   private projectSchemaFields: Map<number, ProjectSchemaField>;
   private objectCollections: Map<number, ObjectCollection>;
@@ -90,6 +117,8 @@ export class MemStorage implements IStorage {
   private extractionRules: Map<number, ExtractionRule>;
   private fieldValidations: Map<number, FieldValidation>;
   
+  private currentOrganizationId: number;
+  private currentUserId: number;
   private currentProjectId: number;
   private currentFieldId: number;
   private currentCollectionId: number;
@@ -100,6 +129,8 @@ export class MemStorage implements IStorage {
   private currentValidationId: number;
 
   constructor() {
+    this.organizations = new Map();
+    this.users = new Map();
     this.projects = new Map();
     this.projectSchemaFields = new Map();
     this.objectCollections = new Map();
@@ -109,6 +140,8 @@ export class MemStorage implements IStorage {
     this.extractionRules = new Map();
     this.fieldValidations = new Map();
     
+    this.currentOrganizationId = 1;
+    this.currentUserId = 1;
     this.currentProjectId = 1;
     this.currentFieldId = 1;
     this.currentCollectionId = 1;
@@ -123,11 +156,37 @@ export class MemStorage implements IStorage {
   }
   
   private initializeSampleData() {
+    // Create sample organization
+    const org: Organization = {
+      id: 1,
+      name: "Demo Organization", 
+      description: "Sample organization for testing",
+      createdAt: new Date()
+    };
+    this.organizations.set(1, org);
+
+    // Create sample admin user (password: "password")
+    const adminUser: User = {
+      id: 1,
+      email: "admin@demo.com",
+      passwordHash: "$2a$10$N9qo8uLOickgx2ZMRZoMye.Uo/FdY2y7u4dOPVoE5jxlkrFJ1xBCG",
+      name: "Admin User",
+      organizationId: 1,
+      role: "admin",
+      isActive: true,
+      createdAt: new Date()
+    };
+    this.users.set(1, adminUser);
+
+    this.currentOrganizationId = 2;
+    this.currentUserId = 2;
+
     // Create a sample project
     const project = {
       id: 1,
       name: "Sample Invoice Processing",
       description: "Extract data from invoices and receipts",
+      organizationId: 1, // Link to organization
       mainObjectName: "Invoice",
       isInitialSetupComplete: true,
       createdAt: new Date(),
@@ -425,19 +484,129 @@ export class MemStorage implements IStorage {
     this.currentValidationId = 13;
   }
 
-  // Projects
-  async getProjects(): Promise<Project[]> {
-    return Array.from(this.projects.values()).sort((a, b) => 
+  // Organizations
+  async getOrganizations(): Promise<Organization[]> {
+    return Array.from(this.organizations.values()).sort((a, b) => 
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   }
 
-  async getProject(id: number): Promise<Project | undefined> {
-    return this.projects.get(id);
+  async getOrganization(id: number): Promise<Organization | undefined> {
+    return this.organizations.get(id);
   }
 
-  async getProjectWithDetails(id: number): Promise<ProjectWithDetails | undefined> {
+  async getOrganizationWithUsers(id: number): Promise<OrganizationWithUsers | undefined> {
+    const org = this.organizations.get(id);
+    if (!org) return undefined;
+    
+    const users = Array.from(this.users.values()).filter(u => u.organizationId === id);
+    return { ...org, users };
+  }
+
+  async createOrganization(insertOrg: InsertOrganization): Promise<Organization> {
+    const org: Organization = {
+      id: this.currentOrganizationId++,
+      ...insertOrg,
+      createdAt: new Date(),
+    };
+    this.organizations.set(org.id, org);
+    return org;
+  }
+
+  async updateOrganization(id: number, updateData: Partial<InsertOrganization>): Promise<Organization | undefined> {
+    const org = this.organizations.get(id);
+    if (!org) return undefined;
+    
+    const updated = { ...org, ...updateData };
+    this.organizations.set(id, updated);
+    return updated;
+  }
+
+  async deleteOrganization(id: number): Promise<boolean> {
+    return this.organizations.delete(id);
+  }
+
+  // Users
+  async getUsers(organizationId: number): Promise<User[]> {
+    return Array.from(this.users.values())
+      .filter(u => u.organizationId === organizationId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async getUser(id: number): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(u => u.email === email);
+  }
+
+  async getUserWithOrganization(id: number): Promise<UserWithOrganization | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    const org = this.organizations.get(user.organizationId);
+    if (!org) return undefined;
+    
+    return { ...user, organization: org };
+  }
+
+  async createUser(userData: InsertUser & { password: string }): Promise<User> {
+    const { password, ...insertUser } = userData;
+    // Hash password with bcrypt (this would be done in the API layer in real implementation)
+    const bcrypt = require('bcryptjs');
+    const passwordHash = await bcrypt.hash(password, 10);
+    
+    const user: User = {
+      id: this.currentUserId++,
+      ...insertUser,
+      passwordHash,
+      createdAt: new Date(),
+    };
+    this.users.set(user.id, user);
+    return user;
+  }
+
+  async updateUser(id: number, updateData: Partial<InsertUser>): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    const updated = { ...user, ...updateData };
+    this.users.set(id, updated);
+    return updated;
+  }
+
+  async deleteUser(id: number): Promise<boolean> {
+    return this.users.delete(id);
+  }
+
+  // Projects (with organization filtering)
+  async getProjects(organizationId?: number): Promise<Project[]> {
+    let projects = Array.from(this.projects.values());
+    
+    if (organizationId) {
+      projects = projects.filter(p => p.organizationId === organizationId);
+    }
+    
+    return projects.sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }
+
+  async getProject(id: number, organizationId?: number): Promise<Project | undefined> {
     const project = this.projects.get(id);
+    if (!project) return undefined;
+    
+    // Check organization access if organizationId is provided
+    if (organizationId && project.organizationId !== organizationId) {
+      return undefined;
+    }
+    
+    return project;
+  }
+
+  async getProjectWithDetails(id: number, organizationId?: number): Promise<ProjectWithDetails | undefined> {
+    const project = await this.getProject(id, organizationId);
     if (!project) return undefined;
 
     const schemaFields = Array.from(this.projectSchemaFields.values())
@@ -446,13 +615,13 @@ export class MemStorage implements IStorage {
 
     const collections = Array.from(this.objectCollections.values())
       .filter(collection => collection.projectId === id)
-      .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-      .map(collection => ({
-        ...collection,
-        properties: Array.from(this.collectionProperties.values())
+      .map(collection => {
+        const properties = Array.from(this.collectionProperties.values())
           .filter(prop => prop.collectionId === collection.id)
-          .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-      }));
+          .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+        return { ...collection, properties };
+      })
+      .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
 
     const sessions = Array.from(this.extractionSessions.values())
       .filter(session => session.projectId === id)
@@ -472,53 +641,43 @@ export class MemStorage implements IStorage {
       collections,
       sessions,
       knowledgeDocuments,
-      extractionRules
+      extractionRules,
     };
   }
 
   async createProject(insertProject: InsertProject): Promise<Project> {
-    const id = this.currentProjectId++;
     const project: Project = {
+      id: this.currentProjectId++,
       ...insertProject,
-      id,
-      description: insertProject.description || null,
       createdAt: new Date(),
     };
-    this.projects.set(id, project);
+    this.projects.set(project.id, project);
     return project;
   }
 
-  async updateProject(id: number, updateData: Partial<InsertProject>): Promise<Project | undefined> {
+  async updateProject(id: number, updateData: Partial<InsertProject>, organizationId?: number): Promise<Project | undefined> {
     const project = this.projects.get(id);
     if (!project) return undefined;
-
-    const updatedProject = { ...project, ...updateData };
-    this.projects.set(id, updatedProject);
-    return updatedProject;
+    
+    // Check organization access if organizationId is provided
+    if (organizationId && project.organizationId !== organizationId) {
+      return undefined;
+    }
+    
+    const updated = { ...project, ...updateData };
+    this.projects.set(id, updated);
+    return updated;
   }
 
-  async deleteProject(id: number): Promise<boolean> {
-    // Delete related data first
-    const schemaFields = Array.from(this.projectSchemaFields.values())
-      .filter(field => field.projectId === id);
-    schemaFields.forEach(field => this.projectSchemaFields.delete(field.id));
-
-    const collections = Array.from(this.objectCollections.values())
-      .filter(collection => collection.projectId === id);
-    collections.forEach(collection => {
-      // Delete collection properties
-      const properties = Array.from(this.collectionProperties.values())
-        .filter(prop => prop.collectionId === collection.id);
-      properties.forEach(prop => this.collectionProperties.delete(prop.id));
-      
-      // Delete collection
-      this.objectCollections.delete(collection.id);
-    });
-
-    const sessions = Array.from(this.extractionSessions.values())
-      .filter(session => session.projectId === id);
-    sessions.forEach(session => this.extractionSessions.delete(session.id));
-
+  async deleteProject(id: number, organizationId?: number): Promise<boolean> {
+    const project = this.projects.get(id);
+    if (!project) return false;
+    
+    // Check organization access if organizationId is provided
+    if (organizationId && project.organizationId !== organizationId) {
+      return false;
+    }
+    
     return this.projects.delete(id);
   }
 

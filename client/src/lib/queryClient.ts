@@ -16,16 +16,25 @@ export async function apiRequest(
   }
 ): Promise<any> {
   const { method = "GET", body, headers = {} } = options || {};
+  const token = localStorage.getItem("auth_token");
   
   const res = await fetch(url, {
     method,
     headers: {
       "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
       ...headers,
     },
     body,
     credentials: "include",
   });
+
+  // If unauthorized, clear token and redirect to login
+  if (res.status === 401) {
+    localStorage.removeItem("auth_token");
+    window.location.href = "/login";
+    return;
+  }
 
   await throwIfResNotOk(res);
   return await res.json();
@@ -37,12 +46,24 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    const token = localStorage.getItem("auth_token");
+    
     const res = await fetch(queryKey.join("/") as string, {
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
       credentials: "include",
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       return null;
+    }
+
+    // If unauthorized, clear token and redirect to login
+    if (res.status === 401) {
+      localStorage.removeItem("auth_token");
+      window.location.href = "/login";
+      return;
     }
 
     await throwIfResNotOk(res);

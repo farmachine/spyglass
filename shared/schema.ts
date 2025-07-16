@@ -2,10 +2,31 @@ import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Organizations for multi-tenancy
+export const organizations = pgTable("organizations", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Users with authentication
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  name: text("name").notNull(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  role: text("role").default("user").notNull(), // 'admin', 'user'
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const projects = pgTable("projects", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   mainObjectName: text("main_object_name").default("Session"),
   isInitialSetupComplete: boolean("is_initial_setup_complete").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -89,6 +110,17 @@ export const extractionRules = pgTable("extraction_rules", {
 });
 
 // Insert schemas
+export const insertOrganizationSchema = createInsertSchema(organizations).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  passwordHash: true, // Don't include password hash in normal insert, handle separately
+});
+
 export const insertProjectSchema = createInsertSchema(projects).omit({
   id: true,
   createdAt: true,
@@ -131,6 +163,10 @@ export const insertFieldValidationSchema = createInsertSchema(fieldValidations).
 });
 
 // Types
+export type Organization = typeof organizations.$inferSelect;
+export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Project = typeof projects.$inferSelect;
 export type InsertProject = z.infer<typeof insertProjectSchema>;
 export type ProjectSchemaField = typeof projectSchemaFields.$inferSelect;
@@ -150,8 +186,26 @@ export type InsertFieldValidation = z.infer<typeof insertFieldValidationSchema>;
 
 // Validation status types
 export type ValidationStatus = 'valid' | 'invalid' | 'pending' | 'manual';
+export type UserRole = 'admin' | 'user';
+
+// Authentication types
+export type AuthUser = {
+  id: number;
+  email: string;
+  name: string;
+  organizationId: number;
+  role: UserRole;
+};
 
 // Extended types with relations
+export type OrganizationWithUsers = Organization & {
+  users: User[];
+};
+
+export type UserWithOrganization = User & {
+  organization: Organization;
+};
+
 export type ProjectWithDetails = Project & {
   schemaFields: ProjectSchemaField[];
   collections: (ObjectCollection & {
@@ -161,6 +215,16 @@ export type ProjectWithDetails = Project & {
   knowledgeDocuments: KnowledgeDocument[];
   extractionRules: ExtractionRule[];
 };
+
+// Login/Register validation schemas
+export const loginSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+export const registerUserSchema = insertUserSchema.extend({
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
 
 // Enhanced extraction session with validation data
 export type ExtractionSessionWithValidation = ExtractionSession & {
