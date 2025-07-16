@@ -256,9 +256,9 @@ export default function SessionView() {
         const index = indexMatch ? parseInt(indexMatch[1]) : null;
         
         if (index !== null) {
-          return `${collection.collectionName}.${basePropertyName}[${index}]`;
+          return `${basePropertyName} (Item ${index + 1})`;
         } else {
-          return `${collection.collectionName}.${basePropertyName}`;
+          return `${basePropertyName}`;
         }
       }
     }

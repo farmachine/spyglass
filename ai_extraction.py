@@ -481,7 +481,7 @@ def create_field_validation(
     confidence_score = int(overall_confidence * 100)
     
     # Determine validation status based on extracted value
-    if extracted_value is None or extracted_value == "":
+    if extracted_value is None or extracted_value == "" or extracted_value == "null":
         validation_status = "invalid"
         context = f"collection '{collection_name}' record {record_index + 1}" if is_collection else "document"
         ai_reasoning = f"Could not locate {field_name} information in the {context}. Field appears to be missing or not clearly stated in the provided documents."
