@@ -847,6 +847,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         extraction_rules: project_data?.extractionRules || []
       };
       
+      console.log('Extraction data being sent to Python:', JSON.stringify(extractionData, null, 2).substring(0, 1000) + '...');
+      
       // Call Python extraction script
       const python = spawn('python3', ['-c', `
 import sys
