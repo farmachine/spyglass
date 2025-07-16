@@ -62,8 +62,12 @@ export default function DefineData({ project }: DefineDataProps) {
   const { toast } = useToast();
 
   // Query for live data instead of using static props
-  const { data: schemaFields = [], isLoading: schemaFieldsLoading } = useProjectSchemaFields(project.id);
-  const { data: collections = [], isLoading: collectionsLoading } = useObjectCollections(project.id);
+  const { data: schemaFields = [], isLoading: schemaFieldsLoading, error: schemaFieldsError } = useProjectSchemaFields(project.id);
+  const { data: collections = [], isLoading: collectionsLoading, error: collectionsError } = useObjectCollections(project.id);
+
+  // Handle data being null/undefined from API errors
+  const safeSchemaFields = Array.isArray(schemaFields) ? schemaFields : [];
+  const safeCollections = Array.isArray(collections) ? collections : [];
 
   // Schema field mutations
   const createSchemaField = useCreateSchemaField(project.id);
@@ -289,8 +293,8 @@ export default function DefineData({ project }: DefineDataProps) {
 
   // Check if this is a new project without data schema
   const isNewProject = !project.isInitialSetupComplete && 
-    (!project.schemaFields || project.schemaFields.length === 0) &&
-    (!project.collections || project.collections.length === 0);
+    safeSchemaFields.length === 0 &&
+    safeCollections.length === 0;
 
   return (
     <div>
@@ -407,7 +411,7 @@ export default function DefineData({ project }: DefineDataProps) {
                   <div className="animate-spin h-12 w-12 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
                   <p className="text-sm text-gray-600">Loading schema fields...</p>
                 </div>
-              ) : schemaFields.length === 0 ? (
+              ) : safeSchemaFields.length === 0 ? (
                 <div className="text-center py-8">
                   <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -428,7 +432,7 @@ export default function DefineData({ project }: DefineDataProps) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {schemaFields.map((field) => (
+                    {safeSchemaFields.map((field) => (
                       <TableRow key={field.id}>
                         <TableCell className="font-medium">{field.fieldName}</TableCell>
                         <TableCell>
@@ -498,7 +502,7 @@ export default function DefineData({ project }: DefineDataProps) {
                   <div className="animate-spin h-12 w-12 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
                   <p className="text-sm text-gray-600">Loading collections...</p>
                 </div>
-              ) : collections.length === 0 ? (
+              ) : safeCollections.length === 0 ? (
                 <div className="text-center py-8">
                   <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -510,7 +514,7 @@ export default function DefineData({ project }: DefineDataProps) {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {collections.map((collection) => (
+                  {safeCollections.map((collection) => (
                     <CollectionCard
                       key={collection.id}
                       collection={collection}
@@ -532,7 +536,7 @@ export default function DefineData({ project }: DefineDataProps) {
                         open: true, 
                         property, 
                         collectionId: property.collectionId,
-                        collectionName: collections.find(c => c.id === property.collectionId)?.collectionName || "" 
+                        collectionName: safeCollections.find(c => c.id === property.collectionId)?.collectionName || "" 
                       })}
                       onDeleteProperty={(id, name) => setDeleteDialog({ 
                         open: true, 

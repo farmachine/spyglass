@@ -13,7 +13,7 @@ import type {
 export function useProjectSchemaFields(projectId: number) {
   return useQuery({
     queryKey: ["/api/projects", projectId, "schema"],
-    queryFn: () => fetch(`/api/projects/${projectId}/schema`).then(res => res.json()),
+    queryFn: () => apiRequest(`/api/projects/${projectId}/schema`),
     enabled: !!projectId,
   });
 }
@@ -70,7 +70,7 @@ export function useDeleteSchemaField() {
 export function useObjectCollections(projectId: number) {
   return useQuery({
     queryKey: ["/api/projects", projectId, "collections"],
-    queryFn: () => fetch(`/api/projects/${projectId}/collections`).then(res => res.json()),
+    queryFn: () => apiRequest(`/api/projects/${projectId}/collections`),
     enabled: !!projectId,
   });
 }
