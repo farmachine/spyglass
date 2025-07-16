@@ -1198,13 +1198,22 @@ class PostgreSQLStorage implements IStorage {
     const project = await this.getProject(id, organizationId);
     if (!project) return undefined;
 
+    // Fetch related data in parallel
+    const [schemaFields, collections, sessions, knowledgeDocuments, extractionRules] = await Promise.all([
+      this.getProjectSchemaFields(id),
+      this.getObjectCollections(id),
+      this.getExtractionSessions(id),
+      this.getKnowledgeDocuments(id),
+      this.getExtractionRules(id)
+    ]);
+
     return {
       ...project,
-      schemaFields: [],
-      collections: [],
-      sessions: [],
-      knowledgeDocuments: [],
-      extractionRules: []
+      schemaFields,
+      collections,
+      sessions,
+      knowledgeDocuments,
+      extractionRules
     };
   }
 
