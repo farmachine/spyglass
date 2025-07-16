@@ -203,6 +203,8 @@ def extract_data_from_document(
 
 def create_demo_extraction_result(project_schema: Dict[str, Any], file_name: str) -> ExtractionResult:
     """Create demo extraction result when API key is not available"""
+    logging.info(f"=== CREATING DEMO DATA FOR {file_name} ===")
+    logging.info("This means either: API key missing, API call failed, or content processing error")
     extracted_data = {}
     
     # Generate demo data based on schema
