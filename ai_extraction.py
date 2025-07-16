@@ -517,7 +517,12 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
             # Record the result
             document_result = {
                 "file_name": file_name,
-                "extraction_result": extraction_result.dict(),
+                "extraction_result": {
+                    "extracted_data": extraction_result.extracted_data,
+                    "confidence_score": extraction_result.confidence_score,
+                    "processing_notes": extraction_result.processing_notes,
+                    "field_validations": [v.dict() for v in extraction_result.field_validations]
+                },
                 "status": "completed" if extraction_result.confidence_score > 0.5 else "review_needed"
             }
             
