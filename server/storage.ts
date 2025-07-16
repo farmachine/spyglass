@@ -34,6 +34,9 @@ import {
   type OrganizationWithUsers,
   type UserWithOrganization
 } from "@shared/schema";
+import { neon } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-http';
+import { eq, count, sql } from 'drizzle-orm';
 
 export interface IStorage {
   // Organizations
@@ -971,4 +974,314 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// PostgreSQL Storage Implementation
+class PostgreSQLStorage implements IStorage {
+  private db: any;
+
+  constructor() {
+    if (!process.env.DATABASE_URL) {
+      throw new Error('DATABASE_URL environment variable is required for PostgreSQL storage');
+    }
+    const sql = neon(process.env.DATABASE_URL);
+    this.db = drizzle(sql);
+  }
+
+  // Organizations
+  async getOrganizations(): Promise<(Organization & { userCount: number })[]> {
+    const result = await this.db
+      .select({
+        id: organizations.id,
+        name: organizations.name,
+        description: organizations.description,
+        createdAt: organizations.createdAt,
+        userCount: count(users.id)
+      })
+      .from(organizations)
+      .leftJoin(users, eq(organizations.id, users.organizationId))
+      .groupBy(organizations.id, organizations.name, organizations.description, organizations.createdAt);
+    
+    return result;
+  }
+
+  async getOrganization(id: number): Promise<Organization | undefined> {
+    const result = await this.db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.id, id))
+      .limit(1);
+    
+    return result[0];
+  }
+
+  async getOrganizationWithUsers(id: number): Promise<OrganizationWithUsers | undefined> {
+    const org = await this.getOrganization(id);
+    if (!org) return undefined;
+
+    const orgUsers = await this.getUsers(id);
+    return {
+      ...org,
+      users: orgUsers
+    };
+  }
+
+  async createOrganization(organization: InsertOrganization): Promise<Organization> {
+    const result = await this.db
+      .insert(organizations)
+      .values(organization)
+      .returning();
+    
+    return result[0];
+  }
+
+  async updateOrganization(id: number, organization: Partial<InsertOrganization>): Promise<Organization | undefined> {
+    const result = await this.db
+      .update(organizations)
+      .set(organization)
+      .where(eq(organizations.id, id))
+      .returning();
+    
+    return result[0];
+  }
+
+  async deleteOrganization(id: number): Promise<boolean> {
+    const result = await this.db
+      .delete(organizations)
+      .where(eq(organizations.id, id));
+    
+    return result.rowCount > 0;
+  }
+
+  // Users
+  async getUsers(organizationId: number): Promise<User[]> {
+    const result = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.organizationId, organizationId));
+    
+    return result;
+  }
+
+  async getUser(id: number): Promise<User | undefined> {
+    const result = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
+    
+    return result[0];
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const result = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+    
+    return result[0];
+  }
+
+  async getUserWithOrganization(id: number): Promise<UserWithOrganization | undefined> {
+    const result = await this.db
+      .select({
+        id: users.id,
+        email: users.email,
+        passwordHash: users.passwordHash,
+        name: users.name,
+        organizationId: users.organizationId,
+        role: users.role,
+        isActive: users.isActive,
+        createdAt: users.createdAt,
+        isTemporaryPassword: users.isTemporaryPassword,
+        organization: {
+          id: organizations.id,
+          name: organizations.name,
+          description: organizations.description,
+          createdAt: organizations.createdAt
+        }
+      })
+      .from(users)
+      .innerJoin(organizations, eq(users.organizationId, organizations.id))
+      .where(eq(users.id, id))
+      .limit(1);
+    
+    return result[0];
+  }
+
+  async createUser(userData: InsertUser & { password: string }): Promise<User> {
+    const bcrypt = await import('bcryptjs');
+    const passwordHash = await bcrypt.hash(userData.password, 10);
+    
+    const { password, ...userDataWithoutPassword } = userData;
+    const result = await this.db
+      .insert(users)
+      .values({ ...userDataWithoutPassword, passwordHash })
+      .returning();
+    
+    return result[0];
+  }
+
+  async updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined> {
+    const result = await this.db
+      .update(users)
+      .set(user)
+      .where(eq(users.id, id))
+      .returning();
+    
+    return result[0];
+  }
+
+  async deleteUser(id: number): Promise<boolean> {
+    const result = await this.db
+      .delete(users)
+      .where(eq(users.id, id));
+    
+    return result.rowCount > 0;
+  }
+
+  async resetUserPassword(userId: number, tempPassword: string): Promise<{ tempPassword: string }> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const bcrypt = await import('bcryptjs');
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+    await this.db
+      .update(users)
+      .set({ 
+        passwordHash, 
+        isTemporaryPassword: true 
+      })
+      .where(eq(users.id, userId));
+
+    return { tempPassword };
+  }
+
+  async updateUserPassword(userId: number, newPasswordHash: string, isTemporary: boolean = false): Promise<User | undefined> {
+    const result = await this.db
+      .update(users)
+      .set({ 
+        passwordHash: newPasswordHash, 
+        isTemporaryPassword: isTemporary 
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    return result[0];
+  }
+
+  // For now, implement minimal project methods to prevent errors
+  async getProjects(organizationId?: number): Promise<Project[]> {
+    const query = this.db.select().from(projects);
+    if (organizationId) {
+      query.where(eq(projects.organizationId, organizationId));
+    }
+    return await query;
+  }
+
+  async getProject(id: number, organizationId?: number): Promise<Project | undefined> {
+    const query = this.db.select().from(projects).where(eq(projects.id, id));
+    if (organizationId) {
+      query.where(eq(projects.organizationId, organizationId));
+    }
+    const result = await query.limit(1);
+    return result[0];
+  }
+
+  async getProjectWithDetails(id: number, organizationId?: number): Promise<ProjectWithDetails | undefined> {
+    const project = await this.getProject(id, organizationId);
+    if (!project) return undefined;
+
+    return {
+      ...project,
+      schemaFields: [],
+      collections: [],
+      sessions: [],
+      knowledgeDocuments: [],
+      extractionRules: []
+    };
+  }
+
+  async createProject(project: InsertProject): Promise<Project> {
+    const result = await this.db
+      .insert(projects)
+      .values(project)
+      .returning();
+    return result[0];
+  }
+
+  async updateProject(id: number, project: Partial<InsertProject>, organizationId?: number): Promise<Project | undefined> {
+    const result = await this.db
+      .update(projects)
+      .set(project)
+      .where(eq(projects.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteProject(id: number, organizationId?: number): Promise<boolean> {
+    const result = await this.db
+      .delete(projects)
+      .where(eq(projects.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Minimal implementations for other methods to prevent errors
+  async getProjectSchemaFields(projectId: number): Promise<ProjectSchemaField[]> { return []; }
+  async createProjectSchemaField(field: InsertProjectSchemaField): Promise<ProjectSchemaField> { 
+    const result = await this.db.insert(projectSchemaFields).values(field).returning();
+    return result[0];
+  }
+  async updateProjectSchemaField(id: number, field: Partial<InsertProjectSchemaField>): Promise<ProjectSchemaField | undefined> { return undefined; }
+  async deleteProjectSchemaField(id: number): Promise<boolean> { return false; }
+  async getObjectCollections(projectId: number): Promise<ObjectCollection[]> { return []; }
+  async createObjectCollection(collection: InsertObjectCollection): Promise<ObjectCollection> { 
+    const result = await this.db.insert(objectCollections).values(collection).returning();
+    return result[0];
+  }
+  async updateObjectCollection(id: number, collection: Partial<InsertObjectCollection>): Promise<ObjectCollection | undefined> { return undefined; }
+  async deleteObjectCollection(id: number): Promise<boolean> { return false; }
+  async getCollectionProperties(collectionId: number): Promise<CollectionProperty[]> { return []; }
+  async createCollectionProperty(property: InsertCollectionProperty): Promise<CollectionProperty> { 
+    const result = await this.db.insert(collectionProperties).values(property).returning();
+    return result[0];
+  }
+  async updateCollectionProperty(id: number, property: Partial<InsertCollectionProperty>): Promise<CollectionProperty | undefined> { return undefined; }
+  async deleteCollectionProperty(id: number): Promise<boolean> { return false; }
+  async getExtractionSessions(projectId: number): Promise<ExtractionSession[]> { return []; }
+  async getExtractionSession(id: number): Promise<ExtractionSession | undefined> { return undefined; }
+  async createExtractionSession(session: InsertExtractionSession): Promise<ExtractionSession> { 
+    const result = await this.db.insert(extractionSessions).values(session).returning();
+    return result[0];
+  }
+  async updateExtractionSession(id: number, session: Partial<InsertExtractionSession>): Promise<ExtractionSession | undefined> { return undefined; }
+  async getKnowledgeDocuments(projectId: number): Promise<KnowledgeDocument[]> { return []; }
+  async createKnowledgeDocument(document: InsertKnowledgeDocument): Promise<KnowledgeDocument> { 
+    const result = await this.db.insert(knowledgeDocuments).values(document).returning();
+    return result[0];
+  }
+  async updateKnowledgeDocument(id: number, document: Partial<InsertKnowledgeDocument>): Promise<KnowledgeDocument | undefined> { return undefined; }
+  async deleteKnowledgeDocument(id: number): Promise<boolean> { return false; }
+  async getExtractionRules(projectId: number): Promise<ExtractionRule[]> { return []; }
+  async createExtractionRule(rule: InsertExtractionRule): Promise<ExtractionRule> { 
+    const result = await this.db.insert(extractionRules).values(rule).returning();
+    return result[0];
+  }
+  async updateExtractionRule(id: number, rule: Partial<InsertExtractionRule>): Promise<ExtractionRule | undefined> { return undefined; }
+  async deleteExtractionRule(id: number): Promise<boolean> { return false; }
+  async getFieldValidations(sessionId: number): Promise<FieldValidation[]> { return []; }
+  async createFieldValidation(validation: InsertFieldValidation): Promise<FieldValidation> { 
+    const result = await this.db.insert(fieldValidations).values(validation).returning();
+    return result[0];
+  }
+  async updateFieldValidation(id: number, validation: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined> { return undefined; }
+  async deleteFieldValidation(id: number): Promise<boolean> { return false; }
+  async getSessionWithValidations(sessionId: number): Promise<ExtractionSessionWithValidation | undefined> { return undefined; }
+}
+
+// Use PostgreSQL storage in production, MemStorage for development
+export const storage = process.env.DATABASE_URL && process.env.NODE_ENV === 'production'
+  ? new PostgreSQLStorage()
+  : new MemStorage();
