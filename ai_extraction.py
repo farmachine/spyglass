@@ -183,12 +183,9 @@ def extract_data_from_document(
                         if hasattr(candidate.content, 'parts'):
                             logging.error(f"Candidate {i} parts: {candidate.content.parts}")
             raise Exception("No response from Gemini API")
-        
-        # Use extracted response text
-        response.text = response_text
             
         # Clean and parse the JSON response
-        raw_response = response.text.strip()
+        raw_response = response_text.strip()
         logging.info(f"Raw AI response (first 1000 chars): {raw_response[:1000]}")
         
         # Try multiple approaches to clean the JSON
