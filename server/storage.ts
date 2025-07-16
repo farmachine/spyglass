@@ -73,7 +73,7 @@ export interface IStorage {
   deleteProjectSchemaField(id: number): Promise<boolean>;
 
   // Object Collections
-  getObjectCollections(projectId: number): Promise<ObjectCollection[]>;
+  getObjectCollections(projectId: number): Promise<(ObjectCollection & { properties: CollectionProperty[] })[]>;
   createObjectCollection(collection: InsertObjectCollection): Promise<ObjectCollection>;
   updateObjectCollection(id: number, collection: Partial<InsertObjectCollection>): Promise<ObjectCollection | undefined>;
   deleteObjectCollection(id: number): Promise<boolean>;
@@ -757,10 +757,17 @@ export class MemStorage implements IStorage {
   }
 
   // Object Collections
-  async getObjectCollections(projectId: number): Promise<ObjectCollection[]> {
-    return Array.from(this.objectCollections.values())
+  async getObjectCollections(projectId: number): Promise<(ObjectCollection & { properties: CollectionProperty[] })[]> {
+    const collections = Array.from(this.objectCollections.values())
       .filter(collection => collection.projectId === projectId)
       .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+
+    return collections.map(collection => ({
+      ...collection,
+      properties: Array.from(this.collectionProperties.values())
+        .filter(property => property.collectionId === collection.id)
+        .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+    }));
   }
 
   async getObjectCollection(id: number): Promise<ObjectCollection | undefined> {
@@ -1271,13 +1278,25 @@ class PostgreSQLStorage implements IStorage {
   }
 
   // Object Collections
-  async getObjectCollections(projectId: number): Promise<ObjectCollection[]> {
-    const result = await this.db
+  async getObjectCollections(projectId: number): Promise<(ObjectCollection & { properties: CollectionProperty[] })[]> {
+    const collections = await this.db
       .select()
       .from(objectCollections)
       .where(eq(objectCollections.projectId, projectId))
       .orderBy(objectCollections.orderIndex);
-    return result;
+
+    // Fetch properties for each collection
+    const collectionsWithProperties = await Promise.all(
+      collections.map(async (collection) => {
+        const properties = await this.getCollectionProperties(collection.id);
+        return {
+          ...collection,
+          properties
+        };
+      })
+    );
+
+    return collectionsWithProperties;
   }
 
   async getObjectCollection(id: number): Promise<ObjectCollection | undefined> {
