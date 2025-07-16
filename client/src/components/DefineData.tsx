@@ -28,6 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   useProjectSchemaFields,
   useObjectCollections,
+  useCollectionProperties,
   useCreateSchemaField, 
   useUpdateSchemaField, 
   useDeleteSchemaField,
@@ -42,6 +43,7 @@ import { useUpdateProject } from "@/hooks/useProjects";
 import SchemaFieldDialog from "./SchemaFieldDialog";
 import CollectionDialog from "./CollectionDialog";
 import PropertyDialog from "./PropertyDialog";
+import CollectionCard from "./CollectionCard";
 import type { ProjectWithDetails, ProjectSchemaField, ObjectCollection, CollectionProperty } from "@shared/schema";
 
 interface DefineDataProps {
@@ -73,7 +75,7 @@ export default function DefineData({ project }: DefineDataProps) {
   const updateCollection = useUpdateCollection();
   const deleteCollection = useDeleteCollection();
 
-  // Property mutations
+  // Property mutations  
   const updateProperty = useUpdateProperty();
   const deleteProperty = useDeleteProperty();
   
@@ -91,6 +93,7 @@ export default function DefineData({ project }: DefineDataProps) {
   const handleCreateSchemaField = async (data: any) => {
     try {
       await createSchemaField.mutateAsync(data);
+      setSchemaFieldDialog({ open: false });
       toast({
         title: "Field added",
         description: "Schema field has been added successfully.",
@@ -111,6 +114,7 @@ export default function DefineData({ project }: DefineDataProps) {
         id: schemaFieldDialog.field.id, 
         field: { ...data, projectId: project.id } 
       });
+      setSchemaFieldDialog({ open: false });
       toast({
         title: "Field updated",
         description: "Schema field has been updated successfully.",
@@ -128,6 +132,7 @@ export default function DefineData({ project }: DefineDataProps) {
   const handleCreateCollection = async (data: any) => {
     try {
       await createCollection.mutateAsync(data);
+      setCollectionDialog({ open: false });
       toast({
         title: "Collection created",
         description: "Object collection has been created successfully.",
@@ -148,6 +153,7 @@ export default function DefineData({ project }: DefineDataProps) {
         id: collectionDialog.collection.id, 
         collection: { ...data, projectId: project.id } 
       });
+      setCollectionDialog({ open: false });
       toast({
         title: "Collection updated",
         description: "Object collection has been updated successfully.",
@@ -161,11 +167,10 @@ export default function DefineData({ project }: DefineDataProps) {
     }
   };
 
-  // Property handlers
+  // Property handlers (using direct API call since we need dynamic collectionId)
   const handleCreateProperty = async (data: any) => {
     if (!propertyDialog.collectionId) return;
     try {
-      // Use the API directly for property creation
       const response = await fetch(`/api/collections/${propertyDialog.collectionId}/properties`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -176,8 +181,10 @@ export default function DefineData({ project }: DefineDataProps) {
       
       // Invalidate queries to refresh the data
       const { queryClient } = await import('@/lib/queryClient');
+      queryClient.invalidateQueries({ queryKey: ["/api/collections", propertyDialog.collectionId, "properties"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id] });
       
+      setPropertyDialog({ open: false });
       toast({
         title: "Property added",
         description: "Collection property has been added successfully.",
@@ -198,6 +205,7 @@ export default function DefineData({ project }: DefineDataProps) {
         id: propertyDialog.property.id, 
         property: { ...data, collectionId: propertyDialog.property.collectionId } 
       });
+      setPropertyDialog({ open: false });
       toast({
         title: "Property updated",
         description: "Collection property has been updated successfully.",
@@ -503,132 +511,36 @@ export default function DefineData({ project }: DefineDataProps) {
               ) : (
                 <div className="space-y-6">
                   {collections.map((collection) => (
-                    <Card key={collection.id} className="border-gray-200">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <CardTitle className="text-lg">{collection.collectionName}</CardTitle>
-                            {collection.description && (
-                              <p className="text-sm text-gray-600 mt-1">{collection.description}</p>
-                            )}
-                          </div>
-                          <div className="flex gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => setCollectionDialog({ open: true, collection })}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="text-red-600"
-                              onClick={() => setDeleteDialog({ 
-                                open: true, 
-                                type: "collection", 
-                                id: collection.id, 
-                                name: collection.collectionName 
-                              })}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        {(!collection.properties || collection.properties.length === 0) ? (
-                          <div className="text-center py-4 bg-gray-50 rounded-lg">
-                            <p className="text-sm text-gray-600 mb-2">No properties defined</p>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => setPropertyDialog({ 
-                                open: true, 
-                                property: null, 
-                                collectionId: collection.id,
-                                collectionName: collection.collectionName 
-                              })}
-                            >
-                              <Plus className="h-4 w-4 mr-2" />
-                              Add Property
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="space-y-4">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Property Name</TableHead>
-                                  <TableHead>Type</TableHead>
-                                  <TableHead>Description</TableHead>
-                                  <TableHead className="w-24">Actions</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {(collection.properties || []).map((property) => (
-                                  <TableRow key={property.id}>
-                                    <TableCell className="font-medium">{property.propertyName}</TableCell>
-                                    <TableCell>
-                                      <Badge className={fieldTypeColors[property.propertyType as keyof typeof fieldTypeColors]}>
-                                        {property.propertyType}
-                                      </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-gray-600">
-                                      {property.description || "-"}
-                                    </TableCell>
-                                    <TableCell>
-                                      <div className="flex gap-2">
-                                        <Button 
-                                          variant="ghost" 
-                                          size="sm"
-                                          onClick={() => setPropertyDialog({ 
-                                            open: true, 
-                                            property, 
-                                            collectionId: collection.id,
-                                            collectionName: collection.collectionName 
-                                          })}
-                                        >
-                                          <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button 
-                                          variant="ghost" 
-                                          size="sm" 
-                                          className="text-red-600"
-                                          onClick={() => setDeleteDialog({ 
-                                            open: true, 
-                                            type: "property", 
-                                            id: property.id, 
-                                            name: property.propertyName 
-                                          })}
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      </div>
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                            <div className="flex justify-start">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => setPropertyDialog({ 
-                                  open: true, 
-                                  property: null, 
-                                  collectionId: collection.id,
-                                  collectionName: collection.collectionName 
-                                })}
-                              >
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Another Property
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
+                    <CollectionCard
+                      key={collection.id}
+                      collection={collection}
+                      fieldTypeColors={fieldTypeColors}
+                      onEditCollection={(collection) => setCollectionDialog({ open: true, collection })}
+                      onDeleteCollection={(id, name) => setDeleteDialog({ 
+                        open: true, 
+                        type: "collection", 
+                        id, 
+                        name 
+                      })}
+                      onAddProperty={(collectionId, collectionName) => setPropertyDialog({ 
+                        open: true, 
+                        property: null, 
+                        collectionId,
+                        collectionName 
+                      })}
+                      onEditProperty={(property) => setPropertyDialog({ 
+                        open: true, 
+                        property, 
+                        collectionId: property.collectionId,
+                        collectionName: collections.find(c => c.id === property.collectionId)?.collectionName || "" 
+                      })}
+                      onDeleteProperty={(id, name) => setDeleteDialog({ 
+                        open: true, 
+                        type: "property", 
+                        id, 
+                        name 
+                      })}
+                    />
                   ))}
                 </div>
               )}
