@@ -14,7 +14,9 @@ import {
   insertOrganizationSchema,
   insertUserSchema,
   loginSchema,
-  registerUserSchema
+  registerUserSchema,
+  resetPasswordSchema,
+  changePasswordSchema
 } from "@shared/schema";
 import { authenticateToken, requireAdmin, generateToken, comparePassword, hashPassword, type AuthRequest } from "./auth";
 
@@ -42,7 +44,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: user.email,
         name: user.name,
         organizationId: user.organizationId,
-        role: user.role
+        role: user.role,
+        isTemporaryPassword: user.isTemporaryPassword || false
       });
 
       // Remove password hash from response
@@ -90,7 +93,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: user.email,
         name: user.name,
         organizationId: user.organizationId,
-        role: user.role
+        role: user.role,
+        isTemporaryPassword: user.isTemporaryPassword
       });
 
       // Remove password hash from response
@@ -99,7 +103,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ 
         user: userResponse, 
         token,
-        message: "Login successful" 
+        message: "Login successful",
+        requiresPasswordChange: user.isTemporaryPassword
       });
     } catch (error) {
       console.error("Login error:", error);
@@ -120,6 +125,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get user error:", error);
       res.status(500).json({ message: "Failed to get user data" });
+    }
+  });
+
+  // Password reset endpoint (Admin only)
+  app.post("/api/auth/reset-password", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const result = resetPasswordSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid reset data", errors: result.error.errors });
+      }
+
+      const { tempPassword } = await storage.resetUserPassword(result.data.userId);
+      res.json({ 
+        tempPassword,
+        message: "Password reset successfully. User must change password on next login." 
+      });
+    } catch (error) {
+      console.error("Reset password error:", error);
+      res.status(500).json({ message: "Failed to reset password" });
+    }
+  });
+
+  // Change password endpoint (for users with temporary passwords)
+  app.post("/api/auth/change-password", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const result = changePasswordSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid password data", errors: result.error.errors });
+      }
+
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Verify current password
+      const isValidPassword = await comparePassword(result.data.currentPassword, user.passwordHash);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Current password is incorrect" });
+      }
+
+      // Hash new password and update
+      const newPasswordHash = await hashPassword(result.data.newPassword);
+      await storage.updateUserPassword(req.user!.id, newPasswordHash, false);
+
+      res.json({ message: "Password changed successfully" });
+    } catch (error) {
+      console.error("Change password error:", error);
+      res.status(500).json({ message: "Failed to change password" });
     }
   });
 

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User, UserWithOrganization } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import ChangePasswordDialog from "@/components/ChangePasswordDialog";
 
 interface AuthContextType {
   user: UserWithOrganization | null;
@@ -37,6 +38,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<UserWithOrganization | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const { toast } = useToast();
 
   // Initialize auth state from localStorage
@@ -92,10 +94,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUser(data.user);
         setToken(data.token);
         localStorage.setItem("auth_token", data.token);
-        toast({
-          title: "Login successful",
-          description: "Welcome back!",
-        });
+        
+        // Check if user has temporary password
+        if (data.requiresPasswordChange) {
+          setShowPasswordDialog(true);
+          toast({
+            title: "Password Change Required",
+            description: "You must change your temporary password to continue.",
+          });
+        } else {
+          toast({
+            title: "Login successful",
+            description: "Welcome back!",
+          });
+        }
       } else {
         throw new Error(data.message || "Login failed");
       }
@@ -152,6 +164,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     });
   };
 
+  const handlePasswordChangeSuccess = () => {
+    setShowPasswordDialog(false);
+    // Refresh user data to get updated temporary password status
+    if (token) {
+      fetchUserData(token);
+    }
+    toast({
+      title: "Password Updated",
+      description: "Your password has been successfully changed.",
+    });
+  };
+
   const value = {
     user,
     token,
@@ -161,5 +185,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isLoading,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      <ChangePasswordDialog
+        open={showPasswordDialog}
+        onClose={() => setShowPasswordDialog(false)}
+        onSuccess={handlePasswordChangeSuccess}
+      />
+    </AuthContext.Provider>
+  );
 }

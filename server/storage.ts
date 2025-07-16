@@ -52,6 +52,8 @@ export interface IStorage {
   createUser(user: InsertUser & { password: string }): Promise<User>;
   updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
   deleteUser(id: number): Promise<boolean>;
+  resetUserPassword(userId: number): Promise<{ tempPassword: string }>;
+  updateUserPassword(userId: number, newPasswordHash: string, isTemporary: boolean): Promise<User | undefined>;
 
   // Projects (organization-filtered)
   getProjects(organizationId?: number): Promise<Project[]>;
@@ -584,6 +586,41 @@ export class MemStorage implements IStorage {
 
   async deleteUser(id: number): Promise<boolean> {
     return this.users.delete(id);
+  }
+
+  async resetUserPassword(userId: number): Promise<{ tempPassword: string }> {
+    const user = this.users.get(userId);
+    if (!user) throw new Error("User not found");
+    
+    // Generate a temporary password (8 characters)
+    const tempPassword = Math.random().toString(36).substring(2, 10).toUpperCase();
+    
+    // Import bcrypt dynamically to avoid ESM issues
+    const bcrypt = await import('bcryptjs');
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+    
+    // Update user with temporary password
+    const updated = { 
+      ...user, 
+      passwordHash: hashedPassword,
+      isTemporaryPassword: true 
+    };
+    this.users.set(userId, updated);
+    
+    return { tempPassword };
+  }
+
+  async updateUserPassword(userId: number, newPasswordHash: string, isTemporary: boolean = false): Promise<User | undefined> {
+    const user = this.users.get(userId);
+    if (!user) return undefined;
+    
+    const updated = { 
+      ...user, 
+      passwordHash: newPasswordHash,
+      isTemporaryPassword: isTemporary 
+    };
+    this.users.set(userId, updated);
+    return updated;
   }
 
   // Projects (with organization filtering)

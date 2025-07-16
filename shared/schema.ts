@@ -19,6 +19,7 @@ export const users = pgTable("users", {
   organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   role: text("role").default("user").notNull(), // 'admin', 'user'
   isActive: boolean("is_active").default(true).notNull(),
+  isTemporaryPassword: boolean("is_temporary_password").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -195,6 +196,7 @@ export type AuthUser = {
   name: string;
   organizationId: number;
   role: UserRole;
+  isTemporaryPassword?: boolean;
 };
 
 // Extended types with relations
@@ -224,6 +226,19 @@ export const loginSchema = z.object({
 
 export const registerUserSchema = insertUserSchema.extend({
   password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+export const resetPasswordSchema = z.object({
+  userId: z.number(),
+});
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: z.string().min(6, "New password must be at least 6 characters"),
+  confirmPassword: z.string().min(6, "Password confirmation is required"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
 // Enhanced extraction session with validation data

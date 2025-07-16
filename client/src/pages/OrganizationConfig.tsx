@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Home, Users, Settings, Plus, Trash2 } from "lucide-react";
+import { Home, Users, Settings, Plus, Trash2, KeyRound } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -93,6 +93,22 @@ export default function OrganizationConfig() {
       queryClient.invalidateQueries({ queryKey: ["/api/users", organizationId] });
       queryClient.invalidateQueries({ queryKey: ["/api/organizations"] });
       toast({ title: "User status updated successfully" });
+    },
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      return apiRequest("/api/auth/reset-password", {
+        method: "POST",
+        body: JSON.stringify({ userId }),
+      });
+    },
+    onSuccess: (data) => {
+      toast({ 
+        title: "Password Reset Successful",
+        description: `Temporary password: ${data.tempPassword}. User must change this on next login.`,
+        duration: 10000,
+      });
     },
   });
 
@@ -396,6 +412,15 @@ export default function OrganizationConfig() {
                           <Badge variant={user.isActive ? "default" : "secondary"}>
                             {user.isActive ? "Active" : "Inactive"}
                           </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => resetPasswordMutation.mutate(user.id)}
+                            disabled={resetPasswordMutation.isPending}
+                          >
+                            <KeyRound className="h-4 w-4 mr-1" />
+                            Reset Password
+                          </Button>
                         </div>
                       </div>
                     ))}
