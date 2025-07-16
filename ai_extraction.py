@@ -110,7 +110,7 @@ def extract_data_from_document(
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
                         temperature=0.1,  # Slightly higher temperature for more robust responses
-                        max_output_tokens=8192,
+                        max_output_tokens=4096,  # Reduced to leave room for input
                         response_schema={
                             "type": "object",
                             "properties": {
@@ -366,63 +366,25 @@ def build_extraction_prompt(
 ) -> str:
     """Build a comprehensive prompt for data extraction"""
     
-    prompt = f"""
-You are an expert document data extraction AI. Your task is to analyze the provided document ({file_name}) and extract structured data according to the specified schema.
-
-EXTRACTION SCHEMA:
-"""
+    prompt = f"Extract data from {file_name}.\n\nSchema:\n"
     
-    # Add project schema fields
+    # Add project schema fields (concise)
     if project_schema.get("schema_fields"):
-        prompt += "\nGlobal Fields (apply to the entire document):\n"
         for field in project_schema["schema_fields"]:
-            prompt += f"- {field['fieldName']} ({field['fieldType']}): {field['description']}\n"
+            prompt += f"- {field['fieldName']} ({field['fieldType']})\n"
     
-    # Add object collections
+    # Add collections (concise)
     if project_schema.get("collections"):
-        prompt += "\nObject Collections (repeating structures):\n"
         for collection in project_schema["collections"]:
-            prompt += f"\n{collection['collectionName']}: {collection['description']}\n"
-            prompt += "Properties:\n"
-            for prop in collection.get("properties", []):
-                prompt += f"  - {prop['propertyName']} ({prop['propertyType']}): {prop['description']}\n"
-    
-    # Add extraction rules if provided
-    if extraction_rules:
-        prompt += "\nEXTRACTION RULES:\n"
-        for rule in extraction_rules:
-            if rule.get("isActive", True):
-                prompt += f"- {rule['ruleName']}: {rule['ruleContent']}\n"
-                if rule.get("targetField"):
-                    prompt += f"  (Applies to: {rule['targetField']})\n"
+            props = [f"{p['propertyName']}" for p in collection.get("properties", [])]
+            prompt += f"- {collection['collectionName']}: [{', '.join(props)}]\n"
     
     prompt += """
-INSTRUCTIONS:
-1. Carefully analyze the document content
-2. Extract data according to the schema above
-3. For object collections, identify all instances in the document
-4. Follow all extraction rules precisely
-5. If a field cannot be found or determined, use null
-6. Provide a confidence score (0.0 to 1.0) based on data clarity and completeness
-7. Add processing notes about any challenges or assumptions made
-
-CRITICAL: You must respond with VALID JSON only. Do not include any comments, explanations, or text outside the JSON structure.
-
-RESPONSE FORMAT - Valid JSON only:
+Return valid JSON:
 {
-  "extracted_data": {
-    "field_name": "extracted_value"
-  },
+  "extracted_data": {...},
   "confidence_score": 0.95,
-  "processing_notes": "Document was clear and well-structured. All required fields found."
-}
-
-For collections, use this structure:
-{
-  "extracted_data": {
-    "collection_name": [
-      {
-        "property_name": "value"
+  "processing_notes": "brief notes"
       }
     ]
   },
