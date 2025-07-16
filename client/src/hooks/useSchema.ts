@@ -131,8 +131,36 @@ export function useDeleteCollection() {
 export function useCollectionProperties(collectionId: number) {
   return useQuery({
     queryKey: ["/api/collections", collectionId, "properties"],
-    queryFn: () => fetch(`/api/collections/${collectionId}/properties`).then(res => res.json()),
+    queryFn: () => apiRequest(`/api/collections/${collectionId}/properties`),
     enabled: !!collectionId,
+  });
+}
+
+// Get all properties for all collections in a project (for target fields)
+export function useAllProjectProperties(projectId: number) {
+  return useQuery({
+    queryKey: ["/api/projects", projectId, "all-properties"],
+    queryFn: async () => {
+      // First get all collections for the project
+      const collections = await apiRequest(`/api/projects/${projectId}/collections`);
+      
+      // Then get properties for each collection
+      const allProperties = [];
+      for (const collection of collections) {
+        try {
+          const properties = await apiRequest(`/api/collections/${collection.id}/properties`);
+          allProperties.push(...properties.map(prop => ({
+            ...prop,
+            collectionName: collection.collectionName,
+          })));
+        } catch (error) {
+          console.warn(`Failed to fetch properties for collection ${collection.id}:`, error);
+        }
+      }
+      
+      return allProperties;
+    },
+    enabled: !!projectId,
   });
 }
 

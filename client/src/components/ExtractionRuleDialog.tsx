@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { insertExtractionRuleSchema } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { useProjectSchemaFields, useObjectCollections } from "@/hooks/useSchema";
+import { useProjectSchemaFields, useObjectCollections, useAllProjectProperties } from "@/hooks/useSchema";
 import {
   Dialog,
   DialogContent,
@@ -60,9 +60,9 @@ export default function ExtractionRuleDialog({
   isLoading = false,
   project
 }: ExtractionRuleDialogProps) {
-  // Fetch schema fields and collections separately since they're not nested in the project object
+  // Fetch schema fields and all project properties
   const { data: schemaFields = [] } = useProjectSchemaFields(project.id);
-  const { data: collections = [] } = useObjectCollections(project.id);
+  const { data: allProperties = [] } = useAllProjectProperties(project.id);
 
   const form = useForm<ExtractionRuleForm>({
     resolver: zodResolver(extractionRuleFormSchema),
@@ -88,20 +88,19 @@ export default function ExtractionRuleDialog({
     }
   }, [rule, open, form]);
 
-  // Build target field options from project schema
+  // Build target field options from project schema and collection properties
   const targetFieldOptions = useMemo(() => [
     // Project schema fields
     ...schemaFields.map(field => ({
       value: field.fieldName,
       label: field.fieldName,
     })),
-    // Collection properties - we'll need to fetch these dynamically
-    // For now, show just collection names until we implement property fetching
-    ...collections.map(collection => ({
-      value: collection.collectionName,
-      label: `${collection.collectionName} (Collection)`,
+    // Collection properties  
+    ...allProperties.map(property => ({
+      value: `${property.collectionName} --> ${property.propertyName}`,
+      label: `${property.collectionName} --> ${property.propertyName}`,
     })),
-  ], [schemaFields, collections]);
+  ], [schemaFields, allProperties]);
 
   const handleSubmit = async (data: ExtractionRuleForm) => {
     try {
