@@ -26,6 +26,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { 
+  useProjectSchemaFields,
+  useObjectCollections,
   useCreateSchemaField, 
   useUpdateSchemaField, 
   useDeleteSchemaField,
@@ -56,6 +58,10 @@ export default function DefineData({ project }: DefineDataProps) {
   const [isEditingMainObjectName, setIsEditingMainObjectName] = useState(false);
 
   const { toast } = useToast();
+
+  // Query for live data instead of using static props
+  const { data: schemaFields = [], isLoading: schemaFieldsLoading } = useProjectSchemaFields(project.id);
+  const { data: collections = [], isLoading: collectionsLoading } = useObjectCollections(project.id);
 
   // Schema field mutations
   const createSchemaField = useCreateSchemaField(project.id);
@@ -388,7 +394,12 @@ export default function DefineData({ project }: DefineDataProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {project.schemaFields.length === 0 ? (
+              {schemaFieldsLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin h-12 w-12 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
+                  <p className="text-sm text-gray-600">Loading schema fields...</p>
+                </div>
+              ) : schemaFields.length === 0 ? (
                 <div className="text-center py-8">
                   <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -409,7 +420,7 @@ export default function DefineData({ project }: DefineDataProps) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {project.schemaFields.map((field) => (
+                    {schemaFields.map((field) => (
                       <TableRow key={field.id}>
                         <TableCell className="font-medium">{field.fieldName}</TableCell>
                         <TableCell>
@@ -474,7 +485,12 @@ export default function DefineData({ project }: DefineDataProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {project.collections.length === 0 ? (
+              {collectionsLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin h-12 w-12 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
+                  <p className="text-sm text-gray-600">Loading collections...</p>
+                </div>
+              ) : collections.length === 0 ? (
                 <div className="text-center py-8">
                   <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -486,7 +502,7 @@ export default function DefineData({ project }: DefineDataProps) {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {project.collections.map((collection) => (
+                  {collections.map((collection) => (
                     <Card key={collection.id} className="border-gray-200">
                       <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
@@ -521,7 +537,7 @@ export default function DefineData({ project }: DefineDataProps) {
                         </div>
                       </CardHeader>
                       <CardContent>
-                        {collection.properties.length === 0 ? (
+                        {(!collection.properties || collection.properties.length === 0) ? (
                           <div className="text-center py-4 bg-gray-50 rounded-lg">
                             <p className="text-sm text-gray-600 mb-2">No properties defined</p>
                             <Button 
@@ -550,7 +566,7 @@ export default function DefineData({ project }: DefineDataProps) {
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
-                                {collection.properties.map((property) => (
+                                {(collection.properties || []).map((property) => (
                                   <TableRow key={property.id}>
                                     <TableCell className="font-medium">{property.propertyName}</TableCell>
                                     <TableCell>
