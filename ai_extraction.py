@@ -8,8 +8,11 @@ from google import genai
 from google.genai import types
 from pydantic import BaseModel
 
-# Initialize Gemini client
-client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+# Initialize Gemini client - ensure we use GEMINI_API_KEY specifically
+api_key = os.environ.get("GEMINI_API_KEY")
+if not api_key:
+    logging.warning("GEMINI_API_KEY not found in environment variables")
+client = genai.Client(api_key=api_key)
 
 class FieldValidationResult(BaseModel):
     field_id: int
