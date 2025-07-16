@@ -48,9 +48,13 @@ def extract_data_from_document(
     """
     try:
         # Check if API key is available
-        if not os.environ.get("GEMINI_API_KEY"):
-            # Return demo data when API key is not available
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            logging.warning("GEMINI_API_KEY not found, using demo data")
             return create_demo_extraction_result(project_schema, file_name)
+        
+        logging.info(f"API key found, proceeding with actual extraction for {file_name}")
+        logging.info(f"File size: {len(file_content)} bytes, MIME type: {mime_type}")
         
         # Build the extraction prompt
         prompt = build_extraction_prompt(project_schema, extraction_rules, file_name)
@@ -70,35 +74,41 @@ def extract_data_from_document(
             ]
         
         # Make the API call to Gemini with structured JSON schema
-        response = client.models.generate_content(
-            model="gemini-2.5-pro", 
-            contents=content_parts,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                temperature=0.0,  # Use 0 temperature for deterministic JSON output
-                max_output_tokens=8192,
-                response_schema={
-                    "type": "object",
-                    "properties": {
-                        "extracted_data": {
-                            "type": "object",
-                            "description": "Extracted data matching the project schema"
+        logging.info("Making API call to Gemini...")
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-pro", 
+                contents=content_parts,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.0,  # Use 0 temperature for deterministic JSON output
+                    max_output_tokens=8192,
+                    response_schema={
+                        "type": "object",
+                        "properties": {
+                            "extracted_data": {
+                                "type": "object",
+                                "description": "Extracted data matching the project schema"
+                            },
+                            "confidence_score": {
+                                "type": "number",
+                                "minimum": 0.0,
+                                "maximum": 1.0,
+                                "description": "Confidence score from 0.0 to 1.0"
+                            },
+                            "processing_notes": {
+                                "type": "string",
+                                "description": "Notes about the extraction process"
+                            }
                         },
-                        "confidence_score": {
-                            "type": "number",
-                            "minimum": 0.0,
-                            "maximum": 1.0,
-                            "description": "Confidence score from 0.0 to 1.0"
-                        },
-                        "processing_notes": {
-                            "type": "string",
-                            "description": "Notes about the extraction process"
-                        }
-                    },
-                    "required": ["extracted_data", "confidence_score", "processing_notes"]
-                }
+                        "required": ["extracted_data", "confidence_score", "processing_notes"]
+                    }
+                )
             )
-        )
+            logging.info("API call completed successfully")
+        except Exception as api_error:
+            logging.error(f"API call failed: {api_error}")
+            raise api_error
         
         if not response.text:
             raise Exception("No response from Gemini API")
