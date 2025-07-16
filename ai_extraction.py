@@ -90,46 +90,67 @@ def extract_data_from_document(
         extracted_data_schema = build_dynamic_schema(project_schema)
         logging.info(f"Generated schema: {extracted_data_schema}")
         
-        # Make the API call to Gemini with structured JSON schema
-        logging.info("Making API call to Gemini...")
-        logging.info(f"Content parts type: {type(content_parts)}, length: {len(content_parts)}")
-        try:
-            response = client.models.generate_content(
-                model="gemini-2.5-pro", 
-                contents=content_parts,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    temperature=0.0,  # Use 0 temperature for deterministic JSON output
-                    max_output_tokens=8192,
-                    response_schema={
-                        "type": "object",
-                        "properties": {
-                            "extracted_data": extracted_data_schema,
-                            "confidence_score": {
-                                "type": "number",
-                                "minimum": 0.0,
-                                "maximum": 1.0,
-                                "description": "Confidence score from 0.0 to 1.0"
+        # Make the API call to Gemini with structured JSON schema and retry logic
+        import time
+        max_retries = 3
+        retry_delay = 2  # Start with 2 seconds
+        
+        for attempt in range(max_retries):
+            logging.info(f"Making API call to Gemini (attempt {attempt + 1}/{max_retries})...")
+            logging.info(f"Content parts type: {type(content_parts)}, length: {len(content_parts)}")
+            
+            try:
+                response = client.models.generate_content(
+                    model="gemini-2.5-pro", 
+                    contents=content_parts,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        temperature=0.0,  # Use 0 temperature for deterministic JSON output
+                        max_output_tokens=8192,
+                        response_schema={
+                            "type": "object",
+                            "properties": {
+                                "extracted_data": extracted_data_schema,
+                                "confidence_score": {
+                                    "type": "number",
+                                    "minimum": 0.0,
+                                    "maximum": 1.0,
+                                    "description": "Confidence score from 0.0 to 1.0"
+                                },
+                                "processing_notes": {
+                                    "type": "string",
+                                    "description": "Notes about the extraction process"
+                                }
                             },
-                            "processing_notes": {
-                                "type": "string",
-                                "description": "Notes about the extraction process"
-                            }
-                        },
-                        "required": ["extracted_data", "confidence_score", "processing_notes"]
-                    }
+                            "required": ["extracted_data", "confidence_score", "processing_notes"]
+                        }
+                    )
                 )
-            )
-            logging.info("API call completed successfully")
-            logging.info(f"Response object type: {type(response)}")
-            logging.info(f"Response text: '{response.text}'")
-            logging.info(f"Response text length: {len(response.text) if response.text else 0}")
-        except Exception as api_error:
-            logging.error(f"API call failed: {api_error}")
-            logging.error(f"API error type: {type(api_error)}")
-            import traceback
-            logging.error(f"Full traceback: {traceback.format_exc()}")
-            raise api_error
+                logging.info("API call completed successfully")
+                logging.info(f"Response object type: {type(response)}")
+                logging.info(f"Response text: '{response.text}'")
+                logging.info(f"Response text length: {len(response.text) if response.text else 0}")
+                break  # Success, exit retry loop
+                
+            except Exception as api_error:
+                error_str = str(api_error)
+                logging.error(f"API call failed (attempt {attempt + 1}): {api_error}")
+                
+                # Check if it's a retryable error (503, 429, etc.)
+                if "503" in error_str or "UNAVAILABLE" in error_str or "overloaded" in error_str:
+                    if attempt < max_retries - 1:  # Don't wait after last attempt
+                        logging.info(f"Model overloaded, retrying in {retry_delay} seconds...")
+                        time.sleep(retry_delay)
+                        retry_delay *= 2  # Exponential backoff
+                        continue
+                    else:
+                        logging.error("Max retries reached, model still overloaded")
+                
+                # For non-retryable errors or max retries reached
+                logging.error(f"API error type: {type(api_error)}")
+                import traceback
+                logging.error(f"Full traceback: {traceback.format_exc()}")
+                raise api_error
         
         if not response.text:
             logging.error("No response text from Gemini API")
