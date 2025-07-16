@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateExtractionSession } from "@/hooks/useExtractionSessions";
 import { useProcessExtraction } from "@/hooks/useAIExtraction";
+import { useProjectSchemaFields, useObjectCollections } from "@/hooks/useSchema";
 import { useToast } from "@/hooks/use-toast";
 import type { ProjectWithDetails } from "@shared/schema";
 
@@ -60,6 +61,10 @@ export default function NewUpload({ project }: NewUploadProps) {
   const createExtractionSession = useCreateExtractionSession(project.id);
   const processExtraction = useProcessExtraction();
   const { toast } = useToast();
+  
+  // Fetch schema data for validation
+  const { data: schemaFields = [] } = useProjectSchemaFields(project.id);
+  const { data: collections = [] } = useObjectCollections(project.id);
 
   const form = useForm<UploadForm>({
     resolver: zodResolver(uploadFormSchema),
@@ -272,7 +277,7 @@ export default function NewUpload({ project }: NewUploadProps) {
   };
 
   const canStartExtraction = selectedFiles.length > 0 && 
-    (project.schemaFields.length > 0 || project.collections.length > 0);
+    (schemaFields.length > 0 || collections.length > 0);
 
   const getStatusIcon = (status: UploadedFile['status']) => {
     switch (status) {
