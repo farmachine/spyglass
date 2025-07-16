@@ -24,6 +24,7 @@ import { useProcessExtraction } from "@/hooks/useAIExtraction";
 import { useProjectSchemaFields, useObjectCollections } from "@/hooks/useSchema";
 import { useExtractionRules } from "@/hooks/useKnowledge";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 import type { ProjectWithDetails } from "@shared/schema";
 
 const uploadFormSchema = z.object({
@@ -67,6 +68,8 @@ export default function NewUpload({ project }: NewUploadProps) {
   const { data: schemaFields = [] } = useProjectSchemaFields(project.id);
   const { data: collections = [] } = useObjectCollections(project.id);
   const { data: extractionRules = [] } = useExtractionRules(project.id);
+  
+
 
   const form = useForm<UploadForm>({
     resolver: zodResolver(uploadFormSchema),
@@ -244,8 +247,21 @@ export default function NewUpload({ project }: NewUploadProps) {
       
       // Get project schema and collections for AI processing
       const projectSchema = schemaFields || [];
-      const projectCollections = collections || [];
       const projectRules = extractionRules || [];
+      
+      // Enhance collections with their properties
+      const collectionsWithProperties = await Promise.all(
+        (collections || []).map(async (collection) => {
+          try {
+            const response = await fetch(`/api/collections/${collection.id}/properties`);
+            const properties = await response.json();
+            return { ...collection, properties };
+          } catch (error) {
+            console.error(`Failed to fetch properties for collection ${collection.id}:`, error);
+            return { ...collection, properties: [] };
+          }
+        })
+      );
 
       await processExtraction.mutateAsync({
         sessionId: session.id,
@@ -253,7 +269,7 @@ export default function NewUpload({ project }: NewUploadProps) {
         project_data: {
           ...project,
           schemaFields: projectSchema,
-          collections: projectCollections,
+          collections: collectionsWithProperties,
           extractionRules: projectRules
         }
       });
