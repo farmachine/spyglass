@@ -324,6 +324,10 @@ def generate_field_validations(
 ) -> List[FieldValidationResult]:
     """Generate field validation results based on extracted data"""
     
+    logging.info(f"Generating validations with schema: {project_schema}")
+    logging.info(f"Schema fields: {project_schema.get('schema_fields', [])}")
+    logging.info(f"Collections: {project_schema.get('collections', [])}")
+    
     validations = []
     
     # Validate schema fields
