@@ -901,6 +901,7 @@ except Exception as e:
           if (result.processed_documents && result.processed_documents.length > 0) {
             for (const doc of result.processed_documents) {
               const fieldValidations = doc.extraction_result?.field_validations || [];
+              console.log(`Processing ${fieldValidations.length} field validations for document: ${doc.file_name}`);
               for (const validation of fieldValidations) {
                 // Extract record index from field name if present
                 const fieldName = validation.field_name;
