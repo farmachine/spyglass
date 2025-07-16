@@ -52,7 +52,7 @@ export interface IStorage {
   createUser(user: InsertUser & { password: string }): Promise<User>;
   updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
   deleteUser(id: number): Promise<boolean>;
-  resetUserPassword(userId: number): Promise<{ tempPassword: string }>;
+  resetUserPassword(userId: number, tempPassword: string): Promise<{ tempPassword: string }>;
   updateUserPassword(userId: number, newPasswordHash: string, isTemporary: boolean): Promise<User | undefined>;
 
   // Projects (organization-filtered)
@@ -588,12 +588,9 @@ export class MemStorage implements IStorage {
     return this.users.delete(id);
   }
 
-  async resetUserPassword(userId: number): Promise<{ tempPassword: string }> {
+  async resetUserPassword(userId: number, tempPassword: string): Promise<{ tempPassword: string }> {
     const user = this.users.get(userId);
     if (!user) throw new Error("User not found");
-    
-    // Generate a temporary password (12 characters)
-    const tempPassword = Math.random().toString(36).substring(2, 14).toUpperCase();
     
     // Import bcrypt dynamically to avoid ESM issues
     const bcrypt = await import('bcryptjs');

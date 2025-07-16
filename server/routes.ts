@@ -136,7 +136,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid reset data", errors: result.error.errors });
       }
 
-      const { tempPassword } = await storage.resetUserPassword(result.data.userId);
+      const { tempPassword } = await storage.resetUserPassword(result.data.userId, result.data.tempPassword);
       res.json({ 
         tempPassword,
         message: "Password reset successfully. User must change password on next login." 

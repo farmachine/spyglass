@@ -33,12 +33,18 @@ const organizationSchema = z.object({
   description: z.string().optional(),
 });
 
+const resetPasswordSchema = z.object({
+  tempPassword: z.string().min(6, "Temporary password must be at least 6 characters"),
+});
+
 export default function OrganizationConfig() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const [createUserOpen, setCreateUserOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
 
   const organizationId = parseInt(id || "0");
 
@@ -97,17 +103,19 @@ export default function OrganizationConfig() {
   });
 
   const resetPasswordMutation = useMutation({
-    mutationFn: async (userId: number) => {
+    mutationFn: async ({ userId, tempPassword }: { userId: number; tempPassword: string }) => {
       return apiRequest("/api/auth/reset-password", {
         method: "POST",
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ userId, tempPassword }),
       });
     },
     onSuccess: (data) => {
+      setResetPasswordOpen(false);
+      resetPasswordForm.reset();
       toast({ 
         title: "Password Reset Successful",
-        description: `Temporary password: ${data.tempPassword}. User must change this on next login.`,
-        duration: 10000,
+        description: `Temporary password set successfully. User must change this on next login.`,
+        duration: 5000,
       });
     },
   });
@@ -140,6 +148,13 @@ export default function OrganizationConfig() {
       email: "",
       password: "",
       role: "user" as const,
+    },
+  });
+
+  const resetPasswordForm = useForm({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      tempPassword: "",
     },
   });
 
@@ -415,8 +430,10 @@ export default function OrganizationConfig() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => resetPasswordMutation.mutate(user.id)}
-                            disabled={resetPasswordMutation.isPending}
+                            onClick={() => {
+                              setSelectedUserId(user.id);
+                              setResetPasswordOpen(true);
+                            }}
                           >
                             <KeyRound className="h-4 w-4 mr-1" />
                             Reset Password
@@ -431,6 +448,57 @@ export default function OrganizationConfig() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={resetPasswordOpen} onOpenChange={setResetPasswordOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset User Password</DialogTitle>
+            <DialogDescription>
+              Set a new temporary password for this user. They will be required to change it on their next login.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...resetPasswordForm}>
+            <form
+              onSubmit={resetPasswordForm.handleSubmit((data) => {
+                if (selectedUserId) {
+                  resetPasswordMutation.mutate({
+                    userId: selectedUserId,
+                    tempPassword: data.tempPassword,
+                  });
+                }
+              })}
+              className="space-y-4"
+            >
+              <FormField
+                control={resetPasswordForm.control}
+                name="tempPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Temporary Password</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        placeholder="Enter temporary password"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setResetPasswordOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={resetPasswordMutation.isPending}>
+                  {resetPasswordMutation.isPending ? "Resetting..." : "Reset Password"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

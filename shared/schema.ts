@@ -230,6 +230,7 @@ export const registerUserSchema = insertUserSchema.extend({
 
 export const resetPasswordSchema = z.object({
   userId: z.number(),
+  tempPassword: z.string().min(6, "Temporary password must be at least 6 characters"),
 });
 
 // API schema for password changes (backend only)
