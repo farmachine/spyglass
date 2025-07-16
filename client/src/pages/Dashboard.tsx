@@ -2,19 +2,19 @@ import { Plus, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 import { useProjects } from "@/hooks/useProjects";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "wouter";
 import ProjectCard from "@/components/ProjectCard";
 import CreateProjectDialog from "@/components/CreateProjectDialog";
 import UserProfile from "@/components/UserProfile";
-import OrganizationManager from "@/components/OrganizationManager";
 
 export default function Dashboard() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const { data: projects, isLoading, error } = useProjects();
   const { user } = useAuth();
+  const [, navigate] = useLocation();
 
   const isAdmin = user?.role === "admin";
 
@@ -104,66 +104,43 @@ export default function Dashboard() {
                 Manage your data extraction projects
               </p>
             </div>
-            <UserProfile />
+            <div className="flex items-center space-x-4">
+              {isAdmin && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate("/admin")}
+                  className="p-2"
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+              )}
+              <UserProfile />
+            </div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {isAdmin ? (
-          <Tabs defaultValue="projects" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="projects">Projects</TabsTrigger>
-              <TabsTrigger value="admin">
-                <Settings className="mr-2 h-4 w-4" />
-                Admin Panel
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="projects" className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-semibold">Your Projects</h2>
-                  <p className="text-sm text-gray-600">
-                    Manage your data extraction projects
-                  </p>
-                </div>
-                <Button
-                  onClick={() => setCreateDialogOpen(true)}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Project
-                </Button>
-              </div>
-              {renderProjectsContent()}
-            </TabsContent>
-
-            <TabsContent value="admin">
-              <OrganizationManager />
-            </TabsContent>
-          </Tabs>
-        ) : (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-semibold">Your Projects</h2>
-                <p className="text-sm text-gray-600">
-                  Manage your data extraction projects
-                </p>
-              </div>
-              <Button
-                onClick={() => setCreateDialogOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                New Project
-              </Button>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">Your Projects</h2>
+              <p className="text-sm text-gray-600">
+                Manage your data extraction projects
+              </p>
             </div>
-            {renderProjectsContent()}
+            <Button
+              onClick={() => setCreateDialogOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              New Project
+            </Button>
           </div>
-        )}
+          {renderProjectsContent()}
+        </div>
       </div>
 
       <CreateProjectDialog

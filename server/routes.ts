@@ -204,6 +204,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update user (Admin only)
+  app.put("/api/users/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const updateData = req.body;
+      const updatedUser = await storage.updateUser(userId, updateData);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Update user error:", error);
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  // Update organization (Admin only)
+  app.put("/api/organizations/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const orgId = parseInt(req.params.id);
+      const updateData = req.body;
+      const updatedOrg = await storage.updateOrganization(orgId, updateData);
+      
+      if (!updatedOrg) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+      
+      res.json(updatedOrg);
+    } catch (error) {
+      console.error("Update organization error:", error);
+      res.status(500).json({ message: "Failed to update organization" });
+    }
+  });
+
+  // Delete organization (Admin only)
+  app.delete("/api/organizations/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const orgId = parseInt(req.params.id);
+      const deleted = await storage.deleteOrganization(orgId);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+      
+      res.json({ message: "Organization deleted successfully" });
+    } catch (error) {
+      console.error("Delete organization error:", error);
+      res.status(500).json({ message: "Failed to delete organization" });
+    }
+  });
+
   // Projects (with authentication and organization filtering)
   app.get("/api/projects", authenticateToken, async (req: AuthRequest, res) => {
     try {

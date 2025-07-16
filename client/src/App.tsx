@@ -9,6 +9,8 @@ import Dashboard from "@/pages/Dashboard";
 import ProjectView from "@/pages/ProjectView";
 import SessionReview from "@/pages/SessionReview";
 import SessionView from "@/pages/SessionView";
+import AdminPanel from "@/pages/AdminPanel";
+import OrganizationConfig from "@/pages/OrganizationConfig";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import NotFound from "@/pages/not-found";
@@ -31,6 +33,16 @@ function Router() {
       <Route path="/projects/:projectId/sessions/:sessionId">
         <ProtectedRoute>
           <SessionView />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin">
+        <ProtectedRoute>
+          <AdminPanel />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/organizations/:id">
+        <ProtectedRoute>
+          <OrganizationConfig />
         </ProtectedRoute>
       </Route>
       <Route component={NotFound} />
