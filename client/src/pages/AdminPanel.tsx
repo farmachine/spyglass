@@ -3,16 +3,55 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "@/hooks/use-toast";
+import { useState } from "react";
 import Breadcrumb from "@/components/Breadcrumb";
+
+const organizationSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  description: z.string().optional(),
+});
 
 export default function AdminPanel() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
+  const [createOrgOpen, setCreateOrgOpen] = useState(false);
 
   const { data: organizations, isLoading } = useQuery({
     queryKey: ["/api/organizations"],
     enabled: user?.role === "admin",
+  });
+
+  const createOrgMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest("/api/organizations", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/organizations"] });
+      setCreateOrgOpen(false);
+      orgForm.reset();
+      toast({ title: "Organization created successfully" });
+    },
+  });
+
+  const orgForm = useForm({
+    resolver: zodResolver(organizationSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+    },
   });
 
   if (user?.role !== "admin") {
@@ -79,8 +118,62 @@ export default function AdminPanel() {
 
         {/* Organizations List */}
         <Card className="mt-8">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle>Organizations</CardTitle>
+            <Dialog open={createOrgOpen} onOpenChange={setCreateOrgOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-blue-600 hover:bg-blue-700">
+                  <Building2 className="h-4 w-4 mr-2" />
+                  Add Organization
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Add New Organization</DialogTitle>
+                  <DialogDescription>
+                    Create a new organization to manage users and projects.
+                  </DialogDescription>
+                </DialogHeader>
+                <Form {...orgForm}>
+                  <form onSubmit={orgForm.handleSubmit((data) => createOrgMutation.mutate(data))} className="space-y-4">
+                    <FormField
+                      control={orgForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Organization Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="ACME Corporation" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={orgForm.control}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Description (Optional)</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder="Brief description of the organization" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <DialogFooter>
+                      <Button type="button" variant="outline" onClick={() => setCreateOrgOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button type="submit" disabled={createOrgMutation.isPending}>
+                        {createOrgMutation.isPending ? "Creating..." : "Create Organization"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
           </CardHeader>
           <CardContent>
             {isLoading ? (

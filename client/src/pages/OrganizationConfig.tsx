@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Home, Users, Settings, Plus, Trash2 } from "lucide-react";
@@ -56,13 +56,10 @@ export default function OrganizationConfig() {
 
   const updateOrgMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await fetch(`/api/organizations/${organizationId}`, {
+      return apiRequest(`/api/organizations/${organizationId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error("Failed to update organization");
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/organizations"] });
@@ -72,13 +69,10 @@ export default function OrganizationConfig() {
 
   const createUserMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await fetch("/api/users", {
+      return apiRequest("/api/users", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data, organizationId }),
       });
-      if (!res.ok) throw new Error("Failed to create user");
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users", organizationId] });
@@ -89,13 +83,10 @@ export default function OrganizationConfig() {
 
   const toggleUserActiveMutation = useMutation({
     mutationFn: async ({ userId, isActive }: { userId: number; isActive: boolean }) => {
-      const res = await fetch(`/api/users/${userId}`, {
+      return apiRequest(`/api/users/${userId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isActive }),
       });
-      if (!res.ok) throw new Error("Failed to update user");
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users", organizationId] });
@@ -105,11 +96,9 @@ export default function OrganizationConfig() {
 
   const deleteOrgMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/organizations/${organizationId}`, {
+      return apiRequest(`/api/organizations/${organizationId}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error("Failed to delete organization");
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/organizations"] });
@@ -291,6 +280,9 @@ export default function OrganizationConfig() {
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Add User to {organization.name}</DialogTitle>
+                      <DialogDescription>
+                        Create a new user account for this organization.
+                      </DialogDescription>
                     </DialogHeader>
                     <Form {...userForm}>
                       <form onSubmit={userForm.handleSubmit((data) => createUserMutation.mutate(data))} className="space-y-4">
