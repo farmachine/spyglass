@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Home, Users, Settings, Plus, Trash2, KeyRound } from "lucide-react";
+import { Home, Users, Settings, Plus, Trash2, KeyRound, Edit } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -37,6 +37,10 @@ const resetPasswordSchema = z.object({
   tempPassword: z.string().min(6, "Temporary password must be at least 6 characters"),
 });
 
+const editUserSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+});
+
 export default function OrganizationConfig() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
@@ -44,7 +48,9 @@ export default function OrganizationConfig() {
   const [createUserOpen, setCreateUserOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
+  const [editUserOpen, setEditUserOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
 
   const organizationId = parseInt(id || "0");
 
@@ -120,6 +126,25 @@ export default function OrganizationConfig() {
     },
   });
 
+  const editUserMutation = useMutation({
+    mutationFn: async ({ userId, name }: { userId: number; name: string }) => {
+      return apiRequest(`/api/users/${userId}`, {
+        method: "PUT",
+        body: JSON.stringify({ name }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users", organizationId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/organizations"] });
+      setEditUserOpen(false);
+      editUserForm.reset();
+      toast({ 
+        title: "User Updated",
+        description: "User name updated successfully.",
+      });
+    },
+  });
+
   const deleteOrgMutation = useMutation({
     mutationFn: async () => {
       return apiRequest(`/api/organizations/${organizationId}`, {
@@ -155,6 +180,13 @@ export default function OrganizationConfig() {
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
       tempPassword: "",
+    },
+  });
+
+  const editUserForm = useForm({
+    resolver: zodResolver(editUserSchema),
+    defaultValues: {
+      name: "",
     },
   });
 
@@ -431,6 +463,18 @@ export default function OrganizationConfig() {
                             variant="outline"
                             size="sm"
                             onClick={() => {
+                              setSelectedUser(user);
+                              editUserForm.setValue("name", user.name);
+                              setEditUserOpen(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4 mr-1" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
                               setSelectedUserId(user.id);
                               setResetPasswordOpen(true);
                             }}
@@ -493,6 +537,56 @@ export default function OrganizationConfig() {
                 </Button>
                 <Button type="submit" disabled={resetPasswordMutation.isPending}>
                   {resetPasswordMutation.isPending ? "Resetting..." : "Reset Password"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Dialog */}
+      <Dialog open={editUserOpen} onOpenChange={setEditUserOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>
+              Update the user's information.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...editUserForm}>
+            <form
+              onSubmit={editUserForm.handleSubmit((data) => {
+                if (selectedUser) {
+                  editUserMutation.mutate({
+                    userId: selectedUser.id,
+                    name: data.name,
+                  });
+                }
+              })}
+              className="space-y-4"
+            >
+              <FormField
+                control={editUserForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter user name"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setEditUserOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={editUserMutation.isPending}>
+                  {editUserMutation.isPending ? "Updating..." : "Update User"}
                 </Button>
               </DialogFooter>
             </form>
