@@ -238,15 +238,44 @@ export default function SessionView() {
     return String(value);
   };
 
+  const getFieldDisplayName = (fieldName: string) => {
+    // Check schema fields first
+    for (const field of project.schemaFields) {
+      if (field.fieldName === fieldName) {
+        return field.fieldName; // Use the actual field name as display name
+      }
+    }
+    
+    // Check collection properties
+    for (const collection of project.collections) {
+      if (fieldName.startsWith(collection.collectionName + '.')) {
+        const parts = fieldName.split('.');
+        const propertyPart = parts[1]; // e.g., "Name[0]" or "Name"
+        const basePropertyName = propertyPart.split('[')[0]; // Remove [index] if present
+        const indexMatch = propertyPart.match(/\[(\d+)\]/);
+        const index = indexMatch ? parseInt(indexMatch[1]) : null;
+        
+        if (index !== null) {
+          return `${collection.collectionName}.${basePropertyName}[${index}]`;
+        } else {
+          return `${collection.collectionName}.${basePropertyName}`;
+        }
+      }
+    }
+    
+    return fieldName; // Fallback to original name
+  };
+
   const renderFieldWithValidation = (fieldName: string, value: any) => {
     const validation = getValidation(fieldName);
     const isEditing = editingField === fieldName;
     const fieldType = getFieldType(fieldName);
+    const displayName = getFieldDisplayName(fieldName);
     
     return (
       <div key={fieldName} className="flex items-center gap-3 p-3 border rounded-lg">
         <div className="flex-1">
-          <Label className="text-sm font-medium text-gray-700">{fieldName}</Label>
+          <Label className="text-sm font-medium text-gray-700">{displayName}</Label>
           {isEditing ? (
             <div className="flex items-center gap-2 mt-1">
               {fieldType === 'DATE' ? (
