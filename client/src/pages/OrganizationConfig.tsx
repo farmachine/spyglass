@@ -18,6 +18,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "@/hooks/use-toast";
+import Breadcrumb from "@/components/Breadcrumb";
 import React from "react";
 
 const userSchema = z.object({
@@ -41,15 +42,12 @@ export default function OrganizationConfig() {
 
   const organizationId = parseInt(id || "0");
 
-  const { data: organization, isLoading: orgLoading } = useQuery({
-    queryKey: ["/api/organizations", organizationId],
-    queryFn: async () => {
-      const res = await fetch(`/api/organizations`);
-      const orgs = await res.json();
-      return orgs.find((org: any) => org.id === organizationId);
-    },
-    enabled: user?.role === "admin" && !!organizationId,
+  const { data: organizations } = useQuery({
+    queryKey: ["/api/organizations"],
+    enabled: user?.role === "admin",
   });
+
+  const organization = organizations?.find((org: any) => org.id === organizationId);
 
   const { data: users, isLoading: usersLoading } = useQuery({
     queryKey: ["/api/users", organizationId],
@@ -153,7 +151,7 @@ export default function OrganizationConfig() {
     return null;
   }
 
-  if (orgLoading) {
+  if (!organizations) {
     return <div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>;
   }
 
@@ -166,24 +164,20 @@ export default function OrganizationConfig() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate("/admin")}
-                className="p-2"
-              >
-                <Home className="h-4 w-4" />
-              </Button>
-              <div>
-                <h1 className="text-2xl font-semibold text-gray-900">
-                  {organization.name}
-                </h1>
-                <p className="text-sm text-gray-600 mt-1">
-                  Organization configuration
-                </p>
-              </div>
+          <div className="flex flex-col space-y-4">
+            <Breadcrumb 
+              items={[
+                { label: "Admin Panel", href: "/admin", icon: <Settings className="h-4 w-4" /> },
+                { label: organization.name }
+              ]} 
+            />
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-900">
+                {organization.name}
+              </h1>
+              <p className="text-sm text-gray-600 mt-1">
+                Organization configuration
+              </p>
             </div>
           </div>
         </div>

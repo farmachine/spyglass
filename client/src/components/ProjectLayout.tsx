@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Upload, Database, Brain, Settings } from "lucide-react";
+import { ArrowLeft, Upload, Database, Brain, Settings, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,6 +10,7 @@ import AllData from "./AllData";
 import KnowledgeRules from "./KnowledgeRules";
 import DefineData from "./DefineData";
 import UserProfile from "./UserProfile";
+import Breadcrumb from "./Breadcrumb";
 
 interface ProjectLayoutProps {
   projectId: number;
@@ -159,29 +160,25 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setLocation("/")}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back
-              </Button>
-              <div>
-                <h1 className="text-2xl font-semibold text-gray-900">
-                  {project.name}
-                </h1>
-                {project.description && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    {project.description}
-                  </p>
-                )}
-              </div>
+          <div className="flex flex-col space-y-4">
+            <div className="flex items-center justify-between">
+              <Breadcrumb 
+                items={[
+                  { label: project.name, icon: <FolderOpen className="h-4 w-4" /> }
+                ]} 
+              />
+              <UserProfile />
             </div>
-            <UserProfile />
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-900">
+                {project.name}
+              </h1>
+              {project.description && (
+                <p className="text-sm text-gray-600 mt-1">
+                  {project.description}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>

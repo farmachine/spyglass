@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
+import Breadcrumb from "@/components/Breadcrumb";
 
 export default function AdminPanel() {
   const [, navigate] = useLocation();
@@ -26,24 +27,19 @@ export default function AdminPanel() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate("/")}
-                className="p-2"
-              >
-                <Home className="h-4 w-4" />
-              </Button>
-              <div>
-                <h1 className="text-2xl font-semibold text-gray-900">
-                  Admin Panel
-                </h1>
-                <p className="text-sm text-gray-600 mt-1">
-                  Manage organizations and users
-                </p>
-              </div>
+          <div className="flex flex-col space-y-4">
+            <Breadcrumb 
+              items={[
+                { label: "Admin Panel", icon: <Settings className="h-4 w-4" /> }
+              ]} 
+            />
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-900">
+                Admin Panel
+              </h1>
+              <p className="text-sm text-gray-600 mt-1">
+                Manage organizations and users
+              </p>
             </div>
           </div>
         </div>
