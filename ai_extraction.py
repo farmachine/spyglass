@@ -9,6 +9,11 @@ from google.genai import types
 from pydantic import BaseModel
 
 # Initialize Gemini client - ensure we use GEMINI_API_KEY specifically
+# Temporarily remove GOOGLE_API_KEY to force use of GEMINI_API_KEY
+if "GOOGLE_API_KEY" in os.environ:
+    del os.environ["GOOGLE_API_KEY"]
+    logging.info("Removed GOOGLE_API_KEY from environment to use GEMINI_API_KEY")
+
 api_key = os.environ.get("GEMINI_API_KEY")
 if not api_key:
     logging.warning("GEMINI_API_KEY not found in environment variables")
@@ -121,6 +126,9 @@ def extract_data_from_document(
             logging.info(f"Response text length: {len(response.text) if response.text else 0}")
         except Exception as api_error:
             logging.error(f"API call failed: {api_error}")
+            logging.error(f"API error type: {type(api_error)}")
+            import traceback
+            logging.error(f"Full traceback: {traceback.format_exc()}")
             raise api_error
         
         if not response.text:
