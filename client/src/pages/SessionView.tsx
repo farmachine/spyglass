@@ -27,29 +27,17 @@ export default function SessionView() {
 
   const { data: project, isLoading: projectLoading } = useQuery<ProjectWithDetails>({
     queryKey: ['/api/projects', projectId],
-    queryFn: async () => {
-      const response = await fetch(`/api/projects/${projectId}`);
-      if (!response.ok) throw new Error('Failed to fetch project');
-      return response.json();
-    }
+    queryFn: () => apiRequest(`/api/projects/${projectId}`)
   });
 
   const { data: session, isLoading: sessionLoading } = useQuery<ExtractionSession>({
     queryKey: ['/api/sessions', sessionId],
-    queryFn: async () => {
-      const response = await fetch(`/api/sessions/${sessionId}`);
-      if (!response.ok) throw new Error('Failed to fetch session');
-      return response.json();
-    }
+    queryFn: () => apiRequest(`/api/sessions/${sessionId}`)
   });
 
   const { data: validations = [] } = useQuery<FieldValidation[]>({
     queryKey: ['/api/sessions', sessionId, 'validations'],
-    queryFn: async () => {
-      const response = await fetch(`/api/sessions/${sessionId}/validations`);
-      if (!response.ok) throw new Error('Failed to fetch validations');
-      return response.json();
-    }
+    queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`)
   });
 
   const updateValidationMutation = useMutation({
