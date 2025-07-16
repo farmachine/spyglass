@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useCreateProject } from "@/hooks/useProjects";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -33,6 +34,7 @@ interface CreateProjectDialogProps {
 export default function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogProps) {
   const createProject = useCreateProject();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   const form = useForm<InsertProject>({
     resolver: zodResolver(insertProjectSchema),
@@ -44,13 +46,16 @@ export default function CreateProjectDialog({ open, onOpenChange }: CreateProjec
 
   const onSubmit = async (data: InsertProject) => {
     try {
-      await createProject.mutateAsync(data);
+      const newProject = await createProject.mutateAsync(data);
       toast({
         title: "Project created",
         description: "Your new project has been created successfully.",
       });
       form.reset();
       onOpenChange(false);
+      
+      // Navigate to the newly created project
+      setLocation(`/projects/${newProject.id}?tab=define`);
     } catch (error) {
       toast({
         title: "Error",

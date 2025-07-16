@@ -1416,14 +1416,32 @@ class PostgreSQLStorage implements IStorage {
       .where(eq(extractionRules.id, id));
     return result.rowCount > 0;
   }
-  async getFieldValidations(sessionId: number): Promise<FieldValidation[]> { return []; }
+  async getFieldValidations(sessionId: number): Promise<FieldValidation[]> { 
+    const result = await this.db.select().from(fieldValidations).where(eq(fieldValidations.sessionId, sessionId));
+    return result;
+  }
   async createFieldValidation(validation: InsertFieldValidation): Promise<FieldValidation> { 
     const result = await this.db.insert(fieldValidations).values(validation).returning();
     return result[0];
   }
-  async updateFieldValidation(id: number, validation: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined> { return undefined; }
-  async deleteFieldValidation(id: number): Promise<boolean> { return false; }
-  async getSessionWithValidations(sessionId: number): Promise<ExtractionSessionWithValidation | undefined> { return undefined; }
+  async updateFieldValidation(id: number, validation: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined> { 
+    const result = await this.db.update(fieldValidations).set(validation).where(eq(fieldValidations.id, id)).returning();
+    return result[0];
+  }
+  async deleteFieldValidation(id: number): Promise<boolean> { 
+    const result = await this.db.delete(fieldValidations).where(eq(fieldValidations.id, id));
+    return result.rowCount > 0;
+  }
+  async getSessionWithValidations(sessionId: number): Promise<ExtractionSessionWithValidation | undefined> { 
+    const session = await this.getExtractionSession(sessionId);
+    if (!session) return undefined;
+    
+    const validations = await this.getFieldValidations(sessionId);
+    return {
+      ...session,
+      fieldValidations: validations
+    };
+  }
 }
 
 // Use PostgreSQL storage when DATABASE_URL is available, MemStorage otherwise
