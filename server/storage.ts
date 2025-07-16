@@ -553,9 +553,9 @@ export class MemStorage implements IStorage {
 
   async createUser(userData: InsertUser & { password: string }): Promise<User> {
     const { password, ...insertUser } = userData;
-    // Hash password with bcrypt (this would be done in the API layer in real implementation)
-    const bcrypt = require('bcryptjs');
-    const passwordHash = await bcrypt.hash(password, 10);
+    // Hash password using bcrypt
+    const bcryptjs = await import('bcryptjs');
+    const passwordHash = await bcryptjs.default.hash(password, 10);
     
     const user: User = {
       id: this.currentUserId++,
