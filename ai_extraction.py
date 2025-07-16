@@ -78,6 +78,9 @@ def extract_data_from_document(
                 prompt
             ]
         
+        # Build dynamic JSON schema based on project schema
+        extracted_data_schema = build_dynamic_schema(project_schema)
+        
         # Make the API call to Gemini with structured JSON schema
         logging.info("Making API call to Gemini...")
         try:
@@ -91,10 +94,7 @@ def extract_data_from_document(
                     response_schema={
                         "type": "object",
                         "properties": {
-                            "extracted_data": {
-                                "type": "object",
-                                "description": "Extracted data matching the project schema"
-                            },
+                            "extracted_data": extracted_data_schema,
                             "confidence_score": {
                                 "type": "number",
                                 "minimum": 0.0,
@@ -257,6 +257,58 @@ def create_demo_extraction_result(project_schema: Dict[str, Any], file_name: str
         processing_notes=f"Demo extraction completed for {file_name}. Real AI extraction encountered JSON parsing issues - using demo data for testing interface.",
         field_validations=field_validations
     )
+
+def build_dynamic_schema(project_schema: Dict[str, Any]) -> Dict[str, Any]:
+    """Build a dynamic JSON schema based on the project schema"""
+    schema_properties = {}
+    
+    # Add schema fields
+    if project_schema.get("schema_fields"):
+        for field in project_schema["schema_fields"]:
+            field_name = field.get("fieldName", "")
+            field_type = field.get("fieldType", "TEXT")
+            
+            if field_type == "TEXT":
+                schema_properties[field_name] = {"type": "string"}
+            elif field_type == "NUMBER":
+                schema_properties[field_name] = {"type": "number"}
+            elif field_type == "DATE":
+                schema_properties[field_name] = {"type": "string"}
+            elif field_type == "BOOLEAN":
+                schema_properties[field_name] = {"type": "boolean"}
+    
+    # Add collections
+    if project_schema.get("collections"):
+        for collection in project_schema["collections"]:
+            collection_name = collection.get("collectionName", "")
+            collection_properties = {}
+            
+            for prop in collection.get("properties", []):
+                prop_name = prop.get("propertyName", "")
+                prop_type = prop.get("propertyType", "TEXT")
+                
+                if prop_type == "TEXT":
+                    collection_properties[prop_name] = {"type": "string"}
+                elif prop_type == "NUMBER":
+                    collection_properties[prop_name] = {"type": "number"}
+                elif prop_type == "DATE":
+                    collection_properties[prop_name] = {"type": "string"}
+                elif prop_type == "BOOLEAN":
+                    collection_properties[prop_name] = {"type": "boolean"}
+            
+            schema_properties[collection_name] = {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": collection_properties
+                }
+            }
+    
+    return {
+        "type": "object",
+        "properties": schema_properties,
+        "description": "Extracted data matching the project schema"
+    }
 
 def build_extraction_prompt(
     project_schema: Dict[str, Any], 
