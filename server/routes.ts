@@ -16,7 +16,7 @@ import {
   loginSchema,
   registerUserSchema,
   resetPasswordSchema,
-  changePasswordSchema
+  changePasswordApiSchema
 } from "@shared/schema";
 import { authenticateToken, requireAdmin, generateToken, comparePassword, hashPassword, type AuthRequest } from "./auth";
 
@@ -150,7 +150,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Change password endpoint (for users with temporary passwords)
   app.post("/api/auth/change-password", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const result = changePasswordSchema.safeParse(req.body);
+      const result = changePasswordApiSchema.safeParse(req.body);
       if (!result.success) {
         return res.status(400).json({ message: "Invalid password data", errors: result.error.errors });
       }

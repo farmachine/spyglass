@@ -232,6 +232,13 @@ export const resetPasswordSchema = z.object({
   userId: z.number(),
 });
 
+// API schema for password changes (backend only)
+export const changePasswordApiSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: z.string().min(6, "New password must be at least 6 characters"),
+});
+
+// Frontend schema with confirmation (includes validation)
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required"),
   newPassword: z.string().min(6, "New password must be at least 6 characters"),

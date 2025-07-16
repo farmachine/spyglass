@@ -592,8 +592,8 @@ export class MemStorage implements IStorage {
     const user = this.users.get(userId);
     if (!user) throw new Error("User not found");
     
-    // Generate a temporary password (8 characters)
-    const tempPassword = Math.random().toString(36).substring(2, 10).toUpperCase();
+    // Generate a temporary password (12 characters)
+    const tempPassword = Math.random().toString(36).substring(2, 14).toUpperCase();
     
     // Import bcrypt dynamically to avoid ESM issues
     const bcrypt = await import('bcryptjs');
