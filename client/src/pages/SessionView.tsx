@@ -425,7 +425,7 @@ export default function SessionView() {
                     className="w-full text-sm"
                     onFocus={() => console.log('Date field focused, current value:', value)}
                   />
-                  <div className="text-xs text-gray-500 mt-1">Debug: {JSON.stringify(value)}</div>
+
                 </div>
               ) : (
                 <>

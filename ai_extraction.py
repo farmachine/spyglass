@@ -383,34 +383,50 @@ def build_extraction_prompt(
 ) -> str:
     """Build a comprehensive prompt for data extraction"""
     
-    prompt = f"Extract data from {file_name}.\n\nSchema:\n"
+    prompt = f"Extract structured data from {file_name}.\n\nSchema Fields:\n"
     
-    # Add project schema fields (concise)
+    # Add project schema fields with specific type instructions
     if project_schema.get("schema_fields"):
         for field in project_schema["schema_fields"]:
-            prompt += f"- {field['fieldName']} ({field['fieldType']})\n"
+            field_name = field['fieldName']
+            field_type = field['fieldType']
+            if field_type == "DATE":
+                prompt += f"- {field_name}: Extract actual date in YYYY-MM-DD format only. If no specific date found, return null.\n"
+            else:
+                prompt += f"- {field_name} ({field_type})\n"
     
-    # Add collections (concise)
+    # Add collections with type-specific instructions
     if project_schema.get("collections"):
+        prompt += "\nCollections:\n"
         for collection in project_schema["collections"]:
-            props = [f"{p['propertyName']}" for p in collection.get("properties", [])]
-            prompt += f"- {collection['collectionName']}: [{', '.join(props)}]\n"
+            collection_name = collection['collectionName']
+            prompt += f"- {collection_name} (array of objects):\n"
+            for prop in collection.get("properties", []):
+                prop_name = prop['propertyName']
+                prop_type = prop['propertyType']
+                if prop_type == "DATE":
+                    prompt += f"  * {prop_name}: Extract actual date in YYYY-MM-DD format only. If no date found, return null.\n"
+                else:
+                    prompt += f"  * {prop_name} ({prop_type})\n"
     
-    prompt += """
-Return valid JSON:
-{
-  "extracted_data": {...},
-  "confidence_score": 0.95,
-  "processing_notes": "brief notes"
-      }
-    ]
-  },
-  "confidence_score": 0.95,
-  "processing_notes": "Extraction notes here"
-}
+    prompt += f"""
 
-Return only valid JSON without any additional text, comments, or formatting.
-"""
+CRITICAL INSTRUCTIONS:
+- For DATE fields: Extract ONLY actual dates in YYYY-MM-DD format (e.g., "2024-07-18")
+- If you see text like "Last date of signature below" or "TBD" or similar - return null for that field
+- Do NOT return descriptive text, references, or instructions as date values
+- TEXT fields can contain any text content
+- NUMBER fields should contain numeric values only
+- Return null for any field you cannot extract actual data for
+
+Return valid JSON:
+{{
+  "extracted_data": {{...}},
+  "confidence_score": 0.95,
+  "processing_notes": "Brief extraction notes"
+}}
+
+Return only valid JSON without any additional text, comments, or formatting."""
     
     return prompt
 
