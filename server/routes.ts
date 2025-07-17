@@ -937,10 +937,21 @@ except Exception as e:
                 // Try to find existing validation for this field
                 const existingValidation = existingValidations.find(v => v.fieldName === fieldName);
                 
+                // Normalize extracted value based on field type
+                let normalizedValue = validation.extracted_value;
+                
+                // Get field type for proper value normalization
+                if (validation.field_type === 'DATE') {
+                  // For date fields, normalize "null" strings to actual null
+                  if (normalizedValue === "null" || normalizedValue === "undefined" || !normalizedValue) {
+                    normalizedValue = null;
+                  }
+                }
+                
                 if (existingValidation) {
                   // Update existing validation
                   await storage.updateFieldValidation(existingValidation.id, {
-                    extractedValue: validation.extracted_value,
+                    extractedValue: normalizedValue,
                     validationStatus: validation.validation_status,
                     aiReasoning: validation.ai_reasoning,
                     confidenceScore: validation.confidence_score
@@ -954,7 +965,7 @@ except Exception as e:
                     fieldName: fieldName,
                     collectionName,
                     recordIndex,
-                    extractedValue: validation.extracted_value,
+                    extractedValue: normalizedValue,
                     validationStatus: validation.validation_status,
                     aiReasoning: validation.ai_reasoning,
                     manuallyVerified: false,
