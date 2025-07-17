@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,50 @@ import type {
   ProjectWithDetails, 
   FieldValidation 
 } from "@shared/schema";
+
+// Simple Validation Icon Component
+const ValidationIcon = ({ fieldName, validation, onToggle }: { 
+  fieldName: string; 
+  validation: FieldValidation | undefined; 
+  onToggle: (isVerified: boolean) => void;
+}) => {
+  if (!validation) {
+    return <div className="text-xs text-gray-400">No validation data</div>;
+  }
+
+  const isVerified = validation.validationStatus === 'valid';
+
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => onToggle(!isVerified)}
+        className="flex items-center gap-1 text-sm hover:bg-gray-100 px-2 py-1 rounded"
+        title={isVerified ? "Click to mark as unverified" : "Click to mark as verified"}
+      >
+        {isVerified ? (
+          <>
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <span className="text-green-600">Verified</span>
+          </>
+        ) : (
+          <>
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+            <span className="text-red-600">Unverified</span>
+          </>
+        )}
+      </button>
+      
+      {!isVerified && validation.aiReasoning && (
+        <div 
+          className="text-xs text-gray-500 cursor-help" 
+          title={validation.aiReasoning}
+        >
+          ⓘ
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function SessionView() {
   const { projectId, sessionId } = useParams();
@@ -216,6 +260,8 @@ export default function SessionView() {
     return 'TEXT'; // Default fallback
   };
 
+
+
   const formatDateForDisplay = (value: any) => {
     if (!value || value === 'null' || value === 'undefined') {
       return 'Not set';
@@ -334,20 +380,11 @@ export default function SessionView() {
         </div>
         
         <div className="flex items-center gap-2">
-          {validation ? (
-            <>
-              <Checkbox
-                id={`verify-${fieldName}`}
-                checked={validation.validationStatus === 'valid'}
-                onCheckedChange={(checked) => handleVerificationToggle(fieldName, checked === true)}
-              />
-              <Label htmlFor={`verify-${fieldName}`} className="text-sm">
-                {validation.validationStatus === 'valid' ? 'Verified' : 'Unverified'}
-              </Label>
-            </>
-          ) : (
-            <div className="text-xs text-gray-400">No validation data</div>
-          )}
+          <ValidationIcon 
+            fieldName={fieldName}
+            validation={validation}
+            onToggle={(isVerified) => handleVerificationToggle(fieldName, isVerified)}
+          />
         </div>
       </div>
     );
