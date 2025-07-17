@@ -880,6 +880,10 @@ EXTRACTION REQUIREMENTS:
 - Do NOT return descriptive text, references, or instructions as date values
 - TEXT fields should contain actual text from the document
 - NUMBER fields should contain actual numeric values from the document
+- For COUNTRY fields: Infer country from address information when available:
+  * U.S. state abbreviations (CA, NY, TX, etc.) or ZIP codes indicate "USA"
+  * Full country names in addresses should be extracted as-is
+  * City, State format typically indicates USA
 - If you cannot find actual data for a field, return null (do not make up data)
 
 FORBIDDEN RESPONSES:

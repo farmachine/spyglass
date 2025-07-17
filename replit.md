@@ -17,6 +17,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ Created ValidationToggle component to handle click functionality while using proper ValidationIcon for display
 - ✓ Enhanced AI extraction prompt to prevent sample data generation and enforce real content extraction
 - ✓ Added debugging to detect when AI returns placeholder data instead of actual document content
+- ✓ **KNOWLEDGE DOCUMENT CONFLICT DETECTION FIXED**: Fixed critical issue where knowledge documents had no content
+- ✓ Added sample content to knowledge document with U.S. jurisdiction requirements for testing conflict detection
+- ✓ Enhanced AI extraction prompt to better infer country from address formats (state abbreviations, ZIP codes)
+- ✓ Improved country extraction logic to recognize U.S. addresses and properly extract "USA" values
 - ✓ **HEADER CONSISTENCY AND ALIGNMENT**: Fixed header layout across dashboard and project pages
 - ✓ Project page header now matches dashboard exactly with project name instead of "Extractly"
 - ✓ Resolved left alignment issues by removing max-width centering constraints
