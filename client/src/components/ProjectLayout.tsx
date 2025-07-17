@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLocation } from "wouter";
 import { useProject } from "@/hooks/useProjects";
+import { useAuth } from "@/contexts/AuthContext";
 import NewUpload from "./NewUpload";
 import AllData from "./AllData";
 import KnowledgeRules from "./KnowledgeRules";
@@ -23,6 +24,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<ActiveTab>("upload");
   const { data: project, isLoading, error } = useProject(projectId);
+  const { user } = useAuth();
 
   // Read URL parameters and handle welcome flow
   useEffect(() => {
@@ -36,9 +38,13 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       (project.schemaFields && project.schemaFields.length > 0) ||
       (project.collections && project.collections.length > 0);
     
-    // For new projects, always start with 'define' tab
+    // For new projects, admins start with 'define' tab, users with 'upload'
     if (!isSetupComplete) {
-      setActiveTab('define');
+      if (user?.role === 'admin') {
+        setActiveTab('define');
+      } else {
+        setActiveTab('upload');
+      }
       return;
     }
     
@@ -51,13 +57,13 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
           setActiveTab('data');
           break;
         case 'knowledge':
-          setActiveTab('knowledge');
+          if (canAccessConfigTabs) setActiveTab('knowledge');
           break;
         case 'define':
-          setActiveTab('define');
+          if (canAccessConfigTabs) setActiveTab('define');
           break;
         case 'publishing':
-          setActiveTab('publishing');
+          if (canAccessConfigTabs) setActiveTab('publishing');
           break;
         default:
           setActiveTab('upload');
@@ -139,12 +145,18 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
     (project.schemaFields && project.schemaFields.length > 0) ||
     (project.collections && project.collections.length > 0);
 
+  // Check user role for access control
+  const isAdmin = user?.role === 'admin';
+  const canAccessConfigTabs = isAdmin;
+
   const navItems = [
     { id: "upload" as const, label: `New ${project.mainObjectName || "Session"}`, icon: Upload, disabled: !isSetupComplete },
     { id: "data" as const, label: `All ${project.mainObjectName || "Session"} Data`, icon: Database, disabled: !isSetupComplete },
-    { id: "knowledge" as const, label: "Knowledge/Rules", icon: Brain, disabled: !isSetupComplete },
-    { id: "define" as const, label: "Define Data", icon: Settings, disabled: false },
-    { id: "publishing" as const, label: "Publishing", icon: FolderOpen, disabled: false },
+    ...(canAccessConfigTabs ? [
+      { id: "knowledge" as const, label: "Knowledge/Rules", icon: Brain, disabled: !isSetupComplete },
+      { id: "define" as const, label: "Define Data", icon: Settings, disabled: false },
+      { id: "publishing" as const, label: "Publishing", icon: FolderOpen, disabled: false },
+    ] : []),
   ];
 
   const renderActiveContent = () => {
