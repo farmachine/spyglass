@@ -3,6 +3,7 @@ import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download } from "lucide-react";
+import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import * as XLSX from 'xlsx';
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -963,7 +964,7 @@ Thank you for your assistance.`;
                   size="sm"
                   className="flex items-center gap-2"
                 >
-                  <Download className="h-4 w-4" />
+                  <WaveIcon className="h-4 w-4" />
                   Export
                 </Button>
               </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, Upload, Database, Brain, Settings, FolderOpen } from "lucide-react";
+import { WaveIcon, FlowIcon, StreamIcon, TideIcon, ShipIcon, DropletIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -153,14 +154,14 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const canAccessPublishing = isPrimaryOrgAdmin;
 
   const navItems = [
-    { id: "upload" as const, label: `New ${project.mainObjectName || "Session"}`, icon: Upload, disabled: !isSetupComplete },
-    { id: "data" as const, label: `All ${project.mainObjectName || "Session"}s`, icon: Database, disabled: !isSetupComplete },
+    { id: "upload" as const, label: `New ${project.mainObjectName || "Session"}`, icon: DropletIcon, disabled: !isSetupComplete },
+    { id: "data" as const, label: `All ${project.mainObjectName || "Session"}s`, icon: FlowIcon, disabled: !isSetupComplete },
     ...(canAccessConfigTabs ? [
-      { id: "knowledge" as const, label: "Knowledge/Rules", icon: Brain, disabled: !isSetupComplete },
-      { id: "define" as const, label: "Define Data", icon: Settings, disabled: false },
+      { id: "knowledge" as const, label: "Knowledge/Rules", icon: TideIcon, disabled: !isSetupComplete },
+      { id: "define" as const, label: "Define Data", icon: StreamIcon, disabled: false },
     ] : []),
     ...(canAccessPublishing ? [
-      { id: "publishing" as const, label: "Publishing", icon: FolderOpen, disabled: false },
+      { id: "publishing" as const, label: "Publishing", icon: ShipIcon, disabled: false },
     ] : []),
   ];
 
@@ -190,7 +191,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                 <FlowCaptureLogo showText={false} />
                 <Breadcrumb 
                   items={[
-                    { label: project.name, icon: <FolderOpen className="h-4 w-4" /> }
+                    { label: project.name, icon: <ShipIcon className="h-4 w-4" /> }
                   ]} 
                 />
               </div>

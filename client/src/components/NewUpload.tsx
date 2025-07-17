@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Upload, X, FileText, AlertCircle, Play, CheckCircle, Clock } from "lucide-react";
+import { WaveIcon, DropletIcon, FlowIcon, StreamIcon } from "@/components/SeaIcons";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -355,11 +356,11 @@ export default function NewUpload({ project }: NewUploadProps) {
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
               >
-                <Upload className="h-8 w-8 text-gray-400 mx-auto mb-4" />
+                <DropletIcon className="h-8 w-8 text-primary mx-auto mb-4" />
                 <div>
                   <p className="text-lg font-medium text-gray-900">
                     Drop files here, or{" "}
-                    <label className="text-blue-600 hover:text-blue-500 cursor-pointer">
+                    <label className="text-primary hover:text-primary/80 cursor-pointer">
                       browse
                       <input
                         type="file"
@@ -507,7 +508,7 @@ export default function NewUpload({ project }: NewUploadProps) {
                       </>
                     ) : (
                       <>
-                        <Play className="h-4 w-4 mr-2" />
+                        <FlowIcon className="h-4 w-4 mr-2" />
                         Start Extraction
                       </>
                     )}
