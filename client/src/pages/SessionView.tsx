@@ -212,10 +212,29 @@ export default function SessionView() {
   const handleSave = async (fieldName: string) => {
     const validation = getValidation(fieldName);
     if (validation) {
+      // For date fields, ensure we store a proper date format or null
+      let valueToStore = editValue;
+      const fieldType = getFieldType(fieldName);
+      
+      if (fieldType === 'DATE') {
+        if (!editValue || editValue.trim() === '') {
+          valueToStore = null;
+        } else {
+          // Validate the date format
+          const dateObj = new Date(editValue);
+          if (!isNaN(dateObj.getTime())) {
+            // Store as ISO date string for consistency
+            valueToStore = dateObj.toISOString().split('T')[0];
+          } else {
+            valueToStore = null;
+          }
+        }
+      }
+      
       await updateValidationMutation.mutateAsync({
         id: validation.id,
         data: {
-          extractedValue: editValue,
+          extractedValue: valueToStore,
           validationStatus: "manual",
           manuallyVerified: true
         }
@@ -263,7 +282,7 @@ export default function SessionView() {
 
 
   const formatDateForDisplay = (value: any) => {
-    if (!value || value === 'null' || value === 'undefined') {
+    if (!value || value === 'null' || value === 'undefined' || value === null) {
       return 'Not set';
     }
     
@@ -278,10 +297,11 @@ export default function SessionView() {
         });
       }
     } catch (error) {
-      // If parsing fails, return the original value
+      // If parsing fails, return "Not set" for invalid dates
+      return 'Not set';
     }
     
-    return String(value);
+    return 'Not set';
   };
 
   const getFieldDisplayName = (fieldName: string) => {
@@ -492,7 +512,12 @@ export default function SessionView() {
               
               // Show field if it has a value OR if there's a validation for it
               if (value !== undefined || validation) {
-                return renderFieldWithValidation(field.fieldName, value ?? validation?.extractedValue ?? null);
+                // Use validation's extractedValue, but normalize "null" strings to actual null
+                let displayValue = value ?? validation?.extractedValue ?? null;
+                if (displayValue === "null" || displayValue === "undefined") {
+                  displayValue = null;
+                }
+                return renderFieldWithValidation(field.fieldName, displayValue);
               }
               return null;
             })}
@@ -534,7 +559,12 @@ export default function SessionView() {
                           
                           // Show property if it has a value OR if there's a validation for it
                           if (value !== undefined || validation) {
-                            return renderFieldWithValidation(fieldName, value ?? validation?.extractedValue ?? null);
+                            // Use validation's extractedValue, but normalize "null" strings to actual null
+                            let displayValue = value ?? validation?.extractedValue ?? null;
+                            if (displayValue === "null" || displayValue === "undefined") {
+                              displayValue = null;
+                            }
+                            return renderFieldWithValidation(fieldName, displayValue);
                           }
                           return null;
                         })}
