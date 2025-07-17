@@ -304,6 +304,15 @@ def check_knowledge_document_conflicts(field_name: str, extracted_value: Any, kn
     conflicting_sections = []
     extracted_str = str(extracted_value).lower().strip()
     
+    # Normalize common country/jurisdiction variations
+    country_variations = {
+        'usa': ['united states', 'u.s.', 'us', 'america', 'u.s. jurisdiction'],
+        'united states': ['usa', 'u.s.', 'us', 'america', 'u.s. jurisdiction'],
+        'u.s.': ['usa', 'united states', 'us', 'america', 'u.s. jurisdiction'],
+        'us': ['usa', 'united states', 'u.s.', 'america', 'u.s. jurisdiction'],
+        'america': ['usa', 'united states', 'u.s.', 'us', 'u.s. jurisdiction']
+    }
+    
     # Search through knowledge documents for potential conflicts
     for doc in knowledge_documents:
         doc_name = doc.get('displayName', doc.get('fileName', 'Unknown Document'))
@@ -312,19 +321,31 @@ def check_knowledge_document_conflicts(field_name: str, extracted_value: Any, kn
         if isinstance(content, str) and content.strip():
             content_lower = content.lower()
             
-            # Simple keyword-based conflict detection
-            # Look for the field name and different values in the same context
-            if field_name.lower() in content_lower:
-                # Split content into sentences for section identification
-                sentences = content.split('.')
-                for i, sentence in enumerate(sentences):
-                    sentence_lower = sentence.lower().strip()
-                    if field_name.lower() in sentence_lower:
-                        # Check if the sentence contains a different value
-                        words_in_sentence = sentence_lower.split()
-                        if extracted_str not in sentence_lower and any(word.isdigit() or len(word) > 3 for word in words_in_sentence):
+            # Enhanced conflict detection for different field types
+            # Split content into sentences for section identification
+            sentences = content.split('.')
+            for i, sentence in enumerate(sentences):
+                sentence_lower = sentence.lower().strip()
+                
+                # Country/Jurisdiction specific conflict detection
+                if 'country' in field_name.lower():
+                    # Check for U.S./USA variations in extracted value
+                    if extracted_str in country_variations:
+                        # Look for any mention of U.S. jurisdiction requirements
+                        jurisdiction_keywords = ['u.s. jurisdiction', 'jurisdiction', 'governing law', 'legal review', 'state law']
+                        if any(keyword in sentence_lower for keyword in jurisdiction_keywords):
+                            # U.S. jurisdiction requirements create a conflict flag for review
+                            # This indicates special review requirements for U.S. entities
                             section = f"{doc_name}, Section {i+1}: \"{sentence.strip()}\""
                             conflicting_sections.append(section)
+                
+                # General field-based conflict detection for other fields
+                elif field_name.lower() in sentence_lower:
+                    # Check if the sentence contains a different value
+                    words_in_sentence = sentence_lower.split()
+                    if extracted_str not in sentence_lower and any(word.isdigit() or len(word) > 3 for word in words_in_sentence):
+                        section = f"{doc_name}, Section {i+1}: \"{sentence.strip()}\""
+                        conflicting_sections.append(section)
     
     return len(conflicting_sections) > 0, conflicting_sections
 

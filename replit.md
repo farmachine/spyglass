@@ -11,6 +11,11 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 17, 2025**
+- ✓ **KNOWLEDGE DOCUMENT CONFLICT DETECTION**: Implemented comprehensive conflict detection system with automatic 50% confidence assignment
+- ✓ Added sophisticated field-specific conflict analysis that identifies discrepancies between extracted data and knowledge documents
+- ✓ Enhanced jurisdiction-specific conflict detection for U.S./USA/United States variations against legal review requirements
+- ✓ Integrated conflict detection into complete AI extraction pipeline with document section referencing in AI reasoning
+- ✓ System now analyzes extracted data against uploaded knowledge documents and flags potential conflicts for manual review
 - ✓ **COMPLETE UUID MIGRATION**: Successfully migrated entire application from auto-incrementing integers to ISO UUIDs
 - ✓ Updated database schema to use UUID primary keys for all tables (organizations, users, projects, etc.)
 - ✓ Migrated PostgreSQL storage layer to handle string UUIDs instead of integer parsing operations
