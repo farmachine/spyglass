@@ -1220,11 +1220,20 @@ class PostgreSQLStorage implements IStorage {
   }
 
   async getProject(id: number, organizationId?: number): Promise<Project | undefined> {
-    const query = this.db.select().from(projects).where(eq(projects.id, id));
+    let result;
     if (organizationId) {
-      query.where(eq(projects.organizationId, organizationId));
+      result = await this.db
+        .select()
+        .from(projects)
+        .where(and(eq(projects.id, id), eq(projects.organizationId, organizationId)))
+        .limit(1);
+    } else {
+      result = await this.db
+        .select()
+        .from(projects)
+        .where(eq(projects.id, id))
+        .limit(1);
     }
-    const result = await query.limit(1);
     return result[0];
   }
 
@@ -1260,18 +1269,34 @@ class PostgreSQLStorage implements IStorage {
   }
 
   async updateProject(id: number, project: Partial<InsertProject>, organizationId?: number): Promise<Project | undefined> {
-    const result = await this.db
-      .update(projects)
-      .set(project)
-      .where(eq(projects.id, id))
-      .returning();
+    let result;
+    if (organizationId) {
+      result = await this.db
+        .update(projects)
+        .set(project)
+        .where(and(eq(projects.id, id), eq(projects.organizationId, organizationId)))
+        .returning();
+    } else {
+      result = await this.db
+        .update(projects)
+        .set(project)
+        .where(eq(projects.id, id))
+        .returning();
+    }
     return result[0];
   }
 
   async deleteProject(id: number, organizationId?: number): Promise<boolean> {
-    const result = await this.db
-      .delete(projects)
-      .where(eq(projects.id, id));
+    let result;
+    if (organizationId) {
+      result = await this.db
+        .delete(projects)
+        .where(and(eq(projects.id, id), eq(projects.organizationId, organizationId)));
+    } else {
+      result = await this.db
+        .delete(projects)
+        .where(eq(projects.id, id));
+    }
     return result.rowCount > 0;
   }
 
