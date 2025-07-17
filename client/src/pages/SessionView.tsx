@@ -645,7 +645,22 @@ export default function SessionView() {
             }
             
             const currentValue = validation.extractedValue;
-            const wasManuallyUpdated = originalValue !== currentValue && originalValue !== undefined;
+            
+            // Handle type mismatches for comparison (e.g., boolean true vs string "true")
+            const normalizeValue = (val: any) => {
+              if (val === null || val === undefined || val === "null" || val === "undefined") return null;
+              if (typeof val === 'boolean') return val;
+              if (typeof val === 'string') {
+                const lower = val.toLowerCase();
+                if (lower === 'true') return true;
+                if (lower === 'false') return false;
+              }
+              return val;
+            };
+            
+            const normalizedOriginal = normalizeValue(originalValue);
+            const normalizedCurrent = normalizeValue(currentValue);
+            const wasManuallyUpdated = normalizedOriginal !== normalizedCurrent && originalValue !== undefined;
             
             // Check if field was extracted (has confidence score > 0)
             const wasExtracted = validation.confidenceScore > 0;
