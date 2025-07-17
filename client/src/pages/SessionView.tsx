@@ -386,18 +386,7 @@ MISSING OR UNVERIFIED INFORMATION:
       }
       
       if (validation.aiReasoning) {
-        const cleanReasoning = validation.aiReasoning
-          .replace(/Our policy states that.*?\./g, '')
-          .replace(/- Can you.*?\n/g, '')
-          .replace(/- Are there.*?\n/g, '')
-          .replace(/- Should we.*?\n/g, '')
-          .replace(/- Does this.*?\n/g, '')
-          .replace(/- Is this.*?\n/g, '')
-          .trim();
-        
-        if (cleanReasoning) {
-          report += `\n   Notes: ${cleanReasoning}`;
-        }
+        report += `\n   Notes: ${validation.aiReasoning}`;
       }
       
       report += '\n';
