@@ -251,7 +251,8 @@ def extract_data_from_document(
             project_schema, 
             extracted_data, 
             result_data.get("confidence_score", 0.0),
-            extraction_rules
+            extraction_rules,
+            file_name
         )
         
         return ExtractionResult(
@@ -609,7 +610,7 @@ def create_demo_extraction_result(project_schema: Dict[str, Any], file_name: str
             extracted_data[collection_name] = collection_data
     
     # Generate demo field validations
-    field_validations = generate_field_validations(project_schema, extracted_data, 0.85, extraction_rules)
+    field_validations = generate_field_validations(project_schema, extracted_data, 0.85, extraction_rules, file_name)
     
     return ExtractionResult(
         extracted_data=extracted_data,
@@ -740,7 +741,8 @@ def generate_field_validations(
     project_schema: Dict[str, Any], 
     extracted_data: Dict[str, Any], 
     overall_confidence: float,
-    extraction_rules: List[Dict[str, Any]] = None
+    extraction_rules: List[Dict[str, Any]] = None,
+    document_name: str = ""
 ) -> List[FieldValidationResult]:
     """Generate field validation results based on extracted data"""
     
@@ -766,7 +768,7 @@ def generate_field_validations(
             validation = create_field_validation(
                 field_id, field_name, field_type, extracted_value, overall_confidence, 
                 extraction_rules=extraction_rules,
-                document_source="Document Name",  # This would come from the actual document
+                document_source=document_name,
                 document_sections=document_sections
             )
             validations.append(validation)
@@ -795,7 +797,7 @@ def generate_field_validations(
                             prop_id, field_name_with_index, prop_type, extracted_value, overall_confidence,
                             is_collection=True, collection_name=collection_name, record_index=record_index,
                             extraction_rules=extraction_rules,
-                            document_source="Document Name",
+                            document_source=document_name,
                             document_sections=document_sections
                         )
                         validations.append(validation)
