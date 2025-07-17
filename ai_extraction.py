@@ -316,61 +316,57 @@ def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, 
         for rule in extraction_rules:
             rule_name = rule.get("ruleName", "")
             target_field = rule.get("targetField", "")
-            condition_field = rule.get("conditionField", "")
-            condition_operator = rule.get("conditionOperator", "")
-            condition_value = rule.get("conditionValue", "")
-            action_type = rule.get("actionType", "")
-            action_value = rule.get("actionValue", "")
+            rule_content = rule.get("ruleContent", "")
+            is_active = rule.get("isActive", True)
             
-            logging.info(f"Checking rule: {rule_name} - Target: {target_field}, Condition: {condition_field} {condition_operator} {condition_value}")
+            logging.info(f"Checking rule: {rule_name} - Target: {target_field}, Active: {is_active}")
+            logging.info(f"Rule content: {rule_content}")
             
+            # Skip inactive rules
+            if not is_active:
+                continue
+                
             # Check if this rule applies to the current field
-            if target_field == field_name:
-                # Check if the condition is met
-                condition_met = False
+            # Handle multiple target fields separated by commas
+            target_fields = [f.strip() for f in target_field.split(',')]
+            field_matches = any(
+                field_name == target.strip() or 
+                field_name.startswith(target.strip()) for target in target_fields
+            )
+            
+            if field_matches:
+                logging.info(f"Rule '{rule_name}' matches field '{field_name}'")
                 
-                if condition_operator == "contains":
-                    if isinstance(extracted_value, str) and condition_value.lower() in extracted_value.lower():
-                        condition_met = True
-                elif condition_operator == "equals":
-                    if str(extracted_value).lower() == condition_value.lower():
-                        condition_met = True
-                elif condition_operator == "starts_with":
-                    if isinstance(extracted_value, str) and extracted_value.lower().startswith(condition_value.lower()):
-                        condition_met = True
-                elif condition_operator == "ends_with":
-                    if isinstance(extracted_value, str) and extracted_value.lower().endswith(condition_value.lower()):
-                        condition_met = True
-                elif condition_operator == "greater_than":
-                    try:
-                        if float(extracted_value) > float(condition_value):
-                            condition_met = True
-                    except (ValueError, TypeError):
-                        pass
-                elif condition_operator == "less_than":
-                    try:
-                        if float(extracted_value) < float(condition_value):
-                            condition_met = True
-                    except (ValueError, TypeError):
-                        pass
+                # Parse rule content for specific patterns
+                rule_content_lower = rule_content.lower()
                 
-                logging.info(f"Rule condition met: {condition_met}")
+                # Check for Inc. confidence rule
+                if "inc" in rule_content_lower and "confidence" in rule_content_lower and "50%" in rule_content_lower:
+                    if isinstance(extracted_value, str) and "inc" in extracted_value.lower():
+                        confidence_percentage = 50
+                        logging.info(f"Applied rule '{rule_name}': Set confidence to 50% because value contains 'Inc'")
+                        continue
                 
-                if condition_met:
-                    # Apply the action
-                    if action_type == "set_confidence":
+                # Check for other confidence-related rules
+                if "confidence" in rule_content_lower:
+                    import re
+                    # Look for percentage patterns in rule content
+                    percentage_match = re.search(r'(\d+)%', rule_content)
+                    if percentage_match:
                         try:
-                            confidence_percentage = int(action_value)
+                            confidence_percentage = int(percentage_match.group(1))
                             logging.info(f"Applied rule '{rule_name}': Set confidence to {confidence_percentage}%")
+                            continue
                         except (ValueError, TypeError):
-                            logging.warning(f"Invalid confidence value in rule '{rule_name}': {action_value}")
-                    elif action_type == "adjust_confidence":
-                        try:
-                            adjustment = int(action_value)
-                            confidence_percentage = max(0, min(100, confidence_percentage + adjustment))
-                            logging.info(f"Applied rule '{rule_name}': Adjusted confidence by {adjustment}% to {confidence_percentage}%")
-                        except (ValueError, TypeError):
-                            logging.warning(f"Invalid confidence adjustment in rule '{rule_name}': {action_value}")
+                            logging.warning(f"Could not parse confidence percentage from rule '{rule_name}'")
+                
+                # Check for capitalization rules
+                if "capitalize" in rule_content_lower or "capital" in rule_content_lower:
+                    logging.info(f"Rule '{rule_name}' is a capitalization rule - this affects data formatting, not confidence")
+                    # Capitalization rules don't affect confidence, they affect data formatting
+                    continue
+                
+                logging.info(f"Rule '{rule_name}' processed but no specific action taken")
     
     # Apply field-specific adjustments if no rules were applied
     if not extraction_rules or not any(rule.get("targetField") == field_name for rule in extraction_rules):
