@@ -240,15 +240,18 @@ def extract_data_from_document(
                 logging.error(f"Even after cleanup, JSON parsing failed: {e2}")
                 raise e
         
+        # Normalize extracted data - convert string "null" to actual None
+        extracted_data = normalize_extracted_values(result_data.get("extracted_data", {}))
+        
         # Generate field validations for the extracted data
         field_validations = generate_field_validations(
             project_schema, 
-            result_data.get("extracted_data", {}), 
+            extracted_data, 
             result_data.get("confidence_score", 0.0)
         )
         
         return ExtractionResult(
-            extracted_data=result_data.get("extracted_data", {}),
+            extracted_data=extracted_data,
             confidence_score=result_data.get("confidence_score", 0.0),
             processing_notes=result_data.get("processing_notes", ""),
             field_validations=field_validations
@@ -266,6 +269,20 @@ def extract_data_from_document(
         # Fallback to demo data when extraction fails
         logging.info("Using demo data fallback due to extraction error")
         return create_demo_extraction_result(project_schema, file_name)
+
+def normalize_extracted_values(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize extracted values - convert string 'null' to actual None"""
+    def normalize_value(value):
+        if value == "null" or value == "undefined" or value == "":
+            return None
+        elif isinstance(value, list):
+            return [normalize_value(item) for item in value]
+        elif isinstance(value, dict):
+            return {k: normalize_value(v) for k, v in value.items()}
+        else:
+            return value
+    
+    return {k: normalize_value(v) for k, v in data.items()}
 
 def create_demo_extraction_result(project_schema: Dict[str, Any], file_name: str) -> ExtractionResult:
     """Create demo extraction result when API key is not available"""
