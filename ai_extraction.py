@@ -353,19 +353,9 @@ def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, 
                         })
                         logging.info(f"Applied rule '{rule_name}': Set confidence to 50% because value contains 'Inc'")
                         continue
-                
-                # Check for other confidence-related rules
-                if "confidence" in rule_content_lower:
-                    import re
-                    # Look for percentage patterns in rule content
-                    percentage_match = re.search(r'(\d+)%', rule_content)
-                    if percentage_match:
-                        try:
-                            confidence_percentage = int(percentage_match.group(1))
-                            logging.info(f"Applied rule '{rule_name}': Set confidence to {confidence_percentage}%")
-                            continue
-                        except (ValueError, TypeError):
-                            logging.warning(f"Could not parse confidence percentage from rule '{rule_name}'")
+                    else:
+                        logging.info(f"Inc. rule '{rule_name}' not applied - value '{extracted_value}' does not contain 'Inc'")
+                        continue
                 
                 # Check for capitalization rules
                 if "capitalize" in rule_content_lower or "capital" in rule_content_lower:
@@ -694,10 +684,16 @@ def build_extraction_prompt(
         for field in project_schema["schema_fields"]:
             field_name = field['fieldName']
             field_type = field['fieldType']
+            field_description = field.get('description', '')
+            
             if field_type == "DATE":
                 prompt += f"- {field_name}: Extract actual date in YYYY-MM-DD format only. If no specific date found, return null.\n"
             else:
-                prompt += f"- {field_name} ({field_type})\n"
+                prompt += f"- {field_name} ({field_type})"
+                if field_description:
+                    prompt += f" - {field_description}\n"
+                else:
+                    prompt += "\n"
     
     # Add collections with type-specific instructions
     if project_schema.get("collections"):
@@ -708,10 +704,16 @@ def build_extraction_prompt(
             for prop in collection.get("properties", []):
                 prop_name = prop['propertyName']
                 prop_type = prop['propertyType']
+                prop_description = prop.get('description', '')
+                
                 if prop_type == "DATE":
                     prompt += f"  * {prop_name}: Extract actual date in YYYY-MM-DD format only. If no date found, return null.\n"
                 else:
-                    prompt += f"  * {prop_name} ({prop_type})\n"
+                    prompt += f"  * {prop_name} ({prop_type})"
+                    if prop_description:
+                        prompt += f" - {prop_description}\n"
+                    else:
+                        prompt += "\n"
     
     prompt += f"""
 
