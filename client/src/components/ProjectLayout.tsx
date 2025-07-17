@@ -147,7 +147,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
 
   // Check user role for access control
   const isAdmin = user?.role === 'admin';
-  const isPrimaryOrgAdmin = isAdmin && user?.organization?.name === 'Internal';
+  const isPrimaryOrgAdmin = isAdmin && user?.organization?.type === 'primary';
   const canAccessConfigTabs = isAdmin;
   const canAccessPublishing = isPrimaryOrgAdmin;
 
