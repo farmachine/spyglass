@@ -42,7 +42,8 @@ def extract_data_from_document(
     file_name: str,
     mime_type: str,
     project_schema: Dict[str, Any],
-    extraction_rules: List[Dict[str, Any]] = None
+    extraction_rules: List[Dict[str, Any]] = None,
+    knowledge_documents: List[Dict[str, Any]] = None
 ) -> ExtractionResult:
     """
     Extract structured data from a document using Gemini AI
@@ -252,7 +253,8 @@ def extract_data_from_document(
             extracted_data, 
             result_data.get("confidence_score", 0.0),
             extraction_rules,
-            file_name
+            file_name,
+            knowledge_documents
         )
         
         return ExtractionResult(
@@ -289,11 +291,49 @@ def normalize_extracted_values(data: Dict[str, Any]) -> Dict[str, Any]:
     
     return {k: normalize_value(v) for k, v in data.items()}
 
-def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, base_confidence: float, extraction_rules: List[Dict[str, Any]] = None) -> tuple[int, list]:
+def check_knowledge_document_conflicts(field_name: str, extracted_value: Any, knowledge_documents: List[Dict[str, Any]] = None) -> tuple[bool, List[str]]:
+    """
+    Check for conflicts between extracted value and knowledge documents.
+    
+    Returns:
+        Tuple of (has_conflict, conflicting_document_sections)
+    """
+    if not knowledge_documents or not extracted_value:
+        return False, []
+    
+    conflicting_sections = []
+    extracted_str = str(extracted_value).lower().strip()
+    
+    # Search through knowledge documents for potential conflicts
+    for doc in knowledge_documents:
+        doc_name = doc.get('displayName', doc.get('fileName', 'Unknown Document'))
+        content = doc.get('content', '')
+        
+        if isinstance(content, str) and content.strip():
+            content_lower = content.lower()
+            
+            # Simple keyword-based conflict detection
+            # Look for the field name and different values in the same context
+            if field_name.lower() in content_lower:
+                # Split content into sentences for section identification
+                sentences = content.split('.')
+                for i, sentence in enumerate(sentences):
+                    sentence_lower = sentence.lower().strip()
+                    if field_name.lower() in sentence_lower:
+                        # Check if the sentence contains a different value
+                        words_in_sentence = sentence_lower.split()
+                        if extracted_str not in sentence_lower and any(word.isdigit() or len(word) > 3 for word in words_in_sentence):
+                            section = f"{doc_name}, Section {i+1}: \"{sentence.strip()}\""
+                            conflicting_sections.append(section)
+    
+    return len(conflicting_sections) > 0, conflicting_sections
+
+def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, base_confidence: float, extraction_rules: List[Dict[str, Any]] = None, knowledge_documents: List[Dict[str, Any]] = None) -> tuple[int, list]:
     """
     Calculate confidence percentage based on knowledge base and rules compliance.
     
     Core Logic:
+    - If knowledge document conflicts exist → Set confidence to 50%
     - If no rules/knowledge apply to a field AND value is extracted → Show 100% confidence
     - If rules/knowledge apply → Calculate confidence based on compliance level (1-100%)
     
@@ -302,12 +342,21 @@ def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, 
         extracted_value: The extracted value
         base_confidence: Base AI confidence from extraction
         extraction_rules: List of extraction rules to apply
+        knowledge_documents: List of knowledge documents to check for conflicts
     
     Returns:
         Tuple of (confidence_percentage, applied_rules_list)
     """
     if extracted_value is None or extracted_value == "" or extracted_value == "null":
         return 0, []
+    
+    # Check for knowledge document conflicts first
+    has_conflict, conflicting_sections = check_knowledge_document_conflicts(field_name, extracted_value, knowledge_documents)
+    if has_conflict:
+        return 50, [{
+            'name': 'Knowledge Document Conflict',
+            'action': f"Set confidence to 50% due to conflicts found in knowledge documents: {'; '.join(conflicting_sections[:2])}"
+        }]
     
     # Base confidence calculation
     confidence_percentage = int(base_confidence * 100)
@@ -742,7 +791,8 @@ def generate_field_validations(
     extracted_data: Dict[str, Any], 
     overall_confidence: float,
     extraction_rules: List[Dict[str, Any]] = None,
-    document_name: str = ""
+    document_name: str = "",
+    knowledge_documents: List[Dict[str, Any]] = None
 ) -> List[FieldValidationResult]:
     """Generate field validation results based on extracted data"""
     
@@ -771,7 +821,8 @@ def generate_field_validations(
                 extraction_rules=extraction_rules,
                 document_source=document_name,
                 document_sections=document_sections,
-                auto_verification_confidence=auto_verification_confidence
+                auto_verification_confidence=auto_verification_confidence,
+                knowledge_documents=knowledge_documents
             )
             validations.append(validation)
     
@@ -802,7 +853,8 @@ def generate_field_validations(
                             extraction_rules=extraction_rules,
                             document_source=document_name,
                             document_sections=document_sections,
-                            auto_verification_confidence=auto_verification_confidence
+                            auto_verification_confidence=auto_verification_confidence,
+                            knowledge_documents=knowledge_documents
                         )
                         validations.append(validation)
     
@@ -820,7 +872,8 @@ def create_field_validation(
     extraction_rules: List[Dict[str, Any]] = None,
     document_source: str = "",
     document_sections: List[str] = None,
-    auto_verification_confidence: int = 80
+    auto_verification_confidence: int = 80,
+    knowledge_documents: List[Dict[str, Any]] = None
 ) -> FieldValidationResult:
     """Create a field validation result with detailed AI reasoning and knowledge-based confidence"""
     
@@ -841,7 +894,7 @@ def create_field_validation(
             try:
                 float(str(extracted_value))
                 validation_status = "valid"
-                confidence_score, applied_rules = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence, extraction_rules)
+                confidence_score, applied_rules = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence, extraction_rules, knowledge_documents)
                 ai_reasoning = generate_detailed_reasoning(
                     field_name, field_type, extracted_value, validation_status, "", confidence_score, applied_rules, document_source, document_sections
                 )
@@ -858,7 +911,7 @@ def create_field_validation(
                 import re
                 if re.match(r'\d{4}-\d{2}-\d{2}', extracted_value):
                     validation_status = "valid"
-                    confidence_score, applied_rules = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence, extraction_rules)
+                    confidence_score, applied_rules = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence, extraction_rules, knowledge_documents)
                 else:
                     validation_status = "invalid"
                     confidence_score = 0
@@ -874,7 +927,7 @@ def create_field_validation(
         elif field_type == "BOOLEAN":
             if isinstance(extracted_value, bool) or str(extracted_value).lower() in ['true', 'false', 'yes', 'no']:
                 validation_status = "valid"
-                confidence_score, applied_rules = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence, extraction_rules)
+                confidence_score, applied_rules = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence, extraction_rules, knowledge_documents)
             else:
                 validation_status = "invalid"
                 confidence_score = 0
@@ -886,7 +939,7 @@ def create_field_validation(
         else:  # TEXT
             if isinstance(extracted_value, str) and len(extracted_value.strip()) > 0:
                 validation_status = "valid"
-                confidence_score, applied_rules = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence, extraction_rules)
+                confidence_score, applied_rules = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence, extraction_rules, knowledge_documents)
             else:
                 validation_status = "invalid"
                 confidence_score = 0
@@ -951,6 +1004,7 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
     files = session_data.get("files", [])
     project_schema = session_data.get("project_schema", {})
     extraction_rules = session_data.get("extraction_rules", [])
+    knowledge_documents = session_data.get("knowledge_documents", [])
     
     logging.info(f"Files to process: {len(files)}")
     logging.info(f"Project schema: {project_schema}")
@@ -1006,7 +1060,8 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
                     file_name=file_name,
                     mime_type=mime_type,
                     project_schema=project_schema,
-                    extraction_rules=extraction_rules
+                    extraction_rules=extraction_rules,
+                    knowledge_documents=knowledge_documents
                 )
                 logging.info(f"extract_data_from_document returned, type: {type(extraction_result)}")
                 logging.info(f"Extraction completed for {file_name}, confidence: {extraction_result.confidence_score}")

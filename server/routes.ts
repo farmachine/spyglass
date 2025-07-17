@@ -879,6 +879,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Use the imported spawn function
       
+      // Get knowledge documents for the project
+      const projectId = project_data?.projectId;
+      const knowledgeDocuments = projectId ? await storage.getKnowledgeDocuments(projectId) : [];
+      
       // Prepare data for Python script
       const extractionData = {
         session_id: sessionId,
@@ -887,7 +891,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           schema_fields: project_data?.schemaFields || [],
           collections: project_data?.collections || []
         },
-        extraction_rules: project_data?.extractionRules || []
+        extraction_rules: project_data?.extractionRules || [],
+        knowledge_documents: knowledgeDocuments || []
       };
       
       console.log('Extraction data being sent to Python:', JSON.stringify(extractionData, null, 2).substring(0, 1000) + '...');
