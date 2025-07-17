@@ -843,9 +843,16 @@ Thank you for your assistance.`;
           <div className="max-w-4xl mx-auto">
             {/* Session Header */}
             <div className="flex items-center justify-between mb-8">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">{project?.mainObjectName || "Session"}</h2>
-                <p className="text-gray-600">Review and verify extracted {(project?.mainObjectName || "session").toLowerCase()} data</p>
+              <div className="flex items-center gap-4">
+                <Link href={`/projects/${projectId}?tab=all-data`}>
+                  <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                </Link>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">{session?.sessionName}</h2>
+                  <p className="text-gray-600">Review and verify extracted {(project?.mainObjectName || "session").toLowerCase()} data</p>
+                </div>
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-3">
