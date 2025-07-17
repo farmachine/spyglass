@@ -626,13 +626,13 @@ export default function SessionView() {
           </CardHeader>
           <CardContent className="space-y-4">
             {project.schemaFields.map((field) => {
-              const value = extractedData[field.fieldName];
+              const originalValue = extractedData[field.fieldName];
               const validation = validations.find(v => v.fieldName === field.fieldName);
               
               // Show field if it has a value OR if there's a validation for it
-              if (value !== undefined || validation) {
-                // Use validation's extractedValue, but normalize "null" strings to actual null
-                let displayValue = value ?? validation?.extractedValue ?? null;
+              if (originalValue !== undefined || validation) {
+                // Use validation's extractedValue (which includes manual edits), not the original extracted value
+                let displayValue = validation?.extractedValue ?? originalValue ?? null;
                 if (displayValue === "null" || displayValue === "undefined") {
                   displayValue = null;
                 }
@@ -672,14 +672,14 @@ export default function SessionView() {
                       <h4 className="font-medium mb-4">Item {index + 1}</h4>
                       <div className="space-y-4">
                         {collection.properties.map((property) => {
-                          const value = item[property.propertyName];
+                          const originalValue = item[property.propertyName];
                           const fieldName = `${collection.collectionName}.${property.propertyName}[${index}]`;
                           const validation = validations.find(v => v.fieldName === fieldName);
                           
                           // Show property if it has a value OR if there's a validation for it
-                          if (value !== undefined || validation) {
-                            // Use validation's extractedValue, but normalize "null" strings to actual null
-                            let displayValue = value ?? validation?.extractedValue ?? null;
+                          if (originalValue !== undefined || validation) {
+                            // Use validation's extractedValue (which includes manual edits), not the original extracted value
+                            let displayValue = validation?.extractedValue ?? originalValue ?? null;
                             if (displayValue === "null" || displayValue === "undefined") {
                               displayValue = null;
                             }
