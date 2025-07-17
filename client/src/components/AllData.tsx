@@ -1,5 +1,5 @@
-import React from "react";
-import { Database, CheckCircle, Clock, ExternalLink, Calendar, AlertCircle } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import { Database, CheckCircle, Clock, ExternalLink, Calendar, AlertCircle, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,13 @@ interface AllDataProps {
   project: ProjectWithDetails;
 }
 
+type SortField = 'sessionName' | 'documentCount' | 'progress' | 'status' | 'createdAt';
+type SortDirection = 'asc' | 'desc';
+
 export default function AllData({ project }: AllDataProps) {
+  const [sortField, setSortField] = useState<SortField>('createdAt');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
   const formatDate = (date: Date | string) => {
     return new Date(date).toLocaleDateString('en-US', {
       month: 'short',
@@ -21,6 +27,15 @@ export default function AllData({ project }: AllDataProps) {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
   };
 
   // Fetch validation data for all sessions
@@ -73,6 +88,78 @@ export default function AllData({ project }: AllDataProps) {
   };
 
   const verificationStats = getVerificationStats();
+
+  // Sortable column header component
+  const SortableHeader = ({ field, children, className = "py-3" }: { 
+    field: SortField; 
+    children: React.ReactNode; 
+    className?: string;
+  }) => {
+    const isSorted = sortField === field;
+    const isAsc = isSorted && sortDirection === 'asc';
+    const isDesc = isSorted && sortDirection === 'desc';
+
+    return (
+      <TableHead 
+        className={`${className} cursor-pointer hover:bg-gray-50 select-none`}
+        onClick={() => handleSort(field)}
+      >
+        <div className="flex items-center gap-1">
+          {children}
+          {isSorted ? (
+            isAsc ? (
+              <ChevronUp className="h-4 w-4 text-blue-600" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-blue-600" />
+            )
+          ) : (
+            <ChevronsUpDown className="h-4 w-4 text-gray-400" />
+          )}
+        </div>
+      </TableHead>
+    );
+  };
+
+  // Sorted sessions using useMemo for performance
+  const sortedSessions = useMemo(() => {
+    const sessions = [...project.sessions];
+    
+    return sessions.sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortField) {
+        case 'sessionName':
+          aValue = a.sessionName.toLowerCase();
+          bValue = b.sessionName.toLowerCase();
+          break;
+        case 'documentCount':
+          aValue = a.documentCount;
+          bValue = b.documentCount;
+          break;
+        case 'progress':
+          aValue = getSessionProgress(a.id).percentage;
+          bValue = getSessionProgress(b.id).percentage;
+          break;
+        case 'status':
+          const statusOrder = { 'verified': 3, 'in_progress': 2, 'pending': 1 };
+          aValue = statusOrder[getVerificationStatus(a.id)];
+          bValue = statusOrder[getVerificationStatus(b.id)];
+          break;
+        case 'createdAt':
+          aValue = new Date(a.createdAt).getTime();
+          bValue = new Date(b.createdAt).getTime();
+          break;
+        default:
+          return 0;
+      }
+      
+      if (sortDirection === 'asc') {
+        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+      } else {
+        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+      }
+    });
+  }, [project.sessions, sortField, sortDirection, allValidations]);
 
   // Get verification progress for a session
   const getSessionProgress = (sessionId: number) => {
@@ -157,16 +244,16 @@ export default function AllData({ project }: AllDataProps) {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="py-3">Session Name</TableHead>
-                    <TableHead className="py-3 w-24">Docs</TableHead>
-                    <TableHead className="py-3 w-32">Progress</TableHead>
-                    <TableHead className="py-3 w-32">Status</TableHead>
-                    <TableHead className="py-3 w-32">Created</TableHead>
+                    <SortableHeader field="sessionName">Session Name</SortableHeader>
+                    <SortableHeader field="documentCount" className="py-3 w-24">Docs</SortableHeader>
+                    <SortableHeader field="progress" className="py-3 w-32">Progress</SortableHeader>
+                    <SortableHeader field="status" className="py-3 w-32">Status</SortableHeader>
+                    <SortableHeader field="createdAt" className="py-3 w-32">Created</SortableHeader>
                     <TableHead className="py-3 w-20">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                {project.sessions.map((session) => {
+                {sortedSessions.map((session) => {
                   const progress = getSessionProgress(session.id);
                   const verificationStatus = getVerificationStatus(session.id);
                   
