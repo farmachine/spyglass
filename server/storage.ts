@@ -1444,6 +1444,90 @@ class PostgreSQLStorage implements IStorage {
     return result.rowCount > 0;
   }
 
+  async duplicateProject(id: string, newName: string, organizationId?: string): Promise<Project | undefined> {
+    // First, get the original project
+    const originalProject = await this.getProject(id, organizationId);
+    if (!originalProject) return undefined;
+
+    // Generate new UUID for the duplicated project
+    const { v4: uuidv4 } = await import('uuid');
+    const newProjectId = uuidv4();
+
+    // Create new project with the same data but different name and ID
+    const duplicatedProject: InsertProject = {
+      id: newProjectId,
+      name: newName,
+      description: originalProject.description,
+      mainObjectName: originalProject.mainObjectName,
+      organizationId: originalProject.organizationId,
+      isInitialSetupComplete: originalProject.isInitialSetupComplete,
+    };
+
+    const createdProject = await this.createProject(duplicatedProject);
+
+    // Duplicate schema fields
+    const originalSchemaFields = await this.getProjectSchemaFields(id);
+    for (const field of originalSchemaFields) {
+      const duplicatedField: InsertProjectSchemaField = {
+        id: uuidv4(),
+        name: field.name,
+        fieldType: field.fieldType,
+        description: field.description,
+        isRequired: field.isRequired,
+        orderIndex: field.orderIndex,
+        projectId: newProjectId,
+      };
+      await this.createProjectSchemaField(duplicatedField);
+    }
+
+    // Duplicate collections and their properties
+    const originalCollections = await this.getObjectCollections(id);
+    for (const collection of originalCollections) {
+      const newCollectionId = uuidv4();
+      const duplicatedCollection: InsertObjectCollection = {
+        id: newCollectionId,
+        name: collection.name,
+        description: collection.description,
+        projectId: newProjectId,
+        orderIndex: collection.orderIndex,
+      };
+      await this.createObjectCollection(duplicatedCollection);
+
+      // Duplicate collection properties
+      for (const property of collection.properties) {
+        const duplicatedProperty: InsertCollectionProperty = {
+          id: uuidv4(),
+          name: property.name,
+          fieldType: property.fieldType,
+          description: property.description,
+          isRequired: property.isRequired,
+          orderIndex: property.orderIndex,
+          collectionId: newCollectionId,
+        };
+        await this.createCollectionProperty(duplicatedProperty);
+      }
+    }
+
+    // Duplicate extraction rules
+    const originalRules = await this.getExtractionRules(id);
+    for (const rule of originalRules) {
+      const duplicatedRule: InsertExtractionRule = {
+        id: uuidv4(),
+        projectId: newProjectId,
+        title: rule.title,
+        description: rule.description,
+        targetFields: rule.targetFields,
+        ruleText: rule.ruleText,
+      };
+      await this.createExtractionRule(duplicatedRule);
+    }
+
+    // Note: We don't duplicate sessions, knowledge documents, or validations
+    // as these are typically instance-specific data
+
+    return createdProject;
+  }
+
   // Project Schema Fields
   async getProjectSchemaFields(projectId: string): Promise<ProjectSchemaField[]> {
     const result = await this.db
@@ -1474,7 +1558,7 @@ class PostgreSQLStorage implements IStorage {
   }
 
   // Object Collections
-  async getObjectCollections(projectId: number): Promise<(ObjectCollection & { properties: CollectionProperty[] })[]> {
+  async getObjectCollections(projectId: string): Promise<(ObjectCollection & { properties: CollectionProperty[] })[]> {
     const collections = await this.db
       .select()
       .from(objectCollections)
