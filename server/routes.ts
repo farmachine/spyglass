@@ -880,8 +880,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use the imported spawn function
       
       // Get knowledge documents for the project
-      const projectId = project_data?.projectId;
+      const projectId = project_data?.projectId || project_data?.id;
       console.log('DEBUG: Getting knowledge documents for project:', projectId);
+      console.log('DEBUG: project_data keys:', Object.keys(project_data || {}));
       const knowledgeDocuments = projectId ? await storage.getKnowledgeDocuments(projectId) : [];
       console.log('DEBUG: Retrieved knowledge documents:', knowledgeDocuments.length);
       if (knowledgeDocuments.length > 0) {
