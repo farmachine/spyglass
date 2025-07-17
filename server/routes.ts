@@ -881,7 +881,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get knowledge documents for the project
       const projectId = project_data?.projectId;
+      console.log('DEBUG: Getting knowledge documents for project:', projectId);
       const knowledgeDocuments = projectId ? await storage.getKnowledgeDocuments(projectId) : [];
+      console.log('DEBUG: Retrieved knowledge documents:', knowledgeDocuments.length);
+      if (knowledgeDocuments.length > 0) {
+        console.log('DEBUG: First doc details:', {
+          displayName: knowledgeDocuments[0].displayName,
+          hasContent: !!knowledgeDocuments[0].content,
+          contentLength: knowledgeDocuments[0].content ? knowledgeDocuments[0].content.length : 0
+        });
+      }
       
       // Prepare data for Python script
       const extractionData = {
@@ -895,6 +904,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         knowledge_documents: knowledgeDocuments || []
       };
       
+      console.log('DEBUG: Knowledge documents before sending to Python:', extractionData.knowledge_documents.length);
       console.log('Extraction data being sent to Python:', JSON.stringify(extractionData, null, 2).substring(0, 1000) + '...');
       console.log('Extraction rules specifically:', JSON.stringify(extractionData.extraction_rules, null, 2));
       console.log('Knowledge documents specifically:', JSON.stringify(extractionData.knowledge_documents, null, 2));
