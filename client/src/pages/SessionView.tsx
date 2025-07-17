@@ -169,6 +169,8 @@ export default function SessionView() {
 
   // Get validation for a specific field
   const getValidation = (fieldName: string) => {
+    console.log('Looking for validation for field:', fieldName);
+    console.log('Available validations:', validations.map(v => ({ fieldName: v.fieldName, status: v.validationStatus })));
     return validations.find(v => v.fieldName === fieldName);
   };
 
