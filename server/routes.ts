@@ -897,6 +897,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('Extraction data being sent to Python:', JSON.stringify(extractionData, null, 2).substring(0, 1000) + '...');
       console.log('Extraction rules specifically:', JSON.stringify(extractionData.extraction_rules, null, 2));
+      console.log('Knowledge documents specifically:', JSON.stringify(extractionData.knowledge_documents, null, 2));
       
       // Call Python extraction script
       const python = spawn('python3', ['-c', `
