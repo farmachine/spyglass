@@ -1,8 +1,9 @@
-import { Calendar, Settings, Trash2, Copy } from "lucide-react";
+import { Calendar, Settings, Trash2, Copy, Building, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -29,9 +30,10 @@ import {
 } from "@/components/ui/dialog";
 import { useLocation } from "wouter";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useDeleteProject, useDuplicateProject } from "@/hooks/useProjects";
 import { useToast } from "@/hooks/use-toast";
-import type { Project } from "@shared/schema";
+import type { Project, Organization } from "@shared/schema";
 
 interface ProjectCardProps {
   project: Project;
@@ -45,6 +47,11 @@ export default function ProjectCard({ project }: ProjectCardProps) {
   const deleteProject = useDeleteProject();
   const duplicateProject = useDuplicateProject();
   const { toast } = useToast();
+
+  // Fetch published organizations for this project
+  const { data: publishedOrganizations = [] } = useQuery({
+    queryKey: ["/api/projects", project.id, "publishing"],
+  });
 
   const handleDelete = async () => {
     // Prevent double-clicks by disabling the delete dialog immediately
@@ -152,19 +159,43 @@ export default function ProjectCard({ project }: ProjectCardProps) {
             Created {formatDate(project.createdAt)}
           </div>
           
-          <div className="mt-4 flex justify-between text-sm">
-            <div className="text-center">
-              <div className="font-medium text-gray-900">0</div>
-              <div className="text-gray-500">Sessions</div>
+          <div className="mt-4">
+            <div className="flex items-center justify-between text-sm">
+              <div className="text-center">
+                <div className="font-medium text-gray-900">0</div>
+                <div className="text-gray-500">Sessions</div>
+              </div>
+              <div className="flex items-center gap-1 text-gray-500">
+                <Building className="h-4 w-4" />
+                <span className="text-xs">Published to</span>
+              </div>
             </div>
-            <div className="text-center">
-              <div className="font-medium text-gray-900">0</div>
-              <div className="text-gray-500">Collections</div>
-            </div>
-            <div className="text-center">
-              <div className="font-medium text-gray-900">0</div>
-              <div className="text-gray-500">Fields</div>
-            </div>
+            
+            {publishedOrganizations.length > 0 ? (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {publishedOrganizations.slice(0, 3).map((org: Organization) => (
+                  <Badge 
+                    key={org.id} 
+                    variant="secondary" 
+                    className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 border-blue-200"
+                  >
+                    {org.name}
+                  </Badge>
+                ))}
+                {publishedOrganizations.length > 3 && (
+                  <Badge 
+                    variant="secondary" 
+                    className="text-xs px-2 py-0.5 bg-gray-50 text-gray-600 border-gray-200"
+                  >
+                    +{publishedOrganizations.length - 3} more
+                  </Badge>
+                )}
+              </div>
+            ) : (
+              <div className="mt-2 text-xs text-gray-400 italic">
+                Not published to any organizations
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
