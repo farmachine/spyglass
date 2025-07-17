@@ -1470,10 +1470,10 @@ class PostgreSQLStorage implements IStorage {
     for (const field of originalSchemaFields) {
       const duplicatedField: InsertProjectSchemaField = {
         id: uuidv4(),
-        name: field.name,
+        fieldName: field.fieldName,
         fieldType: field.fieldType,
         description: field.description,
-        isRequired: field.isRequired,
+        autoVerificationConfidence: field.autoVerificationConfidence,
         orderIndex: field.orderIndex,
         projectId: newProjectId,
       };
@@ -1486,7 +1486,7 @@ class PostgreSQLStorage implements IStorage {
       const newCollectionId = uuidv4();
       const duplicatedCollection: InsertObjectCollection = {
         id: newCollectionId,
-        name: collection.name,
+        collectionName: collection.collectionName,
         description: collection.description,
         projectId: newProjectId,
         orderIndex: collection.orderIndex,
@@ -1497,10 +1497,10 @@ class PostgreSQLStorage implements IStorage {
       for (const property of collection.properties) {
         const duplicatedProperty: InsertCollectionProperty = {
           id: uuidv4(),
-          name: property.name,
-          fieldType: property.fieldType,
+          propertyName: property.propertyName,
+          propertyType: property.propertyType,
           description: property.description,
-          isRequired: property.isRequired,
+          autoVerificationConfidence: property.autoVerificationConfidence,
           orderIndex: property.orderIndex,
           collectionId: newCollectionId,
         };
@@ -1514,10 +1514,10 @@ class PostgreSQLStorage implements IStorage {
       const duplicatedRule: InsertExtractionRule = {
         id: uuidv4(),
         projectId: newProjectId,
-        title: rule.title,
-        description: rule.description,
-        targetFields: rule.targetFields,
-        ruleText: rule.ruleText,
+        ruleName: rule.ruleName,
+        targetField: rule.targetField,
+        ruleContent: rule.ruleContent,
+        isActive: rule.isActive,
       };
       await this.createExtractionRule(duplicatedRule);
     }
@@ -1697,7 +1697,7 @@ class PostgreSQLStorage implements IStorage {
   }
 
   // Extraction Rules
-  async getExtractionRules(projectId: number): Promise<ExtractionRule[]> {
+  async getExtractionRules(projectId: string): Promise<ExtractionRule[]> {
     const result = await this.db
       .select()
       .from(extractionRules)
