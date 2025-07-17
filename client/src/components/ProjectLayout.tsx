@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Upload, Database, Brain, Settings, FolderOpen } from "lucide-react";
+import { ArrowLeft, Upload, Database, Brain, Settings, FolderOpen, Home as HomeIcon } from "lucide-react";
 import { WaveIcon, FlowIcon, StreamIcon, TideIcon, ShipIcon, DropletIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -186,28 +186,16 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex flex-col space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <ExtractlyLogo showText={false} />
-                <Breadcrumb 
-                  items={[
-                    { label: project.name, icon: <ShipIcon className="h-4 w-4" /> }
-                  ]} 
-                />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <ExtractlyLogo showText={false} />
+              <div className="flex items-center space-x-2 text-2xl font-semibold text-gray-900">
+                <HomeIcon className="h-6 w-6 text-gray-400" />
+                <span className="text-gray-400">/</span>
+                <span>{project.name}</span>
               </div>
-              <UserProfile />
             </div>
-            <div>
-              <h1 className="text-2xl font-semibold text-gray-900">
-                {project.name}
-              </h1>
-              {project.description && (
-                <p className="text-sm text-gray-600 mt-1">
-                  {project.description}
-                </p>
-              )}
-            </div>
+            <UserProfile />
           </div>
         </div>
       </div>
