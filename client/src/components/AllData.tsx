@@ -274,17 +274,17 @@ export default function AllData({ project }: AllDataProps) {
                       </TableCell>
                       <TableCell className="py-3">
                         <div className="flex items-center gap-2">
-                          <div className="w-16 bg-gray-200 rounded-full h-2">
+                          <div className="w-20 bg-gray-200 rounded-full h-2.5">
                             <div 
-                              className={`h-2 rounded-full ${
+                              className={`h-2.5 rounded-full transition-all duration-300 ${
                                 progress.percentage === 100 ? 'bg-green-600' : 
                                 progress.percentage > 0 ? 'bg-blue-600' : 'bg-gray-400'
                               }`}
                               style={{ width: `${progress.percentage}%` }}
                             />
                           </div>
-                          <span className="text-xs text-gray-600 min-w-[40px]">
-                            {progress.verified}/{progress.total}
+                          <span className="text-xs font-medium text-gray-700 min-w-[32px]">
+                            {progress.percentage}%
                           </span>
                         </div>
                       </TableCell>
