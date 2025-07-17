@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download } from "lucide-react";
+import * as XLSX from 'xlsx';
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -406,6 +407,87 @@ Please review the above items and provide the missing information or confirm the
 Thank you for your assistance.`;
 
     return report;
+  };
+
+  const handleExportToExcel = () => {
+    if (!session) return;
+
+    const workbook = XLSX.utils.book_new();
+    
+    // Separate schema fields and collection validations
+    const schemaFieldValidations = validations.filter(v => !v.fieldName.includes('.'));
+    const collectionValidations = validations.filter(v => v.fieldName.includes('.'));
+    
+    // Group collection validations by collection name
+    const collectionGroups: Record<string, FieldValidation[]> = {};
+    collectionValidations.forEach(validation => {
+      const collectionName = validation.fieldName.split('.')[0];
+      if (!collectionGroups[collectionName]) {
+        collectionGroups[collectionName] = [];
+      }
+      collectionGroups[collectionName].push(validation);
+    });
+    
+    // Sheet 1: Main Object Info (Schema Fields)
+    const mainObjectData = schemaFieldValidations.map(validation => [
+      validation.fieldName,
+      validation.extractedValue || ''
+    ]);
+    
+    const mainObjectSheet = XLSX.utils.aoa_to_sheet([
+      ['Property Name', 'Property Value'],
+      ...mainObjectData
+    ]);
+    
+    XLSX.utils.book_append_sheet(workbook, mainObjectSheet, project.mainObjectName || 'Main Object');
+
+    // Sheets 2+: Collection Data
+    Object.entries(collectionGroups).forEach(([collectionName, collectionValidations]) => {
+      // Group validations by record index to create rows
+      const recordGroups: Record<number, FieldValidation[]> = {};
+      
+      collectionValidations.forEach(validation => {
+        const recordIndex = validation.recordIndex || 0;
+        if (!recordGroups[recordIndex]) recordGroups[recordIndex] = [];
+        recordGroups[recordIndex].push(validation);
+      });
+
+      // Get unique property names for columns
+      const propertyNames = [...new Set(collectionValidations.map(v => 
+        v.fieldName.split('.')[1]?.replace(/\[\d+\]$/, '') || v.fieldName
+      ))].sort();
+
+      // Create header row
+      const headers = propertyNames;
+      
+      // Create data rows
+      const dataRows = Object.keys(recordGroups)
+        .sort((a, b) => parseInt(a) - parseInt(b))
+        .map(recordIndex => {
+          const recordValidations = recordGroups[parseInt(recordIndex)];
+          return propertyNames.map(propertyName => {
+            const validation = recordValidations.find(v => 
+              v.fieldName.includes(`.${propertyName}`)
+            );
+            return validation?.extractedValue || '';
+          });
+        });
+
+      // Create worksheet
+      const collectionSheet = XLSX.utils.aoa_to_sheet([
+        headers,
+        ...dataRows
+      ]);
+
+      XLSX.utils.book_append_sheet(workbook, collectionSheet, collectionName);
+    });
+
+    // Generate filename with session name and timestamp
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `${session.sessionName.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.xlsx`;
+
+    // Export the file
+    XLSX.writeFile(workbook, filename);
   };
 
   const handleEdit = (fieldName: string, currentValue: any) => {
@@ -868,6 +950,15 @@ Thank you for your assistance.`;
                     {getSessionStatus() === 'verified' ? 'Verified' : 'In Progress'}
                   </Badge>
                 </div>
+                <Button
+                  onClick={handleExportToExcel}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Export to Excel
+                </Button>
                 <Button onClick={() => setShowReasoningDialog(true)} variant="outline" size="sm">
                   <AlertCircle className="h-4 w-4 mr-2" />
                   Data Report
