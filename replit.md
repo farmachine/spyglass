@@ -1,8 +1,8 @@
-# Extracly - AI-Powered Document Data Extraction Platform
+# Extractly - AI-Powered Document Data Extraction Platform
 
 ## Overview
 
-Extracly is a comprehensive AI-powered document data extraction platform built with React, Express, and TypeScript. The application intelligently processes complex legal and business documents with enhanced conflict detection and collaborative workspace capabilities. Users can configure extraction schemas, upload documents, and review extracted data with sophisticated AI-driven analysis and knowledge-based validation.
+Extractly is a comprehensive AI-powered document data extraction platform built with React, Express, and TypeScript. The application intelligently processes complex legal and business documents with enhanced conflict detection and collaborative workspace capabilities. Users can configure extraction schemas, upload documents, and review extracted data with sophisticated AI-driven analysis and knowledge-based validation.
 
 ## User Preferences
 
@@ -11,8 +11,8 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 17, 2025**
-- ✓ **EXTRACLY REBRANDING**: Complete application rebrand from "Flow Capture" to "Extracly"
-- ✓ Created professional Extracly logo with wave-like design and data extraction visualization elements
+- ✓ **EXTRACTLY REBRANDING**: Complete application rebrand from "Flow Capture" to "Extractly"
+- ✓ Created professional Extractly logo with surfboard-like design and streamlined data flow visualization
 - ✓ Logo acts as clickable home button throughout the application interface
 - ✓ Updated all page headers (Dashboard, ProjectLayout, Login) with new branding
 - ✓ Enhanced HTML meta tags with SEO-optimized title and descriptions for Flow Capture
