@@ -929,7 +929,7 @@ Thank you for your assistance.`;
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 p-8 overflow-hidden">
+        <div className="flex-1 p-8 overflow-x-hidden">
           <div className="max-w-4xl mx-auto w-full">
             {/* Session Header */}
             <div className="flex items-center justify-between mb-8">
