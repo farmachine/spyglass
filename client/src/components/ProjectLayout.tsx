@@ -191,7 +191,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
               <ExtractlyLogo showText={false} />
               <div className="flex items-center space-x-2 text-2xl font-semibold text-gray-900">
                 <HomeIcon className="h-6 w-6 text-gray-400" />
-                <span className="text-gray-400">/</span>
+                <span className="text-gray-400">&gt;</span>
                 <span>{project.name}</span>
               </div>
             </div>
