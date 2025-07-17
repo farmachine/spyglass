@@ -167,7 +167,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
               </div>
               
               <div className="flex flex-col items-end">
-                <div className="flex items-center gap-1 text-gray-500 mb-2 mr-2">
+                <div className="flex items-center gap-1 text-gray-500 mb-2 mr-6">
                   <Building className="h-4 w-4" />
                   <span className="text-xs">Published to</span>
                 </div>
