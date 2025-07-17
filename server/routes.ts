@@ -892,7 +892,7 @@ except Exception as e:
       
       python.stderr.on('data', (data: any) => {
         const errorText = data.toString();
-        console.log('Python stderr:', errorText);
+        console.log('Python stderr (debugging):', errorText);
         error += errorText;
       });
       

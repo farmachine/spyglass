@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import base64
+import sys
 from typing import Dict, List, Any, Optional
 
 from google import genai
@@ -907,7 +908,7 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     logging.info("=== PYTHON SCRIPT IS BEING EXECUTED ===")
     logging.info("=== CHECKING IF UPDATES ARE LOADED ===")
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO, stream=sys.stderr)
     logging.info(f"Processing extraction session: {session_data.get('session_id')}")
     
     results = {
