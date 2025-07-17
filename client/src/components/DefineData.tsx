@@ -87,7 +87,7 @@ export default function DefineData({ project }: DefineDataProps) {
   const updateProject = useUpdateProject();
 
   const fieldTypeColors = {
-    TEXT: "bg-blue-100 text-blue-800",
+    TEXT: "bg-primary/10 text-primary",
     NUMBER: "bg-green-100 text-green-800",
     DATE: "bg-purple-100 text-purple-800",
     BOOLEAN: "bg-orange-100 text-orange-800",
@@ -300,7 +300,7 @@ export default function DefineData({ project }: DefineDataProps) {
     <div>
       {/* Welcome Message for New Projects */}
       {isNewProject && (
-        <div className="mb-8 p-6 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="mb-8 p-6 bg-primary/5 border border-primary/20 rounded-lg">
           <div className="flex items-start gap-4">
             <Lightbulb className="h-6 w-6 text-blue-600 mt-0.5" />
             <div>

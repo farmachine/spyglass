@@ -137,7 +137,7 @@ export default function CollectionDialog({
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="bg-blue-600 hover:bg-blue-700"
+                className=""
               >
                 {isLoading ? "Saving..." : collection ? "Update Collection" : "Create Collection"}
               </Button>

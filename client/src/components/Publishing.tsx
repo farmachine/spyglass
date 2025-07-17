@@ -139,7 +139,7 @@ export default function Publishing({ project }: PublishingProps) {
               <Button 
                 onClick={handlePublish}
                 disabled={!selectedOrganizationId || publishMutation.isPending}
-                className="bg-blue-600 hover:bg-blue-700"
+                className=""
               >
                 {publishMutation.isPending ? "Publishing..." : "Publish"}
               </Button>

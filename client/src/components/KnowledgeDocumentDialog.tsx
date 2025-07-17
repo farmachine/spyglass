@@ -187,7 +187,7 @@ export default function KnowledgeDocumentDialog({
                 <div
                   className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                     dragActive 
-                      ? "border-blue-500 bg-blue-50" 
+                      ? "border-primary bg-primary/5" 
                       : "border-gray-300 hover:border-gray-400"
                   }`}
                   onDragEnter={handleDrag}

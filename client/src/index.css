@@ -63,7 +63,7 @@
   }
 
   html {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   }
 
   body {
@@ -96,5 +96,37 @@
   
   .border-success {
     border-color: hsl(var(--success));
+  }
+}
+
+/* Custom button styles to ensure sea-blue color */
+@layer components {
+  .btn-primary {
+    background-color: hsl(199, 89%, 48%); /* #0EA5E9 - Sea Blue */
+    color: white;
+    border: none;
+  }
+  
+  .btn-primary:hover {
+    background-color: hsl(199, 89%, 42%); /* Darker sea blue on hover */
+  }
+  
+  .btn-primary:focus {
+    ring-color: hsl(199, 89%, 48%);
+  }
+}
+
+/* Override any existing button classes to use sea blue */
+@layer base {
+  button[class*="bg-blue"],
+  .bg-blue-600,
+  .bg-blue-700 {
+    background-color: hsl(199, 89%, 48%) !important;
+  }
+  
+  button[class*="bg-blue"]:hover,
+  .bg-blue-600:hover,
+  .bg-blue-700:hover {
+    background-color: hsl(199, 89%, 42%) !important;
   }
 }

@@ -121,7 +121,7 @@ export default function CreateProjectDialog({ open, onOpenChange }: CreateProjec
               <Button
                 type="submit"
                 disabled={createProject.isPending}
-                className="bg-blue-600 hover:bg-blue-700"
+                className=""
               >
                 {createProject.isPending ? "Creating..." : "Create Project"}
               </Button>

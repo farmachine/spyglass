@@ -202,7 +202,7 @@ export default function PropertyDialog({
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="bg-blue-600 hover:bg-blue-700"
+                className=""
               >
                 {isLoading ? "Saving..." : property ? "Update Property" : "Add Property"}
               </Button>

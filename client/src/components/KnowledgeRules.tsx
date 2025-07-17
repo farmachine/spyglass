@@ -143,7 +143,7 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
                     setEditingDocument(null);
                     setKnowledgeDialogOpen(true);
                   }}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className=""
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Document
