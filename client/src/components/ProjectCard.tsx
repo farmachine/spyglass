@@ -117,7 +117,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
 
   return (
     <>
-      <Card className="bg-primary text-white hover:shadow-md transition-shadow cursor-pointer group border-primary">
+      <Card className="bg-primary text-white hover:shadow-md transition-shadow cursor-pointer group border-primary relative overflow-hidden">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="flex-1" onClick={() => setLocation(`/projects/${project.id}`)}>
@@ -210,6 +210,9 @@ export default function ProjectCard({ project }: ProjectCardProps) {
             </div>
           </div>
         </CardContent>
+        
+        {/* Fade to white gradient overlay at the bottom */}
+        <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white/30 to-transparent pointer-events-none" />
       </Card>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
