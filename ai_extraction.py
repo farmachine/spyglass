@@ -201,6 +201,12 @@ def extract_data_from_document(
         raw_response = response_text.strip()
         logging.info(f"Raw AI response (first 1000 chars): {raw_response[:1000]}")
         
+        # Check if response contains sample data (indicating AI didn't extract real content)
+        if "sample" in raw_response.lower() or "example" in raw_response.lower():
+            logging.error("!!! AI RETURNED SAMPLE/PLACEHOLDER DATA INSTEAD OF REAL EXTRACTION !!!")
+            logging.error(f"!!! Response contains sample data: {raw_response[:500]} !!!")
+            logging.error("!!! This indicates the AI model is not properly processing the PDF content !!!")
+        
         # Try multiple approaches to clean the JSON
         cleaned_response = raw_response
         
@@ -861,19 +867,31 @@ def build_extraction_prompt(
     
     prompt += f"""
 
-CRITICAL INSTRUCTIONS:
+CRITICAL INSTRUCTIONS - READ THE DOCUMENT CAREFULLY:
+⚠️ IMPORTANT: You MUST extract REAL data from the actual document content provided.
+⚠️ DO NOT generate sample, placeholder, or example data.
+⚠️ DO NOT use words like "Sample", "Example", or generic placeholder text.
+
+EXTRACTION REQUIREMENTS:
+- Read and analyze the entire document content
+- Extract ONLY actual data that appears in the document
 - For DATE fields: Extract ONLY actual dates in YYYY-MM-DD format (e.g., "2024-07-18")
 - If you see text like "Last date of signature below" or "TBD" or similar - return null for that field
 - Do NOT return descriptive text, references, or instructions as date values
-- TEXT fields can contain any text content
-- NUMBER fields should contain numeric values only
-- Return null for any field you cannot extract actual data for
+- TEXT fields should contain actual text from the document
+- NUMBER fields should contain actual numeric values from the document
+- If you cannot find actual data for a field, return null (do not make up data)
+
+FORBIDDEN RESPONSES:
+❌ Do NOT return: "Sample company name", "Sample address", "Example data", etc.
+❌ Do NOT return: Generic placeholders or made-up information
+✅ DO return: Actual company names, addresses, dates, and data from the document
 
 Return valid JSON:
 {{
   "extracted_data": {{...}},
   "confidence_score": 0.95,
-  "processing_notes": "Brief extraction notes"
+  "processing_notes": "Brief extraction notes about what was found"
 }}
 
 Return only valid JSON without any additional text, comments, or formatting."""

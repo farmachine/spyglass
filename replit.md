@@ -11,6 +11,12 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 17, 2025**
+- ✓ **VALIDATION COLOR SCHEME RESTORED**: Fixed validation status display with proper green/red colors
+- ✓ Removed conflicting ValidationIcon component from SessionView that was overriding proper component
+- ✓ Validation toggles now show green checkmarks for "Verified" and red triangles for "Unverified"
+- ✓ Created ValidationToggle component to handle click functionality while using proper ValidationIcon for display
+- ✓ Enhanced AI extraction prompt to prevent sample data generation and enforce real content extraction
+- ✓ Added debugging to detect when AI returns placeholder data instead of actual document content
 - ✓ **HEADER CONSISTENCY AND ALIGNMENT**: Fixed header layout across dashboard and project pages
 - ✓ Project page header now matches dashboard exactly with project name instead of "Extractly"
 - ✓ Resolved left alignment issues by removing max-width centering constraints
