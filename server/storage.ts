@@ -63,7 +63,7 @@ export interface IStorage {
   updateUserPassword(userId: string, newPasswordHash: string, isTemporary: boolean): Promise<User | undefined>;
 
   // Projects (organization-filtered)
-  getProjects(organizationId?: string): Promise<Project[]>;
+  getProjects(organizationId?: string, userRole?: string): Promise<Project[]>;
   getProject(id: string, organizationId?: string): Promise<Project | undefined>;
   getProjectWithDetails(id: string, organizationId?: string): Promise<ProjectWithDetails | undefined>;
   createProject(project: InsertProject): Promise<Project>;
@@ -651,7 +651,7 @@ export class MemStorage implements IStorage {
   }
 
   // Projects (with organization filtering)
-  async getProjects(organizationId?: number): Promise<Project[]> {
+  async getProjects(organizationId?: number, userRole?: string): Promise<Project[]> {
     let projects = Array.from(this.projects.values());
     
     if (organizationId) {
@@ -1311,37 +1311,59 @@ class PostgreSQLStorage implements IStorage {
   }
 
   // For now, implement minimal project methods to prevent errors
-  async getProjects(organizationId?: string): Promise<Project[]> {
+  async getProjects(organizationId?: string, userRole?: string): Promise<Project[]> {
     if (organizationId) {
-      // Include projects owned by organization OR published to the organization
-      const result = await this.db
-        .select({
-          id: projects.id,
-          name: projects.name,
-          description: projects.description,
-          organizationId: projects.organizationId,
-          mainObjectName: projects.mainObjectName,
-          isInitialSetupComplete: projects.isInitialSetupComplete,
-          createdAt: projects.createdAt
-        })
-        .from(projects)
-        .leftJoin(projectPublishing, eq(projectPublishing.projectId, projects.id))
-        .where(
-          or(
-            eq(projects.organizationId, organizationId),
-            eq(projectPublishing.organizationId, organizationId)
-          )
-        );
+      // Get organization details to check if it's primary
+      const organization = await this.getOrganization(organizationId);
       
-      // Remove duplicates that might occur from the join
-      const uniqueProjects = result.reduce((acc, project) => {
-        if (!acc.find(p => p.id === project.id)) {
-          acc.push(project);
-        }
-        return acc;
-      }, [] as Project[]);
-      
-      return uniqueProjects;
+      if (organization?.type === 'primary' && userRole === 'user') {
+        // For regular users in primary organizations, only show published projects
+        const result = await this.db
+          .select({
+            id: projects.id,
+            name: projects.name,
+            description: projects.description,
+            organizationId: projects.organizationId,
+            mainObjectName: projects.mainObjectName,
+            isInitialSetupComplete: projects.isInitialSetupComplete,
+            createdAt: projects.createdAt
+          })
+          .from(projects)
+          .innerJoin(projectPublishing, eq(projectPublishing.projectId, projects.id))
+          .where(eq(projectPublishing.organizationId, organizationId));
+        
+        return result;
+      } else {
+        // For admins or users in non-primary organizations: owned OR published projects
+        const result = await this.db
+          .select({
+            id: projects.id,
+            name: projects.name,
+            description: projects.description,
+            organizationId: projects.organizationId,
+            mainObjectName: projects.mainObjectName,
+            isInitialSetupComplete: projects.isInitialSetupComplete,
+            createdAt: projects.createdAt
+          })
+          .from(projects)
+          .leftJoin(projectPublishing, eq(projectPublishing.projectId, projects.id))
+          .where(
+            or(
+              eq(projects.organizationId, organizationId),
+              eq(projectPublishing.organizationId, organizationId)
+            )
+          );
+        
+        // Remove duplicates that might occur from the join
+        const uniqueProjects = result.reduce((acc, project) => {
+          if (!acc.find(p => p.id === project.id)) {
+            acc.push(project);
+          }
+          return acc;
+        }, [] as Project[]);
+        
+        return uniqueProjects;
+      }
     } else {
       return await this.db.select().from(projects);
     }
