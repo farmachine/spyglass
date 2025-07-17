@@ -486,6 +486,27 @@ def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, 
     # Ensure confidence is within bounds
     return max(1, min(100, confidence_percentage)), applied_rules
 
+def format_field_display_name(field_name: str) -> str:
+    """Convert technical field names to user-friendly display names"""
+    # Handle collection property names like "Parties.Country[1]"
+    if "." in field_name and "[" in field_name:
+        # Extract collection name and property name
+        parts = field_name.split(".")
+        if len(parts) >= 2:
+            collection_name = parts[0]
+            property_part = parts[1]
+            # Remove array index notation
+            property_name = property_part.split("[")[0]
+            # Format as "Collection Property"
+            return f"{collection_name} {property_name}"
+    
+    # Handle simple array notation like "Field[1]"
+    if "[" in field_name:
+        return field_name.split("[")[0]
+    
+    # Return as-is for simple field names
+    return field_name
+
 def generate_detailed_reasoning(
     field_name: str, 
     field_type: str, 
@@ -512,10 +533,13 @@ def generate_detailed_reasoning(
         Detailed reasoning string with explanation and suggested actions
     """
     
+    # Format field name for user-friendly display
+    display_name = format_field_display_name(field_name)
+    
     # Base analysis of extraction
     if validation_status == "invalid" and (extracted_value is None or str(extracted_value).strip() == ""):
         base_analysis = f"""EXTRACTION ANALYSIS:
-❌ Field '{field_name}' could not be located in the document{f' ({context})' if context else ''}
+❌ Field '{display_name}' could not be located in the document{f' ({context})' if context else ''}
 
 CONFIDENCE CALCULATION:
 • Base extraction confidence: 0% (field not found)
@@ -530,19 +554,19 @@ RULES COMPLIANCE:
         suggested_action = f"""SUGGESTED RESOLUTION:
 Please verify the following with the document provider:
 
-1. Is the '{field_name}' information included elsewhere in the document?
+1. Is the '{display_name}' information included elsewhere in the document?
 2. Should this field be marked as optional or not applicable?
 3. Can you provide additional documentation that contains this information?
 4. Is there alternative terminology used for this field in your organization?
 
 RECOMMENDED QUESTIONS TO ASK:
-• "Could you confirm if {field_name.lower()} information is available for this document?"
+• "Could you confirm if {display_name.lower()} information is available for this document?"
 • "Is this field typically included in documents of this type?"
 • "Are there any supplementary documents that might contain this information?\""""
 
     elif validation_status == "invalid":
         base_analysis = f"""EXTRACTION ANALYSIS:
-⚠️ Field '{field_name}' extracted but failed validation
+⚠️ Field '{display_name}' extracted but failed validation
 • Extracted value: '{extracted_value}'
 • Expected type: {field_type}
 • Issue: Value format does not meet field type requirements
@@ -561,7 +585,7 @@ RULES COMPLIANCE:
 The extracted value '{extracted_value}' is not in the expected date format (YYYY-MM-DD).
 
 RECOMMENDED QUESTIONS TO ASK:
-• "Can you confirm the correct date for {field_name.lower()}?"
+• "Can you confirm the correct date for {display_name.lower()}?"
 • "Is the date format in the document non-standard?"
 • "Should this be interpreted as a different type of date field?"
 
@@ -573,7 +597,7 @@ Please check if the extracted text represents a date in a different format or if
 The extracted value '{extracted_value}' cannot be converted to a numeric format.
 
 RECOMMENDED QUESTIONS TO ASK:
-• "What is the correct numeric value for {field_name.lower()}?"
+• "What is the correct numeric value for {display_name.lower()}?"
 • "Is this field meant to contain text instead of numbers?"
 • "Are there special formatting rules for this numeric field?"
 
@@ -585,7 +609,7 @@ Please verify if this should be a numeric value or if the field type needs adjus
 The extracted value has formatting or content issues.
 
 RECOMMENDED QUESTIONS TO ASK:
-• "Can you confirm the correct value for {field_name.lower()}?"
+• "Can you confirm the correct value for {display_name.lower()}?"
 • "Is there additional context needed to interpret this field?"
 • "Should this field have a different data type or format?"
 
