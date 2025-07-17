@@ -49,6 +49,9 @@ Preferred communication style: Simple, everyday language.
 - ✓ Dynamic sheet naming using project's main object name and collection names
 - ✓ Proper data organization with record grouping for collection properties
 - ✓ Export button added to session header with download icon for easy access
+- ✓ **EXCEL COLUMN ORDERING**: Fixed collection property columns to match exact display order from review page
+- ✓ Modified Excel export to use project schema property order instead of alphabetical sorting
+- ✓ Ensured consistent data presentation between UI and exported Excel files for better user experience
 
 **January 16, 2025**
 - ✓ Built complete organization and user management system with admin access controls

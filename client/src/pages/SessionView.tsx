@@ -452,10 +452,13 @@ Thank you for your assistance.`;
         recordGroups[recordIndex].push(validation);
       });
 
-      // Get unique property names for columns
-      const propertyNames = [...new Set(collectionValidations.map(v => 
-        v.fieldName.split('.')[1]?.replace(/\[\d+\]$/, '') || v.fieldName
-      ))].sort();
+      // Get property names in the same order as displayed in the UI
+      const collection = project.collections.find(c => c.collectionName === collectionName);
+      const propertyNames = collection ? 
+        collection.properties.map(p => p.propertyName) :
+        [...new Set(collectionValidations.map(v => 
+          v.fieldName.split('.')[1]?.replace(/\[\d+\]$/, '') || v.fieldName
+        ))].sort();
 
       // Create header row
       const headers = propertyNames;
