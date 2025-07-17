@@ -120,11 +120,11 @@ export default function ProjectCard({ project }: ProjectCardProps) {
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="flex-1" onClick={() => setLocation(`/projects/${project.id}`)}>
-              <CardTitle className="text-lg font-semibold text-white group-hover:text-white/90 transition-colors">
+              <CardTitle className="text-xl font-bold text-white group-hover:text-white/90 transition-colors">
                 {project.name}
               </CardTitle>
               {project.description && (
-                <p className="text-sm text-white/80 mt-1 line-clamp-2">
+                <p className="text-base font-medium text-white/90 mt-1 line-clamp-2">
                   {project.description}
                 </p>
               )}
@@ -154,7 +154,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
         </CardHeader>
         
         <CardContent onClick={() => setLocation(`/projects/${project.id}`)}>
-          <div className="flex items-center text-sm text-white/70">
+          <div className="flex items-center text-base font-medium text-white/80">
             <Calendar className="h-4 w-4 mr-2" />
             Created {formatDate(project.createdAt)}
           </div>
@@ -162,8 +162,8 @@ export default function ProjectCard({ project }: ProjectCardProps) {
           <div className="mt-4">
             <div className="flex items-start justify-between text-sm">
               <div className="text-center">
-                <div className="font-medium text-white">0</div>
-                <div className="text-white/70">Sessions</div>
+                <div className="text-lg font-bold text-white">0</div>
+                <div className="text-sm font-medium text-white/80">Sessions</div>
               </div>
               
               <div className="flex flex-col items-end justify-center">
@@ -181,7 +181,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
                         <Badge 
                           key={org.id} 
                           variant="secondary" 
-                          className="text-xs px-2 py-0.5 bg-white/20 text-white border-white/30"
+                          className="text-sm font-medium px-3 py-1 bg-white/20 text-white border-white/30"
                         >
                           {org.name}
                         </Badge>
@@ -190,14 +190,14 @@ export default function ProjectCard({ project }: ProjectCardProps) {
                     {publishedOrganizations.length > 3 && (
                       <Badge 
                         variant="secondary" 
-                        className="text-xs px-2 py-0.5 bg-white/20 text-white border-white/30"
+                        className="text-sm font-medium px-3 py-1 bg-white/20 text-white border-white/30"
                       >
                         +{publishedOrganizations.length - 3} more
                       </Badge>
                     )}
                   </div>
                 ) : (
-                  <div className="text-xs text-white/60 italic text-right">
+                  <div className="text-sm font-medium text-white/70 italic text-right">
                     Not published
                   </div>
                 )}

@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
 import { loginSchema } from "@shared/schema";
 import { z } from "zod";
-import EZFlowLogo from "@/components/EZFlowLogo";
+import ExtraclyLogo from "@/components/ExtraclyLogo";
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
@@ -44,7 +44,7 @@ export default function Login() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-6">
           <div className="flex justify-center">
-            <EZFlowLogo />
+            <ExtraclyLogo />
           </div>
           <div className="space-y-1">
             <CardTitle className="text-2xl text-center">Sign in</CardTitle>

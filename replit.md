@@ -1,8 +1,8 @@
-# EZFlow - AI-Powered Document Data Extraction Platform
+# Extracly - AI-Powered Document Data Extraction Platform
 
 ## Overview
 
-EZFlow is a comprehensive AI-powered document data extraction platform built with React, Express, and TypeScript. The application intelligently processes complex legal and business documents with enhanced conflict detection and collaborative workspace capabilities. Users can configure extraction schemas, upload documents, and review extracted data with sophisticated AI-driven analysis and knowledge-based validation.
+Extracly is a comprehensive AI-powered document data extraction platform built with React, Express, and TypeScript. The application intelligently processes complex legal and business documents with enhanced conflict detection and collaborative workspace capabilities. Users can configure extraction schemas, upload documents, and review extracted data with sophisticated AI-driven analysis and knowledge-based validation.
 
 ## User Preferences
 
@@ -11,8 +11,8 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 17, 2025**
-- ✓ **FLOW CAPTURE REBRANDING**: Complete application rebrand from "Document Data Extraction App" to "Flow Capture"
-- ✓ Created professional Flow Capture logo with gradient design and flow visualization elements
+- ✓ **EXTRACLY REBRANDING**: Complete application rebrand from "Flow Capture" to "Extracly"
+- ✓ Created professional Extracly logo with wave-like design and data extraction visualization elements
 - ✓ Logo acts as clickable home button throughout the application interface
 - ✓ Updated all page headers (Dashboard, ProjectLayout, Login) with new branding
 - ✓ Enhanced HTML meta tags with SEO-optimized title and descriptions for Flow Capture
