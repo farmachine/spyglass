@@ -1135,6 +1135,7 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
                     project_schema=project_schema,
                     extraction_rules=extraction_rules,
                     knowledge_documents=knowledge_documents
+                    knowledge_documents=knowledge_documents
                 )
                 logging.info(f"extract_data_from_document returned, type: {type(extraction_result)}")
                 logging.info(f"Extraction completed for {file_name}, confidence: {extraction_result.confidence_score}")
