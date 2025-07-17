@@ -15,18 +15,18 @@ export default function ExtractlyLogo({ className = "", showText = true }: Extra
   return (
     <button
       onClick={handleClick}
-      className={`flex items-center space-x-3 transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-lg p-1 ${className}`}
+      className={`flex items-center space-x-5 transition-all duration-200 hover:opacity-80 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-xl p-4 ${className}`}
       aria-label="Extractly - Go to Dashboard"
     >
       {/* Logo SVG */}
       <div className="relative">
         <svg
-          width="40"
-          height="40"
+          width="60"
+          height="60"
           viewBox="0 0 40 40"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className="drop-shadow-sm"
+          className="drop-shadow-md"
         >
           {/* Wave-like shape with gradient */}
           <defs>
@@ -88,7 +88,7 @@ export default function ExtractlyLogo({ className = "", showText = true }: Extra
       {/* App name */}
       {showText && (
         <div className="flex flex-col">
-          <span className="text-xl font-bold text-foreground leading-tight">
+          <span className="text-3xl font-bold text-foreground leading-tight tracking-tight">
             Extractly
           </span>
         </div>
