@@ -1001,7 +1001,9 @@ def create_field_validation(
         else:  # TEXT
             if isinstance(extracted_value, str) and len(extracted_value.strip()) > 0:
                 validation_status = "valid"
+                print(f"TEXT FIELD DEBUG: Processing '{field_name}' with value '{extracted_value}', knowledge_docs: {len(knowledge_documents) if knowledge_documents else 0}", file=sys.stderr)
                 confidence_score, applied_rules = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence, extraction_rules, knowledge_documents)
+                print(f"TEXT FIELD DEBUG: Confidence result: {confidence_score}, applied_rules: {len(applied_rules) if applied_rules else 0}", file=sys.stderr)
             else:
                 validation_status = "invalid"
                 confidence_score = 0
