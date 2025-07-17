@@ -117,15 +117,15 @@ export default function ProjectCard({ project }: ProjectCardProps) {
 
   return (
     <>
-      <Card className="bg-primary text-white hover:shadow-md transition-shadow cursor-pointer group border-primary relative overflow-hidden">
+      <Card className="bg-white text-black hover:shadow-md transition-shadow cursor-pointer group border-primary relative overflow-hidden">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="flex-1" onClick={() => setLocation(`/projects/${project.id}`)}>
-              <CardTitle className="text-xl font-bold text-white group-hover:text-white/90 transition-colors">
+              <CardTitle className="text-xl font-bold text-black group-hover:text-black/80 transition-colors">
                 {project.name}
               </CardTitle>
               {project.description && (
-                <p className="text-base font-medium text-white/90 mt-1 line-clamp-2">
+                <p className="text-base font-medium text-black/80 mt-1 line-clamp-2">
                   {project.description}
                 </p>
               )}
@@ -133,7 +133,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-white hover:bg-white/10">
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-black hover:bg-black/10">
                   <Settings className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -155,7 +155,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
         </CardHeader>
         
         <CardContent onClick={() => setLocation(`/projects/${project.id}`)}>
-          <div className="flex items-center text-base font-medium text-white/80">
+          <div className="flex items-center text-base font-medium text-black/70">
             <Calendar className="h-4 w-4 mr-2" />
             Created {formatDate(project.createdAt)}
           </div>
@@ -163,8 +163,8 @@ export default function ProjectCard({ project }: ProjectCardProps) {
           <div className="mt-4">
             <div className="flex items-start justify-between text-sm">
               <div className="text-center">
-                <div className="text-lg font-bold text-white">0</div>
-                <div className="text-sm font-medium text-white/80">Sessions</div>
+                <div className="text-lg font-bold text-black">0</div>
+                <div className="text-sm font-medium text-black/70">Sessions</div>
               </div>
               
               <div className="flex items-center justify-center">
@@ -186,7 +186,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
                         <Badge 
                           key={org.id} 
                           variant="secondary" 
-                          className="text-sm font-medium px-3 py-1 bg-white/20 text-white border-white/30"
+                          className="text-sm font-medium px-3 py-1 bg-primary/10 text-primary border-primary/30"
                         >
                           {org.name}
                         </Badge>
@@ -195,14 +195,14 @@ export default function ProjectCard({ project }: ProjectCardProps) {
                     {publishedOrganizations.length > 3 && (
                       <Badge 
                         variant="secondary" 
-                        className="text-sm font-medium px-3 py-1 bg-white/20 text-white border-white/30"
+                        className="text-sm font-medium px-3 py-1 bg-primary/10 text-primary border-primary/30"
                       >
                         +{publishedOrganizations.length - 3} more
                       </Badge>
                     )}
                   </div>
                 ) : (
-                  <div className="text-sm font-medium text-white/70 italic text-right">
+                  <div className="text-sm font-medium text-black/50 italic text-right">
                     Not published
                   </div>
                 )}
@@ -212,7 +212,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
         </CardContent>
         
         {/* Fade to white gradient overlay at the bottom */}
-        <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white/30 to-transparent pointer-events-none" />
+        <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white/50 to-transparent pointer-events-none" />
       </Card>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
