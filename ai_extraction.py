@@ -498,110 +498,46 @@ MANUAL REVIEW NEEDED:
 Please review the extracted content and confirm the intended value."""
 
     else:  # validation_status == "valid"
-        # Determine confidence level explanation
-        confidence_level = "High" if confidence_score >= 80 else "Medium" if confidence_score >= 50 else "Low"
-        
-        # Field-specific analysis
-        field_analysis = ""
-        if field_name.lower() in ['company name', 'name', 'title']:
-            field_analysis = "• Field type bonus: +5% (company/name fields typically well-defined)"
-        elif field_name.lower() in ['date', 'effective date', 'expiration date']:
-            if isinstance(extracted_value, str) and len(str(extracted_value)) == 10:
-                field_analysis = "• Date format bonus: +10% (proper YYYY-MM-DD format detected)"
-            else:
-                field_analysis = "• Date format: Standard (no bonus applied)"
-        elif field_name.lower() in ['address', 'location']:
-            field_analysis = "• Field complexity adjustment: -5% (addresses can be complex/partial)"
-
-        base_analysis = f"""EXTRACTION ANALYSIS:
-✅ Field '{field_name}' successfully extracted and validated
-• Extracted value: '{extracted_value}'
-• Field type: {field_type}
-• Status: Valid format and content
-
-CONFIDENCE CALCULATION:
-• Base extraction confidence: {int(overall_confidence * 100) if 'overall_confidence' in locals() else 85}%
-{field_analysis}
-• Final confidence: {confidence_score}% ({confidence_level} confidence)
-
-RULES COMPLIANCE:"""
-        
-        # Generate human-like rules compliance explanation
+        # Generate simplified reasoning based on applied rules
         if applied_rules:
-            rules_explanation = ""
             for rule in applied_rules:
                 rule_name = rule.get('name', 'Unknown Rule')
                 rule_action = rule.get('action', 'Unknown Action')
                 
-                # Create more human-like explanations based on rule type
+                # Create concise human-like explanations based on rule type
                 if "inc" in rule_name.lower() and "50%" in rule_action:
                     document_info = f" from document '{document_source}'" if document_source else ""
                     sections_info = f" (found in sections: {', '.join(document_sections)})" if document_sections else ""
-                    rules_explanation += f"\n\nOur policy states that company names containing 'Inc.' require additional verification as they may indicate potential entity ambiguity. The extracted value '{extracted_value}'{document_info}{sections_info} contains 'Inc.' which has triggered this validation rule. Please verify this is the correct entity and not a subsidiary or related company."
+                    
+                    return f"""Our policy states that company names containing 'Inc.' require additional verification as they may indicate potential entity ambiguity. The extracted value '{extracted_value}'{document_info}{sections_info} contains 'Inc.' which has triggered this validation rule. Please verify this is the correct entity and not a subsidiary or related company.
+
+- Can you confirm that '{extracted_value}' is the correct company name for this document?
+- Are there any related entities (subsidiaries, parent companies) that might be more appropriate?
+- Should we use a different version of this company name for consistency?"""
                 else:
-                    rules_explanation += f"\n• Applied rule '{rule_name}': {rule_action}"
-            
-            base_analysis += rules_explanation
+                    return f"""Applied rule '{rule_name}': {rule_action}
+
+- Please verify this field meets your requirements
+- Are there any adjustments needed for this value?"""
         else:
-            base_analysis += "\n• Compliant with all extraction rules and knowledge base requirements"
-        
-        base_analysis += "\n• Value appears consistent with document context"""
+            # For fields with no rules applied, provide minimal feedback
+            if confidence_score >= 80:
+                return f"""Field appears compliant with all extraction rules and requirements.
 
-        if confidence_score >= 80:
-            suggested_action = f"""SUGGESTED RESOLUTION:
-✅ No action required - high confidence extraction
+- Does this {field_name.lower()} value look correct: '{extracted_value}'?
+- Is this the standard format you expect for this field?"""
+            elif confidence_score >= 50:
+                return f"""Field appears valid but requires verification.
 
-VERIFICATION QUESTIONS (optional):
-• "Does this {field_name.lower()} value look correct: '{extracted_value}'?"
-• "Is this the standard format you expect for this field?"
-
-The extraction appears highly reliable and ready for use."""
-
-        elif confidence_score >= 50:
-            # Generate specific guidance based on applied rules
-            if applied_rules and any("inc" in rule.get('name', '').lower() for rule in applied_rules):
-                document_info = f" from document '{document_source}'" if document_source else ""
-                sections_info = f" in sections: {', '.join(document_sections)}" if document_sections else ""
-                suggested_action = f"""SUGGESTED RESOLUTION:
-Please verify the following with the document provider:
-
-1. Is '{extracted_value}' the correct primary entity for this contract/agreement?
-2. Are there any subsidiary or parent companies that should be referenced instead?
-3. Should this field contain the full legal entity name or a simplified version?
-4. Are there any specific naming conventions your organization uses for this entity?
-
-RECOMMENDED QUESTIONS TO ASK:
-• "Can you confirm that '{extracted_value}' is the correct company name for this document?"
-• "Are there any related entities (subsidiaries, parent companies) that might be more appropriate?"
-• "Should we use a different version of this company name for consistency?"
-
-DOCUMENT REFERENCE:
-The information was extracted{document_info}{sections_info}. Please refer to this section to verify the context."""
+- Please confirm this {field_name.lower()} value is correct: '{extracted_value}'
+- Does this value match your expected format or content?"""
             else:
-                suggested_action = f"""SUGGESTED RESOLUTION:
-⚠️ Medium confidence - recommend verification
+                return f"""Field has low confidence and requires verification.
 
-RECOMMENDED QUESTIONS TO ASK:
-• "Please confirm this {field_name.lower()} value is correct: '{extracted_value}'"
-• "Is there additional context that might affect this field?"
-• "Does this value match your expected format or content?"
+- Is this {field_name.lower()} value accurate: '{extracted_value}'?
+- Should this field contain different or additional information?"""
 
-MANUAL REVIEW SUGGESTED:
-While the extraction appears valid, verification would increase confidence in the data quality."""
-
-        else:
-            suggested_action = f"""SUGGESTED RESOLUTION:
-🔍 Low confidence - verification required
-
-RECOMMENDED QUESTIONS TO ASK:
-• "Is this {field_name.lower()} value accurate: '{extracted_value}'?"
-• "Are there specific formatting requirements for this field?"
-• "Should this field contain different or additional information?"
-
-MANUAL REVIEW REQUIRED:
-Please verify this extraction before proceeding, as confidence is below recommended threshold."""
-
-    return f"{base_analysis}\n\n{suggested_action}"
+    return "Field validation completed."
 
 def get_confidence_level(confidence_score: int) -> dict:
     """
