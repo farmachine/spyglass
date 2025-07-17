@@ -428,6 +428,7 @@ export default function DefineData({ project }: DefineDataProps) {
                       <TableHead>Field Name</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>Description</TableHead>
+                      <TableHead>Auto Verify</TableHead>
                       <TableHead className="w-24">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -442,6 +443,11 @@ export default function DefineData({ project }: DefineDataProps) {
                         </TableCell>
                         <TableCell className="text-gray-600">
                           {field.description || "-"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">
+                            {field.autoVerificationConfidence || 80}%
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">

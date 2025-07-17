@@ -180,7 +180,7 @@ export default function PropertyDialog({
                       max={100} 
                       placeholder="80"
                       {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value) || 80)}
+                      onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : '')}
                     />
                   </FormControl>
                   <p className="text-sm text-muted-foreground">

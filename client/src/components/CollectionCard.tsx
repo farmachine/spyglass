@@ -90,6 +90,7 @@ export default function CollectionCard({
                   <TableHead>Property Name</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Description</TableHead>
+                  <TableHead>Auto Verify</TableHead>
                   <TableHead className="w-24">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -104,6 +105,11 @@ export default function CollectionCard({
                     </TableCell>
                     <TableCell className="text-gray-600">
                       {property.description || "-"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">
+                        {property.autoVerificationConfidence || 80}%
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
