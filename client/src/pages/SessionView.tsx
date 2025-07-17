@@ -346,6 +346,76 @@ export default function SessionView() {
     return validations.filter(v => v.validationStatus !== 'valid' && v.validationStatus !== 'verified');
   };
 
+  // Generate data report text for email
+  const generateDataReport = () => {
+    const unverifiedFields = getUnverifiedFields();
+    const sessionName = session.sessionName;
+    const projectName = project.name;
+    
+    if (unverifiedFields.length === 0) {
+      return `Data Verification Report - ${sessionName}
+
+All data fields have been successfully verified for ${sessionName} in project ${projectName}. No additional information is required at this time.
+
+Total Fields: ${getTotalFieldCount()}
+Verified Fields: ${getVerifiedCount()}
+Status: Complete`;
+    }
+
+    let report = `Data Verification Report - ${sessionName}
+
+We are reviewing the extracted data for ${sessionName} and require additional information or clarification for the following fields:
+
+MISSING OR UNVERIFIED INFORMATION:
+`;
+
+    unverifiedFields.forEach((validation, index) => {
+      report += `\n${index + 1}. ${validation.fieldName}`;
+      
+      if (validation.validationStatus === 'invalid') {
+        report += `\n   Status: Missing Data
+   Details: This information was not found in the provided document.`;
+      } else {
+        report += `\n   Status: Requires Verification`;
+        if (validation.extractedValue) {
+          report += `\n   Extracted Value: ${validation.extractedValue}`;
+        }
+        if (validation.confidenceScore > 0) {
+          report += `\n   AI Confidence: ${validation.confidenceScore}%`;
+        }
+      }
+      
+      if (validation.aiReasoning) {
+        const cleanReasoning = validation.aiReasoning
+          .replace(/Our policy states that.*?\./g, '')
+          .replace(/- Can you.*?\n/g, '')
+          .replace(/- Are there.*?\n/g, '')
+          .replace(/- Should we.*?\n/g, '')
+          .replace(/- Does this.*?\n/g, '')
+          .replace(/- Is this.*?\n/g, '')
+          .trim();
+        
+        if (cleanReasoning) {
+          report += `\n   Notes: ${cleanReasoning}`;
+        }
+      }
+      
+      report += '\n';
+    });
+
+    report += `
+SUMMARY:
+- Total Fields: ${getTotalFieldCount()}
+- Verified Fields: ${getVerifiedCount()}
+- Pending Verification: ${unverifiedFields.length}
+
+Please review the above items and provide the missing information or confirm the accuracy of the extracted values. This will help us complete the data verification process.
+
+Thank you for your assistance.`;
+
+    return report;
+  };
+
   const handleEdit = (fieldName: string, currentValue: any) => {
     setEditingField(fieldName);
     
@@ -776,17 +846,17 @@ export default function SessionView() {
                 <p className="text-gray-600">Review and verify extracted {(project?.mainObjectName || "session").toLowerCase()} data</p>
               </div>
               <div className="flex items-center gap-4">
-                <div className="text-right">
+                <div className="flex items-center gap-3">
                   <div className="text-lg font-semibold text-gray-900">
                     {getVerifiedCount()} of {getTotalFieldCount()} verified
                   </div>
-                  <Badge variant={getSessionStatus() === 'verified' ? 'default' : 'secondary'} className="ml-2">
+                  <Badge variant={getSessionStatus() === 'verified' ? 'default' : 'secondary'}>
                     {getSessionStatus() === 'verified' ? 'Verified' : 'In Progress'}
                   </Badge>
                 </div>
                 <Button onClick={() => setShowReasoningDialog(true)} variant="outline" size="sm">
                   <AlertCircle className="h-4 w-4 mr-2" />
-                  AI Reasoning
+                  Data Report
                 </Button>
               </div>
             </div>
@@ -871,64 +941,54 @@ export default function SessionView() {
         </div>
       </div>
 
-      {/* Consolidated AI Reasoning Dialog */}
+      {/* Data Report Dialog */}
       <Dialog open={showReasoningDialog} onOpenChange={setShowReasoningDialog}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-blue-600" />
-              Consolidated AI Reasoning - All Unverified Fields
+              Data Verification Report
             </DialogTitle>
             <DialogDescription>
-              Review AI reasoning for all fields that require attention
+              Email-ready report for requesting missing information from data providers
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-6 mt-4">
-            {getUnverifiedFields().length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <CheckCircle className="h-12 w-12 mx-auto mb-3 text-green-500" />
-                <p className="text-lg font-medium">All fields verified!</p>
-                <p className="text-sm">No unverified fields require attention.</p>
-              </div>
-            ) : (
-              getUnverifiedFields().map((validation) => (
-                <div key={validation.id} className="border rounded-lg p-4 bg-gray-50">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-semibold text-gray-900">{validation.fieldName}</h3>
-                    <div className="flex items-center gap-2">
-                      <Badge 
-                        variant={validation.validationStatus === 'invalid' ? 'destructive' : 'secondary'}
-                      >
-                        {validation.validationStatus === 'invalid' ? 'Missing Data' : 'Unverified'}
-                      </Badge>
-                      {validation.confidenceScore > 0 && (
-                        <span className="text-xs text-gray-500">
-                          {validation.confidenceScore}% confidence
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="text-sm text-gray-700 bg-white p-3 rounded border">
-                    {validation.aiReasoning || (
-                      validation.validationStatus === 'invalid' 
-                        ? "We are missing this information in the document. This field was not found or extracted during the AI analysis. Please manually review the document or add this information if available."
-                        : "This field requires manual verification. Please review the extracted value for accuracy."
-                    )}
-                  </div>
-                  
-                  {validation.extractedValue && (
-                    <div className="mt-2 text-xs text-gray-600">
-                      <strong>Extracted Value:</strong> {String(validation.extractedValue)}
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
+          <div className="mt-4">
+            <Label htmlFor="report-text" className="text-sm font-medium">
+              Report Content (ready to copy and paste into email)
+            </Label>
+            <textarea
+              id="report-text"
+              value={generateDataReport()}
+              readOnly
+              className="w-full h-80 mt-2 p-3 border rounded-md bg-gray-50 text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
           </div>
           
-          <div className="flex justify-end mt-6 pt-4 border-t">
+          <div className="flex justify-between mt-6 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(generateDataReport());
+                  toast({
+                    title: "Copied to clipboard",
+                    description: "Data report has been copied to your clipboard.",
+                  });
+                } catch (error) {
+                  toast({
+                    title: "Copy failed",
+                    description: "Failed to copy to clipboard. Please select and copy the text manually.",
+                    variant: "destructive"
+                  });
+                }
+              }}
+              className="flex items-center gap-2"
+            >
+              <Copy className="h-4 w-4" />
+              Copy to Clipboard
+            </Button>
             <Button onClick={() => setShowReasoningDialog(false)}>
               Close
             </Button>
