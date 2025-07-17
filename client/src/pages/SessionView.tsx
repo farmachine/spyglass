@@ -18,6 +18,30 @@ import type {
   FieldValidation 
 } from "@shared/schema";
 
+// Confidence Badge Component
+const ConfidenceBadge = ({ confidenceScore }: { confidenceScore: number }) => {
+  const getConfidenceLevel = (score: number) => {
+    if (score >= 80) {
+      return { level: "high", color: "bg-green-100 text-green-800", description: "High confidence" };
+    } else if (score >= 50) {
+      return { level: "medium", color: "bg-yellow-100 text-yellow-800", description: "Medium confidence" };
+    } else {
+      return { level: "low", color: "bg-red-100 text-red-800", description: "Low confidence" };
+    }
+  };
+
+  const confidence = getConfidenceLevel(confidenceScore);
+  
+  return (
+    <span 
+      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${confidence.color}`}
+      title={confidence.description}
+    >
+      {confidenceScore}%
+    </span>
+  );
+};
+
 // Simple Validation Icon Component
 const ValidationIcon = ({ fieldName, validation, onToggle }: { 
   fieldName: string; 
@@ -451,6 +475,9 @@ export default function SessionView() {
             validation={validation}
             onToggle={(isVerified) => handleVerificationToggle(fieldName, isVerified)}
           />
+          {validation && validation.confidenceScore > 0 && (
+            <ConfidenceBadge confidenceScore={validation.confidenceScore} />
+          )}
         </div>
       </div>
     );

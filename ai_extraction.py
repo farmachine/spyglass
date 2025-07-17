@@ -284,6 +284,75 @@ def normalize_extracted_values(data: Dict[str, Any]) -> Dict[str, Any]:
     
     return {k: normalize_value(v) for k, v in data.items()}
 
+def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, base_confidence: float) -> int:
+    """
+    Calculate confidence percentage based on knowledge base and rules compliance.
+    
+    Core Logic:
+    - If no rules/knowledge apply to a field AND value is extracted → Show 100% confidence
+    - If rules/knowledge apply → Calculate confidence based on compliance level (1-100%)
+    
+    Args:
+        field_name: Name of the field being validated
+        extracted_value: The extracted value
+        base_confidence: Base AI confidence from extraction
+    
+    Returns:
+        Confidence percentage (0-100)
+    """
+    # For now, implement basic logic since we don't have access to rules/knowledge in this context
+    # This will be enhanced when we have access to the extraction rules and knowledge base
+    
+    if extracted_value is None or extracted_value == "" or extracted_value == "null":
+        return 0
+    
+    # Base confidence calculation
+    confidence_percentage = int(base_confidence * 100)
+    
+    # Apply field-specific adjustments
+    if field_name.lower() in ['company name', 'name', 'title']:
+        # Company names and titles are usually reliable if extracted
+        confidence_percentage = min(100, confidence_percentage + 5)
+    elif field_name.lower() in ['date', 'effective date', 'expiration date']:
+        # Dates are highly reliable when in proper format
+        if isinstance(extracted_value, str) and len(extracted_value) == 10 and extracted_value.count('-') == 2:
+            confidence_percentage = min(100, confidence_percentage + 10)
+    elif field_name.lower() in ['address', 'location']:
+        # Addresses can be complex, slightly reduce confidence
+        confidence_percentage = max(80, confidence_percentage - 5)
+    
+    # Ensure confidence is within bounds
+    return max(1, min(100, confidence_percentage))
+
+def get_confidence_level(confidence_score: int) -> dict:
+    """
+    Get confidence level information based on score.
+    
+    Returns:
+        Dictionary with level, color, and description
+    """
+    if confidence_score >= 80:
+        return {
+            "level": "high",
+            "color": "green",
+            "description": "High confidence",
+            "badge_variant": "default"
+        }
+    elif confidence_score >= 50:
+        return {
+            "level": "medium", 
+            "color": "yellow",
+            "description": "Medium confidence",
+            "badge_variant": "secondary"
+        }
+    else:
+        return {
+            "level": "low",
+            "color": "red", 
+            "description": "Low confidence",
+            "badge_variant": "destructive"
+        }
+
 def create_demo_extraction_result(project_schema: Dict[str, Any], file_name: str) -> ExtractionResult:
     """Create demo extraction result when API key is not available"""
     logging.error(f"!!! USING DEMO DATA - THIS SHOULD NOT HAPPEN WITH VALID API KEY !!!")
@@ -507,11 +576,10 @@ def create_field_validation(
     collection_name: str = "",
     record_index: int = 0
 ) -> FieldValidationResult:
-    """Create a field validation result with AI reasoning"""
+    """Create a field validation result with AI reasoning and knowledge-based confidence"""
     
     validation_status = "pending"
     ai_reasoning = None
-    confidence_score = int(overall_confidence * 100)
     
     # Determine validation status based on extracted value
     if extracted_value is None or extracted_value == "" or extracted_value == "null":
@@ -526,6 +594,7 @@ def create_field_validation(
                 float(str(extracted_value))
                 validation_status = "valid"
                 ai_reasoning = f"Successfully extracted numeric value: {extracted_value}"
+                confidence_score = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence)
             except (ValueError, TypeError):
                 validation_status = "invalid"
                 ai_reasoning = f"Extracted value '{extracted_value}' is not a valid number format"
@@ -535,6 +604,7 @@ def create_field_validation(
             if isinstance(extracted_value, str) and len(extracted_value) >= 8:
                 validation_status = "valid"
                 ai_reasoning = f"Successfully extracted date value: {extracted_value}"
+                confidence_score = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence)
             else:
                 validation_status = "invalid"
                 ai_reasoning = f"Extracted value '{extracted_value}' does not appear to be a valid date format"
@@ -543,6 +613,7 @@ def create_field_validation(
             if isinstance(extracted_value, bool) or str(extracted_value).lower() in ['true', 'false', 'yes', 'no']:
                 validation_status = "valid"
                 ai_reasoning = f"Successfully extracted boolean value: {extracted_value}"
+                confidence_score = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence)
             else:
                 validation_status = "invalid"
                 ai_reasoning = f"Extracted value '{extracted_value}' is not a valid boolean (true/false)"
@@ -551,6 +622,7 @@ def create_field_validation(
             if isinstance(extracted_value, str) and len(extracted_value.strip()) > 0:
                 validation_status = "valid"
                 ai_reasoning = f"Successfully extracted text value: {extracted_value}"
+                confidence_score = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence)
             else:
                 validation_status = "invalid"
                 ai_reasoning = f"Extracted text value is empty or invalid"
