@@ -209,6 +209,7 @@ export class MemStorage implements IStorage {
         description: "The total amount of the invoice",
         autoVerificationConfidence: 80,
         orderIndex: 1,
+        createdAt: new Date(Date.now() - 86400000 * 3), // 3 days ago
       },
       {
         id: 2,
@@ -218,6 +219,7 @@ export class MemStorage implements IStorage {
         description: "The date when the invoice was issued",
         autoVerificationConfidence: 80,
         orderIndex: 2,
+        createdAt: new Date(Date.now() - 86400000 * 2), // 2 days ago
       },
       {
         id: 3,
@@ -227,6 +229,7 @@ export class MemStorage implements IStorage {
         description: "The name of the vendor or supplier",
         autoVerificationConfidence: 80,
         orderIndex: 3,
+        createdAt: new Date(Date.now() - 86400000 * 1), // 1 day ago
       },
     ];
     
@@ -255,6 +258,7 @@ export class MemStorage implements IStorage {
         description: "Description of the item",
         autoVerificationConfidence: 80,
         orderIndex: 1,
+        createdAt: new Date(Date.now() - 86400000 * 3), // 3 days ago
       },
       {
         id: 2,
@@ -264,6 +268,7 @@ export class MemStorage implements IStorage {
         description: "Number of items",
         autoVerificationConfidence: 80,
         orderIndex: 2,
+        createdAt: new Date(Date.now() - 86400000 * 2), // 2 days ago
       },
       {
         id: 3,
@@ -273,6 +278,7 @@ export class MemStorage implements IStorage {
         description: "Price per unit",
         autoVerificationConfidence: 80,
         orderIndex: 3,
+        createdAt: new Date(Date.now() - 86400000 * 1), // 1 day ago
       },
     ];
     
@@ -660,17 +666,17 @@ export class MemStorage implements IStorage {
 
     const schemaFields = Array.from(this.projectSchemaFields.values())
       .filter(field => field.projectId === id)
-      .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
     const collections = Array.from(this.objectCollections.values())
       .filter(collection => collection.projectId === id)
       .map(collection => {
         const properties = Array.from(this.collectionProperties.values())
           .filter(prop => prop.collectionId === collection.id)
-          .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+          .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
         return { ...collection, properties };
       })
-      .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
     const sessions = Array.from(this.extractionSessions.values())
       .filter(session => session.projectId === id)
@@ -734,7 +740,7 @@ export class MemStorage implements IStorage {
   async getProjectSchemaFields(projectId: number): Promise<ProjectSchemaField[]> {
     return Array.from(this.projectSchemaFields.values())
       .filter(field => field.projectId === projectId)
-      .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }
 
   async createProjectSchemaField(insertField: InsertProjectSchemaField): Promise<ProjectSchemaField> {
@@ -744,6 +750,7 @@ export class MemStorage implements IStorage {
       id,
       description: insertField.description || null,
       orderIndex: insertField.orderIndex || null,
+      createdAt: new Date(),
     };
     this.projectSchemaFields.set(id, field);
     return field;
@@ -766,13 +773,13 @@ export class MemStorage implements IStorage {
   async getObjectCollections(projectId: number): Promise<(ObjectCollection & { properties: CollectionProperty[] })[]> {
     const collections = Array.from(this.objectCollections.values())
       .filter(collection => collection.projectId === projectId)
-      .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
     return collections.map(collection => ({
       ...collection,
       properties: Array.from(this.collectionProperties.values())
         .filter(property => property.collectionId === collection.id)
-        .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
     }));
   }
 
@@ -815,7 +822,7 @@ export class MemStorage implements IStorage {
   async getCollectionProperties(collectionId: number): Promise<CollectionProperty[]> {
     return Array.from(this.collectionProperties.values())
       .filter(prop => prop.collectionId === collectionId)
-      .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }
 
   async createCollectionProperty(insertProperty: InsertCollectionProperty): Promise<CollectionProperty> {
@@ -825,6 +832,7 @@ export class MemStorage implements IStorage {
       id,
       description: insertProperty.description || null,
       orderIndex: insertProperty.orderIndex || null,
+      createdAt: new Date(),
     };
     this.collectionProperties.set(id, property);
     return property;

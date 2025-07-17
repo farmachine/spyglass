@@ -41,6 +41,7 @@ export const projectSchemaFields = pgTable("project_schema_fields", {
   description: text("description"),
   autoVerificationConfidence: integer("auto_verification_confidence").default(80), // 0-100 threshold for auto verification
   orderIndex: integer("order_index").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const objectCollections = pgTable("object_collections", {
@@ -60,6 +61,7 @@ export const collectionProperties = pgTable("collection_properties", {
   description: text("description"),
   autoVerificationConfidence: integer("auto_verification_confidence").default(80), // 0-100 threshold for auto verification
   orderIndex: integer("order_index").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const extractionSessions = pgTable("extraction_sessions", {
@@ -134,6 +136,7 @@ export const insertProjectSchema = createInsertSchema(projects).omit({
 
 export const insertProjectSchemaFieldSchema = createInsertSchema(projectSchemaFields).omit({
   id: true,
+  createdAt: true,
 });
 
 export const insertObjectCollectionSchema = createInsertSchema(objectCollections).omit({
@@ -143,6 +146,7 @@ export const insertObjectCollectionSchema = createInsertSchema(objectCollections
 
 export const insertCollectionPropertySchema = createInsertSchema(collectionProperties).omit({
   id: true,
+  createdAt: true,
 });
 
 export const insertExtractionSessionSchema = createInsertSchema(extractionSessions).omit({
