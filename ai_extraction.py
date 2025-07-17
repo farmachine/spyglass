@@ -906,9 +906,10 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         Dictionary with processing results
     """
+    print("=== PYTHON SCRIPT STARTING ===", file=sys.stderr)
+    logging.basicConfig(level=logging.INFO, stream=sys.stderr)
     logging.info("=== PYTHON SCRIPT IS BEING EXECUTED ===")
     logging.info("=== CHECKING IF UPDATES ARE LOADED ===")
-    logging.basicConfig(level=logging.INFO, stream=sys.stderr)
     logging.info(f"Processing extraction session: {session_data.get('session_id')}")
     
     results = {
