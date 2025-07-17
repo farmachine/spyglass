@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { 
@@ -19,8 +21,84 @@ import type {
   FieldValidation 
 } from "@shared/schema";
 
+// AI Reasoning Modal Component
+const AIReasoningModal = ({ 
+  isOpen, 
+  onClose, 
+  reasoning, 
+  fieldName, 
+  confidenceScore 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  reasoning: string; 
+  fieldName: string; 
+  confidenceScore: number; 
+}) => {
+  const { toast } = useToast();
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(reasoning);
+      toast({
+        title: "Copied to clipboard",
+        description: "AI reasoning has been copied to your clipboard.",
+      });
+    } catch (error) {
+      toast({
+        title: "Copy failed",
+        description: "Failed to copy to clipboard. Please try selecting the text manually.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Info className="h-5 w-5 text-blue-600" />
+            AI Reasoning - {fieldName}
+          </DialogTitle>
+          <DialogDescription>
+            Confidence Score: {confidenceScore}% - Detailed analysis and suggested resolution
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="py-4">
+          <div className="bg-gray-50 rounded-lg p-4 whitespace-pre-wrap font-mono text-sm">
+            {reasoning}
+          </div>
+        </div>
+        
+        <div className="flex justify-end gap-3">
+          <Button variant="outline" onClick={copyToClipboard} className="flex items-center gap-2">
+            <Copy className="h-4 w-4" />
+            Copy to Clipboard
+          </Button>
+          <Button onClick={onClose} className="flex items-center gap-2">
+            <X className="h-4 w-4" />
+            Close
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 // Badge Components
-const ConfidenceBadge = ({ confidenceScore }: { confidenceScore: number }) => {
+const ConfidenceBadge = ({ 
+  confidenceScore, 
+  reasoning, 
+  fieldName 
+}: { 
+  confidenceScore: number; 
+  reasoning?: string; 
+  fieldName: string; 
+}) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  
   const getConfidenceLevel = (score: number) => {
     if (score >= 80) {
       return { level: "high", color: "bg-green-100 text-green-800", description: "High confidence" };
@@ -34,12 +112,43 @@ const ConfidenceBadge = ({ confidenceScore }: { confidenceScore: number }) => {
   const confidence = getConfidenceLevel(confidenceScore);
   
   return (
-    <span 
-      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${confidence.color}`}
-      title={confidence.description}
-    >
-      Confidence: {confidenceScore}%
-    </span>
+    <div className="flex items-center gap-2">
+      <span 
+        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${confidence.color}`}
+        title={confidence.description}
+      >
+        Confidence: {confidenceScore}%
+      </span>
+      
+      {reasoning && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
+                aria-label="View AI reasoning"
+              >
+                <Info className="h-3 w-3" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="max-w-xs">{reasoning.slice(0, 100)}...</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
+      
+      {reasoning && (
+        <AIReasoningModal 
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          reasoning={reasoning}
+          fieldName={fieldName}
+          confidenceScore={confidenceScore}
+        />
+      )}
+    </div>
   );
 };
 
@@ -521,7 +630,7 @@ export default function SessionView() {
             } else if (!wasExtracted) {
               return <NotExtractedBadge />;
             } else {
-              return <ConfidenceBadge confidenceScore={validation.confidenceScore} />;
+              return <ConfidenceBadge confidenceScore={validation.confidenceScore} reasoning={validation.aiReasoning} fieldName={fieldName} />;
             }
           })()}
         </div>

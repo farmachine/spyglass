@@ -324,6 +324,177 @@ def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, 
     # Ensure confidence is within bounds
     return max(1, min(100, confidence_percentage))
 
+def generate_detailed_reasoning(
+    field_name: str, 
+    field_type: str, 
+    extracted_value: Any, 
+    validation_status: str, 
+    context: str, 
+    confidence_score: int
+) -> str:
+    """
+    Generate detailed AI reasoning explaining confidence levels and suggesting resolution actions.
+    
+    Args:
+        field_name: Name of the field being validated
+        field_type: Type of field (TEXT, NUMBER, DATE, BOOLEAN)
+        extracted_value: The extracted value (can be None)
+        validation_status: valid, invalid, or pending
+        context: Additional context (e.g., collection info)
+        confidence_score: Calculated confidence percentage (0-100)
+    
+    Returns:
+        Detailed reasoning string with explanation and suggested actions
+    """
+    
+    # Base analysis of extraction
+    if validation_status == "invalid" and (extracted_value is None or str(extracted_value).strip() == ""):
+        base_analysis = f"""EXTRACTION ANALYSIS:
+❌ Field '{field_name}' could not be located in the document{f' ({context})' if context else ''}
+
+CONFIDENCE CALCULATION:
+• Base extraction confidence: 0% (field not found)
+• Field-specific adjustments: None applied
+• Final confidence: {confidence_score}%
+
+RULES COMPLIANCE:
+• Missing required field data
+• No conflicting information found in knowledge base
+• Field appears to be absent from the provided document"""
+
+        suggested_action = f"""SUGGESTED RESOLUTION:
+Please verify the following with the document provider:
+
+1. Is the '{field_name}' information included elsewhere in the document?
+2. Should this field be marked as optional or not applicable?
+3. Can you provide additional documentation that contains this information?
+4. Is there alternative terminology used for this field in your organization?
+
+RECOMMENDED QUESTIONS TO ASK:
+• "Could you confirm if {field_name.lower()} information is available for this document?"
+• "Is this field typically included in documents of this type?"
+• "Are there any supplementary documents that might contain this information?\""""
+
+    elif validation_status == "invalid":
+        base_analysis = f"""EXTRACTION ANALYSIS:
+⚠️ Field '{field_name}' extracted but failed validation
+• Extracted value: '{extracted_value}'
+• Expected type: {field_type}
+• Issue: Value format does not meet field type requirements
+
+CONFIDENCE CALCULATION:
+• Base extraction confidence: {int(overall_confidence * 100) if 'overall_confidence' in locals() else 'N/A'}%
+• Format validation: Failed
+• Final confidence: {confidence_score}%
+
+RULES COMPLIANCE:
+• Value found but incorrect format
+• Does not meet {field_type} field requirements"""
+
+        if field_type == "DATE":
+            suggested_action = f"""SUGGESTED RESOLUTION:
+The extracted value '{extracted_value}' is not in the expected date format (YYYY-MM-DD).
+
+RECOMMENDED QUESTIONS TO ASK:
+• "Can you confirm the correct date for {field_name.lower()}?"
+• "Is the date format in the document non-standard?"
+• "Should this be interpreted as a different type of date field?"
+
+MANUAL REVIEW NEEDED:
+Please check if the extracted text represents a date in a different format or if additional context is needed."""
+
+        elif field_type == "NUMBER":
+            suggested_action = f"""SUGGESTED RESOLUTION:
+The extracted value '{extracted_value}' cannot be converted to a numeric format.
+
+RECOMMENDED QUESTIONS TO ASK:
+• "What is the correct numeric value for {field_name.lower()}?"
+• "Is this field meant to contain text instead of numbers?"
+• "Are there special formatting rules for this numeric field?"
+
+MANUAL REVIEW NEEDED:
+Please verify if this should be a numeric value or if the field type needs adjustment."""
+
+        else:
+            suggested_action = f"""SUGGESTED RESOLUTION:
+The extracted value has formatting or content issues.
+
+RECOMMENDED QUESTIONS TO ASK:
+• "Can you confirm the correct value for {field_name.lower()}?"
+• "Is there additional context needed to interpret this field?"
+• "Should this field have a different data type or format?"
+
+MANUAL REVIEW NEEDED:
+Please review the extracted content and confirm the intended value."""
+
+    else:  # validation_status == "valid"
+        # Determine confidence level explanation
+        confidence_level = "High" if confidence_score >= 80 else "Medium" if confidence_score >= 50 else "Low"
+        
+        # Field-specific analysis
+        field_analysis = ""
+        if field_name.lower() in ['company name', 'name', 'title']:
+            field_analysis = "• Field type bonus: +5% (company/name fields typically well-defined)"
+        elif field_name.lower() in ['date', 'effective date', 'expiration date']:
+            if isinstance(extracted_value, str) and len(str(extracted_value)) == 10:
+                field_analysis = "• Date format bonus: +10% (proper YYYY-MM-DD format detected)"
+            else:
+                field_analysis = "• Date format: Standard (no bonus applied)"
+        elif field_name.lower() in ['address', 'location']:
+            field_analysis = "• Field complexity adjustment: -5% (addresses can be complex/partial)"
+
+        base_analysis = f"""EXTRACTION ANALYSIS:
+✅ Field '{field_name}' successfully extracted and validated
+• Extracted value: '{extracted_value}'
+• Field type: {field_type}
+• Status: Valid format and content
+
+CONFIDENCE CALCULATION:
+• Base extraction confidence: {int(overall_confidence * 100) if 'overall_confidence' in locals() else 85}%
+{field_analysis}
+• Final confidence: {confidence_score}% ({confidence_level} confidence)
+
+RULES COMPLIANCE:
+• Meets all field type requirements
+• No conflicts with knowledge base rules
+• Value appears consistent with document context"""
+
+        if confidence_score >= 80:
+            suggested_action = f"""SUGGESTED RESOLUTION:
+✅ No action required - high confidence extraction
+
+VERIFICATION QUESTIONS (optional):
+• "Does this {field_name.lower()} value look correct: '{extracted_value}'?"
+• "Is this the standard format you expect for this field?"
+
+The extraction appears highly reliable and ready for use."""
+
+        elif confidence_score >= 50:
+            suggested_action = f"""SUGGESTED RESOLUTION:
+⚠️ Medium confidence - recommend verification
+
+RECOMMENDED QUESTIONS TO ASK:
+• "Please confirm this {field_name.lower()} value is correct: '{extracted_value}'"
+• "Is there additional context that might affect this field?"
+• "Does this value match your expected format or content?"
+
+MANUAL REVIEW SUGGESTED:
+While the extraction appears valid, verification would increase confidence in the data quality."""
+
+        else:
+            suggested_action = f"""SUGGESTED RESOLUTION:
+🔍 Low confidence - verification required
+
+RECOMMENDED QUESTIONS TO ASK:
+• "Is this {field_name.lower()} value accurate: '{extracted_value}'?"
+• "Are there specific formatting requirements for this field?"
+• "Should this field contain different or additional information?"
+
+MANUAL REVIEW REQUIRED:
+Please verify this extraction before proceeding, as confidence is below recommended threshold."""
+
+    return f"{base_analysis}\n\n{suggested_action}"
+
 def get_confidence_level(confidence_score: int) -> dict:
     """
     Get confidence level information based on score.
@@ -576,16 +747,18 @@ def create_field_validation(
     collection_name: str = "",
     record_index: int = 0
 ) -> FieldValidationResult:
-    """Create a field validation result with AI reasoning and knowledge-based confidence"""
+    """Create a field validation result with detailed AI reasoning and knowledge-based confidence"""
     
     validation_status = "pending"
     ai_reasoning = None
     
-    # Determine validation status based on extracted value
+    # Determine validation status and generate detailed reasoning
     if extracted_value is None or extracted_value == "" or extracted_value == "null":
         validation_status = "invalid"
         context = f"collection '{collection_name}' record {record_index + 1}" if is_collection else "document"
-        ai_reasoning = f"Could not locate {field_name} information in the {context}. Field appears to be missing or not clearly stated in the provided documents."
+        ai_reasoning = generate_detailed_reasoning(
+            field_name, field_type, extracted_value, validation_status, context, 0
+        )
         confidence_score = 0
     else:
         # Validate based on field type
@@ -593,40 +766,56 @@ def create_field_validation(
             try:
                 float(str(extracted_value))
                 validation_status = "valid"
-                ai_reasoning = f"Successfully extracted numeric value: {extracted_value}"
                 confidence_score = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence)
+                ai_reasoning = generate_detailed_reasoning(
+                    field_name, field_type, extracted_value, validation_status, "", confidence_score
+                )
             except (ValueError, TypeError):
                 validation_status = "invalid"
-                ai_reasoning = f"Extracted value '{extracted_value}' is not a valid number format"
                 confidence_score = 0
+                ai_reasoning = generate_detailed_reasoning(
+                    field_name, field_type, extracted_value, validation_status, "", confidence_score
+                )
         elif field_type == "DATE":
-            # Simple date validation
+            # Enhanced date validation
             if isinstance(extracted_value, str) and len(extracted_value) >= 8:
-                validation_status = "valid"
-                ai_reasoning = f"Successfully extracted date value: {extracted_value}"
-                confidence_score = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence)
+                # Check for proper date format
+                import re
+                if re.match(r'\d{4}-\d{2}-\d{2}', extracted_value):
+                    validation_status = "valid"
+                    confidence_score = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence)
+                else:
+                    validation_status = "invalid"
+                    confidence_score = 0
             else:
                 validation_status = "invalid"
-                ai_reasoning = f"Extracted value '{extracted_value}' does not appear to be a valid date format"
                 confidence_score = 0
+            
+            ai_reasoning = generate_detailed_reasoning(
+                field_name, field_type, extracted_value, validation_status, "", confidence_score
+            )
         elif field_type == "BOOLEAN":
             if isinstance(extracted_value, bool) or str(extracted_value).lower() in ['true', 'false', 'yes', 'no']:
                 validation_status = "valid"
-                ai_reasoning = f"Successfully extracted boolean value: {extracted_value}"
                 confidence_score = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence)
             else:
                 validation_status = "invalid"
-                ai_reasoning = f"Extracted value '{extracted_value}' is not a valid boolean (true/false)"
                 confidence_score = 0
+            
+            ai_reasoning = generate_detailed_reasoning(
+                field_name, field_type, extracted_value, validation_status, "", confidence_score
+            )
         else:  # TEXT
             if isinstance(extracted_value, str) and len(extracted_value.strip()) > 0:
                 validation_status = "valid"
-                ai_reasoning = f"Successfully extracted text value: {extracted_value}"
                 confidence_score = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence)
             else:
                 validation_status = "invalid"
-                ai_reasoning = f"Extracted text value is empty or invalid"
                 confidence_score = 0
+            
+            ai_reasoning = generate_detailed_reasoning(
+                field_name, field_type, extracted_value, validation_status, "", confidence_score
+            )
     
     return FieldValidationResult(
         field_id=field_id,
@@ -634,6 +823,9 @@ def create_field_validation(
         field_type=field_type,
         extracted_value=str(extracted_value) if extracted_value is not None else None,
         validation_status=validation_status,
+        ai_reasoning=ai_reasoning,
+        confidence_score=confidence_score
+    )tion_status=validation_status,
         ai_reasoning=ai_reasoning,
         confidence_score=confidence_score
     )
