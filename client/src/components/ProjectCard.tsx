@@ -167,22 +167,35 @@ export default function ProjectCard({ project }: ProjectCardProps) {
               </div>
               
               <div className="flex flex-col items-end">
-                <div className="flex items-center gap-1 text-gray-500 mb-2">
+                <div className="flex items-center gap-1 text-gray-500 mb-2 mr-2">
                   <Building className="h-4 w-4" />
                   <span className="text-xs">Published to</span>
                 </div>
                 
                 {publishedOrganizations.length > 0 ? (
                   <div className="flex flex-wrap gap-1 justify-end">
-                    {publishedOrganizations.slice(0, 3).map((org: Organization) => (
-                      <Badge 
-                        key={org.id} 
-                        variant="secondary" 
-                        className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 border-blue-200"
-                      >
-                        {org.name}
-                      </Badge>
-                    ))}
+                    {/* Sort organizations to show primary organizations first */}
+                    {publishedOrganizations
+                      .sort((a: Organization & { type?: string }, b: Organization & { type?: string }) => {
+                        if (a.type === 'primary' && b.type !== 'primary') return -1;
+                        if (b.type === 'primary' && a.type !== 'primary') return 1;
+                        return 0;
+                      })
+                      .slice(0, 3)
+                      .map((org: Organization & { type?: string }) => (
+                        <Badge 
+                          key={org.id} 
+                          variant="secondary" 
+                          className={`text-xs px-2 py-0.5 ${
+                            org.type === 'primary' 
+                              ? 'bg-green-50 text-green-700 border-green-200' 
+                              : 'bg-blue-50 text-blue-700 border-blue-200'
+                          }`}
+                        >
+                          {org.name}
+                        </Badge>
+                      ))
+                    }
                     {publishedOrganizations.length > 3 && (
                       <Badge 
                         variant="secondary" 
@@ -193,7 +206,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
                     )}
                   </div>
                 ) : (
-                  <div className="text-xs text-gray-400 italic text-right">
+                  <div className="text-xs text-gray-400 italic text-right mr-2">
                     Not published to any organizations
                   </div>
                 )}
