@@ -350,6 +350,14 @@ export default function SessionView() {
     return validations.length;
   };
 
+  // Get verification progress
+  const getVerificationProgress = () => {
+    const verified = getVerifiedCount();
+    const total = getTotalFieldCount();
+    const percentage = total > 0 ? Math.round((verified / total) * 100) : 0;
+    return { verified, total, percentage };
+  };
+
   // Get all unverified fields for consolidated reasoning
   const getUnverifiedFields = () => {
     return validations.filter(v => v.validationStatus !== 'valid' && v.validationStatus !== 'verified');
@@ -947,8 +955,19 @@ Thank you for your assistance.`;
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="text-lg font-semibold text-gray-900">
-                    {getVerifiedCount()} of {getTotalFieldCount()} verified
+                  <div className="flex items-center gap-2">
+                    <div className="w-24 bg-gray-200 rounded-full h-2.5">
+                      <div 
+                        className={`h-2.5 rounded-full transition-all duration-300 ${
+                          getVerificationProgress().percentage === 100 ? 'bg-green-600' : 
+                          getVerificationProgress().percentage > 0 ? 'bg-blue-600' : 'bg-gray-400'
+                        }`}
+                        style={{ width: `${getVerificationProgress().percentage}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 min-w-[36px]">
+                      {getVerificationProgress().percentage}%
+                    </span>
                   </div>
                   <Badge variant={getSessionStatus() === 'verified' ? 'default' : 'secondary'}>
                     {getSessionStatus() === 'verified' ? 'Verified' : 'In Progress'}
