@@ -9,6 +9,7 @@ import NewUpload from "./NewUpload";
 import AllData from "./AllData";
 import KnowledgeRules from "./KnowledgeRules";
 import DefineData from "./DefineData";
+import Publishing from "./Publishing";
 import UserProfile from "./UserProfile";
 import Breadcrumb from "./Breadcrumb";
 
@@ -16,7 +17,7 @@ interface ProjectLayoutProps {
   projectId: number;
 }
 
-type ActiveTab = "upload" | "data" | "knowledge" | "define";
+type ActiveTab = "upload" | "data" | "knowledge" | "define" | "publishing";
 
 export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const [, setLocation] = useLocation();
@@ -54,6 +55,9 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
           break;
         case 'define':
           setActiveTab('define');
+          break;
+        case 'publishing':
+          setActiveTab('publishing');
           break;
         default:
           setActiveTab('upload');
@@ -140,6 +144,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
     { id: "data" as const, label: `All ${project.mainObjectName || "Session"} Data`, icon: Database, disabled: !isSetupComplete },
     { id: "knowledge" as const, label: "Knowledge/Rules", icon: Brain, disabled: !isSetupComplete },
     { id: "define" as const, label: "Define Data", icon: Settings, disabled: false },
+    { id: "publishing" as const, label: "Publishing", icon: FolderOpen, disabled: false },
   ];
 
   const renderActiveContent = () => {
@@ -152,6 +157,8 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
         return <KnowledgeRules project={project} />;
       case "define":
         return <DefineData project={project} />;
+      case "publishing":
+        return <Publishing project={project} />;
     }
   };
 

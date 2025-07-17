@@ -9,6 +9,7 @@ import {
   fieldValidations,
   organizations,
   users,
+  projectPublishing,
   type Project, 
   type InsertProject,
   type ProjectSchemaField,
@@ -32,11 +33,13 @@ import {
   type User,
   type InsertUser,
   type OrganizationWithUsers,
-  type UserWithOrganization
+  type UserWithOrganization,
+  type ProjectPublishing,
+  type InsertProjectPublishing
 } from "@shared/schema";
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { eq, count, sql } from 'drizzle-orm';
+import { eq, count, sql, and } from 'drizzle-orm';
 
 export interface IStorage {
   // Organizations
@@ -108,6 +111,12 @@ export interface IStorage {
   updateFieldValidation(id: number, validation: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined>;
   deleteFieldValidation(id: number): Promise<boolean>;
   getSessionWithValidations(sessionId: number): Promise<ExtractionSessionWithValidation | undefined>;
+
+  // Project Publishing
+  getProjectPublishing(projectId: number): Promise<ProjectPublishing[]>;
+  getProjectPublishedOrganizations(projectId: number): Promise<Organization[]>;
+  publishProjectToOrganization(publishing: InsertProjectPublishing): Promise<ProjectPublishing>;
+  unpublishProjectFromOrganization(projectId: number, organizationId: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -121,6 +130,7 @@ export class MemStorage implements IStorage {
   private knowledgeDocuments: Map<number, KnowledgeDocument>;
   private extractionRules: Map<number, ExtractionRule>;
   private fieldValidations: Map<number, FieldValidation>;
+  private projectPublishing: Map<number, ProjectPublishing>;
   
   private currentOrganizationId: number;
   private currentUserId: number;
@@ -132,6 +142,7 @@ export class MemStorage implements IStorage {
   private currentDocumentId: number;
   private currentRuleId: number;
   private currentValidationId: number;
+  private currentPublishingId: number;
 
   constructor() {
     this.organizations = new Map();
@@ -144,6 +155,7 @@ export class MemStorage implements IStorage {
     this.knowledgeDocuments = new Map();
     this.extractionRules = new Map();
     this.fieldValidations = new Map();
+    this.projectPublishing = new Map();
     
     this.currentOrganizationId = 1;
     this.currentUserId = 1;
@@ -155,6 +167,7 @@ export class MemStorage implements IStorage {
     this.currentDocumentId = 1;
     this.currentRuleId = 1;
     this.currentValidationId = 1;
+    this.currentPublishingId = 1;
     
     // Initialize with sample data for development
     this.initializeSampleData();
@@ -1516,6 +1529,46 @@ class PostgreSQLStorage implements IStorage {
       ...session,
       fieldValidations: validations
     };
+  }
+
+  // Project Publishing methods
+  async getProjectPublishing(projectId: number): Promise<ProjectPublishing[]> { 
+    const result = await this.db
+      .select()
+      .from(projectPublishing)
+      .where(eq(projectPublishing.projectId, projectId));
+    return result;
+  }
+
+  async getProjectPublishedOrganizations(projectId: number): Promise<Organization[]> { 
+    const result = await this.db
+      .select({
+        id: organizations.id,
+        name: organizations.name,
+        description: organizations.description,
+        createdAt: organizations.createdAt,
+      })
+      .from(projectPublishing)
+      .innerJoin(organizations, eq(organizations.id, projectPublishing.organizationId))
+      .where(eq(projectPublishing.projectId, projectId));
+    return result;
+  }
+
+  async publishProjectToOrganization(publishing: InsertProjectPublishing): Promise<ProjectPublishing> { 
+    const result = await this.db.insert(projectPublishing).values(publishing).returning();
+    return result[0];
+  }
+
+  async unpublishProjectFromOrganization(projectId: number, organizationId: number): Promise<boolean> { 
+    const result = await this.db
+      .delete(projectPublishing)
+      .where(
+        and(
+          eq(projectPublishing.projectId, projectId),
+          eq(projectPublishing.organizationId, organizationId)
+        )
+      );
+    return result.rowCount > 0;
   }
 }
 

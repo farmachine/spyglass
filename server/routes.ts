@@ -16,7 +16,8 @@ import {
   loginSchema,
   registerUserSchema,
   resetPasswordSchema,
-  changePasswordApiSchema
+  changePasswordApiSchema,
+  insertProjectPublishingSchema
 } from "@shared/schema";
 import { authenticateToken, requireAdmin, generateToken, comparePassword, hashPassword, type AuthRequest } from "./auth";
 
@@ -1082,6 +1083,70 @@ except Exception as e:
       res.json(session);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch session with validations" });
+    }
+  });
+
+  // Project Publishing Routes
+  app.get("/api/projects/:projectId/publishing", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      
+      // Verify project belongs to user's organization
+      const project = await storage.getProject(projectId, req.user!.organizationId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      const publishedOrganizations = await storage.getProjectPublishedOrganizations(projectId);
+      res.json(publishedOrganizations);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch project publishing" });
+    }
+  });
+
+  app.post("/api/projects/:projectId/publishing", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      
+      // Verify project belongs to user's organization
+      const project = await storage.getProject(projectId, req.user!.organizationId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      const result = insertProjectPublishingSchema.safeParse({
+        ...req.body,
+        projectId
+      });
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid publishing data", errors: result.error.errors });
+      }
+      
+      const publishing = await storage.publishProjectToOrganization(result.data);
+      res.status(201).json(publishing);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to publish project to organization" });
+    }
+  });
+
+  app.delete("/api/projects/:projectId/publishing/:organizationId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const organizationId = parseInt(req.params.organizationId);
+      
+      // Verify project belongs to user's organization
+      const project = await storage.getProject(projectId, req.user!.organizationId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      const deleted = await storage.unpublishProjectFromOrganization(projectId, organizationId);
+      if (!deleted) {
+        return res.status(404).json({ message: "Publishing relationship not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to unpublish project from organization" });
     }
   });
 

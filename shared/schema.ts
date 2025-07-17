@@ -33,6 +33,14 @@ export const projects = pgTable("projects", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Project publishing to organizations
+export const projectPublishing = pgTable("project_publishing", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const projectSchemaFields = pgTable("project_schema_fields", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
@@ -172,6 +180,11 @@ export const insertFieldValidationSchema = createInsertSchema(fieldValidations).
   updatedAt: true,
 });
 
+export const insertProjectPublishingSchema = createInsertSchema(projectPublishing).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type Organization = typeof organizations.$inferSelect;
 export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
@@ -193,6 +206,8 @@ export type ExtractionRule = typeof extractionRules.$inferSelect;
 export type InsertExtractionRule = z.infer<typeof insertExtractionRuleSchema>;
 export type FieldValidation = typeof fieldValidations.$inferSelect;
 export type InsertFieldValidation = z.infer<typeof insertFieldValidationSchema>;
+export type ProjectPublishing = typeof projectPublishing.$inferSelect;
+export type InsertProjectPublishing = z.infer<typeof insertProjectPublishingSchema>;
 
 // Validation status types
 export type ValidationStatus = 'valid' | 'invalid' | 'pending' | 'manual';
