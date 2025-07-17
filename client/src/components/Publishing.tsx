@@ -130,7 +130,7 @@ export default function Publishing({ project }: PublishingProps) {
                 </SelectTrigger>
                 <SelectContent>
                   {availableOrganizations.map((org: Organization) => (
-                    <SelectItem key={org.id} value={org.id.toString()}>
+                    <SelectItem key={org.id} value={org.id}>
                       {org.name}
                     </SelectItem>
                   ))}

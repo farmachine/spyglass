@@ -1314,7 +1314,7 @@ class PostgreSQLStorage implements IStorage {
     const result = await this.db.insert(projectSchemaFields).values(field).returning();
     return result[0];
   }
-  async updateProjectSchemaField(id: number, field: Partial<InsertProjectSchemaField>): Promise<ProjectSchemaField | undefined> {
+  async updateProjectSchemaField(id: string, field: Partial<InsertProjectSchemaField>): Promise<ProjectSchemaField | undefined> {
     const result = await this.db
       .update(projectSchemaFields)
       .set(field)
@@ -1323,7 +1323,7 @@ class PostgreSQLStorage implements IStorage {
     return result[0];
   }
 
-  async deleteProjectSchemaField(id: number): Promise<boolean> {
+  async deleteProjectSchemaField(id: string): Promise<boolean> {
     const result = await this.db
       .delete(projectSchemaFields)
       .where(eq(projectSchemaFields.id, id));

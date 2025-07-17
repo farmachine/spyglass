@@ -49,10 +49,10 @@ export default function OrganizationConfig() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
   const [editUserOpen, setEditUserOpen] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<any>(null);
 
-  const organizationId = parseInt(id || "0");
+  const organizationId = id || "";
 
   const { data: organizations } = useQuery({
     queryKey: ["/api/organizations"],
