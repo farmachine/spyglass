@@ -29,6 +29,12 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const { data: project, isLoading, error } = useProject(projectId);
   const { user } = useAuth();
 
+  // Check user role for access control (needed in useEffect)
+  const isAdmin = user?.role === 'admin';
+  const isPrimaryOrgAdmin = isAdmin && user?.organization?.type === 'primary';
+  const canAccessConfigTabs = isAdmin;
+  const canAccessPublishing = isPrimaryOrgAdmin;
+
   // Read URL parameters and handle welcome flow
   useEffect(() => {
     if (!project) return;
@@ -41,16 +47,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       (project.schemaFields && project.schemaFields.length > 0) ||
       (project.collections && project.collections.length > 0);
     
-    // For new projects, admins start with 'define' tab, users with 'upload'
-    if (!isSetupComplete) {
-      if (user?.role === 'admin') {
-        setActiveTab('define');
-      } else {
-        setActiveTab('upload');
-      }
-      return;
-    }
-    
+    // If a specific tab is requested in URL, honor it first
     if (tab) {
       switch (tab) {
         case 'upload':
@@ -71,7 +68,21 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
         default:
           setActiveTab('upload');
       }
+      return;
     }
+    
+    // Only apply welcome flow if no specific tab is requested AND setup is not complete
+    if (!isSetupComplete) {
+      if (user?.role === 'admin') {
+        setActiveTab('define');
+      } else {
+        setActiveTab('upload');
+      }
+      return;
+    }
+    
+    // Default to upload tab if no tab specified and setup is complete
+    setActiveTab('upload');
   }, [project]);
 
   if (error) {
@@ -148,11 +159,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
     (project.schemaFields && project.schemaFields.length > 0) ||
     (project.collections && project.collections.length > 0);
 
-  // Check user role for access control
-  const isAdmin = user?.role === 'admin';
-  const isPrimaryOrgAdmin = isAdmin && user?.organization?.type === 'primary';
-  const canAccessConfigTabs = isAdmin;
-  const canAccessPublishing = isPrimaryOrgAdmin;
+
 
   const navItems = [
     { id: "upload" as const, label: `New ${project.mainObjectName || "Session"}`, icon: DropletIcon, disabled: !isSetupComplete },
