@@ -28,6 +28,8 @@ Preferred communication style: Simple, everyday language.
 - ✓ Enhanced progress bar design with wider width, better height, and smooth transition animations  
 - ✓ Added color coding: green for 100% completion, blue for partial progress, gray for no progress
 - ✓ Applied progress bar styling consistently across both All Data view and Session header displays
+- ✓ Fixed knowledge document upload redirect issue by prioritizing URL tab parameters over welcome flow
+- ✓ Knowledge document uploads now stay on Knowledge/Rules tab instead of redirecting to Define Data
 - ✓ **HEADER CONSISTENCY AND ALIGNMENT**: Fixed header layout across dashboard and project pages
 - ✓ Project page header now matches dashboard exactly with project name instead of "Extractly"
 - ✓ Resolved left alignment issues by removing max-width centering constraints

@@ -47,7 +47,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       (project.schemaFields && project.schemaFields.length > 0) ||
       (project.collections && project.collections.length > 0);
     
-    // If a specific tab is requested in URL, honor it first
+    // If a specific tab is requested in URL, honor it first (always override current tab)
     if (tab) {
       switch (tab) {
         case 'upload':
@@ -71,19 +71,20 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       return;
     }
     
-    // Only apply welcome flow if no specific tab is requested AND setup is not complete
-    if (!isSetupComplete) {
+    // Only apply welcome flow logic if we're starting fresh (no existing tab state)
+    // This prevents overriding the current tab when project data is refetched
+    if (activeTab === 'upload' && !isSetupComplete) {
       if (user?.role === 'admin') {
         setActiveTab('define');
-      } else {
-        setActiveTab('upload');
       }
       return;
     }
     
-    // Default to upload tab if no tab specified and setup is complete
-    setActiveTab('upload');
-  }, [project]);
+    // Only set default if no tab is currently active
+    if (!activeTab) {
+      setActiveTab('upload');
+    }
+  }, [project, canAccessConfigTabs, canAccessPublishing, user?.role]);
 
   if (error) {
     return (
