@@ -23,46 +23,38 @@ export default function ExtractlyLogo({ className = "", showText = true }: Extra
         <svg
           width="60"
           height="60"
-          viewBox="0 0 120 80"
+          viewBox="0 0 80 40"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
           className="drop-shadow-md"
         >
           <defs>
-            <linearGradient id="darkWaveGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#1E90FF" />
+            <linearGradient id="waveGradient1" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#0EA5E9" />
               <stop offset="100%" stopColor="#0284C7" />
             </linearGradient>
-            <linearGradient id="lightWaveGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#87CEEB" />
-              <stop offset="100%" stopColor="#B0E0E6" />
+            <linearGradient id="waveGradient2" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#38BDF8" />
+              <stop offset="100%" stopColor="#0EA5E9" />
             </linearGradient>
           </defs>
           
-          {/* Main dark wave shape */}
+          {/* First wave line */}
           <path
-            d="M20 45 Q35 25 50 35 Q65 45 80 30 Q90 25 100 35 L100 65 Q85 55 70 60 Q55 65 40 55 Q25 50 20 60 Z"
-            fill="url(#darkWaveGradient)"
-          />
-          
-          {/* Light wave overlay */}
-          <path
-            d="M15 35 Q30 15 45 25 Q60 35 75 20 Q85 15 95 25 Q105 30 115 25"
-            stroke="url(#lightWaveGradient)"
-            strokeWidth="8"
+            d="M5 15 Q20 8 35 15 Q50 22 65 15 Q72 12 75 15"
+            stroke="url(#waveGradient1)"
+            strokeWidth="4"
             strokeLinecap="round"
             fill="none"
-            opacity="0.8"
           />
           
-          {/* Secondary light wave */}
+          {/* Second wave line */}
           <path
-            d="M10 50 Q25 30 40 40 Q55 50 70 35 Q80 30 90 40"
-            stroke="url(#lightWaveGradient)"
-            strokeWidth="6"
+            d="M5 25 Q20 18 35 25 Q50 32 65 25 Q72 22 75 25"
+            stroke="url(#waveGradient2)"
+            strokeWidth="4"
             strokeLinecap="round"
             fill="none"
-            opacity="0.6"
           />
         </svg>
       </div>
