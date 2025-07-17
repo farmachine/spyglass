@@ -209,19 +209,20 @@ export default function SessionView() {
     }
   };
 
-  const handleSave = async (fieldName: string) => {
+  const handleSave = async (fieldName: string, newValue?: string) => {
     const validation = getValidation(fieldName);
     if (validation) {
-      // For date fields, ensure we store a proper date format or null
-      let valueToStore = editValue;
+      // Use provided value or current edit value
+      const valueToUse = newValue !== undefined ? newValue : editValue;
+      let valueToStore = valueToUse;
       const fieldType = getFieldType(fieldName);
       
       if (fieldType === 'DATE') {
-        if (!editValue || editValue.trim() === '') {
+        if (!valueToUse || valueToUse.trim() === '') {
           valueToStore = null;
         } else {
           // Validate the date format
-          const dateObj = new Date(editValue);
+          const dateObj = new Date(valueToUse);
           if (!isNaN(dateObj.getTime())) {
             // Store as ISO date string for consistency
             valueToStore = dateObj.toISOString().split('T')[0];
@@ -235,8 +236,8 @@ export default function SessionView() {
         id: validation.id,
         data: {
           extractedValue: valueToStore,
-          validationStatus: "manual",
-          manuallyVerified: true
+          validationStatus: valueToStore ? "valid" : "pending",
+          manuallyVerified: !!valueToStore
         }
       });
     }
@@ -385,16 +386,27 @@ export default function SessionView() {
             </div>
           ) : (
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-sm text-gray-900">
-                {fieldType === 'DATE' ? formatDateForDisplay(value) : String(value)}
-              </span>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => handleEdit(fieldName, value)}
-              >
-                <Edit3 className="h-3 w-3" />
-              </Button>
+              {fieldType === 'DATE' ? (
+                <Input
+                  type="date"
+                  value={value || ''}
+                  onChange={(e) => handleSave(fieldName, e.target.value)}
+                  className="flex-1 text-sm"
+                />
+              ) : (
+                <>
+                  <span className="text-sm text-gray-900">
+                    {String(value || '')}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleEdit(fieldName, value)}
+                  >
+                    <Edit3 className="h-3 w-3" />
+                  </Button>
+                </>
+              )}
             </div>
           )}
         </div>

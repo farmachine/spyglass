@@ -942,9 +942,28 @@ except Exception as e:
                 
                 // Get field type for proper value normalization
                 if (validation.field_type === 'DATE') {
-                  // For date fields, normalize "null" strings to actual null
-                  if (normalizedValue === "null" || normalizedValue === "undefined" || !normalizedValue) {
+                  // For date fields, convert various invalid values to null
+                  if (!normalizedValue || 
+                      normalizedValue === "null" || 
+                      normalizedValue === "undefined" || 
+                      normalizedValue === "Not found" ||
+                      normalizedValue === "" ||
+                      normalizedValue.toString().toLowerCase().includes("not found") ||
+                      normalizedValue.toString().toLowerCase().includes("not available")) {
                     normalizedValue = null;
+                  } else {
+                    // Try to parse and validate date format
+                    try {
+                      const date = new Date(normalizedValue);
+                      if (!isNaN(date.getTime())) {
+                        // Format as ISO date string (YYYY-MM-DD)
+                        normalizedValue = date.toISOString().split('T')[0];
+                      } else {
+                        normalizedValue = null;
+                      }
+                    } catch (error) {
+                      normalizedValue = null;
+                    }
                   }
                 }
                 
