@@ -705,7 +705,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/sessions/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       const session = await storage.getExtractionSession(id);
       if (!session) {
         return res.status(404).json({ message: "Session not found" });
@@ -718,7 +718,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/sessions/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       const result = insertExtractionSessionSchema.partial().safeParse(req.body);
       if (!result.success) {
         return res.status(400).json({ message: "Invalid session data", errors: result.error.errors });
@@ -735,7 +735,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Helper function to generate initial field validations for a new session
-  const generateInitialFieldValidations = async (sessionId: number, projectId: number) => {
+  const generateInitialFieldValidations = async (sessionId: string, projectId: string) => {
     try {
       const project = await storage.getProjectWithDetails(projectId);
       if (!project) {
