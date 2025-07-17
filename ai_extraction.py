@@ -9,6 +9,15 @@ from google import genai
 from google.genai import types
 from pydantic import BaseModel
 
+# Configure logging for debugging - ensure output to console for debugging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stderr),  # Output to stderr for debugging
+    ]
+)
+
 # Initialize Gemini client - ensure we use GEMINI_API_KEY specifically
 # Temporarily remove GOOGLE_API_KEY to force use of GEMINI_API_KEY
 if "GOOGLE_API_KEY" in os.environ:
@@ -302,6 +311,13 @@ def check_knowledge_document_conflicts(field_name: str, extracted_value: Any, kn
         return False, []
     
     # Add debugging
+    print(f"CONFLICT DEBUG: Checking field '{field_name}' with value '{extracted_value}'", file=sys.stderr)
+    print(f"CONFLICT DEBUG: Knowledge documents count: {len(knowledge_documents)}", file=sys.stderr)
+    for doc in knowledge_documents:
+        print(f"CONFLICT DEBUG: Document '{doc.get('displayName', 'Unknown')}' has content: {bool(doc.get('content'))}", file=sys.stderr)
+        if doc.get('content'):
+            print(f"CONFLICT DEBUG: Content preview: {doc.get('content', '')[:200]}...", file=sys.stderr)
+    
     logging.info(f"CONFLICT DEBUG: Checking field '{field_name}' with value '{extracted_value}'")
     logging.info(f"CONFLICT DEBUG: Knowledge documents count: {len(knowledge_documents)}")
     for doc in knowledge_documents:
@@ -835,10 +851,17 @@ def generate_field_validations(
 ) -> List[FieldValidationResult]:
     """Generate field validation results based on extracted data"""
     
+    print(f"VALIDATION DEBUG: Starting field validation generation", file=sys.stderr)
+    print(f"VALIDATION DEBUG: Knowledge documents passed: {len(knowledge_documents) if knowledge_documents else 0}", file=sys.stderr)
+    if knowledge_documents:
+        for doc in knowledge_documents:
+            print(f"VALIDATION DEBUG: Doc '{doc.get('displayName', 'Unknown')}' has content: {bool(doc.get('content'))}", file=sys.stderr)
+    
     logging.info(f"Generating validations with schema: {project_schema}")
     logging.info(f"Schema fields: {project_schema.get('schema_fields', [])}")
     logging.info(f"Collections: {project_schema.get('collections', [])}")
     logging.info(f"Extraction rules: {extraction_rules}")
+    logging.info(f"Knowledge documents: {len(knowledge_documents) if knowledge_documents else 0}")
     
     validations = []
     
