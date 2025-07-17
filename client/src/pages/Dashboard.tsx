@@ -10,7 +10,7 @@ import { useLocation } from "wouter";
 import ProjectCard from "@/components/ProjectCard";
 import CreateProjectDialog from "@/components/CreateProjectDialog";
 import UserProfile from "@/components/UserProfile";
-import FlowCaptureLogo from "@/components/FlowCaptureLogo";
+import EZFlowLogo from "@/components/EZFlowLogo";
 
 export default function Dashboard() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -97,7 +97,7 @@ export default function Dashboard() {
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <FlowCaptureLogo />
+            <EZFlowLogo />
             <div className="flex items-center space-x-4">
               {isAdmin && (
                 <Button

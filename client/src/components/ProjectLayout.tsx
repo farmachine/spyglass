@@ -14,7 +14,7 @@ import DefineData from "./DefineData";
 import Publishing from "./Publishing";
 import UserProfile from "./UserProfile";
 import Breadcrumb from "./Breadcrumb";
-import FlowCaptureLogo from "./FlowCaptureLogo";
+import EZFlowLogo from "./EZFlowLogo";
 
 interface ProjectLayoutProps {
   projectId: string;
@@ -188,7 +188,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
           <div className="flex flex-col space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <FlowCaptureLogo showText={false} />
+                <EZFlowLogo showText={false} />
                 <Breadcrumb 
                   items={[
                     { label: project.name, icon: <ShipIcon className="h-4 w-4" /> }

@@ -1,11 +1,11 @@
 import { useLocation } from "wouter";
 
-interface FlowCaptureLogoProps {
+interface EZFlowLogoProps {
   className?: string;
   showText?: boolean;
 }
 
-export default function FlowCaptureLogo({ className = "", showText = true }: FlowCaptureLogoProps) {
+export default function EZFlowLogo({ className = "", showText = true }: EZFlowLogoProps) {
   const [, setLocation] = useLocation();
 
   const handleClick = () => {
@@ -16,7 +16,7 @@ export default function FlowCaptureLogo({ className = "", showText = true }: Flo
     <button
       onClick={handleClick}
       className={`flex items-center space-x-3 transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-lg p-1 ${className}`}
-      aria-label="Flow Capture - Go to Dashboard"
+      aria-label="EZFlow - Go to Dashboard"
     >
       {/* Logo SVG */}
       <div className="relative">
@@ -79,7 +79,7 @@ export default function FlowCaptureLogo({ className = "", showText = true }: Flo
       {showText && (
         <div className="flex flex-col">
           <span className="text-xl font-bold text-foreground leading-tight">
-            Flow Capture
+            EZFlow
           </span>
           <span className="text-xs text-muted-foreground leading-tight">
             Data Extraction Platform

@@ -1,8 +1,8 @@
-# Flow Capture - AI-Powered Document Data Extraction Platform
+# EZFlow - AI-Powered Document Data Extraction Platform
 
 ## Overview
 
-Flow Capture is a comprehensive AI-powered document data extraction platform built with React, Express, and TypeScript. The application intelligently processes complex legal and business documents with enhanced conflict detection and collaborative workspace capabilities. Users can configure extraction schemas, upload documents, and review extracted data with sophisticated AI-driven analysis and knowledge-based validation.
+EZFlow is a comprehensive AI-powered document data extraction platform built with React, Express, and TypeScript. The application intelligently processes complex legal and business documents with enhanced conflict detection and collaborative workspace capabilities. Users can configure extraction schemas, upload documents, and review extracted data with sophisticated AI-driven analysis and knowledge-based validation.
 
 ## User Preferences
 
