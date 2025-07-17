@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Download } from "lucide-react";
 import ValidationIcon, { ValidationProgress } from "./ValidationIcon";
 import { apiRequest } from "@/lib/queryClient";
+import * as XLSX from 'xlsx';
 import type { 
   ExtractionSessionWithValidation, 
   FieldValidation, 
@@ -73,6 +75,73 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
     setEditValue("");
   };
 
+  const handleExportToExcel = () => {
+    if (!session) return;
+
+    const workbook = XLSX.utils.book_new();
+    
+    // Sheet 1: Main Object Info (Schema Fields)
+    const mainObjectData = schemaFieldValidations.map(validation => [
+      validation.fieldName,
+      validation.extractedValue || ''
+    ]);
+    
+    const mainObjectSheet = XLSX.utils.aoa_to_sheet([
+      ['Property Name', 'Property Value'],
+      ...mainObjectData
+    ]);
+    
+    XLSX.utils.book_append_sheet(workbook, mainObjectSheet, project.mainObjectName || 'Main Object');
+
+    // Sheets 2+: Collection Data
+    Object.entries(collectionGroups).forEach(([collectionName, collectionValidations]) => {
+      // Group validations by record index to create rows
+      const recordGroups: Record<number, FieldValidation[]> = {};
+      
+      collectionValidations.forEach(validation => {
+        const recordIndex = validation.recordIndex || 0;
+        if (!recordGroups[recordIndex]) recordGroups[recordIndex] = [];
+        recordGroups[recordIndex].push(validation);
+      });
+
+      // Get unique property names for columns
+      const propertyNames = [...new Set(collectionValidations.map(v => 
+        v.fieldName.split('.')[1]?.replace(/\[\d+\]$/, '') || v.fieldName
+      ))].sort();
+
+      // Create header row
+      const headers = propertyNames;
+      
+      // Create data rows
+      const dataRows = Object.keys(recordGroups)
+        .sort((a, b) => parseInt(a) - parseInt(b))
+        .map(recordIndex => {
+          const recordValidations = recordGroups[parseInt(recordIndex)];
+          return propertyNames.map(propertyName => {
+            const validation = recordValidations.find(v => 
+              v.fieldName.includes(`.${propertyName}`)
+            );
+            return validation?.extractedValue || '';
+          });
+        });
+
+      // Create worksheet
+      const collectionSheet = XLSX.utils.aoa_to_sheet([
+        headers,
+        ...dataRows
+      ]);
+
+      XLSX.utils.book_append_sheet(workbook, collectionSheet, collectionName);
+    });
+
+    // Generate filename with session name and timestamp
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `${session.sessionName.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.xlsx`;
+
+    // Export the file
+    XLSX.writeFile(workbook, filename);
+  };
+
   if (isLoading) {
     return (
       <div className="p-8">
@@ -131,9 +200,20 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
             <h2 className="text-2xl font-bold">{session.sessionName}</h2>
             <p className="text-gray-600">{session.description}</p>
           </div>
-          <Badge variant={session.status === 'completed' ? 'default' : 'secondary'}>
-            {session.status}
-          </Badge>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={handleExportToExcel}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export to Excel
+            </Button>
+            <Badge variant={session.status === 'completed' ? 'default' : 'secondary'}>
+              {session.status}
+            </Badge>
+          </div>
         </div>
 
         {/* Validation Progress */}
