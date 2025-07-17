@@ -160,42 +160,45 @@ export default function ProjectCard({ project }: ProjectCardProps) {
           </div>
           
           <div className="mt-4">
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-start justify-between text-sm">
               <div className="text-center">
                 <div className="font-medium text-gray-900">0</div>
                 <div className="text-gray-500">Sessions</div>
               </div>
-              <div className="flex items-center gap-1 text-gray-500">
-                <Building className="h-4 w-4" />
-                <span className="text-xs">Published to</span>
-              </div>
-            </div>
-            
-            {publishedOrganizations.length > 0 ? (
-              <div className="mt-2 flex flex-wrap gap-1">
-                {publishedOrganizations.slice(0, 3).map((org: Organization) => (
-                  <Badge 
-                    key={org.id} 
-                    variant="secondary" 
-                    className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 border-blue-200"
-                  >
-                    {org.name}
-                  </Badge>
-                ))}
-                {publishedOrganizations.length > 3 && (
-                  <Badge 
-                    variant="secondary" 
-                    className="text-xs px-2 py-0.5 bg-gray-50 text-gray-600 border-gray-200"
-                  >
-                    +{publishedOrganizations.length - 3} more
-                  </Badge>
+              
+              <div className="flex flex-col items-end">
+                <div className="flex items-center gap-1 text-gray-500 mb-2">
+                  <Building className="h-4 w-4" />
+                  <span className="text-xs">Published to</span>
+                </div>
+                
+                {publishedOrganizations.length > 0 ? (
+                  <div className="flex flex-wrap gap-1 justify-end">
+                    {publishedOrganizations.slice(0, 3).map((org: Organization) => (
+                      <Badge 
+                        key={org.id} 
+                        variant="secondary" 
+                        className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 border-blue-200"
+                      >
+                        {org.name}
+                      </Badge>
+                    ))}
+                    {publishedOrganizations.length > 3 && (
+                      <Badge 
+                        variant="secondary" 
+                        className="text-xs px-2 py-0.5 bg-gray-50 text-gray-600 border-gray-200"
+                      >
+                        +{publishedOrganizations.length - 3} more
+                      </Badge>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-xs text-gray-400 italic text-right">
+                    Not published to any organizations
+                  </div>
                 )}
               </div>
-            ) : (
-              <div className="mt-2 text-xs text-gray-400 italic">
-                Not published to any organizations
-              </div>
-            )}
+            </div>
           </div>
         </CardContent>
       </Card>
