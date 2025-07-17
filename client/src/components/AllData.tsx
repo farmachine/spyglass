@@ -89,6 +89,18 @@ export default function AllData({ project }: AllDataProps) {
 
   const verificationStats = getVerificationStats();
 
+  // Get verification progress for a session
+  const getSessionProgress = (sessionId: number) => {
+    const sessionValidations = allValidations.filter(v => v.sessionId === sessionId);
+    if (sessionValidations.length === 0) return { verified: 0, total: 0, percentage: 0 };
+    
+    const verified = sessionValidations.filter(v => v.validationStatus === 'valid' || v.validationStatus === 'verified').length;
+    const total = sessionValidations.length;
+    const percentage = Math.round((verified / total) * 100);
+    
+    return { verified, total, percentage };
+  };
+
   // Sortable column header component
   const SortableHeader = ({ field, children, className = "py-3" }: { 
     field: SortField; 
@@ -160,18 +172,6 @@ export default function AllData({ project }: AllDataProps) {
       }
     });
   }, [project.sessions, sortField, sortDirection, allValidations]);
-
-  // Get verification progress for a session
-  const getSessionProgress = (sessionId: number) => {
-    const sessionValidations = allValidations.filter(v => v.sessionId === sessionId);
-    if (sessionValidations.length === 0) return { verified: 0, total: 0, percentage: 0 };
-    
-    const verified = sessionValidations.filter(v => v.validationStatus === 'valid' || v.validationStatus === 'verified').length;
-    const total = sessionValidations.length;
-    const percentage = Math.round((verified / total) * 100);
-    
-    return { verified, total, percentage };
-  };
 
   return (
     <div>
