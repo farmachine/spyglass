@@ -194,13 +194,9 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-6">
               <ExtractlyLogo showText={false} />
-              <div className="flex items-center space-x-2 text-2xl font-semibold text-gray-900">
-                <HomeIcon className="h-6 w-6 text-gray-400" />
-                <span className="text-gray-400">&gt;</span>
-                <span>{project.name}</span>
-              </div>
+              <Breadcrumb items={[{ label: project.name }]} />
             </div>
             <UserProfile />
           </div>
