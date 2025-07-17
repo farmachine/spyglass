@@ -337,206 +337,187 @@ export default function NewUpload({ project }: NewUploadProps) {
         </p>
       </div>
 
-      {!canStartExtraction && (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            You need to define at least one schema field or object collection in the "Define Data" tab before uploading documents.
-          </AlertDescription>
-        </Alert>
-      )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Upload Area */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Documents</CardTitle>
-            <CardDescription>
-              Select or drag files to start the extraction process
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div
-              className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-                dragActive 
-                  ? "border-blue-500 bg-blue-50" 
-                  : "border-gray-300 hover:border-gray-400"
-              }`}
-              onDragEnter={handleDrag}
-              onDragLeave={handleDrag}
-              onDragOver={handleDrag}
-              onDrop={handleDrop}
-            >
-              <Upload className="h-8 w-8 text-gray-400 mx-auto mb-4" />
-              <div>
-                <p className="text-lg font-medium text-gray-900">
-                  Drop files here, or{" "}
-                  <label className="text-blue-600 hover:text-blue-500 cursor-pointer">
-                    browse
-                    <input
-                      type="file"
-                      className="hidden"
-                      multiple
-                      accept={ACCEPTED_FILE_TYPES.join(",")}
-                      onChange={handleFileInput}
-                      disabled={isProcessing}
-                    />
-                  </label>
-                </p>
-                <p className="text-sm text-gray-500 mt-2">
-                  Supports: PDF, Word, Excel, CSV, Text files (max {MAX_FILES} files, {MAX_FILE_SIZE / (1024 * 1024)}MB each)
-                </p>
-              </div>
-            </div>
 
-            {selectedFiles.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="font-medium text-gray-900">Selected Files ({selectedFiles.length})</h4>
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {selectedFiles.map((fileData) => (
-                    <div key={fileData.id} className="flex items-center gap-3 p-2 bg-gray-50 rounded">
-                      <FileText className="h-4 w-4 text-blue-600 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {fileData.file.name}
-                        </p>
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(fileData.status)}
-                          <span className="text-xs text-gray-500">
-                            {getStatusText(fileData.status)}
-                          </span>
-                          {fileData.status === "uploading" && (
-                            <Progress value={fileData.progress} className="flex-1 h-1" />
-                          )}
-                        </div>
-                      </div>
-                      {!isProcessing && fileData.status === "pending" && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeFile(fileData.id)}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
+      <Card>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Upload Area */}
+            <div className="space-y-4">
+              <div
+                className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                  dragActive 
+                    ? "border-blue-500 bg-blue-50" 
+                    : "border-gray-300 hover:border-gray-400"
+                }`}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+              >
+                <Upload className="h-8 w-8 text-gray-400 mx-auto mb-4" />
+                <div>
+                  <p className="text-lg font-medium text-gray-900">
+                    Drop files here, or{" "}
+                    <label className="text-blue-600 hover:text-blue-500 cursor-pointer">
+                      browse
+                      <input
+                        type="file"
+                        className="hidden"
+                        multiple
+                        accept={ACCEPTED_FILE_TYPES.join(",")}
+                        onChange={handleFileInput}
+                        disabled={isProcessing}
+                      />
+                    </label>
+                  </p>
+                  <p className="text-sm text-gray-500 mt-2">
+                    Supports: PDF, Word, Excel, CSV, Text files (max {MAX_FILES} files, {MAX_FILE_SIZE / (1024 * 1024)}MB each)
+                  </p>
                 </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
 
-        {/* Session Configuration */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Configuration</CardTitle>
-            <CardDescription>
-              Configure how this {(project.mainObjectName || "session").toLowerCase()} should be processed
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="sessionName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{project.mainObjectName || "Session"} Name</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder={`e.g., Q4 2024 ${project.mainObjectName || "Session"} Data`}
-                          {...field}
-                          disabled={isProcessing}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description (Optional)</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Additional context about this upload session..."
-                          {...field}
-                          disabled={isProcessing}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="pt-4">
-                  <h4 className="font-medium text-gray-900 mb-2">Extraction Schema</h4>
-                  <div className="space-y-2">
-                    {project.schemaFields.length > 0 && (
-                      <div>
-                        <p className="text-sm text-gray-600 mb-1">Project Fields ({project.schemaFields.length})</p>
-                        <div className="flex flex-wrap gap-1">
-                          {project.schemaFields.slice(0, 3).map((field) => (
-                            <Badge key={field.id} variant="outline" className="text-xs">
-                              {field.fieldName}
-                            </Badge>
-                          ))}
-                          {project.schemaFields.length > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{project.schemaFields.length - 3} more
-                            </Badge>
-                          )}
+              {selectedFiles.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-medium text-gray-900">Selected Files ({selectedFiles.length})</h4>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {selectedFiles.map((fileData) => (
+                      <div key={fileData.id} className="flex items-center gap-3 p-2 bg-gray-50 rounded">
+                        <FileText className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {fileData.file.name}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            {getStatusIcon(fileData.status)}
+                            <span className="text-xs text-gray-500">
+                              {getStatusText(fileData.status)}
+                            </span>
+                            {fileData.status === "uploading" && (
+                              <Progress value={fileData.progress} className="flex-1 h-1" />
+                            )}
+                          </div>
                         </div>
+                        {!isProcessing && fileData.status === "pending" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeFile(fileData.id)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        )}
                       </div>
-                    )}
-
-                    {project.collections.length > 0 && (
-                      <div>
-                        <p className="text-sm text-gray-600 mb-1">Object Collections ({project.collections.length})</p>
-                        <div className="flex flex-wrap gap-1">
-                          {project.collections.slice(0, 3).map((collection) => (
-                            <Badge key={collection.id} variant="secondary" className="text-xs">
-                              {collection.collectionName}
-                            </Badge>
-                          ))}
-                          {project.collections.length > 3 && (
-                            <Badge variant="secondary" className="text-xs">
-                              +{project.collections.length - 3} more
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    )}
+                    ))}
                   </div>
                 </div>
+              )}
+            </div>
 
-                <Button 
-                  type="submit" 
-                  disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
-                  className="w-full"
-                >
-                  {isProcessing ? (
-                    <>
-                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="h-4 w-4 mr-2" />
-                      Start Extraction
-                    </>
-                  )}
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-      </div>
+            {/* Session Configuration */}
+            <div>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="sessionName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{project.mainObjectName || "Session"} Name</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder={`e.g., Q4 2024 ${project.mainObjectName || "Session"} Data`}
+                            {...field}
+                            disabled={isProcessing}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description (Optional)</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Additional context about this upload session..."
+                            {...field}
+                            disabled={isProcessing}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="pt-4">
+                    <h4 className="font-medium text-gray-900 mb-2">Extraction Schema</h4>
+                    <div className="space-y-2">
+                      {project.schemaFields.length > 0 && (
+                        <div>
+                          <p className="text-sm text-gray-600 mb-1">Project Fields ({project.schemaFields.length})</p>
+                          <div className="flex flex-wrap gap-1">
+                            {project.schemaFields.slice(0, 3).map((field) => (
+                              <Badge key={field.id} variant="outline" className="text-xs">
+                                {field.fieldName}
+                              </Badge>
+                            ))}
+                            {project.schemaFields.length > 3 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{project.schemaFields.length - 3} more
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {project.collections.length > 0 && (
+                        <div>
+                          <p className="text-sm text-gray-600 mb-1">Object Collections ({project.collections.length})</p>
+                          <div className="flex flex-wrap gap-1">
+                            {project.collections.slice(0, 3).map((collection) => (
+                              <Badge key={collection.id} variant="secondary" className="text-xs">
+                                {collection.collectionName}
+                              </Badge>
+                            ))}
+                            {project.collections.length > 3 && (
+                              <Badge variant="secondary" className="text-xs">
+                                +{project.collections.length - 3} more
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <Button 
+                    type="submit" 
+                    disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
+                    className="w-full"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-4 w-4 mr-2" />
+                        Start Extraction
+                      </>
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
