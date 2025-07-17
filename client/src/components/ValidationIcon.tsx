@@ -36,23 +36,23 @@ export default function ValidationIcon({
 
     switch (status) {
       case "valid":
-        return <CheckCircle className={`${iconSize} text-green-600`} />;
+        return <CheckCircle className={`${iconSize} text-success`} />;
       case "invalid":
-        return <AlertCircle className={`${iconSize} text-red-600`} />;
+        return <AlertCircle className={`${iconSize} text-destructive`} />;
       case "manual":
-        return <Edit2 className={`${iconSize} text-blue-600`} />;
+        return <Edit2 className={`${iconSize} text-primary`} />;
       case "pending":
       default:
-        return <Clock className={`${iconSize} text-gray-400`} />;
+        return <Clock className={`${iconSize} text-muted-foreground`} />;
     }
   };
 
   const getStatusBadge = () => {
     const badgeVariants = {
-      valid: "bg-green-100 text-green-800 border-green-200",
-      invalid: "bg-red-100 text-red-800 border-red-200", 
-      manual: "bg-blue-100 text-blue-800 border-blue-200",
-      pending: "bg-gray-100 text-gray-600 border-gray-200"
+      valid: "bg-success/10 text-success border-success/20",
+      invalid: "bg-destructive/10 text-destructive border-destructive/20", 
+      manual: "bg-primary/10 text-primary border-primary/20",
+      pending: "bg-muted text-muted-foreground border-border"
     };
 
     const statusLabels = {
@@ -165,22 +165,22 @@ export function ValidationProgress({
       
       <div className="w-full bg-gray-200 rounded-full h-2">
         <div 
-          className="bg-green-600 h-2 rounded-full transition-all duration-300"
+          className="bg-success h-2 rounded-full transition-all duration-300"
           style={{ width: `${completionPercentage}%` }}
         />
       </div>
       
       <div className="flex items-center gap-4 text-xs text-gray-600">
         <div className="flex items-center gap-1">
-          <CheckCircle className="h-3 w-3 text-green-600" />
+          <CheckCircle className="h-3 w-3 text-success" />
           <span>{validFields + manualFields} Valid</span>
         </div>
         <div className="flex items-center gap-1">
-          <AlertCircle className="h-3 w-3 text-red-600" />
+          <AlertCircle className="h-3 w-3 text-destructive" />
           <span>{invalidFields} Invalid</span>
         </div>
         <div className="flex items-center gap-1">
-          <Clock className="h-3 w-3 text-gray-400" />
+          <Clock className="h-3 w-3 text-muted-foreground" />
           <span>{pendingFields} Pending</span>
         </div>
       </div>

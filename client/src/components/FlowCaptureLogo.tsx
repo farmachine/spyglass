@@ -31,8 +31,8 @@ export default function FlowCaptureLogo({ className = "", showText = true }: Flo
           {/* Background circle with gradient */}
           <defs>
             <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#3B82F6" />
-              <stop offset="100%" stopColor="#1D4ED8" />
+              <stop offset="0%" stopColor="#0EA5E9" />
+              <stop offset="100%" stopColor="#0284C7" />
             </linearGradient>
             <linearGradient id="flowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.9" />
@@ -47,7 +47,7 @@ export default function FlowCaptureLogo({ className = "", showText = true }: Flo
             cy="20"
             r="18"
             fill="url(#logoGradient)"
-            stroke="#1E40AF"
+            stroke="#0284C7"
             strokeWidth="1"
           />
           
@@ -78,10 +78,10 @@ export default function FlowCaptureLogo({ className = "", showText = true }: Flo
       {/* App name */}
       {showText && (
         <div className="flex flex-col">
-          <span className="text-xl font-bold text-gray-900 leading-tight">
+          <span className="text-xl font-bold text-foreground leading-tight">
             Flow Capture
           </span>
-          <span className="text-xs text-gray-500 leading-tight">
+          <span className="text-xs text-muted-foreground leading-tight">
             Data Extraction Platform
           </span>
         </div>

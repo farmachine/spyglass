@@ -103,11 +103,11 @@ const ConfidenceBadge = ({
   
   const getConfidenceLevel = (score: number) => {
     if (score >= 80) {
-      return { level: "high", color: "bg-green-100 text-green-800", description: "High confidence" };
+      return { level: "high", color: "bg-success/10 text-success border-success/20", description: "High confidence" };
     } else if (score >= 50) {
-      return { level: "medium", color: "bg-yellow-100 text-yellow-800", description: "Medium confidence" };
+      return { level: "medium", color: "bg-warning/10 text-warning border-warning/20", description: "Medium confidence" };
     } else {
-      return { level: "low", color: "bg-red-100 text-red-800", description: "Low confidence" };
+      return { level: "low", color: "bg-destructive/10 text-destructive border-destructive/20", description: "Low confidence" };
     }
   };
 
@@ -156,7 +156,7 @@ const ConfidenceBadge = ({
 
 const NotExtractedBadge = () => (
   <span 
-    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800"
+    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive border border-destructive/20"
     title="This field was not extracted from the document"
   >
     Not Extracted
@@ -165,7 +165,7 @@ const NotExtractedBadge = () => (
 
 const ManualInputBadge = () => (
   <span 
-    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20"
     title="This field has been manually updated"
   >
     Manual Input
@@ -193,13 +193,13 @@ const ValidationIcon = ({ fieldName, validation, onToggle }: {
       >
         {isVerified ? (
           <>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <span className="text-green-600">Verified</span>
+            <CheckCircle className="h-4 w-4 text-success" />
+            <span className="text-success">Verified</span>
           </>
         ) : (
           <>
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-            <span className="text-red-600">Unverified</span>
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+            <span className="text-destructive">Unverified</span>
           </>
         )}
       </button>
