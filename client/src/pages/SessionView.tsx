@@ -37,7 +37,7 @@ const ConfidenceBadge = ({ confidenceScore }: { confidenceScore: number }) => {
       className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${confidence.color}`}
       title={confidence.description}
     >
-      {confidenceScore}%
+      Confidence: {confidenceScore}%
     </span>
   );
 };
