@@ -31,7 +31,7 @@ export default function Publishing({ project }: PublishingProps) {
 
   // Mutation to publish project to organization
   const publishMutation = useMutation({
-    mutationFn: async (organizationId: number) => {
+    mutationFn: async (organizationId: string) => {
       return apiRequest(`/api/projects/${project.id}/publishing`, {
         method: "POST",
         body: JSON.stringify({ organizationId }),
@@ -56,7 +56,7 @@ export default function Publishing({ project }: PublishingProps) {
 
   // Mutation to unpublish project from organization
   const unpublishMutation = useMutation({
-    mutationFn: async (organizationId: number) => {
+    mutationFn: async (organizationId: string) => {
       return apiRequest(`/api/projects/${project.id}/publishing/${organizationId}`, {
         method: "DELETE",
       });
@@ -84,11 +84,11 @@ export default function Publishing({ project }: PublishingProps) {
 
   const handlePublish = () => {
     if (selectedOrganizationId) {
-      publishMutation.mutate(parseInt(selectedOrganizationId));
+      publishMutation.mutate(selectedOrganizationId);
     }
   };
 
-  const handleUnpublish = (organizationId: number) => {
+  const handleUnpublish = (organizationId: string) => {
     unpublishMutation.mutate(organizationId);
   };
 
