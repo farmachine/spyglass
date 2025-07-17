@@ -1446,7 +1446,40 @@ class PostgreSQLStorage implements IStorage {
   }
   async getFieldValidations(sessionId: number): Promise<FieldValidation[]> { 
     const result = await this.db.select().from(fieldValidations).where(eq(fieldValidations.sessionId, sessionId));
-    return result;
+    
+    // Enhance results with field names
+    const enhancedValidations = await Promise.all(result.map(async (validation) => {
+      let fieldName = '';
+      
+      if (validation.fieldType === 'schema_field') {
+        // Get field name from project schema fields
+        const schemaField = await this.db
+          .select({ fieldName: projectSchemaFields.fieldName })
+          .from(projectSchemaFields)
+          .where(eq(projectSchemaFields.id, validation.fieldId))
+          .limit(1);
+        
+        fieldName = schemaField[0]?.fieldName || '';
+      } else if (validation.fieldType === 'collection_property') {
+        // Get property name from collection properties and build collection field name
+        const property = await this.db
+          .select({ propertyName: collectionProperties.propertyName })
+          .from(collectionProperties)
+          .where(eq(collectionProperties.id, validation.fieldId))
+          .limit(1);
+        
+        if (property[0] && validation.collectionName && validation.recordIndex !== null) {
+          fieldName = `${validation.collectionName}.${property[0].propertyName}[${validation.recordIndex}]`;
+        }
+      }
+      
+      return {
+        ...validation,
+        fieldName
+      };
+    }));
+    
+    return enhancedValidations;
   }
   async createFieldValidation(validation: InsertFieldValidation): Promise<FieldValidation> { 
     const result = await this.db.insert(fieldValidations).values(validation).returning();
