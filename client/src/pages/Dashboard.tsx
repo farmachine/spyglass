@@ -9,6 +9,7 @@ import { useLocation } from "wouter";
 import ProjectCard from "@/components/ProjectCard";
 import CreateProjectDialog from "@/components/CreateProjectDialog";
 import UserProfile from "@/components/UserProfile";
+import FlowCaptureLogo from "@/components/FlowCaptureLogo";
 
 export default function Dashboard() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -94,16 +95,9 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-6">
+        <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-gray-900">
-                Document Data Extraction
-              </h1>
-              <p className="text-sm text-gray-600 mt-1">
-                Manage your data extraction projects
-              </p>
-            </div>
+            <FlowCaptureLogo />
             <div className="flex items-center space-x-4">
               {isAdmin && (
                 <Button

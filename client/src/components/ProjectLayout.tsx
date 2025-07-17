@@ -13,6 +13,7 @@ import DefineData from "./DefineData";
 import Publishing from "./Publishing";
 import UserProfile from "./UserProfile";
 import Breadcrumb from "./Breadcrumb";
+import FlowCaptureLogo from "./FlowCaptureLogo";
 
 interface ProjectLayoutProps {
   projectId: string;
@@ -182,14 +183,17 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-6">
+        <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex flex-col space-y-4">
             <div className="flex items-center justify-between">
-              <Breadcrumb 
-                items={[
-                  { label: project.name, icon: <FolderOpen className="h-4 w-4" /> }
-                ]} 
-              />
+              <div className="flex items-center space-x-4">
+                <FlowCaptureLogo showText={false} />
+                <Breadcrumb 
+                  items={[
+                    { label: project.name, icon: <FolderOpen className="h-4 w-4" /> }
+                  ]} 
+                />
+              </div>
               <UserProfile />
             </div>
             <div>

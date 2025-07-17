@@ -1,8 +1,8 @@
-# Document Data Extraction App
+# Flow Capture - AI-Powered Document Data Extraction Platform
 
 ## Overview
 
-This is a full-stack document data extraction application built with React, Express, and TypeScript. The app uses AI to extract structured data from PDF/Excel documents, allowing users to configure extraction schemas, upload documents, and review extracted data. The system is designed around projects that contain configurable data schemas and object collections for flexible data extraction.
+Flow Capture is a comprehensive AI-powered document data extraction platform built with React, Express, and TypeScript. The application intelligently processes complex legal and business documents with enhanced conflict detection and collaborative workspace capabilities. Users can configure extraction schemas, upload documents, and review extracted data with sophisticated AI-driven analysis and knowledge-based validation.
 
 ## User Preferences
 
@@ -11,6 +11,21 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 17, 2025**
+- ✓ **FLOW CAPTURE REBRANDING**: Complete application rebrand from "Document Data Extraction App" to "Flow Capture"
+- ✓ Created professional Flow Capture logo with gradient design and flow visualization elements
+- ✓ Logo acts as clickable home button throughout the application interface
+- ✓ Updated all page headers (Dashboard, ProjectLayout, Login) with new branding
+- ✓ Enhanced HTML meta tags with SEO-optimized title and descriptions for Flow Capture
+- ✓ Added Open Graph tags for improved social media sharing appearance
+- ✓ **AI REASONING IMPROVEMENTS**: Enhanced user experience with human-friendly AI explanations
+- ✓ Improved field display names to show "Parties Country" instead of technical "Parties.Country[1]" format
+- ✓ Created jurisdiction-specific legal review questions for U.S. compliance requirements
+- ✓ Enhanced AI reasoning to ask relevant questions about governing law and regulatory compliance
+- ✓ **KNOWLEDGE DOCUMENT CONFLICT DETECTION FULLY OPERATIONAL**: Complete end-to-end conflict detection working
+- ✓ Fixed critical bug where knowledge documents weren't being passed to AI extraction function
+- ✓ Resolved Node.js project ID field mapping issue (projectId vs id) for knowledge document retrieval
+- ✓ U.S. jurisdiction fields now correctly flagged with 50% confidence due to legal review requirements
+- ✓ Enhanced debugging throughout data flow pipeline to identify and resolve transmission issues
 - ✓ **KNOWLEDGE DOCUMENT CONFLICT DETECTION**: Implemented comprehensive conflict detection system with automatic 50% confidence assignment
 - ✓ Added sophisticated field-specific conflict analysis that identifies discrepancies between extracted data and knowledge documents
 - ✓ Enhanced jurisdiction-specific conflict detection for U.S./USA/United States variations against legal review requirements
