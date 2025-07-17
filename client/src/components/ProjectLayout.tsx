@@ -198,18 +198,15 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
               </div>
               <UserProfile />
             </div>
-            <div className="flex items-center space-x-4">
-              <div>
-                <h1 className="text-2xl font-semibold text-gray-900">
-                  {project.name}
-                </h1>
-                {project.description && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    {project.description}
-                  </p>
-                )}
-              </div>
-              <WavePattern variant="primary" size="lg" className="opacity-60" />
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-900">
+                {project.name}
+              </h1>
+              {project.description && (
+                <p className="text-sm text-gray-600 mt-1">
+                  {project.description}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -230,16 +227,16 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                     key={item.id}
                     onClick={() => !isDisabled && setActiveTab(item.id)}
                     disabled={isDisabled}
-                    className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                    className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors ${
                       isDisabled
-                        ? "text-gray-400 cursor-not-allowed opacity-50"
+                        ? "text-gray-400 cursor-not-allowed opacity-50 font-medium"
                         : isActive
-                        ? "bg-blue-50 text-blue-700 border-l-4 border-blue-600 ml-[-1px]"
-                        : "text-gray-700 hover:bg-gray-50"
+                        ? "bg-primary text-white font-bold"
+                        : "text-gray-700 hover:bg-gray-50 font-medium"
                     }`}
                   >
                     <Icon className={`h-4 w-4 ${
-                      isDisabled ? "text-gray-300" : isActive ? "text-blue-600" : "text-gray-400"
+                      isDisabled ? "text-gray-300" : isActive ? "text-white" : "text-gray-400"
                     }`} />
                     {item.label}
                   </button>
