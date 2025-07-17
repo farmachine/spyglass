@@ -361,7 +361,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Project Schema Fields
   app.get("/api/projects/:projectId/schema", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const projectId = parseInt(req.params.projectId);
+      const projectId = req.params.projectId;
       // Verify project belongs to user's organization
       const project = await storage.getProject(projectId, req.user!.organizationId);
       if (!project) {
@@ -1096,7 +1096,7 @@ except Exception as e:
   // Project Publishing Routes
   app.get("/api/projects/:projectId/publishing", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const projectId = parseInt(req.params.projectId);
+      const projectId = req.params.projectId;
       
       // Verify project belongs to user's organization
       const project = await storage.getProject(projectId, req.user!.organizationId);
@@ -1113,7 +1113,7 @@ except Exception as e:
 
   app.post("/api/projects/:projectId/publishing", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const projectId = parseInt(req.params.projectId);
+      const projectId = req.params.projectId;
       
       // Verify project belongs to user's organization
       const project = await storage.getProject(projectId, req.user!.organizationId);
@@ -1138,7 +1138,7 @@ except Exception as e:
 
   app.delete("/api/projects/:projectId/publishing/:organizationId", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const projectId = parseInt(req.params.projectId);
+      const projectId = req.params.projectId;
       const organizationId = parseInt(req.params.organizationId);
       
       // Verify project belongs to user's organization
