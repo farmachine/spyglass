@@ -166,12 +166,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
                 <div className="text-gray-500">Sessions</div>
               </div>
               
-              <div className="flex flex-col items-end">
-                <div className="flex items-center gap-1 text-gray-500 mb-2 mr-6">
-                  <Building className="h-4 w-4" />
-                  <span className="text-xs">Published to</span>
-                </div>
-                
+              <div className="flex flex-col items-end justify-center">
                 {publishedOrganizations.length > 0 ? (
                   <div className="flex flex-wrap gap-1 justify-end">
                     {/* Sort organizations to show primary organizations first */}
@@ -206,8 +201,8 @@ export default function ProjectCard({ project }: ProjectCardProps) {
                     )}
                   </div>
                 ) : (
-                  <div className="text-xs text-gray-400 italic text-right mr-2">
-                    Not published to any organizations
+                  <div className="text-xs text-gray-400 italic text-right">
+                    Not published
                   </div>
                 )}
               </div>
