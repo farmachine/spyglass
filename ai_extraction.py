@@ -1053,6 +1053,15 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
     logging.info("=== CHECKING IF UPDATES ARE LOADED ===")
     logging.info(f"Processing extraction session: {session_data.get('session_id')}")
     
+    # Debug incoming data
+    knowledge_documents = session_data.get("knowledge_documents", [])
+    print(f"ENTRY DEBUG: Knowledge documents received: {len(knowledge_documents)}", file=sys.stderr)
+    if knowledge_documents:
+        for i, doc in enumerate(knowledge_documents):
+            print(f"ENTRY DEBUG: Doc {i}: {doc.get('displayName', 'Unknown')} has content: {bool(doc.get('content'))}", file=sys.stderr)
+            if doc.get('content'):
+                print(f"ENTRY DEBUG: Content length: {len(doc.get('content', ''))}", file=sys.stderr)
+    
     results = {
         "session_id": session_data.get("session_id"),
         "processed_documents": [],
