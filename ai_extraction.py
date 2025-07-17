@@ -64,7 +64,7 @@ def extract_data_from_document(
         
         if not api_key:
             logging.warning("GEMINI_API_KEY not found, using demo data")
-            return create_demo_extraction_result(project_schema, file_name)
+            return create_demo_extraction_result(project_schema, file_name, extraction_rules)
         
         logging.info(f"API key found, proceeding with actual extraction for {file_name}")
         logging.info(f"File size: {len(file_content)} bytes, MIME type: {mime_type}")
@@ -247,7 +247,8 @@ def extract_data_from_document(
         field_validations = generate_field_validations(
             project_schema, 
             extracted_data, 
-            result_data.get("confidence_score", 0.0)
+            result_data.get("confidence_score", 0.0),
+            extraction_rules
         )
         
         return ExtractionResult(
@@ -261,14 +262,14 @@ def extract_data_from_document(
         logging.error(f"Failed to parse JSON response: {e}")
         # Fallback to demo data when JSON parsing fails
         logging.info("Using demo data fallback due to JSON parsing error")
-        return create_demo_extraction_result(project_schema, file_name)
+        return create_demo_extraction_result(project_schema, file_name, extraction_rules)
     except Exception as e:
         logging.error(f"Error during document extraction: {e}")
         import traceback
         logging.error(f"Full traceback: {traceback.format_exc()}")
         # Fallback to demo data when extraction fails
         logging.info("Using demo data fallback due to extraction error")
-        return create_demo_extraction_result(project_schema, file_name)
+        return create_demo_extraction_result(project_schema, file_name, extraction_rules)
 
 def normalize_extracted_values(data: Dict[str, Any]) -> Dict[str, Any]:
     """Normalize extracted values - convert string 'null' to actual None"""
@@ -284,7 +285,7 @@ def normalize_extracted_values(data: Dict[str, Any]) -> Dict[str, Any]:
     
     return {k: normalize_value(v) for k, v in data.items()}
 
-def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, base_confidence: float) -> int:
+def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, base_confidence: float, extraction_rules: List[Dict[str, Any]] = None) -> int:
     """
     Calculate confidence percentage based on knowledge base and rules compliance.
     
@@ -296,30 +297,91 @@ def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, 
         field_name: Name of the field being validated
         extracted_value: The extracted value
         base_confidence: Base AI confidence from extraction
+        extraction_rules: List of extraction rules to apply
     
     Returns:
         Confidence percentage (0-100)
     """
-    # For now, implement basic logic since we don't have access to rules/knowledge in this context
-    # This will be enhanced when we have access to the extraction rules and knowledge base
-    
     if extracted_value is None or extracted_value == "" or extracted_value == "null":
         return 0
     
     # Base confidence calculation
     confidence_percentage = int(base_confidence * 100)
     
-    # Apply field-specific adjustments
-    if field_name.lower() in ['company name', 'name', 'title']:
-        # Company names and titles are usually reliable if extracted
-        confidence_percentage = min(100, confidence_percentage + 5)
-    elif field_name.lower() in ['date', 'effective date', 'expiration date']:
-        # Dates are highly reliable when in proper format
-        if isinstance(extracted_value, str) and len(extracted_value) == 10 and extracted_value.count('-') == 2:
-            confidence_percentage = min(100, confidence_percentage + 10)
-    elif field_name.lower() in ['address', 'location']:
-        # Addresses can be complex, slightly reduce confidence
-        confidence_percentage = max(80, confidence_percentage - 5)
+    # Apply extraction rules if available
+    if extraction_rules:
+        logging.info(f"Applying extraction rules for field '{field_name}' with value '{extracted_value}'")
+        for rule in extraction_rules:
+            rule_name = rule.get("ruleName", "")
+            target_field = rule.get("targetField", "")
+            condition_field = rule.get("conditionField", "")
+            condition_operator = rule.get("conditionOperator", "")
+            condition_value = rule.get("conditionValue", "")
+            action_type = rule.get("actionType", "")
+            action_value = rule.get("actionValue", "")
+            
+            logging.info(f"Checking rule: {rule_name} - Target: {target_field}, Condition: {condition_field} {condition_operator} {condition_value}")
+            
+            # Check if this rule applies to the current field
+            if target_field == field_name:
+                # Check if the condition is met
+                condition_met = False
+                
+                if condition_operator == "contains":
+                    if isinstance(extracted_value, str) and condition_value.lower() in extracted_value.lower():
+                        condition_met = True
+                elif condition_operator == "equals":
+                    if str(extracted_value).lower() == condition_value.lower():
+                        condition_met = True
+                elif condition_operator == "starts_with":
+                    if isinstance(extracted_value, str) and extracted_value.lower().startswith(condition_value.lower()):
+                        condition_met = True
+                elif condition_operator == "ends_with":
+                    if isinstance(extracted_value, str) and extracted_value.lower().endswith(condition_value.lower()):
+                        condition_met = True
+                elif condition_operator == "greater_than":
+                    try:
+                        if float(extracted_value) > float(condition_value):
+                            condition_met = True
+                    except (ValueError, TypeError):
+                        pass
+                elif condition_operator == "less_than":
+                    try:
+                        if float(extracted_value) < float(condition_value):
+                            condition_met = True
+                    except (ValueError, TypeError):
+                        pass
+                
+                logging.info(f"Rule condition met: {condition_met}")
+                
+                if condition_met:
+                    # Apply the action
+                    if action_type == "set_confidence":
+                        try:
+                            confidence_percentage = int(action_value)
+                            logging.info(f"Applied rule '{rule_name}': Set confidence to {confidence_percentage}%")
+                        except (ValueError, TypeError):
+                            logging.warning(f"Invalid confidence value in rule '{rule_name}': {action_value}")
+                    elif action_type == "adjust_confidence":
+                        try:
+                            adjustment = int(action_value)
+                            confidence_percentage = max(0, min(100, confidence_percentage + adjustment))
+                            logging.info(f"Applied rule '{rule_name}': Adjusted confidence by {adjustment}% to {confidence_percentage}%")
+                        except (ValueError, TypeError):
+                            logging.warning(f"Invalid confidence adjustment in rule '{rule_name}': {action_value}")
+    
+    # Apply field-specific adjustments if no rules were applied
+    if not extraction_rules or not any(rule.get("targetField") == field_name for rule in extraction_rules):
+        if field_name.lower() in ['company name', 'name', 'title']:
+            # Company names and titles are usually reliable if extracted
+            confidence_percentage = min(100, confidence_percentage + 5)
+        elif field_name.lower() in ['date', 'effective date', 'expiration date']:
+            # Dates are highly reliable when in proper format
+            if isinstance(extracted_value, str) and len(extracted_value) == 10 and extracted_value.count('-') == 2:
+                confidence_percentage = min(100, confidence_percentage + 10)
+        elif field_name.lower() in ['address', 'location']:
+            # Addresses can be complex, slightly reduce confidence
+            confidence_percentage = max(80, confidence_percentage - 5)
     
     # Ensure confidence is within bounds
     return max(1, min(100, confidence_percentage))
@@ -524,7 +586,7 @@ def get_confidence_level(confidence_score: int) -> dict:
             "badge_variant": "destructive"
         }
 
-def create_demo_extraction_result(project_schema: Dict[str, Any], file_name: str) -> ExtractionResult:
+def create_demo_extraction_result(project_schema: Dict[str, Any], file_name: str, extraction_rules: List[Dict[str, Any]] = None) -> ExtractionResult:
     """Create demo extraction result when API key is not available"""
     logging.error(f"!!! USING DEMO DATA - THIS SHOULD NOT HAPPEN WITH VALID API KEY !!!")
     logging.error(f"!!! FILE: {file_name} !!!")
@@ -572,7 +634,7 @@ def create_demo_extraction_result(project_schema: Dict[str, Any], file_name: str
             extracted_data[collection_name] = collection_data
     
     # Generate demo field validations
-    field_validations = generate_field_validations(project_schema, extracted_data, 0.85)
+    field_validations = generate_field_validations(project_schema, extracted_data, 0.85, extraction_rules)
     
     return ExtractionResult(
         extracted_data=extracted_data,
@@ -690,13 +752,15 @@ Return only valid JSON without any additional text, comments, or formatting."""
 def generate_field_validations(
     project_schema: Dict[str, Any], 
     extracted_data: Dict[str, Any], 
-    overall_confidence: float
+    overall_confidence: float,
+    extraction_rules: List[Dict[str, Any]] = None
 ) -> List[FieldValidationResult]:
     """Generate field validation results based on extracted data"""
     
     logging.info(f"Generating validations with schema: {project_schema}")
     logging.info(f"Schema fields: {project_schema.get('schema_fields', [])}")
     logging.info(f"Collections: {project_schema.get('collections', [])}")
+    logging.info(f"Extraction rules: {extraction_rules}")
     
     validations = []
     
@@ -709,7 +773,8 @@ def generate_field_validations(
             
             extracted_value = extracted_data.get(field_name)
             validation = create_field_validation(
-                field_id, field_name, field_type, extracted_value, overall_confidence
+                field_id, field_name, field_type, extracted_value, overall_confidence, 
+                extraction_rules=extraction_rules
             )
             validations.append(validation)
     
@@ -731,7 +796,8 @@ def generate_field_validations(
                         field_name_with_index = f"{collection_name}.{prop_name}[{record_index}]"
                         validation = create_field_validation(
                             prop_id, field_name_with_index, prop_type, extracted_value, overall_confidence,
-                            is_collection=True, collection_name=collection_name, record_index=record_index
+                            is_collection=True, collection_name=collection_name, record_index=record_index,
+                            extraction_rules=extraction_rules
                         )
                         validations.append(validation)
     
@@ -745,7 +811,8 @@ def create_field_validation(
     overall_confidence: float,
     is_collection: bool = False,
     collection_name: str = "",
-    record_index: int = 0
+    record_index: int = 0,
+    extraction_rules: List[Dict[str, Any]] = None
 ) -> FieldValidationResult:
     """Create a field validation result with detailed AI reasoning and knowledge-based confidence"""
     
@@ -766,7 +833,7 @@ def create_field_validation(
             try:
                 float(str(extracted_value))
                 validation_status = "valid"
-                confidence_score = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence)
+                confidence_score = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence, extraction_rules)
                 ai_reasoning = generate_detailed_reasoning(
                     field_name, field_type, extracted_value, validation_status, "", confidence_score
                 )
@@ -783,7 +850,7 @@ def create_field_validation(
                 import re
                 if re.match(r'\d{4}-\d{2}-\d{2}', extracted_value):
                     validation_status = "valid"
-                    confidence_score = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence)
+                    confidence_score = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence, extraction_rules)
                 else:
                     validation_status = "invalid"
                     confidence_score = 0
@@ -797,7 +864,7 @@ def create_field_validation(
         elif field_type == "BOOLEAN":
             if isinstance(extracted_value, bool) or str(extracted_value).lower() in ['true', 'false', 'yes', 'no']:
                 validation_status = "valid"
-                confidence_score = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence)
+                confidence_score = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence, extraction_rules)
             else:
                 validation_status = "invalid"
                 confidence_score = 0
@@ -808,7 +875,7 @@ def create_field_validation(
         else:  # TEXT
             if isinstance(extracted_value, str) and len(extracted_value.strip()) > 0:
                 validation_status = "valid"
-                confidence_score = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence)
+                confidence_score = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence, extraction_rules)
             else:
                 validation_status = "invalid"
                 confidence_score = 0
