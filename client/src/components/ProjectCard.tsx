@@ -181,11 +181,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
                         <Badge 
                           key={org.id} 
                           variant="secondary" 
-                          className={`text-xs px-2 py-0.5 ${
-                            org.type === 'primary' 
-                              ? 'bg-green-50 text-green-700 border-green-200' 
-                              : 'bg-blue-50 text-blue-700 border-blue-200'
-                          }`}
+                          className="text-xs px-2 py-0.5 bg-green-50 text-green-700 border-green-200"
                         >
                           {org.name}
                         </Badge>
