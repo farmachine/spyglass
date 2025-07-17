@@ -953,6 +953,10 @@ Thank you for your assistance.`;
                     {getSessionStatus() === 'verified' ? 'Verified' : 'In Progress'}
                   </Badge>
                 </div>
+                <Button onClick={() => setShowReasoningDialog(true)} variant="outline" size="sm">
+                  <AlertCircle className="h-4 w-4 mr-2" />
+                  Request More Info
+                </Button>
                 <Button
                   onClick={handleExportToExcel}
                   variant="outline"
@@ -960,11 +964,7 @@ Thank you for your assistance.`;
                   className="flex items-center gap-2"
                 >
                   <Download className="h-4 w-4" />
-                  Export to Excel
-                </Button>
-                <Button onClick={() => setShowReasoningDialog(true)} variant="outline" size="sm">
-                  <AlertCircle className="h-4 w-4 mr-2" />
-                  Request More Info
+                  Export
                 </Button>
               </div>
             </div>
