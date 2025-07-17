@@ -902,11 +902,19 @@ def create_field_validation(
     elif validation_status == "valid" and confidence_score < auto_verification_confidence:
         validation_status = "unverified"
     
+    # Preserve original data types for better UI display
+    if field_type == "BOOLEAN" and isinstance(extracted_value, bool):
+        formatted_value = extracted_value
+    elif field_type == "NUMBER" and isinstance(extracted_value, (int, float)):
+        formatted_value = extracted_value
+    else:
+        formatted_value = str(extracted_value) if extracted_value is not None else None
+    
     return FieldValidationResult(
         field_id=field_id,
         field_name=field_name,
         field_type=field_type,
-        extracted_value=str(extracted_value) if extracted_value is not None else None,
+        extracted_value=formatted_value,
         validation_status=validation_status,
         ai_reasoning=ai_reasoning,
         confidence_score=confidence_score,

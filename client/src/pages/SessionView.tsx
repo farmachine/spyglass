@@ -180,7 +180,7 @@ const ValidationIcon = ({ fieldName, validation, onToggle }: {
     return <div className="text-xs text-gray-400">No validation data</div>;
   }
 
-  const isVerified = validation.validationStatus === 'valid';
+  const isVerified = validation.validationStatus === 'valid' || validation.validationStatus === 'verified';
 
   return (
     <div className="flex items-center gap-2">
@@ -499,6 +499,31 @@ export default function SessionView() {
     return 'Not set';
   };
 
+  const formatValueForDisplay = (value: any, fieldType: string) => {
+    if (!value || value === 'null' || value === 'undefined' || value === null) {
+      return 'Not set';
+    }
+    
+    if (fieldType === 'DATE') {
+      return formatDateForDisplay(value);
+    } else if (fieldType === 'BOOLEAN') {
+      // Handle boolean values properly
+      if (typeof value === 'boolean') {
+        return value ? 'Yes' : 'No';
+      } else if (typeof value === 'string') {
+        const lowerValue = value.toLowerCase();
+        if (lowerValue === 'true' || lowerValue === 'yes') {
+          return 'Yes';
+        } else if (lowerValue === 'false' || lowerValue === 'no') {
+          return 'No';
+        }
+      }
+      return String(value);
+    } else {
+      return String(value);
+    }
+  };
+
   const getFieldDisplayName = (fieldName: string) => {
     // Check schema fields first
     for (const field of project.schemaFields) {
@@ -581,7 +606,7 @@ export default function SessionView() {
           ) : (
             <div className="flex items-center gap-2 mt-1">
               <span className="text-sm text-gray-900">
-                {fieldType === 'DATE' ? formatDateForDisplay(value) : String(value || '')}
+                {formatValueForDisplay(value, fieldType)}
               </span>
               <Button
                 size="sm"
