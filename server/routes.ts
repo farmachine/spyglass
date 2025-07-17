@@ -168,11 +168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User Management Routes (Admin only)
   app.get("/api/users/:organizationId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
-      const organizationId = parseInt(req.params.organizationId);
-      if (isNaN(organizationId)) {
-        return res.status(400).json({ message: "Invalid organization ID" });
-      }
-
+      const organizationId = req.params.organizationId;
       const users = await storage.getUsers(organizationId);
       res.json(users);
     } catch (error) {
@@ -223,7 +219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update user (Admin only)
   app.put("/api/users/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
-      const userId = parseInt(req.params.id);
+      const userId = req.params.id;
       const updateData = req.body;
       const updatedUser = await storage.updateUser(userId, updateData);
       
@@ -241,7 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update organization (Admin only)
   app.put("/api/organizations/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
-      const orgId = parseInt(req.params.id);
+      const orgId = req.params.id;
       const updateData = req.body;
       const updatedOrg = await storage.updateOrganization(orgId, updateData);
       
@@ -259,7 +255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete organization (Admin only)
   app.delete("/api/organizations/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
-      const orgId = parseInt(req.params.id);
+      const orgId = req.params.id;
       const deleted = await storage.deleteOrganization(orgId);
       
       if (!deleted) {
@@ -286,7 +282,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/projects/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       const project = await storage.getProjectWithDetails(id, req.user!.organizationId);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
@@ -321,7 +317,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/projects/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       const result = insertProjectSchema.partial().safeParse(req.body);
       if (!result.success) {
         return res.status(400).json({ message: "Invalid project data", errors: result.error.errors });
@@ -340,7 +336,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/projects/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       const deleted = await storage.deleteProject(id, req.user!.organizationId);
       if (!deleted) {
         return res.status(404).json({ message: "Project not found" });

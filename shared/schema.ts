@@ -1,10 +1,10 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Organizations for multi-tenancy
 export const organizations = pgTable("organizations", {
-  id: serial("id").primaryKey(),
+  id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -12,11 +12,11 @@ export const organizations = pgTable("organizations", {
 
 // Users with authentication
 export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
+  id: uuid("id").defaultRandom().primaryKey(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   name: text("name").notNull(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   role: text("role").default("user").notNull(), // 'admin', 'user'
   isActive: boolean("is_active").default(true).notNull(),
   isTemporaryPassword: boolean("is_temporary_password").default(false).notNull(),
@@ -24,10 +24,10 @@ export const users = pgTable("users", {
 });
 
 export const projects = pgTable("projects", {
-  id: serial("id").primaryKey(),
+  id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   mainObjectName: text("main_object_name").default("Session"),
   isInitialSetupComplete: boolean("is_initial_setup_complete").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -35,15 +35,15 @@ export const projects = pgTable("projects", {
 
 // Project publishing to organizations
 export const projectPublishing = pgTable("project_publishing", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const projectSchemaFields = pgTable("project_schema_fields", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   fieldName: text("field_name").notNull(),
   fieldType: text("field_type").notNull(), // TEXT, NUMBER, DATE, BOOLEAN
   description: text("description"),
@@ -53,8 +53,8 @@ export const projectSchemaFields = pgTable("project_schema_fields", {
 });
 
 export const objectCollections = pgTable("object_collections", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   collectionName: text("collection_name").notNull(),
   description: text("description"),
   orderIndex: integer("order_index").default(0),
@@ -62,8 +62,8 @@ export const objectCollections = pgTable("object_collections", {
 });
 
 export const collectionProperties = pgTable("collection_properties", {
-  id: serial("id").primaryKey(),
-  collectionId: integer("collection_id").notNull().references(() => objectCollections.id, { onDelete: "cascade" }),
+  id: uuid("id").defaultRandom().primaryKey(),
+  collectionId: uuid("collection_id").notNull().references(() => objectCollections.id, { onDelete: "cascade" }),
   propertyName: text("property_name").notNull(),
   propertyType: text("property_type").notNull(), // TEXT, NUMBER, DATE, BOOLEAN
   description: text("description"),
@@ -73,8 +73,8 @@ export const collectionProperties = pgTable("collection_properties", {
 });
 
 export const extractionSessions = pgTable("extraction_sessions", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   sessionName: text("session_name").notNull(),
   description: text("description"),
   documentCount: integer("document_count").notNull().default(0),
@@ -86,10 +86,10 @@ export const extractionSessions = pgTable("extraction_sessions", {
 
 // New table for field-level validation tracking
 export const fieldValidations = pgTable("field_validations", {
-  id: serial("id").primaryKey(),
-  sessionId: integer("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
+  id: uuid("id").defaultRandom().primaryKey(),
+  sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
   fieldType: text("field_type").notNull(), // 'schema_field' or 'collection_property'
-  fieldId: integer("field_id").notNull(), // references projectSchemaFields.id or collectionProperties.id
+  fieldId: uuid("field_id").notNull(), // references projectSchemaFields.id or collectionProperties.id
   collectionName: text("collection_name"), // for collection properties only
   recordIndex: integer("record_index").default(0), // for collection properties, which record instance
   extractedValue: text("extracted_value"),
@@ -104,8 +104,8 @@ export const fieldValidations = pgTable("field_validations", {
 });
 
 export const knowledgeDocuments = pgTable("knowledge_documents", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   fileName: text("file_name").notNull(),
   displayName: text("display_name").notNull(),
   fileType: text("file_type").notNull(), // pdf, docx, txt, etc.
@@ -115,8 +115,8 @@ export const knowledgeDocuments = pgTable("knowledge_documents", {
 });
 
 export const extractionRules = pgTable("extraction_rules", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   ruleName: text("rule_name").notNull(),
   targetField: text("target_field"), // which field/property this rule applies to
   ruleContent: text("rule_content").notNull(), // the actual rule logic/description
@@ -215,10 +215,10 @@ export type UserRole = 'admin' | 'user';
 
 // Authentication types
 export type AuthUser = {
-  id: number;
+  id: string;
   email: string;
   name: string;
-  organizationId: number;
+  organizationId: string;
   role: UserRole;
   isTemporaryPassword?: boolean;
 };
@@ -253,7 +253,7 @@ export const registerUserSchema = insertUserSchema.extend({
 });
 
 export const resetPasswordSchema = z.object({
-  userId: z.number(),
+  userId: z.string().uuid("Invalid user ID"),
   tempPassword: z.string().min(6, "Temporary password must be at least 6 characters"),
 });
 

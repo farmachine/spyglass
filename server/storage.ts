@@ -40,34 +40,35 @@ import {
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { eq, count, sql, and } from 'drizzle-orm';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface IStorage {
   // Organizations
   getOrganizations(): Promise<(Organization & { userCount: number })[]>;
-  getOrganization(id: number): Promise<Organization | undefined>;
-  getOrganizationWithUsers(id: number): Promise<OrganizationWithUsers | undefined>;
+  getOrganization(id: string): Promise<Organization | undefined>;
+  getOrganizationWithUsers(id: string): Promise<OrganizationWithUsers | undefined>;
   createOrganization(organization: InsertOrganization): Promise<Organization>;
-  updateOrganization(id: number, organization: Partial<InsertOrganization>): Promise<Organization | undefined>;
-  deleteOrganization(id: number): Promise<boolean>;
+  updateOrganization(id: string, organization: Partial<InsertOrganization>): Promise<Organization | undefined>;
+  deleteOrganization(id: string): Promise<boolean>;
 
   // Users
-  getUsers(organizationId: number): Promise<User[]>;
-  getUser(id: number): Promise<User | undefined>;
+  getUsers(organizationId: string): Promise<User[]>;
+  getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
-  getUserWithOrganization(id: number): Promise<UserWithOrganization | undefined>;
+  getUserWithOrganization(id: string): Promise<UserWithOrganization | undefined>;
   createUser(user: InsertUser & { password: string }): Promise<User>;
-  updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
-  deleteUser(id: number): Promise<boolean>;
-  resetUserPassword(userId: number, tempPassword: string): Promise<{ tempPassword: string }>;
-  updateUserPassword(userId: number, newPasswordHash: string, isTemporary: boolean): Promise<User | undefined>;
+  updateUser(id: string, user: Partial<InsertUser>): Promise<User | undefined>;
+  deleteUser(id: string): Promise<boolean>;
+  resetUserPassword(userId: string, tempPassword: string): Promise<{ tempPassword: string }>;
+  updateUserPassword(userId: string, newPasswordHash: string, isTemporary: boolean): Promise<User | undefined>;
 
   // Projects (organization-filtered)
-  getProjects(organizationId?: number): Promise<Project[]>;
-  getProject(id: number, organizationId?: number): Promise<Project | undefined>;
-  getProjectWithDetails(id: number, organizationId?: number): Promise<ProjectWithDetails | undefined>;
+  getProjects(organizationId?: string): Promise<Project[]>;
+  getProject(id: string, organizationId?: string): Promise<Project | undefined>;
+  getProjectWithDetails(id: string, organizationId?: string): Promise<ProjectWithDetails | undefined>;
   createProject(project: InsertProject): Promise<Project>;
-  updateProject(id: number, project: Partial<InsertProject>, organizationId?: number): Promise<Project | undefined>;
-  deleteProject(id: number, organizationId?: number): Promise<boolean>;
+  updateProject(id: string, project: Partial<InsertProject>, organizationId?: string): Promise<Project | undefined>;
+  deleteProject(id: string, organizationId?: string): Promise<boolean>;
 
   // Project Schema Fields
   getProjectSchemaFields(projectId: number): Promise<ProjectSchemaField[]>;
@@ -1041,7 +1042,7 @@ class PostgreSQLStorage implements IStorage {
     return result;
   }
 
-  async getOrganization(id: number): Promise<Organization | undefined> {
+  async getOrganization(id: string): Promise<Organization | undefined> {
     const result = await this.db
       .select()
       .from(organizations)
@@ -1051,7 +1052,7 @@ class PostgreSQLStorage implements IStorage {
     return result[0];
   }
 
-  async getOrganizationWithUsers(id: number): Promise<OrganizationWithUsers | undefined> {
+  async getOrganizationWithUsers(id: string): Promise<OrganizationWithUsers | undefined> {
     const org = await this.getOrganization(id);
     if (!org) return undefined;
 
@@ -1071,7 +1072,7 @@ class PostgreSQLStorage implements IStorage {
     return result[0];
   }
 
-  async updateOrganization(id: number, organization: Partial<InsertOrganization>): Promise<Organization | undefined> {
+  async updateOrganization(id: string, organization: Partial<InsertOrganization>): Promise<Organization | undefined> {
     const result = await this.db
       .update(organizations)
       .set(organization)
@@ -1081,7 +1082,7 @@ class PostgreSQLStorage implements IStorage {
     return result[0];
   }
 
-  async deleteOrganization(id: number): Promise<boolean> {
+  async deleteOrganization(id: string): Promise<boolean> {
     const result = await this.db
       .delete(organizations)
       .where(eq(organizations.id, id));
@@ -1090,7 +1091,7 @@ class PostgreSQLStorage implements IStorage {
   }
 
   // Users
-  async getUsers(organizationId: number): Promise<User[]> {
+  async getUsers(organizationId: string): Promise<User[]> {
     const result = await this.db
       .select()
       .from(users)
@@ -1099,7 +1100,7 @@ class PostgreSQLStorage implements IStorage {
     return result;
   }
 
-  async getUser(id: number): Promise<User | undefined> {
+  async getUser(id: string): Promise<User | undefined> {
     const result = await this.db
       .select()
       .from(users)
@@ -1119,7 +1120,7 @@ class PostgreSQLStorage implements IStorage {
     return result[0];
   }
 
-  async getUserWithOrganization(id: number): Promise<UserWithOrganization | undefined> {
+  async getUserWithOrganization(id: string): Promise<UserWithOrganization | undefined> {
     const result = await this.db
       .select({
         id: users.id,
@@ -1159,7 +1160,7 @@ class PostgreSQLStorage implements IStorage {
     return result[0];
   }
 
-  async updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined> {
+  async updateUser(id: string, user: Partial<InsertUser>): Promise<User | undefined> {
     const result = await this.db
       .update(users)
       .set(user)
@@ -1169,7 +1170,7 @@ class PostgreSQLStorage implements IStorage {
     return result[0];
   }
 
-  async deleteUser(id: number): Promise<boolean> {
+  async deleteUser(id: string): Promise<boolean> {
     const result = await this.db
       .delete(users)
       .where(eq(users.id, id));
@@ -1177,7 +1178,7 @@ class PostgreSQLStorage implements IStorage {
     return result.rowCount > 0;
   }
 
-  async resetUserPassword(userId: number, tempPassword: string): Promise<{ tempPassword: string }> {
+  async resetUserPassword(userId: string, tempPassword: string): Promise<{ tempPassword: string }> {
     const user = await this.getUser(userId);
     if (!user) {
       throw new Error('User not found');
@@ -1197,7 +1198,7 @@ class PostgreSQLStorage implements IStorage {
     return { tempPassword };
   }
 
-  async updateUserPassword(userId: number, newPasswordHash: string, isTemporary: boolean = false): Promise<User | undefined> {
+  async updateUserPassword(userId: string, newPasswordHash: string, isTemporary: boolean = false): Promise<User | undefined> {
     const result = await this.db
       .update(users)
       .set({ 
@@ -1211,7 +1212,7 @@ class PostgreSQLStorage implements IStorage {
   }
 
   // For now, implement minimal project methods to prevent errors
-  async getProjects(organizationId?: number): Promise<Project[]> {
+  async getProjects(organizationId?: string): Promise<Project[]> {
     const query = this.db.select().from(projects);
     if (organizationId) {
       query.where(eq(projects.organizationId, organizationId));
@@ -1219,7 +1220,7 @@ class PostgreSQLStorage implements IStorage {
     return await query;
   }
 
-  async getProject(id: number, organizationId?: number): Promise<Project | undefined> {
+  async getProject(id: string, organizationId?: string): Promise<Project | undefined> {
     let result;
     if (organizationId) {
       result = await this.db
@@ -1237,7 +1238,7 @@ class PostgreSQLStorage implements IStorage {
     return result[0];
   }
 
-  async getProjectWithDetails(id: number, organizationId?: number): Promise<ProjectWithDetails | undefined> {
+  async getProjectWithDetails(id: string, organizationId?: string): Promise<ProjectWithDetails | undefined> {
     const project = await this.getProject(id, organizationId);
     if (!project) return undefined;
 
@@ -1268,7 +1269,7 @@ class PostgreSQLStorage implements IStorage {
     return result[0];
   }
 
-  async updateProject(id: number, project: Partial<InsertProject>, organizationId?: number): Promise<Project | undefined> {
+  async updateProject(id: string, project: Partial<InsertProject>, organizationId?: string): Promise<Project | undefined> {
     let result;
     if (organizationId) {
       result = await this.db
@@ -1286,7 +1287,7 @@ class PostgreSQLStorage implements IStorage {
     return result[0];
   }
 
-  async deleteProject(id: number, organizationId?: number): Promise<boolean> {
+  async deleteProject(id: string, organizationId?: string): Promise<boolean> {
     let result;
     if (organizationId) {
       result = await this.db
@@ -1301,7 +1302,7 @@ class PostgreSQLStorage implements IStorage {
   }
 
   // Project Schema Fields
-  async getProjectSchemaFields(projectId: number): Promise<ProjectSchemaField[]> {
+  async getProjectSchemaFields(projectId: string): Promise<ProjectSchemaField[]> {
     const result = await this.db
       .select()
       .from(projectSchemaFields)
