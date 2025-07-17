@@ -36,6 +36,7 @@ const propertyFormSchema = z.object({
   propertyName: z.string().min(1, "Property name is required"),
   propertyType: z.enum(propertyTypes),
   description: z.string().min(1, "Description is required - this helps the AI understand what to extract"),
+  autoVerificationConfidence: z.number().min(0).max(100).default(80),
   orderIndex: z.number().default(0),
 });
 
@@ -64,6 +65,7 @@ export default function PropertyDialog({
       propertyName: "",
       propertyType: "TEXT",
       description: "",
+      autoVerificationConfidence: 80,
       orderIndex: 0,
     },
   });
@@ -75,6 +77,7 @@ export default function PropertyDialog({
         propertyName: property?.propertyName || "",
         propertyType: (property?.propertyType as typeof propertyTypes[number]) || "TEXT",
         description: property?.description || "",
+        autoVerificationConfidence: property?.autoVerificationConfidence || 80,
         orderIndex: property?.orderIndex || 0,
       });
     }
@@ -158,6 +161,30 @@ export default function PropertyDialog({
                   </FormControl>
                   <p className="text-sm text-muted-foreground">
                     This description guides the AI during data extraction
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="autoVerificationConfidence"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Auto Verification Confidence Level (%)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      min={0} 
+                      max={100} 
+                      placeholder="80"
+                      {...field}
+                      onChange={(e) => field.onChange(parseInt(e.target.value) || 80)}
+                    />
+                  </FormControl>
+                  <p className="text-sm text-muted-foreground">
+                    Fields with confidence at or above this threshold will be automatically verified after extraction
                   </p>
                   <FormMessage />
                 </FormItem>

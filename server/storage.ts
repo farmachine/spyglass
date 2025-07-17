@@ -207,6 +207,7 @@ export class MemStorage implements IStorage {
         fieldName: "Total Amount",
         fieldType: "NUMBER" as const,
         description: "The total amount of the invoice",
+        autoVerificationConfidence: 80,
         orderIndex: 1,
       },
       {
@@ -215,6 +216,7 @@ export class MemStorage implements IStorage {
         fieldName: "Invoice Date",
         fieldType: "DATE" as const,
         description: "The date when the invoice was issued",
+        autoVerificationConfidence: 80,
         orderIndex: 2,
       },
       {
@@ -223,6 +225,7 @@ export class MemStorage implements IStorage {
         fieldName: "Vendor Name",
         fieldType: "TEXT" as const,
         description: "The name of the vendor or supplier",
+        autoVerificationConfidence: 80,
         orderIndex: 3,
       },
     ];
@@ -250,6 +253,7 @@ export class MemStorage implements IStorage {
         propertyName: "Description",
         propertyType: "TEXT" as const,
         description: "Description of the item",
+        autoVerificationConfidence: 80,
         orderIndex: 1,
       },
       {
@@ -258,6 +262,7 @@ export class MemStorage implements IStorage {
         propertyName: "Quantity",
         propertyType: "NUMBER" as const,
         description: "Number of items",
+        autoVerificationConfidence: 80,
         orderIndex: 2,
       },
       {
@@ -266,6 +271,7 @@ export class MemStorage implements IStorage {
         propertyName: "Unit Price",
         propertyType: "NUMBER" as const,
         description: "Price per unit",
+        autoVerificationConfidence: 80,
         orderIndex: 3,
       },
     ];

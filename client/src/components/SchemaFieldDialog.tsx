@@ -36,6 +36,7 @@ const schemaFieldFormSchema = z.object({
   fieldName: z.string().min(1, "Field name is required"),
   fieldType: z.enum(fieldTypes),
   description: z.string().min(1, "Description is required - this helps the AI understand what to extract"),
+  autoVerificationConfidence: z.number().min(0).max(100).default(80),
   orderIndex: z.number().default(0),
 });
 
@@ -62,6 +63,7 @@ export default function SchemaFieldDialog({
       fieldName: "",
       fieldType: "TEXT",
       description: "",
+      autoVerificationConfidence: 80,
       orderIndex: 0,
     },
   });
@@ -73,6 +75,7 @@ export default function SchemaFieldDialog({
         fieldName: field?.fieldName || "",
         fieldType: (field?.fieldType as typeof fieldTypes[number]) || "TEXT",
         description: field?.description || "",
+        autoVerificationConfidence: field?.autoVerificationConfidence || 80,
         orderIndex: field?.orderIndex || 0,
       });
     }
@@ -156,6 +159,30 @@ export default function SchemaFieldDialog({
                   </FormControl>
                   <p className="text-sm text-muted-foreground">
                     This description guides the AI during data extraction
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="autoVerificationConfidence"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Auto Verification Confidence Level (%)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      min={0} 
+                      max={100} 
+                      placeholder="80"
+                      {...field}
+                      onChange={(e) => field.onChange(parseInt(e.target.value) || 80)}
+                    />
+                  </FormControl>
+                  <p className="text-sm text-muted-foreground">
+                    Fields with confidence at or above this threshold will be automatically verified after extraction
                   </p>
                   <FormMessage />
                 </FormItem>

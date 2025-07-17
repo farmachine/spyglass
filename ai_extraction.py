@@ -765,11 +765,13 @@ def generate_field_validations(
             # Add mock document sections for testing (in real implementation, this would come from AI extraction)
             document_sections = ["Header", "Agreement Terms", "Signature Block"] if field_name == "Company Name" else ["Document Body"]
             
+            auto_verification_confidence = field.get("autoVerificationConfidence", 80)
             validation = create_field_validation(
                 field_id, field_name, field_type, extracted_value, overall_confidence, 
                 extraction_rules=extraction_rules,
                 document_source=document_name,
-                document_sections=document_sections
+                document_sections=document_sections,
+                auto_verification_confidence=auto_verification_confidence
             )
             validations.append(validation)
     
@@ -793,12 +795,14 @@ def generate_field_validations(
                         # Add mock document sections for collection properties
                         document_sections = ["Parties Section", "Contract Details"] if "Name" in prop_name else ["Document Body"]
                         
+                        auto_verification_confidence = prop.get("autoVerificationConfidence", 80)
                         validation = create_field_validation(
                             prop_id, field_name_with_index, prop_type, extracted_value, overall_confidence,
                             is_collection=True, collection_name=collection_name, record_index=record_index,
                             extraction_rules=extraction_rules,
                             document_source=document_name,
-                            document_sections=document_sections
+                            document_sections=document_sections,
+                            auto_verification_confidence=auto_verification_confidence
                         )
                         validations.append(validation)
     
@@ -815,7 +819,8 @@ def create_field_validation(
     record_index: int = 0,
     extraction_rules: List[Dict[str, Any]] = None,
     document_source: str = "",
-    document_sections: List[str] = None
+    document_sections: List[str] = None,
+    auto_verification_confidence: int = 80
 ) -> FieldValidationResult:
     """Create a field validation result with detailed AI reasoning and knowledge-based confidence"""
     
@@ -890,6 +895,12 @@ def create_field_validation(
             ai_reasoning = generate_detailed_reasoning(
                 field_name, field_type, extracted_value, validation_status, "", confidence_score, applied_rules, document_source, document_sections
             )
+    
+    # Apply auto verification based on confidence threshold
+    if validation_status == "valid" and confidence_score >= auto_verification_confidence:
+        validation_status = "verified"
+    elif validation_status == "valid" and confidence_score < auto_verification_confidence:
+        validation_status = "unverified"
     
     return FieldValidationResult(
         field_id=field_id,

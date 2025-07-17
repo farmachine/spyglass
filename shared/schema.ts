@@ -39,6 +39,7 @@ export const projectSchemaFields = pgTable("project_schema_fields", {
   fieldName: text("field_name").notNull(),
   fieldType: text("field_type").notNull(), // TEXT, NUMBER, DATE, BOOLEAN
   description: text("description"),
+  autoVerificationConfidence: integer("auto_verification_confidence").default(80), // 0-100 threshold for auto verification
   orderIndex: integer("order_index").default(0),
 });
 
@@ -57,6 +58,7 @@ export const collectionProperties = pgTable("collection_properties", {
   propertyName: text("property_name").notNull(),
   propertyType: text("property_type").notNull(), // TEXT, NUMBER, DATE, BOOLEAN
   description: text("description"),
+  autoVerificationConfidence: integer("auto_verification_confidence").default(80), // 0-100 threshold for auto verification
   orderIndex: integer("order_index").default(0),
 });
 
