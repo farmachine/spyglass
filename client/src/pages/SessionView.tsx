@@ -209,6 +209,36 @@ export default function SessionView() {
     }
   };
 
+  const handleDateChange = async (fieldName: string, dateValue: string) => {
+    const validation = getValidation(fieldName);
+    if (validation) {
+      let valueToStore = dateValue;
+      
+      // Handle empty date
+      if (!dateValue || dateValue.trim() === '') {
+        valueToStore = null;
+      } else {
+        // Validate the date format
+        const dateObj = new Date(dateValue);
+        if (!isNaN(dateObj.getTime())) {
+          // Store as ISO date string for consistency
+          valueToStore = dateObj.toISOString().split('T')[0];
+        } else {
+          valueToStore = null;
+        }
+      }
+      
+      await updateValidationMutation.mutateAsync({
+        id: validation.id,
+        data: {
+          extractedValue: valueToStore,
+          validationStatus: "pending",
+          manuallyVerified: false
+        }
+      });
+    }
+  };
+
   const handleSave = async (fieldName: string, newValue?: string) => {
     const validation = getValidation(fieldName);
     if (validation) {
@@ -236,8 +266,8 @@ export default function SessionView() {
         id: validation.id,
         data: {
           extractedValue: valueToStore,
-          validationStatus: valueToStore ? "valid" : "pending",
-          manuallyVerified: !!valueToStore
+          validationStatus: "pending",
+          manuallyVerified: false
         }
       });
     }
@@ -390,7 +420,7 @@ export default function SessionView() {
                 <Input
                   type="date"
                   value={value || ''}
-                  onChange={(e) => handleSave(fieldName, e.target.value)}
+                  onChange={(e) => handleDateChange(fieldName, e.target.value)}
                   className="flex-1 text-sm"
                 />
               ) : (
