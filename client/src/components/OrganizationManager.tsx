@@ -225,8 +225,8 @@ export default function OrganizationManager() {
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <Building2 className="h-5 w-5 text-primary" />
-                    <Badge variant="secondary">
-                      {org.name === "Internal" ? "Primary" : "Standard"}
+                    <Badge variant={org.type === "primary" ? "default" : "secondary"}>
+                      {org.type === "primary" ? "Primary" : "Standard"}
                     </Badge>
                   </div>
                 </CardHeader>

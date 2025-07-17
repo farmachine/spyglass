@@ -7,6 +7,7 @@ export const organizations = pgTable("organizations", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
+  type: text("type", { enum: ["primary", "standard"] }).notNull().default("standard"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -256,6 +256,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/organizations/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const orgId = req.params.id;
+      
+      // Check if organization is primary type
+      const org = await storage.getOrganization(orgId);
+      if (!org) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+      
+      if (org.type === "primary") {
+        return res.status(403).json({ message: "Primary organizations cannot be deleted" });
+      }
+      
       const deleted = await storage.deleteOrganization(orgId);
       
       if (!deleted) {

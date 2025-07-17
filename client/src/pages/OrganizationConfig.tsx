@@ -293,39 +293,52 @@ export default function OrganizationConfig() {
 
                 <div className="pt-6 border-t">
                   <h3 className="text-lg font-medium text-red-600 mb-4">Danger Zone</h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Deleting this organization will permanently remove all associated users and data.
-                  </p>
-                  <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="destructive">
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete Organization
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Are you sure?</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <p className="text-sm text-gray-600">
-                          This action cannot be undone. This will permanently delete the organization "{organization.name}" and all associated users.
-                        </p>
-                        <div className="flex justify-end space-x-2">
-                          <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
-                            Cancel
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            onClick={() => deleteOrgMutation.mutate()}
-                            disabled={deleteOrgMutation.isPending}
-                          >
-                            {deleteOrgMutation.isPending ? "Deleting..." : "Delete"}
-                          </Button>
-                        </div>
+                  {organization.type === "primary" ? (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge variant="default">Primary Organization</Badge>
                       </div>
-                    </DialogContent>
-                  </Dialog>
+                      <p className="text-sm text-yellow-700">
+                        Primary organizations cannot be deleted. You can only modify the name, description, and manage users.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-sm text-gray-600 mb-4">
+                        Deleting this organization will permanently remove all associated users and data.
+                      </p>
+                      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+                        <DialogTrigger asChild>
+                          <Button variant="destructive">
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete Organization
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Are you sure?</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <p className="text-sm text-gray-600">
+                              This action cannot be undone. This will permanently delete the organization "{organization.name}" and all associated users.
+                            </p>
+                            <div className="flex justify-end space-x-2">
+                              <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
+                                Cancel
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                onClick={() => deleteOrgMutation.mutate()}
+                                disabled={deleteOrgMutation.isPending}
+                              >
+                                {deleteOrgMutation.isPending ? "Deleting..." : "Delete"}
+                              </Button>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>
