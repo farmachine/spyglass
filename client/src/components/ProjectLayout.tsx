@@ -210,15 +210,6 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
         {/* Sidebar */}
         <div className="w-64 bg-white border-r border-gray-200">
           <div className="p-6">
-            <div className="mb-6">
-              <div className="text-lg font-semibold text-gray-900 mb-1">
-                {project.name}
-              </div>
-              <div className="text-sm text-gray-600">
-                {project.description || "Data extraction project"}
-              </div>
-            </div>
-
             <nav className="space-y-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
