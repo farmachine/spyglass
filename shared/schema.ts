@@ -111,6 +111,7 @@ export const knowledgeDocuments = pgTable("knowledge_documents", {
   displayName: text("display_name").notNull(),
   fileType: text("file_type").notNull(), // pdf, docx, txt, etc.
   fileSize: integer("file_size").notNull(),
+  content: text("content"), // extracted text content for conflict detection
   description: text("description").notNull(),
   uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
 });

@@ -305,13 +305,10 @@ def check_knowledge_document_conflicts(field_name: str, extracted_value: Any, kn
     extracted_str = str(extracted_value).lower().strip()
     
     # Normalize common country/jurisdiction variations
-    country_variations = {
-        'usa': ['united states', 'u.s.', 'us', 'america', 'u.s. jurisdiction'],
-        'united states': ['usa', 'u.s.', 'us', 'america', 'u.s. jurisdiction'],
-        'u.s.': ['usa', 'united states', 'us', 'america', 'u.s. jurisdiction'],
-        'us': ['usa', 'united states', 'u.s.', 'america', 'u.s. jurisdiction'],
-        'america': ['usa', 'united states', 'u.s.', 'us', 'u.s. jurisdiction']
-    }
+    us_country_variants = ['usa', 'u.s.a.', 'u.s.a', 'united states', 'u.s.', 'us', 'america', 'united states of america']
+    
+    # Check if extracted value represents a US entity
+    is_us_entity = extracted_str in us_country_variants or extracted_str.replace('.', '').replace(' ', '') in ['usa', 'us', 'unitedstates']
     
     # Search through knowledge documents for potential conflicts
     for doc in knowledge_documents:
@@ -330,7 +327,7 @@ def check_knowledge_document_conflicts(field_name: str, extracted_value: Any, kn
                 # Country/Jurisdiction specific conflict detection
                 if 'country' in field_name.lower():
                     # Check for U.S./USA variations in extracted value
-                    if extracted_str in country_variations:
+                    if is_us_entity:
                         # Look for any mention of U.S. jurisdiction requirements
                         jurisdiction_keywords = ['u.s. jurisdiction', 'jurisdiction', 'governing law', 'legal review', 'state law']
                         if any(keyword in sentence_lower for keyword in jurisdiction_keywords):
