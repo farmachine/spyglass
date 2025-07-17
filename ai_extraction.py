@@ -520,19 +520,22 @@ Please review the extracted content and confirm the intended value."""
 - Please verify this field meets your requirements
 - Are there any adjustments needed for this value?"""
         else:
-            # For fields with no rules applied, provide minimal feedback
+            # For fields with no rules applied, provide contextual feedback
+            document_info = f" from document '{document_source}'" if document_source else ""
+            sections_info = f" (found in sections: {', '.join(document_sections)})" if document_sections else ""
+            
             if confidence_score >= 80:
-                return f"""Field appears compliant with all extraction rules and requirements.
+                return f"""The extracted value '{extracted_value}'{document_info}{sections_info} appears accurate and compliant with all extraction rules.
 
-- Does this {field_name.lower()} value look correct: '{extracted_value}'?
+- Does this {field_name.lower()} value look correct for your use case?
 - Is this the standard format you expect for this field?"""
             elif confidence_score >= 50:
-                return f"""Field appears valid but requires verification.
+                return f"""The extracted value '{extracted_value}'{document_info}{sections_info} has medium confidence and may require verification.
 
 - Please confirm this {field_name.lower()} value is correct: '{extracted_value}'
 - Does this value match your expected format or content?"""
             else:
-                return f"""Field has low confidence and requires verification.
+                return f"""The extracted value '{extracted_value}'{document_info}{sections_info} has low confidence and requires verification.
 
 - Is this {field_name.lower()} value accurate: '{extracted_value}'?
 - Should this field contain different or additional information?"""
