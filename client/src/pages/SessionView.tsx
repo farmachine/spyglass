@@ -964,7 +964,7 @@ Thank you for your assistance.`;
                 </Button>
                 <Button onClick={() => setShowReasoningDialog(true)} variant="outline" size="sm">
                   <AlertCircle className="h-4 w-4 mr-2" />
-                  Data Report
+                  Request More Info
                 </Button>
               </div>
             </div>
