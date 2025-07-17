@@ -604,11 +604,26 @@ Please review the extracted content and confirm the intended value."""
                     document_info = f" from document '{document_source}'" if document_source else ""
                     sections_info = f" (found in sections: {', '.join(document_sections)})" if document_sections else ""
                     
-                    return f"""Our policy states that company names containing 'Inc.' require additional verification as they may indicate potential entity ambiguity. The extracted value '{extracted_value}'{document_info}{sections_info} contains 'Inc.' which has triggered this validation rule. Please verify this is the correct entity and not a subsidiary or related company.
+                    return f"""Company names containing 'Inc.' require additional verification due to potential entity ambiguity. The extracted value '{extracted_value}'{document_info}{sections_info} has triggered this review requirement.
 
 - Can you confirm that '{extracted_value}' is the correct company name for this document?
 - Are there any related entities (subsidiaries, parent companies) that might be more appropriate?
 - Should we use a different version of this company name for consistency?"""
+                
+                elif "Knowledge Document Conflict" in rule_name:
+                    # For U.S. jurisdiction conflicts, provide relevant legal review questions
+                    if "u.s" in str(extracted_value).lower() or "usa" in str(extracted_value).lower():
+                        return f"""This jurisdiction requires additional legal review per your organization's compliance guidelines. U.S. contracts have specific regulatory requirements that need verification.
+
+- What is the specific governing law for this contract (which U.S. state)?
+- Have all federal and state regulatory compliance requirements been confirmed?
+- Are the dispute resolution and venue provisions appropriate for this jurisdiction?"""
+                    else:
+                        return f"""This field conflicts with requirements in your knowledge documents and needs additional review to ensure compliance.
+
+- Does this value meet your organization's standards?
+- Are there any compliance requirements that need to be verified?
+- Should this field be updated to match your guidelines?"""
                 else:
                     return f"""Applied rule '{rule_name}': {rule_action}
 
