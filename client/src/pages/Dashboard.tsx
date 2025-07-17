@@ -11,6 +11,7 @@ import ProjectCard from "@/components/ProjectCard";
 import CreateProjectDialog from "@/components/CreateProjectDialog";
 import UserProfile from "@/components/UserProfile";
 import ExtractlyLogo from "@/components/ExtractlyLogo";
+import WavePattern from "@/components/WavePattern";
 
 export default function Dashboard() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -119,11 +120,14 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold">Your Projects</h2>
-              <p className="text-sm text-gray-600">
-                Manage your data extraction projects
-              </p>
+            <div className="flex items-center space-x-3">
+              <div>
+                <h2 className="text-xl font-semibold">Your Projects</h2>
+                <p className="text-sm text-gray-600">
+                  Manage your data extraction projects
+                </p>
+              </div>
+              <WavePattern variant="accent" size="md" className="opacity-70" />
             </div>
             <Button
               onClick={() => setCreateDialogOpen(true)}

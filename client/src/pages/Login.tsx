@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { loginSchema } from "@shared/schema";
 import { z } from "zod";
 import ExtractlyLogo from "@/components/ExtractlyLogo";
+import WavePattern from "@/components/WavePattern";
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
@@ -47,7 +48,10 @@ export default function Login() {
             <ExtractlyLogo />
           </div>
           <div className="space-y-1">
-            <CardTitle className="text-2xl text-center">Sign in</CardTitle>
+            <div className="flex items-center justify-center space-x-2">
+              <CardTitle className="text-2xl text-center">Sign in</CardTitle>
+              <WavePattern variant="light" size="sm" className="opacity-50" />
+            </div>
             <CardDescription className="text-center">
               Enter your email and password to access your account
             </CardDescription>

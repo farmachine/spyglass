@@ -34,6 +34,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useDeleteProject, useDuplicateProject } from "@/hooks/useProjects";
 import { useToast } from "@/hooks/use-toast";
 import type { Project, Organization } from "@shared/schema";
+import WavePattern from "./WavePattern";
 
 interface ProjectCardProps {
   project: Project;
@@ -164,6 +165,10 @@ export default function ProjectCard({ project }: ProjectCardProps) {
               <div className="text-center">
                 <div className="text-lg font-bold text-white">0</div>
                 <div className="text-sm font-medium text-white/80">Sessions</div>
+              </div>
+              
+              <div className="flex items-center justify-center">
+                <WavePattern variant="light" size="sm" className="opacity-60" />
               </div>
               
               <div className="flex flex-col items-end justify-center">

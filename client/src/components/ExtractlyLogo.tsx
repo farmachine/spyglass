@@ -23,65 +23,47 @@ export default function ExtractlyLogo({ className = "", showText = true }: Extra
         <svg
           width="60"
           height="60"
-          viewBox="0 0 40 40"
+          viewBox="0 0 120 80"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
           className="drop-shadow-md"
         >
-          {/* Wave-like shape with gradient */}
           <defs>
-            <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#0EA5E9" />
+            <linearGradient id="darkWaveGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#1E90FF" />
               <stop offset="100%" stopColor="#0284C7" />
             </linearGradient>
-            <linearGradient id="flowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.9" />
-              <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.7" />
-              <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.9" />
+            <linearGradient id="lightWaveGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#87CEEB" />
+              <stop offset="100%" stopColor="#B0E0E6" />
             </linearGradient>
           </defs>
           
-          {/* Surfboard-like shape */}
-          <ellipse
-            cx="20"
-            cy="20"
-            rx="16"
-            ry="8"
-            fill="url(#logoGradient)"
-            stroke="#0284C7"
-            strokeWidth="1"
-          />
-          
-          {/* Surfboard fin detail */}
+          {/* Main dark wave shape */}
           <path
-            d="M20 12 Q22 14 20 16 Q18 14 20 12Z"
-            fill="url(#logoGradient)"
-            stroke="#0284C7"
-            strokeWidth="0.5"
+            d="M20 45 Q35 25 50 35 Q65 45 80 30 Q90 25 100 35 L100 65 Q85 55 70 60 Q55 65 40 55 Q25 50 20 60 Z"
+            fill="url(#darkWaveGradient)"
           />
           
-          {/* Wave lines flowing across the board */}
-          <g stroke="url(#flowGradient)" strokeWidth="2" strokeLinecap="round" fill="none">
-            {/* Main wave flow */}
-            <path d="M8 20 Q14 18 20 20 Q26 22 32 20" strokeWidth="2.5" />
-            
-            {/* Secondary wave flows */}
-            <path d="M10 17 Q16 16 20 17 Q24 18 30 17" strokeWidth="1.5" opacity="0.8" />
-            <path d="M10 23 Q16 24 20 23 Q24 22 30 23" strokeWidth="1.5" opacity="0.8" />
-            
-            {/* Data flow points */}
-            <circle cx="14" cy="19" r="1.2" fill="white" opacity="0.9" />
-            <circle cx="20" cy="20" r="1.5" fill="white" />
-            <circle cx="26" cy="21" r="1.2" fill="white" opacity="0.9" />
-          </g>
+          {/* Light wave overlay */}
+          <path
+            d="M15 35 Q30 15 45 25 Q60 35 75 20 Q85 15 95 25 Q105 30 115 25"
+            stroke="url(#lightWaveGradient)"
+            strokeWidth="8"
+            strokeLinecap="round"
+            fill="none"
+            opacity="0.8"
+          />
           
-          {/* Stylized 'E' for Extract */}
-          <g fill="white" opacity="0.5">
-            <rect x="17" y="16" width="6" height="1" rx="0.5" />
-            <rect x="17" y="19" width="4" height="1" rx="0.5" />
-            <rect x="17" y="22" width="6" height="1" rx="0.5" />
-            <rect x="17" y="16" width="1" height="7" rx="0.5" />
-          </g>
+          {/* Secondary light wave */}
+          <path
+            d="M10 50 Q25 30 40 40 Q55 50 70 35 Q80 30 90 40"
+            stroke="url(#lightWaveGradient)"
+            strokeWidth="6"
+            strokeLinecap="round"
+            fill="none"
+            opacity="0.6"
+          />
         </svg>
       </div>
       

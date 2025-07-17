@@ -15,6 +15,7 @@ import Publishing from "./Publishing";
 import UserProfile from "./UserProfile";
 import Breadcrumb from "./Breadcrumb";
 import ExtractlyLogo from "./ExtractlyLogo";
+import WavePattern from "./WavePattern";
 
 interface ProjectLayoutProps {
   projectId: string;
@@ -197,15 +198,18 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
               </div>
               <UserProfile />
             </div>
-            <div>
-              <h1 className="text-2xl font-semibold text-gray-900">
-                {project.name}
-              </h1>
-              {project.description && (
-                <p className="text-sm text-gray-600 mt-1">
-                  {project.description}
-                </p>
-              )}
+            <div className="flex items-center space-x-4">
+              <div>
+                <h1 className="text-2xl font-semibold text-gray-900">
+                  {project.name}
+                </h1>
+                {project.description && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    {project.description}
+                  </p>
+                )}
+              </div>
+              <WavePattern variant="primary" size="lg" className="opacity-60" />
             </div>
           </div>
         </div>
