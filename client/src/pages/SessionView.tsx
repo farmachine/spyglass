@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -218,6 +218,7 @@ export default function SessionView() {
   const { projectId, sessionId } = useParams();
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [showReasoningDialog, setShowReasoningDialog] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -327,8 +328,22 @@ export default function SessionView() {
   // Get session status based on field verification
   const getSessionStatus = () => {
     if (validations.length === 0) return 'in_progress';
-    const allVerified = validations.every(v => v.validationStatus === 'valid');
+    const allVerified = validations.every(v => v.validationStatus === 'valid' || v.validationStatus === 'verified');
     return allVerified ? 'verified' : 'in_progress';
+  };
+
+  // Get verification count helpers
+  const getVerifiedCount = () => {
+    return validations.filter(v => v.validationStatus === 'valid' || v.validationStatus === 'verified').length;
+  };
+
+  const getTotalFieldCount = () => {
+    return validations.length;
+  };
+
+  // Get all unverified fields for consolidated reasoning
+  const getUnverifiedFields = () => {
+    return validations.filter(v => v.validationStatus !== 'valid' && v.validationStatus !== 'verified');
   };
 
   const handleEdit = (fieldName: string, currentValue: any) => {
@@ -755,16 +770,24 @@ export default function SessionView() {
         <div className="flex-1 p-8">
           <div className="max-w-4xl mx-auto">
             {/* Session Header */}
-            <div className="flex items-center gap-4 mb-8">
-              <Link href={`/projects/${projectId}?tab=all-data`}>
-                <Button variant="outline" size="sm">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to All {project?.mainObjectName || "Session"} Data
-                </Button>
-              </Link>
-              <div className="flex-1">
+            <div className="flex items-center justify-between mb-8">
+              <div>
                 <h2 className="text-2xl font-bold text-gray-900">{project?.mainObjectName || "Session"} Review</h2>
                 <p className="text-gray-600">Review and verify extracted {(project?.mainObjectName || "session").toLowerCase()} data</p>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <div className="text-lg font-semibold text-gray-900">
+                    {getVerifiedCount()} of {getTotalFieldCount()} verified
+                  </div>
+                  <Badge variant={getSessionStatus() === 'verified' ? 'default' : 'secondary'} className="ml-2">
+                    {getSessionStatus() === 'verified' ? 'Verified' : 'In Progress'}
+                  </Badge>
+                </div>
+                <Button onClick={() => setShowReasoningDialog(true)} variant="outline" size="sm">
+                  <AlertCircle className="h-4 w-4 mr-2" />
+                  AI Reasoning
+                </Button>
               </div>
             </div>
 
@@ -847,6 +870,71 @@ export default function SessionView() {
           </div>
         </div>
       </div>
+
+      {/* Consolidated AI Reasoning Dialog */}
+      <Dialog open={showReasoningDialog} onOpenChange={setShowReasoningDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-blue-600" />
+              Consolidated AI Reasoning - All Unverified Fields
+            </DialogTitle>
+            <DialogDescription>
+              Review AI reasoning for all fields that require attention
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 mt-4">
+            {getUnverifiedFields().length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <CheckCircle className="h-12 w-12 mx-auto mb-3 text-green-500" />
+                <p className="text-lg font-medium">All fields verified!</p>
+                <p className="text-sm">No unverified fields require attention.</p>
+              </div>
+            ) : (
+              getUnverifiedFields().map((validation) => (
+                <div key={validation.id} className="border rounded-lg p-4 bg-gray-50">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-gray-900">{validation.fieldName}</h3>
+                    <div className="flex items-center gap-2">
+                      <Badge 
+                        variant={validation.validationStatus === 'invalid' ? 'destructive' : 'secondary'}
+                      >
+                        {validation.validationStatus === 'invalid' ? 'Missing Data' : 'Unverified'}
+                      </Badge>
+                      {validation.confidenceScore > 0 && (
+                        <span className="text-xs text-gray-500">
+                          {validation.confidenceScore}% confidence
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="text-sm text-gray-700 bg-white p-3 rounded border">
+                    {validation.aiReasoning || (
+                      validation.validationStatus === 'invalid' 
+                        ? "We are missing this information in the document. This field was not found or extracted during the AI analysis. Please manually review the document or add this information if available."
+                        : "This field requires manual verification. Please review the extracted value for accuracy."
+                    )}
+                  </div>
+                  
+                  {validation.extractedValue && (
+                    <div className="mt-2 text-xs text-gray-600">
+                      <strong>Extracted Value:</strong> {String(validation.extractedValue)}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+          
+          <div className="flex justify-end mt-6 pt-4 border-t">
+            <Button onClick={() => setShowReasoningDialog(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

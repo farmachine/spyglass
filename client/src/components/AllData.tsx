@@ -74,6 +74,18 @@ export default function AllData({ project }: AllDataProps) {
 
   const verificationStats = getVerificationStats();
 
+  // Get verification progress for a session
+  const getSessionProgress = (sessionId: number) => {
+    const sessionValidations = allValidations.filter(v => v.sessionId === sessionId);
+    if (sessionValidations.length === 0) return { verified: 0, total: 0, percentage: 0 };
+    
+    const verified = sessionValidations.filter(v => v.validationStatus === 'valid' || v.validationStatus === 'verified').length;
+    const total = sessionValidations.length;
+    const percentage = Math.round((verified / total) * 100);
+    
+    return { verified, total, percentage };
+  };
+
   return (
     <div>
       <div className="mb-8">
@@ -141,67 +153,88 @@ export default function AllData({ project }: AllDataProps) {
               </p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Session Name</TableHead>
-                  <TableHead>Documents</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {project.sessions.map((session) => (
-                  <TableRow key={session.id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{session.sessionName}</p>
-                        {session.description && (
-                          <p className="text-sm text-muted-foreground">{session.description}</p>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>{session.documentCount}</TableCell>
-                    <TableCell>
-                      {(() => {
-                        const verificationStatus = getVerificationStatus(session.id);
-                        return (
-                          <Badge
-                            variant={
-                              verificationStatus === 'verified'
-                                ? 'default'
-                                : verificationStatus === 'in_progress'
-                                ? 'secondary'
-                                : 'outline'
-                            }
-                          >
-                            {verificationStatus === 'verified' ? 'Verified' : 
-                             verificationStatus === 'in_progress' ? 'In Progress' : 
-                             'Pending'}
-                          </Badge>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        {formatDate(session.createdAt)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {/* Always show Open button for sessions with validations */}
-                      <Link href={`/projects/${project.id}/sessions/${session.id}`}>
-                        <Button size="sm" variant="outline">
-                          <ExternalLink className="h-4 w-4 mr-2" />
-                          Open
-                        </Button>
-                      </Link>
-                    </TableCell>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="py-3">Session Name</TableHead>
+                    <TableHead className="py-3 w-24">Docs</TableHead>
+                    <TableHead className="py-3 w-32">Progress</TableHead>
+                    <TableHead className="py-3 w-32">Status</TableHead>
+                    <TableHead className="py-3 w-32">Created</TableHead>
+                    <TableHead className="py-3 w-20">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                {project.sessions.map((session) => {
+                  const progress = getSessionProgress(session.id);
+                  const verificationStatus = getVerificationStatus(session.id);
+                  
+                  return (
+                    <TableRow key={session.id} className="hover:bg-gray-50">
+                      <TableCell className="py-3">
+                        <div>
+                          <p className="font-medium text-sm">{session.sessionName}</p>
+                          {session.description && (
+                            <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                              {session.description}
+                            </p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-3 text-sm">
+                        {session.documentCount}
+                      </TableCell>
+                      <TableCell className="py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 bg-gray-200 rounded-full h-2">
+                            <div 
+                              className={`h-2 rounded-full ${
+                                progress.percentage === 100 ? 'bg-green-600' : 
+                                progress.percentage > 0 ? 'bg-blue-600' : 'bg-gray-400'
+                              }`}
+                              style={{ width: `${progress.percentage}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-gray-600 min-w-[40px]">
+                            {progress.verified}/{progress.total}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-3">
+                        <Badge
+                          variant={
+                            verificationStatus === 'verified'
+                              ? 'default'
+                              : verificationStatus === 'in_progress'
+                              ? 'secondary'
+                              : 'outline'
+                          }
+                          className="text-xs"
+                        >
+                          {verificationStatus === 'verified' ? 'Verified' : 
+                           verificationStatus === 'in_progress' ? 'In Progress' : 
+                           'Pending'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="py-3">
+                        <div className="text-xs text-muted-foreground">
+                          {formatDate(session.createdAt).split(',')[0]}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-3">
+                        <Link href={`/projects/${project.id}/sessions/${session.id}`}>
+                          <Button size="sm" variant="outline" className="h-7 px-2 text-xs">
+                            <ExternalLink className="h-3 w-3" />
+                          </Button>
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
