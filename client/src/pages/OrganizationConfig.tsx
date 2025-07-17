@@ -293,7 +293,7 @@ export default function OrganizationConfig() {
 
                 <div className="pt-6 border-t">
                   <h3 className="text-lg font-medium text-red-600 mb-4">Danger Zone</h3>
-                  {organization.type === "primary" ? (
+                  {organization?.type === "primary" ? (
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <Badge variant="default">Primary Organization</Badge>

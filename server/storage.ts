@@ -1032,12 +1032,13 @@ class PostgreSQLStorage implements IStorage {
         id: organizations.id,
         name: organizations.name,
         description: organizations.description,
+        type: organizations.type,
         createdAt: organizations.createdAt,
         userCount: count(users.id)
       })
       .from(organizations)
       .leftJoin(users, eq(organizations.id, users.organizationId))
-      .groupBy(organizations.id, organizations.name, organizations.description, organizations.createdAt);
+      .groupBy(organizations.id, organizations.name, organizations.description, organizations.type, organizations.createdAt);
     
     return result;
   }
