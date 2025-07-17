@@ -18,6 +18,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
+import ExtractlyLogo from "@/components/ExtractlyLogo";
 import type { 
   ExtractionSession, 
   ProjectWithDetails, 
@@ -870,10 +871,7 @@ Thank you for your assistance.`;
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="flex items-center gap-4">
             <Link href="/">
-              <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                <Home className="h-4 w-4" />
-                Dashboard
-              </Button>
+              <ExtractlyLogo showText={false} />
             </Link>
             <div>
               <h1 className="text-2xl font-semibold text-gray-900">
@@ -885,9 +883,7 @@ Thank you for your assistance.`;
                 </p>
               )}
             </div>
-            <Badge variant={getSessionStatus() === 'verified' ? 'default' : 'secondary'}>
-              {getSessionStatus() === 'verified' ? 'Verified' : 'In Progress'}
-            </Badge>
+
           </div>
         </div>
       </div>
@@ -942,7 +938,7 @@ Thank you for your assistance.`;
                 </Link>
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">{session?.sessionName}</h2>
-                  <p className="text-gray-600">Review and verify extracted {(project?.mainObjectName || "session").toLowerCase()} data</p>
+
                 </div>
               </div>
               <div className="flex items-center gap-4">
