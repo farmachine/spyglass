@@ -812,7 +812,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/sessions/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       const result = insertExtractionSessionSchema.partial().safeParse(req.body);
       if (!result.success) {
         return res.status(400).json({ message: "Invalid extraction session data", errors: result.error.errors });
@@ -831,7 +831,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update extracted data for a session
   app.patch("/api/sessions/:sessionId/data", async (req, res) => {
     try {
-      const sessionId = parseInt(req.params.sessionId);
+      const sessionId = req.params.sessionId;
       const { extractedData } = req.body;
       
       const session = await storage.updateExtractionSession(sessionId, {
@@ -853,7 +853,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Process extraction session with AI
   app.post("/api/sessions/:sessionId/process", async (req, res) => {
     try {
-      const sessionId = parseInt(req.params.sessionId);
+      const sessionId = req.params.sessionId;
       const { files, project_data } = req.body;
       
       // Use the imported spawn function
@@ -1023,7 +1023,7 @@ except Exception as e:
   // Field Validations
   app.get("/api/sessions/:sessionId/validations", async (req, res) => {
     try {
-      const sessionId = parseInt(req.params.sessionId);
+      const sessionId = req.params.sessionId;
       const validations = await storage.getFieldValidations(sessionId);
       res.json(validations);
     } catch (error) {
@@ -1033,7 +1033,7 @@ except Exception as e:
 
   app.post("/api/sessions/:sessionId/validations", async (req, res) => {
     try {
-      const sessionId = parseInt(req.params.sessionId);
+      const sessionId = req.params.sessionId;
       const result = insertFieldValidationSchema.safeParse({
         ...req.body,
         sessionId
@@ -1082,7 +1082,7 @@ except Exception as e:
 
   app.get("/api/sessions/:sessionId/with-validations", async (req, res) => {
     try {
-      const sessionId = parseInt(req.params.sessionId);
+      const sessionId = req.params.sessionId;
       const session = await storage.getSessionWithValidations(sessionId);
       if (!session) {
         return res.status(404).json({ message: "Session not found" });

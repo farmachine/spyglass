@@ -21,7 +21,7 @@ if not api_key:
 client = genai.Client(api_key=api_key)
 
 class FieldValidationResult(BaseModel):
-    field_id: int
+    field_id: str
     field_name: str
     field_type: str
     extracted_value: Optional[Union[str, bool, int, float]]
@@ -809,7 +809,7 @@ def generate_field_validations(
     return validations
 
 def create_field_validation(
-    field_id: int, 
+    field_id: str, 
     field_name: str, 
     field_type: str, 
     extracted_value: Any, 

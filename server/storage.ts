@@ -91,9 +91,9 @@ export interface IStorage {
 
   // Extraction Sessions
   getExtractionSessions(projectId: string): Promise<ExtractionSession[]>;
-  getExtractionSession(id: number): Promise<ExtractionSession | undefined>;
+  getExtractionSession(id: string): Promise<ExtractionSession | undefined>;
   createExtractionSession(session: InsertExtractionSession): Promise<ExtractionSession>;
-  updateExtractionSession(id: number, session: Partial<InsertExtractionSession>): Promise<ExtractionSession | undefined>;
+  updateExtractionSession(id: string, session: Partial<InsertExtractionSession>): Promise<ExtractionSession | undefined>;
 
   // Knowledge Documents
   getKnowledgeDocuments(projectId: string): Promise<KnowledgeDocument[]>;
@@ -108,11 +108,11 @@ export interface IStorage {
   deleteExtractionRule(id: number): Promise<boolean>;
 
   // Field Validations
-  getFieldValidations(sessionId: number): Promise<FieldValidation[]>;
+  getFieldValidations(sessionId: string): Promise<FieldValidation[]>;
   createFieldValidation(validation: InsertFieldValidation): Promise<FieldValidation>;
   updateFieldValidation(id: number, validation: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined>;
   deleteFieldValidation(id: number): Promise<boolean>;
-  getSessionWithValidations(sessionId: number): Promise<ExtractionSessionWithValidation | undefined>;
+  getSessionWithValidations(sessionId: string): Promise<ExtractionSessionWithValidation | undefined>;
 
   // Project Publishing
   getProjectPublishing(projectId: string): Promise<ProjectPublishing[]>;
@@ -1422,7 +1422,7 @@ class PostgreSQLStorage implements IStorage {
     return result;
   }
 
-  async getExtractionSession(id: number): Promise<ExtractionSession | undefined> {
+  async getExtractionSession(id: string): Promise<ExtractionSession | undefined> {
     const result = await this.db
       .select()
       .from(extractionSessions)
@@ -1434,7 +1434,7 @@ class PostgreSQLStorage implements IStorage {
     const result = await this.db.insert(extractionSessions).values(session).returning();
     return result[0];
   }
-  async updateExtractionSession(id: number, session: Partial<InsertExtractionSession>): Promise<ExtractionSession | undefined> {
+  async updateExtractionSession(id: string, session: Partial<InsertExtractionSession>): Promise<ExtractionSession | undefined> {
     const result = await this.db
       .update(extractionSessions)
       .set(session)
@@ -1500,7 +1500,7 @@ class PostgreSQLStorage implements IStorage {
       .where(eq(extractionRules.id, id));
     return result.rowCount > 0;
   }
-  async getFieldValidations(sessionId: number): Promise<FieldValidation[]> { 
+  async getFieldValidations(sessionId: string): Promise<FieldValidation[]> { 
     const result = await this.db.select().from(fieldValidations).where(eq(fieldValidations.sessionId, sessionId));
     
     // Enhance results with field names
@@ -1549,7 +1549,7 @@ class PostgreSQLStorage implements IStorage {
     const result = await this.db.delete(fieldValidations).where(eq(fieldValidations.id, id));
     return result.rowCount > 0;
   }
-  async getSessionWithValidations(sessionId: number): Promise<ExtractionSessionWithValidation | undefined> { 
+  async getSessionWithValidations(sessionId: string): Promise<ExtractionSessionWithValidation | undefined> { 
     const session = await this.getExtractionSession(sessionId);
     if (!session) return undefined;
     
