@@ -286,7 +286,7 @@ def normalize_extracted_values(data: Dict[str, Any]) -> Dict[str, Any]:
     
     return {k: normalize_value(v) for k, v in data.items()}
 
-def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, base_confidence: float, extraction_rules: List[Dict[str, Any]] = None) -> int:
+def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, base_confidence: float, extraction_rules: List[Dict[str, Any]] = None) -> tuple[int, list]:
     """
     Calculate confidence percentage based on knowledge base and rules compliance.
     
@@ -301,13 +301,14 @@ def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, 
         extraction_rules: List of extraction rules to apply
     
     Returns:
-        Confidence percentage (0-100)
+        Tuple of (confidence_percentage, applied_rules_list)
     """
     if extracted_value is None or extracted_value == "" or extracted_value == "null":
-        return 0
+        return 0, []
     
     # Base confidence calculation
     confidence_percentage = int(base_confidence * 100)
+    applied_rules = []
     
     # Apply extraction rules if available
     if extraction_rules:
@@ -344,6 +345,10 @@ def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, 
                 if "inc" in rule_content_lower and "confidence" in rule_content_lower and "50%" in rule_content_lower:
                     if isinstance(extracted_value, str) and "inc" in extracted_value.lower():
                         confidence_percentage = 50
+                        applied_rules.append({
+                            'name': rule_name,
+                            'action': f"Set confidence to 50% due to 'Inc' in company name - indicates potential entity ambiguity"
+                        })
                         logging.info(f"Applied rule '{rule_name}': Set confidence to 50% because value contains 'Inc'")
                         continue
                 
@@ -382,7 +387,7 @@ def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, 
             confidence_percentage = max(80, confidence_percentage - 5)
     
     # Ensure confidence is within bounds
-    return max(1, min(100, confidence_percentage))
+    return max(1, min(100, confidence_percentage)), applied_rules
 
 def generate_detailed_reasoning(
     field_name: str, 
@@ -390,7 +395,8 @@ def generate_detailed_reasoning(
     extracted_value: Any, 
     validation_status: str, 
     context: str, 
-    confidence_score: int
+    confidence_score: int,
+    applied_rules: list = None
 ) -> str:
     """
     Generate detailed AI reasoning explaining confidence levels and suggesting resolution actions.
@@ -514,10 +520,20 @@ CONFIDENCE CALCULATION:
 {field_analysis}
 • Final confidence: {confidence_score}% ({confidence_level} confidence)
 
-RULES COMPLIANCE:
-• Meets all field type requirements
-• No conflicts with knowledge base rules
-• Value appears consistent with document context"""
+RULES COMPLIANCE:"""
+        
+        # Generate rules compliance explanation
+        if applied_rules:
+            rules_explanation = ""
+            for rule in applied_rules:
+                rule_name = rule.get('name', 'Unknown Rule')
+                rule_action = rule.get('action', 'Unknown Action')
+                rules_explanation += f"\n• Applied rule '{rule_name}': {rule_action}"
+            base_analysis += rules_explanation
+        else:
+            base_analysis += "\n• Compliant with all extraction rules and knowledge base requirements"
+        
+        base_analysis += "\n• Value appears consistent with document context"""
 
         if confidence_score >= 80:
             suggested_action = f"""SUGGESTED RESOLUTION:
@@ -822,7 +838,7 @@ def create_field_validation(
         validation_status = "invalid"
         context = f"collection '{collection_name}' record {record_index + 1}" if is_collection else "document"
         ai_reasoning = generate_detailed_reasoning(
-            field_name, field_type, extracted_value, validation_status, context, 0
+            field_name, field_type, extracted_value, validation_status, context, 0, []
         )
         confidence_score = 0
     else:
@@ -831,15 +847,15 @@ def create_field_validation(
             try:
                 float(str(extracted_value))
                 validation_status = "valid"
-                confidence_score = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence, extraction_rules)
+                confidence_score, applied_rules = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence, extraction_rules)
                 ai_reasoning = generate_detailed_reasoning(
-                    field_name, field_type, extracted_value, validation_status, "", confidence_score
+                    field_name, field_type, extracted_value, validation_status, "", confidence_score, applied_rules
                 )
             except (ValueError, TypeError):
                 validation_status = "invalid"
                 confidence_score = 0
                 ai_reasoning = generate_detailed_reasoning(
-                    field_name, field_type, extracted_value, validation_status, "", confidence_score
+                    field_name, field_type, extracted_value, validation_status, "", confidence_score, []
                 )
         elif field_type == "DATE":
             # Enhanced date validation
@@ -848,38 +864,42 @@ def create_field_validation(
                 import re
                 if re.match(r'\d{4}-\d{2}-\d{2}', extracted_value):
                     validation_status = "valid"
-                    confidence_score = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence, extraction_rules)
+                    confidence_score, applied_rules = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence, extraction_rules)
                 else:
                     validation_status = "invalid"
                     confidence_score = 0
+                    applied_rules = []
             else:
                 validation_status = "invalid"
                 confidence_score = 0
+                applied_rules = []
             
             ai_reasoning = generate_detailed_reasoning(
-                field_name, field_type, extracted_value, validation_status, "", confidence_score
+                field_name, field_type, extracted_value, validation_status, "", confidence_score, applied_rules
             )
         elif field_type == "BOOLEAN":
             if isinstance(extracted_value, bool) or str(extracted_value).lower() in ['true', 'false', 'yes', 'no']:
                 validation_status = "valid"
-                confidence_score = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence, extraction_rules)
+                confidence_score, applied_rules = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence, extraction_rules)
             else:
                 validation_status = "invalid"
                 confidence_score = 0
+                applied_rules = []
             
             ai_reasoning = generate_detailed_reasoning(
-                field_name, field_type, extracted_value, validation_status, "", confidence_score
+                field_name, field_type, extracted_value, validation_status, "", confidence_score, applied_rules
             )
         else:  # TEXT
             if isinstance(extracted_value, str) and len(extracted_value.strip()) > 0:
                 validation_status = "valid"
-                confidence_score = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence, extraction_rules)
+                confidence_score, applied_rules = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence, extraction_rules)
             else:
                 validation_status = "invalid"
                 confidence_score = 0
+                applied_rules = []
             
             ai_reasoning = generate_detailed_reasoning(
-                field_name, field_type, extracted_value, validation_status, "", confidence_score
+                field_name, field_type, extracted_value, validation_status, "", confidence_score, applied_rules
             )
     
     return FieldValidationResult(
