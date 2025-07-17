@@ -63,7 +63,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
           if (canAccessConfigTabs) setActiveTab('define');
           break;
         case 'publishing':
-          if (canAccessConfigTabs) setActiveTab('publishing');
+          if (canAccessPublishing) setActiveTab('publishing');
           break;
         default:
           setActiveTab('upload');
@@ -147,7 +147,9 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
 
   // Check user role for access control
   const isAdmin = user?.role === 'admin';
+  const isPrimaryOrgAdmin = isAdmin && user?.organization?.name === 'Internal';
   const canAccessConfigTabs = isAdmin;
+  const canAccessPublishing = isPrimaryOrgAdmin;
 
   const navItems = [
     { id: "upload" as const, label: `New ${project.mainObjectName || "Session"}`, icon: Upload, disabled: !isSetupComplete },
@@ -155,6 +157,8 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
     ...(canAccessConfigTabs ? [
       { id: "knowledge" as const, label: "Knowledge/Rules", icon: Brain, disabled: !isSetupComplete },
       { id: "define" as const, label: "Define Data", icon: Settings, disabled: false },
+    ] : []),
+    ...(canAccessPublishing ? [
       { id: "publishing" as const, label: "Publishing", icon: FolderOpen, disabled: false },
     ] : []),
   ];
