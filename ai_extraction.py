@@ -3,7 +3,7 @@ import logging
 import os
 import base64
 import sys
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Union
 
 from google import genai
 from google.genai import types
@@ -24,7 +24,7 @@ class FieldValidationResult(BaseModel):
     field_id: int
     field_name: str
     field_type: str
-    extracted_value: Optional[str]
+    extracted_value: Optional[Union[str, bool, int, float]]
     validation_status: str  # 'valid', 'invalid', 'pending'
     ai_reasoning: Optional[str]
     confidence_score: int  # 0-100
