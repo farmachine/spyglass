@@ -132,14 +132,15 @@ const ConfidenceBadge = ({
             <TooltipTrigger asChild>
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
-                aria-label="View AI reasoning"
+                className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 border border-blue-300 hover:border-blue-400 transition-all duration-200 hover:scale-110 cursor-pointer"
+                aria-label="Click to view detailed AI reasoning"
+                title="Click for detailed AI analysis"
               >
-                <Info className="h-3 w-3" />
+                <Info className="h-4 w-4" />
               </button>
             </TooltipTrigger>
             <TooltipContent>
-              <p className="max-w-xs">{reasoning.slice(0, 100)}...</p>
+              <p className="max-w-xs">Click to view detailed AI reasoning and analysis</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
