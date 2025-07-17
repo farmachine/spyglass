@@ -179,14 +179,14 @@ export default function SessionView() {
     return allVerified ? 'verified' : 'in_progress';
   };
 
-  const handleEdit = (fieldName: string, currentValue: string) => {
+  const handleEdit = (fieldName: string, currentValue: any) => {
     setEditingField(fieldName);
     
     // Handle date field formatting
     const fieldType = getFieldType(fieldName);
     if (fieldType === 'DATE') {
-      // If the current value is null, undefined, or "null", set empty string
-      if (!currentValue || currentValue === 'null' || currentValue === 'undefined') {
+      // For date fields, always start with empty string if no valid date
+      if (!currentValue || currentValue === 'null' || currentValue === 'undefined' || currentValue === null) {
         setEditValue('');
       } else {
         // Try to parse and format the date properly
@@ -205,7 +205,7 @@ export default function SessionView() {
       }
     } else {
       // For non-date fields, handle null/undefined values
-      setEditValue(currentValue === 'null' || currentValue === 'undefined' ? '' : currentValue);
+      setEditValue(!currentValue || currentValue === 'null' || currentValue === 'undefined' ? '' : String(currentValue));
     }
   };
 
@@ -391,7 +391,7 @@ export default function SessionView() {
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => handleEdit(fieldName, String(value))}
+                onClick={() => handleEdit(fieldName, value)}
               >
                 <Edit3 className="h-3 w-3" />
               </Button>
