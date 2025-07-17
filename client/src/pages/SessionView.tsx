@@ -754,7 +754,7 @@ Thank you for your assistance.`;
 
   const navItems = [
     { id: "upload", label: `New ${project?.mainObjectName || "Session"}`, icon: Upload, href: `/projects/${projectId}?tab=upload` },
-    { id: "data", label: `All ${project?.mainObjectName || "Session"} Data`, icon: Database, href: `/projects/${projectId}?tab=all-data` },
+    { id: "data", label: `All ${project?.mainObjectName || "Session"}s`, icon: Database, href: `/projects/${projectId}?tab=all-data` },
     { id: "knowledge", label: "Knowledge/Rules", icon: Brain, href: `/projects/${projectId}?tab=knowledge` },
     { id: "define", label: "Define Data", icon: Settings, href: `/projects/${projectId}?tab=define` },
   ];

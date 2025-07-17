@@ -153,7 +153,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
 
   const navItems = [
     { id: "upload" as const, label: `New ${project.mainObjectName || "Session"}`, icon: Upload, disabled: !isSetupComplete },
-    { id: "data" as const, label: `All ${project.mainObjectName || "Session"} Data`, icon: Database, disabled: !isSetupComplete },
+    { id: "data" as const, label: `All ${project.mainObjectName || "Session"}s`, icon: Database, disabled: !isSetupComplete },
     ...(canAccessConfigTabs ? [
       { id: "knowledge" as const, label: "Knowledge/Rules", icon: Brain, disabled: !isSetupComplete },
       { id: "define" as const, label: "Define Data", icon: Settings, disabled: false },
