@@ -34,7 +34,7 @@ export default function Publishing({ project }: PublishingProps) {
     mutationFn: async (organizationId: number) => {
       return apiRequest(`/api/projects/${project.id}/publishing`, {
         method: "POST",
-        body: { organizationId },
+        body: JSON.stringify({ organizationId }),
       });
     },
     onSuccess: () => {
