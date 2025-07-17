@@ -24,4 +24,10 @@ export const projectsApi = {
     apiRequest(`/api/projects/${id}`, {
       method: "DELETE",
     }),
+  
+  duplicate: (id: string, name: string): Promise<Project> =>
+    apiRequest(`/api/projects/${id}/duplicate`, {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    }),
 };

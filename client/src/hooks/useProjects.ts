@@ -54,3 +54,15 @@ export function useDeleteProject() {
     },
   });
 }
+
+export function useDuplicateProject() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) => 
+      projectsApi.duplicate(id, name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+    },
+  });
+}

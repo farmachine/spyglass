@@ -358,6 +358,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/projects/:id/duplicate", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = req.params.id;
+      const { name } = req.body;
+      
+      if (!name || typeof name !== 'string') {
+        return res.status(400).json({ message: "Project name is required" });
+      }
+      
+      const duplicatedProject = await storage.duplicateProject(id, name, req.user!.organizationId);
+      if (!duplicatedProject) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      res.status(201).json(duplicatedProject);
+    } catch (error) {
+      console.error("Duplicate project error:", error);
+      res.status(500).json({ message: "Failed to duplicate project" });
+    }
+  });
+
   // Project Schema Fields
   app.get("/api/projects/:projectId/schema", authenticateToken, async (req: AuthRequest, res) => {
     try {

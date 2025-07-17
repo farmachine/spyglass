@@ -1,6 +1,8 @@
-import { Calendar, Settings, Trash2 } from "lucide-react";
+import { Calendar, Settings, Trash2, Copy } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -17,9 +19,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useLocation } from "wouter";
 import { useState } from "react";
-import { useDeleteProject } from "@/hooks/useProjects";
+import { useDeleteProject, useDuplicateProject } from "@/hooks/useProjects";
 import { useToast } from "@/hooks/use-toast";
 import type { Project } from "@shared/schema";
 
@@ -30,7 +40,10 @@ interface ProjectCardProps {
 export default function ProjectCard({ project }: ProjectCardProps) {
   const [, setLocation] = useLocation();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
+  const [duplicateName, setDuplicateName] = useState("");
   const deleteProject = useDeleteProject();
+  const duplicateProject = useDuplicateProject();
   const { toast } = useToast();
 
   const handleDelete = async () => {
@@ -55,6 +68,35 @@ export default function ProjectCard({ project }: ProjectCardProps) {
         variant: "destructive",
       });
     }
+  };
+
+  const handleDuplicate = async () => {
+    if (!duplicateName.trim()) return;
+    
+    setDuplicateDialogOpen(false);
+    
+    try {
+      await duplicateProject.mutateAsync({ 
+        id: project.id, 
+        name: duplicateName.trim() 
+      });
+      toast({
+        title: "Project duplicated",
+        description: "The project has been successfully duplicated.",
+      });
+      setDuplicateName("");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to duplicate the project. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openDuplicateDialog = () => {
+    setDuplicateName(`${project.name} (Copy)`);
+    setDuplicateDialogOpen(true);
   };
 
   const formatDate = (date: Date | string) => {
@@ -88,8 +130,9 @@ export default function ProjectCard({ project }: ProjectCardProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setLocation(`/projects/${project.id}`)}>
-                  View Project
+                <DropdownMenuItem onClick={openDuplicateDialog}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Duplicate
                 </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={() => setDeleteDialogOpen(true)}
@@ -146,6 +189,45 @@ export default function ProjectCard({ project }: ProjectCardProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Duplicate Project</DialogTitle>
+            <DialogDescription>
+              Create a copy of "{project.name}" with all schema fields, collections, and extraction rules.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="project-name">Project Name</Label>
+              <Input
+                id="project-name"
+                value={duplicateName}
+                onChange={(e) => setDuplicateName(e.target.value)}
+                placeholder="Enter name for duplicated project"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && duplicateName.trim()) {
+                    handleDuplicate();
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDuplicateDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDuplicate}
+              disabled={!duplicateName.trim() || duplicateProject.isPending}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {duplicateProject.isPending ? "Duplicating..." : "Duplicate"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

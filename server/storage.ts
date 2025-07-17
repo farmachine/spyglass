@@ -751,6 +751,102 @@ export class MemStorage implements IStorage {
     return this.projects.delete(id);
   }
 
+  async duplicateProject(id: number, newName: string, organizationId?: number): Promise<Project | undefined> {
+    const originalProject = this.projects.get(id);
+    if (!originalProject) return undefined;
+    
+    // Check organization access if organizationId is provided
+    if (organizationId && originalProject.organizationId !== organizationId) {
+      return undefined;
+    }
+    
+    // Create new project with the same data but different name and ID
+    const duplicatedProject: Project = {
+      id: this.currentProjectId++,
+      name: newName,
+      description: originalProject.description,
+      mainObjectName: originalProject.mainObjectName,
+      organizationId: originalProject.organizationId,
+      isInitialSetupComplete: originalProject.isInitialSetupComplete,
+      createdAt: new Date(),
+    };
+    
+    this.projects.set(duplicatedProject.id, duplicatedProject);
+    
+    // Duplicate schema fields
+    const originalSchemaFields = Array.from(this.projectSchemaFields.values())
+      .filter(field => field.projectId === originalProject.id.toString());
+    
+    for (const field of originalSchemaFields) {
+      const duplicatedField: ProjectSchemaField = {
+        id: this.currentFieldId++,
+        name: field.name,
+        fieldType: field.fieldType,
+        description: field.description,
+        isRequired: field.isRequired,
+        orderIndex: field.orderIndex,
+        projectId: duplicatedProject.id.toString(),
+        createdAt: new Date(),
+      };
+      this.projectSchemaFields.set(duplicatedField.id, duplicatedField);
+    }
+    
+    // Duplicate collections and their properties
+    const originalCollections = Array.from(this.objectCollections.values())
+      .filter(collection => collection.projectId === originalProject.id);
+    
+    for (const collection of originalCollections) {
+      const duplicatedCollection: ObjectCollection = {
+        id: this.currentCollectionId++,
+        name: collection.name,
+        description: collection.description,
+        projectId: duplicatedProject.id,
+        createdAt: new Date(),
+      };
+      this.objectCollections.set(duplicatedCollection.id, duplicatedCollection);
+      
+      // Duplicate collection properties
+      const originalProperties = Array.from(this.collectionProperties.values())
+        .filter(prop => prop.collectionId === collection.id);
+      
+      for (const property of originalProperties) {
+        const duplicatedProperty: CollectionProperty = {
+          id: this.currentPropertyId++,
+          name: property.name,
+          fieldType: property.fieldType,
+          description: property.description,
+          isRequired: property.isRequired,
+          orderIndex: property.orderIndex,
+          collectionId: duplicatedCollection.id,
+          createdAt: new Date(),
+        };
+        this.collectionProperties.set(duplicatedProperty.id, duplicatedProperty);
+      }
+    }
+    
+    // Duplicate extraction rules
+    const originalRules = Array.from(this.extractionRules.values())
+      .filter(rule => rule.projectId === originalProject.id);
+    
+    for (const rule of originalRules) {
+      const duplicatedRule: ExtractionRule = {
+        id: this.currentRuleId++,
+        projectId: duplicatedProject.id,
+        title: rule.title,
+        description: rule.description,
+        targetFields: rule.targetFields,
+        ruleText: rule.ruleText,
+        createdAt: new Date(),
+      };
+      this.extractionRules.set(duplicatedRule.id, duplicatedRule);
+    }
+    
+    // Note: We don't duplicate sessions, knowledge documents, or validations
+    // as these are typically instance-specific data
+    
+    return duplicatedProject;
+  }
+
   // Project Schema Fields
   async getProjectSchemaFields(projectId: string): Promise<ProjectSchemaField[]> {
     return Array.from(this.projectSchemaFields.values())
