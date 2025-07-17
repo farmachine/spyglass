@@ -85,6 +85,8 @@ export const fieldValidations = pgTable("field_validations", {
   aiReasoning: text("ai_reasoning"), // AI explanation for validation status
   manuallyVerified: boolean("manually_verified").default(false).notNull(),
   confidenceScore: integer("confidence_score").default(0), // 0-100
+  documentSource: text("document_source"), // name of the document where data was found
+  documentSections: text("document_sections"), // sections where data was found (JSON array)
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

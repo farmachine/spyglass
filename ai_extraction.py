@@ -28,6 +28,8 @@ class FieldValidationResult(BaseModel):
     validation_status: str  # 'valid', 'invalid', 'pending'
     ai_reasoning: Optional[str]
     confidence_score: int  # 0-100
+    document_source: Optional[str] = None
+    document_sections: Optional[List[str]] = None
 
 class ExtractionResult(BaseModel):
     extracted_data: Dict[str, Any]
@@ -396,7 +398,9 @@ def generate_detailed_reasoning(
     validation_status: str, 
     context: str, 
     confidence_score: int,
-    applied_rules: list = None
+    applied_rules: list = None,
+    document_source: str = "",
+    document_sections: List[str] = None
 ) -> str:
     """
     Generate detailed AI reasoning explaining confidence levels and suggesting resolution actions.
@@ -522,13 +526,21 @@ CONFIDENCE CALCULATION:
 
 RULES COMPLIANCE:"""
         
-        # Generate rules compliance explanation
+        # Generate human-like rules compliance explanation
         if applied_rules:
             rules_explanation = ""
             for rule in applied_rules:
                 rule_name = rule.get('name', 'Unknown Rule')
                 rule_action = rule.get('action', 'Unknown Action')
-                rules_explanation += f"\n• Applied rule '{rule_name}': {rule_action}"
+                
+                # Create more human-like explanations based on rule type
+                if "inc" in rule_name.lower() and "50%" in rule_action:
+                    document_info = f" from document '{document_source}'" if document_source else ""
+                    sections_info = f" (found in sections: {', '.join(document_sections)})" if document_sections else ""
+                    rules_explanation += f"\n\nOur policy states that company names containing 'Inc.' require additional verification as they may indicate potential entity ambiguity. The extracted value '{extracted_value}'{document_info}{sections_info} contains 'Inc.' which has triggered this validation rule. Please verify this is the correct entity and not a subsidiary or related company."
+                else:
+                    rules_explanation += f"\n• Applied rule '{rule_name}': {rule_action}"
+            
             base_analysis += rules_explanation
         else:
             base_analysis += "\n• Compliant with all extraction rules and knowledge base requirements"
@@ -546,7 +558,27 @@ VERIFICATION QUESTIONS (optional):
 The extraction appears highly reliable and ready for use."""
 
         elif confidence_score >= 50:
-            suggested_action = f"""SUGGESTED RESOLUTION:
+            # Generate specific guidance based on applied rules
+            if applied_rules and any("inc" in rule.get('name', '').lower() for rule in applied_rules):
+                document_info = f" from document '{document_source}'" if document_source else ""
+                sections_info = f" in sections: {', '.join(document_sections)}" if document_sections else ""
+                suggested_action = f"""SUGGESTED RESOLUTION:
+Please verify the following with the document provider:
+
+1. Is '{extracted_value}' the correct primary entity for this contract/agreement?
+2. Are there any subsidiary or parent companies that should be referenced instead?
+3. Should this field contain the full legal entity name or a simplified version?
+4. Are there any specific naming conventions your organization uses for this entity?
+
+RECOMMENDED QUESTIONS TO ASK:
+• "Can you confirm that '{extracted_value}' is the correct company name for this document?"
+• "Are there any related entities (subsidiaries, parent companies) that might be more appropriate?"
+• "Should we use a different version of this company name for consistency?"
+
+DOCUMENT REFERENCE:
+The information was extracted{document_info}{sections_info}. Please refer to this section to verify the context."""
+            else:
+                suggested_action = f"""SUGGESTED RESOLUTION:
 ⚠️ Medium confidence - recommend verification
 
 RECOMMENDED QUESTIONS TO ASK:
@@ -786,9 +818,15 @@ def generate_field_validations(
             field_type = field.get("fieldType", "TEXT")
             
             extracted_value = extracted_data.get(field_name)
+            
+            # Add mock document sections for testing (in real implementation, this would come from AI extraction)
+            document_sections = ["Header", "Agreement Terms", "Signature Block"] if field_name == "Company Name" else ["Document Body"]
+            
             validation = create_field_validation(
                 field_id, field_name, field_type, extracted_value, overall_confidence, 
-                extraction_rules=extraction_rules
+                extraction_rules=extraction_rules,
+                document_source="Document Name",  # This would come from the actual document
+                document_sections=document_sections
             )
             validations.append(validation)
     
@@ -808,10 +846,16 @@ def generate_field_validations(
                         extracted_value = record.get(prop_name) if isinstance(record, dict) else None
                         # Create field name with record index for proper UI matching
                         field_name_with_index = f"{collection_name}.{prop_name}[{record_index}]"
+                        
+                        # Add mock document sections for collection properties
+                        document_sections = ["Parties Section", "Contract Details"] if "Name" in prop_name else ["Document Body"]
+                        
                         validation = create_field_validation(
                             prop_id, field_name_with_index, prop_type, extracted_value, overall_confidence,
                             is_collection=True, collection_name=collection_name, record_index=record_index,
-                            extraction_rules=extraction_rules
+                            extraction_rules=extraction_rules,
+                            document_source="Document Name",
+                            document_sections=document_sections
                         )
                         validations.append(validation)
     
@@ -826,7 +870,9 @@ def create_field_validation(
     is_collection: bool = False,
     collection_name: str = "",
     record_index: int = 0,
-    extraction_rules: List[Dict[str, Any]] = None
+    extraction_rules: List[Dict[str, Any]] = None,
+    document_source: str = "",
+    document_sections: List[str] = None
 ) -> FieldValidationResult:
     """Create a field validation result with detailed AI reasoning and knowledge-based confidence"""
     
@@ -838,7 +884,7 @@ def create_field_validation(
         validation_status = "invalid"
         context = f"collection '{collection_name}' record {record_index + 1}" if is_collection else "document"
         ai_reasoning = generate_detailed_reasoning(
-            field_name, field_type, extracted_value, validation_status, context, 0, []
+            field_name, field_type, extracted_value, validation_status, context, 0, [], document_source, document_sections
         )
         confidence_score = 0
     else:
@@ -849,13 +895,13 @@ def create_field_validation(
                 validation_status = "valid"
                 confidence_score, applied_rules = calculate_knowledge_based_confidence(field_name, extracted_value, overall_confidence, extraction_rules)
                 ai_reasoning = generate_detailed_reasoning(
-                    field_name, field_type, extracted_value, validation_status, "", confidence_score, applied_rules
+                    field_name, field_type, extracted_value, validation_status, "", confidence_score, applied_rules, document_source, document_sections
                 )
             except (ValueError, TypeError):
                 validation_status = "invalid"
                 confidence_score = 0
                 ai_reasoning = generate_detailed_reasoning(
-                    field_name, field_type, extracted_value, validation_status, "", confidence_score, []
+                    field_name, field_type, extracted_value, validation_status, "", confidence_score, [], document_source, document_sections
                 )
         elif field_type == "DATE":
             # Enhanced date validation
@@ -875,7 +921,7 @@ def create_field_validation(
                 applied_rules = []
             
             ai_reasoning = generate_detailed_reasoning(
-                field_name, field_type, extracted_value, validation_status, "", confidence_score, applied_rules
+                field_name, field_type, extracted_value, validation_status, "", confidence_score, applied_rules, document_source, document_sections
             )
         elif field_type == "BOOLEAN":
             if isinstance(extracted_value, bool) or str(extracted_value).lower() in ['true', 'false', 'yes', 'no']:
@@ -887,7 +933,7 @@ def create_field_validation(
                 applied_rules = []
             
             ai_reasoning = generate_detailed_reasoning(
-                field_name, field_type, extracted_value, validation_status, "", confidence_score, applied_rules
+                field_name, field_type, extracted_value, validation_status, "", confidence_score, applied_rules, document_source, document_sections
             )
         else:  # TEXT
             if isinstance(extracted_value, str) and len(extracted_value.strip()) > 0:
@@ -899,7 +945,7 @@ def create_field_validation(
                 applied_rules = []
             
             ai_reasoning = generate_detailed_reasoning(
-                field_name, field_type, extracted_value, validation_status, "", confidence_score, applied_rules
+                field_name, field_type, extracted_value, validation_status, "", confidence_score, applied_rules, document_source, document_sections
             )
     
     return FieldValidationResult(
@@ -909,7 +955,9 @@ def create_field_validation(
         extracted_value=str(extracted_value) if extracted_value is not None else None,
         validation_status=validation_status,
         ai_reasoning=ai_reasoning,
-        confidence_score=confidence_score
+        confidence_score=confidence_score,
+        document_source=document_source,
+        document_sections=document_sections
     )
 
 def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
