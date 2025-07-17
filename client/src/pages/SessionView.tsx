@@ -1055,7 +1055,7 @@ Thank you for your assistance.`;
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-blue-600" />
-              Data Verification Report
+              Request More Info Draft
             </DialogTitle>
             <DialogDescription>
               Email-ready report for requesting missing information from data providers
