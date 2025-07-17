@@ -301,6 +301,14 @@ def check_knowledge_document_conflicts(field_name: str, extracted_value: Any, kn
     if not knowledge_documents or not extracted_value:
         return False, []
     
+    # Add debugging
+    logging.info(f"CONFLICT DEBUG: Checking field '{field_name}' with value '{extracted_value}'")
+    logging.info(f"CONFLICT DEBUG: Knowledge documents count: {len(knowledge_documents)}")
+    for doc in knowledge_documents:
+        logging.info(f"CONFLICT DEBUG: Document '{doc.get('displayName', 'Unknown')}' has content: {bool(doc.get('content'))}")
+        if doc.get('content'):
+            logging.info(f"CONFLICT DEBUG: Content preview: {doc.get('content', '')[:200]}...")
+    
     conflicting_sections = []
     extracted_str = str(extracted_value).lower().strip()
     
@@ -309,6 +317,8 @@ def check_knowledge_document_conflicts(field_name: str, extracted_value: Any, kn
     
     # Check if extracted value represents a US entity
     is_us_entity = extracted_str in us_country_variants or extracted_str.replace('.', '').replace(' ', '') in ['usa', 'us', 'unitedstates']
+    
+    logging.info(f"CONFLICT DEBUG: Is US entity? {is_us_entity} (extracted_str: '{extracted_str}')")
     
     # Search through knowledge documents for potential conflicts
     for doc in knowledge_documents:
@@ -324,8 +334,8 @@ def check_knowledge_document_conflicts(field_name: str, extracted_value: Any, kn
             for i, sentence in enumerate(sentences):
                 sentence_lower = sentence.lower().strip()
                 
-                # Country/Jurisdiction specific conflict detection
-                if 'country' in field_name.lower():
+                # Country/Jurisdiction specific conflict detection - make case insensitive and more flexible
+                if 'country' in field_name.lower() or 'jurisdiction' in field_name.lower():
                     # Check for U.S./USA variations in extracted value
                     if is_us_entity:
                         # Look for any mention of U.S. jurisdiction requirements
@@ -335,6 +345,16 @@ def check_knowledge_document_conflicts(field_name: str, extracted_value: Any, kn
                             # This indicates special review requirements for U.S. entities
                             section = f"{doc_name}, Section {i+1}: \"{sentence.strip()}\""
                             conflicting_sections.append(section)
+                            logging.info(f"CONFLICT DEBUG: Found jurisdiction conflict in sentence: {sentence.strip()}")
+                
+                # For any US entity detection, also check if it's in a nested property that might indicate country
+                elif is_us_entity and ('parties' in field_name.lower() or 'entities' in field_name.lower() or 'address' in field_name.lower()):
+                    # If we're dealing with a US entity in any location-related field, check for jurisdiction requirements
+                    jurisdiction_keywords = ['u.s. jurisdiction', 'jurisdiction', 'governing law', 'legal review', 'state law']
+                    if any(keyword in sentence_lower for keyword in jurisdiction_keywords):
+                        section = f"{doc_name}, Section {i+1}: \"{sentence.strip()}\""
+                        conflicting_sections.append(section)
+                        logging.info(f"CONFLICT DEBUG: Found US entity conflict in nested field: {sentence.strip()}")
                 
                 # General field-based conflict detection for other fields
                 elif field_name.lower() in sentence_lower:
@@ -344,6 +364,7 @@ def check_knowledge_document_conflicts(field_name: str, extracted_value: Any, kn
                         section = f"{doc_name}, Section {i+1}: \"{sentence.strip()}\""
                         conflicting_sections.append(section)
     
+    logging.info(f"CONFLICT DEBUG: Final result - has conflict: {len(conflicting_sections) > 0}, sections: {conflicting_sections}")
     return len(conflicting_sections) > 0, conflicting_sections
 
 def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, base_confidence: float, extraction_rules: List[Dict[str, Any]] = None, knowledge_documents: List[Dict[str, Any]] = None) -> tuple[int, list]:
