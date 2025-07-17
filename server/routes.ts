@@ -475,7 +475,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/collections/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       const result = insertObjectCollectionSchema.partial().safeParse(req.body);
       if (!result.success) {
         return res.status(400).json({ message: "Invalid collection data", errors: result.error.errors });
@@ -493,7 +493,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/collections/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       
       // First, get the collection to verify organization access
       const collection = await storage.getObjectCollection(id);
@@ -521,7 +521,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Collection Properties
   app.get("/api/collections/:collectionId/properties", async (req, res) => {
     try {
-      const collectionId = parseInt(req.params.collectionId);
+      const collectionId = req.params.collectionId;
       const properties = await storage.getCollectionProperties(collectionId);
       res.json(properties);
     } catch (error) {
@@ -531,7 +531,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/collections/:collectionId/properties", async (req, res) => {
     try {
-      const collectionId = parseInt(req.params.collectionId);
+      const collectionId = req.params.collectionId;
       const result = insertCollectionPropertySchema.safeParse({
         ...req.body,
         collectionId

@@ -78,12 +78,13 @@ export interface IStorage {
 
   // Object Collections
   getObjectCollections(projectId: string): Promise<(ObjectCollection & { properties: CollectionProperty[] })[]>;
+  getObjectCollection(id: string): Promise<ObjectCollection | undefined>;
   createObjectCollection(collection: InsertObjectCollection): Promise<ObjectCollection>;
-  updateObjectCollection(id: number, collection: Partial<InsertObjectCollection>): Promise<ObjectCollection | undefined>;
-  deleteObjectCollection(id: number): Promise<boolean>;
+  updateObjectCollection(id: string, collection: Partial<InsertObjectCollection>): Promise<ObjectCollection | undefined>;
+  deleteObjectCollection(id: string): Promise<boolean>;
 
   // Collection Properties
-  getCollectionProperties(collectionId: number): Promise<CollectionProperty[]>;
+  getCollectionProperties(collectionId: string): Promise<CollectionProperty[]>;
   createCollectionProperty(property: InsertCollectionProperty): Promise<CollectionProperty>;
   updateCollectionProperty(id: number, property: Partial<InsertCollectionProperty>): Promise<CollectionProperty | undefined>;
   deleteCollectionProperty(id: number): Promise<boolean>;
@@ -1354,7 +1355,7 @@ class PostgreSQLStorage implements IStorage {
     return collectionsWithProperties;
   }
 
-  async getObjectCollection(id: number): Promise<ObjectCollection | undefined> {
+  async getObjectCollection(id: string): Promise<ObjectCollection | undefined> {
     const result = await this.db
       .select()
       .from(objectCollections)
@@ -1366,7 +1367,7 @@ class PostgreSQLStorage implements IStorage {
     const result = await this.db.insert(objectCollections).values(collection).returning();
     return result[0];
   }
-  async updateObjectCollection(id: number, collection: Partial<InsertObjectCollection>): Promise<ObjectCollection | undefined> {
+  async updateObjectCollection(id: string, collection: Partial<InsertObjectCollection>): Promise<ObjectCollection | undefined> {
     const result = await this.db
       .update(objectCollections)
       .set(collection)
@@ -1375,7 +1376,7 @@ class PostgreSQLStorage implements IStorage {
     return result[0];
   }
 
-  async deleteObjectCollection(id: number): Promise<boolean> {
+  async deleteObjectCollection(id: string): Promise<boolean> {
     const result = await this.db
       .delete(objectCollections)
       .where(eq(objectCollections.id, id));
@@ -1383,7 +1384,7 @@ class PostgreSQLStorage implements IStorage {
   }
 
   // Collection Properties
-  async getCollectionProperties(collectionId: number): Promise<CollectionProperty[]> {
+  async getCollectionProperties(collectionId: string): Promise<CollectionProperty[]> {
     const result = await this.db
       .select()
       .from(collectionProperties)
