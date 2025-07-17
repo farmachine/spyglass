@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,7 @@ import type {
   FieldValidation 
 } from "@shared/schema";
 
-// Confidence Badge Component
+// Badge Components
 const ConfidenceBadge = ({ confidenceScore }: { confidenceScore: number }) => {
   const getConfidenceLevel = (score: number) => {
     if (score >= 80) {
@@ -41,6 +42,24 @@ const ConfidenceBadge = ({ confidenceScore }: { confidenceScore: number }) => {
     </span>
   );
 };
+
+const NotExtractedBadge = () => (
+  <span 
+    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800"
+    title="This field was not extracted from the document"
+  >
+    Not Extracted
+  </span>
+);
+
+const ManualInputBadge = () => (
+  <span 
+    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+    title="This field has been manually updated"
+  >
+    Manual Input
+  </span>
+);
 
 // Simple Validation Icon Component
 const ValidationIcon = ({ fieldName, validation, onToggle }: { 
@@ -265,15 +284,12 @@ export default function SessionView() {
 
   const handleSave = async (fieldName: string, newValue?: string) => {
     const validation = getValidation(fieldName);
-    console.log('handleSave called:', { fieldName, newValue, editValue, validation });
     
     if (validation) {
       // Use provided value or current edit value
       const valueToUse = newValue !== undefined ? newValue : editValue;
       let valueToStore = valueToUse;
       const fieldType = getFieldType(fieldName);
-      
-      console.log('Saving field:', { fieldName, fieldType, valueToUse, valueToStore });
       
       if (fieldType === 'DATE') {
         if (!valueToUse || valueToUse.trim() === '') {
@@ -290,16 +306,21 @@ export default function SessionView() {
         }
       }
       
-      console.log('About to save:', { validationId: validation.id, valueToStore });
-      
-      await updateValidationMutation.mutateAsync({
-        id: validation.id,
-        data: {
-          extractedValue: valueToStore,
-          validationStatus: "pending",
-          manuallyVerified: false
-        }
-      });
+      try {
+        await updateValidationMutation.mutateAsync({
+          id: validation.id,
+          data: {
+            extractedValue: valueToStore,
+            validationStatus: "pending",
+            manuallyVerified: false
+          }
+        });
+        
+        // Force immediate UI update by invalidating queries
+        await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+      } catch (error) {
+        console.error('Failed to save field:', error);
+      }
     }
     setEditingField(null);
     setEditValue("");
@@ -446,33 +467,16 @@ export default function SessionView() {
             </div>
           ) : (
             <div className="flex items-center gap-2 mt-1">
-              {fieldType === 'DATE' ? (
-                <>
-                  <span className="text-sm text-gray-900 flex-1">
-                    {formatDateForDisplay(value)}
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleEdit(fieldName, value)}
-                  >
-                    <Edit3 className="h-3 w-3" />
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <span className="text-sm text-gray-900">
-                    {String(value || '')}
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleEdit(fieldName, value)}
-                  >
-                    <Edit3 className="h-3 w-3" />
-                  </Button>
-                </>
-              )}
+              <span className="text-sm text-gray-900 flex-1">
+                {fieldType === 'DATE' ? formatDateForDisplay(value) : String(value || '')}
+              </span>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => handleEdit(fieldName, value)}
+              >
+                <Edit3 className="h-3 w-3" />
+              </Button>
             </div>
           )}
         </div>
@@ -483,9 +487,23 @@ export default function SessionView() {
             validation={validation}
             onToggle={(isVerified) => handleVerificationToggle(fieldName, isVerified)}
           />
-          {validation && validation.confidenceScore > 0 && (
-            <ConfidenceBadge confidenceScore={validation.confidenceScore} />
-          )}
+          {validation && (() => {
+            // Check if field was manually updated
+            const originalValue = extractedData[fieldName];
+            const currentValue = validation.extractedValue;
+            const wasManuallyUpdated = originalValue !== currentValue;
+            
+            // Check if field was extracted (has confidence score > 0)
+            const wasExtracted = validation.confidenceScore > 0;
+            
+            if (wasManuallyUpdated) {
+              return <ManualInputBadge />;
+            } else if (!wasExtracted) {
+              return <NotExtractedBadge />;
+            } else {
+              return <ConfidenceBadge confidenceScore={validation.confidenceScore} />;
+            }
+          })()}
         </div>
       </div>
     );
