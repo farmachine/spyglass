@@ -722,7 +722,7 @@ Thank you for your assistance.`;
             
             const currentValue = validation.extractedValue;
             
-            // Handle type mismatches for comparison (e.g., boolean true vs string "true")
+            // Handle type mismatches for comparison (e.g., boolean true vs string "true", number 2 vs string "2")
             const normalizeValue = (val: any) => {
               if (val === null || val === undefined || val === "null" || val === "undefined") return null;
               if (typeof val === 'boolean') return val;
@@ -730,6 +730,10 @@ Thank you for your assistance.`;
                 const lower = val.toLowerCase();
                 if (lower === 'true') return true;
                 if (lower === 'false') return false;
+                // Try to convert numeric strings to numbers for comparison
+                if (!isNaN(Number(val)) && val.trim() !== '') {
+                  return Number(val);
+                }
               }
               return val;
             };
