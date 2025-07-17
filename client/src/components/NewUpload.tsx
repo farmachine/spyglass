@@ -333,7 +333,7 @@ export default function NewUpload({ project }: NewUploadProps) {
       <div>
         <h2 className="text-2xl font-semibold text-gray-900">Add New {project.mainObjectName || "Session"}</h2>
         <p className="text-gray-600 mt-1">
-          Upload documents for AI-powered data extraction using your defined schema.
+          Upload documents for AI-powered data extraction into your organization's desired format.
         </p>
       </div>
 
