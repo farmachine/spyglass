@@ -15,7 +15,7 @@ import UserProfile from "./UserProfile";
 import Breadcrumb from "./Breadcrumb";
 
 interface ProjectLayoutProps {
-  projectId: number;
+  projectId: string;
 }
 
 type ActiveTab = "upload" | "data" | "knowledge" | "define" | "publishing";

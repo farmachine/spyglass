@@ -71,13 +71,13 @@ export interface IStorage {
   deleteProject(id: string, organizationId?: string): Promise<boolean>;
 
   // Project Schema Fields
-  getProjectSchemaFields(projectId: number): Promise<ProjectSchemaField[]>;
+  getProjectSchemaFields(projectId: string): Promise<ProjectSchemaField[]>;
   createProjectSchemaField(field: InsertProjectSchemaField): Promise<ProjectSchemaField>;
   updateProjectSchemaField(id: number, field: Partial<InsertProjectSchemaField>): Promise<ProjectSchemaField | undefined>;
   deleteProjectSchemaField(id: number): Promise<boolean>;
 
   // Object Collections
-  getObjectCollections(projectId: number): Promise<(ObjectCollection & { properties: CollectionProperty[] })[]>;
+  getObjectCollections(projectId: string): Promise<(ObjectCollection & { properties: CollectionProperty[] })[]>;
   createObjectCollection(collection: InsertObjectCollection): Promise<ObjectCollection>;
   updateObjectCollection(id: number, collection: Partial<InsertObjectCollection>): Promise<ObjectCollection | undefined>;
   deleteObjectCollection(id: number): Promise<boolean>;
@@ -89,19 +89,19 @@ export interface IStorage {
   deleteCollectionProperty(id: number): Promise<boolean>;
 
   // Extraction Sessions
-  getExtractionSessions(projectId: number): Promise<ExtractionSession[]>;
+  getExtractionSessions(projectId: string): Promise<ExtractionSession[]>;
   getExtractionSession(id: number): Promise<ExtractionSession | undefined>;
   createExtractionSession(session: InsertExtractionSession): Promise<ExtractionSession>;
   updateExtractionSession(id: number, session: Partial<InsertExtractionSession>): Promise<ExtractionSession | undefined>;
 
   // Knowledge Documents
-  getKnowledgeDocuments(projectId: number): Promise<KnowledgeDocument[]>;
+  getKnowledgeDocuments(projectId: string): Promise<KnowledgeDocument[]>;
   createKnowledgeDocument(document: InsertKnowledgeDocument): Promise<KnowledgeDocument>;
   updateKnowledgeDocument(id: number, document: Partial<InsertKnowledgeDocument>): Promise<KnowledgeDocument | undefined>;
   deleteKnowledgeDocument(id: number): Promise<boolean>;
 
   // Extraction Rules
-  getExtractionRules(projectId: number): Promise<ExtractionRule[]>;
+  getExtractionRules(projectId: string): Promise<ExtractionRule[]>;
   createExtractionRule(rule: InsertExtractionRule): Promise<ExtractionRule>;
   updateExtractionRule(id: number, rule: Partial<InsertExtractionRule>): Promise<ExtractionRule | undefined>;
   deleteExtractionRule(id: number): Promise<boolean>;
@@ -114,8 +114,8 @@ export interface IStorage {
   getSessionWithValidations(sessionId: number): Promise<ExtractionSessionWithValidation | undefined>;
 
   // Project Publishing
-  getProjectPublishing(projectId: number): Promise<ProjectPublishing[]>;
-  getProjectPublishedOrganizations(projectId: number): Promise<Organization[]>;
+  getProjectPublishing(projectId: string): Promise<ProjectPublishing[]>;
+  getProjectPublishedOrganizations(projectId: string): Promise<Organization[]>;
   publishProjectToOrganization(publishing: InsertProjectPublishing): Promise<ProjectPublishing>;
   unpublishProjectFromOrganization(projectId: number, organizationId: number): Promise<boolean>;
 }
@@ -751,7 +751,7 @@ export class MemStorage implements IStorage {
   }
 
   // Project Schema Fields
-  async getProjectSchemaFields(projectId: number): Promise<ProjectSchemaField[]> {
+  async getProjectSchemaFields(projectId: string): Promise<ProjectSchemaField[]> {
     return Array.from(this.projectSchemaFields.values())
       .filter(field => field.projectId === projectId)
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());

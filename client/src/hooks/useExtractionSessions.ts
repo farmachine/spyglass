@@ -5,7 +5,7 @@ import type {
   InsertExtractionSession
 } from "@shared/schema";
 
-export function useExtractionSessions(projectId: number) {
+export function useExtractionSessions(projectId: string) {
   return useQuery({
     queryKey: ["/api/projects", projectId, "sessions"],
     queryFn: () => fetch(`/api/projects/${projectId}/sessions`).then(res => res.json()),
@@ -13,7 +13,7 @@ export function useExtractionSessions(projectId: number) {
   });
 }
 
-export function useCreateExtractionSession(projectId: number) {
+export function useCreateExtractionSession(projectId: string) {
   const queryClient = useQueryClient();
   
   return useMutation({

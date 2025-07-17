@@ -3,9 +3,9 @@ import ProjectLayout from "@/components/ProjectLayout";
 
 export default function ProjectView() {
   const { id } = useParams<{ id: string }>();
-  const projectId = parseInt(id || "0");
+  const projectId = id || "";
 
-  if (!projectId || isNaN(projectId)) {
+  if (!projectId) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">

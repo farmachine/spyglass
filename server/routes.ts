@@ -377,7 +377,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/projects/:projectId/schema", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const projectId = parseInt(req.params.projectId);
+      const projectId = req.params.projectId;
       const result = insertProjectSchemaFieldSchema.safeParse({
         ...req.body,
         projectId
@@ -434,7 +434,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Object Collections
   app.get("/api/projects/:projectId/collections", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const projectId = parseInt(req.params.projectId);
+      const projectId = req.params.projectId;
       // Verify project belongs to user's organization
       const project = await storage.getProject(projectId, req.user!.organizationId);
       if (!project) {
@@ -450,7 +450,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/projects/:projectId/collections", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const projectId = parseInt(req.params.projectId);
+      const projectId = req.params.projectId;
       const result = insertObjectCollectionSchema.safeParse({
         ...req.body,
         projectId
@@ -581,7 +581,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Knowledge Documents
   app.get("/api/projects/:projectId/knowledge", async (req, res) => {
     try {
-      const projectId = parseInt(req.params.projectId);
+      const projectId = req.params.projectId;
       const documents = await storage.getKnowledgeDocuments(projectId);
       res.json(documents);
     } catch (error) {
@@ -591,7 +591,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/projects/:projectId/knowledge", async (req, res) => {
     try {
-      const projectId = parseInt(req.params.projectId);
+      const projectId = req.params.projectId;
       const result = insertKnowledgeDocumentSchema.safeParse({ ...req.body, projectId });
       if (!result.success) {
         return res.status(400).json({ message: "Invalid knowledge document data", errors: result.error.errors });
@@ -638,7 +638,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Extraction Rules
   app.get("/api/projects/:projectId/rules", async (req, res) => {
     try {
-      const projectId = parseInt(req.params.projectId);
+      const projectId = req.params.projectId;
       const rules = await storage.getExtractionRules(projectId);
       res.json(rules);
     } catch (error) {
@@ -648,7 +648,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/projects/:projectId/rules", async (req, res) => {
     try {
-      const projectId = parseInt(req.params.projectId);
+      const projectId = req.params.projectId;
       const result = insertExtractionRuleSchema.safeParse({ ...req.body, projectId });
       if (!result.success) {
         return res.status(400).json({ message: "Invalid extraction rule data", errors: result.error.errors });
@@ -695,7 +695,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Extraction Sessions
   app.get("/api/projects/:projectId/sessions", async (req, res) => {
     try {
-      const projectId = parseInt(req.params.projectId);
+      const projectId = req.params.projectId;
       const sessions = await storage.getExtractionSessions(projectId);
       res.json(sessions);
     } catch (error) {
@@ -793,7 +793,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/projects/:projectId/sessions", async (req, res) => {
     try {
-      const projectId = parseInt(req.params.projectId);
+      const projectId = req.params.projectId;
       const result = insertExtractionSessionSchema.safeParse({ ...req.body, projectId });
       if (!result.success) {
         return res.status(400).json({ message: "Invalid extraction session data", errors: result.error.errors });
