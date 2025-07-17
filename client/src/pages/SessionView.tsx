@@ -419,7 +419,7 @@ export default function SessionView() {
               {fieldType === 'DATE' ? (
                 <Input
                   type="date"
-                  value={value || ''}
+                  value={value && value !== 'null' && value !== null ? String(value) : ''}
                   onChange={(e) => handleDateChange(fieldName, e.target.value)}
                   className="flex-1 text-sm"
                 />
