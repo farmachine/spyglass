@@ -1139,7 +1139,7 @@ except Exception as e:
   app.delete("/api/projects/:projectId/publishing/:organizationId", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const projectId = req.params.projectId;
-      const organizationId = parseInt(req.params.organizationId);
+      const organizationId = req.params.organizationId;
       
       // Verify project belongs to user's organization
       const project = await storage.getProject(projectId, req.user!.organizationId);

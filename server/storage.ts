@@ -118,7 +118,7 @@ export interface IStorage {
   getProjectPublishing(projectId: string): Promise<ProjectPublishing[]>;
   getProjectPublishedOrganizations(projectId: string): Promise<Organization[]>;
   publishProjectToOrganization(publishing: InsertProjectPublishing): Promise<ProjectPublishing>;
-  unpublishProjectFromOrganization(projectId: number, organizationId: number): Promise<boolean>;
+  unpublishProjectFromOrganization(projectId: string, organizationId: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -1561,7 +1561,7 @@ class PostgreSQLStorage implements IStorage {
   }
 
   // Project Publishing methods
-  async getProjectPublishing(projectId: number): Promise<ProjectPublishing[]> { 
+  async getProjectPublishing(projectId: string): Promise<ProjectPublishing[]> { 
     const result = await this.db
       .select()
       .from(projectPublishing)
@@ -1569,7 +1569,7 @@ class PostgreSQLStorage implements IStorage {
     return result;
   }
 
-  async getProjectPublishedOrganizations(projectId: number): Promise<Organization[]> { 
+  async getProjectPublishedOrganizations(projectId: string): Promise<Organization[]> { 
     const result = await this.db
       .select({
         id: organizations.id,
@@ -1588,7 +1588,7 @@ class PostgreSQLStorage implements IStorage {
     return result[0];
   }
 
-  async unpublishProjectFromOrganization(projectId: number, organizationId: number): Promise<boolean> { 
+  async unpublishProjectFromOrganization(projectId: string, organizationId: string): Promise<boolean> { 
     const result = await this.db
       .delete(projectPublishing)
       .where(
