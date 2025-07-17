@@ -825,9 +825,6 @@ def create_field_validation(
         validation_status=validation_status,
         ai_reasoning=ai_reasoning,
         confidence_score=confidence_score
-    )tion_status=validation_status,
-        ai_reasoning=ai_reasoning,
-        confidence_score=confidence_score
     )
 
 def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
