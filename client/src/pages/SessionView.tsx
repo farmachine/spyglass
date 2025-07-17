@@ -374,32 +374,33 @@ MISSING OR UNVERIFIED INFORMATION:
     unverifiedFields.forEach((validation, index) => {
       report += `\n${index + 1}. ${validation.fieldName}`;
       
-      if (validation.validationStatus === 'invalid') {
-        report += `\n   Status: Missing Data
-   Details: This information was not found in the provided document.`;
-      } else {
-        report += `\n   Status: Requires Verification`;
-        if (validation.extractedValue) {
-          report += `\n   Extracted Value: ${validation.extractedValue}`;
-        }
-        if (validation.confidenceScore > 0) {
-          report += `\n   AI Confidence: ${validation.confidenceScore}%`;
-        }
-      }
-      
       if (validation.aiReasoning) {
-        report += `\n   Notes: ${validation.aiReasoning}`;
+        // Clean up the AI reasoning to remove technical formatting
+        let cleanReasoning = validation.aiReasoning;
+        
+        // Remove technical prefixes and status information
+        cleanReasoning = cleanReasoning.replace(/^EXTRACTION ANALYSIS:[\s\S]*?CONFIDENCE CALCULATION:[\s\S]*?RULES COMPLIANCE:[\s\S]*?/m, '');
+        cleanReasoning = cleanReasoning.replace(/^SUGGESTED RESOLUTION:[\s\S]*?RECOMMENDED QUESTIONS TO ASK:/m, '');
+        cleanReasoning = cleanReasoning.replace(/^MANUAL REVIEW NEEDED:[\s\S]*?$/m, '');
+        
+        // Clean up bullet points and formatting
+        cleanReasoning = cleanReasoning.replace(/^[•\-]\s*/gm, '- ');
+        cleanReasoning = cleanReasoning.replace(/^\s*[\-•]\s*/gm, '- ');
+        
+        // Remove extra whitespace and newlines
+        cleanReasoning = cleanReasoning.replace(/\n{3,}/g, '\n\n').trim();
+        
+        if (cleanReasoning) {
+          report += `\n${cleanReasoning}`;
+        }
+      } else if (validation.validationStatus === 'invalid') {
+        report += `\nThis information was not found in the provided document. Please provide the correct value for this field.`;
       }
       
       report += '\n';
     });
 
     report += `
-SUMMARY:
-- Total Fields: ${getTotalFieldCount()}
-- Verified Fields: ${getVerifiedCount()}
-- Pending Verification: ${unverifiedFields.length}
-
 Please review the above items and provide the missing information or confirm the accuracy of the extracted values. This will help us complete the data verification process.
 
 Thank you for your assistance.`;
