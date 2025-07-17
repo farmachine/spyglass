@@ -39,7 +39,7 @@ import {
 } from "@shared/schema";
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { eq, count, sql, and } from 'drizzle-orm';
+import { eq, count, sql, and, or } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface IStorage {
@@ -1216,20 +1216,64 @@ class PostgreSQLStorage implements IStorage {
 
   // For now, implement minimal project methods to prevent errors
   async getProjects(organizationId?: string): Promise<Project[]> {
-    const query = this.db.select().from(projects);
     if (organizationId) {
-      query.where(eq(projects.organizationId, organizationId));
+      // Include projects owned by organization OR published to the organization
+      const result = await this.db
+        .select({
+          id: projects.id,
+          name: projects.name,
+          description: projects.description,
+          organizationId: projects.organizationId,
+          mainObjectName: projects.mainObjectName,
+          isInitialSetupComplete: projects.isInitialSetupComplete,
+          createdAt: projects.createdAt
+        })
+        .from(projects)
+        .leftJoin(projectPublishing, eq(projectPublishing.projectId, projects.id))
+        .where(
+          or(
+            eq(projects.organizationId, organizationId),
+            eq(projectPublishing.organizationId, organizationId)
+          )
+        );
+      
+      // Remove duplicates that might occur from the join
+      const uniqueProjects = result.reduce((acc, project) => {
+        if (!acc.find(p => p.id === project.id)) {
+          acc.push(project);
+        }
+        return acc;
+      }, [] as Project[]);
+      
+      return uniqueProjects;
+    } else {
+      return await this.db.select().from(projects);
     }
-    return await query;
   }
 
   async getProject(id: string, organizationId?: string): Promise<Project | undefined> {
     let result;
     if (organizationId) {
+      // Check if project belongs to organization OR is published to the organization
       result = await this.db
-        .select()
+        .select({
+          id: projects.id,
+          name: projects.name,
+          description: projects.description,
+          organizationId: projects.organizationId,
+          mainObjectName: projects.mainObjectName,
+          isInitialSetupComplete: projects.isInitialSetupComplete,
+          createdAt: projects.createdAt
+        })
         .from(projects)
-        .where(and(eq(projects.id, id), eq(projects.organizationId, organizationId)))
+        .leftJoin(projectPublishing, eq(projectPublishing.projectId, projects.id))
+        .where(
+          or(
+            eq(projects.organizationId, organizationId),
+            eq(projectPublishing.organizationId, organizationId)
+          )
+        )
+        .where(eq(projects.id, id))
         .limit(1);
     } else {
       result = await this.db
