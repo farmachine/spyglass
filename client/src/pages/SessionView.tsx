@@ -929,8 +929,8 @@ Thank you for your assistance.`;
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 p-8">
-          <div className="max-w-4xl mx-auto">
+        <div className="flex-1 p-8 overflow-hidden">
+          <div className="max-w-4xl mx-auto w-full">
             {/* Session Header */}
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-4">
@@ -1008,7 +1008,7 @@ Thank you for your assistance.`;
           if (maxRecordIndex < 0) return null;
 
           return (
-            <Card key={collection.id} className="mb-8">
+            <Card key={collection.id} className="mb-8 w-full overflow-hidden">
               <CardHeader>
                 <CardTitle>{collection.collectionName}</CardTitle>
                 <p className="text-sm text-gray-600">{collection.description}</p>
@@ -1018,7 +1018,7 @@ Thank you for your assistance.`;
                   const item = collectionData?.[index] || {};
                   
                   return (
-                    <div key={index} className="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <div key={index} className="mb-6 p-4 bg-gray-50 rounded-lg w-full overflow-hidden">
                       <h4 className="font-medium mb-4">Item {index + 1}</h4>
                       <div className="space-y-4">
                         {collection.properties.map((property) => {
