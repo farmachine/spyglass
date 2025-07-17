@@ -316,8 +316,12 @@ export default function SessionView() {
           }
         });
         
-        // Force immediate UI update by invalidating queries
+        // Force immediate UI update by invalidating all related queries
         await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+        await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
+        
+        // Force a refetch to update UI immediately
+        await queryClient.refetchQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
       } catch (error) {
         console.error('Failed to save field:', error);
       }
@@ -467,13 +471,14 @@ export default function SessionView() {
             </div>
           ) : (
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-sm text-gray-900 flex-1">
+              <span className="text-sm text-gray-900">
                 {fieldType === 'DATE' ? formatDateForDisplay(value) : String(value || '')}
               </span>
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => handleEdit(fieldName, value)}
+                className="h-6 px-2"
               >
                 <Edit3 className="h-3 w-3" />
               </Button>
@@ -488,10 +493,25 @@ export default function SessionView() {
             onToggle={(isVerified) => handleVerificationToggle(fieldName, isVerified)}
           />
           {validation && (() => {
-            // Check if field was manually updated
-            const originalValue = extractedData[fieldName];
+            // Get original extracted value - handle both simple fields and collection fields
+            let originalValue;
+            if (fieldName.includes('.')) {
+              // Collection field - get from nested structure
+              const [collectionName, propertyPath] = fieldName.split('.');
+              const collectionData = extractedData[collectionName];
+              if (Array.isArray(collectionData) && propertyPath.includes('[')) {
+                const propertyName = propertyPath.split('[')[0];
+                const indexMatch = propertyPath.match(/\[(\d+)\]/);
+                const index = indexMatch ? parseInt(indexMatch[1]) : 0;
+                originalValue = collectionData[index] ? collectionData[index][propertyName] : undefined;
+              }
+            } else {
+              // Simple field
+              originalValue = extractedData[fieldName];
+            }
+            
             const currentValue = validation.extractedValue;
-            const wasManuallyUpdated = originalValue !== currentValue;
+            const wasManuallyUpdated = originalValue !== currentValue && originalValue !== undefined;
             
             // Check if field was extracted (has confidence score > 0)
             const wasExtracted = validation.confidenceScore > 0;
