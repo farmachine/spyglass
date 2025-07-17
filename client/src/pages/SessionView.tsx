@@ -265,11 +265,15 @@ export default function SessionView() {
 
   const handleSave = async (fieldName: string, newValue?: string) => {
     const validation = getValidation(fieldName);
+    console.log('handleSave called:', { fieldName, newValue, editValue, validation });
+    
     if (validation) {
       // Use provided value or current edit value
       const valueToUse = newValue !== undefined ? newValue : editValue;
       let valueToStore = valueToUse;
       const fieldType = getFieldType(fieldName);
+      
+      console.log('Saving field:', { fieldName, fieldType, valueToUse, valueToStore });
       
       if (fieldType === 'DATE') {
         if (!valueToUse || valueToUse.trim() === '') {
@@ -285,6 +289,8 @@ export default function SessionView() {
           }
         }
       }
+      
+      console.log('About to save:', { validationId: validation.id, valueToStore });
       
       await updateValidationMutation.mutateAsync({
         id: validation.id,
@@ -441,16 +447,18 @@ export default function SessionView() {
           ) : (
             <div className="flex items-center gap-2 mt-1">
               {fieldType === 'DATE' ? (
-                <div className="flex-1">
-                  <Input
-                    type="date"
-                    value={value && value !== 'null' && value !== null ? String(value) : ''}
-                    onChange={(e) => handleDateChange(fieldName, e.target.value)}
-                    className="w-full text-sm"
-                    onFocus={() => console.log('Date field focused, current value:', value)}
-                  />
-
-                </div>
+                <>
+                  <span className="text-sm text-gray-900 flex-1">
+                    {formatDateForDisplay(value)}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleEdit(fieldName, value)}
+                  >
+                    <Edit3 className="h-3 w-3" />
+                  </Button>
+                </>
               ) : (
                 <>
                   <span className="text-sm text-gray-900">
