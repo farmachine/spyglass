@@ -417,12 +417,16 @@ export default function SessionView() {
           ) : (
             <div className="flex items-center gap-2 mt-1">
               {fieldType === 'DATE' ? (
-                <Input
-                  type="date"
-                  value={value && value !== 'null' && value !== null ? String(value) : ''}
-                  onChange={(e) => handleDateChange(fieldName, e.target.value)}
-                  className="flex-1 text-sm"
-                />
+                <div className="flex-1">
+                  <Input
+                    type="date"
+                    value={value && value !== 'null' && value !== null ? String(value) : ''}
+                    onChange={(e) => handleDateChange(fieldName, e.target.value)}
+                    className="w-full text-sm"
+                    onFocus={() => console.log('Date field focused, current value:', value)}
+                  />
+                  <div className="text-xs text-gray-500 mt-1">Debug: {JSON.stringify(value)}</div>
+                </div>
               ) : (
                 <>
                   <span className="text-sm text-gray-900">
