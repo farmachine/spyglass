@@ -121,7 +121,7 @@ export default function Dashboard() {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold">Your Projects</h2>
+              <h2 className="text-xl font-semibold">Projects</h2>
             </div>
             <Button
               onClick={() => setCreateDialogOpen(true)}

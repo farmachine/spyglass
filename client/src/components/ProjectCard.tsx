@@ -186,7 +186,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
                         <Badge 
                           key={org.id} 
                           variant="secondary" 
-                          className="text-sm font-medium px-3 py-1 bg-primary/10 text-primary border-primary/30"
+                          className="text-sm font-medium px-3 py-1 bg-green-100 text-green-700 border-green-200"
                         >
                           {org.name}
                         </Badge>
@@ -195,7 +195,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
                     {publishedOrganizations.length > 3 && (
                       <Badge 
                         variant="secondary" 
-                        className="text-sm font-medium px-3 py-1 bg-primary/10 text-primary border-primary/30"
+                        className="text-sm font-medium px-3 py-1 bg-green-100 text-green-700 border-green-200"
                       >
                         +{publishedOrganizations.length - 3} more
                       </Badge>
