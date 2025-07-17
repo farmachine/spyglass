@@ -311,6 +311,7 @@ def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, 
     # Apply extraction rules if available
     if extraction_rules:
         logging.info(f"Applying extraction rules for field '{field_name}' with value '{extracted_value}'")
+        logging.info(f"Available extraction rules: {extraction_rules}")
         for rule in extraction_rules:
             rule_name = rule.get("ruleName", "")
             target_field = rule.get("targetField", "")
@@ -926,6 +927,7 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
     logging.info(f"Files to process: {len(files)}")
     logging.info(f"Project schema: {project_schema}")
     logging.info(f"Extraction rules: {len(extraction_rules)}")
+    logging.info(f"Full extraction rules data: {extraction_rules}")
     
     total_confidence = 0.0
     successful_count = 0
