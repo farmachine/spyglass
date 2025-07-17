@@ -1522,8 +1522,22 @@ class PostgreSQLStorage implements IStorage {
       await this.createExtractionRule(duplicatedRule);
     }
 
-    // Note: We don't duplicate sessions, knowledge documents, or validations
-    // as these are typically instance-specific data
+    // Duplicate knowledge documents (but not sessions or validations)
+    const originalKnowledgeDocs = await this.getKnowledgeDocuments(id);
+    for (const doc of originalKnowledgeDocs) {
+      const duplicatedDoc: InsertKnowledgeDocument = {
+        id: uuidv4(),
+        projectId: newProjectId,
+        fileName: doc.fileName,
+        displayName: doc.displayName,
+        fileType: doc.fileType,
+        fileSize: doc.fileSize,
+        description: doc.description,
+      };
+      await this.createKnowledgeDocument(duplicatedDoc);
+    }
+
+    // Note: We don't duplicate sessions or validations as these are instance-specific data
 
     return createdProject;
   }
@@ -1668,7 +1682,7 @@ class PostgreSQLStorage implements IStorage {
   }
 
   // Knowledge Documents
-  async getKnowledgeDocuments(projectId: number): Promise<KnowledgeDocument[]> {
+  async getKnowledgeDocuments(projectId: string): Promise<KnowledgeDocument[]> {
     const result = await this.db
       .select()
       .from(knowledgeDocuments)
