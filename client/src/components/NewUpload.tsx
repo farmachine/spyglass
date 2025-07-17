@@ -331,7 +331,7 @@ export default function NewUpload({ project }: NewUploadProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold text-gray-900">Upload New {project.mainObjectName || "Session"}</h2>
+        <h2 className="text-2xl font-semibold text-gray-900">Add New {project.mainObjectName || "Session"}</h2>
         <p className="text-gray-600 mt-1">
           Upload documents for AI-powered data extraction using your defined schema.
         </p>
@@ -350,7 +350,7 @@ export default function NewUpload({ project }: NewUploadProps) {
         {/* Upload Area */}
         <Card>
           <CardHeader>
-            <CardTitle>Upload Documents</CardTitle>
+            <CardTitle>Documents</CardTitle>
             <CardDescription>
               Select or drag files to start the extraction process
             </CardDescription>
@@ -430,7 +430,7 @@ export default function NewUpload({ project }: NewUploadProps) {
         {/* Session Configuration */}
         <Card>
           <CardHeader>
-            <CardTitle>{project.mainObjectName || "Session"} Configuration</CardTitle>
+            <CardTitle>Configuration</CardTitle>
             <CardDescription>
               Configure how this {(project.mainObjectName || "session").toLowerCase()} should be processed
             </CardDescription>
