@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
 import type { 
   ExtractionSession, 
@@ -220,6 +221,7 @@ export default function SessionView() {
   const [editValue, setEditValue] = useState("");
   const [showReasoningDialog, setShowReasoningDialog] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: project, isLoading: projectLoading } = useQuery<ProjectWithDetails>({
@@ -752,11 +754,22 @@ Thank you for your assistance.`;
     );
   };
 
+  // Check user role for access control (same logic as ProjectLayout)
+  const isAdmin = user?.role === 'admin';
+  const isPrimaryOrgAdmin = isAdmin && user?.organization?.name === 'Internal';
+  const canAccessConfigTabs = isAdmin;
+  const canAccessPublishing = isPrimaryOrgAdmin;
+
   const navItems = [
     { id: "upload", label: `New ${project?.mainObjectName || "Session"}`, icon: Upload, href: `/projects/${projectId}?tab=upload` },
     { id: "data", label: `All ${project?.mainObjectName || "Session"}s`, icon: Database, href: `/projects/${projectId}?tab=all-data` },
-    { id: "knowledge", label: "Knowledge/Rules", icon: Brain, href: `/projects/${projectId}?tab=knowledge` },
-    { id: "define", label: "Define Data", icon: Settings, href: `/projects/${projectId}?tab=define` },
+    ...(canAccessConfigTabs ? [
+      { id: "knowledge", label: "Knowledge/Rules", icon: Brain, href: `/projects/${projectId}?tab=knowledge` },
+      { id: "define", label: "Define Data", icon: Settings, href: `/projects/${projectId}?tab=define` },
+    ] : []),
+    ...(canAccessPublishing ? [
+      { id: "publishing", label: "Publishing", icon: FolderOpen, href: `/projects/${projectId}?tab=publishing` },
+    ] : []),
   ];
 
   return (
