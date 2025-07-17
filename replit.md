@@ -11,6 +11,11 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 17, 2025**
+- ✓ **HEADER CONSISTENCY AND ALIGNMENT**: Fixed header layout across dashboard and project pages
+- ✓ Project page header now matches dashboard exactly with project name instead of "Extractly"
+- ✓ Resolved left alignment issues by removing max-width centering constraints
+- ✓ Fixed knowledge document upload redirect issue by prioritizing URL tab parameters over welcome flow
+- ✓ Knowledge document uploads now stay on Knowledge/Rules tab instead of redirecting to Define Data
 - ✓ **EXTRACTLY REBRANDING**: Complete application rebrand from "Flow Capture" to "Extractly"
 - ✓ Created professional Extractly logo matching provided wave design with flowing wave shapes and sea-blue gradients
 - ✓ Logo acts as clickable home button throughout the application interface with enhanced spacing and hover effects
