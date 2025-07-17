@@ -19,10 +19,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
 import ExtractlyLogo from "@/components/ExtractlyLogo";
+
 import type { 
   ExtractionSession, 
   ProjectWithDetails, 
-  FieldValidation 
+  FieldValidation,
+  ValidationStatus 
 } from "@shared/schema";
 
 // AI Reasoning Modal Component
@@ -174,8 +176,8 @@ const ManualInputBadge = () => (
   </span>
 );
 
-// Simple Validation Icon Component
-const ValidationIcon = ({ fieldName, validation, onToggle }: { 
+// Custom validation toggle component for SessionView
+const ValidationToggle = ({ fieldName, validation, onToggle }: { 
   fieldName: string; 
   validation: FieldValidation | undefined; 
   onToggle: (isVerified: boolean) => void;
@@ -195,13 +197,13 @@ const ValidationIcon = ({ fieldName, validation, onToggle }: {
       >
         {isVerified ? (
           <>
-            <CheckCircle className="h-4 w-4 text-success" />
-            <span className="text-success">Verified</span>
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <span className="text-green-600 font-medium">Verified</span>
           </>
         ) : (
           <>
-            <AlertTriangle className="h-4 w-4 text-destructive" />
-            <span className="text-destructive">Unverified</span>
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+            <span className="text-red-600 font-medium">Unverified</span>
           </>
         )}
       </button>
@@ -785,7 +787,7 @@ Thank you for your assistance.`;
         </div>
         
         <div className="flex items-center gap-2">
-          <ValidationIcon 
+          <ValidationToggle 
             fieldName={fieldName}
             validation={validation}
             onToggle={(isVerified) => handleVerificationToggle(fieldName, isVerified)}
