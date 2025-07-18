@@ -4,6 +4,7 @@ import json
 import sys
 import os
 import logging
+import tempfile
 from typing import Dict, Any, List
 from dataclasses import dataclass
 
@@ -48,14 +49,13 @@ def extract_data_from_document(
         # Import Google AI modules
         try:
             import google.generativeai as genai
-            from google.ai.generativelanguage import types
+            from google.generativeai import types
         except ImportError as e:
             logging.error(f"Failed to import Google AI modules: {e}")
             raise Exception(f"Required Google AI modules not available: {str(e)}")
         
         # Configure the API
         genai.configure(api_key=api_key)
-        client = genai
         
         # Build extraction prompt
         prompt = f"Extract data from this document: {file_name}\n\n"
@@ -86,39 +86,46 @@ def extract_data_from_document(
         prompt += "3. Do NOT generate sample data\n"
         prompt += "4. Return proper JSON format\n"
         
-        # Handle content types
+        # Handle content types and prepare the content
         if mime_type.startswith("text/"):
             content_text = file_content.decode('utf-8', errors='ignore')
-            content_parts = [prompt + f"\n\nDocument content:\n{content_text}"]
+            full_prompt = prompt + f"\n\nDocument content:\n{content_text}"
+            
+            # Make API call using the simplified API for text
+            logging.info("Making API call to Gemini for text content")
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            response = model.generate_content(full_prompt)
         else:
-            content_parts = [
-                types.Part.from_bytes(data=file_content, mime_type=mime_type),
-                prompt
-            ]
+            # For binary files like PDFs, we need to handle them differently
+            logging.info("Making API call to Gemini for binary content")
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            
+            # Create a temporary file for the binary content
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
+                tmp_file.write(file_content)
+                tmp_file_path = tmp_file.name
+            
+            try:
+                # Upload the file to Gemini
+                uploaded_file = genai.upload_file(tmp_file_path)
+                response = model.generate_content([prompt, uploaded_file])
+            finally:
+                # Clean up the temporary file
+                os.unlink(tmp_file_path)
         
-        # Make API call
-        logging.info("Making API call to Gemini")
-        response = client.models.generate_content(
-            model="gemini-2.0-flash-exp",
-            contents=content_parts,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                temperature=0.1,
-                max_output_tokens=2048
-            )
-        )
-        
-        if not response.candidates or len(response.candidates) == 0:
+        if not response or not response.text:
             raise Exception("No response from AI model")
         
-        # Extract response text
-        response_text = ""
-        for part in response.candidates[0].content.parts:
-            if hasattr(part, 'text'):
-                response_text += part.text
+        response_text = response.text.strip()
         
-        if not response_text.strip():
+        if not response_text:
             raise Exception("Empty response from AI model")
+        
+        # Clean up response text - remove markdown code blocks if present
+        if response_text.startswith("```json"):
+            response_text = response_text.replace("```json", "").replace("```", "").strip()
+        elif response_text.startswith("```"):
+            response_text = response_text.replace("```", "").strip()
         
         # Parse JSON response
         try:
