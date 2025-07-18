@@ -919,15 +919,19 @@ import json
 import importlib
 sys.path.append('.')
 try:
-    # Force reload of the module to ensure latest code is used
-    if 'ai_extraction' in sys.modules:
-        importlib.reload(sys.modules['ai_extraction'])
+    # Clear module cache completely to force fresh import
+    modules_to_remove = [mod for mod in sys.modules.keys() if mod.startswith('ai_extraction')]
+    for mod in modules_to_remove:
+        del sys.modules[mod]
+    
+    # Import fresh module
     from ai_extraction import process_extraction_session
     data = json.loads(sys.stdin.read())
     result = process_extraction_session(data)
     print(json.dumps(result))
 except Exception as e:
-    print(json.dumps({"error": str(e)}))
+    import traceback
+    print(json.dumps({"error": str(e), "traceback": traceback.format_exc()}))
     sys.exit(1)
 `]);
       

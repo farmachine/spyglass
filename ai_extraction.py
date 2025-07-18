@@ -906,13 +906,21 @@ YOU ARE PROCESSING A REAL DOCUMENT: {file_name}
 
 MANDATORY REQUIREMENTS:
 1. READ THE ACTUAL DOCUMENT CONTENT COMPLETELY
-2. EXTRACT ONLY REAL DATA FROM THE PROVIDED DOCUMENT
+2. EXTRACT ONLY REAL DATA FROM THE PROVIDED DOCUMENT  
 3. NEVER GENERATE SAMPLE, PLACEHOLDER, OR FAKE DATA
 4. NEVER USE FILENAME-BASED PLACEHOLDER TEXT
+5. FOR LARGE DOCUMENTS: Focus on finding REAL values, limit collection items to 5-10 most relevant entries
 
 STRICTLY FORBIDDEN - DO NOT DO THIS:
 ❌ "Sample name from {file_name}"
-❌ "Sample description from {file_name}" 
+❌ "Sample description from {file_name}"
+❌ "Sample name 1", "Sample name 2" etc.
+❌ Generic placeholder values
+
+FOR LARGE DOCUMENTS:
+- Extract up to 10 real items per collection maximum
+- Focus on the most complete and relevant entries
+- Skip incomplete or unclear entries rather than inventing data 
 ❌ Any text containing "Sample", "Example", "Placeholder"
 ❌ Using the filename as part of extracted content
 ❌ Generating generic test data
