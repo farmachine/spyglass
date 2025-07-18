@@ -280,14 +280,12 @@ export default function NewUpload({ project }: NewUploadProps) {
 
       toast({
         title: "AI extraction completed",
-        description: `${selectedFiles.length} file(s) processed and data extracted successfully.`,
+        description: `${selectedFiles.length} file(s) processed successfully. Go to "All ${project.mainObjectName || "Session"}s" tab to review the extracted data.`,
       });
 
-      // Redirect to session view for record review
-      // Use setTimeout to ensure query invalidations don't interfere with navigation
-      setTimeout(() => {
-        setLocation(`/projects/${project.id}/sessions/${session.id}`);
-      }, 100);
+      // Stay on current tab instead of redirecting to session view
+      // User can navigate to "All Data" tab to see the results
+      // This prevents unwanted navigation disruption
       
       // Reset form
       form.reset();

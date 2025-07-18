@@ -74,7 +74,9 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
     
     // Only apply welcome flow logic if we're starting fresh and user hasn't manually navigated
     // This prevents overriding when user is actively working in other tabs
-    if (activeTab === 'upload' && !isSetupComplete && !userNavigatedRef.current) {
+    // Also check if URL has any query parameters that suggest user interaction
+    const urlHasParams = window.location.search.length > 0;
+    if (activeTab === 'upload' && !isSetupComplete && !userNavigatedRef.current && !urlHasParams) {
       if (user?.role === 'admin') {
         setActiveTab('define');
       }

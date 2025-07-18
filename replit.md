@@ -62,6 +62,11 @@ Preferred communication style: Simple, everyday language.
 - ✓ **ADMIN PANEL HEADER REDESIGN**: Completely updated admin panel header to match project page layout exactly
 - ✓ Replaced breadcrumb navigation with wave logo + "Admin" text layout matching project pages
 - ✓ Unified header design across all pages for consistent user experience and branding
+- ✓ **UPLOAD REDIRECT FIXES**: Resolved unwanted navigation redirects after knowledge and document uploads
+- ✓ Fixed welcome flow logic that was incorrectly redirecting users to Define Data tab after completing actions
+- ✓ Enhanced URL parameter detection to prevent overriding user's current tab selection
+- ✓ Removed automatic redirect to session view after document upload - users stay on current tab
+- ✓ Updated success message to guide users to "All Sessions" tab to view extraction results
 - ✓ Fixed knowledge document upload redirect issue by prioritizing URL tab parameters over welcome flow
 - ✓ Knowledge document uploads now stay on Knowledge/Rules tab instead of redirecting to Define Data
 - ✓ **EXTRACTLY REBRANDING**: Complete application rebrand from "Flow Capture" to "Extractly"
