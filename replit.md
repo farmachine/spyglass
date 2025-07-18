@@ -103,9 +103,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ Individual field confidence now calculated independently with default 95% confidence for valid extracted data
 - ✓ Knowledge document conflicts and extraction rules properly reduce confidence when applicable
 - ✓ Germany entities now show high confidence (95%) while USA entities show 50% due to knowledge document requirements
-- ✓ **HEADER TITLE FIX**: Fixed session view header to display project name instead of object name
-- ✓ Header now shows "Contract 2" (project name) instead of "test" (object name) for better navigation clarity
-- ✓ Object name continues to display in the grey content area below as intended
+- ✓ **HEADER TITLE FIX**: Fixed session view header hierarchy to display names correctly
+- ✓ Top header now shows "Contract 2" (project name) for navigation context
+- ✓ Grey content area header now shows "test" (session name) for specific session identification
+- ✓ Proper separation between project-level navigation and session-specific content
 - ✓ Fixed knowledge document upload redirect issue by prioritizing URL tab parameters over welcome flow
 - ✓ Knowledge document uploads now stay on Knowledge/Rules tab instead of redirecting to Define Data
 - ✓ **EXTRACTLY REBRANDING**: Complete application rebrand from "Flow Capture" to "Extractly"

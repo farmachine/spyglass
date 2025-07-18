@@ -1022,7 +1022,7 @@ Thank you for your assistance.`;
         {/* Project Schema Fields */}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>{project?.mainObjectName || "Session"} Info</CardTitle>
+            <CardTitle>{session?.sessionName}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {project.schemaFields.map((field) => {
