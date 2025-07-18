@@ -1,7 +1,6 @@
 import { Settings, Home, Users, Building2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -206,14 +205,7 @@ export default function AdminPanel() {
                         }`} />
                       </div>
                       <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-medium">{org.name}</h3>
-                          {org.type === 'primary' && (
-                            <Badge variant="default" className="bg-black text-white">
-                              Primary
-                            </Badge>
-                          )}
-                        </div>
+                        <h3 className="font-medium">{org.name}</h3>
                         <p className="text-sm text-gray-600">{org.description}</p>
                       </div>
                     </div>
