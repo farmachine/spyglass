@@ -99,6 +99,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ Restored automatic redirect to session review page after successful document extraction
 - ✓ Users now automatically navigate to extracted data review page for immediate validation and editing
 - ✓ Updated success message to indicate redirection to review page is happening
+- ✓ **CONFIDENCE CALCULATION FIX**: Fixed issue where all fields inherited global 50% confidence score
+- ✓ Individual field confidence now calculated independently with default 95% confidence for valid extracted data
+- ✓ Knowledge document conflicts and extraction rules properly reduce confidence when applicable
+- ✓ Germany entities now show high confidence (95%) while USA entities show 50% due to knowledge document requirements
 - ✓ Fixed knowledge document upload redirect issue by prioritizing URL tab parameters over welcome flow
 - ✓ Knowledge document uploads now stay on Knowledge/Rules tab instead of redirecting to Define Data
 - ✓ **EXTRACTLY REBRANDING**: Complete application rebrand from "Flow Capture" to "Extractly"

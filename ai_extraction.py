@@ -419,8 +419,10 @@ def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, 
             'action': f"Set confidence to 50% due to conflicts found in knowledge documents: {'; '.join(conflicting_sections[:2])}"
         }]
     
-    # Base confidence calculation
-    confidence_percentage = int(base_confidence * 100)
+    # Base confidence calculation - use a high default confidence (95%) for field-level validation
+    # The global base_confidence from AI extraction should not override individual field confidence
+    # unless there are specific rules or conflicts
+    confidence_percentage = 95  # Default high confidence for extracted fields
     applied_rules = []
     
     # Apply extraction rules if available
