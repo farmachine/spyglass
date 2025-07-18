@@ -220,16 +220,33 @@ def extract_data_from_document(
         logging.error(f"SAMPLE DATA DETECTION: sample={has_sample}, example={has_example}, filename={has_filename}")
         logging.error(f"Response preview: {raw_response[:200]}")
         
-        # Enhanced detection with more specific patterns
+        # Enhanced detection with more specific patterns - catch the exact pattern we're seeing
         sample_patterns = [
             f"sample scheme name from {file_name.lower()}",
+            f"sample sponsoring employer from {file_name.lower()}",
+            f"sample scheme status from {file_name.lower()}",
             f"sample description from {file_name.lower()}",
+            f"sample name from {file_name.lower()}",
             "sample name 1", "sample name 2", "sample name 3",
             "sample description 1", "sample description 2", 
-            "sample section name 1", "sample section name 2"
+            "sample section name 1", "sample section name 2",
+            "sample revaluation rate 1", "sample revaluation rate 2",
+            "sample rate 1", "sample rate 2", "sample rate 3"
         ]
         
-        has_specific_sample = any(pattern in raw_response.lower() for pattern in sample_patterns)
+        # Also check for the general "from filename" pattern
+        filename_base = file_name.lower().replace('.pdf', '').replace('.docx', '').replace('.doc', '')
+        generic_sample_patterns = [
+            f"sample {field_name} from {filename_base}",
+            f"sample {field_name} from {file_name.lower()}"
+        ] if 'field_name' in locals() else []
+        
+        all_patterns = sample_patterns + generic_sample_patterns + [
+            f"from {file_name.lower()}",  # Any value referencing filename
+            f"from {filename_base}"       # Any value referencing filename base
+        ]
+        
+        has_specific_sample = any(pattern in raw_response.lower() for pattern in all_patterns)
         
         if has_specific_sample:
             logging.error("!!! SPECIFIC SAMPLE PATTERNS DETECTED - AI FAILED TO EXTRACT REAL CONTENT !!!")
