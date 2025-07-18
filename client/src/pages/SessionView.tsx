@@ -913,7 +913,7 @@ Thank you for your assistance.`;
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="flex items-center gap-4">
             <Link href="/">
-              <ExtractlyLogo showText={false} />
+              <ExtractlyLogo showText={false} className="!p-0" />
             </Link>
             <div>
               <h1 className="text-2xl font-semibold text-gray-900">
