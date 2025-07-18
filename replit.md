@@ -54,7 +54,8 @@ Preferred communication style: Simple, everyday language.
 - ✓ Primary organizations now always appear at top of organization list with black icon color
 - ✓ Implemented organization sorting to prioritize primary organizations over standard ones
 - ✓ Removed redundant "Primary" badge as black icon color provides sufficient visual distinction
-- ✓ Maintained existing breadcrumb navigation throughout admin panel sections
+- ✓ Enhanced admin panel breadcrumb navigation with Dashboard home link for better navigation flow
+- ✓ Added complete breadcrumb trail: Dashboard → Admin Panel → Organization Config (where applicable)
 - ✓ Fixed knowledge document upload redirect issue by prioritizing URL tab parameters over welcome flow
 - ✓ Knowledge document uploads now stay on Knowledge/Rules tab instead of redirecting to Define Data
 - ✓ **EXTRACTLY REBRANDING**: Complete application rebrand from "Flow Capture" to "Extractly"

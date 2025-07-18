@@ -69,6 +69,7 @@ export default function AdminPanel() {
           <div className="flex flex-col space-y-4">
             <Breadcrumb 
               items={[
+                { label: "Dashboard", href: "/", icon: <Home className="h-4 w-4" /> },
                 { label: "Admin Panel", icon: <Settings className="h-4 w-4" /> }
               ]} 
             />
