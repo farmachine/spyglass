@@ -360,8 +360,8 @@ def check_knowledge_document_conflicts(field_name: str, extracted_value: Any, kn
                 if 'country' in field_name.lower() or 'jurisdiction' in field_name.lower():
                     # Check for U.S./USA variations in extracted value
                     if is_us_entity:
-                        # Look for any mention of U.S. jurisdiction requirements
-                        jurisdiction_keywords = ['u.s. jurisdiction', 'jurisdiction', 'governing law', 'legal review', 'state law']
+                        # Look for any mention of U.S. jurisdiction requirements or entity processing
+                        jurisdiction_keywords = ['u.s. entities', 'u.s. jurisdiction', 'usa', 'united states', 'u.s.', 'jurisdiction', 'governing law', 'legal review', 'enhanced legal review', 'compliance checks', 'flagged for manual', 'require']
                         if any(keyword in sentence_lower for keyword in jurisdiction_keywords):
                             # U.S. jurisdiction requirements create a conflict flag for review
                             # This indicates special review requirements for U.S. entities
@@ -372,7 +372,7 @@ def check_knowledge_document_conflicts(field_name: str, extracted_value: Any, kn
                 # For any US entity detection, also check if it's in a nested property that might indicate country
                 elif is_us_entity and ('parties' in field_name.lower() or 'entities' in field_name.lower() or 'address' in field_name.lower()):
                     # If we're dealing with a US entity in any location-related field, check for jurisdiction requirements
-                    jurisdiction_keywords = ['u.s. jurisdiction', 'jurisdiction', 'governing law', 'legal review', 'state law']
+                    jurisdiction_keywords = ['u.s. entities', 'u.s. jurisdiction', 'usa', 'united states', 'u.s.', 'jurisdiction', 'governing law', 'legal review', 'enhanced legal review', 'compliance checks', 'flagged for manual', 'require']
                     if any(keyword in sentence_lower for keyword in jurisdiction_keywords):
                         section = f"{doc_name}, Section {i+1}: \"{sentence.strip()}\""
                         conflicting_sections.append(section)
