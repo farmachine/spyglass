@@ -34,6 +34,7 @@ Preferred communication style: Simple, everyday language.
 - ✓ Project page header now matches dashboard exactly with project name instead of "Extractly"  
 - ✓ Resolved left alignment issues by removing max-width centering constraints
 - ✓ Fixed logo and project name alignment to be properly flush left in header
+- ✓ Restored consistent page margins between dashboard and project pages using max-w-7xl mx-auto px-6
 - ✓ Fixed knowledge document upload redirect issue by prioritizing URL tab parameters over welcome flow
 - ✓ Knowledge document uploads now stay on Knowledge/Rules tab instead of redirecting to Define Data
 - ✓ **EXTRACTLY REBRANDING**: Complete application rebrand from "Flow Capture" to "Extractly"
