@@ -80,6 +80,7 @@ Preferred communication style: Simple, everyday language.
 - ✓ Replaced "AI Analysis" buttons with simple info icons for cleaner, more subtle interface
 - ✓ Enhanced confidence badge readability with distinct color backgrounds and proper contrast
 - ✓ Updated Manual Input badge to match confidence badge format with consistent blue styling
+- ✓ Enhanced AI analysis info icon with blue background and white 'i' for clear information indicator
 - ✓ Fixed knowledge document upload redirect issue by prioritizing URL tab parameters over welcome flow
 - ✓ Knowledge document uploads now stay on Knowledge/Rules tab instead of redirecting to Define Data
 - ✓ **EXTRACTLY REBRANDING**: Complete application rebrand from "Flow Capture" to "Extractly"
