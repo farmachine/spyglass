@@ -5,6 +5,7 @@ import sys
 import os
 import logging
 import tempfile
+import base64
 from typing import Dict, Any, List
 from dataclasses import dataclass
 
@@ -100,9 +101,23 @@ def extract_data_from_document(
             logging.info("Making API call to Gemini for binary content")
             model = genai.GenerativeModel('gemini-1.5-flash')
             
+            # Handle base64 encoded content if it's a data URL
+            binary_content = file_content
+            if isinstance(file_content, str) and file_content.startswith('data:'):
+                # Extract base64 content after the comma
+                base64_content = file_content.split(',', 1)[1]
+                binary_content = base64.b64decode(base64_content)
+            elif isinstance(file_content, str):
+                # If it's a plain base64 string
+                try:
+                    binary_content = base64.b64decode(file_content)
+                except:
+                    # If base64 decode fails, treat as text
+                    binary_content = file_content.encode('utf-8')
+            
             # Create a temporary file for the binary content
             with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
-                tmp_file.write(file_content)
+                tmp_file.write(binary_content)
                 tmp_file_path = tmp_file.name
             
             try:
