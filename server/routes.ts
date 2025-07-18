@@ -913,27 +913,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Knowledge documents specifically:', JSON.stringify(extractionData.knowledge_documents, null, 2));
       
       // Call Python extraction script
-      const python = spawn('python3', ['-c', `
-import sys
-import json
-import importlib
-sys.path.append('.')
-try:
-    # Clear module cache completely to force fresh import
-    modules_to_remove = [mod for mod in sys.modules.keys() if mod.startswith('ai_extraction')]
-    for mod in modules_to_remove:
-        del sys.modules[mod]
-    
-    # Import fresh module
-    from ai_extraction import process_extraction_session
-    data = json.loads(sys.stdin.read())
-    result = process_extraction_session(data)
-    print(json.dumps(result))
-except Exception as e:
-    import traceback
-    print(json.dumps({"error": str(e), "traceback": traceback.format_exc()}))
-    sys.exit(1)
-`]);
+      const python = spawn('python3', ['extraction_runner.py']);
       
       python.stdin.write(JSON.stringify(extractionData));
       python.stdin.end();
