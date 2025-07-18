@@ -249,11 +249,10 @@ def extract_data_from_document(
         has_specific_sample = any(pattern in raw_response.lower() for pattern in all_patterns)
         
         if has_specific_sample:
-            logging.error("!!! SPECIFIC SAMPLE PATTERNS DETECTED - AI FAILED TO EXTRACT REAL CONTENT !!!")
-            logging.error("!!! Attempting retry with simplified extraction !!!")
-            
-            # Try a simpler, more focused extraction approach
-            return retry_with_simplified_extraction(file_content, file_name, mime_type, project_schema, extraction_rules, knowledge_documents)
+            logging.error("!!! SAMPLE DATA DETECTED - EXTRACTION FAILED !!!")
+            logging.error(f"!!! Detected patterns in response: {raw_response[:500]} !!!")
+            error_message = f"AI extraction failed: Generated sample/placeholder data instead of real content from {file_name}. The AI model could not process this document properly. No sample data will be returned - extraction must be fixed to work with real content."
+            raise Exception(error_message)
         
         logging.info("Sample detection passed - proceeding with extraction")
         
@@ -929,44 +928,40 @@ def build_extraction_prompt(
     
     prompt += f"""
 
-🚨 CRITICAL INSTRUCTION: EXTRACT REAL DATA ONLY 🚨
-YOU ARE PROCESSING A REAL DOCUMENT: {file_name}
+🚨🚨🚨 CRITICAL EXTRACTION REQUIREMENT 🚨🚨🚨
+DOCUMENT: {file_name}
 
-MANDATORY REQUIREMENTS:
-1. READ THE ACTUAL DOCUMENT CONTENT COMPLETELY
-2. EXTRACT ONLY REAL DATA FROM THE PROVIDED DOCUMENT  
-3. NEVER GENERATE SAMPLE, PLACEHOLDER, OR FAKE DATA
-4. NEVER USE FILENAME-BASED PLACEHOLDER TEXT
-5. FOR LARGE DOCUMENTS: Focus on finding REAL values, limit collection items to 5-10 most relevant entries
+ABSOLUTE MANDATORY RULES - VIOLATION WILL CAUSE EXTRACTION FAILURE:
 
-STRICTLY FORBIDDEN - DO NOT DO THIS:
-❌ "Sample name from {file_name}"
-❌ "Sample description from {file_name}"
-❌ "Sample name 1", "Sample name 2" etc.
-❌ Generic placeholder values
+1. EXTRACT ONLY REAL DATA FROM THE ACTUAL DOCUMENT CONTENT
+2. READ EVERY PAGE AND SECTION CAREFULLY FOR AUTHENTIC INFORMATION
+3. IF NO REAL DATA EXISTS FOR A FIELD, RETURN null - DO NOT INVENT ANYTHING
 
-FOR LARGE DOCUMENTS:
-- Extract up to 10 real items per collection maximum
-- Focus on the most complete and relevant entries
-- Skip incomplete or unclear entries rather than inventing data 
-❌ Any text containing "Sample", "Example", "Placeholder"
-❌ Using the filename as part of extracted content
-❌ Generating generic test data
+🚫 ABSOLUTELY FORBIDDEN - THESE PATTERNS WILL CAUSE IMMEDIATE FAILURE:
+❌ "Sample [anything] from {file_name}" 
+❌ "Sample scheme name from [filename]"
+❌ "Sample sponsoring employer from [filename]"
+❌ "Sample [field] 1", "Sample [field] 2", etc.
+❌ ANY text containing "Sample" + filename reference
+❌ ANY placeholder, test, or example data
+❌ ANY reference to the filename in extracted values
 
-REQUIRED APPROACH:
-✅ Read every page of the document thoroughly
-✅ Extract actual names, dates, addresses, numbers from document text
-✅ For missing data, return null (not placeholder text)
-✅ Use exact text/values as they appear in the document
-✅ For DATE fields: Extract ONLY actual dates in YYYY-MM-DD format
-✅ For COUNTRY fields: Infer from address context (US states = "USA")
+⚠️ WARNING: If your response contains ANY of the forbidden patterns above, the extraction will be rejected as a failure.
 
-QUALITY CHECK: Before responding, verify your extraction contains ZERO placeholder text and ONLY real document content.
+✅ REQUIRED APPROACH:
+- Find actual company names, dates, addresses, amounts in the document
+- Extract specific real values like "ABC Corporation", "2023-12-15", "£1,000,000"
+- Use only text that appears directly in the document
+- For missing fields, return null instead of making up data
+- Collections: Extract maximum 3 real items only
 
-FORBIDDEN RESPONSES:
-❌ Do NOT return: "Sample company name", "Sample address", "Example data", etc.
-❌ Do NOT return: Generic placeholders or made-up information
-✅ DO return: Actual company names, addresses, dates, and data from the document
+🔍 QUALITY CHECK BEFORE RESPONDING:
+Scan your entire response for forbidden words:
+- Does ANY value contain "Sample"? → STOP, revise to use real data or null
+- Does ANY value reference "{file_name}"? → STOP, revise to use real data or null
+- Are you inventing any data? → STOP, use only document content or null
+
+EXTRACT AUTHENTIC DOCUMENT CONTENT ONLY.
 
 Return valid JSON:
 {{
