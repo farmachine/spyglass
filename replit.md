@@ -31,8 +31,9 @@ Preferred communication style: Simple, everyday language.
 - ✓ Fixed knowledge document upload redirect issue by prioritizing URL tab parameters over welcome flow
 - ✓ Knowledge document uploads now stay on Knowledge/Rules tab instead of redirecting to Define Data
 - ✓ **HEADER CONSISTENCY AND ALIGNMENT**: Fixed header layout across dashboard and project pages
-- ✓ Project page header now matches dashboard exactly with project name instead of "Extractly"
+- ✓ Project page header now matches dashboard exactly with project name instead of "Extractly"  
 - ✓ Resolved left alignment issues by removing max-width centering constraints
+- ✓ Fixed logo and project name alignment to be properly flush left in header
 - ✓ Fixed knowledge document upload redirect issue by prioritizing URL tab parameters over welcome flow
 - ✓ Knowledge document uploads now stay on Knowledge/Rules tab instead of redirecting to Define Data
 - ✓ **EXTRACTLY REBRANDING**: Complete application rebrand from "Flow Capture" to "Extractly"
