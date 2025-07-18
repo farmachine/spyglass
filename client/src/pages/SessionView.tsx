@@ -246,7 +246,7 @@ export default function SessionView() {
   });
 
   const updateValidationMutation = useMutation({
-    mutationFn: async (params: { id: number; data: Partial<FieldValidation> }) => {
+    mutationFn: async (params: { id: string; data: Partial<FieldValidation> }) => {
       return apiRequest(`/api/validations/${params.id}`, {
         method: 'PUT',
         body: JSON.stringify(params.data)
@@ -286,6 +286,14 @@ export default function SessionView() {
       toast({
         title: "Field updated",
         description: "The field verification has been updated.",
+      });
+    },
+    onError: (error: any) => {
+      console.error('Failed to update field:', error);
+      toast({
+        title: "Failed to update field",
+        description: error?.message || "An error occurred while updating the field.",
+        variant: "destructive"
       });
     }
   });
@@ -555,14 +563,23 @@ Thank you for your assistance.`;
         }
       }
       
-      await updateValidationMutation.mutateAsync({
-        id: validation.id,
-        data: {
-          extractedValue: valueToStore,
-          validationStatus: "pending",
-          manuallyVerified: false
-        }
-      });
+      try {
+        await updateValidationMutation.mutateAsync({
+          id: validation.id,
+          data: {
+            extractedValue: valueToStore,
+            validationStatus: "pending",
+            manuallyVerified: false
+          }
+        });
+      } catch (error) {
+        console.error('Failed to update date:', error);
+        toast({
+          title: "Failed to update date",
+          description: "An error occurred while updating the date value.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -608,6 +625,11 @@ Thank you for your assistance.`;
         await queryClient.refetchQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
       } catch (error) {
         console.error('Failed to save field:', error);
+        toast({
+          title: "Failed to save field",
+          description: "An error occurred while saving the field value.",
+          variant: "destructive"
+        });
       }
     }
     setEditingField(null);
@@ -617,13 +639,22 @@ Thank you for your assistance.`;
   const handleVerificationToggle = async (fieldName: string, isVerified: boolean) => {
     const validation = getValidation(fieldName);
     if (validation) {
-      await updateValidationMutation.mutateAsync({
-        id: validation.id,
-        data: {
-          validationStatus: isVerified ? "valid" : "pending",
-          manuallyVerified: isVerified
-        }
-      });
+      try {
+        await updateValidationMutation.mutateAsync({
+          id: validation.id,
+          data: {
+            validationStatus: isVerified ? "valid" : "pending",
+            manuallyVerified: isVerified
+          }
+        });
+      } catch (error) {
+        console.error('Failed to toggle verification:', error);
+        toast({
+          title: "Failed to update verification",
+          description: "An error occurred while updating field verification.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
