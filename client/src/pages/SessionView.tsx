@@ -979,7 +979,7 @@ Thank you for your assistance.`;
                   </Button>
                 </Link>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">{session?.sessionName}</h2>
+                  <h2 className="text-2xl font-bold text-gray-900">{project?.name}</h2>
 
                 </div>
               </div>
