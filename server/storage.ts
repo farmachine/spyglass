@@ -867,17 +867,25 @@ export class MemStorage implements IStorage {
     return field;
   }
 
-  async updateProjectSchemaField(id: number, updateData: Partial<InsertProjectSchemaField>): Promise<ProjectSchemaField | undefined> {
-    const field = this.projectSchemaFields.get(id);
+  async updateProjectSchemaField(id: string, updateData: Partial<InsertProjectSchemaField>): Promise<ProjectSchemaField | undefined> {
+    // Convert string ID to number for in-memory storage lookup
+    const numericId = parseInt(id);
+    if (isNaN(numericId)) return undefined;
+    
+    const field = this.projectSchemaFields.get(numericId);
     if (!field) return undefined;
 
     const updatedField = { ...field, ...updateData };
-    this.projectSchemaFields.set(id, updatedField);
+    this.projectSchemaFields.set(numericId, updatedField);
     return updatedField;
   }
 
-  async deleteProjectSchemaField(id: number): Promise<boolean> {
-    return this.projectSchemaFields.delete(id);
+  async deleteProjectSchemaField(id: string): Promise<boolean> {
+    // Convert string ID to number for in-memory storage lookup
+    const numericId = parseInt(id);
+    if (isNaN(numericId)) return false;
+    
+    return this.projectSchemaFields.delete(numericId);
   }
 
   // Object Collections
@@ -911,22 +919,30 @@ export class MemStorage implements IStorage {
     return collection;
   }
 
-  async updateObjectCollection(id: number, updateData: Partial<InsertObjectCollection>): Promise<ObjectCollection | undefined> {
-    const collection = this.objectCollections.get(id);
+  async updateObjectCollection(id: string, updateData: Partial<InsertObjectCollection>): Promise<ObjectCollection | undefined> {
+    // Convert string ID to number for in-memory storage lookup
+    const numericId = parseInt(id);
+    if (isNaN(numericId)) return undefined;
+    
+    const collection = this.objectCollections.get(numericId);
     if (!collection) return undefined;
 
     const updatedCollection = { ...collection, ...updateData };
-    this.objectCollections.set(id, updatedCollection);
+    this.objectCollections.set(numericId, updatedCollection);
     return updatedCollection;
   }
 
-  async deleteObjectCollection(id: number): Promise<boolean> {
+  async deleteObjectCollection(id: string): Promise<boolean> {
+    // Convert string ID to number for in-memory storage lookup
+    const numericId = parseInt(id);
+    if (isNaN(numericId)) return false;
+    
     // Delete related properties first
     const properties = Array.from(this.collectionProperties.values())
-      .filter(prop => prop.collectionId === id);
+      .filter(prop => prop.collectionId === numericId);
     properties.forEach(prop => this.collectionProperties.delete(prop.id));
 
-    return this.objectCollections.delete(id);
+    return this.objectCollections.delete(numericId);
   }
 
   // Collection Properties
@@ -949,17 +965,25 @@ export class MemStorage implements IStorage {
     return property;
   }
 
-  async updateCollectionProperty(id: number, updateData: Partial<InsertCollectionProperty>): Promise<CollectionProperty | undefined> {
-    const property = this.collectionProperties.get(id);
+  async updateCollectionProperty(id: string, updateData: Partial<InsertCollectionProperty>): Promise<CollectionProperty | undefined> {
+    // Convert string ID to number for in-memory storage lookup
+    const numericId = parseInt(id);
+    if (isNaN(numericId)) return undefined;
+    
+    const property = this.collectionProperties.get(numericId);
     if (!property) return undefined;
 
     const updatedProperty = { ...property, ...updateData };
-    this.collectionProperties.set(id, updatedProperty);
+    this.collectionProperties.set(numericId, updatedProperty);
     return updatedProperty;
   }
 
-  async deleteCollectionProperty(id: number): Promise<boolean> {
-    return this.collectionProperties.delete(id);
+  async deleteCollectionProperty(id: string): Promise<boolean> {
+    // Convert string ID to number for in-memory storage lookup
+    const numericId = parseInt(id);
+    if (isNaN(numericId)) return false;
+    
+    return this.collectionProperties.delete(numericId);
   }
 
   // Extraction Sessions
@@ -1053,17 +1077,25 @@ export class MemStorage implements IStorage {
     return rule;
   }
 
-  async updateExtractionRule(id: number, updateData: Partial<InsertExtractionRule>): Promise<ExtractionRule | undefined> {
-    const existingRule = this.extractionRules.get(id);
+  async updateExtractionRule(id: string, updateData: Partial<InsertExtractionRule>): Promise<ExtractionRule | undefined> {
+    // Convert string ID to number for in-memory storage lookup
+    const numericId = parseInt(id);
+    if (isNaN(numericId)) return undefined;
+    
+    const existingRule = this.extractionRules.get(numericId);
     if (!existingRule) return undefined;
 
     const updatedRule = { ...existingRule, ...updateData };
-    this.extractionRules.set(id, updatedRule);
+    this.extractionRules.set(numericId, updatedRule);
     return updatedRule;
   }
 
-  async deleteExtractionRule(id: number): Promise<boolean> {
-    return this.extractionRules.delete(id);
+  async deleteExtractionRule(id: string): Promise<boolean> {
+    // Convert string ID to number for in-memory storage lookup
+    const numericId = parseInt(id);
+    if (isNaN(numericId)) return false;
+    
+    return this.extractionRules.delete(numericId);
   }
 
   // Field Validations

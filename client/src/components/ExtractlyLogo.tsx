@@ -15,7 +15,7 @@ export default function ExtractlyLogo({ className = "", showText = true }: Extra
   return (
     <button
       onClick={handleClick}
-      className={`flex items-center space-x-5 transition-all duration-200 hover:opacity-80 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-xl p-4 ${className}`}
+      className={`flex items-center space-x-5 transition-all duration-200 hover:opacity-80 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-xl ${className}`}
       aria-label="Extractly - Go to Dashboard"
     >
       {/* Logo SVG */}

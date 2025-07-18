@@ -423,7 +423,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/schema-fields/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id; // Use string ID for UUID compatibility
       const result = insertProjectSchemaFieldSchema.partial().safeParse(req.body);
       if (!result.success) {
         return res.status(400).json({ message: "Invalid schema field data", errors: result.error.errors });
@@ -441,7 +441,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/schema-fields/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id; // Use string ID for UUID compatibility
       const deleted = await storage.deleteProjectSchemaField(id);
       if (!deleted) {
         return res.status(404).json({ message: "Schema field not found" });
@@ -570,7 +570,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/properties/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id; // Use string ID for UUID compatibility
       const result = insertCollectionPropertySchema.partial().safeParse(req.body);
       if (!result.success) {
         return res.status(400).json({ message: "Invalid property data", errors: result.error.errors });
@@ -588,7 +588,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/properties/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id; // Use string ID for UUID compatibility
       const deleted = await storage.deleteCollectionProperty(id);
       if (!deleted) {
         return res.status(404).json({ message: "Property not found" });
@@ -686,7 +686,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/rules/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id; // Use string ID for UUID compatibility
       const result = insertExtractionRuleSchema.partial().safeParse(req.body);
       if (!result.success) {
         return res.status(400).json({ message: "Invalid extraction rule data", errors: result.error.errors });
@@ -704,7 +704,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/rules/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id; // Use string ID for UUID compatibility
       const success = await storage.deleteExtractionRule(id);
       if (!success) {
         return res.status(404).json({ message: "Extraction rule not found" });
