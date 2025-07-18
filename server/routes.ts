@@ -916,8 +916,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const python = spawn('python3', ['-c', `
 import sys
 import json
+import importlib
 sys.path.append('.')
 try:
+    # Force reload of the module to ensure latest code is used
+    if 'ai_extraction' in sys.modules:
+        importlib.reload(sys.modules['ai_extraction'])
     from ai_extraction import process_extraction_session
     data = json.loads(sys.stdin.read())
     result = process_extraction_session(data)
