@@ -910,22 +910,26 @@ Thank you for your assistance.`;
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center gap-4">
-            <Link href="/">
-              <ExtractlyLogo showText={false} className="!p-0" />
-            </Link>
-            <div>
-              <h1 className="text-2xl font-semibold text-gray-900">
-                {session.sessionName}
-              </h1>
-              {session.description && (
-                <p className="text-sm text-gray-600 mt-1">
-                  {session.description}
-                </p>
-              )}
+        <div className="w-full px-6 py-4">
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-4">
+              <Link href="/">
+                <ExtractlyLogo showText={false} className="!p-0" />
+              </Link>
+              <div>
+                <h1 className="text-2xl font-semibold text-gray-900">
+                  {session.sessionName}
+                </h1>
+                {session.description && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    {session.description}
+                  </p>
+                )}
+              </div>
             </div>
-
+            <div className="flex items-center gap-4">
+              {/* User profile placeholder - could add user menu here if needed */}
+            </div>
           </div>
         </div>
       </div>
