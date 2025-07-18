@@ -888,7 +888,20 @@ def build_extraction_prompt(
 ) -> str:
     """Build a comprehensive prompt for data extraction"""
     
-    prompt = f"Extract structured data from {file_name}.\n\nSchema Fields:\n"
+    prompt = f"""🚨 REAL DOCUMENT EXTRACTION ONLY 🚨
+
+You are extracting data from: {file_name}
+
+CRITICAL: This is a REAL document. You must extract ONLY authentic content that appears in the document.
+
+ABSOLUTELY FORBIDDEN (will cause extraction failure):
+❌ "Sample [anything] from {file_name}"
+❌ "Sample [field] 1", "Sample [field] 2" 
+❌ ANY text containing "Sample" + filename
+❌ ANY placeholder or made-up data
+
+Schema Fields to extract:
+"""
     
     # Add project schema fields with specific type instructions
     if project_schema.get("schema_fields"):
@@ -906,25 +919,20 @@ def build_extraction_prompt(
                 else:
                     prompt += "\n"
     
-    # Add collections with type-specific instructions
+    # Add collections with simplified instructions (max 2 collections, max 2 items each)
     if project_schema.get("collections"):
-        prompt += "\nCollections:\n"
-        for collection in project_schema["collections"]:
+        prompt += "\nCollections (extract maximum 2 real items per collection):\n"
+        for collection in project_schema["collections"][:2]:  # Limit to 2 collections
             collection_name = collection.get('collectionName', collection.get('objectName', 'UnknownCollection'))
-            prompt += f"- {collection_name} (array of objects):\n"
-            for prop in collection.get("properties", []):
+            prompt += f"- {collection_name} (find up to 2 real items only):\n"
+            for prop in collection.get("properties", [])[:3]:  # Limit to 3 properties
                 prop_name = prop['propertyName']
                 prop_type = prop['propertyType']
-                prop_description = prop.get('description', '')
                 
                 if prop_type == "DATE":
                     prompt += f"  * {prop_name}: Extract actual date in YYYY-MM-DD format only. If no date found, return null.\n"
                 else:
-                    prompt += f"  * {prop_name} ({prop_type})"
-                    if prop_description:
-                        prompt += f" - {prop_description}\n"
-                    else:
-                        prompt += "\n"
+                    prompt += f"  * {prop_name} ({prop_type}): Extract real value from document or return null\n"
     
     prompt += f"""
 
@@ -963,14 +971,20 @@ Scan your entire response for forbidden words:
 
 EXTRACT AUTHENTIC DOCUMENT CONTENT ONLY.
 
+FINAL REQUIREMENTS:
+1. Extract ONLY real data from the document
+2. Return null for fields not found in document
+3. Maximum 2 items per collection
+4. NO sample, placeholder, or made-up data
+
 Return valid JSON:
 {{
   "extracted_data": {{...}},
   "confidence_score": 0.95,
-  "processing_notes": "Brief extraction notes about what was found"
+  "processing_notes": "Brief extraction summary"
 }}
 
-Return only valid JSON without any additional text, comments, or formatting."""
+⚠️ BEFORE SUBMITTING: Check your response contains NO "Sample" text or filename references.
 
     # Add knowledge documents context if available
     if knowledge_documents and len(knowledge_documents) > 0:
