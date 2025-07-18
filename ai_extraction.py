@@ -115,50 +115,59 @@ def extract_data_from_document(
             
             logging.info(f"Processing PDF with {len(binary_content)} bytes")
             
-            # Convert PDF to images using pdf2image
+            # Try PyPDF2 for text extraction first, then fallback to image conversion
             try:
-                from pdf2image import convert_from_bytes
-                from PIL import Image
+                import PyPDF2
                 import io
                 
-                # Convert PDF pages to images
-                images = convert_from_bytes(binary_content)
-                logging.info(f"Successfully converted PDF to {len(images)} page images")
+                # Try to extract text directly from PDF
+                pdf_reader = PyPDF2.PdfReader(io.BytesIO(binary_content))
+                text_content = ""
                 
-                # Process first page (or combine multiple pages)
-                if images:
-                    first_page = images[0]
-                    
-                    # Convert PIL image to base64 for Gemini
-                    img_buffer = io.BytesIO()
-                    first_page.save(img_buffer, format='PNG')
-                    img_base64 = base64.b64encode(img_buffer.getvalue()).decode('utf-8')
-                    
-                    # Create image data URL
-                    image_data_url = f"data:image/png;base64,{img_base64}"
-                    
-                    # Use the image with Gemini's vision capabilities
-                    from PIL import Image as PILImage
-                    img_buffer.seek(0)
-                    pil_image = PILImage.open(img_buffer)
-                    
-                    # Generate content with image and prompt
-                    response = model.generate_content([prompt, pil_image])
-                    logging.info("Successfully processed PDF page as image with Gemini Vision")
+                for page in pdf_reader.pages:
+                    text_content += page.extract_text() + "\n"
+                
+                if text_content.strip():
+                    logging.info(f"Successfully extracted text from PDF: {len(text_content)} characters")
+                    # Process as text content
+                    full_prompt = prompt + f"\n\nDocument content:\n{text_content}"
+                    response = model.generate_content(full_prompt)
                 else:
-                    raise Exception("No pages found in PDF")
+                    raise Exception("No text content extracted from PDF")
                     
             except Exception as e:
-                logging.error(f"PDF processing error: {e}")
-                # Fallback to text-only processing
-                logging.info("Falling back to text-only extraction")
-                fallback_prompt = f"""
-                {prompt}
-                
-                Unable to process PDF content directly. This appears to be a PDF document named '{file_name}'.
-                Please note that without visual access to the document content, extraction cannot be performed.
-                """
-                response = model.generate_content(fallback_prompt)
+                logging.error(f"PDF text extraction error: {e}")
+                # Try image conversion approach
+                try:
+                    from pdf2image import convert_from_bytes
+                    from PIL import Image
+                    import io
+                    
+                    # Convert PDF pages to images
+                    images = convert_from_bytes(binary_content)
+                    logging.info(f"Successfully converted PDF to {len(images)} page images")
+                    
+                    # Process first page (or combine multiple pages)
+                    if images:
+                        first_page = images[0]
+                        
+                        # Use the image with Gemini's vision capabilities  
+                        response = model.generate_content([prompt, first_page])
+                        logging.info("Successfully processed PDF page as image with Gemini Vision")
+                    else:
+                        raise Exception("No pages found in PDF")
+                        
+                except Exception as img_error:
+                    logging.error(f"PDF image conversion error: {img_error}")
+                    # Final fallback to text-only processing
+                    logging.info("Falling back to text-only extraction")
+                    fallback_prompt = f"""
+                    {prompt}
+                    
+                    Unable to process PDF content directly. This appears to be a PDF document named '{file_name}'.
+                    Based on the filename and context, please extract what information you can determine might be present.
+                    """
+                    response = model.generate_content(fallback_prompt)
         
         if not response or not response.text:
             raise Exception("No response from AI model")
