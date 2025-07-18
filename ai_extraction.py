@@ -202,9 +202,14 @@ def extract_data_from_document(
         logging.info(f"Raw AI response (first 1000 chars): {raw_response[:1000]}")
         
         # Check if response contains sample data (indicating AI didn't extract real content)
-        if ("sample" in raw_response.lower() or 
-            "example" in raw_response.lower() or 
-            file_name.lower() in raw_response.lower()):
+        has_sample = "sample" in raw_response.lower()
+        has_example = "example" in raw_response.lower()
+        has_filename = file_name.lower() in raw_response.lower()
+        
+        logging.info(f"SAMPLE DATA DETECTION: sample={has_sample}, example={has_example}, filename={has_filename}")
+        logging.info(f"SAMPLE DATA DETECTION: filename='{file_name.lower()}' in response='{raw_response[:200].lower()}'")
+        
+        if has_sample or has_example or has_filename:
             logging.error("!!! AI RETURNED SAMPLE/PLACEHOLDER DATA INSTEAD OF REAL EXTRACTION !!!")
             logging.error(f"!!! Response contains sample data: {raw_response[:500]} !!!")
             logging.error("!!! This indicates the AI model is not properly processing the PDF content !!!")
@@ -267,6 +272,15 @@ def extract_data_from_document(
         
         # Normalize extracted data - convert string "null" to actual None
         extracted_data = normalize_extracted_values(result_data.get("extracted_data", {}))
+        
+        # Double-check for sample data in extracted values
+        extracted_json = json.dumps(extracted_data, indent=2)
+        if ("sample" in extracted_json.lower() or 
+            "example" in extracted_json.lower() or 
+            file_name.lower() in extracted_json.lower()):
+            logging.error("!!! SAMPLE DATA DETECTED IN EXTRACTED JSON !!!")
+            logging.error(f"!!! Extracted data contains sample values: {extracted_json[:500]} !!!")
+            return create_demo_extraction_result(project_schema, file_name, extraction_rules, "Extracted data contains sample/placeholder values")
         
         # Generate field validations for the extracted data
         field_validations = generate_field_validations(
