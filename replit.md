@@ -85,6 +85,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ Fixed UUID handling in all mutation functions (handleSave, handleVerificationToggle, handleDateChange)
 - ✓ Added proper error messages and toast notifications for failed field updates
 - ✓ Enhanced mutation error feedback to help identify and resolve validation update issues
+- ✓ **KNOWLEDGE DOCUMENT INTEGRATION FIXED**: Fixed critical issue where knowledge documents weren't being passed to AI extraction prompt
+- ✓ Updated build_extraction_prompt function to include knowledge documents parameter and content
+- ✓ Enhanced AI prompt with knowledge document context and conflict detection requirements
+- ✓ Knowledge documents now properly included in extraction process for policy-based conflict detection
 - ✓ Fixed knowledge document upload redirect issue by prioritizing URL tab parameters over welcome flow
 - ✓ Knowledge document uploads now stay on Knowledge/Rules tab instead of redirecting to Define Data
 - ✓ **EXTRACTLY REBRANDING**: Complete application rebrand from "Flow Capture" to "Extractly"

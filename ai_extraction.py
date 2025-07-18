@@ -83,7 +83,7 @@ def extract_data_from_document(
         logging.info(f"File size: {len(file_content)} bytes, MIME type: {mime_type}")
         
         # Build the extraction prompt
-        prompt = build_extraction_prompt(project_schema, extraction_rules, file_name)
+        prompt = build_extraction_prompt(project_schema, extraction_rules, file_name, knowledge_documents)
         
         # Handle different content types
         if mime_type.startswith("text/") or mime_type in ["application/json", "text/plain"]:
@@ -823,7 +823,8 @@ def build_dynamic_schema(project_schema: Dict[str, Any]) -> Dict[str, Any]:
 def build_extraction_prompt(
     project_schema: Dict[str, Any], 
     extraction_rules: List[Dict[str, Any]] = None,
-    file_name: str = ""
+    file_name: str = "",
+    knowledge_documents: List[Dict[str, Any]] = None
 ) -> str:
     """Build a comprehensive prompt for data extraction"""
     
@@ -899,6 +900,29 @@ Return valid JSON:
 }}
 
 Return only valid JSON without any additional text, comments, or formatting."""
+
+    # Add knowledge documents context if available
+    if knowledge_documents and len(knowledge_documents) > 0:
+        prompt += "\n\nKNOWLEDGE DOCUMENTS AND POLICY CONTEXT:\n"
+        prompt += "The following knowledge documents contain policies and requirements that may conflict with extracted data:\n\n"
+        
+        for i, doc in enumerate(knowledge_documents):
+            doc_name = doc.get('displayName', doc.get('fileName', f'Document {i+1}'))
+            content = doc.get('content', '')
+            
+            if content and content.strip():
+                prompt += f"--- {doc_name} ---\n"
+                # Include relevant excerpts from knowledge documents
+                content_preview = content[:1000] + "..." if len(content) > 1000 else content
+                prompt += f"{content_preview}\n\n"
+        
+        prompt += """CONFLICT DETECTION REQUIREMENTS:
+⚠️ When extracting data, check if values conflict with the knowledge documents above.
+⚠️ If a field value conflicts with policies/requirements in knowledge documents, reduce confidence to 50% and note the conflict in your reasoning.
+⚠️ For example: If a contract involves U.S. jurisdiction but knowledge documents require legal review for U.S. contracts, flag this as a potential conflict.
+⚠️ Include references to specific knowledge document sections when conflicts are detected.
+
+"""
     
     return prompt
 
