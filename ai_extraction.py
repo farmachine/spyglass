@@ -97,37 +97,68 @@ def extract_data_from_document(
             model = genai.GenerativeModel('gemini-1.5-flash')
             response = model.generate_content(full_prompt)
         else:
-            # For binary files like PDFs, send base64 content directly to Gemini
-            logging.info("Making API call to Gemini for binary content using base64")
+            # For binary files like PDFs, convert to images and process with vision model
+            logging.info("Processing PDF by converting to images for Gemini Vision")
             model = genai.GenerativeModel('gemini-1.5-flash')
             
-            # Handle base64 encoded content
+            # Decode base64 content to bytes
             if isinstance(file_content, str) and file_content.startswith('data:'):
                 # Extract base64 content after the comma for data URLs
                 base64_content = file_content.split(',', 1)[1]
-                logging.info(f"Using base64 content from data URL, length: {len(base64_content)}")
+                binary_content = base64.b64decode(base64_content)
             elif isinstance(file_content, str):
                 # Assume it's already base64 encoded
-                base64_content = file_content
-                logging.info(f"Using direct base64 content, length: {len(base64_content)}")
+                binary_content = base64.b64decode(file_content)
             else:
-                # Convert bytes to base64
-                base64_content = base64.b64encode(file_content).decode('utf-8')
-                logging.info(f"Converted bytes to base64, length: {len(base64_content)}")
+                # Already bytes
+                binary_content = file_content
             
-            # Create a content part with the base64 data
-            content_parts = [
-                {
-                    "inline_data": {
-                        "mime_type": mime_type,
-                        "data": base64_content
-                    }
-                },
-                prompt
-            ]
+            logging.info(f"Processing PDF with {len(binary_content)} bytes")
             
-            # Generate content with base64 data
-            response = model.generate_content(content_parts)
+            # Convert PDF to images using pdf2image
+            try:
+                from pdf2image import convert_from_bytes
+                from PIL import Image
+                import io
+                
+                # Convert PDF pages to images
+                images = convert_from_bytes(binary_content)
+                logging.info(f"Successfully converted PDF to {len(images)} page images")
+                
+                # Process first page (or combine multiple pages)
+                if images:
+                    first_page = images[0]
+                    
+                    # Convert PIL image to base64 for Gemini
+                    img_buffer = io.BytesIO()
+                    first_page.save(img_buffer, format='PNG')
+                    img_base64 = base64.b64encode(img_buffer.getvalue()).decode('utf-8')
+                    
+                    # Create image data URL
+                    image_data_url = f"data:image/png;base64,{img_base64}"
+                    
+                    # Use the image with Gemini's vision capabilities
+                    from PIL import Image as PILImage
+                    img_buffer.seek(0)
+                    pil_image = PILImage.open(img_buffer)
+                    
+                    # Generate content with image and prompt
+                    response = model.generate_content([prompt, pil_image])
+                    logging.info("Successfully processed PDF page as image with Gemini Vision")
+                else:
+                    raise Exception("No pages found in PDF")
+                    
+            except Exception as e:
+                logging.error(f"PDF processing error: {e}")
+                # Fallback to text-only processing
+                logging.info("Falling back to text-only extraction")
+                fallback_prompt = f"""
+                {prompt}
+                
+                Unable to process PDF content directly. This appears to be a PDF document named '{file_name}'.
+                Please note that without visual access to the document content, extraction cannot be performed.
+                """
+                response = model.generate_content(fallback_prompt)
         
         if not response or not response.text:
             raise Exception("No response from AI model")
