@@ -147,6 +147,7 @@ def extract_data_from_document(
                 logging.info(f"Response object type: {type(response)}")
                 logging.info(f"Response text: '{response.text}'")
                 logging.info(f"Response text length: {len(response.text) if response.text else 0}")
+                logging.info("About to exit retry loop - detection logic should run next")
                 break  # Success, exit retry loop
                 
             except Exception as api_error:
@@ -169,11 +170,14 @@ def extract_data_from_document(
                 logging.error(f"Full traceback: {traceback.format_exc()}")
                 raise api_error
         
-        # Handle different response structures
+        # Handle different response structures  
+        logging.info("=== POST-API CALL PROCESSING STARTING ===")
         response_text = ""
         if hasattr(response, 'text') and response.text:
             response_text = response.text
+            logging.info("Found response.text, using it directly")
         elif hasattr(response, 'candidates') and response.candidates:
+            logging.info("Using candidates path for response extraction")
             # Try to extract text from candidates
             for candidate in response.candidates:
                 if hasattr(candidate, 'content') and candidate.content:
@@ -181,8 +185,12 @@ def extract_data_from_document(
                         for part in candidate.content.parts:
                             if hasattr(part, 'text') and part.text:
                                 response_text += part.text
+                                logging.info(f"Added text from part: {len(part.text)} chars")
                     elif hasattr(candidate.content, 'text') and candidate.content.text:
                         response_text += candidate.content.text
+                        logging.info(f"Added text from content: {len(candidate.content.text)} chars")
+        
+        logging.info(f"Final response_text length: {len(response_text) if response_text else 0}")
         
         if not response_text or response_text.strip() == "":
             logging.error("No response text from Gemini API")
@@ -198,8 +206,10 @@ def extract_data_from_document(
             raise Exception("No response from Gemini API")
             
         # Clean and parse the JSON response
+        logging.info("=== STARTING SAMPLE DATA DETECTION ===")
         raw_response = response_text.strip()
         logging.info(f"Raw AI response (first 1000 chars): {raw_response[:1000]}")
+        logging.info("=== ABOUT TO RUN DETECTION CHECKS ===")
         
         # Check if response contains sample data (indicating AI didn't extract real content)
         has_sample = "sample" in raw_response.lower()
