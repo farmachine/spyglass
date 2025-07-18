@@ -97,69 +97,37 @@ def extract_data_from_document(
             model = genai.GenerativeModel('gemini-1.5-flash')
             response = model.generate_content(full_prompt)
         else:
-            # For binary files like PDFs, we need to handle them differently
-            logging.info("Making API call to Gemini for binary content")
+            # For binary files like PDFs, send base64 content directly to Gemini
+            logging.info("Making API call to Gemini for binary content using base64")
             model = genai.GenerativeModel('gemini-1.5-flash')
             
-            # Handle base64 encoded content if it's a data URL
-            binary_content = file_content
+            # Handle base64 encoded content
             if isinstance(file_content, str) and file_content.startswith('data:'):
-                # Extract base64 content after the comma
+                # Extract base64 content after the comma for data URLs
                 base64_content = file_content.split(',', 1)[1]
-                logging.info(f"Base64 content length: {len(base64_content)}")
-                try:
-                    binary_content = base64.b64decode(base64_content)
-                    logging.info(f"Decoded binary length: {len(binary_content)}")
-                except Exception as e:
-                    logging.error(f"Base64 decode error: {e}")
-                    raise Exception(f"Failed to decode base64 content: {e}")
+                logging.info(f"Using base64 content from data URL, length: {len(base64_content)}")
             elif isinstance(file_content, str):
-                # If it's a plain base64 string
-                try:
-                    binary_content = base64.b64decode(file_content)
-                    logging.info(f"Decoded plain base64 length: {len(binary_content)}")
-                except Exception as e:
-                    logging.error(f"Plain base64 decode error: {e}")
-                    # If base64 decode fails, treat as text
-                    binary_content = file_content.encode('utf-8')
+                # Assume it's already base64 encoded
+                base64_content = file_content
+                logging.info(f"Using direct base64 content, length: {len(base64_content)}")
+            else:
+                # Convert bytes to base64
+                base64_content = base64.b64encode(file_content).decode('utf-8')
+                logging.info(f"Converted bytes to base64, length: {len(base64_content)}")
             
-            # Create a temporary file for the binary content
-            try:
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
-                    tmp_file.write(binary_content)
-                    tmp_file_path = tmp_file.name
-                    
-                logging.info(f"Created temporary file: {tmp_file_path}")
-                logging.info(f"File size on disk: {os.path.getsize(tmp_file_path)} bytes")
-                
-                # Upload the file to Gemini
-                logging.info("Uploading file to Gemini...")
-                uploaded_file = genai.upload_file(tmp_file_path)
-                logging.info(f"File uploaded successfully: {uploaded_file.name}")
-                
-                # Wait for file to be processed
-                import time
-                while uploaded_file.state.name == "PROCESSING":
-                    logging.info("Waiting for file processing...")
-                    time.sleep(1)
-                    uploaded_file = genai.get_file(uploaded_file.name)
-                
-                if uploaded_file.state.name == "FAILED":
-                    raise Exception(f"File upload failed: {uploaded_file.state}")
-                
-                logging.info(f"File ready for processing: {uploaded_file.state.name}")
-                
-                # Generate content
-                response = model.generate_content([prompt, uploaded_file])
-                
-            except Exception as e:
-                logging.error(f"Error during file processing: {e}")
-                raise Exception(f"File processing failed: {e}")
-            finally:
-                # Clean up the temporary file
-                if 'tmp_file_path' in locals() and os.path.exists(tmp_file_path):
-                    os.unlink(tmp_file_path)
-                    logging.info("Temporary file cleaned up")
+            # Create a content part with the base64 data
+            content_parts = [
+                {
+                    "inline_data": {
+                        "mime_type": mime_type,
+                        "data": base64_content
+                    }
+                },
+                prompt
+            ]
+            
+            # Generate content with base64 data
+            response = model.generate_content(content_parts)
         
         if not response or not response.text:
             raise Exception("No response from AI model")
