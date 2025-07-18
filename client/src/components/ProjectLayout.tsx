@@ -193,7 +193,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="px-6 py-4">
           <div className="flex items-center justify-between">
             <button
               onClick={() => setLocation("/")}
@@ -253,46 +253,44 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
         </div>
       </div>
 
-      {/* Main Content with consistent margins */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="flex h-[calc(100vh-160px)]">
-          {/* Sidebar */}
-          <div className="w-64 bg-white border-r border-gray-200">
-            <div className="p-6">
-              <nav className="space-y-1">
-                {navItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = activeTab === item.id;
-                  const isDisabled = item.disabled;
-                  
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => !isDisabled && setActiveTab(item.id)}
-                      disabled={isDisabled}
-                      className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors ${
-                        isDisabled
-                          ? "text-gray-400 cursor-not-allowed opacity-50 font-medium"
-                          : isActive
-                          ? "bg-primary text-white font-bold"
-                          : "text-gray-700 hover:bg-gray-50 font-medium"
-                      }`}
-                    >
-                      <Icon className={`h-4 w-4 ${
-                        isDisabled ? "text-gray-300" : isActive ? "text-white" : "text-gray-400"
-                      }`} />
-                      {item.label}
-                    </button>
-                  );
-                })}
-              </nav>
-            </div>
+      {/* Main Content - Full Width */}
+      <div className="flex h-[calc(100vh-80px)]">
+        {/* Sidebar */}
+        <div className="w-64 bg-white border-r border-gray-200">
+          <div className="p-6">
+            <nav className="space-y-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                const isDisabled = item.disabled;
+                
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => !isDisabled && setActiveTab(item.id)}
+                    disabled={isDisabled}
+                    className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors ${
+                      isDisabled
+                        ? "text-gray-400 cursor-not-allowed opacity-50 font-medium"
+                        : isActive
+                        ? "bg-primary text-white font-bold"
+                        : "text-gray-700 hover:bg-gray-50 font-medium"
+                    }`}
+                  >
+                    <Icon className={`h-4 w-4 ${
+                      isDisabled ? "text-gray-300" : isActive ? "text-white" : "text-gray-400"
+                    }`} />
+                    {item.label}
+                  </button>
+                );
+              })}
+            </nav>
           </div>
+        </div>
 
-          {/* Main Content */}
-          <div className="flex-1 overflow-auto p-8">
-            {renderActiveContent()}
-          </div>
+        {/* Main Content */}
+        <div className="flex-1 overflow-auto p-8">
+          {renderActiveContent()}
         </div>
       </div>
     </div>
