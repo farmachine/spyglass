@@ -170,7 +170,7 @@ const NotExtractedBadge = () => (
 
 const ManualInputBadge = () => (
   <span 
-    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20"
+    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200"
     title="This field has been manually updated"
   >
     Manual Input
