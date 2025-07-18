@@ -1,6 +1,7 @@
 import { Settings, Home, Users, Building2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -180,17 +181,39 @@ export default function AdminPanel() {
               <div className="text-center py-8">Loading...</div>
             ) : (
               <div className="space-y-4">
-                {organizations?.map((org: any) => (
+                {organizations
+                  ?.sort((a: any, b: any) => {
+                    // Primary organizations first
+                    if (a.type === 'primary' && b.type !== 'primary') return -1;
+                    if (b.type === 'primary' && a.type !== 'primary') return 1;
+                    return 0;
+                  })
+                  ?.map((org: any) => (
                   <div
                     key={org.id}
                     className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
                   >
                     <div className="flex items-center space-x-4">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <Building2 className="h-5 w-5 text-blue-600" />
+                      <div className={`p-2 rounded-lg ${
+                        org.type === 'primary' 
+                          ? 'bg-gray-100' 
+                          : 'bg-blue-100'
+                      }`}>
+                        <Building2 className={`h-5 w-5 ${
+                          org.type === 'primary' 
+                            ? 'text-black' 
+                            : 'text-blue-600'
+                        }`} />
                       </div>
                       <div>
-                        <h3 className="font-medium">{org.name}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium">{org.name}</h3>
+                          {org.type === 'primary' && (
+                            <Badge variant="default" className="bg-black text-white">
+                              Primary
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-sm text-gray-600">{org.description}</p>
                       </div>
                     </div>
