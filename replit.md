@@ -68,6 +68,9 @@ Preferred communication style: Simple, everyday language.
 - ✓ **RESTORED SESSION REDIRECT**: Brought back automatic redirect to session review page after successful document extraction
 - ✓ Users now automatically navigate to extracted data review page for immediate validation and editing
 - ✓ Updated success message to indicate redirection to review page is happening
+- ✓ **KNOWLEDGE DOCUMENT CONTENT FIX**: Added missing content to knowledge document for proper conflict detection
+- ✓ Populated "Contract Review Playbook" with U.S. jurisdiction requirements and legal review policies
+- ✓ AI extraction will now properly consult knowledge documents and flag conflicts for manual review
 - ✓ Fixed knowledge document upload redirect issue by prioritizing URL tab parameters over welcome flow
 - ✓ Knowledge document uploads now stay on Knowledge/Rules tab instead of redirecting to Define Data
 - ✓ **EXTRACTLY REBRANDING**: Complete application rebrand from "Flow Capture" to "Extractly"
