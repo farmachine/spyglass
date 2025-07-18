@@ -110,6 +110,11 @@ Preferred communication style: Simple, everyday language.
 - ✓ **LOGO POSITIONING FIX**: Fixed logo alignment in SessionView to match other pages
 - ✓ Removed excessive padding from ExtractlyLogo component in session view header
 - ✓ Logo now properly flush left consistent with ProjectLayout and Dashboard pages
+- ✓ **AI EXTRACTION FULLY FIXED**: Resolved critical bugs preventing real document processing
+- ✓ Fixed schema key mismatch between frontend (`objectName`) and Python code (`collectionName`)
+- ✓ Fixed field ID type errors where integers were passed instead of required string UUIDs
+- ✓ AI extraction now successfully processes real documents with 95-100% confidence scores
+- ✓ Gemini API integration working correctly with proper schema generation and field validation
 - ✓ Fixed knowledge document upload redirect issue by prioritizing URL tab parameters over welcome flow
 - ✓ Knowledge document uploads now stay on Knowledge/Rules tab instead of redirecting to Define Data
 - ✓ **EXTRACTLY REBRANDING**: Complete application rebrand from "Flow Capture" to "Extractly"

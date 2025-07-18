@@ -737,7 +737,7 @@ def create_demo_extraction_result(project_schema: Dict[str, Any], file_name: str
     # Generate demo collections
     if project_schema.get("collections"):
         for collection in project_schema["collections"]:
-            collection_name = collection.get("collectionName", "")
+            collection_name = collection.get("collectionName", collection.get("objectName", ""))
             collection_data = []
             
             # Create 3-4 sample items to demonstrate dynamic validation
@@ -792,7 +792,7 @@ def build_dynamic_schema(project_schema: Dict[str, Any]) -> Dict[str, Any]:
     # Add collections
     if project_schema.get("collections"):
         for collection in project_schema["collections"]:
-            collection_name = collection.get("collectionName", "")
+            collection_name = collection.get("collectionName", collection.get("objectName", ""))
             collection_properties = {}
             
             for prop in collection.get("properties", []):
@@ -852,7 +852,7 @@ def build_extraction_prompt(
     if project_schema.get("collections"):
         prompt += "\nCollections:\n"
         for collection in project_schema["collections"]:
-            collection_name = collection['collectionName']
+            collection_name = collection.get('collectionName', collection.get('objectName', 'UnknownCollection'))
             prompt += f"- {collection_name} (array of objects):\n"
             for prop in collection.get("properties", []):
                 prop_name = prop['propertyName']
@@ -955,7 +955,7 @@ def generate_field_validations(
     # Validate schema fields
     if project_schema.get("schema_fields"):
         for field in project_schema["schema_fields"]:
-            field_id = field.get("id", 0)
+            field_id = str(field.get("id", "unknown"))
             field_name = field.get("fieldName", "")
             field_type = field.get("fieldType", "TEXT")
             
@@ -978,13 +978,13 @@ def generate_field_validations(
     # Validate collection properties
     if project_schema.get("collections"):
         for collection in project_schema["collections"]:
-            collection_name = collection.get("collectionName", "")
+            collection_name = collection.get("collectionName", collection.get("objectName", ""))
             collection_data = extracted_data.get(collection_name, [])
             
             if isinstance(collection_data, list):
                 for record_index, record in enumerate(collection_data):
                     for prop in collection.get("properties", []):
-                        prop_id = prop.get("id", 0)
+                        prop_id = str(prop.get("id", "unknown"))
                         prop_name = prop.get("propertyName", "")
                         prop_type = prop.get("propertyType", "TEXT")
                         
