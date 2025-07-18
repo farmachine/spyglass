@@ -106,27 +106,60 @@ def extract_data_from_document(
             if isinstance(file_content, str) and file_content.startswith('data:'):
                 # Extract base64 content after the comma
                 base64_content = file_content.split(',', 1)[1]
-                binary_content = base64.b64decode(base64_content)
+                logging.info(f"Base64 content length: {len(base64_content)}")
+                try:
+                    binary_content = base64.b64decode(base64_content)
+                    logging.info(f"Decoded binary length: {len(binary_content)}")
+                except Exception as e:
+                    logging.error(f"Base64 decode error: {e}")
+                    raise Exception(f"Failed to decode base64 content: {e}")
             elif isinstance(file_content, str):
                 # If it's a plain base64 string
                 try:
                     binary_content = base64.b64decode(file_content)
-                except:
+                    logging.info(f"Decoded plain base64 length: {len(binary_content)}")
+                except Exception as e:
+                    logging.error(f"Plain base64 decode error: {e}")
                     # If base64 decode fails, treat as text
                     binary_content = file_content.encode('utf-8')
             
             # Create a temporary file for the binary content
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
-                tmp_file.write(binary_content)
-                tmp_file_path = tmp_file.name
-            
             try:
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
+                    tmp_file.write(binary_content)
+                    tmp_file_path = tmp_file.name
+                    
+                logging.info(f"Created temporary file: {tmp_file_path}")
+                logging.info(f"File size on disk: {os.path.getsize(tmp_file_path)} bytes")
+                
                 # Upload the file to Gemini
+                logging.info("Uploading file to Gemini...")
                 uploaded_file = genai.upload_file(tmp_file_path)
+                logging.info(f"File uploaded successfully: {uploaded_file.name}")
+                
+                # Wait for file to be processed
+                import time
+                while uploaded_file.state.name == "PROCESSING":
+                    logging.info("Waiting for file processing...")
+                    time.sleep(1)
+                    uploaded_file = genai.get_file(uploaded_file.name)
+                
+                if uploaded_file.state.name == "FAILED":
+                    raise Exception(f"File upload failed: {uploaded_file.state}")
+                
+                logging.info(f"File ready for processing: {uploaded_file.state.name}")
+                
+                # Generate content
                 response = model.generate_content([prompt, uploaded_file])
+                
+            except Exception as e:
+                logging.error(f"Error during file processing: {e}")
+                raise Exception(f"File processing failed: {e}")
             finally:
                 # Clean up the temporary file
-                os.unlink(tmp_file_path)
+                if 'tmp_file_path' in locals() and os.path.exists(tmp_file_path):
+                    os.unlink(tmp_file_path)
+                    logging.info("Temporary file cleaned up")
         
         if not response or not response.text:
             raise Exception("No response from AI model")
