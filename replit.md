@@ -94,6 +94,11 @@ Preferred communication style: Simple, everyday language.
 - ✓ Fixed welcome flow logic to only trigger on initial project load, not after user interactions
 - ✓ Added sessionStorage tracking to prevent welcome flow from interfering with user actions
 - ✓ Enhanced tab navigation to properly mark user interaction and prevent unwanted redirects
+- ✓ **LOGO POSITIONING AND REDIRECT RESTORATION**: Fixed header layout and restored session redirect functionality
+- ✓ Removed excessive padding from logo button to achieve proper flush-left positioning in header
+- ✓ Restored automatic redirect to session review page after successful document extraction
+- ✓ Users now automatically navigate to extracted data review page for immediate validation and editing
+- ✓ Updated success message to indicate redirection to review page is happening
 - ✓ Fixed knowledge document upload redirect issue by prioritizing URL tab parameters over welcome flow
 - ✓ Knowledge document uploads now stay on Knowledge/Rules tab instead of redirecting to Define Data
 - ✓ **EXTRACTLY REBRANDING**: Complete application rebrand from "Flow Capture" to "Extractly"
