@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Upload, Database, Brain, Settings, FolderOpen, Home as HomeIcon } from "lucide-react";
 import { WaveIcon, FlowIcon, StreamIcon, TideIcon, ShipIcon, DropletIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>("upload");
   const { data: project, isLoading, error } = useProject(projectId);
   const { user } = useAuth();
+  const userNavigatedRef = useRef(false);
 
   // Check user role for access control (needed in useEffect)
   const isAdmin = user?.role === 'admin';
@@ -71,9 +72,9 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       return;
     }
     
-    // Only apply welcome flow logic if we're starting fresh (no existing tab state)
-    // This prevents overriding the current tab when project data is refetched
-    if (activeTab === 'upload' && !isSetupComplete) {
+    // Only apply welcome flow logic if we're starting fresh and user hasn't manually navigated
+    // This prevents overriding when user is actively working in other tabs
+    if (activeTab === 'upload' && !isSetupComplete && !userNavigatedRef.current) {
       if (user?.role === 'admin') {
         setActiveTab('define');
       }
@@ -267,7 +268,12 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                 return (
                   <button
                     key={item.id}
-                    onClick={() => !isDisabled && setActiveTab(item.id)}
+                    onClick={() => {
+                      if (!isDisabled) {
+                        userNavigatedRef.current = true;
+                        setActiveTab(item.id);
+                      }
+                    }}
                     disabled={isDisabled}
                     className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors ${
                       isDisabled

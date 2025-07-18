@@ -41,6 +41,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ Dashboard maintains centered project tiles with proper margins for optimal visual presentation
 - ✓ Updated dashboard header to match project page layout with logo and app name flush left
 - ✓ Consistent header alignment across both dashboard and project pages for unified user experience
+- ✓ **KNOWLEDGE DOCUMENT REDIRECT FIX**: Implemented user navigation tracking to prevent welcome flow interference
+- ✓ Added useRef tracking to detect when users manually navigate to specific tabs
+- ✓ Welcome flow now only activates on initial project access, not after user has navigated to other tabs
+- ✓ Knowledge document uploads and other actions no longer trigger unwanted tab redirects
 - ✓ Fixed knowledge document upload redirect issue by prioritizing URL tab parameters over welcome flow
 - ✓ Knowledge document uploads now stay on Knowledge/Rules tab instead of redirecting to Define Data
 - ✓ **EXTRACTLY REBRANDING**: Complete application rebrand from "Flow Capture" to "Extractly"
