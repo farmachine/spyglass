@@ -107,11 +107,11 @@ const ConfidenceBadge = ({
   
   const getConfidenceLevel = (score: number) => {
     if (score >= 80) {
-      return { level: "high", color: "bg-success/10 text-success border-success/20", description: "High confidence" };
+      return { level: "high", color: "bg-green-100 text-green-800 border-green-200", description: "High confidence" };
     } else if (score >= 50) {
-      return { level: "medium", color: "bg-warning/10 text-warning border-warning/20", description: "Medium confidence" };
+      return { level: "medium", color: "bg-yellow-100 text-yellow-800 border-yellow-200", description: "Medium confidence" };
     } else {
-      return { level: "low", color: "bg-destructive/10 text-destructive border-destructive/20", description: "Low confidence" };
+      return { level: "low", color: "bg-red-100 text-red-800 border-red-200", description: "Low confidence" };
     }
   };
 
@@ -132,12 +132,11 @@ const ConfidenceBadge = ({
             <TooltipTrigger asChild>
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 border border-blue-700 hover:border-blue-800 transition-all duration-200 hover:scale-105 cursor-pointer shadow-sm text-xs font-medium"
+                className="inline-flex items-center justify-center w-5 h-5 rounded-full text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                 aria-label="Click to view detailed AI reasoning"
                 title="Click for detailed AI analysis"
               >
                 <Info className="h-3 w-3" />
-                <span>AI Analysis</span>
               </button>
             </TooltipTrigger>
             <TooltipContent>
