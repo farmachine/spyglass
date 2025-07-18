@@ -68,6 +68,7 @@ def extract_data_from_document(
         ExtractionResult containing extracted data and metadata
     """
     logging.info(f"=== EXTRACT_DATA_FROM_DOCUMENT CALLED ===")
+    logging.info("!!! UPDATED CODE WITH SAMPLE DATA DETECTION IS RUNNING !!!")
     logging.info(f"File: {file_name}, Size: {len(file_content)} bytes, MIME: {mime_type}")
     
     try:
