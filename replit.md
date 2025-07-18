@@ -39,6 +39,8 @@ Preferred communication style: Simple, everyday language.
 - ✓ Header styling: Logo positioned flush left, profile/settings positioned flush right across full width
 - ✓ Sidebar positioning: Left edge aligned with browser edge for maximum space efficiency  
 - ✓ Dashboard maintains centered project tiles with proper margins for optimal visual presentation
+- ✓ Updated dashboard header to match project page layout with logo and app name flush left
+- ✓ Consistent header alignment across both dashboard and project pages for unified user experience
 - ✓ Fixed knowledge document upload redirect issue by prioritizing URL tab parameters over welcome flow
 - ✓ Knowledge document uploads now stay on Knowledge/Rules tab instead of redirecting to Define Data
 - ✓ **EXTRACTLY REBRANDING**: Complete application rebrand from "Flow Capture" to "Extractly"
