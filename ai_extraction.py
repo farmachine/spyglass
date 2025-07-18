@@ -77,7 +77,7 @@ def extract_data_from_document(
         
         if not api_key:
             logging.warning("GEMINI_API_KEY not found, using demo data")
-            return create_demo_extraction_result(project_schema, file_name, extraction_rules)
+            return create_demo_extraction_result(project_schema, file_name, extraction_rules, "GEMINI_API_KEY not found")
         
         logging.info(f"API key found, proceeding with actual extraction for {file_name}")
         logging.info(f"File size: {len(file_content)} bytes, MIME type: {mime_type}")
@@ -202,10 +202,16 @@ def extract_data_from_document(
         logging.info(f"Raw AI response (first 1000 chars): {raw_response[:1000]}")
         
         # Check if response contains sample data (indicating AI didn't extract real content)
-        if "sample" in raw_response.lower() or "example" in raw_response.lower():
+        if ("sample" in raw_response.lower() or 
+            "example" in raw_response.lower() or 
+            file_name.lower() in raw_response.lower()):
             logging.error("!!! AI RETURNED SAMPLE/PLACEHOLDER DATA INSTEAD OF REAL EXTRACTION !!!")
             logging.error(f"!!! Response contains sample data: {raw_response[:500]} !!!")
             logging.error("!!! This indicates the AI model is not properly processing the PDF content !!!")
+            
+            # Fallback to demo data since AI is not extracting real content
+            logging.info("Using demo data fallback due to AI returning placeholder data")
+            return create_demo_extraction_result(project_schema, file_name, extraction_rules, "AI returned sample/placeholder data instead of real content")
         
         # Try multiple approaches to clean the JSON
         cleaned_response = raw_response
@@ -283,14 +289,14 @@ def extract_data_from_document(
         logging.error(f"Failed to parse JSON response: {e}")
         # Fallback to demo data when JSON parsing fails
         logging.info("Using demo data fallback due to JSON parsing error")
-        return create_demo_extraction_result(project_schema, file_name, extraction_rules)
+        return create_demo_extraction_result(project_schema, file_name, extraction_rules, f"JSON parsing failed: {str(e)}")
     except Exception as e:
         logging.error(f"Error during document extraction: {e}")
         import traceback
         logging.error(f"Full traceback: {traceback.format_exc()}")
         # Fallback to demo data when extraction fails
         logging.info("Using demo data fallback due to extraction error")
-        return create_demo_extraction_result(project_schema, file_name, extraction_rules)
+        return create_demo_extraction_result(project_schema, file_name, extraction_rules, f"Extraction error: {str(e)}")
 
 def normalize_extracted_values(data: Dict[str, Any]) -> Dict[str, Any]:
     """Normalize extracted values - convert string 'null' to actual None"""
@@ -713,9 +719,9 @@ def get_confidence_level(confidence_score: int) -> dict:
             "badge_variant": "destructive"
         }
 
-def create_demo_extraction_result(project_schema: Dict[str, Any], file_name: str, extraction_rules: List[Dict[str, Any]] = None) -> ExtractionResult:
-    """Create demo extraction result when API key is not available"""
-    logging.error(f"!!! USING DEMO DATA - THIS SHOULD NOT HAPPEN WITH VALID API KEY !!!")
+def create_demo_extraction_result(project_schema: Dict[str, Any], file_name: str, extraction_rules: List[Dict[str, Any]] = None, reason: str = "API key not available") -> ExtractionResult:
+    """Create demo extraction result when real extraction is not possible"""
+    logging.error(f"!!! USING DEMO DATA - REASON: {reason} !!!")
     logging.error(f"!!! FILE: {file_name} !!!")
     extracted_data = {}
     
@@ -870,24 +876,31 @@ def build_extraction_prompt(
     
     prompt += f"""
 
-CRITICAL INSTRUCTIONS - READ THE DOCUMENT CAREFULLY:
-⚠️ IMPORTANT: You MUST extract REAL data from the actual document content provided.
-⚠️ DO NOT generate sample, placeholder, or example data.
-⚠️ DO NOT use words like "Sample", "Example", or generic placeholder text.
+🚨 CRITICAL INSTRUCTION: EXTRACT REAL DATA ONLY 🚨
+YOU ARE PROCESSING A REAL DOCUMENT: {file_name}
 
-EXTRACTION REQUIREMENTS:
-- Read and analyze the entire document content
-- Extract ONLY actual data that appears in the document
-- For DATE fields: Extract ONLY actual dates in YYYY-MM-DD format (e.g., "2024-07-18")
-- If you see text like "Last date of signature below" or "TBD" or similar - return null for that field
-- Do NOT return descriptive text, references, or instructions as date values
-- TEXT fields should contain actual text from the document
-- NUMBER fields should contain actual numeric values from the document
-- For COUNTRY fields: Infer country from address information when available:
-  * U.S. state abbreviations (CA, NY, TX, etc.) or ZIP codes indicate "USA"
-  * Full country names in addresses should be extracted as-is
-  * City, State format typically indicates USA
-- If you cannot find actual data for a field, return null (do not make up data)
+MANDATORY REQUIREMENTS:
+1. READ THE ACTUAL DOCUMENT CONTENT COMPLETELY
+2. EXTRACT ONLY REAL DATA FROM THE PROVIDED DOCUMENT
+3. NEVER GENERATE SAMPLE, PLACEHOLDER, OR FAKE DATA
+4. NEVER USE FILENAME-BASED PLACEHOLDER TEXT
+
+STRICTLY FORBIDDEN - DO NOT DO THIS:
+❌ "Sample name from {file_name}"
+❌ "Sample description from {file_name}" 
+❌ Any text containing "Sample", "Example", "Placeholder"
+❌ Using the filename as part of extracted content
+❌ Generating generic test data
+
+REQUIRED APPROACH:
+✅ Read every page of the document thoroughly
+✅ Extract actual names, dates, addresses, numbers from document text
+✅ For missing data, return null (not placeholder text)
+✅ Use exact text/values as they appear in the document
+✅ For DATE fields: Extract ONLY actual dates in YYYY-MM-DD format
+✅ For COUNTRY fields: Infer from address context (US states = "USA")
+
+QUALITY CHECK: Before responding, verify your extraction contains ZERO placeholder text and ONLY real document content.
 
 FORBIDDEN RESPONSES:
 ❌ Do NOT return: "Sample company name", "Sample address", "Example data", etc.
