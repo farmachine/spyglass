@@ -627,7 +627,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/knowledge/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       const result = insertKnowledgeDocumentSchema.partial().safeParse(req.body);
       if (!result.success) {
         return res.status(400).json({ message: "Invalid knowledge document data", errors: result.error.errors });
@@ -639,19 +639,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(document);
     } catch (error) {
+      console.error("Update knowledge document error:", error);
       res.status(500).json({ message: "Failed to update knowledge document" });
     }
   });
 
   app.delete("/api/knowledge/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       const success = await storage.deleteKnowledgeDocument(id);
       if (!success) {
         return res.status(404).json({ message: "Knowledge document not found" });
       }
       res.status(204).send();
     } catch (error) {
+      console.error("Delete knowledge document error:", error);
       res.status(500).json({ message: "Failed to delete knowledge document" });
     }
   });

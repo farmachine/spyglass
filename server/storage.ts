@@ -98,8 +98,8 @@ export interface IStorage {
   // Knowledge Documents
   getKnowledgeDocuments(projectId: string): Promise<KnowledgeDocument[]>;
   createKnowledgeDocument(document: InsertKnowledgeDocument): Promise<KnowledgeDocument>;
-  updateKnowledgeDocument(id: number, document: Partial<InsertKnowledgeDocument>): Promise<KnowledgeDocument | undefined>;
-  deleteKnowledgeDocument(id: number): Promise<boolean>;
+  updateKnowledgeDocument(id: string, document: Partial<InsertKnowledgeDocument>): Promise<KnowledgeDocument | undefined>;
+  deleteKnowledgeDocument(id: string): Promise<boolean>;
 
   // Extraction Rules
   getExtractionRules(projectId: string): Promise<ExtractionRule[]>;
@@ -1016,17 +1016,21 @@ export class MemStorage implements IStorage {
     return document;
   }
 
-  async updateKnowledgeDocument(id: number, updateData: Partial<InsertKnowledgeDocument>): Promise<KnowledgeDocument | undefined> {
-    const existingDocument = this.knowledgeDocuments.get(id);
+  async updateKnowledgeDocument(id: string, updateData: Partial<InsertKnowledgeDocument>): Promise<KnowledgeDocument | undefined> {
+    // MemStorage still uses numbers internally, convert for compatibility
+    const numId = parseInt(id);
+    const existingDocument = this.knowledgeDocuments.get(numId);
     if (!existingDocument) return undefined;
 
     const updatedDocument = { ...existingDocument, ...updateData };
-    this.knowledgeDocuments.set(id, updatedDocument);
+    this.knowledgeDocuments.set(numId, updatedDocument);
     return updatedDocument;
   }
 
-  async deleteKnowledgeDocument(id: number): Promise<boolean> {
-    return this.knowledgeDocuments.delete(id);
+  async deleteKnowledgeDocument(id: string): Promise<boolean> {
+    // MemStorage still uses numbers internally, convert for compatibility
+    const numId = parseInt(id);
+    return this.knowledgeDocuments.delete(numId);
   }
 
   // Extraction Rules
@@ -1716,7 +1720,7 @@ class PostgreSQLStorage implements IStorage {
     const result = await this.db.insert(knowledgeDocuments).values(document).returning();
     return result[0];
   }
-  async updateKnowledgeDocument(id: number, document: Partial<InsertKnowledgeDocument>): Promise<KnowledgeDocument | undefined> {
+  async updateKnowledgeDocument(id: string, document: Partial<InsertKnowledgeDocument>): Promise<KnowledgeDocument | undefined> {
     const result = await this.db
       .update(knowledgeDocuments)
       .set(document)
@@ -1725,7 +1729,7 @@ class PostgreSQLStorage implements IStorage {
     return result[0];
   }
 
-  async deleteKnowledgeDocument(id: number): Promise<boolean> {
+  async deleteKnowledgeDocument(id: string): Promise<boolean> {
     const result = await this.db
       .delete(knowledgeDocuments)
       .where(eq(knowledgeDocuments.id, id));

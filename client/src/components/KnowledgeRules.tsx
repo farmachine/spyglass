@@ -30,7 +30,7 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
   const [editingDocument, setEditingDocument] = useState<KnowledgeDocument | null>(null);
   const [editingRule, setEditingRule] = useState<ExtractionRule | null>(null);
   const [deletingRuleId, setDeletingRuleId] = useState<number | null>(null);
-  const [deletingDocId, setDeletingDocId] = useState<number | null>(null);
+  const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
 
   // Knowledge Documents
   const { data: knowledgeDocuments = [], isLoading: knowledgeLoading } = useKnowledgeDocuments(project.id);
@@ -60,7 +60,7 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
     }
   };
 
-  const handleDeleteKnowledgeDocument = async (id: number) => {
+  const handleDeleteKnowledgeDocument = async (id: string) => {
     if (deletingDocId === id) return; // Prevent double-click
     
     setDeletingDocId(id);

@@ -35,7 +35,7 @@ export function useUpdateKnowledgeDocument() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, ...data }: { id: number } & Partial<InsertKnowledgeDocument>) =>
+    mutationFn: ({ id, ...data }: { id: string } & Partial<InsertKnowledgeDocument>) =>
       apiRequest(`/api/knowledge/${id}`, {
         method: "PATCH",
         body: JSON.stringify(data),
@@ -51,7 +51,7 @@ export function useDeleteKnowledgeDocument() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (id: number) =>
+    mutationFn: (id: string) =>
       apiRequest(`/api/knowledge/${id}`, {
         method: "DELETE",
       }),

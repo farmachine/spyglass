@@ -45,6 +45,11 @@ Preferred communication style: Simple, everyday language.
 - ✓ Added useRef tracking to detect when users manually navigate to specific tabs
 - ✓ Welcome flow now only activates on initial project access, not after user has navigated to other tabs
 - ✓ Knowledge document uploads and other actions no longer trigger unwanted tab redirects
+- ✓ **KNOWLEDGE DOCUMENT DELETION FIX**: Resolved UUID handling errors in knowledge document CRUD operations
+- ✓ Updated PostgreSQL storage methods to handle string UUIDs instead of integer parsing
+- ✓ Fixed API endpoints to properly process UUID parameters for update and delete operations
+- ✓ Updated frontend hooks and component types to work with string UUID identifiers
+- ✓ Knowledge documents can now be edited and deleted without UUID type conversion errors
 - ✓ Fixed knowledge document upload redirect issue by prioritizing URL tab parameters over welcome flow
 - ✓ Knowledge document uploads now stay on Knowledge/Rules tab instead of redirecting to Define Data
 - ✓ **EXTRACTLY REBRANDING**: Complete application rebrand from "Flow Capture" to "Extractly"
