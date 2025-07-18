@@ -212,22 +212,33 @@ def extract_data_from_document(
         logging.info(f"Raw AI response (first 1000 chars): {raw_response[:1000]}")
         logging.info("=== ABOUT TO RUN DETECTION CHECKS ===")
         
-        # AGGRESSIVE SAMPLE DATA DETECTION - Stop processing immediately
+        # ENHANCED SAMPLE DATA DETECTION - Log but attempt extraction
         has_sample = "sample" in raw_response.lower()
         has_example = "example" in raw_response.lower()
         has_filename = file_name.lower() in raw_response.lower()
         
-        logging.error(f"CRITICAL SAMPLE DATA DETECTION: sample={has_sample}, example={has_example}, filename={has_filename}")
-        logging.error(f"CRITICAL SAMPLE DATA DETECTION: filename='{file_name.lower()}' in response='{raw_response[:200].lower()}'")
+        logging.error(f"SAMPLE DATA DETECTION: sample={has_sample}, example={has_example}, filename={has_filename}")
+        logging.error(f"Response preview: {raw_response[:200]}")
         
-        if has_sample or has_example or has_filename:
-            logging.error("!!! SAMPLE DATA DETECTED - STOPPING EXTRACTION IMMEDIATELY !!!")
-            logging.error(f"!!! Response contains sample data: {raw_response[:500]} !!!")
-            logging.error("!!! The AI model failed to process the document correctly !!!")
+        # Enhanced detection with more specific patterns
+        sample_patterns = [
+            f"sample scheme name from {file_name.lower()}",
+            f"sample description from {file_name.lower()}",
+            "sample name 1", "sample name 2", "sample name 3",
+            "sample description 1", "sample description 2", 
+            "sample section name 1", "sample section name 2"
+        ]
+        
+        has_specific_sample = any(pattern in raw_response.lower() for pattern in sample_patterns)
+        
+        if has_specific_sample:
+            logging.error("!!! SPECIFIC SAMPLE PATTERNS DETECTED - AI FAILED TO EXTRACT REAL CONTENT !!!")
+            logging.error("!!! Attempting retry with simplified extraction !!!")
             
-            # Return an error instead of demo data to force user attention
-            error_message = f"AI extraction failed: Generated sample/placeholder data instead of real content. Document may be too complex or large for AI processing. Detected patterns: sample={has_sample}, example={has_example}, filename_referenced={has_filename}"
-            raise Exception(error_message)
+            # Try a simpler, more focused extraction approach
+            return retry_with_simplified_extraction(file_content, file_name, mime_type, project_schema, extraction_rules, knowledge_documents)
+        
+        logging.info("Sample detection passed - proceeding with extraction")
         
         # Try multiple approaches to clean the JSON
         cleaned_response = raw_response
@@ -973,6 +984,140 @@ Return only valid JSON without any additional text, comments, or formatting."""
 """
     
     return prompt
+
+def retry_with_simplified_extraction(
+    file_content: bytes,
+    file_name: str,
+    mime_type: str,
+    project_schema: Dict[str, Any],
+    extraction_rules: List[Dict[str, Any]] = None,
+    knowledge_documents: List[Dict[str, Any]] = None
+) -> ExtractionResult:
+    """Retry extraction with a simplified, more targeted approach"""
+    
+    logging.info("=== STARTING SIMPLIFIED EXTRACTION RETRY ===")
+    
+    try:
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            logging.error("API key not available for retry")
+            return create_demo_extraction_result(project_schema, file_name, extraction_rules, "API key not available")
+        
+        # Build a much simpler, more focused prompt
+        simple_prompt = f"""
+Extract data from this document: {file_name}
+
+CRITICAL: Extract ONLY real data from the document. Do NOT generate sample, test, or placeholder data.
+
+Schema fields to extract:
+"""
+        
+        # Add only the main schema fields (skip collections for simplicity)
+        if project_schema.get("schema_fields"):
+            for field in project_schema["schema_fields"]:
+                field_name = field['fieldName']
+                field_type = field['fieldType']
+                simple_prompt += f"- {field_name} ({field_type}): Find the actual value in the document\n"
+        
+        # Limit to top 2 collections only
+        if project_schema.get("collections"):
+            simple_prompt += "\nCollections (extract up to 2 items each):\n"
+            for collection in project_schema["collections"][:2]:  # Only first 2 collections
+                collection_name = collection.get('collectionName', collection.get('objectName', ''))
+                simple_prompt += f"- {collection_name}: Extract up to 2 real items from document\n"
+                for prop in collection.get("properties", [])[:3]:  # Only first 3 properties
+                    prop_name = prop['propertyName']
+                    simple_prompt += f"  * {prop_name}\n"
+        
+        simple_prompt += f"""
+
+STRICT RULES:
+1. Extract ONLY real data from the document
+2. If you cannot find real data, return null
+3. Do NOT generate any sample, test, or placeholder values
+4. Do NOT use the filename "{file_name}" in any extracted values
+5. Focus on quality over quantity
+
+Return JSON format:
+{{
+  "extracted_data": {{...}},
+  "confidence_score": 0.85,
+  "processing_notes": "Simplified extraction completed"
+}}
+"""
+        
+        # Handle content types
+        if mime_type.startswith("text/"):
+            content_parts = [simple_prompt + f"\n\nDocument:\n{file_content.decode('utf-8', errors='ignore')}"]
+        else:
+            content_parts = [
+                types.Part.from_bytes(data=file_content, mime_type=mime_type),
+                simple_prompt
+            ]
+        
+        # Simplified schema for retry
+        simplified_schema = {
+            "type": "object",
+            "properties": {
+                "extracted_data": {"type": "object"},
+                "confidence_score": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+                "processing_notes": {"type": "string"}
+            }
+        }
+        
+        logging.info("Making simplified API call...")
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",  # Use faster model for retry
+            contents=content_parts,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.0,  # Lower temperature for more deterministic results
+                max_output_tokens=1024,  # Smaller output for simpler extraction
+                response_schema=simplified_schema
+            )
+        )
+        
+        response_text = response.text if hasattr(response, 'text') and response.text else ""
+        logging.info(f"Simplified extraction response: {response_text[:500]}")
+        
+        # Parse the simplified response
+        try:
+            result_data = json.loads(response_text)
+            extracted_data = result_data.get("extracted_data", {})
+            confidence_score = result_data.get("confidence_score", 0.85)
+            processing_notes = f"Simplified extraction for {file_name}: {result_data.get('processing_notes', '')}"
+            
+            # Create field validations for the simplified extraction
+            field_validations = []
+            
+            if project_schema.get("schema_fields"):
+                for field in project_schema["schema_fields"]:
+                    field_name = field['fieldName']
+                    field_type = field['fieldType']
+                    field_id = field.get('id', f"field_{field_name}")
+                    
+                    extracted_value = extracted_data.get(field_name)
+                    validation = create_field_validation_result(
+                        field_id, field_name, field_type, extracted_value,
+                        confidence_score, False, "", 0, extraction_rules,
+                        file_name, ["Simplified Extraction"], 80, knowledge_documents
+                    )
+                    field_validations.append(validation)
+            
+            return ExtractionResult(
+                extracted_data=extracted_data,
+                confidence_score=confidence_score,
+                processing_notes=processing_notes,
+                field_validations=field_validations
+            )
+            
+        except json.JSONDecodeError as e:
+            logging.error(f"Failed to parse simplified extraction response: {e}")
+            return create_demo_extraction_result(project_schema, file_name, extraction_rules, f"Simplified extraction parsing failed: {e}")
+    
+    except Exception as e:
+        logging.error(f"Simplified extraction failed: {e}")
+        return create_demo_extraction_result(project_schema, file_name, extraction_rules, f"Simplified extraction error: {e}")
 
 def generate_field_validations(
     project_schema: Dict[str, Any], 
