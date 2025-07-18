@@ -69,7 +69,47 @@ export default function AdminPanel() {
           <div className="flex flex-col space-y-4">
             <Breadcrumb 
               items={[
-                { label: "Dashboard", href: "/", icon: <Home className="h-4 w-4" /> },
+                { 
+                  label: "Dashboard", 
+                  href: "/", 
+                  icon: (
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 80 40"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="drop-shadow-sm"
+                    >
+                      <defs>
+                        <linearGradient id="waveGradient1-breadcrumb" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <stop offset="0%" stopColor="#0EA5E9" />
+                          <stop offset="100%" stopColor="#0284C7" />
+                        </linearGradient>
+                        <linearGradient id="waveGradient2-breadcrumb" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <stop offset="0%" stopColor="#38BDF8" />
+                          <stop offset="100%" stopColor="#0EA5E9" />
+                        </linearGradient>
+                      </defs>
+                      
+                      <path
+                        d="M5 15 Q20 8 35 15 Q50 22 65 15 Q72 12 75 15"
+                        stroke="url(#waveGradient1-breadcrumb)"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        fill="none"
+                      />
+                      
+                      <path
+                        d="M5 25 Q20 18 35 25 Q50 32 65 25 Q72 22 75 25"
+                        stroke="url(#waveGradient2-breadcrumb)"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        fill="none"
+                      />
+                    </svg>
+                  ) 
+                },
                 { label: "Admin Panel", icon: <Settings className="h-4 w-4" /> }
               ]} 
             />
