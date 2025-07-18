@@ -76,8 +76,15 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
     // This prevents overriding when user is actively working in other tabs
     // Also check if URL has any query parameters that suggest user interaction
     const urlHasParams = window.location.search.length > 0;
-    if (activeTab === 'upload' && !isSetupComplete && !userNavigatedRef.current && !urlHasParams) {
-      if (user?.role === 'admin') {
+    const isInitialLoad = !userNavigatedRef.current && !urlHasParams;
+    
+    // Welcome flow should ONLY trigger on the very first load of the project
+    // Never after user interactions like uploads, knowledge document saves, etc.
+    if (activeTab === 'upload' && !isSetupComplete && isInitialLoad && user?.role === 'admin') {
+      // Only redirect if this is truly the initial project load
+      const hasInteracted = sessionStorage.getItem(`project-${project.id}-interacted`);
+      if (!hasInteracted) {
+        sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
         setActiveTab('define');
       }
       return;
@@ -273,6 +280,8 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                     onClick={() => {
                       if (!isDisabled) {
                         userNavigatedRef.current = true;
+                        // Mark that user has interacted with this project
+                        sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
                         setActiveTab(item.id);
                       }
                     }}

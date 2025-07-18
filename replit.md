@@ -89,6 +89,11 @@ Preferred communication style: Simple, everyday language.
 - ✓ Updated build_extraction_prompt function to include knowledge documents parameter and content
 - ✓ Enhanced AI prompt with knowledge document context and conflict detection requirements
 - ✓ Knowledge documents now properly included in extraction process for policy-based conflict detection
+- ✓ **UPLOAD REDIRECT FIXES**: Resolved unwanted navigation redirects after knowledge and document uploads
+- ✓ Removed automatic redirect to session view after document extraction - users stay on upload tab
+- ✓ Fixed welcome flow logic to only trigger on initial project load, not after user interactions
+- ✓ Added sessionStorage tracking to prevent welcome flow from interfering with user actions
+- ✓ Enhanced tab navigation to properly mark user interaction and prevent unwanted redirects
 - ✓ Fixed knowledge document upload redirect issue by prioritizing URL tab parameters over welcome flow
 - ✓ Knowledge document uploads now stay on Knowledge/Rules tab instead of redirecting to Define Data
 - ✓ **EXTRACTLY REBRANDING**: Complete application rebrand from "Flow Capture" to "Extractly"
