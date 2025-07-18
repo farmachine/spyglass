@@ -955,13 +955,13 @@ Thank you for your assistance.`;
                 return (
                   <Link key={item.id} href={item.href}>
                     <button
-                      className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                      className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors ${
                         isActive
-                          ? "bg-blue-50 text-blue-700 border-l-4 border-blue-600 ml-[-1px]"
-                          : "text-gray-700 hover:bg-gray-50"
+                          ? "bg-primary text-white font-bold"
+                          : "text-gray-700 hover:bg-gray-50 font-medium"
                       }`}
                     >
-                      <Icon className={`h-4 w-4 ${isActive ? "text-blue-600" : "text-gray-400"}`} />
+                      <Icon className={`h-4 w-4 ${isActive ? "text-white" : "text-gray-400"}`} />
                       {item.label}
                     </button>
                   </Link>

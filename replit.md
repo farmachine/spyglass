@@ -10,6 +10,13 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**January 18, 2025**
+- ✓ **UI ALIGNMENT AND CONSISTENCY FIXES**: Fixed logo positioning and tab styling issues
+- ✓ Fixed SessionView header logo alignment to be flush left consistent with ProjectLayout
+- ✓ Updated tab styling to use proper blue background with white text for selected tabs
+- ✓ Enhanced PDF processing with PyPDF2 text extraction and pdf2image fallback handling
+- ✓ Improved error handling and logging for robust document processing pipeline
+
 **January 17, 2025**
 - ✓ **VALIDATION COLOR SCHEME RESTORED**: Fixed validation status display with proper green/red colors
 - ✓ Removed conflicting ValidationIcon component from SessionView that was overriding proper component
