@@ -1091,7 +1091,7 @@ except Exception as e:
 
   app.put("/api/validations/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id; // UUID string, not integer
       const result = insertFieldValidationSchema.partial().safeParse(req.body);
       if (!result.success) {
         return res.status(400).json({ message: "Invalid validation data", errors: result.error.errors });
@@ -1103,19 +1103,21 @@ except Exception as e:
       }
       res.json(validation);
     } catch (error) {
+      console.error("Error updating field validation:", error);
       res.status(500).json({ message: "Failed to update field validation" });
     }
   });
 
   app.delete("/api/validations/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id; // UUID string, not integer
       const deleted = await storage.deleteFieldValidation(id);
       if (!deleted) {
         return res.status(404).json({ message: "Field validation not found" });
       }
       res.status(204).send();
     } catch (error) {
+      console.error("Error deleting field validation:", error);
       res.status(500).json({ message: "Failed to delete field validation" });
     }
   });

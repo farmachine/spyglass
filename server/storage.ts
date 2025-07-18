@@ -110,8 +110,8 @@ export interface IStorage {
   // Field Validations
   getFieldValidations(sessionId: string): Promise<FieldValidation[]>;
   createFieldValidation(validation: InsertFieldValidation): Promise<FieldValidation>;
-  updateFieldValidation(id: number, validation: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined>;
-  deleteFieldValidation(id: number): Promise<boolean>;
+  updateFieldValidation(id: string, validation: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined>;
+  deleteFieldValidation(id: string): Promise<boolean>;
   getSessionWithValidations(sessionId: string): Promise<ExtractionSessionWithValidation | undefined>;
 
   // Project Publishing
@@ -1085,8 +1085,10 @@ export class MemStorage implements IStorage {
     return validation;
   }
 
-  async updateFieldValidation(id: number, updateData: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined> {
-    const existingValidation = this.fieldValidations.get(id);
+  async updateFieldValidation(id: string, updateData: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined> {
+    // MemStorage still uses numbers internally, convert for compatibility
+    const numId = parseInt(id);
+    const existingValidation = this.fieldValidations.get(numId);
     if (!existingValidation) return undefined;
 
     const updatedValidation = { 
@@ -1094,12 +1096,14 @@ export class MemStorage implements IStorage {
       ...updateData, 
       updatedAt: new Date() 
     };
-    this.fieldValidations.set(id, updatedValidation);
+    this.fieldValidations.set(numId, updatedValidation);
     return updatedValidation;
   }
 
-  async deleteFieldValidation(id: number): Promise<boolean> {
-    return this.fieldValidations.delete(id);
+  async deleteFieldValidation(id: string): Promise<boolean> {
+    // MemStorage still uses numbers internally, convert for compatibility
+    const numId = parseInt(id);
+    return this.fieldValidations.delete(numId);
   }
 
   async getSessionWithValidations(sessionId: number): Promise<ExtractionSessionWithValidation | undefined> {
@@ -1805,11 +1809,11 @@ class PostgreSQLStorage implements IStorage {
     const result = await this.db.insert(fieldValidations).values(validation).returning();
     return result[0];
   }
-  async updateFieldValidation(id: number, validation: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined> { 
+  async updateFieldValidation(id: string, validation: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined> { 
     const result = await this.db.update(fieldValidations).set(validation).where(eq(fieldValidations.id, id)).returning();
     return result[0];
   }
-  async deleteFieldValidation(id: number): Promise<boolean> { 
+  async deleteFieldValidation(id: string): Promise<boolean> { 
     const result = await this.db.delete(fieldValidations).where(eq(fieldValidations.id, id));
     return result.rowCount > 0;
   }
