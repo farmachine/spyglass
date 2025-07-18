@@ -77,8 +77,8 @@ def extract_data_from_document(
         logging.info(f"API key check: {'FOUND' if api_key else 'NOT FOUND'}")
         
         if not api_key:
-            logging.warning("GEMINI_API_KEY not found, using demo data")
-            return create_demo_extraction_result(project_schema, file_name, extraction_rules, "GEMINI_API_KEY not found")
+            logging.error("GEMINI_API_KEY not found - cannot perform AI extraction")
+            raise Exception("GEMINI_API_KEY not found - AI extraction requires valid API credentials")
         
         logging.info(f"API key found, proceeding with actual extraction for {file_name}")
         logging.info(f"File size: {len(file_content)} bytes, MIME type: {mime_type}")
@@ -207,54 +207,8 @@ def extract_data_from_document(
             raise Exception("No response from Gemini API")
             
         # Clean and parse the JSON response
-        logging.info("=== STARTING SAMPLE DATA DETECTION ===")
         raw_response = response_text.strip()
-        logging.info(f"Raw AI response (first 1000 chars): {raw_response[:1000]}")
-        logging.info("=== ABOUT TO RUN DETECTION CHECKS ===")
-        
-        # ENHANCED SAMPLE DATA DETECTION - Log but attempt extraction
-        has_sample = "sample" in raw_response.lower()
-        has_example = "example" in raw_response.lower()
-        has_filename = file_name.lower() in raw_response.lower()
-        
-        logging.error(f"SAMPLE DATA DETECTION: sample={has_sample}, example={has_example}, filename={has_filename}")
-        logging.error(f"Response preview: {raw_response[:200]}")
-        
-        # Enhanced detection with more specific patterns - catch the exact pattern we're seeing
-        sample_patterns = [
-            f"sample scheme name from {file_name.lower()}",
-            f"sample sponsoring employer from {file_name.lower()}",
-            f"sample scheme status from {file_name.lower()}",
-            f"sample description from {file_name.lower()}",
-            f"sample name from {file_name.lower()}",
-            "sample name 1", "sample name 2", "sample name 3",
-            "sample description 1", "sample description 2", 
-            "sample section name 1", "sample section name 2",
-            "sample revaluation rate 1", "sample revaluation rate 2",
-            "sample rate 1", "sample rate 2", "sample rate 3"
-        ]
-        
-        # Also check for the general "from filename" pattern
-        filename_base = file_name.lower().replace('.pdf', '').replace('.docx', '').replace('.doc', '')
-        generic_sample_patterns = [
-            f"sample {field_name} from {filename_base}",
-            f"sample {field_name} from {file_name.lower()}"
-        ] if 'field_name' in locals() else []
-        
-        all_patterns = sample_patterns + generic_sample_patterns + [
-            f"from {file_name.lower()}",  # Any value referencing filename
-            f"from {filename_base}"       # Any value referencing filename base
-        ]
-        
-        has_specific_sample = any(pattern in raw_response.lower() for pattern in all_patterns)
-        
-        if has_specific_sample:
-            logging.error("!!! SAMPLE DATA DETECTED - EXTRACTION FAILED !!!")
-            logging.error(f"!!! Detected patterns in response: {raw_response[:500]} !!!")
-            error_message = f"AI extraction failed: Generated sample/placeholder data instead of real content from {file_name}. The AI model could not process this document properly. No sample data will be returned - extraction must be fixed to work with real content."
-            raise Exception(error_message)
-        
-        logging.info("Sample detection passed - proceeding with extraction")
+        logging.info(f"Raw AI response (first 500 chars): {raw_response[:500]}")
         
         # Try multiple approaches to clean the JSON
         cleaned_response = raw_response
@@ -311,15 +265,6 @@ def extract_data_from_document(
         # Normalize extracted data - convert string "null" to actual None
         extracted_data = normalize_extracted_values(result_data.get("extracted_data", {}))
         
-        # Double-check for sample data in extracted values
-        extracted_json = json.dumps(extracted_data, indent=2)
-        if ("sample" in extracted_json.lower() or 
-            "example" in extracted_json.lower() or 
-            file_name.lower() in extracted_json.lower()):
-            logging.error("!!! SAMPLE DATA DETECTED IN EXTRACTED JSON !!!")
-            logging.error(f"!!! Extracted data contains sample values: {extracted_json[:500]} !!!")
-            return create_demo_extraction_result(project_schema, file_name, extraction_rules, "Extracted data contains sample/placeholder values")
-        
         # Generate field validations for the extracted data
         field_validations = generate_field_validations(
             project_schema, 
@@ -339,16 +284,12 @@ def extract_data_from_document(
         
     except json.JSONDecodeError as e:
         logging.error(f"Failed to parse JSON response: {e}")
-        # Fallback to demo data when JSON parsing fails
-        logging.info("Using demo data fallback due to JSON parsing error")
-        return create_demo_extraction_result(project_schema, file_name, extraction_rules, f"JSON parsing failed: {str(e)}")
+        raise Exception(f"AI extraction failed for {file_name}: Invalid JSON response from AI - {str(e)}")
     except Exception as e:
         logging.error(f"Error during document extraction: {e}")
         import traceback
         logging.error(f"Full traceback: {traceback.format_exc()}")
-        # Fallback to demo data when extraction fails
-        logging.info("Using demo data fallback due to extraction error")
-        return create_demo_extraction_result(project_schema, file_name, extraction_rules, f"Extraction error: {str(e)}")
+        raise Exception(f"AI extraction failed for {file_name}: {str(e)}")
 
 def normalize_extracted_values(data: Dict[str, Any]) -> Dict[str, Any]:
     """Normalize extracted values - convert string 'null' to actual None"""
@@ -771,62 +712,8 @@ def get_confidence_level(confidence_score: int) -> dict:
             "badge_variant": "destructive"
         }
 
-def create_demo_extraction_result(project_schema: Dict[str, Any], file_name: str, extraction_rules: List[Dict[str, Any]] = None, reason: str = "API key not available") -> ExtractionResult:
-    """Create demo extraction result when real extraction is not possible"""
-    logging.error(f"!!! USING DEMO DATA - REASON: {reason} !!!")
-    logging.error(f"!!! FILE: {file_name} !!!")
-    extracted_data = {}
-    
-    # Generate demo data based on schema
-    if project_schema.get("schema_fields"):
-        for field in project_schema["schema_fields"]:
-            field_name = field.get("fieldName", "")
-            field_type = field.get("fieldType", "TEXT")
-            
-            if field_type == "TEXT":
-                extracted_data[field_name] = f"Sample {field_name.lower()} from {file_name}"
-            elif field_type == "NUMBER":
-                extracted_data[field_name] = 42
-            elif field_type == "DATE":
-                extracted_data[field_name] = "2024-01-15"
-            elif field_type == "BOOLEAN":
-                extracted_data[field_name] = True
-    
-    # Generate demo collections
-    if project_schema.get("collections"):
-        for collection in project_schema["collections"]:
-            collection_name = collection.get("collectionName", collection.get("objectName", ""))
-            collection_data = []
-            
-            # Create 3-4 sample items to demonstrate dynamic validation
-            for i in range(3):
-                item = {}
-                for prop in collection.get("properties", []):
-                    prop_name = prop.get("propertyName", "")
-                    prop_type = prop.get("propertyType", "TEXT")
-                    
-                    if prop_type == "TEXT":
-                        item[prop_name] = f"Sample {prop_name.lower()} {i+1}"
-                    elif prop_type == "NUMBER":
-                        item[prop_name] = (i + 1) * 10
-                    elif prop_type == "DATE":
-                        item[prop_name] = f"2024-01-{15 + i}"
-                    elif prop_type == "BOOLEAN":
-                        item[prop_name] = i % 2 == 0
-                
-                collection_data.append(item)
-            
-            extracted_data[collection_name] = collection_data
-    
-    # Generate demo field validations
-    field_validations = generate_field_validations(project_schema, extracted_data, 0.85, extraction_rules, file_name)
-    
-    return ExtractionResult(
-        extracted_data=extracted_data,
-        confidence_score=0.85,
-        processing_notes=f"Demo extraction completed for {file_name}. Real AI extraction encountered JSON parsing issues - using demo data for testing interface.",
-        field_validations=field_validations
-    )
+# REMOVED: create_demo_extraction_result function has been completely removed
+# All extraction must use real AI processing - no fallback to generated data
 
 def build_dynamic_schema(project_schema: Dict[str, Any]) -> Dict[str, Any]:
     """Build a dynamic JSON schema based on the project schema"""
@@ -888,17 +775,14 @@ def build_extraction_prompt(
 ) -> str:
     """Build a comprehensive prompt for data extraction"""
     
-    prompt = f"""🚨 REAL DOCUMENT EXTRACTION ONLY 🚨
+    prompt = f"""Document Data Extraction Task
 
-You are extracting data from: {file_name}
+Analyze the document: {file_name}
 
-CRITICAL: This is a REAL document. You must extract ONLY authentic content that appears in the document.
-
-ABSOLUTELY FORBIDDEN (will cause extraction failure):
-❌ "Sample [anything] from {file_name}"
-❌ "Sample [field] 1", "Sample [field] 2" 
-❌ ANY text containing "Sample" + filename
-❌ ANY placeholder or made-up data
+EXTRACTION REQUIREMENTS:
+- Extract only authentic content that appears in the document
+- Return null for fields where no real data is found
+- Ensure high accuracy and appropriate confidence levels
 
 Schema Fields to extract:
 """
@@ -919,72 +803,44 @@ Schema Fields to extract:
                 else:
                     prompt += "\n"
     
-    # Add collections with simplified instructions (max 2 collections, max 2 items each)
+    # Add collections
     if project_schema.get("collections"):
-        prompt += "\nCollections (extract maximum 2 real items per collection):\n"
-        for collection in project_schema["collections"][:2]:  # Limit to 2 collections
+        prompt += "\nCollections (extract up to 3 relevant items per collection):\n"
+        for collection in project_schema["collections"]:
             collection_name = collection.get('collectionName', collection.get('objectName', 'UnknownCollection'))
-            prompt += f"- {collection_name} (find up to 2 real items only):\n"
-            for prop in collection.get("properties", [])[:3]:  # Limit to 3 properties
+            prompt += f"- {collection_name}:\n"
+            for prop in collection.get("properties", []):
                 prop_name = prop['propertyName']
                 prop_type = prop['propertyType']
                 
                 if prop_type == "DATE":
-                    prompt += f"  * {prop_name}: Extract actual date in YYYY-MM-DD format only. If no date found, return null.\n"
+                    prompt += f"  * {prop_name}: Extract date in YYYY-MM-DD format. Use null if not found.\n"
                 else:
-                    prompt += f"  * {prop_name} ({prop_type}): Extract real value from document or return null\n"
+                    prompt += f"  * {prop_name} ({prop_type}): Extract the actual value from the document\n"
     
-    prompt += f"""
+    prompt += """
 
-🚨🚨🚨 CRITICAL EXTRACTION REQUIREMENT 🚨🚨🚨
-DOCUMENT: {file_name}
+EXTRACTION GUIDELINES:
+1. Read the document thoroughly to identify relevant information
+2. Extract data that precisely matches the requested schema fields
+3. Use actual values found in the document (company names, dates, addresses, numbers)
+4. Return null for fields where no corresponding data exists
+5. Maintain high accuracy and assign appropriate confidence scores
 
-ABSOLUTE MANDATORY RULES - VIOLATION WILL CAUSE EXTRACTION FAILURE:
+CONFIDENCE SCORING:
+- 95-100%: Data clearly present and unambiguous
+- 80-94%: Data present but requires interpretation
+- 50-79%: Data partially present or unclear
+- Below 50%: Uncertain or conflicting information
 
-1. EXTRACT ONLY REAL DATA FROM THE ACTUAL DOCUMENT CONTENT
-2. READ EVERY PAGE AND SECTION CAREFULLY FOR AUTHENTIC INFORMATION
-3. IF NO REAL DATA EXISTS FOR A FIELD, RETURN null - DO NOT INVENT ANYTHING
-
-🚫 ABSOLUTELY FORBIDDEN - THESE PATTERNS WILL CAUSE IMMEDIATE FAILURE:
-❌ "Sample [anything] from {file_name}" 
-❌ "Sample scheme name from [filename]"
-❌ "Sample sponsoring employer from [filename]"
-❌ "Sample [field] 1", "Sample [field] 2", etc.
-❌ ANY text containing "Sample" + filename reference
-❌ ANY placeholder, test, or example data
-❌ ANY reference to the filename in extracted values
-
-⚠️ WARNING: If your response contains ANY of the forbidden patterns above, the extraction will be rejected as a failure.
-
-✅ REQUIRED APPROACH:
-- Find actual company names, dates, addresses, amounts in the document
-- Extract specific real values like "ABC Corporation", "2023-12-15", "£1,000,000"
-- Use only text that appears directly in the document
-- For missing fields, return null instead of making up data
-- Collections: Extract maximum 3 real items only
-
-🔍 QUALITY CHECK BEFORE RESPONDING:
-Scan your entire response for forbidden words:
-- Does ANY value contain "Sample"? → STOP, revise to use real data or null
-- Does ANY value reference "{file_name}"? → STOP, revise to use real data or null
-- Are you inventing any data? → STOP, use only document content or null
-
-EXTRACT AUTHENTIC DOCUMENT CONTENT ONLY.
-
-FINAL REQUIREMENTS:
-1. Extract ONLY real data from the document
-2. Return null for fields not found in document
-3. Maximum 2 items per collection
-4. NO sample, placeholder, or made-up data
-
-Return valid JSON:
+Return structured JSON response:
 {{
   "extracted_data": {{...}},
   "confidence_score": 0.95,
-  "processing_notes": "Brief extraction summary"
+  "processing_notes": "Brief summary of extraction quality and any notable findings"
 }}
 
-⚠️ BEFORE SUBMITTING: Check your response contains NO "Sample" text or filename references.
+Ensure all extracted values are genuine content from the document.
 
     # Add knowledge documents context if available
     if knowledge_documents and len(knowledge_documents) > 0:
@@ -1027,7 +883,7 @@ def retry_with_simplified_extraction(
         api_key = os.environ.get("GEMINI_API_KEY")
         if not api_key:
             logging.error("API key not available for retry")
-            return create_demo_extraction_result(project_schema, file_name, extraction_rules, "API key not available")
+            raise Exception("GEMINI_API_KEY not found - cannot perform simplified extraction without API credentials")
         
         # Build a much simpler, more focused prompt
         simple_prompt = f"""
@@ -1139,11 +995,11 @@ Return JSON format:
             
         except json.JSONDecodeError as e:
             logging.error(f"Failed to parse simplified extraction response: {e}")
-            return create_demo_extraction_result(project_schema, file_name, extraction_rules, f"Simplified extraction parsing failed: {e}")
+            raise Exception(f"Simplified extraction failed for {file_name}: Invalid JSON response - {str(e)}")
     
     except Exception as e:
         logging.error(f"Simplified extraction failed: {e}")
-        return create_demo_extraction_result(project_schema, file_name, extraction_rules, f"Simplified extraction error: {e}")
+        raise Exception(f"Simplified extraction failed for {file_name}: {str(e)}")
 
 def generate_field_validations(
     project_schema: Dict[str, Any], 
