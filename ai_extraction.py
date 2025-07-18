@@ -212,22 +212,22 @@ def extract_data_from_document(
         logging.info(f"Raw AI response (first 1000 chars): {raw_response[:1000]}")
         logging.info("=== ABOUT TO RUN DETECTION CHECKS ===")
         
-        # Check if response contains sample data (indicating AI didn't extract real content)
+        # AGGRESSIVE SAMPLE DATA DETECTION - Stop processing immediately
         has_sample = "sample" in raw_response.lower()
         has_example = "example" in raw_response.lower()
         has_filename = file_name.lower() in raw_response.lower()
         
-        logging.info(f"SAMPLE DATA DETECTION: sample={has_sample}, example={has_example}, filename={has_filename}")
-        logging.info(f"SAMPLE DATA DETECTION: filename='{file_name.lower()}' in response='{raw_response[:200].lower()}'")
+        logging.error(f"CRITICAL SAMPLE DATA DETECTION: sample={has_sample}, example={has_example}, filename={has_filename}")
+        logging.error(f"CRITICAL SAMPLE DATA DETECTION: filename='{file_name.lower()}' in response='{raw_response[:200].lower()}'")
         
         if has_sample or has_example or has_filename:
-            logging.error("!!! AI RETURNED SAMPLE/PLACEHOLDER DATA INSTEAD OF REAL EXTRACTION !!!")
+            logging.error("!!! SAMPLE DATA DETECTED - STOPPING EXTRACTION IMMEDIATELY !!!")
             logging.error(f"!!! Response contains sample data: {raw_response[:500]} !!!")
-            logging.error("!!! This indicates the AI model is not properly processing the PDF content !!!")
+            logging.error("!!! The AI model failed to process the document correctly !!!")
             
-            # Fallback to demo data since AI is not extracting real content
-            logging.info("Using demo data fallback due to AI returning placeholder data")
-            return create_demo_extraction_result(project_schema, file_name, extraction_rules, "AI returned sample/placeholder data instead of real content")
+            # Return an error instead of demo data to force user attention
+            error_message = f"AI extraction failed: Generated sample/placeholder data instead of real content. Document may be too complex or large for AI processing. Detected patterns: sample={has_sample}, example={has_example}, filename_referenced={has_filename}"
+            raise Exception(error_message)
         
         # Try multiple approaches to clean the JSON
         cleaned_response = raw_response
