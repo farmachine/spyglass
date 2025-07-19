@@ -31,6 +31,55 @@ class ExtractionResult:
     processing_notes: str
     field_validations: List[FieldValidationResult]
 
+def generate_human_friendly_reasoning(field_name: str, extracted_value: Any, applied_rules: List[Dict[str, Any]]) -> str:
+    """
+    Generate human-friendly email-style reasoning for fields with conflicts or issues.
+    """
+    if not applied_rules:
+        return f"Successfully extracted {field_name} from document"
+    
+    # Start with professional email greeting
+    reasoning = f"We have extracted '{extracted_value}' for {field_name}, however there are some considerations that require your attention:\n\n"
+    
+    # Explain the issues/conflicts
+    reasoning += "IDENTIFIED CONCERNS:\n"
+    for rule in applied_rules:
+        rule_name = rule.get('name', 'Policy Check')
+        action = rule.get('action', '')
+        
+        if 'Knowledge Document Conflict' in rule_name:
+            reasoning += f"• Our compliance review process has flagged this value based on internal policies and procedures.\n"
+            reasoning += f"• The extracted information may require additional verification due to regulatory requirements.\n"
+        elif 'Inc' in rule_name.lower() or 'entity' in action.lower():
+            reasoning += f"• The extracted company appears to be incorporated, which requires additional entity verification.\n"
+            reasoning += f"• Our standard procedure requires enhanced due diligence for corporate entities.\n"
+        else:
+            reasoning += f"• {action}\n"
+    
+    reasoning += "\nTo help us complete the verification process, could you please clarify the following:\n\n"
+    
+    # Generate field-specific clarification questions
+    if 'company' in field_name.lower() or 'name' in field_name.lower():
+        reasoning += "1. Can you confirm the full legal name of this entity as it appears in official documentation?\n"
+        reasoning += "2. What is the primary business relationship with this entity (customer, vendor, partner, etc.)?\n"
+        reasoning += "3. Are there any specific compliance or regulatory considerations we should be aware of for this entity?\n"
+    elif 'country' in field_name.lower() or 'jurisdiction' in field_name.lower():
+        reasoning += "1. Can you confirm the governing jurisdiction for this agreement?\n"
+        reasoning += "2. Are there any cross-border regulatory requirements that apply to this arrangement?\n"
+        reasoning += "3. Should this be subject to any specific regional compliance procedures?\n"
+    elif 'date' in field_name.lower():
+        reasoning += "1. Can you confirm the exact date for this field?\n"
+        reasoning += "2. Is this date subject to any specific notice requirements or conditions?\n"
+        reasoning += "3. Are there any related dates or deadlines we should be tracking?\n"
+    else:
+        reasoning += f"1. Can you verify that '{extracted_value}' is the correct value for {field_name}?\n"
+        reasoning += f"2. Are there any additional details or context we should consider for this field?\n"
+        reasoning += f"3. Does this information require any special handling or approval processes?\n"
+    
+    reasoning += "\nThank you for your assistance in completing this review."
+    
+    return reasoning
+
 def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, base_confidence: float, extraction_rules: List[Dict[str, Any]] = None, knowledge_documents: List[Dict[str, Any]] = None) -> tuple[int, list]:
     """
     Calculate confidence percentage based on knowledge base and rules compliance.
@@ -413,12 +462,9 @@ def extract_data_from_document(
                         field_name, extracted_value, 95, extraction_rules, knowledge_documents
                     )
                     status = "verified"
-                    reasoning = f"Successfully extracted {field_name} from document"
                     
-                    # Add rule application details to reasoning if rules were applied
-                    if applied_rules:
-                        rule_details = "; ".join([f"{rule['name']}: {rule['action']}" for rule in applied_rules])
-                        reasoning += f" | Rules applied: {rule_details}"
+                    # Generate human-friendly reasoning
+                    reasoning = generate_human_friendly_reasoning(field_name, extracted_value, applied_rules)
                 else:
                     confidence = 0
                     status = "invalid"
@@ -462,12 +508,9 @@ def extract_data_from_document(
                                     prop_name, extracted_value, 95, extraction_rules, knowledge_documents
                                 )
                                 status = "verified"
-                                reasoning = f"Successfully extracted {prop_name} from {collection_name}"
                                 
-                                # Add rule application details to reasoning if rules were applied
-                                if applied_rules:
-                                    rule_details = "; ".join([f"{rule['name']}: {rule['action']}" for rule in applied_rules])
-                                    reasoning += f" | Rules applied: {rule_details}"
+                                # Generate human-friendly reasoning  
+                                reasoning = generate_human_friendly_reasoning(prop_name, extracted_value, applied_rules)
                             else:
                                 confidence = 0
                                 status = "invalid"

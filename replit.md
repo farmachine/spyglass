@@ -29,6 +29,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ System now analyzes actual knowledge document content to detect conflicts for any extracted values
 - ✓ Generic conflict detection looks for review/compliance keywords associated with extracted values
 - ✓ Removed token limits for knowledge documents - full content now included in AI prompts
+- ✓ **HUMAN-FRIENDLY AI REASONING**: Transformed technical AI reasoning into professional email format
+- ✓ AI reasoning now explains issues clearly and asks 3 relevant clarification questions
+- ✓ Professional email style outlines conflicts with rules/knowledge documents and requests specific information
+- ✓ Field-specific questions generated based on the type of data (company names, countries, dates, etc.)
 - ✓ **PERSONALIZED WELCOME HEADER**: Added welcome message with user's first name above Dashboard title
 - ✓ Displays "Welcome, [First Name]" using user's first name or email prefix as fallback
 - ✓ **PROJECT CREATION RESTRICTED TO ADMINS**: Hidden "New Project" button from non-admin users and added backend validation
