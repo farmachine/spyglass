@@ -147,6 +147,7 @@ export const insertProjectSchema = createInsertSchema(projects).omit({
   id: true,
   createdAt: true,
   organizationId: true, // Backend adds this automatically
+  createdBy: true, // Backend adds this automatically
 });
 
 export const insertProjectSchemaFieldSchema = createInsertSchema(projectSchemaFields).omit({
