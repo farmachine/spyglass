@@ -283,7 +283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Projects (with authentication and organization filtering)
   app.get("/api/projects", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const projects = await storage.getProjects(req.user!.organizationId, req.user!.role);
+      const projects = await storage.getProjectsWithPublishedOrganizations(req.user!.organizationId, req.user!.role);
       res.json(projects);
     } catch (error) {
       console.error("Get projects error:", error);

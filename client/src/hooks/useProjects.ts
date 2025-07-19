@@ -4,8 +4,8 @@ import type { InsertProject } from "@shared/schema";
 
 export function useProjects() {
   return useQuery({
-    queryKey: ["/api/projects-with-orgs"],
-    queryFn: () => fetch("/api/projects-with-orgs").then(res => res.json()),
+    queryKey: ["/api/projects"],
+    queryFn: projectsApi.getAll,
   });
 }
 
