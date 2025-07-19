@@ -1163,29 +1163,28 @@ Thank you for your assistance.`;
                       <p className="text-sm text-gray-600 mt-1">{collection.description}</p>
                       
                       {/* Collection Verification Progress */}
-                      <div className="flex items-center gap-3 mt-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-20 bg-gray-200 rounded-full h-2">
-                            <div 
-                              className={`h-2 rounded-full transition-all duration-300 ${
-                                getCollectionVerificationProgress(collection.collectionName).percentage === 100 ? 'bg-green-600' : 
-                                getCollectionVerificationProgress(collection.collectionName).percentage > 0 ? 'bg-blue-600' : 'bg-gray-400'
-                              }`}
-                              style={{ width: `${getCollectionVerificationProgress(collection.collectionName).percentage}%` }}
-                            />
-                          </div>
-                          <span className="text-xs font-medium text-gray-700 min-w-[28px]">
-                            {getCollectionVerificationProgress(collection.collectionName).percentage}%
-                          </span>
+                      <div className="flex items-center gap-2 mt-2">
+                        <div className="w-20 bg-gray-200 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full transition-all duration-300 ${
+                              getCollectionVerificationProgress(collection.collectionName).percentage === 100 ? 'bg-green-600' : 
+                              getCollectionVerificationProgress(collection.collectionName).percentage > 0 ? 'bg-blue-600' : 'bg-gray-400'
+                            }`}
+                            style={{ width: `${getCollectionVerificationProgress(collection.collectionName).percentage}%` }}
+                          />
                         </div>
-                        <Badge 
-                          variant={getCollectionVerificationProgress(collection.collectionName).percentage === 100 ? 'default' : 'secondary'}
-                          className="text-xs"
-                        >
-                          {getCollectionVerificationProgress(collection.collectionName).percentage === 100 ? 'Verified' : 'In Progress'}
-                        </Badge>
+                        <span className="text-xs font-medium text-gray-700 min-w-[28px]">
+                          {getCollectionVerificationProgress(collection.collectionName).percentage}%
+                        </span>
                       </div>
                     </div>
+                  </div>
+                  {/* Collection Verification Status - positioned like field validation icons */}
+                  <div className="flex items-center gap-2">
+                    <ValidationIcon 
+                      status={getCollectionVerificationProgress(collection.collectionName).percentage === 100 ? 'verified' : 'invalid'} 
+                      showText={true}
+                    />
                   </div>
                 </div>
                 {isExpanded && (
