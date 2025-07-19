@@ -172,8 +172,19 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold">Projects</h2>
+            <div className="flex items-center space-x-6">
+              <h2 className="text-xl font-semibold">Dashboard</h2>
+              {/* Search Box positioned to the right of title */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Search projects by name, description, or organization..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 pr-4 py-2 w-80"
+                />
+              </div>
             </div>
             <div className="flex items-center space-x-4">
               {/* Filter Controls */}
@@ -198,18 +209,6 @@ export default function Dashboard() {
                 New Project
               </Button>
             </div>
-          </div>
-          
-          {/* Search Box */}
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Search projects by name, description, or organization..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2"
-            />
           </div>
           
           {renderProjectsContent()}
