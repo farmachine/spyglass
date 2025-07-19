@@ -11,8 +11,8 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 19, 2025**
-- ✓ **PERSONALIZED WELCOME HEADER**: Added welcome message with user's name above Dashboard title
-- ✓ Displays "Welcome back, [Name]" using user's name or email prefix as fallback
+- ✓ **PERSONALIZED WELCOME HEADER**: Added welcome message with user's first name above Dashboard title
+- ✓ Displays "Welcome back, [First Name]" using user's first name or email prefix as fallback
 - ✓ **PROJECT CREATION RESTRICTED TO ADMINS**: Hidden "New Project" button from non-admin users and added backend validation
 - ✓ Non-admin users see "Contact your administrator to create projects" message when no projects exist
 - ✓ Backend returns 403 Forbidden when non-admin users attempt to create projects via API
