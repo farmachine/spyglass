@@ -50,6 +50,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ **PRIMARY ADMIN PROJECT VISIBILITY VERIFIED**: Confirmed primary organization admins can see ALL projects in production
 - ✓ Primary organization admin (Josh) correctly sees all 9 projects while standard organization admin (Ana) sees only authorized projects
 - ✓ Multi-tenancy security working properly in both development and production environments
+- ✓ **USER SWITCHING CACHE ISSUE RESOLVED**: Fixed critical issue where users saw cached data from previous sessions during login switching
+- ✓ Added user-specific cache keys and proper cache invalidation during authentication state changes
+- ✓ React Query cache now clears automatically when users log in, log out, or refresh authentication
+- ✓ Ana no longer sees Josh's project data when switching users - proper access control maintained during user transitions
 - ✓ **PERSONALIZED WELCOME HEADER**: Added welcome message with user's first name above Dashboard title
 - ✓ Displays "Welcome, [First Name]" using user's first name or email prefix as fallback
 - ✓ **PROJECT CREATION RESTRICTED TO ADMINS**: Hidden "New Project" button from non-admin users and added backend validation
