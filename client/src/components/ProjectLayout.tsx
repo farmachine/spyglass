@@ -102,7 +102,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
     if (!activeTab) {
       setActiveTab('upload');
     }
-  }, [project, canAccessConfigTabs, canAccessPublishing, user?.role, activeTab]);
+  }, [project, canAccessConfigTabs, canAccessPublishing, user?.role]);
 
   if (error) {
     return (
