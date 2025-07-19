@@ -621,9 +621,9 @@ export default function DefineData({ project }: DefineDataProps) {
       {/* Dialogs */}
       <SchemaFieldDialog
         open={schemaFieldDialog.open}
+        onOpenChange={(open) => setSchemaFieldDialog({ open, field: null })}
+        onSave={schemaFieldDialog.field ? handleUpdateSchemaField : handleCreateSchemaField}
         field={schemaFieldDialog.field}
-        onClose={() => setSchemaFieldDialog({ open: false })}
-        onSubmit={schemaFieldDialog.field ? handleUpdateSchemaField : handleCreateSchemaField}
       />
 
       <CollectionDialog
