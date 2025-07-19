@@ -1178,11 +1178,7 @@ Thank you for your assistance.`;
                             if (displayValue === "null" || displayValue === "undefined") {
                               displayValue = null;
                             }
-                            return (
-                              <div key={property.id} className="bg-white border border-gray-200 rounded-lg p-4">
-                                {renderFieldWithValidation(fieldName, displayValue)}
-                              </div>
-                            );
+                            return renderFieldWithValidation(fieldName, displayValue);
                           }
                           return null;
                         })}
