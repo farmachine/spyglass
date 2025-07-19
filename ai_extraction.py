@@ -112,6 +112,7 @@ def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, 
 def check_knowledge_document_conflicts(field_name: str, extracted_value: Any, knowledge_documents: List[Dict[str, Any]] = None) -> tuple[bool, List[str]]:
     """
     Check for conflicts between extracted value and knowledge documents.
+    Uses dynamic content analysis without hardcoded rules.
     
     Returns:
         Tuple of (has_conflict, conflicting_document_sections)
@@ -125,14 +126,6 @@ def check_knowledge_document_conflicts(field_name: str, extracted_value: Any, kn
     conflicting_sections = []
     extracted_str = str(extracted_value).lower().strip()
     
-    # Normalize common country/jurisdiction variations
-    us_country_variants = ['usa', 'u.s.a.', 'u.s.a', 'united states', 'u.s.', 'us', 'america', 'united states of america']
-    
-    # Check if extracted value represents a US entity
-    is_us_entity = extracted_str in us_country_variants or extracted_str.replace('.', '').replace(' ', '') in ['usa', 'us', 'unitedstates']
-    
-    logging.info(f"CONFLICT DEBUG: Is US entity? {is_us_entity} (extracted_str: '{extracted_str}')")
-    
     # Search through knowledge documents for potential conflicts
     for doc in knowledge_documents:
         doc_name = doc.get('displayName', doc.get('fileName', 'Unknown Document'))
@@ -145,24 +138,27 @@ def check_knowledge_document_conflicts(field_name: str, extracted_value: Any, kn
         if isinstance(content, str) and content.strip():
             content_lower = content.lower()
             
-            # Enhanced conflict detection for different field types
-            # Split content into sentences for section identification
-            sentences = content.split('.')
-            for i, sentence in enumerate(sentences):
-                sentence_lower = sentence.lower().strip()
-                
-                # Country/Jurisdiction specific conflict detection - make case insensitive and more flexible
-                if 'country' in field_name.lower() or 'jurisdiction' in field_name.lower():
-                    # Check for U.S./USA variations in extracted value
-                    if is_us_entity:
-                        # Look for any mention of U.S. jurisdiction requirements or entity processing
-                        jurisdiction_keywords = ['u.s. entities', 'u.s. jurisdiction', 'usa', 'united states', 'u.s.', 'jurisdiction', 'governing law', 'legal review', 'enhanced legal review', 'compliance checks', 'flagged for manual', 'require']
-                        
-                        if any(keyword in sentence_lower for keyword in jurisdiction_keywords):
-                            conflict_text = f"Knowledge document '{doc_name}' requires enhanced legal review for U.S. entities: {sentence.strip()}"
-                            conflicting_sections.append(conflict_text)
-                            logging.info(f"CONFLICT DETECTED: {conflict_text}")
-                            break
+            # Generic conflict detection - look for any mention of the extracted value
+            # in knowledge documents that suggests special handling, review, or caution
+            if extracted_str in content_lower:
+                # Split content into sentences for section identification
+                sentences = content.split('.')
+                for i, sentence in enumerate(sentences):
+                    sentence_lower = sentence.lower().strip()
+                    
+                    # Check if this sentence mentions the extracted value and contains
+                    # keywords that suggest conflict, special review, or reduced confidence
+                    conflict_keywords = [
+                        'review', 'manual', 'caution', 'require', 'flag', 'check', 
+                        'verify', 'confirm', 'validate', 'compliance', 'policy',
+                        'restriction', 'limitation', 'special', 'enhanced', 'additional'
+                    ]
+                    
+                    if extracted_str in sentence_lower and any(keyword in sentence_lower for keyword in conflict_keywords):
+                        conflict_text = f"Knowledge document '{doc_name}' mentions special requirements for '{extracted_value}': {sentence.strip()}"
+                        conflicting_sections.append(conflict_text)
+                        logging.info(f"CONFLICT DETECTED: {conflict_text}")
+                        break
     
     return len(conflicting_sections) > 0, conflicting_sections
 
@@ -248,9 +244,8 @@ def extract_data_from_document(
                 content = doc.get('content', '')
                 if content and content.strip():
                     prompt += f"Document: {doc_name}\n"
-                    # Include relevant excerpts, limit content to avoid token limits
-                    content_preview = content[:1000] + "..." if len(content) > 1000 else content
-                    prompt += f"Content: {content_preview}\n\n"
+                    # Include full content - token limits can be lifted
+                    prompt += f"Content: {content}\n\n"
             
             prompt += "IMPORTANT: Consider the above knowledge base when extracting data. Pay attention to any policies or requirements that may affect confidence in extracted values.\n"
         

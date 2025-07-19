@@ -25,7 +25,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ **KNOWLEDGE DOCUMENT INTEGRATION FIXED**: Fixed critical issue where knowledge documents weren't being processed during AI extraction
 - ✓ Added missing `check_knowledge_document_conflicts` function to detect policy conflicts and adjust confidence scores
 - ✓ Knowledge documents now properly included in AI extraction prompt for policy-based conflict detection
-- ✓ US entities in country fields now correctly flagged with 50% confidence when knowledge documents require legal review
+- ✓ **DYNAMIC CONFLICT DETECTION**: Removed hardcoded US-specific logic and made conflict detection completely dynamic
+- ✓ System now analyzes actual knowledge document content to detect conflicts for any extracted values
+- ✓ Generic conflict detection looks for review/compliance keywords associated with extracted values
+- ✓ Removed token limits for knowledge documents - full content now included in AI prompts
 - ✓ **PERSONALIZED WELCOME HEADER**: Added welcome message with user's first name above Dashboard title
 - ✓ Displays "Welcome, [First Name]" using user's first name or email prefix as fallback
 - ✓ **PROJECT CREATION RESTRICTED TO ADMINS**: Hidden "New Project" button from non-admin users and added backend validation
