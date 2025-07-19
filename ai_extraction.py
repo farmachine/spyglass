@@ -29,7 +29,7 @@ class ExtractionResult:
     field_validations: List[FieldValidationResult]
 
 def extract_data_from_document(
-    file_content: bytes,
+    file_content,  # Can be bytes or str (data URL)
     file_name: str,
     mime_type: str,
     project_schema: Dict[str, Any],
@@ -106,12 +106,25 @@ def extract_data_from_document(
                 # Extract base64 content after the comma for data URLs
                 base64_content = file_content.split(',', 1)[1]
                 binary_content = base64.b64decode(base64_content)
+                logging.info(f"Decoded data URL: {len(base64_content)} base64 chars -> {len(binary_content)} bytes")
             elif isinstance(file_content, str):
                 # Assume it's already base64 encoded
                 binary_content = base64.b64decode(file_content)
-            else:
+                logging.info(f"Decoded base64 string: {len(file_content)} chars -> {len(binary_content)} bytes")
+            elif isinstance(file_content, bytes):
                 # Already bytes
                 binary_content = file_content
+                logging.info(f"Using binary content directly: {len(binary_content)} bytes")
+            else:
+                # Handle unexpected data type
+                logging.error(f"Unexpected file content type: {type(file_content)}")
+                raise Exception(f"Unsupported file content type: {type(file_content)}")
+            
+            # Check PDF header
+            if binary_content[:4] == b'%PDF':
+                logging.info("✅ Valid PDF header detected")
+            else:
+                logging.warning(f"❌ Invalid PDF header: {binary_content[:20]}")
             
             logging.info(f"Processing PDF with {len(binary_content)} bytes")
             
@@ -321,13 +334,16 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
     for file_info in files:
         try:
             file_name = file_info.get("name", "unknown")
-            file_content = file_info.get("content", b"")
+            file_content = file_info.get("content", "")
             mime_type = file_info.get("mimeType", "application/octet-stream")
             
-            if isinstance(file_content, str):
-                file_content = file_content.encode('utf-8')
-            
             logging.info(f"Processing file: {file_name}")
+            logging.info(f"Original content type: {type(file_content)}")
+            if isinstance(file_content, str):
+                logging.info(f"Content starts with: {file_content[:50]}...")
+                logging.info(f"Content length: {len(file_content)}")
+            
+            # DO NOT ENCODE STRING CONTENT TO UTF-8 - this corrupts data URLs!
             
             extraction_result = extract_data_from_document(
                 file_content=file_content,
