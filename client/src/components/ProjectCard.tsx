@@ -174,15 +174,15 @@ export default function ProjectCard({ project }: ProjectCardProps) {
 
   return (
     <>
-      <Card className="bg-white text-black hover:shadow-md transition-shadow cursor-pointer group border-primary relative overflow-hidden">
-        <CardHeader className="pb-3">
+      <Card className="bg-white text-black hover:shadow-md transition-shadow cursor-pointer group border-primary relative overflow-hidden h-[180px] flex flex-col">
+        <CardHeader className="pb-2 flex-shrink-0">
           <div className="flex items-start justify-between">
             <div className="flex-1" onClick={() => setLocation(`/projects/${project.id}`)}>
-              <CardTitle className="text-xl font-bold text-black group-hover:text-black/80 transition-colors">
+              <CardTitle className="text-xl font-bold text-black group-hover:text-black/80 transition-colors line-clamp-1">
                 {project.name}
               </CardTitle>
               {project.description && (
-                <p className="text-base font-medium text-black/80 mt-1 line-clamp-2">
+                <p className="text-sm font-medium text-black/70 mt-1 line-clamp-2">
                   {project.description}
                 </p>
               )}
@@ -190,7 +190,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-black hover:bg-black/10">
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-black hover:bg-black/10 flex-shrink-0">
                   <Settings className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -211,79 +211,79 @@ export default function ProjectCard({ project }: ProjectCardProps) {
           </div>
         </CardHeader>
         
-        <CardContent onClick={() => setLocation(`/projects/${project.id}`)}>
-          <div className="flex items-center text-base font-medium text-black/70">
-            <Calendar className="h-4 w-4 mr-2" />
+        <CardContent className="flex-1 flex flex-col justify-end pb-4" onClick={() => setLocation(`/projects/${project.id}`)}>
+          {/* Created date - positioned above stats */}
+          <div className="flex items-center text-sm font-medium text-black/60 mb-3">
+            <Calendar className="h-3.5 w-3.5 mr-1.5" />
             Created {formatDate(project.createdAt)}
           </div>
           
-          <div className="mt-4">
-            <div className="flex items-end justify-between">
-              {/* Left side - Session stats */}
-              <div className="flex items-center gap-4">
-                {/* Total Sessions */}
+          {/* Bottom row with stats, wave, and organizations */}
+          <div className="flex items-end justify-between">
+            {/* Left side - Session stats */}
+            <div className="flex items-center gap-3">
+              {/* Total Sessions */}
+              <div className="flex items-center gap-1">
+                <Database className="h-3.5 w-3.5 text-black/70" />
+                <span className="text-sm font-medium text-black">{verificationStats.total}</span>
+              </div>
+              
+              {/* Verified Sessions */}
+              {verificationStats.verified > 0 && (
                 <div className="flex items-center gap-1">
-                  <Database className="h-4 w-4 text-black/70" />
-                  <span className="text-sm font-medium text-black">{verificationStats.total}</span>
+                  <CheckCircle className="h-3.5 w-3.5 text-green-600" />
+                  <span className="text-sm font-medium text-green-700">{verificationStats.verified}</span>
                 </div>
-                
-                {/* Verified Sessions */}
-                {verificationStats.verified > 0 && (
-                  <div className="flex items-center gap-1">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span className="text-sm font-medium text-green-700">{verificationStats.verified}</span>
-                  </div>
-                )}
-                
-                {/* Unverified Sessions */}
-                {verificationStats.unverified > 0 && (
-                  <div className="flex items-center gap-1">
-                    <AlertTriangle className="h-4 w-4 text-red-600" />
-                    <span className="text-sm font-medium text-red-700">{verificationStats.unverified}</span>
-                  </div>
-                )}
-              </div>
+              )}
               
-              {/* Center - Wave pattern */}
-              <div className="flex items-center justify-center">
-                <WavePattern variant="light" size="sm" className="opacity-60" />
-              </div>
-              
-              {/* Right side - Organizations column */}
-              <div className="flex flex-col items-end justify-end gap-1 min-h-[32px]">
-                {publishedOrganizations.length > 0 ? (
-                  publishedOrganizations
-                    .sort((a: Organization & { type?: string }, b: Organization & { type?: string }) => {
-                      // Sort by type first (primary first), then by creation order (reversed for bottom-up stacking)
-                      if (a.type === 'primary' && b.type !== 'primary') return 1; // Primary goes to bottom
-                      if (b.type === 'primary' && a.type !== 'primary') return -1;
-                      return 0; // Keep relative order for same type
-                    })
-                    .map((org: Organization & { type?: string }) => (
-                      <Badge 
-                        key={org.id} 
-                        variant="secondary" 
-                        className={`text-xs font-medium px-2 py-0.5 ${
-                          org.type === 'primary' 
-                            ? 'bg-gray-200 text-black border-gray-300' 
-                            : 'bg-green-100 text-green-700 border-green-200'
-                        }`}
-                      >
-                        {org.name}
-                      </Badge>
-                    ))
-                ) : (
-                  <div className="text-xs font-medium text-black/50 italic">
-                    Not published
-                  </div>
-                )}
-              </div>
+              {/* Unverified Sessions */}
+              {verificationStats.unverified > 0 && (
+                <div className="flex items-center gap-1">
+                  <AlertTriangle className="h-3.5 w-3.5 text-red-600" />
+                  <span className="text-sm font-medium text-red-700">{verificationStats.unverified}</span>
+                </div>
+              )}
+            </div>
+            
+            {/* Center - Wave pattern */}
+            <div className="flex items-center justify-center">
+              <WavePattern variant="light" size="sm" className="opacity-60" />
+            </div>
+            
+            {/* Right side - Organizations column */}
+            <div className="flex flex-col items-end justify-end gap-1 min-h-[32px]">
+              {publishedOrganizations.length > 0 ? (
+                publishedOrganizations
+                  .sort((a: Organization & { type?: string }, b: Organization & { type?: string }) => {
+                    // Sort by type first (primary first), then by creation order (reversed for bottom-up stacking)
+                    if (a.type === 'primary' && b.type !== 'primary') return 1; // Primary goes to bottom
+                    if (b.type === 'primary' && a.type !== 'primary') return -1;
+                    return 0; // Keep relative order for same type
+                  })
+                  .map((org: Organization & { type?: string }) => (
+                    <Badge 
+                      key={org.id} 
+                      variant="secondary" 
+                      className={`text-xs font-medium px-2 py-0.5 ${
+                        org.type === 'primary' 
+                          ? 'bg-gray-200 text-black border-gray-300' 
+                          : 'bg-green-100 text-green-700 border-green-200'
+                      }`}
+                    >
+                      {org.name}
+                    </Badge>
+                  ))
+              ) : (
+                <div className="text-xs font-medium text-black/50 italic">
+                  Not published
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
         
         {/* Fade to white gradient overlay at the bottom */}
-        <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white/50 to-transparent pointer-events-none" />
+        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white/50 to-transparent pointer-events-none" />
       </Card>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
