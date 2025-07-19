@@ -94,6 +94,16 @@ export default function DefineData({ project }: DefineDataProps) {
   // Project mutations
   const updateProject = useUpdateProject();
 
+  // Create a mutation that doesn't invalidate any queries for collection reordering
+  const updateCollectionForReorder = useMutation({
+    mutationFn: ({ id, collection }: { id: string; collection: Partial<any> }) =>
+      apiRequest(`/api/collections/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(collection),
+      }),
+    // No onSuccess invalidation - rely on optimistic updates only
+  });
+
   // Create a mutation that doesn't invalidate project queries for reordering
   const updateSchemaFieldForReorder = useMutation({
     mutationFn: ({ id, field }: { id: string; field: Partial<any> }) =>
@@ -138,6 +148,42 @@ export default function DefineData({ project }: DefineDataProps) {
       toast({
         title: "Error",
         description: "Failed to update field order. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Drag and drop handler for reordering collections
+  const handleCollectionDragEnd = async (result: any) => {
+    if (!result.destination) return;
+
+    const items = Array.from(safeCollections);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    // Optimistically update the cache immediately to prevent visual flashing
+    const updatedItems = items.map((collection, index) => ({ ...collection, orderIndex: index }));
+    queryClient.setQueryData(["/api/projects", project.id, "collections"], updatedItems);
+
+    // Update orderIndex for all affected collections in the background
+    try {
+      const updatePromises = items.map((collection, index) => 
+        updateCollectionForReorder.mutateAsync({ 
+          id: collection.id, 
+          collection: { ...collection, orderIndex: index } 
+        })
+      );
+      
+      await Promise.all(updatePromises);
+      
+      // Silent update - no toast notification for reordering
+    } catch (error) {
+      // If update fails, refetch to restore correct order
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id, "collections"] });
+      
+      toast({
+        title: "Error",
+        description: "Failed to update collection order. Please try again.",
         variant: "destructive",
       });
     }
@@ -601,40 +647,70 @@ export default function DefineData({ project }: DefineDataProps) {
                   </p>
                 </div>
               ) : (
-                <div className="space-y-6">
-                  {safeCollections.map((collection) => (
-                    <CollectionCard
-                      key={collection.id}
-                      collection={collection}
-                      fieldTypeColors={fieldTypeColors}
-                      onEditCollection={(collection) => setCollectionDialog({ open: true, collection })}
-                      onDeleteCollection={(id, name) => setDeleteDialog({ 
-                        open: true, 
-                        type: "collection", 
-                        id, 
-                        name 
-                      })}
-                      onAddProperty={(collectionId, collectionName) => setPropertyDialog({ 
-                        open: true, 
-                        property: null, 
-                        collectionId,
-                        collectionName 
-                      })}
-                      onEditProperty={(property) => setPropertyDialog({ 
-                        open: true, 
-                        property, 
-                        collectionId: property.collectionId,
-                        collectionName: safeCollections.find(c => c.id === property.collectionId)?.collectionName || "" 
-                      })}
-                      onDeleteProperty={(id, name) => setDeleteDialog({ 
-                        open: true, 
-                        type: "property", 
-                        id, 
-                        name 
-                      })}
-                    />
-                  ))}
-                </div>
+                <DragDropContext onDragEnd={handleCollectionDragEnd}>
+                  <Droppable droppableId="collections">
+                    {(provided) => (
+                      <div 
+                        className="space-y-6"
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                      >
+                        {safeCollections.map((collection, index) => (
+                          <Draggable key={collection.id} draggableId={collection.id.toString()} index={index}>
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                className={snapshot.isDragging ? "opacity-50" : ""}
+                              >
+                                <div className="flex items-start gap-2">
+                                  <div
+                                    {...provided.dragHandleProps}
+                                    className="cursor-grab active:cursor-grabbing p-2 rounded hover:bg-gray-100 mt-4"
+                                  >
+                                    <GripVertical className="h-4 w-4 text-gray-400" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <CollectionCard
+                                      collection={collection}
+                                      fieldTypeColors={fieldTypeColors}
+                                      onEditCollection={(collection) => setCollectionDialog({ open: true, collection })}
+                                      onDeleteCollection={(id, name) => setDeleteDialog({ 
+                                        open: true, 
+                                        type: "collection", 
+                                        id, 
+                                        name 
+                                      })}
+                                      onAddProperty={(collectionId, collectionName) => setPropertyDialog({ 
+                                        open: true, 
+                                        property: null, 
+                                        collectionId,
+                                        collectionName 
+                                      })}
+                                      onEditProperty={(property) => setPropertyDialog({ 
+                                        open: true, 
+                                        property, 
+                                        collectionId: property.collectionId,
+                                        collectionName: safeCollections.find(c => c.id === property.collectionId)?.collectionName || "" 
+                                      })}
+                                      onDeleteProperty={(id, name) => setDeleteDialog({ 
+                                        open: true, 
+                                        type: "property", 
+                                        id, 
+                                        name 
+                                      })}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </DragDropContext>
               )}
               
               {/* Always show Add Collection button */}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Edit, Trash2, Plus, GripVertical } from "lucide-react";
+import { Edit, Trash2, Plus, GripVertical, ChevronDown, ChevronRight } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -37,6 +37,7 @@ export default function CollectionCard({
   onEditProperty,
   onDeleteProperty,
 }: CollectionCardProps) {
+  const [isExpanded, setIsExpanded] = useState(true);
   const { data: properties = [], isLoading } = useCollectionProperties(collection.id);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -94,10 +95,29 @@ export default function CollectionCard({
     <Card className="border-gray-200">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-lg">{collection.collectionName}</CardTitle>
-            {collection.description && (
-              <p className="text-sm text-gray-600 mt-1">{collection.description}</p>
+          <div className="flex items-center gap-2 flex-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="p-1 h-auto"
+            >
+              {isExpanded ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </Button>
+            <div className="flex-1">
+              <CardTitle className="text-lg">{collection.collectionName}</CardTitle>
+              {collection.description && (
+                <p className="text-sm text-gray-600 mt-1">{collection.description}</p>
+              )}
+            </div>
+            {!isExpanded && properties.length > 0 && (
+              <div className="text-sm text-gray-500">
+                {properties.length} field{properties.length !== 1 ? 's' : ''}
+              </div>
             )}
           </div>
           <div className="flex gap-2">
@@ -119,8 +139,9 @@ export default function CollectionCard({
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        {isLoading ? (
+      {isExpanded && (
+        <CardContent>
+          {isLoading ? (
           <div className="text-center py-4">
             <div className="animate-spin h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-2" />
             <p className="text-sm text-gray-600">Loading properties...</p>
@@ -228,7 +249,8 @@ export default function CollectionCard({
             </div>
           </div>
         )}
-      </CardContent>
+        </CardContent>
+      )}
     </Card>
   );
 }
