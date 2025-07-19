@@ -209,15 +209,6 @@ const ValidationToggle = ({ fieldName, validation, onToggle }: {
           </>
         )}
       </button>
-      
-      {!isVerified && validation.aiReasoning && (
-        <div 
-          className="text-xs text-gray-500 cursor-help" 
-          title={validation.aiReasoning}
-        >
-          ⓘ
-        </div>
-      )}
     </div>
   );
 };
@@ -622,8 +613,8 @@ Thank you for your assistance.`;
           id: validation.id,
           data: {
             extractedValue: valueToStore,
-            validationStatus: "pending",
-            manuallyVerified: false
+            validationStatus: "manual",
+            manuallyVerified: true
           }
         });
       } catch (error) {
@@ -666,8 +657,8 @@ Thank you for your assistance.`;
           id: validation.id,
           data: {
             extractedValue: valueToStore,
-            validationStatus: "pending",
-            manuallyVerified: false
+            validationStatus: "manual",
+            manuallyVerified: true
           }
         });
         
