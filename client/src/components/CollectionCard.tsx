@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Edit, Trash2, Plus, GripVertical, ChevronDown, ChevronRight } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -39,13 +39,22 @@ export default function CollectionCard({
   onDeleteProperty,
   dragHandleProps,
 }: CollectionCardProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
   const { data: properties = [], isLoading } = useCollectionProperties(collection.id);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Sort properties by orderIndex for consistent ordering
   const safeProperties = properties ? [...properties].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0)) : [];
+  
+  // Lists should be collapsed by default unless they have no properties
+  const [isExpanded, setIsExpanded] = useState(safeProperties.length === 0);
+  
+  // Update collapse state when properties change
+  useEffect(() => {
+    if (safeProperties.length === 0 && !isExpanded) {
+      setIsExpanded(true); // Expand if no properties exist
+    }
+  }, [safeProperties.length, isExpanded]);
 
   // Create a mutation that doesn't invalidate any queries for reordering
   const updatePropertyForReorder = useMutation({

@@ -73,19 +73,20 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       return;
     }
     
-    // Only apply welcome flow logic if we're starting fresh and user hasn't manually navigated
-    // This prevents overriding when user is actively working in other tabs
-    // Also check if URL has any query parameters that suggest user interaction
-    const urlHasParams = window.location.search.length > 0;
-    const isInitialLoad = !userNavigatedRef.current && !urlHasParams;
+    // PREVENT WELCOME FLOW COMPLETELY IF USER IS ALREADY ON DEFINE TAB
+    // This fixes the redirect issue by not running welcome flow when user is actively working
+    if (activeTab === 'define') {
+      return;
+    }
     
     // Check if user has already interacted with the project (to prevent welcome flow after CRUD operations)
     const hasInteracted = sessionStorage.getItem(`project-${project.id}-interacted`);
-    const isReordering = sessionStorage.getItem(`project-${project.id}-reordering`);
     
-    // Welcome flow should ONLY trigger on the very first load of the project
-    // Never after user interactions like uploads, knowledge document saves, CRUD operations, etc.
-    if (activeTab === 'upload' && !isSetupComplete && isInitialLoad && user?.role === 'admin' && !hasInteracted && !isReordering && !initialTabSetRef.current) {
+    // Only run welcome flow on the very first project access AND user hasn't interacted
+    const isFirstAccess = !userNavigatedRef.current && !initialTabSetRef.current && !hasInteracted;
+    
+    // Welcome flow should ONLY trigger on genuine first load
+    if (isFirstAccess && activeTab === 'upload' && !isSetupComplete && user?.role === 'admin') {
       sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
       initialTabSetRef.current = true;
       setActiveTab('define');
@@ -101,7 +102,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
     if (!activeTab) {
       setActiveTab('upload');
     }
-  }, [project, canAccessConfigTabs, canAccessPublishing, user?.role]);
+  }, [project, canAccessConfigTabs, canAccessPublishing, user?.role, activeTab]);
 
   if (error) {
     return (
