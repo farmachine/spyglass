@@ -46,7 +46,9 @@ export default function CreateProjectDialog({ open, onOpenChange }: CreateProjec
 
   const onSubmit = async (data: InsertProject) => {
     try {
+      console.log("Creating project with data:", data);
       const newProject = await createProject.mutateAsync(data);
+      console.log("Project created successfully:", newProject);
       toast({
         title: "Project created",
         description: "Your new project has been created successfully.",
@@ -57,9 +59,10 @@ export default function CreateProjectDialog({ open, onOpenChange }: CreateProjec
       // Navigate to the newly created project
       setLocation(`/projects/${newProject.id}?tab=define`);
     } catch (error) {
+      console.error("Create project error:", error);
       toast({
         title: "Error",
-        description: "Failed to create project. Please try again.",
+        description: `Failed to create project: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     }
