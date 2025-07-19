@@ -21,6 +21,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ Fixed missing status field in project API response by updating database SELECT queries
 - ✓ Added large "DEACTIVATED" text in white across center of overlay with bold styling and letter spacing
 - ✓ Added smaller green "Reactivate" button below with CheckCircle icon and white background
+- ✓ **PROJECT FILTERING SYSTEM**: Added "Show Deactivated" checkbox filter above project cards
+- ✓ Deactivated projects are hidden by default to declutter dashboard view
+- ✓ Users can check "Show Deactivated" to reveal all inactive projects when needed
+- ✓ Enhanced empty state messaging when all projects are filtered out by deactivation status
 - ✓ **AUTO-PUBLISHING TO PRIMARY ORGANIZATION**: All projects now automatically publish to primary organization by default
 - ✓ Added getPrimaryOrganization() method to storage interface for retrieving primary organization
 - ✓ Updated project creation API to automatically publish new projects to primary organization

@@ -3,6 +3,8 @@ import { WaveIcon, DropletIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useProjects } from "@/hooks/useProjects";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,11 +17,17 @@ import WavePattern from "@/components/WavePattern";
 
 export default function Dashboard() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [showDeactivated, setShowDeactivated] = useState(false);
   const { data: projects, isLoading, error } = useProjects();
   const { user } = useAuth();
   const [, navigate] = useLocation();
 
   const isAdmin = user?.role === "admin";
+
+  // Filter projects based on showDeactivated checkbox
+  const filteredProjects = projects?.filter(project => 
+    showDeactivated ? true : project.status !== "inactive"
+  ) || [];
 
   const renderProjectsContent = () => {
     if (isLoading) {
@@ -44,12 +52,29 @@ export default function Dashboard() {
       );
     }
 
-    if (projects && projects.length > 0) {
+    if (filteredProjects && filteredProjects.length > 0) {
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((project) => (
+          {filteredProjects.map((project) => (
             <ProjectCard key={project.id} project={project} />
           ))}
+        </div>
+      );
+    }
+
+    // Check if there are projects but they're all filtered out
+    if (projects && projects.length > 0 && filteredProjects.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <div className="mx-auto w-24 h-24 bg-secondary/20 rounded-full flex items-center justify-center mb-4">
+            <WaveIcon className="h-8 w-8 text-primary" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            No active projects
+          </h3>
+          <p className="text-gray-600 mb-6">
+            All projects are currently deactivated. Check "Show Deactivated" to view them.
+          </p>
         </div>
       );
     }
@@ -131,6 +156,22 @@ export default function Dashboard() {
               New Project
             </Button>
           </div>
+          
+          {/* Filter Controls */}
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              id="show-deactivated"
+              checked={showDeactivated}
+              onCheckedChange={setShowDeactivated}
+            />
+            <Label 
+              htmlFor="show-deactivated"
+              className="text-sm text-gray-600 cursor-pointer"
+            >
+              Show Deactivated
+            </Label>
+          </div>
+          
           {renderProjectsContent()}
         </div>
       </div>
