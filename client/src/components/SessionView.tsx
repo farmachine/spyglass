@@ -313,11 +313,23 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
                     ) : (
                       <div className="text-right">
                         <p className="font-medium">{validation.extractedValue || 'No value'}</p>
-                        {validation.manuallyVerified && (
-                          <Badge variant="outline" className="text-xs mt-1">
-                            Manually Verified
-                          </Badge>
-                        )}
+                        <div className="flex items-center gap-2 mt-1 justify-end">
+                          {validation.validationStatus === 'valid' && (
+                            <Badge className="bg-green-100 text-green-800 text-xs">
+                              ✓ Verified
+                            </Badge>
+                          )}
+                          {validation.validationStatus === 'manual' && (
+                            <Badge className="bg-blue-100 text-blue-800 text-xs">
+                              Manual Input
+                            </Badge>
+                          )}
+                          {validation.confidenceScore && validation.confidenceScore > 0 && validation.validationStatus !== 'manual' && (
+                            <Badge className="bg-gray-100 text-gray-800 text-xs">
+                              Confidence: {validation.confidenceScore}%
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -408,11 +420,23 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
                         ) : (
                           <div className="text-right">
                             <p className="font-medium">{validation.extractedValue || 'No value'}</p>
-                            {validation.manuallyVerified && (
-                              <Badge variant="outline" className="text-xs mt-1">
-                                Manually Verified
-                              </Badge>
-                            )}
+                            <div className="flex items-center gap-2 mt-1 justify-end">
+                              {validation.validationStatus === 'valid' && (
+                                <Badge className="bg-green-100 text-green-800 text-xs">
+                                  ✓ Verified
+                                </Badge>
+                              )}
+                              {validation.validationStatus === 'manual' && (
+                                <Badge className="bg-blue-100 text-blue-800 text-xs">
+                                  Manual Input
+                                </Badge>
+                              )}
+                              {validation.confidenceScore && validation.confidenceScore > 0 && validation.validationStatus !== 'manual' && (
+                                <Badge className="bg-gray-100 text-gray-800 text-xs">
+                                  Confidence: {validation.confidenceScore}%
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
