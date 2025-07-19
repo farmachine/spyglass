@@ -294,6 +294,33 @@ export default function DefineData({ project }: DefineDataProps) {
   };
 
   // Property handlers
+  const handleCreateProperty = async (data: any) => {
+    if (!propertyDialog.collectionId) return;
+    try {
+      // Create the property directly using apiRequest since we need dynamic collectionId
+      await apiRequest(`/api/collections/${propertyDialog.collectionId}/properties`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      
+      // Manually invalidate queries
+      queryClient.invalidateQueries({ queryKey: ["/api/collections", propertyDialog.collectionId, "properties"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      
+      setPropertyDialog({ open: false });
+      toast({
+        title: "Property created",
+        description: "Property has been created successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create property. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleUpdateProperty = async (data: any) => {
     if (!propertyDialog.property) return;
     try {
@@ -608,11 +635,10 @@ export default function DefineData({ project }: DefineDataProps) {
 
       <PropertyDialog
         open={propertyDialog.open}
+        onOpenChange={(open) => setPropertyDialog({ open, property: null, collectionId: null, collectionName: "" })}
+        onSave={propertyDialog.property ? handleUpdateProperty : handleCreateProperty}
         property={propertyDialog.property}
-        collectionId={propertyDialog.collectionId}
         collectionName={propertyDialog.collectionName}
-        onClose={() => setPropertyDialog({ open: false })}
-        onSubmit={handleUpdateProperty}
       />
 
       <DeleteDialog
