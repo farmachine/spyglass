@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Download } from "lucide-react";
+import { Download, ChevronDown, ChevronRight } from "lucide-react";
 import ValidationIcon, { ValidationProgress } from "./ValidationIcon";
 import { apiRequest } from "@/lib/queryClient";
 import * as XLSX from 'xlsx';
@@ -26,6 +26,7 @@ interface SessionViewProps {
 export default function SessionView({ sessionId, project }: SessionViewProps) {
   const [editingField, setEditingField] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
 
   const { data: session, isLoading } = useQuery<ExtractionSessionWithValidation>({
@@ -74,6 +75,42 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
     setEditingField(null);
     setEditValue("");
   };
+
+  const toggleCollectionExpansion = (collectionName: string) => {
+    setExpandedCollections(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(collectionName)) {
+        newSet.delete(collectionName);
+      } else {
+        newSet.add(collectionName);
+      }
+      return newSet;
+    });
+  };
+
+  // Initialize collapsed collections when session data loads
+  useEffect(() => {
+    if (session?.fieldValidations) {
+      const collectionValidations = session.fieldValidations.filter(v => v.fieldType === 'collection_property');
+      const collectionGroups = collectionValidations.reduce((acc, validation) => {
+        const collectionName = validation.collectionName || 'Unknown Collection';
+        if (!acc[collectionName]) acc[collectionName] = [];
+        acc[collectionName].push(validation);
+        return acc;
+      }, {} as Record<string, FieldValidation[]>);
+      
+      const initialExpanded = new Set<string>();
+      
+      // Collections with data start collapsed, empty collections start expanded (but this shouldn't happen in review)
+      Object.entries(collectionGroups).forEach(([collectionName, validations]) => {
+        if (validations.length === 0) {
+          initialExpanded.add(collectionName);
+        }
+      });
+      
+      setExpandedCollections(initialExpanded);
+    }
+  }, [session?.fieldValidations]);
 
   const handleExportToExcel = () => {
     if (!session) return;
@@ -292,69 +329,101 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
       )}
 
       {/* Collection Properties */}
-      {Object.entries(collectionGroups).map(([collectionName, collectionValidations]) => (
-        <Card key={collectionName}>
-          <CardHeader>
-            <CardTitle>Collection: {collectionName}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {collectionValidations.map((validation) => (
-                <div key={validation.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <ValidationIcon
-                      status={validation.validationStatus as ValidationStatus}
-                      reasoning={validation.aiReasoning}
-                      confidenceScore={validation.confidenceScore}
-                      onManualEdit={() => handleManualEdit(validation)}
-                    />
-                    <div>
-                      <Label className="font-medium">{validation.fieldName}</Label>
-                      <p className="text-sm text-gray-600">
-                        {validation.fieldType} • Record {validation.recordIndex + 1}
-                      </p>
+      {Object.entries(collectionGroups).map(([collectionName, collectionValidations]) => {
+        const isExpanded = expandedCollections.has(collectionName);
+        
+        return (
+          <Card key={collectionName} className="border-gray-200 border-l-4 border-l-green-500">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 flex-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toggleCollectionExpansion(collectionName)}
+                    className="p-1 h-auto"
+                  >
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-lg">{collectionName}</CardTitle>
+                      <Badge className="bg-green-100 text-green-800">List</Badge>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {editingField === validation.id ? (
-                      <div className="flex items-center gap-2">
-                        <Input
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          className="w-48"
+                  {!isExpanded && collectionValidations.length > 0 && (
+                    <div className="text-sm text-gray-500">
+                      {collectionValidations.length} item{collectionValidations.length !== 1 ? 's' : ''}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+            {isExpanded && (
+              <CardContent>
+                <div className="space-y-4">
+                  {collectionValidations.map((validation) => (
+                    <div key={validation.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <ValidationIcon
+                          status={validation.validationStatus as ValidationStatus}
+                          reasoning={validation.aiReasoning}
+                          confidenceScore={validation.confidenceScore}
+                          onManualEdit={() => handleManualEdit(validation)}
                         />
-                        <Button
-                          size="sm"
-                          onClick={() => handleSaveEdit(validation)}
-                          disabled={updateValidationMutation.isPending}
-                        >
-                          Save
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={handleCancelEdit}
-                        >
-                          Cancel
-                        </Button>
+                        <div>
+                          <Label className="font-medium">{validation.fieldName}</Label>
+                          <p className="text-sm text-gray-600">
+                            {validation.fieldType} • Record {validation.recordIndex + 1}
+                          </p>
+                        </div>
                       </div>
-                    ) : (
-                      <div className="text-right">
-                        <p className="font-medium">{validation.extractedValue || 'No value'}</p>
-                        {validation.manuallyVerified && (
-                          <Badge variant="outline" className="text-xs mt-1">
-                            Manually Verified
-                          </Badge>
+                      <div className="flex items-center gap-2">
+                        {editingField === validation.id ? (
+                          <div className="flex items-center gap-2">
+                            <Input
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              className="w-48"
+                            />
+                            <Button
+                              size="sm"
+                              onClick={() => handleSaveEdit(validation)}
+                              disabled={updateValidationMutation.isPending}
+                            >
+                              Save
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={handleCancelEdit}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="text-right">
+                            <p className="font-medium">{validation.extractedValue || 'No value'}</p>
+                            {validation.manuallyVerified && (
+                              <Badge variant="outline" className="text-xs mt-1">
+                                Manually Verified
+                              </Badge>
+                            )}
+                          </div>
                         )}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+              </CardContent>
+            )}
+          </Card>
+        );
+      })}
 
       {/* Raw Extracted Data (for debugging) */}
       {extractedData && Object.keys(extractedData).length > 0 && (
