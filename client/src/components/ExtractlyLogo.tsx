@@ -3,14 +3,50 @@ import { useLocation } from "wouter";
 interface ExtractlyLogoProps {
   className?: string;
   showText?: boolean;
+  size?: number;
 }
 
-export default function ExtractlyLogo({ className = "", showText = true }: ExtractlyLogoProps) {
+export default function ExtractlyLogo({ className = "", showText = true, size = 60 }: ExtractlyLogoProps) {
   const [, setLocation] = useLocation();
 
   const handleClick = () => {
     setLocation("/");
   };
+
+  // When used as an indent marker (size 16 or smaller), don't make it clickable
+  const isIndentMarker = size <= 16;
+
+  if (isIndentMarker) {
+    return (
+      <div className={`flex items-center ${className}`}>
+        <svg
+          width={size}
+          height={size * 0.6}
+          viewBox="0 0 24 16"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          {/* First wave line */}
+          <path
+            d="M2 6 Q6 3 10 6 Q14 9 18 6 Q20 5 22 6"
+            stroke="#0EA5E9"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            fill="none"
+          />
+          
+          {/* Second wave line */}
+          <path
+            d="M2 10 Q6 7 10 10 Q14 13 18 10 Q20 9 22 10"
+            stroke="#38BDF8"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            fill="none"
+          />
+        </svg>
+      </div>
+    );
+  }
 
   return (
     <button
@@ -21,8 +57,8 @@ export default function ExtractlyLogo({ className = "", showText = true }: Extra
       {/* Logo SVG */}
       <div className="relative">
         <svg
-          width="60"
-          height="60"
+          width={size}
+          height={size}
           viewBox="0 0 80 40"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
