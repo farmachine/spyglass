@@ -1182,10 +1182,17 @@ Thank you for your assistance.`;
                   </div>
                   {/* Collection Verification Status - positioned like field validation icons */}
                   <div className="flex items-center gap-2">
-                    <ValidationIcon 
-                      status={getCollectionVerificationProgress(collection.collectionName).percentage === 100 ? 'verified' : 'unverified'} 
-                      showText={true}
-                    />
+                    {getCollectionVerificationProgress(collection.collectionName).percentage === 100 ? (
+                      <div className="flex items-center gap-1">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="text-green-600 font-medium text-sm">Verified</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <AlertTriangle className="h-4 w-4 text-red-600" />
+                        <span className="text-red-600 font-medium text-sm">Unverified</span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 {isExpanded && (
