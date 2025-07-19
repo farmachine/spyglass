@@ -27,6 +27,11 @@ Preferred communication style: Simple, everyday language.
 - ✓ **UI ALIGNMENT AND CONSISTENCY FIXES**: Fixed logo positioning and tab styling issues
 - ✓ Fixed SessionView header logo alignment to be flush left consistent with ProjectLayout
 - ✓ Updated tab styling to use proper blue background with white text for selected tabs
+- ✓ **DRAG-AND-DROP FIELD REORDERING**: Implemented manual field ordering with smooth UX
+- ✓ Added react-beautiful-dnd for intuitive drag-and-drop functionality with grip handles
+- ✓ Created custom mutation to prevent unwanted tab redirects during reordering operations
+- ✓ Implemented optimistic updates to eliminate visual flashing during drag operations
+- ✓ Silent background updates without confirmation toasts for seamless user experience
 
 **January 17, 2025**
 - ✓ **VALIDATION COLOR SCHEME RESTORED**: Fixed validation status display with proper green/red colors

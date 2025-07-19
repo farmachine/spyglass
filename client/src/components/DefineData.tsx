@@ -115,7 +115,11 @@ export default function DefineData({ project }: DefineDataProps) {
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
-    // Update orderIndex for all affected fields
+    // Optimistically update the cache immediately to prevent visual flashing
+    const updatedItems = items.map((field, index) => ({ ...field, orderIndex: index }));
+    queryClient.setQueryData(["/api/projects", project.id, "schema"], updatedItems);
+
+    // Update orderIndex for all affected fields in the background
     try {
       const updatePromises = items.map((field, index) => 
         updateSchemaFieldForReorder.mutateAsync({ 
@@ -128,6 +132,9 @@ export default function DefineData({ project }: DefineDataProps) {
       
       // Silent update - no toast notification for reordering
     } catch (error) {
+      // If update fails, refetch to restore correct order
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id, "schema"] });
+      
       toast({
         title: "Error",
         description: "Failed to update field order. Please try again.",
