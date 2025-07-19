@@ -249,9 +249,9 @@ export default function ProjectCard({ project }: ProjectCardProps) {
                 <WavePattern variant="light" size="sm" className="opacity-60" />
               </div>
               
-              <div className="flex flex-col items-end justify-center">
+              <div className="flex flex-col items-end justify-end gap-1">
                 {publishedOrganizations.length > 0 ? (
-                  <div className="flex flex-wrap gap-1 justify-end">
+                  <>
                     {/* Sort organizations to show primary organizations first */}
                     {publishedOrganizations
                       .sort((a: Organization & { type?: string }, b: Organization & { type?: string }) => {
@@ -259,28 +259,32 @@ export default function ProjectCard({ project }: ProjectCardProps) {
                         if (b.type === 'primary' && a.type !== 'primary') return 1;
                         return 0;
                       })
-                      .slice(0, 3)
+                      .slice(0, 2)
                       .map((org: Organization & { type?: string }) => (
                         <Badge 
                           key={org.id} 
                           variant="secondary" 
-                          className="text-sm font-medium px-3 py-1 bg-green-100 text-green-700 border-green-200"
+                          className={`text-xs font-medium px-2 py-0.5 ${
+                            org.type === 'primary' 
+                              ? 'bg-blue-100 text-blue-700 border-blue-200' 
+                              : 'bg-green-100 text-green-700 border-green-200'
+                          }`}
                         >
                           {org.name}
                         </Badge>
                       ))
                     }
-                    {publishedOrganizations.length > 3 && (
+                    {publishedOrganizations.length > 2 && (
                       <Badge 
                         variant="secondary" 
-                        className="text-sm font-medium px-3 py-1 bg-green-100 text-green-700 border-green-200"
+                        className="text-xs font-medium px-2 py-0.5 bg-gray-100 text-gray-700 border-gray-200"
                       >
-                        +{publishedOrganizations.length - 3} more
+                        +{publishedOrganizations.length - 2}
                       </Badge>
                     )}
-                  </div>
+                  </>
                 ) : (
-                  <div className="text-sm font-medium text-black/50 italic text-right">
+                  <div className="text-xs font-medium text-black/50 italic text-right">
                     Not published
                   </div>
                 )}
