@@ -193,7 +193,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
 
   return (
     <>
-      <Card className={`bg-white text-black border border-gray-200 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-blue-300 hover:-translate-y-1 cursor-pointer group relative overflow-hidden h-[180px] flex flex-col ${
+      <Card className={`bg-white text-black border border-gray-200 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-blue-300 hover:-translate-y-1 cursor-pointer group relative overflow-hidden h-[200px] flex flex-col ${
         project.status === "inactive" ? "opacity-60" : ""
       }`}>
         <CardHeader className="pt-4 pb-2 flex-shrink-0">
@@ -265,9 +265,14 @@ export default function ProjectCard({ project }: ProjectCardProps) {
         {/* Fixed bottom area */}
         <CardContent className="pb-4 flex-shrink-0 relative bg-white" onClick={() => setLocation(`/projects/${project.id}`)}>
           {/* Created date - positioned above stats */}
-          <div className="flex items-center text-xs font-medium text-black/60 mb-2">
-            <Calendar className="h-3 w-3 mr-1" />
-            Created by {project.creatorName || 'Unknown'} ({project.creatorOrganizationName || 'Unknown'}) on {formatDate(project.createdAt)}
+          <div className="text-xs font-medium text-black/60 mb-2">
+            <div className="flex items-center">
+              <Calendar className="h-3 w-3 mr-1" />
+              by {project.creatorName || 'Unknown'} ({project.creatorOrganizationName || 'Unknown'})
+            </div>
+            <div className="ml-4">
+              on {formatDate(project.createdAt)}
+            </div>
           </div>
           
           {/* Bottom row with stats and wave only */}
