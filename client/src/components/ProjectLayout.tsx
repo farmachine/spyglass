@@ -83,7 +83,9 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
     if (activeTab === 'upload' && !isSetupComplete && isInitialLoad && user?.role === 'admin') {
       // Only redirect if this is truly the initial project load
       const hasInteracted = sessionStorage.getItem(`project-${project.id}-interacted`);
-      if (!hasInteracted) {
+      const isReordering = sessionStorage.getItem(`project-${project.id}-reordering`);
+      
+      if (!hasInteracted && !isReordering) {
         sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
         setActiveTab('define');
       }

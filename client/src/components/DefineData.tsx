@@ -100,20 +100,27 @@ export default function DefineData({ project }: DefineDataProps) {
     items.splice(result.destination.index, 0, reorderedItem);
 
     // Update orderIndex for all affected fields
-    const updatePromises = items.map((field, index) => 
-      updateSchemaField.mutateAsync({ 
-        id: field.id, 
-        field: { ...field, orderIndex: index } 
-      })
-    );
-
     try {
+      // Use Promise.all for faster execution but prevent redirect by marking user interaction
+      sessionStorage.setItem(`project-${project.id}-reordering`, 'true');
+      
+      const updatePromises = items.map((field, index) => 
+        updateSchemaField.mutateAsync({ 
+          id: field.id, 
+          field: { ...field, orderIndex: index } 
+        })
+      );
+      
       await Promise.all(updatePromises);
-      toast({
-        title: "Fields reordered",
-        description: "Field order has been updated successfully.",
-      });
+      
+      // Clear the reordering flag after a brief delay
+      setTimeout(() => {
+        sessionStorage.removeItem(`project-${project.id}-reordering`);
+      }, 100);
+      
+      // Silent update - no toast notification for reordering
     } catch (error) {
+      sessionStorage.removeItem(`project-${project.id}-reordering`);
       toast({
         title: "Error",
         description: "Failed to update field order. Please try again.",
