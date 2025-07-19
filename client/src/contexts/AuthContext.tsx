@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User, UserWithOrganization } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 import ChangePasswordDialog from "@/components/ChangePasswordDialog";
 
 interface AuthContextType {
@@ -40,6 +41,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Initialize auth state from localStorage
   useEffect(() => {
@@ -64,10 +66,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
+        // Clear cache when user data is loaded/refreshed
+        queryClient.clear();
       } else {
         // Token is invalid, clear it
         localStorage.removeItem("auth_token");
         setToken(null);
+        queryClient.clear();
       }
     } catch (error) {
       console.error("Failed to fetch user data:", error);
@@ -94,6 +99,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUser(data.user);
         setToken(data.token);
         localStorage.setItem("auth_token", data.token);
+        
+        // Clear all cached data when a new user logs in
+        queryClient.clear();
         
         // Check if user has temporary password
         if (data.requiresPasswordChange) {
@@ -158,6 +166,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(null);
     setToken(null);
     localStorage.removeItem("auth_token");
+    
+    // Clear all cached data when user logs out
+    queryClient.clear();
+    
     toast({
       title: "Logged out",
       description: "You have been logged out successfully",
