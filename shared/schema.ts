@@ -94,6 +94,9 @@ export const fieldValidations = pgTable("field_validations", {
   collectionName: text("collection_name"), // for collection properties only
   recordIndex: integer("record_index").default(0), // for collection properties, which record instance
   extractedValue: text("extracted_value"),
+  originalExtractedValue: text("original_extracted_value"), // stores original AI extracted value for reverting
+  originalConfidenceScore: integer("original_confidence_score").default(0), // original AI confidence score
+  originalAiReasoning: text("original_ai_reasoning"), // original AI reasoning for reverting
   validationStatus: text("validation_status").default("pending").notNull(), // 'valid', 'invalid', 'pending', 'manual'
   aiReasoning: text("ai_reasoning"), // AI explanation for validation status
   manuallyVerified: boolean("manually_verified").default(false).notNull(),

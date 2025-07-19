@@ -1005,13 +1005,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 }
                 
                 if (existingValidation) {
-                  // Update existing validation
-                  await storage.updateFieldValidation(existingValidation.id, {
+                  // Update existing validation - preserve original values if they don't exist yet
+                  const updateData: any = {
                     extractedValue: normalizedValue,
                     validationStatus: validation.validation_status,
                     aiReasoning: validation.ai_reasoning,
                     confidenceScore: validation.confidence_score
-                  });
+                  };
+                  
+                  // If original values don't exist yet, store them (this handles retroactive population)
+                  if (!existingValidation.originalExtractedValue) {
+                    updateData.originalExtractedValue = validation.original_extracted_value || normalizedValue;
+                    updateData.originalConfidenceScore = validation.original_confidence_score || validation.confidence_score;
+                    updateData.originalAiReasoning = validation.original_ai_reasoning || validation.ai_reasoning;
+                  }
+                  
+                  await storage.updateFieldValidation(existingValidation.id, updateData);
                 } else {
                   // Create new validation if it doesn't exist
                   await storage.createFieldValidation({
@@ -1022,6 +1031,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     collectionName,
                     recordIndex,
                     extractedValue: normalizedValue,
+                    originalExtractedValue: validation.original_extracted_value || normalizedValue,
+                    originalConfidenceScore: validation.original_confidence_score || validation.confidence_score,
+                    originalAiReasoning: validation.original_ai_reasoning || validation.ai_reasoning,
                     validationStatus: validation.validation_status,
                     aiReasoning: validation.ai_reasoning,
                     manuallyVerified: false,

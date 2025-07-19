@@ -15,6 +15,9 @@ class FieldValidationResult:
     field_name: str
     field_type: str
     extracted_value: Any
+    original_extracted_value: Any  # Store original AI value for reverting
+    original_confidence_score: int  # Store original AI confidence
+    original_ai_reasoning: str  # Store original AI reasoning
     validation_status: str
     ai_reasoning: str
     confidence_score: int
@@ -273,6 +276,9 @@ def extract_data_from_document(
                     field_name=field_name,
                     field_type=field_type,
                     extracted_value=extracted_value,
+                    original_extracted_value=extracted_value,  # Store original value for reverting
+                    original_confidence_score=confidence,  # Store original confidence
+                    original_ai_reasoning=reasoning,  # Store original reasoning
                     validation_status=status,
                     ai_reasoning=reasoning,
                     confidence_score=confidence,
@@ -311,6 +317,9 @@ def extract_data_from_document(
                                 field_name=field_name_with_index,
                                 field_type=prop_type,
                                 extracted_value=extracted_value,
+                                original_extracted_value=extracted_value,  # Store original value for reverting
+                                original_confidence_score=confidence,  # Store original confidence
+                                original_ai_reasoning=reasoning,  # Store original reasoning
                                 validation_status=status,
                                 ai_reasoning=reasoning,
                                 confidence_score=confidence,

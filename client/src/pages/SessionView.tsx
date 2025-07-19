@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import * as XLSX from 'xlsx';
 import { Link } from "wouter";
@@ -703,6 +703,36 @@ Thank you for your assistance.`;
     }
   };
 
+  const handleRevertToAI = async (fieldName: string) => {
+    const validation = getValidation(fieldName);
+    if (validation && validation.originalExtractedValue !== undefined) {
+      try {
+        await updateValidationMutation.mutateAsync({
+          id: validation.id,
+          data: {
+            extractedValue: validation.originalExtractedValue,
+            validationStatus: "pending", // Reset to pending since it's the original AI value
+            aiReasoning: validation.originalAiReasoning,
+            confidenceScore: validation.originalConfidenceScore,
+            manuallyVerified: false
+          }
+        });
+        
+        toast({
+          title: "Reverted to AI value",
+          description: `${getFieldDisplayName(fieldName)} has been reverted to the original AI extracted value.`,
+        });
+      } catch (error) {
+        console.error('Failed to revert to AI value:', error);
+        toast({
+          title: "Failed to revert",
+          description: "An error occurred while reverting to the AI value.",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
   const getFieldType = (fieldName: string) => {
     // Check schema fields first
     for (const field of project.schemaFields) {
@@ -939,7 +969,23 @@ Thank you for your assistance.`;
             const wasExtracted = validation.confidenceScore > 0;
             
             if (wasManuallyUpdated) {
-              return <ManualInputBadge />;
+              return (
+                <div className="flex items-center gap-2">
+                  <ManualInputBadge />
+                  {validation.originalExtractedValue && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleRevertToAI(fieldName)}
+                      className="h-6 px-2 text-xs"
+                      title="Revert to original AI extracted value"
+                    >
+                      <RotateCcw className="h-3 w-3 mr-1" />
+                      Revert to AI
+                    </Button>
+                  )}
+                </div>
+              );
             } else if (!wasExtracted) {
               return <NotExtractedBadge />;
             } else {
