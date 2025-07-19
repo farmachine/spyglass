@@ -4,7 +4,7 @@ import type { InsertProject } from "@shared/schema";
 
 export function useProjects() {
   return useQuery({
-    queryKey: ["/api/projects"],
+    queryKey: ["/api/projects-with-orgs"],
     queryFn: projectsApi.getAll,
   });
 }
@@ -23,7 +23,7 @@ export function useCreateProject() {
   return useMutation({
     mutationFn: (project: InsertProject) => projectsApi.create(project),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects-with-orgs"] });
     },
   });
 }
@@ -35,7 +35,7 @@ export function useUpdateProject() {
     mutationFn: ({ id, project }: { id: string; project: Partial<InsertProject> }) =>
       projectsApi.update(id, project),
     onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects-with-orgs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects", id] });
     },
   });
@@ -47,7 +47,7 @@ export function useDeleteProject() {
   return useMutation({
     mutationFn: (id: string) => projectsApi.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects-with-orgs"] });
     },
     onError: (error: any) => {
       console.error("Delete project error:", error);
@@ -62,7 +62,7 @@ export function useDuplicateProject() {
     mutationFn: ({ id, name }: { id: string; name: string }) => 
       projectsApi.duplicate(id, name),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects-with-orgs"] });
     },
   });
 }
@@ -74,7 +74,7 @@ export function useUpdateProjectStatus() {
     mutationFn: ({ id, status }: { id: string; status: "active" | "inactive" }) => 
       projectsApi.updateStatus(id, status),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects-with-orgs"] });
     },
   });
 }
