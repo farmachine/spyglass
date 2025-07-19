@@ -39,6 +39,7 @@ const resetPasswordSchema = z.object({
 
 const editUserSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
+  role: z.enum(["admin", "user"]),
 });
 
 export default function OrganizationConfig() {
@@ -127,10 +128,10 @@ export default function OrganizationConfig() {
   });
 
   const editUserMutation = useMutation({
-    mutationFn: async ({ userId, name }: { userId: number; name: string }) => {
+    mutationFn: async ({ userId, name, role }: { userId: number; name: string; role: string }) => {
       return apiRequest(`/api/users/${userId}`, {
         method: "PUT",
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, role }),
       });
     },
     onSuccess: () => {
@@ -140,7 +141,7 @@ export default function OrganizationConfig() {
       editUserForm.reset();
       toast({ 
         title: "User Updated",
-        description: "User name updated successfully.",
+        description: "User information updated successfully.",
       });
     },
   });
@@ -187,6 +188,7 @@ export default function OrganizationConfig() {
     resolver: zodResolver(editUserSchema),
     defaultValues: {
       name: "",
+      role: "user" as const,
     },
   });
 
@@ -478,6 +480,7 @@ export default function OrganizationConfig() {
                             onClick={() => {
                               setSelectedUser(user);
                               editUserForm.setValue("name", user.name);
+                              editUserForm.setValue("role", user.role);
                               setEditUserOpen(true);
                             }}
                           >
@@ -573,6 +576,7 @@ export default function OrganizationConfig() {
                   editUserMutation.mutate({
                     userId: selectedUser.id,
                     name: data.name,
+                    role: data.role,
                   });
                 }
               })}
@@ -590,6 +594,27 @@ export default function OrganizationConfig() {
                         {...field}
                       />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editUserForm.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Role</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="user">User</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
