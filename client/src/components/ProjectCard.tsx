@@ -175,7 +175,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
   return (
     <>
       <Card className="bg-white text-black hover:shadow-md transition-shadow cursor-pointer group border-primary relative overflow-hidden h-[180px] flex flex-col">
-        <CardHeader className="pb-2 flex-shrink-0">
+        <CardHeader className="pt-4 pb-2 flex-shrink-0">
           <div className="flex items-start justify-between">
             <div className="flex-1 flex flex-col" onClick={() => setLocation(`/projects/${project.id}`)}>
               <CardTitle className="text-xl font-bold text-black group-hover:text-black/80 transition-colors line-clamp-1 mb-1">
@@ -215,7 +215,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
         <div className="flex-1" onClick={() => setLocation(`/projects/${project.id}`)} />
         
         {/* Fixed bottom area */}
-        <CardContent className="pb-3 flex-shrink-0 relative bg-white" onClick={() => setLocation(`/projects/${project.id}`)}>
+        <CardContent className="pb-4 flex-shrink-0 relative bg-white" onClick={() => setLocation(`/projects/${project.id}`)}>
           {/* Created date - positioned above stats */}
           <div className="flex items-center text-xs font-medium text-black/60 mb-2">
             <Calendar className="h-3 w-3 mr-1" />
