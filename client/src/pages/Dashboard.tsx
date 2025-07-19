@@ -190,8 +190,15 @@ export default function Dashboard() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="space-y-6">
+          {/* Welcome Header */}
+          <div className="py-4">
+            <h1 className="text-2xl font-medium text-gray-700">
+              Welcome back, {user?.name || user?.email?.split('@')[0] || 'User'}
+            </h1>
+          </div>
+          
           {/* Page Title */}
-          <div className="py-6">
+          <div className="py-2">
             <div className="flex items-center space-x-3">
               <LayoutDashboard className="h-8 w-8 text-primary" />
               <h2 className="text-3xl font-bold">Dashboard</h2>
