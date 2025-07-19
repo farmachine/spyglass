@@ -975,10 +975,10 @@ Thank you for your assistance.`;
                   {validation.originalExtractedValue && (
                     <button
                       onClick={() => handleRevertToAI(fieldName)}
-                      className="inline-flex items-center justify-center w-5 h-5 rounded bg-blue-100 hover:bg-blue-200 transition-colors"
+                      className="inline-flex items-center justify-center w-5 h-5 rounded bg-white hover:bg-gray-50 transition-colors border border-gray-200"
                       title="Revert to original AI extracted value"
                     >
-                      <RotateCcw className="h-3 w-3 text-blue-700" />
+                      <RotateCcw className="h-3 w-3 text-red-600" />
                     </button>
                   )}
                 </div>
