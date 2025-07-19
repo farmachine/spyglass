@@ -10,7 +10,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -212,25 +212,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
               )}
             </div>
             
-            <div className="flex flex-col items-end gap-2">
-              {/* Status Toggle - positioned above settings */}
-              <div className="bg-gray-50 rounded-md px-2 py-1 border">
-                <RadioGroup
-                  value={project.status || "active"}
-                  onValueChange={(value) => handleStatusChange(value as "active" | "inactive")}
-                  className="flex gap-2"
-                >
-                  <div className="flex items-center space-x-1">
-                    <RadioGroupItem value="active" id={`active-${project.id}`} className="h-3 w-3" />
-                    <Label htmlFor={`active-${project.id}`} className="text-xs">Active</Label>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <RadioGroupItem value="inactive" id={`inactive-${project.id}`} className="h-3 w-3" />
-                    <Label htmlFor={`inactive-${project.id}`} className="text-xs">Inactive</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-              
+            <div className="flex flex-col items-end gap-1">
               {/* Settings Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -252,6 +234,17 @@ export default function ProjectCard({ project }: ProjectCardProps) {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              
+              {/* Status Toggle - positioned below settings */}
+              <div className="flex items-center space-x-2 bg-gray-50 rounded-md px-2 py-1 border">
+                <Label htmlFor={`status-${project.id}`} className="text-xs font-medium">Active</Label>
+                <Switch
+                  id={`status-${project.id}`}
+                  checked={project.status === "active" || !project.status}
+                  onCheckedChange={(checked) => handleStatusChange(checked ? "active" : "inactive")}
+                  className="scale-75"
+                />
+              </div>
             </div>
           </div>
         </CardHeader>
