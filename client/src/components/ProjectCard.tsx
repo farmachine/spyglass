@@ -217,15 +217,15 @@ export default function ProjectCard({ project }: ProjectCardProps) {
         <div className="flex-1" onClick={() => setLocation(`/projects/${project.id}`)} />
         
         {/* Fixed bottom area */}
-        <CardContent className="pb-4 flex-shrink-0" onClick={() => setLocation(`/projects/${project.id}`)}>
+        <CardContent className="pb-4 flex-shrink-0 relative" onClick={() => setLocation(`/projects/${project.id}`)}>
           {/* Created date - positioned above stats */}
           <div className="flex items-center text-sm font-medium text-black/60 mb-3">
             <Calendar className="h-3.5 w-3.5 mr-1.5" />
             Created {formatDate(project.createdAt)}
           </div>
           
-          {/* Bottom row with stats, wave, and organizations */}
-          <div className="flex items-end justify-between">
+          {/* Bottom row with stats and wave only */}
+          <div className="flex items-center justify-between pr-20">
             {/* Left side - Session stats */}
             <div className="flex items-center gap-3">
               {/* Total Sessions */}
@@ -255,36 +255,36 @@ export default function ProjectCard({ project }: ProjectCardProps) {
             <div className="flex items-center justify-center">
               <WavePattern variant="light" size="sm" className="opacity-60" />
             </div>
-            
-            {/* Right side - Organizations column */}
-            <div className="flex flex-col items-end justify-end gap-1 min-h-[32px]">
-              {publishedOrganizations.length > 0 ? (
-                publishedOrganizations
-                  .sort((a: Organization & { type?: string }, b: Organization & { type?: string }) => {
-                    // Sort by type first (primary first), then by creation order (reversed for bottom-up stacking)
-                    if (a.type === 'primary' && b.type !== 'primary') return 1; // Primary goes to bottom
-                    if (b.type === 'primary' && a.type !== 'primary') return -1;
-                    return 0; // Keep relative order for same type
-                  })
-                  .map((org: Organization & { type?: string }) => (
-                    <Badge 
-                      key={org.id} 
-                      variant="secondary" 
-                      className={`text-xs font-medium px-2 py-0.5 ${
-                        org.type === 'primary' 
-                          ? 'bg-gray-200 text-black border-gray-300' 
-                          : 'bg-green-100 text-green-700 border-green-200'
-                      }`}
-                    >
-                      {org.name}
-                    </Badge>
-                  ))
-              ) : (
-                <div className="text-xs font-medium text-black/50 italic">
-                  Not published
-                </div>
-              )}
-            </div>
+          </div>
+          
+          {/* Organizations column - positioned absolutely in right side */}
+          <div className="absolute bottom-4 right-6 flex flex-col items-end justify-end gap-1 min-h-[32px]">
+            {publishedOrganizations.length > 0 ? (
+              publishedOrganizations
+                .sort((a: Organization & { type?: string }, b: Organization & { type?: string }) => {
+                  // Sort by type first (primary first), then by creation order (reversed for bottom-up stacking)
+                  if (a.type === 'primary' && b.type !== 'primary') return 1; // Primary goes to bottom
+                  if (b.type === 'primary' && a.type !== 'primary') return -1;
+                  return 0; // Keep relative order for same type
+                })
+                .map((org: Organization & { type?: string }) => (
+                  <Badge 
+                    key={org.id} 
+                    variant="secondary" 
+                    className={`text-xs font-medium px-2 py-0.5 ${
+                      org.type === 'primary' 
+                        ? 'bg-gray-200 text-black border-gray-300' 
+                        : 'bg-green-100 text-green-700 border-green-200'
+                    }`}
+                  >
+                    {org.name}
+                  </Badge>
+                ))
+            ) : (
+              <div className="text-xs font-medium text-black/50 italic">
+                Not published
+              </div>
+            )}
           </div>
         </CardContent>
         
