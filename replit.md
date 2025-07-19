@@ -32,6 +32,9 @@ Preferred communication style: Simple, everyday language.
 - ✓ Created custom mutation to prevent unwanted tab redirects during reordering operations
 - ✓ Implemented optimistic updates to eliminate visual flashing during drag operations
 - ✓ Silent background updates without confirmation toasts for seamless user experience
+- ✓ **COLLECTION FIELD REORDERING**: Extended drag-and-drop functionality to collection properties
+- ✓ Collection properties now support same smooth reordering as main schema fields
+- ✓ Added grip handles and optimistic updates for collection fields within each collection card
 
 **January 17, 2025**
 - ✓ **VALIDATION COLOR SCHEME RESTORED**: Fixed validation status display with proper green/red colors
