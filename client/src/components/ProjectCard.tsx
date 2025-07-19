@@ -220,6 +220,25 @@ export default function ProjectCard({ project }: ProjectCardProps) {
                     Duplicate
                   </DropdownMenuItem>
                   <DropdownMenuItem 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleStatusChange(project.status === "active" || !project.status ? "inactive" : "active");
+                    }}
+                    className={project.status === "active" || !project.status ? "text-orange-600" : "text-green-600"}
+                  >
+                    {project.status === "active" || !project.status ? (
+                      <>
+                        <AlertTriangle className="h-4 w-4 mr-2" />
+                        Deactivate
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Activate
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
                     onClick={() => setDeleteDialogOpen(true)}
                     className="text-red-600"
                   >
@@ -304,21 +323,6 @@ export default function ProjectCard({ project }: ProjectCardProps) {
                 Not published
               </div>
             )}
-            
-            {/* Status Toggle - positioned below organization badges */}
-            <div 
-              className={`mt-1 px-2 py-1 rounded text-xs font-medium cursor-pointer transition-colors ${
-                project.status === "active" || !project.status
-                  ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                  : 'bg-red-100 text-red-800 hover:bg-red-200'
-              }`}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleStatusChange(project.status === "active" || !project.status ? "inactive" : "active");
-              }}
-            >
-              {project.status === "active" || !project.status ? 'Active' : 'Inactive'}
-            </div>
           </div>
         </CardContent>
         
