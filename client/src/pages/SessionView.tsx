@@ -404,6 +404,20 @@ export default function SessionView() {
     return { verified, total, percentage };
   };
 
+  // Function to get verification progress for a specific collection
+  const getCollectionVerificationProgress = (collectionName: string) => {
+    const collectionValidations = validations.filter(v => v.collectionName === collectionName);
+    const totalFields = collectionValidations.length;
+    const verifiedFields = collectionValidations.filter(v => v.status === 'verified').length;
+    const percentage = totalFields > 0 ? Math.round((verifiedFields / totalFields) * 100) : 0;
+    
+    return {
+      verified: verifiedFields,
+      total: totalFields,
+      percentage
+    };
+  };
+
   // Get all unverified fields for consolidated reasoning
   const getUnverifiedFields = () => {
     return validations.filter(v => v.validationStatus !== 'valid' && v.validationStatus !== 'verified');
@@ -1147,6 +1161,30 @@ Thank you for your assistance.`;
                         </span>
                       </div>
                       <p className="text-sm text-gray-600 mt-1">{collection.description}</p>
+                      
+                      {/* Collection Verification Progress */}
+                      <div className="flex items-center gap-3 mt-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-20 bg-gray-200 rounded-full h-2">
+                            <div 
+                              className={`h-2 rounded-full transition-all duration-300 ${
+                                getCollectionVerificationProgress(collection.collectionName).percentage === 100 ? 'bg-green-600' : 
+                                getCollectionVerificationProgress(collection.collectionName).percentage > 0 ? 'bg-blue-600' : 'bg-gray-400'
+                              }`}
+                              style={{ width: `${getCollectionVerificationProgress(collection.collectionName).percentage}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-medium text-gray-700 min-w-[28px]">
+                            {getCollectionVerificationProgress(collection.collectionName).percentage}%
+                          </span>
+                        </div>
+                        <Badge 
+                          variant={getCollectionVerificationProgress(collection.collectionName).percentage === 100 ? 'default' : 'secondary'}
+                          className="text-xs"
+                        >
+                          {getCollectionVerificationProgress(collection.collectionName).percentage === 100 ? 'Verified' : 'In Progress'}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
                 </div>
