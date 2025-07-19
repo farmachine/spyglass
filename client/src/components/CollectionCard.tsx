@@ -94,7 +94,7 @@ export default function CollectionCard({
   };
 
   return (
-    <Card className="border-gray-200">
+    <Card className="border-gray-200 border-l-4 border-l-green-500">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 flex-1">
@@ -119,7 +119,10 @@ export default function CollectionCard({
               )}
             </Button>
             <div className="flex-1">
-              <CardTitle className="text-lg">{collection.collectionName}</CardTitle>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-lg">{collection.collectionName}</CardTitle>
+                <Badge className="bg-green-100 text-green-800">List</Badge>
+              </div>
               {collection.description && (
                 <p className="text-sm text-gray-600 mt-1">{collection.description}</p>
               )}

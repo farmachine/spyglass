@@ -123,9 +123,12 @@ export default function DefineData({ project }: DefineDataProps) {
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
-    // Separate fields and collections for updating
-    const updatedFields = items.filter(item => item.type === 'field').map((field, index) => ({ ...field, orderIndex: index }));
-    const updatedCollections = items.filter(item => item.type === 'collection').map((collection, index) => ({ ...collection, orderIndex: index }));
+    // Update orderIndex for all items to maintain unified order
+    const updatedItems = items.map((item, index) => ({ ...item, orderIndex: index }));
+    
+    // Separate fields and collections but keep their unified order
+    const updatedFields = updatedItems.filter(item => item.type === 'field');
+    const updatedCollections = updatedItems.filter(item => item.type === 'collection');
 
     // Optimistically update both caches
     queryClient.setQueryData(["/api/projects", project.id, "schema"], updatedFields);
@@ -133,17 +136,17 @@ export default function DefineData({ project }: DefineDataProps) {
 
     // Update orderIndex for all affected items in the background
     try {
-      const fieldPromises = updatedFields.map((field, index) => 
+      const fieldPromises = updatedFields.map((field) => 
         updateSchemaFieldForReorder.mutateAsync({ 
           id: field.id, 
-          field: { ...field, orderIndex: index } 
+          field: { ...field, orderIndex: field.orderIndex } 
         })
       );
       
-      const collectionPromises = updatedCollections.map((collection, index) => 
+      const collectionPromises = updatedCollections.map((collection) => 
         updateCollectionForReorder.mutateAsync({ 
           id: collection.id, 
-          collection: { ...collection, orderIndex: index } 
+          collection: { ...collection, orderIndex: collection.orderIndex } 
         })
       );
       
@@ -598,9 +601,9 @@ export default function DefineData({ project }: DefineDataProps) {
 
       <CollectionDialog
         open={collectionDialog.open}
+        onOpenChange={(open) => setCollectionDialog({ open, collection: null })}
+        onSave={collectionDialog.collection ? handleUpdateCollection : handleCreateCollection}
         collection={collectionDialog.collection}
-        onClose={() => setCollectionDialog({ open: false })}
-        onSubmit={collectionDialog.collection ? handleUpdateCollection : handleCreateCollection}
       />
 
       <PropertyDialog
