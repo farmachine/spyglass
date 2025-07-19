@@ -1163,7 +1163,7 @@ Thank you for your assistance.`;
                   const item = collectionData?.[index] || {};
                   
                   return (
-                    <div key={index} className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg w-full overflow-hidden">
+                    <div key={index} className="mb-6 p-4 bg-gray-50 rounded-lg w-full overflow-hidden">
                       <h4 className="font-medium mb-4">Item {index + 1}</h4>
                       <div className="space-y-4">
                         {collection.properties.map((property) => {
@@ -1179,7 +1179,7 @@ Thank you for your assistance.`;
                               displayValue = null;
                             }
                             return (
-                              <div key={property.id} className="bg-white rounded-lg p-4">
+                              <div key={property.id} className="bg-white border border-gray-200 rounded-lg p-4">
                                 {renderFieldWithValidation(fieldName, displayValue)}
                               </div>
                             );
