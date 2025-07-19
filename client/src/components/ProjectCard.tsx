@@ -178,38 +178,15 @@ export default function ProjectCard({ project }: ProjectCardProps) {
     <>
       <Card className="bg-white text-black hover:shadow-md transition-shadow cursor-pointer group border-primary relative overflow-hidden">
         <CardHeader className="pb-3">
-          <div className="flex items-start justify-between">
-            <div className="flex-1" onClick={() => setLocation(`/projects/${project.id}`)}>
-              <CardTitle className="text-xl font-bold text-black group-hover:text-black/80 transition-colors">
-                {project.name}
-              </CardTitle>
-              {project.description && (
-                <p className="text-base font-medium text-black/80 mt-1 line-clamp-2">
-                  {project.description}
-                </p>
-              )}
-            </div>
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-black hover:bg-black/10">
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={openDuplicateDialog}>
-                  <Copy className="h-4 w-4 mr-2" />
-                  Duplicate
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => setDeleteDialogOpen(true)}
-                  className="text-red-600"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <div onClick={() => setLocation(`/projects/${project.id}`)}>
+            <CardTitle className="text-xl font-bold text-black group-hover:text-black/80 transition-colors">
+              {project.name}
+            </CardTitle>
+            {project.description && (
+              <p className="text-base font-medium text-black/80 mt-1 line-clamp-2">
+                {project.description}
+              </p>
+            )}
           </div>
         </CardHeader>
         
@@ -221,6 +198,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
           
           <div className="mt-4">
             <div className="flex items-end justify-between">
+              {/* Left side - Session stats */}
               <div className="flex items-center gap-4">
                 {/* Total Sessions */}
                 <div className="flex items-center gap-1">
@@ -245,28 +223,53 @@ export default function ProjectCard({ project }: ProjectCardProps) {
                 )}
               </div>
               
+              {/* Center - Wave pattern */}
               <div className="flex items-center justify-center">
                 <WavePattern variant="light" size="sm" className="opacity-60" />
               </div>
               
-              <div className="flex flex-col items-end justify-end gap-1">
+              {/* Right side - Organizations column */}
+              <div className="flex flex-col items-end gap-1 relative">
                 {publishedOrganizations.length > 0 ? (
                   <>
-                    {/* Sort organizations to show primary organizations first */}
+                    {/* Settings wheel positioned above the first organization */}
+                    <div className="absolute -top-6 right-0">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-gray-100">
+                            <Settings className="h-3 w-3 text-gray-600" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={openDuplicateDialog}>
+                            <Copy className="h-4 w-4 mr-2" />
+                            Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => setDeleteDialogOpen(true)}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    
+                    {/* All organizations displayed */}
                     {publishedOrganizations
                       .sort((a: Organization & { type?: string }, b: Organization & { type?: string }) => {
                         if (a.type === 'primary' && b.type !== 'primary') return -1;
                         if (b.type === 'primary' && a.type !== 'primary') return 1;
                         return 0;
                       })
-                      .slice(0, 2)
                       .map((org: Organization & { type?: string }) => (
                         <Badge 
                           key={org.id} 
                           variant="secondary" 
                           className={`text-xs font-medium px-2 py-0.5 ${
                             org.type === 'primary' 
-                              ? 'bg-blue-100 text-blue-700 border-blue-200' 
+                              ? 'bg-gray-200 text-black border-gray-300' 
                               : 'bg-green-100 text-green-700 border-green-200'
                           }`}
                         >
@@ -274,19 +277,37 @@ export default function ProjectCard({ project }: ProjectCardProps) {
                         </Badge>
                       ))
                     }
-                    {publishedOrganizations.length > 2 && (
-                      <Badge 
-                        variant="secondary" 
-                        className="text-xs font-medium px-2 py-0.5 bg-gray-100 text-gray-700 border-gray-200"
-                      >
-                        +{publishedOrganizations.length - 2}
-                      </Badge>
-                    )}
                   </>
                 ) : (
-                  <div className="text-xs font-medium text-black/50 italic text-right">
-                    Not published
-                  </div>
+                  <>
+                    {/* Settings wheel for unpublished projects */}
+                    <div className="absolute -top-6 right-0">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-gray-100">
+                            <Settings className="h-3 w-3 text-gray-600" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={openDuplicateDialog}>
+                            <Copy className="h-4 w-4 mr-2" />
+                            Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => setDeleteDialogOpen(true)}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    
+                    <div className="text-xs font-medium text-black/50 italic">
+                      Not published
+                    </div>
+                  </>
                 )}
               </div>
             </div>
