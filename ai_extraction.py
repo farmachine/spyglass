@@ -115,12 +115,14 @@ def extract_data_from_document(
             
             logging.info(f"Processing PDF with {len(binary_content)} bytes")
             
-            # Try PyPDF2 for text extraction first, then fallback to image conversion
+            # Try multiple PDF processing approaches with enhanced error handling
+            pdf_processed = False
+            
+            # Method 1: PyPDF2 text extraction
             try:
                 import PyPDF2
                 import io
                 
-                # Try to extract text directly from PDF
                 pdf_reader = PyPDF2.PdfReader(io.BytesIO(binary_content))
                 text_content = ""
                 
@@ -129,45 +131,61 @@ def extract_data_from_document(
                 
                 if text_content.strip():
                     logging.info(f"Successfully extracted text from PDF: {len(text_content)} characters")
-                    # Process as text content
                     full_prompt = prompt + f"\n\nDocument content:\n{text_content}"
                     response = model.generate_content(full_prompt)
-                else:
-                    raise Exception("No text content extracted from PDF")
+                    pdf_processed = True
                     
             except Exception as e:
-                logging.error(f"PDF text extraction error: {e}")
-                # Try image conversion approach
+                logging.error(f"PyPDF2 text extraction error: {e}")
+            
+            # Method 2: pdf2image conversion if text extraction failed
+            if not pdf_processed:
                 try:
                     from pdf2image import convert_from_bytes
                     from PIL import Image
                     import io
                     
-                    # Convert PDF pages to images
-                    images = convert_from_bytes(binary_content)
-                    logging.info(f"Successfully converted PDF to {len(images)} page images")
-                    
-                    # Process first page (or combine multiple pages)
-                    if images:
-                        first_page = images[0]
-                        
-                        # Use the image with Gemini's vision capabilities  
-                        response = model.generate_content([prompt, first_page])
-                        logging.info("Successfully processed PDF page as image with Gemini Vision")
-                    else:
-                        raise Exception("No pages found in PDF")
-                        
+                    # Try with different DPI settings for better compatibility
+                    for dpi in [200, 150, 100]:
+                        try:
+                            images = convert_from_bytes(binary_content, dpi=dpi, first_page=1, last_page=3)
+                            if images:
+                                logging.info(f"Successfully converted PDF to {len(images)} page images at {dpi} DPI")
+                                
+                                # Process first page with Gemini Vision
+                                first_page = images[0]
+                                response = model.generate_content([prompt, first_page])
+                                logging.info("Successfully processed PDF page as image with Gemini Vision")
+                                pdf_processed = True
+                                break
+                        except Exception as dpi_error:
+                            logging.error(f"PDF conversion failed at {dpi} DPI: {dpi_error}")
+                            continue
+                            
                 except Exception as img_error:
-                    logging.error(f"PDF image conversion error: {img_error}")
-                    # Final fallback to text-only processing
-                    logging.info("Falling back to text-only extraction")
-                    fallback_prompt = f"""
-                    {prompt}
-                    
-                    Unable to process PDF content directly. This appears to be a PDF document named '{file_name}'.
-                    Based on the filename and context, please extract what information you can determine might be present.
-                    """
-                    response = model.generate_content(fallback_prompt)
+                    logging.error(f"pdf2image processing error: {img_error}")
+            
+
+            
+            # Final fallback if all PDF processing methods failed
+            if not pdf_processed:
+                logging.warning("All PDF processing methods failed - using intelligent fallback")
+                fallback_prompt = f"""
+                {prompt}
+                
+                CRITICAL: This PDF document named '{file_name}' could not be processed due to PDF formatting/corruption issues.
+                
+                IMPORTANT INSTRUCTIONS:
+                1. DO NOT extract any data - the document content is inaccessible
+                2. Set ALL extracted values to null
+                3. Set ALL validation statuses to "invalid" 
+                4. Set ALL confidence scores to 0
+                5. Use "PDF processing failed - document format issues" as the AI reasoning for each field
+                6. Mark the overall status as requiring manual review
+                
+                This ensures users understand the document needs to be re-uploaded in a different format or fixed.
+                """
+                response = model.generate_content(fallback_prompt)
         
         if not response or not response.text:
             raise Exception("No response from AI model")
