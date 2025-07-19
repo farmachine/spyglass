@@ -220,22 +220,39 @@ export default function ProjectCard({ project }: ProjectCardProps) {
           </div>
           
           <div className="mt-4">
-            <div className="flex items-start justify-between text-sm">
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <Database className="h-4 w-4 text-black/70" />
-                  <span className="text-sm font-medium text-black">{verificationStats.total} Sessions</span>
-                </div>
-                {verificationStats.total > 0 && (
+            <div className="flex items-end justify-between">
+              <div className="flex items-center gap-3">
+                {/* Total Sessions */}
+                {Array.from({ length: Math.min(verificationStats.total, 5) }).map((_, i) => (
+                  <Database key={`total-${i}`} className="h-4 w-4 text-black/70" />
+                ))}
+                {verificationStats.total > 5 && (
+                  <span className="text-xs text-black/70 ml-1">+{verificationStats.total - 5}</span>
+                )}
+                
+                {/* Verified Sessions */}
+                {verificationStats.verified > 0 && (
                   <>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <span className="text-sm font-medium text-green-700">{verificationStats.verified} Verified</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 text-red-600" />
-                      <span className="text-sm font-medium text-red-700">{verificationStats.unverified} Unverified</span>
-                    </div>
+                    <div className="w-px h-4 bg-gray-300 mx-1" />
+                    {Array.from({ length: Math.min(verificationStats.verified, 3) }).map((_, i) => (
+                      <CheckCircle key={`verified-${i}`} className="h-4 w-4 text-green-600" />
+                    ))}
+                    {verificationStats.verified > 3 && (
+                      <span className="text-xs text-green-700 ml-1">+{verificationStats.verified - 3}</span>
+                    )}
+                  </>
+                )}
+                
+                {/* Unverified Sessions */}
+                {verificationStats.unverified > 0 && (
+                  <>
+                    <div className="w-px h-4 bg-gray-300 mx-1" />
+                    {Array.from({ length: Math.min(verificationStats.unverified, 3) }).map((_, i) => (
+                      <AlertTriangle key={`unverified-${i}`} className="h-4 w-4 text-red-600" />
+                    ))}
+                    {verificationStats.unverified > 3 && (
+                      <span className="text-xs text-red-700 ml-1">+{verificationStats.unverified - 3}</span>
+                    )}
                   </>
                 )}
               </div>
