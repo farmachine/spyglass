@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
 import ExtractlyLogo from "@/components/ExtractlyLogo";
+import ValidationIcon from "@/components/ValidationIcon";
 
 import type { 
   ExtractionSession, 
