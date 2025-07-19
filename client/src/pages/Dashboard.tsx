@@ -148,28 +148,29 @@ export default function Dashboard() {
             <div>
               <h2 className="text-xl font-semibold">Projects</h2>
             </div>
-            <Button
-              onClick={() => setCreateDialogOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              New Project
-            </Button>
-          </div>
-          
-          {/* Filter Controls */}
-          <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="show-deactivated"
-              checked={showDeactivated}
-              onCheckedChange={setShowDeactivated}
-            />
-            <Label 
-              htmlFor="show-deactivated"
-              className="text-sm text-gray-600 cursor-pointer"
-            >
-              Show Deactivated
-            </Label>
+            <div className="flex items-center space-x-4">
+              {/* Filter Controls */}
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="show-deactivated"
+                  checked={showDeactivated}
+                  onCheckedChange={setShowDeactivated}
+                />
+                <Label 
+                  htmlFor="show-deactivated"
+                  className="text-sm text-gray-600 cursor-pointer"
+                >
+                  Show Deactivated
+                </Label>
+              </div>
+              <Button
+                onClick={() => setCreateDialogOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Project
+              </Button>
+            </div>
           </div>
           
           {renderProjectsContent()}
