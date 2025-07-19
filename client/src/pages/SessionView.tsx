@@ -1183,7 +1183,7 @@ Thank you for your assistance.`;
                   {/* Collection Verification Status - positioned like field validation icons */}
                   <div className="flex items-center gap-2">
                     <ValidationIcon 
-                      status={getCollectionVerificationProgress(collection.collectionName).percentage === 100 ? 'verified' : 'invalid'} 
+                      status={getCollectionVerificationProgress(collection.collectionName).percentage === 100 ? 'verified' : 'unverified'} 
                       showText={true}
                     />
                   </div>
