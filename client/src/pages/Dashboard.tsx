@@ -254,7 +254,7 @@ export default function Dashboard() {
       </div>
       
       {/* Blue footer with fade */}
-      <div className="h-32 bg-gradient-to-t from-blue-500 to-white"></div>
+      <div className="h-32 bg-gradient-to-t from-blue-50 to-white"></div>
 
       <CreateProjectDialog
         open={createDialogOpen}
