@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import * as XLSX from 'xlsx';
 import { Link } from "wouter";
@@ -226,9 +226,23 @@ export default function SessionView() {
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [showReasoningDialog, setShowReasoningDialog] = useState(false);
+  const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
+  const [hasInitializedCollapsed, setHasInitializedCollapsed] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  const toggleCollectionExpansion = (collectionName: string) => {
+    setExpandedCollections(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(collectionName)) {
+        newSet.delete(collectionName);
+      } else {
+        newSet.add(collectionName);
+      }
+      return newSet;
+    });
+  };
 
   const { data: project, isLoading: projectLoading } = useQuery<ProjectWithDetails>({
     queryKey: ['/api/projects', projectId],
@@ -244,6 +258,31 @@ export default function SessionView() {
     queryKey: ['/api/sessions', sessionId, 'validations'],
     queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`)
   });
+
+  // Initialize collapse state once data is loaded
+  useEffect(() => {
+    if (project?.collections && validations && session && !hasInitializedCollapsed) {
+      const extractedData = session.extractedData ? JSON.parse(session.extractedData) : {};
+      const initialExpanded = new Set<string>();
+      
+      project.collections.forEach(collection => {
+        // Check if collection has data
+        const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
+        const hasData = collectionValidations.length > 0 || 
+          (extractedData && extractedData[collection.collectionName] && 
+           Array.isArray(extractedData[collection.collectionName]) && 
+           extractedData[collection.collectionName].length > 0);
+        
+        // Empty lists start expanded, lists with data start collapsed
+        if (!hasData) {
+          initialExpanded.add(collection.collectionName);
+        }
+      });
+      
+      setExpandedCollections(initialExpanded);
+      setHasInitializedCollapsed(true);
+    }
+  }, [project?.collections, validations, session, hasInitializedCollapsed]);
 
   const updateValidationMutation = useMutation({
     mutationFn: async (params: { id: string; data: Partial<FieldValidation> }) => {
@@ -864,6 +903,17 @@ Thank you for your assistance.`;
                 if (!isNaN(Number(val)) && val.trim() !== '') {
                   return Number(val);
                 }
+                // For date strings, normalize to consistent format for comparison
+                if (val.match(/^\d{4}-\d{2}-\d{2}/) || val.match(/\d{1,2}\/\d{1,2}\/\d{4}/) || val.match(/\w+ \d{1,2}, \d{4}/)) {
+                  try {
+                    const date = new Date(val);
+                    if (!isNaN(date.getTime())) {
+                      return date.toISOString().split('T')[0]; // Normalize to YYYY-MM-DD
+                    }
+                  } catch (e) {
+                    // If date parsing fails, return original value
+                  }
+                }
               }
               return val;
             };
@@ -1061,13 +1111,39 @@ Thank you for your assistance.`;
           
           if (maxRecordIndex < 0) return null;
 
+          const isExpanded = expandedCollections.has(collection.collectionName);
+
           return (
-            <Card key={collection.id} className="mb-8 w-full overflow-hidden">
-              <CardHeader>
-                <CardTitle>{collection.collectionName}</CardTitle>
-                <p className="text-sm text-gray-600">{collection.description}</p>
+            <Card key={collection.id} className="mb-8 w-full overflow-hidden border-l-4 border-l-green-500">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 flex-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleCollectionExpansion(collection.collectionName)}
+                      className="p-1 h-auto"
+                    >
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="mb-0">{collection.collectionName}</CardTitle>
+                        <Badge className="bg-green-100 text-green-800 text-xs px-2 py-1">
+                          List
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">{collection.description}</p>
+                    </div>
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent>
+              {isExpanded && (
+                <CardContent>
                 {Array.from({ length: maxRecordIndex + 1 }, (_, index) => {
                   const item = collectionData?.[index] || {};
                   
@@ -1095,7 +1171,8 @@ Thank you for your assistance.`;
                     </div>
                   );
                 })}
-              </CardContent>
+                </CardContent>
+              )}
             </Card>
           );
         })}
