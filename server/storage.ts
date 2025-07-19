@@ -851,7 +851,7 @@ export class MemStorage implements IStorage {
   async getProjectSchemaFields(projectId: string): Promise<ProjectSchemaField[]> {
     return Array.from(this.projectSchemaFields.values())
       .filter(field => field.projectId === projectId)
-      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
   }
 
   async createProjectSchemaField(insertField: InsertProjectSchemaField): Promise<ProjectSchemaField> {
@@ -892,13 +892,13 @@ export class MemStorage implements IStorage {
   async getObjectCollections(projectId: number): Promise<(ObjectCollection & { properties: CollectionProperty[] })[]> {
     const collections = Array.from(this.objectCollections.values())
       .filter(collection => collection.projectId === projectId)
-      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
 
     return collections.map(collection => ({
       ...collection,
       properties: Array.from(this.collectionProperties.values())
         .filter(property => property.collectionId === collection.id)
-        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+        .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
     }));
   }
 

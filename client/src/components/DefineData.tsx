@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Settings, Plus, Edit, Trash2, Database, FileText, Tag, Lightbulb } from "lucide-react";
+import { Settings, Plus, Edit, Trash2, Database, FileText, Tag, Lightbulb, GripVertical } from "lucide-react";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -65,9 +66,13 @@ export default function DefineData({ project }: DefineDataProps) {
   const { data: schemaFields = [], isLoading: schemaFieldsLoading, error: schemaFieldsError } = useProjectSchemaFields(project.id);
   const { data: collections = [], isLoading: collectionsLoading, error: collectionsError } = useObjectCollections(project.id);
 
-  // Handle data being null/undefined from API errors
-  const safeSchemaFields = Array.isArray(schemaFields) ? schemaFields : [];
-  const safeCollections = Array.isArray(collections) ? collections : [];
+  // Handle data being null/undefined from API errors and sort by orderIndex
+  const safeSchemaFields = Array.isArray(schemaFields) 
+    ? [...schemaFields].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+    : [];
+  const safeCollections = Array.isArray(collections) 
+    ? [...collections].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+    : [];
 
   // Schema field mutations
   const createSchemaField = useCreateSchemaField(project.id);
@@ -86,6 +91,37 @@ export default function DefineData({ project }: DefineDataProps) {
   // Project mutations
   const updateProject = useUpdateProject();
 
+  // Drag and drop handler for reordering schema fields
+  const handleFieldDragEnd = async (result: any) => {
+    if (!result.destination) return;
+
+    const items = Array.from(safeSchemaFields);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    // Update orderIndex for all affected fields
+    const updatePromises = items.map((field, index) => 
+      updateSchemaField.mutateAsync({ 
+        id: field.id, 
+        field: { ...field, orderIndex: index } 
+      })
+    );
+
+    try {
+      await Promise.all(updatePromises);
+      toast({
+        title: "Fields reordered",
+        description: "Field order has been updated successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update field order. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const fieldTypeColors = {
     TEXT: "bg-primary/10 text-primary",
     NUMBER: "bg-green-100 text-green-800",
@@ -96,7 +132,8 @@ export default function DefineData({ project }: DefineDataProps) {
   // Schema field handlers
   const handleCreateSchemaField = async (data: any) => {
     try {
-      await createSchemaField.mutateAsync(data);
+      const orderIndex = safeSchemaFields.length; // Add to the end
+      await createSchemaField.mutateAsync({ ...data, orderIndex });
       setSchemaFieldDialog({ open: false });
       toast({
         title: "Field added",
@@ -422,61 +459,85 @@ export default function DefineData({ project }: DefineDataProps) {
                   </p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Field Name</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Auto Verify</TableHead>
-                      <TableHead className="w-24">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {safeSchemaFields.map((field) => (
-                      <TableRow key={field.id}>
-                        <TableCell className="font-medium">{field.fieldName}</TableCell>
-                        <TableCell>
-                          <Badge className={fieldTypeColors[field.fieldType as keyof typeof fieldTypeColors]}>
-                            {field.fieldType}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-gray-600">
-                          {field.description || "-"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs">
-                            {field.autoVerificationConfidence || 80}%
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => setSchemaFieldDialog({ open: true, field })}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="text-red-600"
-                              onClick={() => setDeleteDialog({ 
-                                open: true, 
-                                type: "field", 
-                                id: field.id, 
-                                name: field.fieldName 
-                              })}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+                <DragDropContext onDragEnd={handleFieldDragEnd}>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-8"></TableHead>
+                        <TableHead>Field Name</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Auto Verify</TableHead>
+                        <TableHead className="w-24">Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <Droppable droppableId="schema-fields">
+                      {(provided) => (
+                        <TableBody {...provided.droppableProps} ref={provided.innerRef}>
+                          {safeSchemaFields.map((field, index) => (
+                            <Draggable key={field.id} draggableId={field.id} index={index}>
+                              {(provided, snapshot) => (
+                                <TableRow 
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  className={snapshot.isDragging ? "bg-gray-50" : ""}
+                                >
+                                  <TableCell>
+                                    <div 
+                                      {...provided.dragHandleProps}
+                                      className="cursor-grab active:cursor-grabbing p-1 hover:bg-gray-100 rounded"
+                                    >
+                                      <GripVertical className="h-4 w-4 text-gray-400" />
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="font-medium">{field.fieldName}</TableCell>
+                                  <TableCell>
+                                    <Badge className={fieldTypeColors[field.fieldType as keyof typeof fieldTypeColors]}>
+                                      {field.fieldType}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-gray-600">
+                                    {field.description || "-"}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline" className="text-xs">
+                                      {field.autoVerificationConfidence || 80}%
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex gap-2">
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm"
+                                        onClick={() => setSchemaFieldDialog({ open: true, field })}
+                                      >
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="text-red-600"
+                                        onClick={() => setDeleteDialog({ 
+                                          open: true, 
+                                          type: "field", 
+                                          id: field.id, 
+                                          name: field.fieldName 
+                                        })}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </TableBody>
+                      )}
+                    </Droppable>
+                  </Table>
+                </DragDropContext>
               )}
               
               {/* Always show Add Field button */}
