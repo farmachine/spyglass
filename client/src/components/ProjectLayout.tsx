@@ -73,17 +73,16 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       return;
     }
     
-    // PREVENT WELCOME FLOW COMPLETELY IF USER IS ALREADY ON DEFINE TAB
-    // This fixes the redirect issue by not running welcome flow when user is actively working
-    if (activeTab === 'define') {
-      return;
-    }
-    
     // Check if user has already interacted with the project (to prevent welcome flow after CRUD operations)
     const hasInteracted = sessionStorage.getItem(`project-${project.id}-interacted`);
     
+    // COMPLETELY DISABLE WELCOME FLOW if user has interacted with the project
+    if (hasInteracted) {
+      return;
+    }
+    
     // Only run welcome flow on the very first project access AND user hasn't interacted
-    const isFirstAccess = !userNavigatedRef.current && !initialTabSetRef.current && !hasInteracted;
+    const isFirstAccess = !userNavigatedRef.current && !initialTabSetRef.current;
     
     // Welcome flow should ONLY trigger on genuine first load
     if (isFirstAccess && activeTab === 'upload' && !isSetupComplete && user?.role === 'admin') {
