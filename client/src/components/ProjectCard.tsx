@@ -188,7 +188,9 @@ export default function ProjectCard({ project }: ProjectCardProps) {
 
   return (
     <>
-      <Card className="bg-white text-black hover:shadow-md transition-shadow cursor-pointer group border-primary relative overflow-hidden h-[180px] flex flex-col">
+      <Card className={`bg-white text-black hover:shadow-md transition-shadow cursor-pointer group border-primary relative overflow-hidden h-[180px] flex flex-col ${
+        project.status === "inactive" ? "opacity-60" : ""
+      }`}>
         <CardHeader className="pt-4 pb-2 flex-shrink-0">
           <div className="flex items-start justify-between">
             <div className="flex-1 flex flex-col" onClick={() => setLocation(`/projects/${project.id}`)}>
@@ -327,6 +329,29 @@ export default function ProjectCard({ project }: ProjectCardProps) {
         
         {/* Fade to white gradient overlay at the bottom */}
         <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white/50 to-transparent pointer-events-none" />
+        
+        {/* Deactivated overlay and badge */}
+        {project.status === "inactive" && (
+          <div className="absolute inset-0 bg-gray-500/30 flex items-center justify-center z-10">
+            <div className="bg-white rounded-lg p-4 shadow-lg text-center">
+              <Badge variant="secondary" className="bg-gray-500 text-white mb-3">
+                Deactivated
+              </Badge>
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleStatusChange("active");
+                }}
+                variant="outline"
+                size="sm"
+                className="text-green-600 border-green-600 hover:bg-green-50"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Reactivate
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
