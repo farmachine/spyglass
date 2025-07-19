@@ -43,6 +43,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ Removed duplicate "Thank you for your assistance" messages from individual field reasoning - now only appears once at report end
 - ✓ Improved field naming for list items - uses meaningful identifiers like "Asana, Inc. - Country" instead of "Parties.Country[0]"
 - ✓ Collection items now identified by Name field when available, otherwise falls back to "Item 1", "Item 2" format
+- ✓ **MULTI-TENANCY ACCESS CONTROL FIXED**: Resolved critical security issue where users could see all projects regardless of organization
+- ✓ Standard organization users now correctly restricted to only see projects owned by or published to their organization
+- ✓ GeoCosmo users can now only access their authorized projects instead of seeing all system projects
+- ✓ Verified access control logic working correctly for admin and user roles across primary and standard organizations
 - ✓ **PERSONALIZED WELCOME HEADER**: Added welcome message with user's first name above Dashboard title
 - ✓ Displays "Welcome, [First Name]" using user's first name or email prefix as fallback
 - ✓ **PROJECT CREATION RESTRICTED TO ADMINS**: Hidden "New Project" button from non-admin users and added backend validation
