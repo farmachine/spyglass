@@ -162,17 +162,13 @@ export default function ProjectCard({ project }: ProjectCardProps) {
   };
 
   const handleStatusChange = async (newStatus: "active" | "inactive") => {
-    console.log('handleStatusChange called with:', newStatus, 'for project:', project.id);
     try {
-      console.log('About to call updateProjectStatus.mutateAsync');
-      const result = await updateProjectStatus.mutateAsync({ 
+      await updateProjectStatus.mutateAsync({ 
         id: project.id, 
         status: newStatus 
       });
-      console.log('Status update result:', result);
-      // No toast notifications as requested
+      // Status update successful - UI will update automatically via React Query
     } catch (error: any) {
-      // Silently handle errors without toast notifications
       console.error('Failed to update project status:', error);
     }
   };

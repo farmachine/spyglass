@@ -11,6 +11,12 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 19, 2025**
+- ✓ **PROJECT STATUS TOGGLE COMPLETED**: Implemented project activation/deactivation functionality in settings dropdown
+- ✓ Added "Deactivate" button to settings dropdown for active projects (orange text with AlertTriangle icon)
+- ✓ Added "Activate" button to settings dropdown for inactive projects (green text with CheckCircle icon)
+- ✓ Status changes happen silently without toast notifications as requested
+- ✓ Button text and color update dynamically based on current project status
+- ✓ API integration working correctly with database status updates
 - ✓ **AUTO-PUBLISHING TO PRIMARY ORGANIZATION**: All projects now automatically publish to primary organization by default
 - ✓ Added getPrimaryOrganization() method to storage interface for retrieving primary organization
 - ✓ Updated project creation API to automatically publish new projects to primary organization
