@@ -193,7 +193,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
 
   return (
     <>
-      <Card className={`bg-white text-black hover:shadow-md transition-shadow cursor-pointer group border-primary relative overflow-hidden h-[180px] flex flex-col ${
+      <Card className={`bg-white text-black border border-gray-200 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-blue-300 hover:-translate-y-1 cursor-pointer group relative overflow-hidden h-[180px] flex flex-col ${
         project.status === "inactive" ? "opacity-60" : ""
       }`}>
         <CardHeader className="pt-4 pb-2 flex-shrink-0">

@@ -11,6 +11,9 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 19, 2025**
+- ✓ **ENHANCED PROJECT CARDS**: Added softer borders and smooth hover effects to project cards
+- ✓ Cards now have rounded corners (rounded-xl), subtle gray borders, and lift on hover with blue border accent
+- ✓ Smooth 300ms transitions for professional feel with hover shadow and transform effects
 - ✓ **PERSONALIZED WELCOME HEADER**: Added welcome message with user's first name above Dashboard title
 - ✓ Displays "Welcome, [First Name]" with wave icon matching Extractly branding using user's first name or email prefix as fallback
 - ✓ **PROJECT CREATION RESTRICTED TO ADMINS**: Hidden "New Project" button from non-admin users and added backend validation
