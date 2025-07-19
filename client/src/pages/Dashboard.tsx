@@ -193,7 +193,7 @@ export default function Dashboard() {
           {/* Welcome Header */}
           <div className="py-4">
             <h1 className="text-2xl font-medium text-gray-700">
-              Welcome back, {user?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'User'}
+              Welcome, {user?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'User'}
             </h1>
           </div>
           
