@@ -1,9 +1,14 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Upload, Database, Brain, Settings, FolderOpen, Home as HomeIcon, FileText } from "lucide-react";
+import { ArrowLeft, Upload, Database, Brain, Settings, FolderOpen, Home as HomeIcon, FileText, Edit3, Check, X } from "lucide-react";
 import { WaveIcon, FlowIcon, StreamIcon, TideIcon, ShipIcon, DropletIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useProject } from "@/hooks/useProjects";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,14 +33,23 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>("upload");
   const { data: project, isLoading, error } = useProject(projectId);
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const userNavigatedRef = useRef(false);
   const initialTabSetRef = useRef(false);
+  
+  // Editing states
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
 
   // Check user role for access control (needed in useEffect)
   const isAdmin = user?.role === 'admin';
   const isPrimaryOrgAdmin = isAdmin && user?.organization?.type === 'primary';
   const canAccessConfigTabs = isAdmin;
   const canAccessPublishing = isPrimaryOrgAdmin;
+  const canEditProject = isAdmin;
 
   // Read URL parameters and handle initial tab setup
   useEffect(() => {
@@ -85,6 +99,59 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       initialTabSetRef.current = true;
     }
   }, [project, canAccessConfigTabs, canAccessPublishing]);
+
+  // Project update mutation
+  const updateProjectMutation = useMutation({
+    mutationFn: async (data: { name?: string; description?: string }) => {
+      return apiRequest(`/api/projects/${projectId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
+      setIsEditingTitle(false);
+      setIsEditingDescription(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update project",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleTitleEdit = () => {
+    if (!canEditProject || !project) return;
+    setEditTitle(project.name);
+    setIsEditingTitle(true);
+  };
+
+  const handleDescriptionEdit = () => {
+    if (!canEditProject || !project) return;
+    setEditDescription(project.description || "");
+    setIsEditingDescription(true);
+  };
+
+  const handleTitleSave = () => {
+    if (!editTitle.trim()) return;
+    updateProjectMutation.mutate({ name: editTitle.trim() });
+  };
+
+  const handleDescriptionSave = () => {
+    updateProjectMutation.mutate({ description: editDescription.trim() });
+  };
+
+  const handleTitleCancel = () => {
+    setIsEditingTitle(false);
+    setEditTitle("");
+  };
+
+  const handleDescriptionCancel = () => {
+    setIsEditingDescription(false);
+    setEditDescription("");
+  };
 
   if (error) {
     return (
@@ -204,9 +271,112 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       {/* Page Title */}
       <div className="bg-white border-b border-gray-100">
         <div className="w-full px-6 py-6">
-          <div className="flex items-center space-x-3">
-            <FileText className="h-8 w-8 text-primary" />
-            <h2 className="text-3xl font-bold">{project.name}</h2>
+          <div className="flex items-start space-x-3">
+            <FileText className="h-8 w-8 text-primary mt-1" />
+            <div className="flex-1 space-y-2">
+              {/* Project Title */}
+              <div className="flex items-center space-x-2">
+                {isEditingTitle ? (
+                  <div className="flex items-center space-x-2 flex-1">
+                    <Input
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className="text-2xl font-bold border-primary"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleTitleSave();
+                        if (e.key === 'Escape') handleTitleCancel();
+                      }}
+                      autoFocus
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleTitleSave}
+                      disabled={!editTitle.trim() || updateProjectMutation.isPending}
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleTitleCancel}
+                      disabled={updateProjectMutation.isPending}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2 flex-1 group">
+                    <h2 className="text-3xl font-bold">{project.name}</h2>
+                    {canEditProject && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleTitleEdit}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Project Description */}
+              <div className="flex items-start space-x-2">
+                {isEditingDescription ? (
+                  <div className="flex items-start space-x-2 flex-1">
+                    <Textarea
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                      className="text-sm text-gray-600 border-primary min-h-[60px]"
+                      placeholder="Add a project description..."
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && e.ctrlKey) handleDescriptionSave();
+                        if (e.key === 'Escape') handleDescriptionCancel();
+                      }}
+                      autoFocus
+                    />
+                    <div className="flex flex-col space-y-1">
+                      <Button
+                        size="sm"
+                        onClick={handleDescriptionSave}
+                        disabled={updateProjectMutation.isPending}
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleDescriptionCancel}
+                        disabled={updateProjectMutation.isPending}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start space-x-2 flex-1 group">
+                    {project.description ? (
+                      <p className="text-sm text-gray-600">{project.description}</p>
+                    ) : canEditProject ? (
+                      <p className="text-sm text-gray-400 italic">Click to add description</p>
+                    ) : (
+                      <p className="text-sm text-gray-400">No description</p>
+                    )}
+                    {canEditProject && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleDescriptionEdit}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
