@@ -175,17 +175,19 @@ export default function ProjectCard({ project }: ProjectCardProps) {
   return (
     <>
       <Card className="bg-white text-black hover:shadow-md transition-shadow cursor-pointer group border-primary relative overflow-hidden h-[180px] flex flex-col">
-        <CardHeader className="pb-2 flex-shrink-0">
-          <div className="flex items-start justify-between">
-            <div className="flex-1" onClick={() => setLocation(`/projects/${project.id}`)}>
+        <CardHeader className="pb-2 flex-shrink-0 h-[80px]">
+          <div className="flex items-start justify-between h-full">
+            <div className="flex-1 flex flex-col h-full" onClick={() => setLocation(`/projects/${project.id}`)}>
               <CardTitle className="text-xl font-bold text-black group-hover:text-black/80 transition-colors line-clamp-1">
                 {project.name}
               </CardTitle>
-              {project.description && (
-                <p className="text-sm font-medium text-black/70 mt-1 line-clamp-2">
-                  {project.description}
-                </p>
-              )}
+              <div className="flex-1 overflow-hidden">
+                {project.description && (
+                  <p className="text-sm font-medium text-black/70 mt-1 line-clamp-2">
+                    {project.description}
+                  </p>
+                )}
+              </div>
             </div>
             
             <DropdownMenu>
