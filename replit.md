@@ -54,6 +54,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ Added user-specific cache keys and proper cache invalidation during authentication state changes
 - ✓ React Query cache now clears automatically when users log in, log out, or refresh authentication
 - ✓ Ana no longer sees Josh's project data when switching users - proper access control maintained during user transitions
+- ✓ **PRIMARY ADMIN PROJECT STATUS CONTROL**: Fixed issue where primary organization admins couldn't update status of projects owned by other organizations
+- ✓ Added organization type checking to allow primary org admins to activate/deactivate ANY project in the system
+- ✓ Josh (primary org admin) can now successfully manage project status across all organizations including GeoCosmo projects
+- ✓ Regular users remain restricted to managing only their own organization's projects
 - ✓ **PERSONALIZED WELCOME HEADER**: Added welcome message with user's first name above Dashboard title
 - ✓ Displays "Welcome, [First Name]" using user's first name or email prefix as fallback
 - ✓ **PROJECT CREATION RESTRICTED TO ADMINS**: Hidden "New Project" button from non-admin users and added backend validation
