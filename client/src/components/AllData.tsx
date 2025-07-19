@@ -199,11 +199,11 @@ export default function AllData({ project }: AllDataProps) {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center">
-              <Clock className="h-8 w-8 text-orange-600" />
+              <AlertTriangle className="h-8 w-8 text-red-600" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">In Progress</p>
+                <p className="text-sm font-medium text-gray-600">Unverified</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {verificationStats.in_progress}
+                  {verificationStats.in_progress + verificationStats.pending}
                 </p>
               </div>
             </div>

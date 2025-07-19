@@ -1,4 +1,4 @@
-import { Calendar, Settings, Trash2, Copy, Building, Users } from "lucide-react";
+import { Calendar, Settings, Trash2, Copy, Building, Users, Database, CheckCircle, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +33,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useDeleteProject, useDuplicateProject } from "@/hooks/useProjects";
 import { useToast } from "@/hooks/use-toast";
-import type { Project, Organization } from "@shared/schema";
+import type { Project, Organization, ProjectWithDetails, FieldValidation } from "@shared/schema";
 import WavePattern from "./WavePattern";
 
 interface ProjectCardProps {
@@ -53,6 +53,65 @@ export default function ProjectCard({ project }: ProjectCardProps) {
   const { data: publishedOrganizations = [] } = useQuery({
     queryKey: ["/api/projects", project.id, "publishing"],
   });
+
+  // Fetch project details with sessions
+  const { data: projectDetails } = useQuery<ProjectWithDetails>({
+    queryKey: ["/api/projects", project.id],
+  });
+
+  // Fetch validation data for all sessions
+  const { data: allValidations = [] } = useQuery<FieldValidation[]>({
+    queryKey: ['/api/validations/project', project.id],
+    queryFn: async () => {
+      if (!projectDetails?.sessions) return [];
+      const validations: FieldValidation[] = [];
+      for (const session of projectDetails.sessions) {
+        try {
+          const response = await fetch(`/api/sessions/${session.id}/validations`);
+          if (response.ok) {
+            const sessionValidations = await response.json();
+            validations.push(...sessionValidations);
+          }
+        } catch (error) {
+          console.error(`Failed to fetch validations for session ${session.id}:`, error);
+        }
+      }
+      return validations;
+    },
+    enabled: !!projectDetails?.sessions && projectDetails.sessions.length > 0,
+    refetchOnWindowFocus: false,
+    staleTime: 0
+  });
+
+  // Get verification status for a session
+  const getVerificationStatus = (sessionId: number): 'verified' | 'in_progress' | 'pending' => {
+    const sessionValidations = allValidations.filter(v => v.sessionId === sessionId);
+    if (sessionValidations.length === 0) return 'pending';
+    
+    const allVerified = sessionValidations.every(v => v.validationStatus === 'valid' || v.validationStatus === 'verified');
+    return allVerified ? 'verified' : 'in_progress';
+  };
+
+  // Calculate verification stats
+  const getVerificationStats = () => {
+    const stats = { verified: 0, unverified: 0, total: 0 };
+    
+    if (projectDetails?.sessions) {
+      for (const session of projectDetails.sessions) {
+        const status = getVerificationStatus(session.id);
+        stats.total++;
+        if (status === 'verified') {
+          stats.verified++;
+        } else {
+          stats.unverified++;
+        }
+      }
+    }
+    
+    return stats;
+  };
+
+  const verificationStats = getVerificationStats();
 
   const handleDelete = async () => {
     // Prevent double-clicks by disabling the delete dialog immediately
@@ -163,12 +222,25 @@ export default function ProjectCard({ project }: ProjectCardProps) {
           <div className="mt-4">
             <div className="flex items-start justify-between text-sm">
               <div className="text-center">
-                <div className="text-lg font-bold text-black">0</div>
-                <div className="text-sm font-medium text-black/70">Sessions</div>
+                <div className="text-lg font-bold text-black">{verificationStats.total}</div>
+                <div className="text-sm font-medium text-black/70">{project.mainObjectName || "Sessions"}</div>
               </div>
               
-              <div className="flex items-center justify-center">
-                <WavePattern variant="light" size="sm" className="opacity-60" />
+              <div className="flex flex-col items-center gap-2 text-xs">
+                {verificationStats.total > 0 ? (
+                  <>
+                    <div className="flex items-center gap-1">
+                      <CheckCircle className="h-3 w-3 text-green-600" />
+                      <span className="font-medium text-green-700">{verificationStats.verified}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3 text-red-600" />
+                      <span className="font-medium text-red-700">{verificationStats.unverified}</span>
+                    </div>
+                  </>
+                ) : (
+                  <WavePattern variant="light" size="sm" className="opacity-60" />
+                )}
               </div>
               
               <div className="flex flex-col items-end justify-center">
