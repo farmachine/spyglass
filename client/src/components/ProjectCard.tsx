@@ -212,43 +212,47 @@ export default function ProjectCard({ project }: ProjectCardProps) {
               )}
             </div>
             
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-black hover:bg-black/10 flex-shrink-0">
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <div className="px-2 py-2 border-b">
-                  <div className="text-xs font-medium text-gray-700 mb-2">Status</div>
-                  <RadioGroup
-                    value={project.status || "active"}
-                    onValueChange={(value) => handleStatusChange(value as "active" | "inactive")}
-                    className="flex gap-3"
-                  >
-                    <div className="flex items-center space-x-1.5">
-                      <RadioGroupItem value="active" id="active" className="h-3 w-3" />
-                      <Label htmlFor="active" className="text-xs">Active</Label>
-                    </div>
-                    <div className="flex items-center space-x-1.5">
-                      <RadioGroupItem value="inactive" id="inactive" className="h-3 w-3" />
-                      <Label htmlFor="inactive" className="text-xs">Inactive</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-                <DropdownMenuItem onClick={openDuplicateDialog}>
-                  <Copy className="h-4 w-4 mr-2" />
-                  Duplicate
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => setDeleteDialogOpen(true)}
-                  className="text-red-600"
+            <div className="flex flex-col items-end gap-2">
+              {/* Status Toggle - positioned above settings */}
+              <div className="bg-gray-50 rounded-md px-2 py-1 border">
+                <RadioGroup
+                  value={project.status || "active"}
+                  onValueChange={(value) => handleStatusChange(value as "active" | "inactive")}
+                  className="flex gap-2"
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <div className="flex items-center space-x-1">
+                    <RadioGroupItem value="active" id={`active-${project.id}`} className="h-3 w-3" />
+                    <Label htmlFor={`active-${project.id}`} className="text-xs">Active</Label>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <RadioGroupItem value="inactive" id={`inactive-${project.id}`} className="h-3 w-3" />
+                    <Label htmlFor={`inactive-${project.id}`} className="text-xs">Inactive</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+              
+              {/* Settings Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-black hover:bg-black/10 flex-shrink-0">
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={openDuplicateDialog}>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Duplicate
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => setDeleteDialogOpen(true)}
+                    className="text-red-600"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </CardHeader>
         
