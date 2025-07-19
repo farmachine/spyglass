@@ -454,12 +454,14 @@ export default function OrganizationConfig() {
                             <span className="font-medium">{user.name}</span>
                             <span className="text-sm text-gray-600">{user.email}</span>
                           </div>
-                          <Badge 
-                            variant={user.role === "admin" ? "default" : "secondary"}
-                            className={user.role === "admin" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}
-                          >
-                            {user.role}
-                          </Badge>
+                          <div className="flex items-center">
+                            <Badge 
+                              variant={user.role === "admin" ? "default" : "secondary"}
+                              className={user.role === "admin" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}
+                            >
+                              {user.role}
+                            </Badge>
+                          </div>
                         </div>
                         <div className="flex items-center space-x-4">
                           <div className="flex items-center space-x-2">
