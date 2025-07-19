@@ -221,26 +221,27 @@ export default function ProjectCard({ project }: ProjectCardProps) {
           
           <div className="mt-4">
             <div className="flex items-start justify-between text-sm">
-              <div className="text-center">
-                <div className="text-lg font-bold text-black">{verificationStats.total}</div>
-                <div className="text-sm font-medium text-black/70">{project.mainObjectName || "Sessions"}</div>
-              </div>
-              
-              <div className="flex flex-col items-center gap-2 text-xs">
-                {verificationStats.total > 0 ? (
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <Database className="h-4 w-4 text-black/70" />
+                  <span className="text-sm font-medium text-black">{verificationStats.total} Sessions</span>
+                </div>
+                {verificationStats.total > 0 && (
                   <>
-                    <div className="flex items-center gap-1">
-                      <CheckCircle className="h-3 w-3 text-green-600" />
-                      <span className="font-medium text-green-700">{verificationStats.verified}</span>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-medium text-green-700">{verificationStats.verified} Verified</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <AlertTriangle className="h-3 w-3 text-red-600" />
-                      <span className="font-medium text-red-700">{verificationStats.unverified}</span>
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-red-600" />
+                      <span className="text-sm font-medium text-red-700">{verificationStats.unverified} Unverified</span>
                     </div>
                   </>
-                ) : (
-                  <WavePattern variant="light" size="sm" className="opacity-60" />
                 )}
+              </div>
+              
+              <div className="flex items-center justify-center">
+                <WavePattern variant="light" size="sm" className="opacity-60" />
               </div>
               
               <div className="flex flex-col items-end justify-center">
