@@ -1163,7 +1163,7 @@ Thank you for your assistance.`;
                   const item = collectionData?.[index] || {};
                   
                   return (
-                    <div key={index} className="mb-6 p-4 bg-gray-50 rounded-lg w-full overflow-hidden">
+                    <div key={index} className="mb-6 p-4 bg-white border border-gray-200 rounded-lg w-full overflow-hidden shadow-sm">
                       <h4 className="font-medium mb-4">Item {index + 1}</h4>
                       <div className="space-y-4">
                         {collection.properties.map((property) => {
