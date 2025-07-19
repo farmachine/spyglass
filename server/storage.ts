@@ -1388,6 +1388,7 @@ class PostgreSQLStorage implements IStorage {
       
       if (organization?.type === 'primary' && userRole === 'admin') {
         // Primary organization admins can see ALL projects in the system
+        console.log(`DEBUG: Primary org admin detected - fetching ALL projects`);
         projectsList = await this.db
           .select({
             id: projects.id,
