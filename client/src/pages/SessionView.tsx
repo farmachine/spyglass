@@ -1079,19 +1079,24 @@ Thank you for your assistance.`;
                     {getSessionStatus() === 'verified' ? 'Verified' : 'In Progress'}
                   </Badge>
                 </div>
-                <Button onClick={() => setShowReasoningDialog(true)} variant="outline" size="sm">
-                  <AlertCircle className="h-4 w-4 mr-2" />
-                  Request More Info
-                </Button>
-                <Button
-                  onClick={handleExportToExcel}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <WaveIcon className="h-4 w-4" />
-                  Export
-                </Button>
+                <div className="flex flex-col gap-1">
+                  <Button 
+                    onClick={() => setShowReasoningDialog(true)} 
+                    variant="outline" 
+                    size="sm"
+                    className="px-3 py-2"
+                  >
+                    <Info className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    onClick={handleExportToExcel}
+                    variant="outline"
+                    size="sm"
+                    className="px-3 py-2"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
 
