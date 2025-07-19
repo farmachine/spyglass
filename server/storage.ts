@@ -1384,7 +1384,21 @@ class PostgreSQLStorage implements IStorage {
       // Get organization details to check if it's primary
       const organization = await this.getOrganization(organizationId);
       
-      if (organization?.type === 'primary' && userRole === 'user') {
+      if (organization?.type === 'primary' && userRole === 'admin') {
+        // Primary organization admins can see ALL projects in the system
+        projectsList = await this.db
+          .select({
+            id: projects.id,
+            name: projects.name,
+            description: projects.description,
+            organizationId: projects.organizationId,
+            mainObjectName: projects.mainObjectName,
+            status: projects.status,
+            isInitialSetupComplete: projects.isInitialSetupComplete,
+            createdAt: projects.createdAt
+          })
+          .from(projects);
+      } else if (organization?.type === 'primary' && userRole === 'user') {
         // For regular users in primary organizations, only show published projects
         projectsList = await this.db
           .select({

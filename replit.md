@@ -24,6 +24,8 @@ Preferred communication style: Simple, everyday language.
 - ✓ **ADMIN PANEL ACCESS RESTRICTED**: Admin panel access now restricted to primary organization admins only
 - ✓ Updated Dashboard settings dropdown to only show Admin Panel option for primary organization admins
 - ✓ Added primary organization type check to AdminPanel and OrganizationConfig components for proper access control
+- ✓ **PRIMARY ADMIN PROJECT VISIBILITY**: Fixed project visibility for primary organization admins to see ALL projects in system
+- ✓ Enhanced getProjectsWithPublishedOrganizations to show all projects for primary org admins regardless of ownership
 - ✓ **PROJECT STATUS TOGGLE COMPLETED**: Implemented project activation/deactivation functionality in settings dropdown
 - ✓ Added "Deactivate" button to settings dropdown for active projects (orange text with AlertTriangle icon)
 - ✓ Added "Activate" button to settings dropdown for inactive projects (green text with CheckCircle icon)
