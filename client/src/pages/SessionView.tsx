@@ -797,16 +797,23 @@ Thank you for your assistance.`;
     return fieldName; // Fallback to original name
   };
 
-  const renderFieldWithValidation = (fieldName: string, value: any) => {
+  const renderFieldWithValidation = (fieldName: string, value: any, isSchemaField = false) => {
     const validation = getValidation(fieldName);
     const isEditing = editingField === fieldName;
     const fieldType = getFieldType(fieldName);
     const displayName = getFieldDisplayName(fieldName);
     
+    const borderClass = isSchemaField ? "border-l-4 border-l-blue-500" : "";
+    
     return (
-      <div key={fieldName} className="flex items-center gap-3 p-3 border rounded-lg bg-white">
+      <div key={fieldName} className={`flex items-center gap-3 p-3 border rounded-lg bg-white ${borderClass}`}>
         <div className="flex-1">
-          <Label className="text-sm font-medium text-gray-700">{displayName}</Label>
+          <div className="flex items-center gap-2 mb-1">
+            <Label className="text-sm font-medium text-gray-700">{displayName}</Label>
+            <Badge variant="outline" className="text-xs px-2 py-0.5 h-5">
+              {fieldType}
+            </Badge>
+          </div>
           {isEditing ? (
             <div className="flex items-center gap-2 mt-1">
               {fieldType === 'DATE' ? (
@@ -1099,13 +1106,7 @@ Thank you for your assistance.`;
                 if (displayValue === "null" || displayValue === "undefined") {
                   displayValue = null;
                 }
-                return (
-                  <div key={field.id} className="border border-gray-200 rounded-lg border-l-4 border-l-blue-500 bg-white">
-                    <div className="p-4">
-                      {renderFieldWithValidation(field.fieldName, displayValue)}
-                    </div>
-                  </div>
-                );
+                return renderFieldWithValidation(field.fieldName, displayValue, true);
               }
               return null;
             })}
