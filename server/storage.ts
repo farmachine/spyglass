@@ -1393,6 +1393,7 @@ class PostgreSQLStorage implements IStorage {
             description: projects.description,
             organizationId: projects.organizationId,
             mainObjectName: projects.mainObjectName,
+            status: projects.status,
             isInitialSetupComplete: projects.isInitialSetupComplete,
             createdAt: projects.createdAt
           })
@@ -1408,6 +1409,7 @@ class PostgreSQLStorage implements IStorage {
             description: projects.description,
             organizationId: projects.organizationId,
             mainObjectName: projects.mainObjectName,
+            status: projects.status,
             isInitialSetupComplete: projects.isInitialSetupComplete,
             createdAt: projects.createdAt
           })

@@ -162,16 +162,12 @@ export default function ProjectCard({ project }: ProjectCardProps) {
   };
 
   const handleStatusChange = async (newStatus: "active" | "inactive") => {
-    console.log('Changing status to:', newStatus, 'for project:', project.id);
-    console.log('Current project status:', project.status);
     try {
-      const result = await updateProjectStatus.mutateAsync({ 
+      await updateProjectStatus.mutateAsync({ 
         id: project.id, 
         status: newStatus 
       });
-      console.log('Status update result:', result);
-      // Force a manual refresh to ensure UI updates
-      window.location.reload();
+      // Status update successful - UI will update automatically via React Query
     } catch (error: any) {
       console.error('Failed to update project status:', error);
     }
