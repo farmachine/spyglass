@@ -409,7 +409,7 @@ export default function SessionView() {
   const getCollectionVerificationProgress = (collectionName: string) => {
     const collectionValidations = validations.filter(v => v.collectionName === collectionName);
     const totalFields = collectionValidations.length;
-    const verifiedFields = collectionValidations.filter(v => v.status === 'verified').length;
+    const verifiedFields = collectionValidations.filter(v => v.validationStatus === 'verified' || v.validationStatus === 'valid').length;
     const percentage = totalFields > 0 ? Math.round((verifiedFields / totalFields) * 100) : 0;
     
     return {
@@ -1162,26 +1162,10 @@ Thank you for your assistance.`;
                         </span>
                       </div>
                       <p className="text-sm text-gray-600 mt-1">{collection.description}</p>
-                      
-                      {/* Collection Verification Progress */}
-                      <div className="flex items-center gap-2 mt-2">
-                        <div className="w-20 bg-gray-200 rounded-full h-2">
-                          <div 
-                            className={`h-2 rounded-full transition-all duration-300 ${
-                              getCollectionVerificationProgress(collection.collectionName).percentage === 100 ? 'bg-green-600' : 
-                              getCollectionVerificationProgress(collection.collectionName).percentage > 0 ? 'bg-blue-600' : 'bg-gray-400'
-                            }`}
-                            style={{ width: `${getCollectionVerificationProgress(collection.collectionName).percentage}%` }}
-                          />
-                        </div>
-                        <span className="text-xs font-medium text-gray-700 min-w-[28px]">
-                          {getCollectionVerificationProgress(collection.collectionName).percentage}%
-                        </span>
-                      </div>
                     </div>
                   </div>
                   {/* Collection Verification Status - positioned like field validation icons */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     {getCollectionVerificationProgress(collection.collectionName).percentage === 100 ? (
                       <div className="flex items-center gap-1">
                         <CheckCircle className="h-4 w-4 text-green-600" />
@@ -1193,6 +1177,22 @@ Thank you for your assistance.`;
                         <span className="text-red-600 font-medium text-sm">Unverified</span>
                       </div>
                     )}
+                    
+                    {/* Collection Verification Progress */}
+                    <div className="flex items-center gap-2">
+                      <div className="w-20 bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full transition-all duration-300 ${
+                            getCollectionVerificationProgress(collection.collectionName).percentage === 100 ? 'bg-green-600' : 
+                            getCollectionVerificationProgress(collection.collectionName).percentage > 0 ? 'bg-blue-600' : 'bg-gray-400'
+                          }`}
+                          style={{ width: `${getCollectionVerificationProgress(collection.collectionName).percentage}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-medium text-gray-700 min-w-[28px]">
+                        {getCollectionVerificationProgress(collection.collectionName).percentage}%
+                      </span>
+                    </div>
                   </div>
                 </div>
                 {isExpanded && (
