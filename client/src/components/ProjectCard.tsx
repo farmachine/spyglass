@@ -1,4 +1,4 @@
-import { Calendar, Settings, Trash2, Copy, Building, Users, Database, CheckCircle, AlertTriangle } from "lucide-react";
+import { Calendar, Settings, Trash2, Copy, Building, Users, Database, CheckCircle, AlertTriangle, FileText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,7 +35,6 @@ import { useDeleteProject, useDuplicateProject } from "@/hooks/useProjects";
 import { useToast } from "@/hooks/use-toast";
 import type { Project, Organization, ProjectWithDetails, FieldValidation } from "@shared/schema";
 import WavePattern from "./WavePattern";
-import ExtractlyLogo from "./ExtractlyLogo";
 
 interface ProjectCardProps {
   project: Project & { publishedOrganizations?: Organization[] };
@@ -178,20 +177,18 @@ export default function ProjectCard({ project }: ProjectCardProps) {
       <Card className="bg-white text-black hover:shadow-md transition-shadow cursor-pointer group border-primary relative overflow-hidden h-[180px] flex flex-col">
         <CardHeader className="pt-4 pb-2 flex-shrink-0">
           <div className="flex items-start justify-between">
-            <div className="flex-1 flex items-start gap-2" onClick={() => setLocation(`/projects/${project.id}`)}>
-              <div className="flex-shrink-0 mt-0.5">
-                <ExtractlyLogo size={12} />
-              </div>
-              <div className="flex-1 flex flex-col">
-                <CardTitle className="text-lg font-bold text-black group-hover:text-black/80 transition-colors line-clamp-1 mb-1">
+            <div className="flex-1 flex flex-col" onClick={() => setLocation(`/projects/${project.id}`)}>
+              <div className="flex items-center gap-2 mb-1">
+                <FileText className="h-5 w-5 text-primary flex-shrink-0" />
+                <CardTitle className="text-lg font-bold text-black group-hover:text-black/80 transition-colors line-clamp-1">
                   {project.name}
                 </CardTitle>
-                {project.description && (
-                  <p className="text-xs font-normal text-black/70 leading-tight whitespace-pre-wrap break-words">
-                    {project.description}
-                  </p>
-                )}
               </div>
+              {project.description && (
+                <p className="text-xs font-normal text-black/70 leading-tight whitespace-pre-wrap break-words">
+                  {project.description}
+                </p>
+              )}
             </div>
             
             <DropdownMenu>
