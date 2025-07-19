@@ -1931,6 +1931,7 @@ class PostgreSQLStorage implements IStorage {
         id: organizations.id,
         name: organizations.name,
         description: organizations.description,
+        type: organizations.type,
         createdAt: organizations.createdAt,
       })
       .from(projectPublishing)
