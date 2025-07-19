@@ -66,3 +66,15 @@ export function useDuplicateProject() {
     },
   });
 }
+
+export function useUpdateProjectStatus() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: "active" | "inactive" }) => 
+      projectsApi.updateStatus(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+    },
+  });
+}

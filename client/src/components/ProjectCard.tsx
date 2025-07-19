@@ -10,6 +10,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -31,7 +32,7 @@ import {
 import { useLocation } from "wouter";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useDeleteProject, useDuplicateProject } from "@/hooks/useProjects";
+import { useDeleteProject, useDuplicateProject, useUpdateProjectStatus } from "@/hooks/useProjects";
 import { useToast } from "@/hooks/use-toast";
 import type { Project, Organization, ProjectWithDetails, FieldValidation } from "@shared/schema";
 import WavePattern from "./WavePattern";
@@ -47,6 +48,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
   const [duplicateName, setDuplicateName] = useState("");
   const deleteProject = useDeleteProject();
   const duplicateProject = useDuplicateProject();
+  const updateProjectStatus = useUpdateProjectStatus();
   const { toast } = useToast();
 
   // Use published organizations from project data
@@ -159,6 +161,25 @@ export default function ProjectCard({ project }: ProjectCardProps) {
     }
   };
 
+  const handleStatusChange = async (newStatus: "active" | "inactive") => {
+    try {
+      await updateProjectStatus.mutateAsync({ 
+        id: project.id, 
+        status: newStatus 
+      });
+      toast({
+        title: "Status updated",
+        description: `Project status changed to ${newStatus}.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to update project status. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const openDuplicateDialog = () => {
     setDuplicateName(`${project.name} (Copy)`);
     setDuplicateDialogOpen(true);
@@ -198,6 +219,23 @@ export default function ProjectCard({ project }: ProjectCardProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <div className="px-2 py-2 border-b">
+                  <div className="text-xs font-medium text-gray-700 mb-2">Status</div>
+                  <RadioGroup
+                    value={project.status || "active"}
+                    onValueChange={(value) => handleStatusChange(value as "active" | "inactive")}
+                    className="flex gap-3"
+                  >
+                    <div className="flex items-center space-x-1.5">
+                      <RadioGroupItem value="active" id="active" className="h-3 w-3" />
+                      <Label htmlFor="active" className="text-xs">Active</Label>
+                    </div>
+                    <div className="flex items-center space-x-1.5">
+                      <RadioGroupItem value="inactive" id="inactive" className="h-3 w-3" />
+                      <Label htmlFor="inactive" className="text-xs">Inactive</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
                 <DropdownMenuItem onClick={openDuplicateDialog}>
                   <Copy className="h-4 w-4 mr-2" />
                   Duplicate

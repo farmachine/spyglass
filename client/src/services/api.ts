@@ -30,4 +30,10 @@ export const projectsApi = {
       method: "POST",
       body: JSON.stringify({ name }),
     }),
+  
+  updateStatus: (id: string, status: "active" | "inactive"): Promise<Project> =>
+    apiRequest(`/api/projects/${id}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ status }),
+    }),
 };

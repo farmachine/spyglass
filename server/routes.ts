@@ -371,6 +371,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/projects/:id/status", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = req.params.id;
+      const { status } = req.body;
+      
+      if (!status || (status !== "active" && status !== "inactive")) {
+        return res.status(400).json({ message: "Status must be 'active' or 'inactive'" });
+      }
+      
+      const project = await storage.updateProject(id, { status }, req.user!.organizationId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      res.json(project);
+    } catch (error) {
+      console.error("Update project status error:", error);
+      res.status(500).json({ message: "Failed to update project status" });
+    }
+  });
+
   app.delete("/api/projects/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = req.params.id;
