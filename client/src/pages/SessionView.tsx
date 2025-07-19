@@ -804,7 +804,7 @@ Thank you for your assistance.`;
     const displayName = getFieldDisplayName(fieldName);
     
     return (
-      <div key={fieldName} className="flex items-center gap-3 p-3 border rounded-lg">
+      <div key={fieldName} className="flex items-center gap-3 p-3 border rounded-lg bg-white">
         <div className="flex-1">
           <Label className="text-sm font-medium text-gray-700">{displayName}</Label>
           {isEditing ? (
