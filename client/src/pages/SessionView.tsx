@@ -920,7 +920,22 @@ Thank you for your assistance.`;
             
             const normalizedOriginal = normalizeValue(originalValue);
             const normalizedCurrent = normalizeValue(currentValue);
-            const wasManuallyUpdated = normalizedOriginal !== normalizedCurrent && originalValue !== undefined;
+            
+            // Debug logging for date field issues
+            if (fieldName === "Effective Date") {
+              console.log(`Debug ${fieldName}:`, {
+                originalValue,
+                currentValue,
+                normalizedOriginal,
+                normalizedCurrent,
+                areEqual: normalizedOriginal === normalizedCurrent,
+                wasManuallyEdited: validation.validationStatus === 'manual'
+              });
+            }
+            
+            // Only consider it manually updated if it was explicitly marked as manual status
+            // The validation status 'manual' is set when user actually edits a field
+            const wasManuallyUpdated = validation.validationStatus === 'manual';
             
             // Check if field was extracted (has confidence score > 0)
             const wasExtracted = validation.confidenceScore > 0;
