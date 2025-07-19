@@ -1,4 +1,4 @@
-import { Plus, Settings, Search, LayoutDashboard, Shield } from "lucide-react";
+import { Plus, Settings, Search, LayoutDashboard, Shield, Hand } from "lucide-react";
 import { WaveIcon, DropletIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -193,7 +193,7 @@ export default function Dashboard() {
           {/* Welcome Header */}
           <div className="py-4">
             <div className="flex items-center space-x-2">
-              <span className="text-2xl">👋</span>
+              <Hand className="h-6 w-6 text-blue-500" />
               <h1 className="text-2xl font-medium text-gray-700">
                 Welcome, {user?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'User'}
               </h1>
