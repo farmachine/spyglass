@@ -183,7 +183,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
               </CardTitle>
               <div className="flex-1 overflow-hidden">
                 {project.description && (
-                  <p className="text-sm font-medium text-black/70 mt-1 line-clamp-2">
+                  <p className="text-xs font-normal text-black/70 mt-1 leading-relaxed whitespace-pre-wrap break-words">
                     {project.description}
                   </p>
                 )}
