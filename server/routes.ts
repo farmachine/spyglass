@@ -330,6 +330,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const project = await storage.createProject(projectData);
+      
+      // Automatically publish to primary organization
+      try {
+        const primaryOrg = await storage.getPrimaryOrganization();
+        if (primaryOrg) {
+          await storage.publishProjectToOrganization({
+            projectId: project.id,
+            organizationId: primaryOrg.id
+          });
+        }
+      } catch (publishError) {
+        console.warn("Failed to auto-publish to primary organization:", publishError);
+        // Continue without failing the project creation
+      }
+      
       res.status(201).json(project);
     } catch (error) {
       console.error("Create project error:", error);

@@ -46,6 +46,7 @@ export interface IStorage {
   // Organizations
   getOrganizations(): Promise<(Organization & { userCount: number })[]>;
   getOrganization(id: string): Promise<Organization | undefined>;
+  getPrimaryOrganization(): Promise<Organization | undefined>;
   getOrganizationWithUsers(id: string): Promise<OrganizationWithUsers | undefined>;
   createOrganization(organization: InsertOrganization): Promise<Organization>;
   updateOrganization(id: string, organization: Partial<InsertOrganization>): Promise<Organization | undefined>;
@@ -532,6 +533,10 @@ export class MemStorage implements IStorage {
 
   async getOrganization(id: number): Promise<Organization | undefined> {
     return this.organizations.get(id);
+  }
+
+  async getPrimaryOrganization(): Promise<Organization | undefined> {
+    return Array.from(this.organizations.values()).find(org => org.type === 'primary');
   }
 
   async getOrganizationWithUsers(id: number): Promise<OrganizationWithUsers | undefined> {
@@ -1196,6 +1201,16 @@ class PostgreSQLStorage implements IStorage {
       .select()
       .from(organizations)
       .where(eq(organizations.id, id))
+      .limit(1);
+    
+    return result[0];
+  }
+
+  async getPrimaryOrganization(): Promise<Organization | undefined> {
+    const result = await this.db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.type, 'primary'))
       .limit(1);
     
     return result[0];

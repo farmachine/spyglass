@@ -11,6 +11,13 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 19, 2025**
+- ✓ **AUTO-PUBLISHING TO PRIMARY ORGANIZATION**: All projects now automatically publish to primary organization by default
+- ✓ Added getPrimaryOrganization() method to storage interface for retrieving primary organization
+- ✓ Updated project creation API to automatically publish new projects to primary organization
+- ✓ Retroactively published all existing projects (6 total) to the "Internal" primary organization
+- ✓ **ORGANIZATION BADGE STYLING FIXED**: Primary organizations display with black text and grey background, non-primary with green styling
+- ✓ Enhanced PostgreSQL storage to fetch published organizations with type field for proper styling
+- ✓ Updated API endpoints to include published organization data with project queries
 - ✓ **REDIRECT ISSUE COMPLETELY RESOLVED**: Fixed critical navigation problem where CRUD operations redirected users away from Define Data tab
 - ✓ Eliminated problematic welcome flow logic that interfered with user interactions on active tabs
 - ✓ Simplified tab navigation to honor user choices without automatic redirects or welcome flow interference
