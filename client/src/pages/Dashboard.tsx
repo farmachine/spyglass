@@ -1,4 +1,4 @@
-import { Plus, Settings, Search, LayoutDashboard, Shield, Hand } from "lucide-react";
+import { Plus, Settings, Search, LayoutDashboard, Shield } from "lucide-react";
 import { WaveIcon, DropletIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -192,12 +192,9 @@ export default function Dashboard() {
         <div className="space-y-6">
           {/* Welcome Header */}
           <div className="py-4">
-            <div className="flex items-center space-x-2">
-              <Hand className="h-6 w-6 text-blue-500" />
-              <h1 className="text-2xl font-medium text-gray-700">
-                Welcome, {user?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'User'}
-              </h1>
-            </div>
+            <h1 className="text-2xl font-medium text-gray-700">
+              Welcome, {user?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'User'}
+            </h1>
           </div>
           
           {/* Page Title */}
@@ -255,6 +252,9 @@ export default function Dashboard() {
           {renderProjectsContent()}
         </div>
       </div>
+      
+      {/* Blue footer with fade */}
+      <div className="h-32 bg-gradient-to-t from-blue-500 to-white"></div>
 
       <CreateProjectDialog
         open={createDialogOpen}
