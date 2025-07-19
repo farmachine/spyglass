@@ -1059,54 +1059,55 @@ Thank you for your assistance.`;
 
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-3">
-                  {getVerificationProgress().percentage === 100 ? (
-                    <div className="flex items-center gap-1">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <span className="text-green-600 font-medium text-sm">Verified</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1">
-                      <AlertTriangle className="h-4 w-4 text-red-600" />
-                      <span className="text-red-600 font-medium text-sm">Unverified</span>
-                    </div>
-                  )}
-                  
-                  {/* Session Verification Progress */}
-                  <div className="flex items-center gap-2">
-                    <div className="w-24 bg-gray-200 rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full transition-all duration-300 ${
-                          getVerificationProgress().percentage === 100 ? 'bg-green-600' : 
-                          getVerificationProgress().percentage > 0 ? 'bg-blue-600' : 'bg-gray-400'
-                        }`}
-                        style={{ width: `${getVerificationProgress().percentage}%` }}
-                      />
-                    </div>
-                    <span className="text-xs font-medium text-gray-700 min-w-[28px]">
-                      {getVerificationProgress().percentage}%
-                    </span>
+              
+              {/* Centered status and progress bar */}
+              <div className="flex items-center gap-3">
+                {getVerificationProgress().percentage === 100 ? (
+                  <div className="flex items-center gap-1">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-green-600 font-medium text-sm">Verified</span>
                   </div>
+                ) : (
+                  <div className="flex items-center gap-1">
+                    <AlertTriangle className="h-4 w-4 text-red-600" />
+                    <span className="text-red-600 font-medium text-sm">Unverified</span>
+                  </div>
+                )}
+                
+                {/* Session Verification Progress */}
+                <div className="flex items-center gap-2">
+                  <div className="w-24 bg-gray-200 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        getVerificationProgress().percentage === 100 ? 'bg-green-600' : 
+                        getVerificationProgress().percentage > 0 ? 'bg-blue-600' : 'bg-gray-400'
+                      }`}
+                      style={{ width: `${getVerificationProgress().percentage}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-medium text-gray-700 min-w-[28px]">
+                    {getVerificationProgress().percentage}%
+                  </span>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <Button 
-                    onClick={() => setShowReasoningDialog(true)} 
-                    variant="outline" 
-                    size="sm"
-                    className="px-3 py-2"
-                  >
-                    <Info className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    onClick={handleExportToExcel}
-                    variant="outline"
-                    size="sm"
-                    className="px-3 py-2"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </div>
+              </div>
+              
+              <div className="flex flex-col gap-1">
+                <Button 
+                  onClick={() => setShowReasoningDialog(true)} 
+                  variant="outline" 
+                  size="sm"
+                  className="px-3 py-2"
+                >
+                  <Info className="h-4 w-4" />
+                </Button>
+                <Button
+                  onClick={handleExportToExcel}
+                  variant="outline"
+                  size="sm"
+                  className="px-3 py-2"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
               </div>
             </div>
 
