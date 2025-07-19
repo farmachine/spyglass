@@ -120,14 +120,19 @@ export default function Dashboard() {
           No projects yet
         </h3>
         <p className="text-gray-600 mb-6">
-          Get started by creating your first data extraction project
+          {isAdmin 
+            ? "Get started by creating your first data extraction project"
+            : "Contact your administrator to create projects"
+          }
         </p>
-        <Button
-          onClick={() => setCreateDialogOpen(true)}
-        >
-          <DropletIcon className="h-4 w-4 mr-2" />
-          Create Project
-        </Button>
+        {isAdmin && (
+          <Button
+            onClick={() => setCreateDialogOpen(true)}
+          >
+            <DropletIcon className="h-4 w-4 mr-2" />
+            Create Project
+          </Button>
+        )}
       </div>
     );
   };
@@ -225,13 +230,15 @@ export default function Dashboard() {
                   </Label>
                 </div>
               )}
-              <Button
-                onClick={() => setCreateDialogOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                New Project
-              </Button>
+              {isAdmin && (
+                <Button
+                  onClick={() => setCreateDialogOpen(true)}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Project
+                </Button>
+              )}
             </div>
           </div>
           

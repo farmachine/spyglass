@@ -11,6 +11,9 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 19, 2025**
+- ✓ **PROJECT CREATION RESTRICTED TO ADMINS**: Hidden "New Project" button from non-admin users and added backend validation
+- ✓ Non-admin users see "Contact your administrator to create projects" message when no projects exist
+- ✓ Backend returns 403 Forbidden when non-admin users attempt to create projects via API
 - ✓ **ADMIN-ONLY EDITABLE PROJECT TITLES/DESCRIPTIONS**: Implemented inline editing for project titles and descriptions with admin-only access control
 - ✓ Added edit buttons with hover states and keyboard shortcuts (Enter/Escape for title, Ctrl+Enter/Escape for description)
 - ✓ Connected to existing PUT /api/projects/:id API endpoint with proper loading states and error handling
