@@ -250,13 +250,14 @@ export default function ProjectCard({ project }: ProjectCardProps) {
               </div>
               
               {/* Right side - Organizations column */}
-              <div className="flex flex-col items-end gap-1">
+              <div className="flex flex-col items-end justify-end gap-1 min-h-[32px]">
                 {publishedOrganizations.length > 0 ? (
                   publishedOrganizations
                     .sort((a: Organization & { type?: string }, b: Organization & { type?: string }) => {
-                      if (a.type === 'primary' && b.type !== 'primary') return -1;
-                      if (b.type === 'primary' && a.type !== 'primary') return 1;
-                      return 0;
+                      // Sort by type first (primary first), then by creation order (reversed for bottom-up stacking)
+                      if (a.type === 'primary' && b.type !== 'primary') return 1; // Primary goes to bottom
+                      if (b.type === 'primary' && a.type !== 'primary') return -1;
+                      return 0; // Keep relative order for same type
                     })
                     .map((org: Organization & { type?: string }) => (
                       <Badge 

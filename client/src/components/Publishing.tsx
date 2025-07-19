@@ -39,6 +39,7 @@ export default function Publishing({ project }: PublishingProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id, "publishing"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] }); // Invalidate dashboard projects cache
       setSelectedOrganizationId("");
       toast({
         title: "Project published",
@@ -63,6 +64,7 @@ export default function Publishing({ project }: PublishingProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id, "publishing"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] }); // Invalidate dashboard projects cache
       toast({
         title: "Project unpublished",
         description: "Project has been removed from the organization.",
