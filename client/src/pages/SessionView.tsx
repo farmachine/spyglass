@@ -441,27 +441,22 @@ MISSING OR UNVERIFIED INFORMATION:
     unverifiedFields.forEach((validation, index) => {
       report += `\n${index + 1}. ${validation.fieldName}`;
       
-      if (validation.aiReasoning) {
-        // Clean up the AI reasoning to remove technical formatting
-        let cleanReasoning = validation.aiReasoning;
-        
-        // Remove technical prefixes and status information
-        cleanReasoning = cleanReasoning.replace(/^EXTRACTION ANALYSIS:[\s\S]*?CONFIDENCE CALCULATION:[\s\S]*?RULES COMPLIANCE:[\s\S]*?/m, '');
-        cleanReasoning = cleanReasoning.replace(/^SUGGESTED RESOLUTION:[\s\S]*?RECOMMENDED QUESTIONS TO ASK:/m, '');
-        cleanReasoning = cleanReasoning.replace(/^MANUAL REVIEW NEEDED:[\s\S]*?$/m, '');
-        
-        // Clean up bullet points and formatting
-        cleanReasoning = cleanReasoning.replace(/^[•\-]\s*/gm, '- ');
-        cleanReasoning = cleanReasoning.replace(/^\s*[\-•]\s*/gm, '- ');
-        
-        // Remove extra whitespace and newlines
-        cleanReasoning = cleanReasoning.replace(/\n{3,}/g, '\n\n').trim();
-        
-        if (cleanReasoning) {
-          report += `\n${cleanReasoning}`;
-        }
-      } else if (validation.validationStatus === 'invalid') {
+      // Handle different types of unverified fields
+      if (validation.validationStatus === 'invalid') {
+        // Missing/not extracted fields
         report += `\nThis information was not found in the provided document. Please provide the correct value for this field.`;
+      } else if (validation.validationStatus === 'manual') {
+        // Manually entered fields
+        report += `\nWe have recorded '${validation.extractedValue}' for this field based on manual input. Please confirm this value is accurate.`;
+      } else if (validation.aiReasoning && validation.aiReasoning.includes('IDENTIFIED CONCERNS:')) {
+        // Fields with AI reasoning (confidence issues, rule conflicts, etc.)
+        report += `\n${validation.aiReasoning}`;
+      } else if (validation.confidenceScore && validation.confidenceScore < 80) {
+        // Fields with low confidence but no detailed reasoning
+        report += `\nWe extracted '${validation.extractedValue}' for this field with ${validation.confidenceScore}% confidence. Please verify this information is accurate and complete.`;
+      } else {
+        // Fallback for any other unverified fields
+        report += `\nPlease review and verify the extracted value: '${validation.extractedValue || 'No value found'}'`;
       }
       
       report += '\n';
