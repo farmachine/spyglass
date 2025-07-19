@@ -30,8 +30,11 @@ export default function Dashboard() {
 
   // Filter projects based on search query and showDeactivated checkbox
   const filteredProjects = projects?.filter(project => {
-    // First filter by deactivated status
-    const statusFilter = showDeactivated ? true : project.status !== "inactive";
+    // For non-admin users, always hide deactivated projects
+    // For admin users, respect the showDeactivated checkbox
+    const statusFilter = isAdmin 
+      ? (showDeactivated ? true : project.status !== "inactive")
+      : project.status !== "inactive";
     
     // Then filter by search query
     if (!searchQuery.trim()) {
@@ -206,20 +209,22 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              {/* Filter Controls */}
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="show-deactivated"
-                  checked={showDeactivated}
-                  onCheckedChange={setShowDeactivated}
-                />
-                <Label 
-                  htmlFor="show-deactivated"
-                  className="text-sm text-gray-600 cursor-pointer"
-                >
-                  Show Deactivated
-                </Label>
-              </div>
+              {/* Filter Controls - Only show to admin users */}
+              {isAdmin && (
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="show-deactivated"
+                    checked={showDeactivated}
+                    onCheckedChange={setShowDeactivated}
+                  />
+                  <Label 
+                    htmlFor="show-deactivated"
+                    className="text-sm text-gray-600 cursor-pointer"
+                  >
+                    Show Deactivated
+                  </Label>
+                </div>
+              )}
               <Button
                 onClick={() => setCreateDialogOpen(true)}
                 className="bg-blue-600 hover:bg-blue-700"

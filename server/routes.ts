@@ -294,7 +294,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Projects with published organizations
   app.get("/api/projects-with-orgs", authenticateToken, async (req: AuthRequest, res) => {
     try {
+      console.log(`[DEBUG] User ${req.user!.email} (role: ${req.user!.role}) from org ${req.user!.organizationId} requesting projects`);
       const projects = await storage.getProjectsWithPublishedOrganizations(req.user!.organizationId, req.user!.role);
+      console.log(`[DEBUG] Returning ${projects.length} projects for user ${req.user!.email}`);
       res.json(projects);
     } catch (error) {
       console.error("Get projects with orgs error:", error);
