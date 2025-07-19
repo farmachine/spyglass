@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import type { ObjectCollection } from "@shared/schema";
 
 const collectionFormSchema = z.object({
-  collectionName: z.string().min(1, "Collection name is required"),
+  collectionName: z.string().min(1, "List name is required"),
   description: z.string().min(1, "Description is required - this helps the AI understand what objects to extract"),
   orderIndex: z.number().default(0),
 });
@@ -81,10 +81,10 @@ export default function CollectionDialog({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
-            {collection ? "Edit Collection" : "Create Collection"}
+            {collection ? "Edit List" : "Create List"}
           </DialogTitle>
           <DialogDescription>
-            Define an object type with properties that can create multiple records. The description helps the AI understand what objects to extract.
+            Define a list type with properties that can create multiple records. The description helps the AI understand what objects to extract.
           </DialogDescription>
         </DialogHeader>
         
@@ -95,7 +95,7 @@ export default function CollectionDialog({
               name="collectionName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Collection Name</FormLabel>
+                  <FormLabel>List Name</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g., Employees, Assets, Contracts" {...field} />
                   </FormControl>
@@ -139,7 +139,7 @@ export default function CollectionDialog({
                 disabled={isLoading}
                 className=""
               >
-                {isLoading ? "Saving..." : collection ? "Update Collection" : "Create Collection"}
+                {isLoading ? "Saving..." : collection ? "Update List" : "Create List"}
               </Button>
             </DialogFooter>
           </form>

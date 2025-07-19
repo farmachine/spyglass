@@ -19,9 +19,9 @@ import {
   useUpdateCollection,
   useDeleteCollection,
   useUpdateProperty,
-  useDeleteProperty
+  useDeleteProperty,
+  useUpdateProject
 } from "@/hooks/useSchema";
-import { useUpdateProject } from "@/hooks/useProjects";
 import SchemaFieldDialog from "@/components/SchemaFieldDialog";
 import CollectionDialog from "@/components/CollectionDialog";
 import PropertyDialog from "@/components/PropertyDialog";
