@@ -1,4 +1,4 @@
-import { Plus, Settings, Search, LayoutDashboard } from "lucide-react";
+import { Plus, Settings, Search, LayoutDashboard, Shield } from "lucide-react";
 import { WaveIcon, DropletIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -166,6 +166,7 @@ export default function Dashboard() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => navigate("/admin")}>
+                      <Shield className="mr-2 h-4 w-4" />
                       Admin Panel
                     </DropdownMenuItem>
                   </DropdownMenuContent>
