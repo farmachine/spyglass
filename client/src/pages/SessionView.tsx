@@ -921,17 +921,7 @@ Thank you for your assistance.`;
             const normalizedOriginal = normalizeValue(originalValue);
             const normalizedCurrent = normalizeValue(currentValue);
             
-            // Debug logging for date field issues
-            if (fieldName === "Effective Date") {
-              console.log(`Debug ${fieldName}:`, {
-                originalValue,
-                currentValue,
-                normalizedOriginal,
-                normalizedCurrent,
-                areEqual: normalizedOriginal === normalizedCurrent,
-                wasManuallyEdited: validation.validationStatus === 'manual'
-              });
-            }
+
             
             // Only consider it manually updated if it was explicitly marked as manual status
             // The validation status 'manual' is set when user actually edits a field
@@ -1088,12 +1078,16 @@ Thank you for your assistance.`;
               </div>
             </div>
 
-        {/* Project Schema Fields */}
+        {/* Unified Data Structure - Fields and Collections */}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>{session?.sessionName}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <span>{session?.sessionName}</span>
+            </CardTitle>
+            <p className="text-sm text-gray-600">Review and verify extracted data</p>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Project Schema Fields */}
             {project.schemaFields.map((field) => {
               const originalValue = extractedData[field.fieldName];
               const validation = validations.find(v => v.fieldName === field.fieldName);
@@ -1105,14 +1099,18 @@ Thank you for your assistance.`;
                 if (displayValue === "null" || displayValue === "undefined") {
                   displayValue = null;
                 }
-                return renderFieldWithValidation(field.fieldName, displayValue);
+                return (
+                  <div key={field.id} className="border border-gray-200 rounded-lg border-l-4 border-l-blue-500 bg-white">
+                    <div className="p-4">
+                      {renderFieldWithValidation(field.fieldName, displayValue)}
+                    </div>
+                  </div>
+                );
               }
               return null;
             })}
-          </CardContent>
-        </Card>
 
-        {/* Collections */}
+            {/* Collections */}
         {project.collections.map((collection) => {
           const collectionData = extractedData[collection.collectionName];
           
@@ -1129,9 +1127,9 @@ Thank you for your assistance.`;
           const isExpanded = expandedCollections.has(collection.collectionName);
 
           return (
-            <Card key={collection.id} className="mb-8 w-full overflow-hidden border-l-4 border-l-green-500">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
+            <div key={collection.id} className="border border-gray-200 rounded-lg border-l-4 border-l-green-500 bg-white">
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2 flex-1">
                     <Button
                       variant="ghost"
@@ -1147,7 +1145,7 @@ Thank you for your assistance.`;
                     </Button>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <CardTitle className="mb-0">{collection.collectionName}</CardTitle>
+                        <h3 className="text-lg font-semibold">{collection.collectionName}</h3>
                         <Badge className="bg-green-100 text-green-800 text-xs px-2 py-1">
                           List
                         </Badge>
@@ -1156,9 +1154,8 @@ Thank you for your assistance.`;
                     </div>
                   </div>
                 </div>
-              </CardHeader>
-              {isExpanded && (
-                <CardContent>
+                {isExpanded && (
+                  <div>
                 {Array.from({ length: maxRecordIndex + 1 }, (_, index) => {
                   const item = collectionData?.[index] || {};
                   
@@ -1186,11 +1183,14 @@ Thank you for your assistance.`;
                     </div>
                   );
                 })}
-                </CardContent>
-              )}
-            </Card>
+                  </div>
+                )}
+              </div>
+            </div>
           );
         })}
+          </CardContent>
+        </Card>
           </div>
         </div>
       </div>
