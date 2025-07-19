@@ -22,6 +22,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ Added missing `calculate_knowledge_based_confidence` function to working ai_extraction.py file
 - ✓ Confidence scores now properly adjusted based on extraction rules (e.g., "Inc." company names set to 50% confidence)
 - ✓ Fixed hardcoded 95% confidence that was ignoring all extraction rule configurations
+- ✓ **KNOWLEDGE DOCUMENT INTEGRATION FIXED**: Fixed critical issue where knowledge documents weren't being processed during AI extraction
+- ✓ Added missing `check_knowledge_document_conflicts` function to detect policy conflicts and adjust confidence scores
+- ✓ Knowledge documents now properly included in AI extraction prompt for policy-based conflict detection
+- ✓ US entities in country fields now correctly flagged with 50% confidence when knowledge documents require legal review
 - ✓ **PERSONALIZED WELCOME HEADER**: Added welcome message with user's first name above Dashboard title
 - ✓ Displays "Welcome, [First Name]" using user's first name or email prefix as fallback
 - ✓ **PROJECT CREATION RESTRICTED TO ADMINS**: Hidden "New Project" button from non-admin users and added backend validation
