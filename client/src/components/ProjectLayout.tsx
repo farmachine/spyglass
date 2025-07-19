@@ -79,18 +79,16 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
     const urlHasParams = window.location.search.length > 0;
     const isInitialLoad = !userNavigatedRef.current && !urlHasParams;
     
+    // Check if user has already interacted with the project (to prevent welcome flow after CRUD operations)
+    const hasInteracted = sessionStorage.getItem(`project-${project.id}-interacted`);
+    const isReordering = sessionStorage.getItem(`project-${project.id}-reordering`);
+    
     // Welcome flow should ONLY trigger on the very first load of the project
-    // Never after user interactions like uploads, knowledge document saves, etc.
-    if (activeTab === 'upload' && !isSetupComplete && isInitialLoad && user?.role === 'admin') {
-      // Only redirect if this is truly the initial project load AND we haven't set a tab yet
-      const hasInteracted = sessionStorage.getItem(`project-${project.id}-interacted`);
-      const isReordering = sessionStorage.getItem(`project-${project.id}-reordering`);
-      
-      if (!hasInteracted && !isReordering && !initialTabSetRef.current) {
-        sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
-        initialTabSetRef.current = true;
-        setActiveTab('define');
-      }
+    // Never after user interactions like uploads, knowledge document saves, CRUD operations, etc.
+    if (activeTab === 'upload' && !isSetupComplete && isInitialLoad && user?.role === 'admin' && !hasInteracted && !isReordering && !initialTabSetRef.current) {
+      sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
+      initialTabSetRef.current = true;
+      setActiveTab('define');
       return;
     }
     

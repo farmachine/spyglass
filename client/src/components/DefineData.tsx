@@ -182,6 +182,9 @@ export default function DefineData({ project }: DefineDataProps) {
   // Schema field handlers
   const handleCreateSchemaField = async (data: any) => {
     try {
+      // Mark project as interacted to prevent welcome flow redirects
+      sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
+      
       const orderIndex = safeSchemaFields.length; // Add to the end
       await createSchemaField.mutateAsync({ ...data, orderIndex });
       setSchemaFieldDialog({ open: false });
@@ -239,6 +242,9 @@ export default function DefineData({ project }: DefineDataProps) {
   // Collection handlers
   const handleCreateCollection = async (data: any) => {
     try {
+      // Mark project as interacted to prevent welcome flow redirects
+      sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
+      
       const orderIndex = safeCollections.length; // Add to the end
       await createCollection.mutateAsync({ ...data, orderIndex });
       setCollectionDialog({ open: false });
@@ -278,6 +284,9 @@ export default function DefineData({ project }: DefineDataProps) {
 
   const handleDeleteCollection = async (id: number) => {
     try {
+      // Mark project as interacted to prevent welcome flow redirects
+      sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
+      
       await deleteCollection.mutateAsync(id);
       setDeleteDialog({ open: false });
       toast({
@@ -297,6 +306,9 @@ export default function DefineData({ project }: DefineDataProps) {
   const handleCreateProperty = async (data: any) => {
     if (!propertyDialog.collectionId) return;
     try {
+      // Mark project as interacted to prevent welcome flow redirects
+      sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
+      
       // Create the property directly using apiRequest since we need dynamic collectionId
       await apiRequest(`/api/collections/${propertyDialog.collectionId}/properties`, {
         method: "POST",
