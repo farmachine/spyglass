@@ -162,11 +162,14 @@ export default function ProjectCard({ project }: ProjectCardProps) {
   };
 
   const handleStatusChange = async (newStatus: "active" | "inactive") => {
+    console.log('handleStatusChange called with:', newStatus, 'for project:', project.id);
     try {
-      await updateProjectStatus.mutateAsync({ 
+      console.log('About to call updateProjectStatus.mutateAsync');
+      const result = await updateProjectStatus.mutateAsync({ 
         id: project.id, 
         status: newStatus 
       });
+      console.log('Status update result:', result);
       // No toast notifications as requested
     } catch (error: any) {
       // Silently handle errors without toast notifications
