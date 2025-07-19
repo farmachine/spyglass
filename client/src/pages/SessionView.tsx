@@ -1149,6 +1149,9 @@ Thank you for your assistance.`;
                         <Badge className="bg-green-100 text-green-800 text-xs px-2 py-1">
                           List
                         </Badge>
+                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                          {maxRecordIndex + 1} {maxRecordIndex === 0 ? 'item' : 'items'}
+                        </span>
                       </div>
                       <p className="text-sm text-gray-600 mt-1">{collection.description}</p>
                     </div>
