@@ -195,66 +195,21 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="w-full px-6 py-4">
           <div className="flex items-center justify-between w-full">
-            <button
-              onClick={() => setLocation("/")}
-              className="flex items-center space-x-5 transition-all duration-200 hover:opacity-80 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-xl"
-              aria-label="Extractly - Go to Dashboard"
-            >
-              {/* Logo SVG */}
-              <div className="relative">
-                <svg
-                  width="60"
-                  height="60"
-                  viewBox="0 0 80 40"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="drop-shadow-md"
-                >
-                  <defs>
-                    <linearGradient id="waveGradient1" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#0EA5E9" />
-                      <stop offset="100%" stopColor="#0284C7" />
-                    </linearGradient>
-                    <linearGradient id="waveGradient2" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#38BDF8" />
-                      <stop offset="100%" stopColor="#0EA5E9" />
-                    </linearGradient>
-                  </defs>
-                  
-                  {/* First wave line */}
-                  <path
-                    d="M5 15 Q20 8 35 15 Q50 22 65 15 Q72 12 75 15"
-                    stroke="url(#waveGradient1)"
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                    fill="none"
-                  />
-                  
-                  {/* Second wave line */}
-                  <path
-                    d="M5 25 Q20 18 35 25 Q50 32 65 25 Q72 22 75 25"
-                    stroke="url(#waveGradient2)"
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                    fill="none"
-                  />
-                </svg>
-              </div>
-              
-              {/* Project name instead of "Extractly" */}
-              <div className="flex flex-col">
-                <span className="text-3xl font-bold text-foreground leading-tight tracking-tight">
-                  {project.name}
-                </span>
-              </div>
-            </button>
+            <ExtractlyLogo />
             <UserProfile />
           </div>
         </div>
       </div>
 
+      {/* Page Title */}
+      <div className="bg-white border-b border-gray-100">
+        <div className="w-full px-6 py-4">
+          <h2 className="text-2xl font-bold">{project.name}</h2>
+        </div>
+      </div>
+
       {/* Main Content - Full Width */}
-      <div className="flex h-[calc(100vh-80px)]">
+      <div className="flex h-[calc(100vh-140px)]">
         {/* Sidebar */}
         <div className="w-64 bg-white border-r border-gray-200">
           <div className="p-6">

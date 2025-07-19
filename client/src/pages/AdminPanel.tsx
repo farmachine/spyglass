@@ -1,4 +1,6 @@
 import { Settings, Home, Users, Building2 } from "lucide-react";
+import ExtractlyLogo from "@/components/ExtractlyLogo";
+import UserProfile from "@/components/UserProfile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
@@ -66,69 +68,22 @@ export default function AdminPanel() {
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
-            <button
-              onClick={() => navigate("/")}
-              className="flex items-center space-x-5 transition-all duration-200 hover:opacity-80 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-xl p-4"
-              aria-label="Extractly - Go to Dashboard"
-            >
-              {/* Logo SVG */}
-              <div className="relative">
-                <svg
-                  width="60"
-                  height="60"
-                  viewBox="0 0 80 40"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="drop-shadow-md"
-                >
-                  <defs>
-                    <linearGradient id="waveGradient1" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#0EA5E9" />
-                      <stop offset="100%" stopColor="#0284C7" />
-                    </linearGradient>
-                    <linearGradient id="waveGradient2" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#38BDF8" />
-                      <stop offset="100%" stopColor="#0EA5E9" />
-                    </linearGradient>
-                  </defs>
-                  
-                  {/* First wave line */}
-                  <path
-                    d="M5 15 Q20 8 35 15 Q50 22 65 15 Q72 12 75 15"
-                    stroke="url(#waveGradient1)"
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                    fill="none"
-                  />
-                  
-                  {/* Second wave line */}
-                  <path
-                    d="M5 25 Q20 18 35 25 Q50 32 65 25 Q72 22 75 25"
-                    stroke="url(#waveGradient2)"
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                    fill="none"
-                  />
-                </svg>
-              </div>
-              
-              {/* Admin text instead of project name */}
-              <div className="flex flex-col">
-                <span className="text-3xl font-bold text-foreground leading-tight tracking-tight">
-                  Admin
-                </span>
-              </div>
-            </button>
-            <div className="flex items-center gap-4">
-              {/* UserProfile component would go here if needed for admin panel */}
-            </div>
+            <ExtractlyLogo />
+            <UserProfile />
           </div>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="space-y-6">
+          {/* Page Title */}
+          <div>
+            <h2 className="text-2xl font-bold">Admin</h2>
+          </div>
+          
+          {/* Content Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Organizations Overview */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -270,6 +225,7 @@ export default function AdminPanel() {
             )}
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );

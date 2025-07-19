@@ -180,10 +180,15 @@ export default function Dashboard() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="space-y-6">
+          {/* Page Title */}
+          <div>
+            <h2 className="text-2xl font-bold">Dashboard</h2>
+          </div>
+          
+          {/* Controls Section */}
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-6">
-              <h2 className="text-2xl font-bold">Dashboard</h2>
-              {/* Search Box positioned to the right of title */}
+              {/* Search Box positioned to the left */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
