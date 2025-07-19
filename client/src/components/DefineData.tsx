@@ -26,6 +26,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { 
   useProjectSchemaFields,
   useObjectCollections,
@@ -61,6 +63,7 @@ export default function DefineData({ project }: DefineDataProps) {
   const [isEditingMainObjectName, setIsEditingMainObjectName] = useState(false);
 
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Query for live data instead of using static props
   const { data: schemaFields = [], isLoading: schemaFieldsLoading, error: schemaFieldsError } = useProjectSchemaFields(project.id);
@@ -91,6 +94,19 @@ export default function DefineData({ project }: DefineDataProps) {
   // Project mutations
   const updateProject = useUpdateProject();
 
+  // Create a mutation that doesn't invalidate project queries for reordering
+  const updateSchemaFieldForReorder = useMutation({
+    mutationFn: ({ id, field }: { id: string; field: Partial<any> }) =>
+      apiRequest(`/api/schema-fields/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(field),
+      }),
+    onSuccess: () => {
+      // Only invalidate schema fields, not the main project query
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id, "schema"] });
+    },
+  });
+
   // Drag and drop handler for reordering schema fields
   const handleFieldDragEnd = async (result: any) => {
     if (!result.destination) return;
@@ -101,11 +117,8 @@ export default function DefineData({ project }: DefineDataProps) {
 
     // Update orderIndex for all affected fields
     try {
-      // Use Promise.all for faster execution but prevent redirect by marking user interaction
-      sessionStorage.setItem(`project-${project.id}-reordering`, 'true');
-      
       const updatePromises = items.map((field, index) => 
-        updateSchemaField.mutateAsync({ 
+        updateSchemaFieldForReorder.mutateAsync({ 
           id: field.id, 
           field: { ...field, orderIndex: index } 
         })
@@ -113,14 +126,8 @@ export default function DefineData({ project }: DefineDataProps) {
       
       await Promise.all(updatePromises);
       
-      // Clear the reordering flag after a brief delay
-      setTimeout(() => {
-        sessionStorage.removeItem(`project-${project.id}-reordering`);
-      }, 100);
-      
       // Silent update - no toast notification for reordering
     } catch (error) {
-      sessionStorage.removeItem(`project-${project.id}-reordering`);
       toast({
         title: "Error",
         description: "Failed to update field order. Please try again.",

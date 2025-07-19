@@ -29,6 +29,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const { data: project, isLoading, error } = useProject(projectId);
   const { user } = useAuth();
   const userNavigatedRef = useRef(false);
+  const initialTabSetRef = useRef(false);
 
   // Check user role for access control (needed in useEffect)
   const isAdmin = user?.role === 'admin';
@@ -81,15 +82,21 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
     // Welcome flow should ONLY trigger on the very first load of the project
     // Never after user interactions like uploads, knowledge document saves, etc.
     if (activeTab === 'upload' && !isSetupComplete && isInitialLoad && user?.role === 'admin') {
-      // Only redirect if this is truly the initial project load
+      // Only redirect if this is truly the initial project load AND we haven't set a tab yet
       const hasInteracted = sessionStorage.getItem(`project-${project.id}-interacted`);
       const isReordering = sessionStorage.getItem(`project-${project.id}-reordering`);
       
-      if (!hasInteracted && !isReordering) {
+      if (!hasInteracted && !isReordering && !initialTabSetRef.current) {
         sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
+        initialTabSetRef.current = true;
         setActiveTab('define');
       }
       return;
+    }
+    
+    // Mark that we've set an initial tab to prevent future welcome flow triggers
+    if (!initialTabSetRef.current) {
+      initialTabSetRef.current = true;
     }
     
     // Only set default if no tab is currently active
