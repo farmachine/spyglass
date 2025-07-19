@@ -454,7 +454,10 @@ export default function OrganizationConfig() {
                             <span className="font-medium">{user.name}</span>
                             <span className="text-sm text-gray-600">{user.email}</span>
                           </div>
-                          <Badge variant={user.role === "admin" ? "default" : "secondary"}>
+                          <Badge 
+                            variant={user.role === "admin" ? "default" : "secondary"}
+                            className={user.role === "admin" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}
+                          >
                             {user.role}
                           </Badge>
                         </div>
