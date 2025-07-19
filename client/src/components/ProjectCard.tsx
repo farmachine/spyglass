@@ -265,7 +265,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
         {/* Fixed bottom area */}
         <CardContent className="pb-4 flex-shrink-0 relative bg-white" onClick={() => setLocation(`/projects/${project.id}`)}>
           {/* Created date - positioned above stats */}
-          <div className="text-xs font-medium text-black/60 mb-2 space-y-0.5">
+          <div className="text-xs font-medium text-black/60 mb-2 space-y-0.5 italic">
             <div><span className="font-bold">Author:</span> {project.creatorName || 'Unknown'}</div>
             <div><span className="font-bold">Organization:</span> {project.creatorOrganizationName || 'Unknown'}</div>
             <div><span className="font-bold">Created:</span> {formatDate(project.createdAt)}</div>
