@@ -1,4 +1,4 @@
-import { Settings, Home, Users, Building2 } from "lucide-react";
+import { Settings, Home, Users, Building2, Shield } from "lucide-react";
 import ExtractlyLogo from "@/components/ExtractlyLogo";
 import UserProfile from "@/components/UserProfile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -78,8 +78,11 @@ export default function AdminPanel() {
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="space-y-6">
           {/* Page Title */}
-          <div>
-            <h2 className="text-2xl font-bold">Admin</h2>
+          <div className="py-6">
+            <div className="flex items-center space-x-3">
+              <Shield className="h-8 w-8 text-primary" />
+              <h2 className="text-3xl font-bold">Admin</h2>
+            </div>
           </div>
           
           {/* Content Section */}

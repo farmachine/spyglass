@@ -1,4 +1,4 @@
-import { Plus, Settings, Search } from "lucide-react";
+import { Plus, Settings, Search, LayoutDashboard } from "lucide-react";
 import { WaveIcon, DropletIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -181,8 +181,11 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="space-y-6">
           {/* Page Title */}
-          <div>
-            <h2 className="text-2xl font-bold">Dashboard</h2>
+          <div className="py-6">
+            <div className="flex items-center space-x-3">
+              <LayoutDashboard className="h-8 w-8 text-primary" />
+              <h2 className="text-3xl font-bold">Dashboard</h2>
+            </div>
           </div>
           
           {/* Controls Section */}

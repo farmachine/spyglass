@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Upload, Database, Brain, Settings, FolderOpen, Home as HomeIcon } from "lucide-react";
+import { ArrowLeft, Upload, Database, Brain, Settings, FolderOpen, Home as HomeIcon, FileText } from "lucide-react";
 import { WaveIcon, FlowIcon, StreamIcon, TideIcon, ShipIcon, DropletIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -203,13 +203,16 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
 
       {/* Page Title */}
       <div className="bg-white border-b border-gray-100">
-        <div className="w-full px-6 py-4">
-          <h2 className="text-2xl font-bold">{project.name}</h2>
+        <div className="w-full px-6 py-6">
+          <div className="flex items-center space-x-3">
+            <FileText className="h-8 w-8 text-primary" />
+            <h2 className="text-3xl font-bold">{project.name}</h2>
+          </div>
         </div>
       </div>
 
       {/* Main Content - Full Width */}
-      <div className="flex h-[calc(100vh-140px)]">
+      <div className="flex h-[calc(100vh-168px)]">
         {/* Sidebar */}
         <div className="w-64 bg-white border-r border-gray-200">
           <div className="p-6">
