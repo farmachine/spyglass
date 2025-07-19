@@ -39,6 +39,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ **AUTO VERIFICATION CONFIDENCE THRESHOLDS**: Updated AI extraction to use each field's specific 'Auto Verification Confidence Level (%)' setting
 - ✓ Fields now use their configured confidence thresholds instead of hardcoded 80% for verification status
 - ✓ Each schema field and collection property can have different auto-verification requirements
+- ✓ **SESSION REPORT IMPROVEMENTS**: Enhanced session verification reports with single thank you message and human-readable field names
+- ✓ Removed duplicate "Thank you for your assistance" messages from individual field reasoning - now only appears once at report end
+- ✓ Improved field naming for list items - uses meaningful identifiers like "Asana, Inc. - Country" instead of "Parties.Country[0]"
+- ✓ Collection items now identified by Name field when available, otherwise falls back to "Item 1", "Item 2" format
 - ✓ **PERSONALIZED WELCOME HEADER**: Added welcome message with user's first name above Dashboard title
 - ✓ Displays "Welcome, [First Name]" using user's first name or email prefix as fallback
 - ✓ **PROJECT CREATION RESTRICTED TO ADMINS**: Hidden "New Project" button from non-admin users and added backend validation

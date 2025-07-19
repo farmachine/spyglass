@@ -415,6 +415,44 @@ export default function SessionView() {
     return validations.filter(v => v.validationStatus !== 'valid' && v.validationStatus !== 'verified');
   };
 
+  // Generate human-readable field names for reports, using meaningful identifiers for list items  
+  const getHumanReadableFieldName = (validation: FieldValidation): string => {
+    // For schema fields, use the field name directly
+    if (!validation.fieldName.includes('.')) {
+      return validation.fieldName;
+    }
+    
+    // For collection properties, try to find a more meaningful identifier
+    const parts = validation.fieldName.split('.');
+    const collectionName = parts[0];
+    const propertyPart = parts[1]; // e.g., "Country[0]"
+    const basePropertyName = propertyPart.split('[')[0];
+    const indexMatch = propertyPart.match(/\[(\d+)\]/);
+    
+    if (!indexMatch) {
+      return `${collectionName} - ${basePropertyName}`;
+    }
+    
+    const index = parseInt(indexMatch[1]);
+    
+    // Try to find a name field for this collection item to create a better identifier
+    const nameFields = ['Name', 'name', 'Title', 'title', 'Description', 'description'];
+    for (const nameField of nameFields) {
+      const nameValidation = validations.find(v => 
+        v.fieldName === `${collectionName}.${nameField}[${index}]` && 
+        v.extractedValue && 
+        v.extractedValue.trim() !== ''
+      );
+      
+      if (nameValidation) {
+        return `${nameValidation.extractedValue} - ${basePropertyName}`;
+      }
+    }
+    
+    // Fallback to item number if no name found
+    return `${collectionName} ${index + 1} - ${basePropertyName}`;
+  };
+
   // Generate data report text for email
   const generateDataReport = () => {
     const unverifiedFields = getUnverifiedFields();
@@ -439,7 +477,8 @@ MISSING OR UNVERIFIED INFORMATION:
 `;
 
     unverifiedFields.forEach((validation, index) => {
-      report += `\n${index + 1}. ${validation.fieldName}`;
+      const displayName = getHumanReadableFieldName(validation);
+      report += `\n${index + 1}. ${displayName}`;
       
       // Handle different types of unverified fields
       if (validation.validationStatus === 'invalid') {
@@ -449,8 +488,9 @@ MISSING OR UNVERIFIED INFORMATION:
         // Manually entered fields
         report += `\nWe have recorded '${validation.extractedValue}' for this field based on manual input. Please confirm this value is accurate.`;
       } else if (validation.aiReasoning && validation.aiReasoning.includes('IDENTIFIED CONCERNS:')) {
-        // Fields with AI reasoning (confidence issues, rule conflicts, etc.)
-        report += `\n${validation.aiReasoning}`;
+        // Fields with AI reasoning (confidence issues, rule conflicts, etc.) - remove individual thank you messages
+        const cleanedReasoning = validation.aiReasoning.replace(/\n*Thank you for your assistance\.\s*$/i, '');
+        report += `\n${cleanedReasoning}`;
       } else if (validation.confidenceScore && validation.confidenceScore < 80) {
         // Fields with low confidence but no detailed reasoning
         report += `\nWe extracted '${validation.extractedValue}' for this field with ${validation.confidenceScore}% confidence. Please verify this information is accurate and complete.`;
