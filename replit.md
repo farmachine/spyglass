@@ -58,6 +58,7 @@ Preferred communication style: Simple, everyday language.
 - ✓ Added organization type checking to allow primary org admins to activate/deactivate ANY project in the system
 - ✓ Josh (primary org admin) can now successfully manage project status across all organizations including GeoCosmo projects
 - ✓ Regular users remain restricted to managing only their own organization's projects
+- ✓ **SEARCH BAR SIMPLIFIED**: Updated search bar placeholder text from detailed description to simple "Search projects"
 - ✓ **PERSONALIZED WELCOME HEADER**: Added welcome message with user's first name above Dashboard title
 - ✓ Displays "Welcome, [First Name]" using user's first name or email prefix as fallback
 - ✓ **PROJECT CREATION RESTRICTED TO ADMINS**: Hidden "New Project" button from non-admin users and added backend validation
