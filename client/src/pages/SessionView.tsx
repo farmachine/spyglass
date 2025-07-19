@@ -807,7 +807,7 @@ Thank you for your assistance.`;
     
     // Define field type colors matching DefineData component
     const fieldTypeColors = {
-      TEXT: "bg-primary/10 text-primary",
+      TEXT: "bg-blue-100 text-blue-800", // Changed to explicit blue background
       NUMBER: "bg-cyan-100 text-cyan-800", // Changed to turquoise/cyan
       DATE: "bg-purple-100 text-purple-800",
       BOOLEAN: "bg-orange-100 text-orange-800",
