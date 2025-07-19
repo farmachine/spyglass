@@ -973,16 +973,13 @@ Thank you for your assistance.`;
                 <div className="flex items-center gap-2">
                   <ManualInputBadge />
                   {validation.originalExtractedValue && (
-                    <Button
-                      size="sm"
-                      variant="outline"
+                    <button
                       onClick={() => handleRevertToAI(fieldName)}
-                      className="h-6 px-2 text-xs"
+                      className="inline-flex items-center justify-center w-5 h-5 rounded bg-blue-100 hover:bg-blue-200 transition-colors"
                       title="Revert to original AI extracted value"
                     >
-                      <RotateCcw className="h-3 w-3 mr-1" />
-                      Revert to AI
-                    </Button>
+                      <RotateCcw className="h-3 w-3 text-blue-700" />
+                    </button>
                   )}
                 </div>
               );
