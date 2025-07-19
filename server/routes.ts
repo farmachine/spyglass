@@ -396,7 +396,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Status must be 'active' or 'inactive'" });
       }
       
-      const project = await storage.updateProject(id, { status }, req.user!.organizationId);
+      // Get user's organization to check if they're a primary org admin
+      const userOrganization = await storage.getOrganization(req.user!.organizationId);
+      const isPrimaryOrgAdmin = userOrganization?.type === 'primary' && req.user!.role === 'admin';
+      
+      // Primary org admins can update any project, others are restricted to their org
+      const organizationFilter = isPrimaryOrgAdmin ? undefined : req.user!.organizationId;
+      
+      const project = await storage.updateProject(id, { status }, organizationFilter);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
