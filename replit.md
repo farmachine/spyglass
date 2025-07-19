@@ -20,6 +20,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ Resolved base64 decoding issue where data URLs were being incorrectly encoded to UTF-8
 - ✓ AI extraction now successfully processes real documents with actual extracted data
 - ✓ Confirmed system working with Bryter contract: extracted "Company Name: Bryter" with 95% confidence
+- ✓ **ENHANCED FIELD DESCRIPTION HANDLING**: AI now uses field descriptions for better extraction context
+- ✓ Added field descriptions to extraction prompts for both schema fields and collection properties
+- ✓ Enhanced AI instruction to prioritize field descriptions when selecting which data to extract
+- ✓ Verified with test: AI correctly extracted "Asana, Inc." when description specified "software provider"
 - ✓ **UI ALIGNMENT AND CONSISTENCY FIXES**: Fixed logo positioning and tab styling issues
 - ✓ Fixed SessionView header logo alignment to be flush left consistent with ProjectLayout
 - ✓ Updated tab styling to use proper blue background with white text for selected tabs

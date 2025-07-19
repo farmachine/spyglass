@@ -68,28 +68,53 @@ def extract_data_from_document(
             for field in project_schema["schema_fields"]:
                 field_name = field['fieldName']
                 field_type = field['fieldType']
-                prompt += f"- {field_name} ({field_type})\n"
+                field_description = field.get('description', '')
+                if field_description:
+                    prompt += f"- {field_name} ({field_type}): {field_description}\n"
+                else:
+                    prompt += f"- {field_name} ({field_type})\n"
         
         # Add collections
         if project_schema.get("collections"):
             prompt += "\nCollections to extract:\n"
             for collection in project_schema["collections"]:
                 collection_name = collection.get('collectionName', collection.get('objectName', ''))
-                prompt += f"- {collection_name}:\n"
+                collection_description = collection.get('description', '')
+                if collection_description:
+                    prompt += f"- {collection_name}: {collection_description}\n"
+                else:
+                    prompt += f"- {collection_name}:\n"
                 for prop in collection.get("properties", []):
                     prop_name = prop['propertyName']
                     prop_type = prop['propertyType']
-                    prompt += f"  * {prop_name} ({prop_type})\n"
+                    prop_description = prop.get('description', '')
+                    if prop_description:
+                        prompt += f"  * {prop_name} ({prop_type}): {prop_description}\n"
+                    else:
+                        prompt += f"  * {prop_name} ({prop_type})\n"
         
         prompt += "\nRules:\n"
         prompt += "1. Extract ONLY real data from the document\n"
         prompt += "2. If data is not found, return null\n"
         prompt += "3. Do NOT generate sample data\n"
         prompt += "4. Return proper JSON format\n"
+        prompt += "5. IMPORTANT: Pay careful attention to field descriptions - they provide context about WHICH data to extract\n"
+        prompt += "6. For example, if Company Name description says 'software provider', extract the company providing software, not the customer\n"
         
         # Handle content types and prepare the content
         if mime_type.startswith("text/"):
-            content_text = file_content.decode('utf-8', errors='ignore')
+            # Handle text content - check if it's already a string or needs decoding
+            if isinstance(file_content, str):
+                if file_content.startswith('data:'):
+                    # Extract base64 content from data URL
+                    base64_content = file_content.split(',', 1)[1]
+                    decoded_bytes = base64.b64decode(base64_content)
+                    content_text = decoded_bytes.decode('utf-8', errors='ignore')
+                else:
+                    content_text = file_content
+            else:
+                content_text = file_content.decode('utf-8', errors='ignore')
+            
             full_prompt = prompt + f"\n\nDocument content:\n{content_text}"
             
             # Make API call using the simplified API for text
