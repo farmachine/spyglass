@@ -178,8 +178,16 @@ export default function Publishing({ project }: PublishingProps) {
               {publishedOrganizations.map((org: Organization) => (
                 <div key={org.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
                   <div className="flex items-center gap-3">
-                    <div className="flex-shrink-0">
-                      <Building className="h-8 w-8 text-blue-600" />
+                    <div className={`flex-shrink-0 p-2 rounded-lg ${
+                      org.type === 'primary' 
+                        ? 'bg-gray-100' 
+                        : 'bg-blue-100'
+                    }`}>
+                      <Building className={`h-5 w-5 ${
+                        org.type === 'primary' 
+                          ? 'text-black' 
+                          : 'text-blue-600'
+                      }`} />
                     </div>
                     <div>
                       <h4 className="font-medium text-gray-900">{org.name}</h4>
