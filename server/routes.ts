@@ -331,17 +331,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const project = await storage.createProject(projectData);
       
-      // Automatically publish to primary organization
+      // Auto-publish logic: publish to primary organization and user's organization if different
       try {
         const primaryOrg = await storage.getPrimaryOrganization();
+        const userOrg = await storage.getOrganization(req.user!.organizationId);
+        
+        // Always publish to primary organization if it exists
         if (primaryOrg) {
           await storage.publishProjectToOrganization({
             projectId: project.id,
             organizationId: primaryOrg.id
           });
         }
+        
+        // If user is from non-primary organization, also publish to their organization
+        if (userOrg && userOrg.type !== 'primary' && userOrg.id !== primaryOrg?.id) {
+          await storage.publishProjectToOrganization({
+            projectId: project.id,
+            organizationId: userOrg.id
+          });
+        }
       } catch (publishError) {
-        console.warn("Failed to auto-publish to primary organization:", publishError);
+        console.warn("Failed to auto-publish project:", publishError);
         // Continue without failing the project creation
       }
       

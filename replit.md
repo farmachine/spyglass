@@ -11,6 +11,16 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 19, 2025**
+- ✓ **ADMIN-ONLY EDITABLE PROJECT TITLES/DESCRIPTIONS**: Implemented inline editing for project titles and descriptions with admin-only access control
+- ✓ Added edit buttons with hover states and keyboard shortcuts (Enter/Escape for title, Ctrl+Enter/Escape for description)
+- ✓ Connected to existing PUT /api/projects/:id API endpoint with proper loading states and error handling
+- ✓ Shows placeholder text for empty descriptions with click-to-edit functionality for admin users
+- ✓ **SHIELD ICON ADDED**: Added Shield icon to Admin Panel option in Dashboard settings dropdown for better visual identification
+- ✓ **ACCESS RESTRICTIONS IMPLEMENTED**: Organization badges on project cards now only visible to admins from primary organization
+- ✓ Enhanced primary organization styling with black icons consistently across admin panel and published lists
+- ✓ Fixed published organizations API to include organization type field for proper badge styling
+- ✓ **AUTO-PUBLISHING ENHANCED**: Projects created by non-primary organization users automatically publish to both primary organization and their own organization
+- ✓ Enhanced project creation API with dual auto-publishing logic for comprehensive access control
 - ✓ **PROJECT STATUS TOGGLE COMPLETED**: Implemented project activation/deactivation functionality in settings dropdown
 - ✓ Added "Deactivate" button to settings dropdown for active projects (orange text with AlertTriangle icon)
 - ✓ Added "Activate" button to settings dropdown for inactive projects (green text with CheckCircle icon)
