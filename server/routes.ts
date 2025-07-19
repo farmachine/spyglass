@@ -294,14 +294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Projects with published organizations
   app.get("/api/projects-with-orgs", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      console.log(`DEBUG: /api/projects-with-orgs called by user:`, {
-        id: req.user!.id,
-        email: req.user!.email,
-        organizationId: req.user!.organizationId,
-        role: req.user!.role
-      });
       const projects = await storage.getProjectsWithPublishedOrganizations(req.user!.organizationId, req.user!.role);
-      console.log(`DEBUG: Returning ${projects.length} projects`);
       res.json(projects);
     } catch (error) {
       console.error("Get projects with orgs error:", error);

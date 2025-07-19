@@ -55,12 +55,6 @@ export function authenticateToken(req: AuthRequest, res: Response, next: NextFun
   }
 
   req.user = user;
-  console.log(`DEBUG: Authenticated user:`, {
-    id: user.id,
-    email: user.email,
-    organizationId: user.organizationId,
-    role: user.role
-  });
   next();
 }
 
