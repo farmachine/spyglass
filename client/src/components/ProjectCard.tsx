@@ -211,7 +211,11 @@ export default function ProjectCard({ project }: ProjectCardProps) {
           </div>
         </CardHeader>
         
-        <CardContent className="flex-1 flex flex-col justify-end pb-4" onClick={() => setLocation(`/projects/${project.id}`)}>
+        {/* Flexible middle area */}
+        <div className="flex-1" onClick={() => setLocation(`/projects/${project.id}`)} />
+        
+        {/* Fixed bottom area */}
+        <CardContent className="pb-4 flex-shrink-0" onClick={() => setLocation(`/projects/${project.id}`)}>
           {/* Created date - positioned above stats */}
           <div className="flex items-center text-sm font-medium text-black/60 mb-3">
             <Calendar className="h-3.5 w-3.5 mr-1.5" />
