@@ -36,6 +36,9 @@ Preferred communication style: Simple, everyday language.
 - ✓ **VALIDATION STATUS FIX**: Fixed critical issue where fields with low confidence were marked as "verified" instead of "unverified"
 - ✓ Fields with confidence below 80% now properly marked as "unverified" so they appear in session verification reports
 - ✓ Session-level reports now include all fields requiring attention: low confidence, missing, and manual entries
+- ✓ **AUTO VERIFICATION CONFIDENCE THRESHOLDS**: Updated AI extraction to use each field's specific 'Auto Verification Confidence Level (%)' setting
+- ✓ Fields now use their configured confidence thresholds instead of hardcoded 80% for verification status
+- ✓ Each schema field and collection property can have different auto-verification requirements
 - ✓ **PERSONALIZED WELCOME HEADER**: Added welcome message with user's first name above Dashboard title
 - ✓ Displays "Welcome, [First Name]" using user's first name or email prefix as fallback
 - ✓ **PROJECT CREATION RESTRICTED TO ADMINS**: Hidden "New Project" button from non-admin users and added backend validation

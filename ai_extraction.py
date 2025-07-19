@@ -462,8 +462,9 @@ def extract_data_from_document(
                         field_name, extracted_value, 95, extraction_rules, knowledge_documents
                     )
                     
-                    # Set status based on confidence score - low confidence fields should be unverified
-                    status = "verified" if confidence >= 80 else "unverified"
+                    # Use the field's specific auto verification confidence threshold
+                    auto_verification_threshold = field.get("autoVerificationConfidence", 80)
+                    status = "verified" if confidence >= auto_verification_threshold else "unverified"
                     
                     # Generate human-friendly reasoning
                     reasoning = generate_human_friendly_reasoning(field_name, extracted_value, applied_rules)
@@ -510,8 +511,9 @@ def extract_data_from_document(
                                     prop_name, extracted_value, 95, extraction_rules, knowledge_documents
                                 )
                                 
-                                # Set status based on confidence score - low confidence fields should be unverified
-                                status = "verified" if confidence >= 80 else "unverified"
+                                # Use the property's specific auto verification confidence threshold
+                                auto_verification_threshold = prop.get("autoVerificationConfidence", 80)
+                                status = "verified" if confidence >= auto_verification_threshold else "unverified"
                                 
                                 # Generate human-friendly reasoning  
                                 reasoning = generate_human_friendly_reasoning(prop_name, extracted_value, applied_rules)
