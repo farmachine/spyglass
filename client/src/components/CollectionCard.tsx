@@ -26,6 +26,7 @@ interface CollectionCardProps {
   onAddProperty: (collectionId: number, collectionName: string) => void;
   onEditProperty: (property: CollectionProperty) => void;
   onDeleteProperty: (id: number, name: string) => void;
+  dragHandleProps?: any;
 }
 
 export default function CollectionCard({
@@ -36,6 +37,7 @@ export default function CollectionCard({
   onAddProperty,
   onEditProperty,
   onDeleteProperty,
+  dragHandleProps,
 }: CollectionCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const { data: properties = [], isLoading } = useCollectionProperties(collection.id);
@@ -96,6 +98,14 @@ export default function CollectionCard({
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 flex-1">
+            {dragHandleProps && (
+              <div
+                {...dragHandleProps}
+                className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-100"
+              >
+                <GripVertical className="h-4 w-4 text-gray-400" />
+              </div>
+            )}
             <Button
               variant="ghost"
               size="sm"

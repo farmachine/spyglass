@@ -101,7 +101,13 @@ export default function DefineData({ project }: DefineDataProps) {
         method: "PUT",
         body: JSON.stringify(collection),
       }),
-    // No onSuccess invalidation - rely on optimistic updates only
+    onSuccess: () => {
+      // Only invalidate collections query, not project query to prevent tab redirects
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/projects", project.id, "collections"],
+        exact: true 
+      });
+    }
   });
 
   // Create a mutation that doesn't invalidate project queries for reordering
@@ -112,8 +118,11 @@ export default function DefineData({ project }: DefineDataProps) {
         body: JSON.stringify(field),
       }),
     onSuccess: () => {
-      // Only invalidate schema fields, not the main project query
-      queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id, "schema"] });
+      // Only invalidate schema fields, not the main project query to prevent tab redirects
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/projects", project.id, "schema"],
+        exact: true 
+      });
     },
   });
 
@@ -143,7 +152,10 @@ export default function DefineData({ project }: DefineDataProps) {
       // Silent update - no toast notification for reordering
     } catch (error) {
       // If update fails, refetch to restore correct order
-      queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id, "schema"] });
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/projects", project.id, "schema"],
+        exact: true 
+      });
       
       toast({
         title: "Error",
@@ -179,7 +191,10 @@ export default function DefineData({ project }: DefineDataProps) {
       // Silent update - no toast notification for reordering
     } catch (error) {
       // If update fails, refetch to restore correct order
-      queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id, "collections"] });
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/projects", project.id, "collections"],
+        exact: true 
+      });
       
       toast({
         title: "Error",
@@ -663,45 +678,36 @@ export default function DefineData({ project }: DefineDataProps) {
                                 {...provided.draggableProps}
                                 className={snapshot.isDragging ? "opacity-50" : ""}
                               >
-                                <div className="flex items-start gap-2">
-                                  <div
-                                    {...provided.dragHandleProps}
-                                    className="cursor-grab active:cursor-grabbing p-2 rounded hover:bg-gray-100 mt-4"
-                                  >
-                                    <GripVertical className="h-4 w-4 text-gray-400" />
-                                  </div>
-                                  <div className="flex-1">
-                                    <CollectionCard
-                                      collection={collection}
-                                      fieldTypeColors={fieldTypeColors}
-                                      onEditCollection={(collection) => setCollectionDialog({ open: true, collection })}
-                                      onDeleteCollection={(id, name) => setDeleteDialog({ 
-                                        open: true, 
-                                        type: "collection", 
-                                        id, 
-                                        name 
-                                      })}
-                                      onAddProperty={(collectionId, collectionName) => setPropertyDialog({ 
-                                        open: true, 
-                                        property: null, 
-                                        collectionId,
-                                        collectionName 
-                                      })}
-                                      onEditProperty={(property) => setPropertyDialog({ 
-                                        open: true, 
-                                        property, 
-                                        collectionId: property.collectionId,
-                                        collectionName: safeCollections.find(c => c.id === property.collectionId)?.collectionName || "" 
-                                      })}
-                                      onDeleteProperty={(id, name) => setDeleteDialog({ 
-                                        open: true, 
-                                        type: "property", 
-                                        id, 
-                                        name 
-                                      })}
-                                    />
-                                  </div>
-                                </div>
+                                <CollectionCard
+                                  dragHandleProps={provided.dragHandleProps}
+                                  collection={collection}
+                                  fieldTypeColors={fieldTypeColors}
+                                  onEditCollection={(collection) => setCollectionDialog({ open: true, collection })}
+                                  onDeleteCollection={(id, name) => setDeleteDialog({ 
+                                    open: true, 
+                                    type: "collection", 
+                                    id, 
+                                    name 
+                                  })}
+                                  onAddProperty={(collectionId, collectionName) => setPropertyDialog({ 
+                                    open: true, 
+                                    property: null, 
+                                    collectionId,
+                                    collectionName 
+                                  })}
+                                  onEditProperty={(property) => setPropertyDialog({ 
+                                    open: true, 
+                                    property, 
+                                    collectionId: property.collectionId,
+                                    collectionName: safeCollections.find(c => c.id === property.collectionId)?.collectionName || "" 
+                                  })}
+                                  onDeleteProperty={(id, name) => setDeleteDialog({ 
+                                    open: true, 
+                                    type: "property", 
+                                    id, 
+                                    name 
+                                  })}
+                                />
                               </div>
                             )}
                           </Draggable>
