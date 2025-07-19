@@ -55,7 +55,7 @@ export default function AdminPanel() {
     },
   });
 
-  if (user?.role !== "admin") {
+  if (user?.role !== "admin" || user?.organization?.type !== "primary") {
     navigate("/");
     return null;
   }

@@ -26,6 +26,7 @@ export default function Dashboard() {
   const [, navigate] = useLocation();
 
   const isAdmin = user?.role === "admin";
+  const isPrimaryOrgAdmin = user?.role === "admin" && user?.organization?.type === "primary";
 
   // Filter projects based on search query and showDeactivated checkbox
   const filteredProjects = projects?.filter(project => {
@@ -153,7 +154,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <ExtractlyLogo />
             <div className="flex items-center space-x-4">
-              {isAdmin && (
+              {isPrimaryOrgAdmin && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button

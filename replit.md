@@ -21,6 +21,9 @@ Preferred communication style: Simple, everyday language.
 - ✓ Fixed published organizations API to include organization type field for proper badge styling
 - ✓ **AUTO-PUBLISHING ENHANCED**: Projects created by non-primary organization users automatically publish to both primary organization and their own organization
 - ✓ Enhanced project creation API with dual auto-publishing logic for comprehensive access control
+- ✓ **ADMIN PANEL ACCESS RESTRICTED**: Admin panel access now restricted to primary organization admins only
+- ✓ Updated Dashboard settings dropdown to only show Admin Panel option for primary organization admins
+- ✓ Added primary organization type check to AdminPanel and OrganizationConfig components for proper access control
 - ✓ **PROJECT STATUS TOGGLE COMPLETED**: Implemented project activation/deactivation functionality in settings dropdown
 - ✓ Added "Deactivate" button to settings dropdown for active projects (orange text with AlertTriangle icon)
 - ✓ Added "Activate" button to settings dropdown for inactive projects (green text with CheckCircle icon)
