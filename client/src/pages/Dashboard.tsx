@@ -1,10 +1,11 @@
-import { Plus, Settings } from "lucide-react";
+import { Plus, Settings, Search } from "lucide-react";
 import { WaveIcon, DropletIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useProjects } from "@/hooks/useProjects";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,16 +19,34 @@ import WavePattern from "@/components/WavePattern";
 export default function Dashboard() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [showDeactivated, setShowDeactivated] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { data: projects, isLoading, error } = useProjects();
   const { user } = useAuth();
   const [, navigate] = useLocation();
 
   const isAdmin = user?.role === "admin";
 
-  // Filter projects based on showDeactivated checkbox
-  const filteredProjects = projects?.filter(project => 
-    showDeactivated ? true : project.status !== "inactive"
-  ) || [];
+  // Filter projects based on search query and showDeactivated checkbox
+  const filteredProjects = projects?.filter(project => {
+    // First filter by deactivated status
+    const statusFilter = showDeactivated ? true : project.status !== "inactive";
+    
+    // Then filter by search query
+    if (!searchQuery.trim()) {
+      return statusFilter;
+    }
+    
+    const query = searchQuery.toLowerCase();
+    const nameMatch = project.name.toLowerCase().includes(query);
+    const descriptionMatch = project.description?.toLowerCase().includes(query);
+    
+    // Check published organizations
+    const orgMatch = project.publishedOrganizations?.some(org => 
+      org.name.toLowerCase().includes(query)
+    );
+    
+    return statusFilter && (nameMatch || descriptionMatch || orgMatch);
+  }) || [];
 
   const renderProjectsContent = () => {
     if (isLoading) {
@@ -64,16 +83,24 @@ export default function Dashboard() {
 
     // Check if there are projects but they're all filtered out
     if (projects && projects.length > 0 && filteredProjects.length === 0) {
+      const hasSearchQuery = searchQuery.trim();
+      const hasActiveProjects = projects.some(p => p.status !== "inactive");
+      
       return (
         <div className="text-center py-12">
           <div className="mx-auto w-24 h-24 bg-secondary/20 rounded-full flex items-center justify-center mb-4">
             <WaveIcon className="h-8 w-8 text-primary" />
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No active projects
+            {hasSearchQuery ? "No matching projects" : "No active projects"}
           </h3>
           <p className="text-gray-600 mb-6">
-            All projects are currently deactivated. Check "Show Deactivated" to view them.
+            {hasSearchQuery 
+              ? "Try adjusting your search or check 'Show Deactivated' to see more projects."
+              : hasActiveProjects 
+                ? "All projects are currently deactivated. Check 'Show Deactivated' to view them."
+                : "All projects are currently deactivated."
+            }
           </p>
         </div>
       );
@@ -171,6 +198,18 @@ export default function Dashboard() {
                 New Project
               </Button>
             </div>
+          </div>
+          
+          {/* Search Box */}
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Search projects by name, description, or organization..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 pr-4 py-2"
+            />
           </div>
           
           {renderProjectsContent()}

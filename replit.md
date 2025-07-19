@@ -26,6 +26,11 @@ Preferred communication style: Simple, everyday language.
 - ✓ Users can check "Show Deactivated" to reveal all inactive projects when needed
 - ✓ Enhanced empty state messaging when all projects are filtered out by deactivation status
 - ✓ Checkbox filter positioned in header for easy access without taking extra vertical space
+- ✓ **DYNAMIC SEARCH FUNCTIONALITY**: Added real-time search box that filters projects by name, description, and published organizations
+- ✓ Search input positioned below header with search icon and comprehensive placeholder text
+- ✓ Filters work in combination - search respects "Show Deactivated" checkbox setting
+- ✓ Enhanced empty state messages that adapt to search context vs. deactivation filtering
+- ✓ Search is case-insensitive and matches partial text across all searchable fields
 - ✓ **AUTO-PUBLISHING TO PRIMARY ORGANIZATION**: All projects now automatically publish to primary organization by default
 - ✓ Added getPrimaryOrganization() method to storage interface for retrieving primary organization
 - ✓ Updated project creation API to automatically publish new projects to primary organization
