@@ -37,7 +37,7 @@ import type { Project, Organization, ProjectWithDetails, FieldValidation } from 
 import WavePattern from "./WavePattern";
 
 interface ProjectCardProps {
-  project: Project;
+  project: Project & { publishedOrganizations?: Organization[] };
 }
 
 export default function ProjectCard({ project }: ProjectCardProps) {
@@ -49,10 +49,8 @@ export default function ProjectCard({ project }: ProjectCardProps) {
   const duplicateProject = useDuplicateProject();
   const { toast } = useToast();
 
-  // Fetch published organizations for this project
-  const { data: publishedOrganizations = [] } = useQuery({
-    queryKey: ["/api/projects", project.id, "publishing"],
-  });
+  // Use published organizations from project data
+  const publishedOrganizations = project.publishedOrganizations || [];
 
   // Fetch project details with sessions
   const { data: projectDetails } = useQuery<ProjectWithDetails>({

@@ -64,6 +64,7 @@ export interface IStorage {
 
   // Projects (organization-filtered)
   getProjects(organizationId?: string, userRole?: string): Promise<Project[]>;
+  getProjectsWithPublishedOrganizations(organizationId?: string, userRole?: string): Promise<(Project & { publishedOrganizations: Organization[] })[]>;
   getProject(id: string, organizationId?: string): Promise<Project | undefined>;
   getProjectWithDetails(id: string, organizationId?: string): Promise<ProjectWithDetails | undefined>;
   createProject(project: InsertProject): Promise<Project>;
@@ -661,6 +662,16 @@ export class MemStorage implements IStorage {
     return projects.sort((a, b) => 
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
+  }
+
+  async getProjectsWithPublishedOrganizations(organizationId?: number, userRole?: string): Promise<(Project & { publishedOrganizations: Organization[] })[]> {
+    const projects = await this.getProjects(organizationId, userRole);
+    
+    // For MemStorage, just return empty published organizations since this is mainly for testing
+    return projects.map(project => ({
+      ...project,
+      publishedOrganizations: []
+    }));
   }
 
   async getProject(id: number, organizationId?: number): Promise<Project | undefined> {
@@ -1350,15 +1361,17 @@ class PostgreSQLStorage implements IStorage {
     return result[0];
   }
 
-  // For now, implement minimal project methods to prevent errors
-  async getProjects(organizationId?: string, userRole?: string): Promise<Project[]> {
+  // Get published organizations for projects
+  async getProjectsWithPublishedOrganizations(organizationId?: string, userRole?: string): Promise<(Project & { publishedOrganizations: Organization[] })[]> {
+    let projectsList;
+    
     if (organizationId) {
       // Get organization details to check if it's primary
       const organization = await this.getOrganization(organizationId);
       
       if (organization?.type === 'primary' && userRole === 'user') {
         // For regular users in primary organizations, only show published projects
-        const result = await this.db
+        projectsList = await this.db
           .select({
             id: projects.id,
             name: projects.name,
@@ -1371,8 +1384,6 @@ class PostgreSQLStorage implements IStorage {
           .from(projects)
           .innerJoin(projectPublishing, eq(projectPublishing.projectId, projects.id))
           .where(eq(projectPublishing.organizationId, organizationId));
-        
-        return result;
       } else {
         // For admins or users in non-primary organizations: owned OR published projects
         const result = await this.db
@@ -1395,18 +1406,46 @@ class PostgreSQLStorage implements IStorage {
           );
         
         // Remove duplicates that might occur from the join
-        const uniqueProjects = result.reduce((acc, project) => {
+        projectsList = result.reduce((acc, project) => {
           if (!acc.find(p => p.id === project.id)) {
             acc.push(project);
           }
           return acc;
         }, [] as Project[]);
-        
-        return uniqueProjects;
       }
     } else {
-      return await this.db.select().from(projects);
+      projectsList = await this.db.select().from(projects);
     }
+
+    // For each project, get published organizations
+    const projectsWithOrgs = await Promise.all(
+      projectsList.map(async (project) => {
+        const publishedOrgs = await this.db
+          .select({
+            id: organizations.id,
+            name: organizations.name,
+            description: organizations.description,
+            type: organizations.type,
+            createdAt: organizations.createdAt
+          })
+          .from(organizations)
+          .innerJoin(projectPublishing, eq(projectPublishing.organizationId, organizations.id))
+          .where(eq(projectPublishing.projectId, project.id));
+
+        return {
+          ...project,
+          publishedOrganizations: publishedOrgs
+        };
+      })
+    );
+
+    return projectsWithOrgs;
+  }
+
+  // For now, implement minimal project methods to prevent errors
+  async getProjects(organizationId?: string, userRole?: string): Promise<Project[]> {
+    const projectsWithOrgs = await this.getProjectsWithPublishedOrganizations(organizationId, userRole);
+    return projectsWithOrgs.map(({ publishedOrganizations, ...project }) => project);
   }
 
   async getProject(id: string, organizationId?: string): Promise<Project | undefined> {

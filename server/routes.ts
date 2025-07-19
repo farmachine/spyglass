@@ -291,6 +291,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Projects with published organizations
+  app.get("/api/projects-with-orgs", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const projects = await storage.getProjectsWithPublishedOrganizations(req.user!.organizationId, req.user!.role);
+      res.json(projects);
+    } catch (error) {
+      console.error("Get projects with orgs error:", error);
+      res.status(500).json({ message: "Failed to fetch projects with organizations" });
+    }
+  });
+
   app.get("/api/projects/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = req.params.id;
