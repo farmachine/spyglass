@@ -1392,12 +1392,17 @@ class PostgreSQLStorage implements IStorage {
             name: projects.name,
             description: projects.description,
             organizationId: projects.organizationId,
+            createdBy: projects.createdBy,
             mainObjectName: projects.mainObjectName,
             status: projects.status,
             isInitialSetupComplete: projects.isInitialSetupComplete,
-            createdAt: projects.createdAt
+            createdAt: projects.createdAt,
+            creatorName: users.name,
+            creatorOrganizationName: organizations.name
           })
-          .from(projects);
+          .from(projects)
+          .leftJoin(users, eq(projects.createdBy, users.id))
+          .leftJoin(organizations, eq(users.organizationId, organizations.id));
       } else if (organization?.type === 'primary' && userRole === 'user') {
         // For regular users in primary organizations, only show published projects
         projectsList = await this.db
@@ -1406,13 +1411,18 @@ class PostgreSQLStorage implements IStorage {
             name: projects.name,
             description: projects.description,
             organizationId: projects.organizationId,
+            createdBy: projects.createdBy,
             mainObjectName: projects.mainObjectName,
             status: projects.status,
             isInitialSetupComplete: projects.isInitialSetupComplete,
-            createdAt: projects.createdAt
+            createdAt: projects.createdAt,
+            creatorName: users.name,
+            creatorOrganizationName: organizations.name
           })
           .from(projects)
           .innerJoin(projectPublishing, eq(projectPublishing.projectId, projects.id))
+          .leftJoin(users, eq(projects.createdBy, users.id))
+          .leftJoin(organizations, eq(users.organizationId, organizations.id))
           .where(eq(projectPublishing.organizationId, organizationId));
       } else {
         // For admins or users in non-primary organizations: owned OR published projects
@@ -1422,13 +1432,18 @@ class PostgreSQLStorage implements IStorage {
             name: projects.name,
             description: projects.description,
             organizationId: projects.organizationId,
+            createdBy: projects.createdBy,
             mainObjectName: projects.mainObjectName,
             status: projects.status,
             isInitialSetupComplete: projects.isInitialSetupComplete,
-            createdAt: projects.createdAt
+            createdAt: projects.createdAt,
+            creatorName: users.name,
+            creatorOrganizationName: organizations.name
           })
           .from(projects)
           .leftJoin(projectPublishing, eq(projectPublishing.projectId, projects.id))
+          .leftJoin(users, eq(projects.createdBy, users.id))
+          .leftJoin(organizations, eq(users.organizationId, organizations.id))
           .where(
             or(
               eq(projects.organizationId, organizationId),
@@ -1442,10 +1457,26 @@ class PostgreSQLStorage implements IStorage {
             acc.push(project);
           }
           return acc;
-        }, [] as Project[]);
+        }, [] as any[]);
       }
     } else {
-      projectsList = await this.db.select().from(projects);
+      projectsList = await this.db
+        .select({
+          id: projects.id,
+          name: projects.name,
+          description: projects.description,
+          organizationId: projects.organizationId,
+          createdBy: projects.createdBy,
+          mainObjectName: projects.mainObjectName,
+          status: projects.status,
+          isInitialSetupComplete: projects.isInitialSetupComplete,
+          createdAt: projects.createdAt,
+          creatorName: users.name,
+          creatorOrganizationName: organizations.name
+        })
+        .from(projects)
+        .leftJoin(users, eq(projects.createdBy, users.id))
+        .leftJoin(organizations, eq(users.organizationId, organizations.id));
     }
 
     // For each project, get published organizations

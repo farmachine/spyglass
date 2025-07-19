@@ -328,10 +328,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid project data", errors: result.error.errors });
       }
       
-      // Add organizationId to the project data
+      // Add organizationId and createdBy to the project data
       const projectData = {
         ...result.data,
-        organizationId: req.user!.organizationId
+        organizationId: req.user!.organizationId,
+        createdBy: req.user!.id
       };
       
       const project = await storage.createProject(projectData);

@@ -35,11 +35,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useDeleteProject, useDuplicateProject, useUpdateProjectStatus } from "@/hooks/useProjects";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import type { Project, Organization, ProjectWithDetails, FieldValidation } from "@shared/schema";
+import type { ProjectWithAuthor, Organization, ProjectWithDetails, FieldValidation } from "@shared/schema";
 import WavePattern from "./WavePattern";
 
 interface ProjectCardProps {
-  project: Project & { publishedOrganizations?: Organization[] };
+  project: ProjectWithAuthor & { publishedOrganizations?: Organization[] };
 }
 
 export default function ProjectCard({ project }: ProjectCardProps) {
@@ -267,7 +267,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
           {/* Created date - positioned above stats */}
           <div className="flex items-center text-xs font-medium text-black/60 mb-2">
             <Calendar className="h-3 w-3 mr-1" />
-            Created {formatDate(project.createdAt)}
+            Created by {project.creatorName || 'Unknown'} ({project.creatorOrganizationName || 'Unknown'}) on {formatDate(project.createdAt)}
           </div>
           
           {/* Bottom row with stats and wave only */}

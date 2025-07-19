@@ -29,6 +29,7 @@ export const projects = pgTable("projects", {
   name: text("name").notNull(),
   description: text("description"),
   organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  createdBy: uuid("created_by").notNull().references(() => users.id, { onDelete: "cascade" }),
   mainObjectName: text("main_object_name").default("Session"),
   status: text("status", { enum: ["active", "inactive"] }).notNull().default("active"),
   isInitialSetupComplete: boolean("is_initial_setup_complete").default(false).notNull(),
@@ -197,6 +198,10 @@ export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Project = typeof projects.$inferSelect;
+export type ProjectWithAuthor = Project & {
+  creatorName?: string;
+  creatorOrganizationName?: string;
+};
 export type InsertProject = z.infer<typeof insertProjectSchema>;
 export type ProjectSchemaField = typeof projectSchemaFields.$inferSelect;
 export type InsertProjectSchemaField = z.infer<typeof insertProjectSchemaFieldSchema>;
