@@ -805,23 +805,10 @@ Thank you for your assistance.`;
     
     const borderClass = isSchemaField ? "border-l-4 border-l-blue-500" : "";
     
-    // Define field type colors matching DefineData component
-    const fieldTypeColors = {
-      TEXT: "bg-blue-100 text-blue-800", // Changed to explicit blue background
-      NUMBER: "bg-cyan-100 text-cyan-800", // Changed to turquoise/cyan
-      DATE: "bg-purple-100 text-purple-800",
-      BOOLEAN: "bg-orange-100 text-orange-800",
-    };
-    
     return (
       <div key={fieldName} className={`flex items-center gap-3 p-3 border rounded-lg bg-white ${borderClass}`}>
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <Label className="text-sm font-medium text-gray-700">{displayName}</Label>
-            <Badge className={`text-xs px-2 py-0.5 h-5 ${fieldTypeColors[fieldType as keyof typeof fieldTypeColors] || 'bg-gray-100 text-gray-800'}`}>
-              {fieldType}
-            </Badge>
-          </div>
+          <Label className="text-sm font-medium text-gray-700 mb-1 block">{displayName}</Label>
           {isEditing ? (
             <div className="flex items-center gap-2 mt-1">
               {fieldType === 'DATE' ? (
@@ -1155,9 +1142,6 @@ Thank you for your assistance.`;
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <h3 className="text-lg font-semibold">{collection.collectionName}</h3>
-                        <Badge className="bg-green-100 text-green-800 text-xs px-2 py-1">
-                          LIST
-                        </Badge>
                         <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
                           {maxRecordIndex + 1} {maxRecordIndex === 0 ? 'item' : 'items'}
                         </span>
