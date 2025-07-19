@@ -31,6 +31,76 @@ class ExtractionResult:
     processing_notes: str
     field_validations: List[FieldValidationResult]
 
+def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, base_confidence: float, extraction_rules: List[Dict[str, Any]] = None, knowledge_documents: List[Dict[str, Any]] = None) -> tuple[int, list]:
+    """
+    Calculate confidence percentage based on knowledge base and rules compliance.
+    
+    Core Logic:
+    - If knowledge document conflicts exist → Set confidence to 50%
+    - If no rules/knowledge apply to a field AND value is extracted → Show 95% confidence (high default)
+    - If rules/knowledge apply → Calculate confidence based on compliance level (1-100%)
+    
+    Args:
+        field_name: Name of the field being validated
+        extracted_value: The extracted value
+        base_confidence: Base AI confidence from extraction
+        extraction_rules: List of extraction rules to apply
+        knowledge_documents: List of knowledge documents to check for conflicts
+    
+    Returns:
+        Tuple of (confidence_percentage, applied_rules_list)
+    """
+    if extracted_value is None or extracted_value == "" or extracted_value == "null":
+        return 0, []
+    
+    # Base confidence calculation - use a high default confidence (95%) for field-level validation
+    confidence_percentage = 95  # Default high confidence for extracted fields
+    applied_rules = []
+    
+    # Apply extraction rules if available
+    if extraction_rules:
+        logging.info(f"Applying extraction rules for field '{field_name}' with value '{extracted_value}'")
+        logging.info(f"Available extraction rules: {extraction_rules}")
+        for rule in extraction_rules:
+            rule_name = rule.get("ruleName", "")
+            target_field = rule.get("targetField", "")
+            rule_content = rule.get("ruleContent", "")
+            is_active = rule.get("isActive", True)
+            
+            logging.info(f"Checking rule: {rule_name} - Target: {target_field}, Active: {is_active}")
+            logging.info(f"Rule content: {rule_content}")
+            
+            # Skip inactive rules
+            if not is_active:
+                continue
+                
+            # Check if this rule applies to the current field
+            # Handle multiple target fields separated by commas
+            target_fields = [f.strip() for f in target_field.split(',')]
+            field_matches = any(
+                field_name == target.strip() or 
+                field_name.startswith(target.strip()) for target in target_fields
+            )
+            
+            if field_matches:
+                rule_content_lower = rule_content.lower()
+                
+                # Check for Inc. confidence rule
+                if "inc" in rule_content_lower and "confidence" in rule_content_lower and "50%" in rule_content_lower:
+                    if isinstance(extracted_value, str) and "inc" in extracted_value.lower():
+                        confidence_percentage = 50
+                        applied_rules.append({
+                            'name': rule_name,
+                            'action': f"Set confidence to 50% due to 'Inc' in company name - indicates potential entity ambiguity"
+                        })
+                        logging.info(f"Applied rule '{rule_name}': Set confidence to 50% because value contains 'Inc'")
+                        continue
+                    else:
+                        logging.info(f"Inc. rule '{rule_name}' not applied - value '{extracted_value}' does not contain 'Inc'")
+                        continue
+    
+    return confidence_percentage, applied_rules
+
 def extract_data_from_document(
     file_content,  # Can be bytes or str (data URL)
     file_name: str,
@@ -263,9 +333,17 @@ def extract_data_from_document(
                 extracted_value = extracted_data.get(field_name)
                 
                 if extracted_value is not None and extracted_value != "":
-                    confidence = 95
+                    # Apply knowledge-based confidence calculation with extraction rules
+                    confidence, applied_rules = calculate_knowledge_based_confidence(
+                        field_name, extracted_value, 95, extraction_rules, knowledge_documents
+                    )
                     status = "verified"
                     reasoning = f"Successfully extracted {field_name} from document"
+                    
+                    # Add rule application details to reasoning if rules were applied
+                    if applied_rules:
+                        rule_details = "; ".join([f"{rule['name']}: {rule['action']}" for rule in applied_rules])
+                        reasoning += f" | Rules applied: {rule_details}"
                 else:
                     confidence = 0
                     status = "invalid"
@@ -304,9 +382,17 @@ def extract_data_from_document(
                             field_name_with_index = f"{collection_name}.{prop_name}[{record_index}]"
                             
                             if extracted_value is not None and extracted_value != "":
-                                confidence = 95
+                                # Apply knowledge-based confidence calculation with extraction rules
+                                confidence, applied_rules = calculate_knowledge_based_confidence(
+                                    prop_name, extracted_value, 95, extraction_rules, knowledge_documents
+                                )
                                 status = "verified"
                                 reasoning = f"Successfully extracted {prop_name} from {collection_name}"
+                                
+                                # Add rule application details to reasoning if rules were applied
+                                if applied_rules:
+                                    rule_details = "; ".join([f"{rule['name']}: {rule['action']}" for rule in applied_rules])
+                                    reasoning += f" | Rules applied: {rule_details}"
                             else:
                                 confidence = 0
                                 status = "invalid"

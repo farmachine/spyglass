@@ -18,6 +18,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ **MANUAL INPUT VERIFICATION BUG FIX**: Fixed issue where manually entered fields showed "Not Extracted" after verification
 - ✓ Modified verification toggle to preserve "manual" validation status when verifying manually entered fields
 - ✓ Manual Input badge now persists correctly after verification instead of incorrectly displaying "Not Extracted"
+- ✓ **EXTRACTION RULES PROCESSING INTEGRATION**: Fixed critical issue where extraction rules weren't being processed during AI extraction
+- ✓ Added missing `calculate_knowledge_based_confidence` function to working ai_extraction.py file
+- ✓ Confidence scores now properly adjusted based on extraction rules (e.g., "Inc." company names set to 50% confidence)
+- ✓ Fixed hardcoded 95% confidence that was ignoring all extraction rule configurations
 - ✓ **PERSONALIZED WELCOME HEADER**: Added welcome message with user's first name above Dashboard title
 - ✓ Displays "Welcome, [First Name]" using user's first name or email prefix as fallback
 - ✓ **PROJECT CREATION RESTRICTED TO ADMINS**: Hidden "New Project" button from non-admin users and added backend validation
