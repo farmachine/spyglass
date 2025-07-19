@@ -10,7 +10,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { Switch } from "@/components/ui/switch";
+
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -167,16 +167,10 @@ export default function ProjectCard({ project }: ProjectCardProps) {
         id: project.id, 
         status: newStatus 
       });
-      toast({
-        title: "Status updated",
-        description: `Project status changed to ${newStatus}.`,
-      });
+      // No toast notifications as requested
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to update project status. Please try again.",
-        variant: "destructive",
-      });
+      // Silently handle errors without toast notifications
+      console.error('Failed to update project status:', error);
     }
   };
 
@@ -234,17 +228,6 @@ export default function ProjectCard({ project }: ProjectCardProps) {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              
-              {/* Status Toggle - positioned below settings */}
-              <div className="flex items-center space-x-2 bg-gray-50 rounded-md px-2 py-1 border">
-                <Label htmlFor={`status-${project.id}`} className="text-xs font-medium">Active</Label>
-                <Switch
-                  id={`status-${project.id}`}
-                  checked={project.status === "active" || !project.status}
-                  onCheckedChange={(checked) => handleStatusChange(checked ? "active" : "inactive")}
-                  className="scale-75"
-                />
-              </div>
             </div>
           </div>
         </CardHeader>
@@ -321,6 +304,21 @@ export default function ProjectCard({ project }: ProjectCardProps) {
                 Not published
               </div>
             )}
+            
+            {/* Status Toggle - positioned below organization badges */}
+            <div 
+              className={`mt-1 px-2 py-1 rounded text-xs font-medium cursor-pointer transition-colors ${
+                project.status === "active" || !project.status
+                  ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                  : 'bg-red-100 text-red-800 hover:bg-red-200'
+              }`}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleStatusChange(project.status === "active" || !project.status ? "inactive" : "active");
+              }}
+            >
+              {project.status === "active" || !project.status ? 'Active' : 'Inactive'}
+            </div>
           </div>
         </CardContent>
         
