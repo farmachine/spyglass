@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Database, CheckCircle, Clock, ExternalLink, Calendar, AlertCircle, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import { Database, CheckCircle, Clock, ExternalLink, Calendar, AlertCircle, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -289,20 +289,17 @@ export default function AllData({ project }: AllDataProps) {
                         </div>
                       </TableCell>
                       <TableCell className="py-3">
-                        <Badge
-                          variant={
-                            verificationStatus === 'verified'
-                              ? 'default'
-                              : verificationStatus === 'in_progress'
-                              ? 'secondary'
-                              : 'outline'
-                          }
-                          className="text-xs"
-                        >
-                          {verificationStatus === 'verified' ? 'Verified' : 
-                           verificationStatus === 'in_progress' ? 'In Progress' : 
-                           'Pending'}
-                        </Badge>
+                        {verificationStatus === 'verified' ? (
+                          <div className="flex items-center gap-1.5">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <span className="text-sm font-medium text-green-700">Verified</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            <AlertTriangle className="h-4 w-4 text-red-600" />
+                            <span className="text-sm font-medium text-red-700">Unverified</span>
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="py-3">
                         <div className="text-xs text-muted-foreground">
