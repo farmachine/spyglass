@@ -265,14 +265,10 @@ export default function ProjectCard({ project }: ProjectCardProps) {
         {/* Fixed bottom area */}
         <CardContent className="pb-4 flex-shrink-0 relative bg-white" onClick={() => setLocation(`/projects/${project.id}`)}>
           {/* Created date - positioned above stats */}
-          <div className="text-xs font-medium text-black/60 mb-2">
-            <div className="flex items-center">
-              <Calendar className="h-3 w-3 mr-1" />
-              by {project.creatorName || 'Unknown'} ({project.creatorOrganizationName || 'Unknown'})
-            </div>
-            <div className="ml-4">
-              on {formatDate(project.createdAt)}
-            </div>
+          <div className="text-xs font-medium text-black/60 mb-2 space-y-0.5">
+            <div>Author: {project.creatorName || 'Unknown'}</div>
+            <div>Org: {project.creatorOrganizationName || 'Unknown'}</div>
+            <div>Created: {formatDate(project.createdAt)}</div>
           </div>
           
           {/* Bottom row with stats and wave only */}

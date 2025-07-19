@@ -11,6 +11,12 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 19, 2025**
+- ✓ **PROJECT CARD AUTHOR DISPLAY ENHANCED**: Updated project cards to show comprehensive creation information
+- ✓ Added 'createdBy' field to projects database schema linking to users table
+- ✓ Updated all existing projects to reference Josh as creator for proper data consistency
+- ✓ Modified project cards to display three-line format: "Author: {{User}}", "Org: {{Organization}}", "Created: {{Date}}"
+- ✓ Increased card height from 180px to 200px to accommodate enhanced creation information display
+- ✓ Removed calendar icon for cleaner, more professional appearance
 - ✓ **ENHANCED PROJECT CARDS**: Added softer borders and smooth hover effects to project cards
 - ✓ Cards now have rounded corners (rounded-xl), subtle gray borders, and lift on hover with blue border accent
 - ✓ Smooth 300ms transitions for professional feel with hover shadow and transform effects
