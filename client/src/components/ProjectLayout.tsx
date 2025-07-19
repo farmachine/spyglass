@@ -37,17 +37,12 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const canAccessConfigTabs = isAdmin;
   const canAccessPublishing = isPrimaryOrgAdmin;
 
-  // Read URL parameters and handle welcome flow
+  // Read URL parameters and handle initial tab setup
   useEffect(() => {
     if (!project) return;
     
     const urlParams = new URLSearchParams(window.location.search);
     const tab = urlParams.get('tab');
-    
-    // Check if initial setup is complete
-    const isSetupComplete = project.isInitialSetupComplete || 
-      (project.schemaFields && project.schemaFields.length > 0) ||
-      (project.collections && project.collections.length > 0);
     
     // If a specific tab is requested in URL, honor it first (always override current tab)
     if (tab) {
@@ -61,6 +56,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
         case 'knowledge':
           if (canAccessConfigTabs) setActiveTab('knowledge');
           break;
+        case 'define-data':
         case 'define':
           if (canAccessConfigTabs) setActiveTab('define');
           break;
@@ -70,38 +66,25 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
         default:
           setActiveTab('upload');
       }
+      // Mark as interacted to prevent any future welcome flow
+      sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
       return;
     }
     
-    // Check if user has already interacted with the project (to prevent welcome flow after CRUD operations)
+    // Check if user has already interacted with the project
     const hasInteracted = sessionStorage.getItem(`project-${project.id}-interacted`);
     
-    // COMPLETELY DISABLE WELCOME FLOW if user has interacted with the project
+    // DISABLE ALL WELCOME FLOW LOGIC - let user choose their own tabs
     if (hasInteracted) {
       return;
     }
     
-    // Only run welcome flow on the very first project access AND user hasn't interacted
-    const isFirstAccess = !userNavigatedRef.current && !initialTabSetRef.current;
-    
-    // Welcome flow should ONLY trigger on genuine first load
-    if (isFirstAccess && activeTab === 'upload' && !isSetupComplete && user?.role === 'admin') {
-      sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
-      initialTabSetRef.current = true;
-      setActiveTab('define');
-      return;
-    }
-    
-    // Mark that we've set an initial tab to prevent future welcome flow triggers
-    if (!initialTabSetRef.current) {
-      initialTabSetRef.current = true;
-    }
-    
-    // Only set default if no tab is currently active
-    if (!activeTab) {
+    // Only set default tab on very first load without URL parameters
+    if (!activeTab && !initialTabSetRef.current) {
       setActiveTab('upload');
+      initialTabSetRef.current = true;
     }
-  }, [project, canAccessConfigTabs, canAccessPublishing, user?.role]);
+  }, [project, canAccessConfigTabs, canAccessPublishing]);
 
   if (error) {
     return (
