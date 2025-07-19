@@ -44,17 +44,14 @@ export default function CollectionCard({
   // Sort properties by orderIndex for consistent ordering
   const safeProperties = properties ? [...properties].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0)) : [];
 
-  // Create a mutation that doesn't invalidate project queries for reordering
+  // Create a mutation that doesn't invalidate any queries for reordering
   const updatePropertyForReorder = useMutation({
     mutationFn: ({ id, property }: { id: string; property: Partial<any> }) =>
       apiRequest(`/api/collection-properties/${id}`, {
         method: "PUT",
         body: JSON.stringify(property),
       }),
-    onSuccess: () => {
-      // Only invalidate collection properties, not the main project query
-      queryClient.invalidateQueries({ queryKey: ["/api/collections", collection.id, "properties"] });
-    },
+    // No onSuccess invalidation - rely on optimistic updates only
   });
 
   // Drag and drop handler for reordering collection properties
