@@ -443,27 +443,39 @@ export default function OrganizationConfig() {
                 {usersLoading ? (
                   <div className="text-center py-8">Loading users...</div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-0">
+                    {/* Table Header */}
+                    <div className="grid grid-cols-12 gap-4 items-center p-4 border-b bg-gray-50 font-medium text-sm text-gray-700">
+                      <div className="col-span-4">User</div>
+                      <div className="col-span-2">Role</div>
+                      <div className="col-span-2">Status</div>
+                      <div className="col-span-4 text-right">Actions</div>
+                    </div>
                     {users?.map((user: any) => (
                       <div
                         key={user.id}
-                        className="flex items-center justify-between p-4 border rounded-lg"
+                        className="grid grid-cols-12 gap-4 items-center p-4 border-b hover:bg-gray-50"
                       >
-                        <div className="flex items-center space-x-4">
+                        {/* User Info - Takes up 4 columns */}
+                        <div className="col-span-4">
                           <div className="flex flex-col">
                             <span className="font-medium">{user.name}</span>
                             <span className="text-sm text-gray-600">{user.email}</span>
                           </div>
-                          <div className="flex items-center">
-                            <Badge 
-                              variant={user.role === "admin" ? "default" : "secondary"}
-                              className={user.role === "admin" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}
-                            >
-                              {user.role}
-                            </Badge>
-                          </div>
                         </div>
-                        <div className="flex items-center space-x-4">
+                        
+                        {/* Role Badge - Takes up 2 columns */}
+                        <div className="col-span-2">
+                          <Badge 
+                            variant={user.role === "admin" ? "default" : "secondary"}
+                            className={user.role === "admin" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}
+                          >
+                            {user.role}
+                          </Badge>
+                        </div>
+                        
+                        {/* Status - Takes up 2 columns */}
+                        <div className="col-span-2">
                           <div className="flex items-center space-x-2">
                             <span className="text-sm text-gray-600">Active</span>
                             <Switch
@@ -476,6 +488,10 @@ export default function OrganizationConfig() {
                               }
                             />
                           </div>
+                        </div>
+                        
+                        {/* Actions - Takes up 4 columns, aligned to the right */}
+                        <div className="col-span-4 flex items-center justify-end space-x-2">
                           <Badge variant={user.isActive ? "default" : "secondary"}>
                             {user.isActive ? "Active" : "Inactive"}
                           </Badge>
