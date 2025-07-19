@@ -193,7 +193,7 @@ export default function Dashboard() {
           {/* Welcome Header */}
           <div className="py-4">
             <div className="flex items-center space-x-2">
-              <WaveIcon className="h-6 w-6 text-primary" />
+              <span className="text-2xl">👋</span>
               <h1 className="text-2xl font-medium text-gray-700">
                 Welcome, {user?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'User'}
               </h1>

@@ -15,7 +15,7 @@ Preferred communication style: Simple, everyday language.
 - ✓ Cards now have rounded corners (rounded-xl), subtle gray borders, and lift on hover with blue border accent
 - ✓ Smooth 300ms transitions for professional feel with hover shadow and transform effects
 - ✓ **PERSONALIZED WELCOME HEADER**: Added welcome message with user's first name above Dashboard title
-- ✓ Displays "Welcome, [First Name]" with wave icon matching Extractly branding using user's first name or email prefix as fallback
+- ✓ Displays "Welcome, [First Name]" with friendly waving hand emoji using user's first name or email prefix as fallback
 - ✓ **PROJECT CREATION RESTRICTED TO ADMINS**: Hidden "New Project" button from non-admin users and added backend validation
 - ✓ Non-admin users see "Contact your administrator to create projects" message when no projects exist
 - ✓ Backend returns 403 Forbidden when non-admin users attempt to create projects via API
