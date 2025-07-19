@@ -330,26 +330,24 @@ export default function ProjectCard({ project }: ProjectCardProps) {
         {/* Fade to white gradient overlay at the bottom */}
         <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white/50 to-transparent pointer-events-none" />
         
-        {/* Deactivated overlay and badge */}
+        {/* Deactivated overlay */}
         {project.status === "inactive" && (
-          <div className="absolute inset-0 bg-gray-500/30 flex items-center justify-center z-10">
-            <div className="bg-white rounded-lg p-4 shadow-lg text-center">
-              <Badge variant="secondary" className="bg-gray-500 text-white mb-3">
-                Deactivated
-              </Badge>
-              <Button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleStatusChange("active");
-                }}
-                variant="outline"
-                size="sm"
-                className="text-green-600 border-green-600 hover:bg-green-50"
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Reactivate
-              </Button>
+          <div className="absolute inset-0 bg-gray-500/60 flex flex-col items-center justify-center z-10">
+            <div className="text-white text-2xl font-bold mb-4 tracking-wide">
+              DEACTIVATED
             </div>
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleStatusChange("active");
+              }}
+              variant="outline"
+              size="sm"
+              className="text-green-600 border-green-600 bg-white hover:bg-green-50"
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Reactivate
+            </Button>
           </div>
         )}
       </Card>

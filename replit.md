@@ -17,6 +17,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ Status changes happen silently without toast notifications as requested
 - ✓ Button text and color update dynamically based on current project status
 - ✓ API integration working correctly with database status updates
+- ✓ **VISUAL FEEDBACK SYSTEM FIXED**: Implemented grey overlay with 60% opacity covering entire deactivated project card
+- ✓ Fixed missing status field in project API response by updating database SELECT queries
+- ✓ Added large "DEACTIVATED" text in white across center of overlay with bold styling and letter spacing
+- ✓ Added smaller green "Reactivate" button below with CheckCircle icon and white background
 - ✓ **AUTO-PUBLISHING TO PRIMARY ORGANIZATION**: All projects now automatically publish to primary organization by default
 - ✓ Added getPrimaryOrganization() method to storage interface for retrieving primary organization
 - ✓ Updated project creation API to automatically publish new projects to primary organization
