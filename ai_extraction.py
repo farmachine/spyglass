@@ -461,7 +461,9 @@ def extract_data_from_document(
                     confidence, applied_rules = calculate_knowledge_based_confidence(
                         field_name, extracted_value, 95, extraction_rules, knowledge_documents
                     )
-                    status = "verified"
+                    
+                    # Set status based on confidence score - low confidence fields should be unverified
+                    status = "verified" if confidence >= 80 else "unverified"
                     
                     # Generate human-friendly reasoning
                     reasoning = generate_human_friendly_reasoning(field_name, extracted_value, applied_rules)
@@ -507,7 +509,9 @@ def extract_data_from_document(
                                 confidence, applied_rules = calculate_knowledge_based_confidence(
                                     prop_name, extracted_value, 95, extraction_rules, knowledge_documents
                                 )
-                                status = "verified"
+                                
+                                # Set status based on confidence score - low confidence fields should be unverified
+                                status = "verified" if confidence >= 80 else "unverified"
                                 
                                 # Generate human-friendly reasoning  
                                 reasoning = generate_human_friendly_reasoning(prop_name, extracted_value, applied_rules)

@@ -33,6 +33,9 @@ Preferred communication style: Simple, everyday language.
 - ✓ AI reasoning now explains issues clearly and asks 3 relevant clarification questions
 - ✓ Professional email style outlines conflicts with rules/knowledge documents and requests specific information
 - ✓ Field-specific questions generated based on the type of data (company names, countries, dates, etc.)
+- ✓ **VALIDATION STATUS FIX**: Fixed critical issue where fields with low confidence were marked as "verified" instead of "unverified"
+- ✓ Fields with confidence below 80% now properly marked as "unverified" so they appear in session verification reports
+- ✓ Session-level reports now include all fields requiring attention: low confidence, missing, and manual entries
 - ✓ **PERSONALIZED WELCOME HEADER**: Added welcome message with user's first name above Dashboard title
 - ✓ Displays "Welcome, [First Name]" using user's first name or email prefix as fallback
 - ✓ **PROJECT CREATION RESTRICTED TO ADMINS**: Hidden "New Project" button from non-admin users and added backend validation
