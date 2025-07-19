@@ -15,6 +15,9 @@ Preferred communication style: Simple, everyday language.
 - ✓ Cards now have rounded corners (rounded-xl), subtle gray borders, and lift on hover with blue border accent
 - ✓ Smooth 300ms transitions for professional feel with hover shadow and transform effects
 - ✓ Added subtle blue footer with very light gradient fade from blue-50 to white for elegant page closure
+- ✓ **MANUAL INPUT VERIFICATION BUG FIX**: Fixed issue where manually entered fields showed "Not Extracted" after verification
+- ✓ Modified verification toggle to preserve "manual" validation status when verifying manually entered fields
+- ✓ Manual Input badge now persists correctly after verification instead of incorrectly displaying "Not Extracted"
 - ✓ **PERSONALIZED WELCOME HEADER**: Added welcome message with user's first name above Dashboard title
 - ✓ Displays "Welcome, [First Name]" using user's first name or email prefix as fallback
 - ✓ **PROJECT CREATION RESTRICTED TO ADMINS**: Hidden "New Project" button from non-admin users and added backend validation

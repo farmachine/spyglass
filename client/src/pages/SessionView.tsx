@@ -685,10 +685,13 @@ Thank you for your assistance.`;
     const validation = getValidation(fieldName);
     if (validation) {
       try {
+        // Preserve manual status when verifying manually entered fields
+        const wasManuallyEntered = validation.validationStatus === 'manual';
+        
         await updateValidationMutation.mutateAsync({
           id: validation.id,
           data: {
-            validationStatus: isVerified ? "valid" : "pending",
+            validationStatus: wasManuallyEntered ? "manual" : (isVerified ? "valid" : "pending"),
             manuallyVerified: isVerified
           }
         });
