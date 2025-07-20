@@ -1412,6 +1412,7 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
     # Create comprehensive validation records for all fields
     comprehensive_validations = create_comprehensive_validation_records(aggregated_data, project_schema, [])
     logging.info(f"🎯 FINAL VALIDATION COUNT: {len(comprehensive_validations)} comprehensive validation records created")
+    logging.info(f"🎯 FIELD_VALIDATIONS will be included in aggregated_extraction with {len(comprehensive_validations)} records")
     
     # Convert FieldValidationResult objects to dictionaries for JSON serialization
     serialized_validations = []
@@ -1450,7 +1451,14 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
     logging.info(f"   - {len(aggregated_data)} total fields aggregated")
     logging.info(f"   - {total_aggregated_items} total items")
     logging.info(f"   - {len(comprehensive_validations)} field validations created")
+    logging.info(f"   - {len(serialized_validations)} serialized validation records")
     logging.info(f"   - Processed {len(results['processed_documents'])} documents")
+    
+    # CRITICAL DEBUG: Check that field_validations are actually included
+    if results.get("aggregated_extraction", {}).get("field_validations"):
+        logging.info(f"✅ CONFIRMED: aggregated_extraction.field_validations contains {len(results['aggregated_extraction']['field_validations'])} records")
+    else:
+        logging.error(f"❌ ERROR: aggregated_extraction.field_validations is EMPTY or MISSING")
 
     # Calculate summary
     results["summary"]["total_documents"] = len(files)
