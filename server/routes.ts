@@ -1957,6 +1957,9 @@ print(json.dumps(results))
       };
 
       console.log(`🚀 WORKING_EXTRACTION: Processing ${schemaFields.length} schema fields and ${collections.length} collections`);
+      console.log(`🚀 WORKING_EXTRACTION: Session data files: ${sessionData.files.length}`);
+      console.log(`🚀 WORKING_EXTRACTION: Session data schema fields: ${JSON.stringify(sessionData.project_schema.schema_fields.map(f => f.fieldName))}`);
+      console.log(`🚀 WORKING_EXTRACTION: Session data collections: ${JSON.stringify(sessionData.project_schema.collections.map(c => c.collectionName))}`);
 
       // Run working multimodal AI extraction
       const python = spawn('python3', ['ai_extraction_working.py'], {
@@ -1965,16 +1968,26 @@ print(json.dumps(results))
 
       let pythonOutput = '';
       let pythonError = '';
+      
+      // Send session data to Python script
+      python.stdin.write(JSON.stringify(sessionData));
+      python.stdin.end();
 
       python.stdout.on('data', (data) => {
         pythonOutput += data.toString();
       });
 
       python.stderr.on('data', (data) => {
-        pythonError += data.toString();
+        const errorData = data.toString();
+        pythonError += errorData;
+        console.log(`🚀 WORKING_EXTRACTION: Python stderr: ${errorData}`);
       });
 
       python.on('close', async (code) => {
+        console.log(`🚀 WORKING_EXTRACTION: Python process completed with code ${code}`);
+        console.log(`🚀 WORKING_EXTRACTION: Python stdout length: ${pythonOutput.length}`);
+        console.log(`🚀 WORKING_EXTRACTION: Python stderr length: ${pythonError.length}`);
+        
         if (code !== 0) {
           console.error(`🚀 WORKING_EXTRACTION: Python extraction failed with code ${code}`);
           console.error(`🚀 WORKING_EXTRACTION: Error: ${pythonError}`);
@@ -1986,8 +1999,10 @@ print(json.dumps(results))
         }
 
         try {
+          console.log(`🚀 WORKING_EXTRACTION: Raw Python output: ${pythonOutput.substring(0, 1000)}...`);
           const results = JSON.parse(pythonOutput);
           console.log(`🚀 WORKING_EXTRACTION: AI extracted ${results.total_records} validation records`);
+          console.log(`🚀 WORKING_EXTRACTION: Schema fields: ${results.schema_fields_updated}, Collection properties: ${results.collection_properties_updated}`);
           
           // Store validation data directly in field/collection records - CONSOLIDATED APPROACH
           const validationRecords = results.validation_records;
