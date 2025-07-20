@@ -491,7 +491,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/schema-fields/:id", async (req, res) => {
+  app.put("/api/schema-fields/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = req.params.id; // Use string ID for UUID compatibility
       const result = insertProjectSchemaFieldSchema.partial().safeParse(req.body);
@@ -509,7 +509,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/schema-fields/:id", async (req, res) => {
+  app.delete("/api/schema-fields/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = req.params.id; // Use string ID for UUID compatibility
       const deleted = await storage.deleteProjectSchemaField(id);
@@ -610,7 +610,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Collection Properties
-  app.get("/api/collections/:collectionId/properties", async (req, res) => {
+  app.get("/api/collections/:collectionId/properties", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const collectionId = req.params.collectionId;
       const properties = await storage.getCollectionProperties(collectionId);
@@ -620,7 +620,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/collections/:collectionId/properties", async (req, res) => {
+  app.post("/api/collections/:collectionId/properties", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const collectionId = req.params.collectionId;
       const result = insertCollectionPropertySchema.safeParse({
@@ -638,7 +638,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/properties/:id", async (req, res) => {
+  app.put("/api/properties/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = req.params.id; // Use string ID for UUID compatibility
       const result = insertCollectionPropertySchema.partial().safeParse(req.body);
@@ -656,7 +656,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/properties/:id", async (req, res) => {
+  app.delete("/api/properties/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = req.params.id; // Use string ID for UUID compatibility
       const deleted = await storage.deleteCollectionProperty(id);
@@ -670,7 +670,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Knowledge Documents
-  app.get("/api/projects/:projectId/knowledge", async (req, res) => {
+  app.get("/api/projects/:projectId/knowledge", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const projectId = req.params.projectId;
       const documents = await storage.getKnowledgeDocuments(projectId);
@@ -680,7 +680,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/projects/:projectId/knowledge", async (req, res) => {
+  app.post("/api/projects/:projectId/knowledge", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const projectId = req.params.projectId;
       const result = insertKnowledgeDocumentSchema.safeParse({ ...req.body, projectId });
@@ -695,9 +695,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           console.log('DEBUG: Processing knowledge document PDF content extraction');
           
-          // Use the simple PDF processing script for knowledge documents
+          // Use Python to extract text from PDF data URL
           const { spawn } = await import('child_process');
-          const python = spawn('python3', ['test_pdf_processing.py'], {
+          const python = spawn('python3', ['-c', `
+import sys
+import base64
+import json
+import io
+
+try:
+    # Read the data URL from stdin
+    data_url = sys.stdin.read().strip()
+    
+    # Extract base64 content from data URL
+    if data_url.startswith('data:'):
+        base64_content = data_url.split(',', 1)[1]
+        pdf_bytes = base64.b64decode(base64_content)
+        
+        # Try PyPDF2 for text extraction
+        try:
+            import PyPDF2
+            pdf_reader = PyPDF2.PdfReader(io.BytesIO(pdf_bytes))
+            text_content = ""
+            for page in pdf_reader.pages:
+                text_content += page.extract_text() + "\\n"
+            
+            if text_content.strip():
+                print(text_content.strip())
+            else:
+                print("PDF_EXTRACTION_FAILED")
+        except Exception as pypdf_error:
+            print("PDF_EXTRACTION_FAILED")
+    else:
+        print("INVALID_DATA_URL")
+        
+except Exception as e:
+    print("PDF_EXTRACTION_FAILED")
+`], {
             stdio: ['pipe', 'pipe', 'pipe']
           });
           
@@ -711,21 +745,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           await new Promise((resolve, reject) => {
             python.on('close', (code) => {
-              if (code === 0 && extractedText.trim()) {
+              if (code === 0 && extractedText.trim() && !extractedText.includes('PDF_EXTRACTION_FAILED')) {
                 processedData.content = extractedText.trim();
                 console.log('DEBUG: Knowledge document PDF processing successful, extracted', extractedText.length, 'characters of text');
                 resolve(extractedText);
               } else {
-                console.error('PDF processing failed with code:', code);
-                // Set fallback content that explains the issue
-                processedData.content = "PDF content could not be extracted automatically. Please edit this knowledge document to add the text content manually.";
-                resolve("fallback");
+                console.log('DEBUG: PDF text extraction failed or returned no content');
+                // Leave content empty so user can manually add text
+                processedData.content = "";
+                resolve("no_content");
               }
             });
           });
         } catch (pdfError) {
           console.error('PDF processing error:', pdfError);
-          processedData.content = "PDF content could not be extracted automatically. Please edit this knowledge document to add the text content manually.";
+          processedData.content = "";
         }
       }
       

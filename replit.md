@@ -96,10 +96,11 @@ Preferred communication style: Simple, everyday language.
 - ✓ **KNOWLEDGE DOCUMENT INTEGRATION FIXED**: Fixed critical issue where knowledge documents weren't being processed during AI extraction
 - ✓ Added missing `check_knowledge_document_conflicts` function to detect policy conflicts and adjust confidence scores
 - ✓ Knowledge documents now properly included in AI extraction prompt for policy-based conflict detection
-- ✓ **DYNAMIC CONFLICT DETECTION**: Removed hardcoded US-specific logic and made conflict detection completely dynamic
-- ✓ System now analyzes actual knowledge document content to detect conflicts for any extracted values
+- ✓ **DYNAMIC CONFLICT DETECTION**: Completely dynamic conflict detection system with no hardcoded jurisdictions
+- ✓ System analyzes actual knowledge document content to detect conflicts for any extracted values  
 - ✓ Generic conflict detection looks for review/compliance keywords associated with extracted values
-- ✓ Removed token limits for knowledge documents - full content now included in AI prompts
+- ✓ Knowledge documents processed during upload to store text content for efficient extraction use
+- ✓ No hardcoded USA/U.S./jurisdiction-specific logic - all conflict detection based on uploaded document content
 - ✓ **HUMAN-FRIENDLY AI REASONING**: Transformed technical AI reasoning into professional email format
 - ✓ AI reasoning now explains issues clearly and asks 3 relevant clarification questions
 - ✓ Professional email style outlines conflicts with rules/knowledge documents and requests specific information
