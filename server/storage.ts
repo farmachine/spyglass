@@ -1174,26 +1174,61 @@ class PostgreSQLStorage implements IStorage {
     if (!process.env.DATABASE_URL) {
       throw new Error('DATABASE_URL environment variable is required for PostgreSQL storage');
     }
-    const sql = neon(process.env.DATABASE_URL);
+    const sql = neon(process.env.DATABASE_URL, {
+      connectionTimeoutMillis: 5000,
+      arrayMode: false,
+      fullResults: false,
+    });
     this.db = drizzle(sql);
+  }
+
+  // Helper method to retry database operations
+  private async retryOperation<T>(operation: () => Promise<T>, maxRetries: number = 3, delay: number = 1000): Promise<T> {
+    let lastError: any;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error: any) {
+        lastError = error;
+        
+        // Check if it's a connection error
+        const isConnectionError = error?.message?.includes?.('Too many connections') || 
+                                 error?.message?.includes?.('connection') ||
+                                 error?.code === 'ECONNRESET' ||
+                                 error?.code === 'ENOTFOUND';
+        
+        if (isConnectionError && attempt < maxRetries) {
+          console.log(`Database connection attempt ${attempt} failed, retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay * attempt)); // Exponential backoff
+          continue;
+        }
+        
+        throw error;
+      }
+    }
+    
+    throw lastError;
   }
 
   // Organizations
   async getOrganizations(): Promise<(Organization & { userCount: number })[]> {
-    const result = await this.db
-      .select({
-        id: organizations.id,
-        name: organizations.name,
-        description: organizations.description,
-        type: organizations.type,
-        createdAt: organizations.createdAt,
-        userCount: count(users.id)
-      })
-      .from(organizations)
-      .leftJoin(users, eq(organizations.id, users.organizationId))
-      .groupBy(organizations.id, organizations.name, organizations.description, organizations.type, organizations.createdAt);
-    
-    return result;
+    return this.retryOperation(async () => {
+      const result = await this.db
+        .select({
+          id: organizations.id,
+          name: organizations.name,
+          description: organizations.description,
+          type: organizations.type,
+          createdAt: organizations.createdAt,
+          userCount: count(users.id)
+        })
+        .from(organizations)
+        .leftJoin(users, eq(organizations.id, users.organizationId))
+        .groupBy(organizations.id, organizations.name, organizations.description, organizations.type, organizations.createdAt);
+      
+      return result;
+    });
   }
 
   async getOrganization(id: string): Promise<Organization | undefined> {
@@ -1378,6 +1413,7 @@ class PostgreSQLStorage implements IStorage {
 
   // Get published organizations for projects
   async getProjectsWithPublishedOrganizations(organizationId?: string, userRole?: string): Promise<(Project & { publishedOrganizations: Organization[] })[]> {
+    return this.retryOperation(async () => {
     let projectsList;
     
     if (organizationId) {
@@ -1502,6 +1538,7 @@ class PostgreSQLStorage implements IStorage {
     );
 
     return projectsWithOrgs;
+    });
   }
 
   // For now, implement minimal project methods to prevent errors
