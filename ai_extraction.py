@@ -735,6 +735,161 @@ def extract_data_from_document(
         logging.error(f"Extraction failed: {e}")
         raise Exception(f"Extraction failed for {file_name}: {str(e)}")
 
+def create_comprehensive_validation_records(aggregated_data, project_schema, existing_validations, extraction_rules, knowledge_documents):
+    """
+    Create validation records for ALL schema fields after aggregation is complete.
+    This implements the three-step process: 1) Extract, 2) Save data, 3) Create validations for ALL fields.
+    """
+    comprehensive_validations = []
+    existing_field_names = {v.get("field_name", "") for v in existing_validations}
+    
+    # Keep all existing validations that were created during individual processing
+    comprehensive_validations.extend(existing_validations)
+    
+    logging.info(f"🔧 STEP 3: Creating comprehensive validation records for ALL schema fields")
+    logging.info(f"📊 Starting with {len(existing_validations)} existing validations")
+    
+    # Process schema fields (non-collection fields)
+    if project_schema.get("schema_fields"):
+        for field in project_schema["schema_fields"]:
+            if not isinstance(field, dict):
+                continue
+                
+            field_id = str(field.get("id", "unknown"))
+            field_name = field.get("fieldName", "")
+            field_type = field.get("fieldType", "TEXT")
+            
+            # Skip if validation already exists
+            if field_name in existing_field_names:
+                logging.info(f"✅ Schema field validation exists: {field_name}")
+                continue
+                
+            # Create validation record for schema field
+            extracted_value = aggregated_data.get(field_name)
+            
+            if extracted_value is not None and extracted_value != "":
+                confidence, applied_rules = calculate_knowledge_based_confidence(
+                    field_name, extracted_value, 95, extraction_rules, knowledge_documents
+                )
+                auto_verification_threshold = field.get("autoVerificationConfidence", 80)
+                status = "verified" if confidence >= auto_verification_threshold else "unverified"
+                reasoning = generate_human_friendly_reasoning(field_name, extracted_value, applied_rules)
+                logging.info(f"📝 Creating schema field validation: {field_name} = '{extracted_value}'")
+            else:
+                confidence = 0
+                status = "invalid"
+                reasoning = f"No value found for {field_name}"
+                extracted_value = None
+                logging.info(f"📝 Creating schema field validation: {field_name} = null")
+            
+            validation = FieldValidationResult(
+                field_id=field_id,
+                field_name=field_name,
+                field_type=field_type,
+                extracted_value=extracted_value,
+                original_extracted_value=extracted_value,
+                original_confidence_score=confidence,
+                original_ai_reasoning=reasoning,
+                validation_status=status,
+                ai_reasoning=reasoning,
+                confidence_score=confidence,
+                document_source="Aggregated Data",
+                document_sections=["Multi-document aggregation"]
+            )
+            comprehensive_validations.append(validation)
+    
+    # Process collection fields (collection properties for each item)
+    if project_schema.get("collections"):
+        for collection in project_schema["collections"]:
+            if not isinstance(collection, dict):
+                continue
+                
+            collection_name = collection.get('collectionName', collection.get('objectName', ''))
+            collection_data = aggregated_data.get(collection_name, [])
+            
+            # Ensure collection_data is a list
+            if not isinstance(collection_data, list):
+                collection_data = []
+            
+            logging.info(f"🗂️ Processing collection {collection_name}: {len(collection_data)} items")
+            
+            # Create validation records for each item in the collection
+            for record_index in range(len(collection_data)):
+                record = collection_data[record_index] if record_index < len(collection_data) else {}
+                
+                for prop in collection.get("properties", []):
+                    if not isinstance(prop, dict):
+                        continue
+                        
+                    prop_id = str(prop.get("id", "unknown"))
+                    prop_name = prop.get("propertyName", "")
+                    prop_type = prop.get("propertyType", "TEXT")
+                    field_name_with_index = f"{collection_name}.{prop_name}[{record_index}]"
+                    
+                    # Skip if validation already exists
+                    if field_name_with_index in existing_field_names:
+                        logging.info(f"✅ Collection validation exists: {field_name_with_index}")
+                        continue
+                    
+                    # Find extracted value using the same logic as individual processing
+                    extracted_value = None
+                    if isinstance(record, dict):
+                        if prop_name in record:
+                            extracted_value = record[prop_name]
+                        elif prop_name.lower() in record:
+                            extracted_value = record[prop_name.lower()]
+                        elif len(prop_name) > 1:
+                            camel_case_name = prop_name[0].lower() + prop_name[1:]
+                            if camel_case_name in record:
+                                extracted_value = record[camel_case_name]
+                        
+                        if extracted_value is None:
+                            for key, value in record.items():
+                                if key.lower() == prop_name.lower():
+                                    extracted_value = value
+                                    break
+                    
+                    # Create validation record
+                    if extracted_value is not None and extracted_value != "" and extracted_value != "null":
+                        confidence, applied_rules = calculate_knowledge_based_confidence(
+                            field_name_with_index, extracted_value, 95, extraction_rules, knowledge_documents
+                        )
+                        auto_verification_threshold = prop.get("autoVerificationConfidence", 80)
+                        status = "verified" if confidence >= auto_verification_threshold else "unverified"
+                        reasoning = generate_human_friendly_reasoning(field_name_with_index, extracted_value, applied_rules)
+                        logging.info(f"📝 Creating collection validation: {field_name_with_index} = '{extracted_value}'")
+                    else:
+                        confidence = 0
+                        status = "invalid"
+                        reasoning = f"No value extracted for {prop_name} in {collection_name}"
+                        extracted_value = None
+                        logging.info(f"📝 Creating collection validation: {field_name_with_index} = null")
+                    
+                    validation = FieldValidationResult(
+                        field_id=prop_id,
+                        field_name=field_name_with_index,
+                        field_type=prop_type,
+                        extracted_value=extracted_value,
+                        original_extracted_value=extracted_value,
+                        original_confidence_score=confidence,
+                        original_ai_reasoning=reasoning,
+                        validation_status=status,
+                        ai_reasoning=reasoning,
+                        confidence_score=confidence,
+                        document_source="Aggregated Data",
+                        document_sections=["Multi-document aggregation"],
+                        collection_name=collection_name,
+                        record_index=record_index
+                    )
+                    comprehensive_validations.append(validation)
+    
+    logging.info(f"🎯 COMPREHENSIVE VALIDATION CREATION COMPLETE:")
+    logging.info(f"   - Started with: {len(existing_validations)} existing validations")
+    logging.info(f"   - Created total: {len(comprehensive_validations)} comprehensive validations")
+    logging.info(f"   - Added: {len(comprehensive_validations) - len(existing_validations)} new validation records")
+    
+    return comprehensive_validations
+
 def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
     """Process an entire extraction session with multiple documents"""
     
@@ -948,18 +1103,24 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
                 if not validation.get("collection_name") or validation.get("collection_name") not in collection_names:
                     all_field_validations.append(validation)
     
+    # STEP 3: Create validation records for ALL schema fields after aggregation (per user requirements)
+    # This follows the three-step process: 1) Extract, 2) Save data, 3) Create validations for ALL fields
+    comprehensive_validations = create_comprehensive_validation_records(
+        aggregated_data, project_schema, all_field_validations, extraction_rules, knowledge_documents
+    )
+    
     # Add aggregated data to results with comprehensive summary
     total_aggregated_items = sum(len(v) if isinstance(v, list) else 1 for v in aggregated_data.values())
     
     results["aggregated_extraction"] = {
         "extracted_data": aggregated_data,
-        "field_validations": all_field_validations,
+        "field_validations": comprehensive_validations,  # Use comprehensive validations instead
         "total_items": total_aggregated_items,
         "aggregation_summary": {
             "total_documents_processed": len([d for d in results["processed_documents"] if d.get("status") == "completed"]),
             "collections_aggregated": len([k for k, v in aggregated_data.items() if isinstance(v, list)]),
             "total_collection_items": sum(len(v) for v in aggregated_data.values() if isinstance(v, list)),
-            "total_field_validations": len(all_field_validations)
+            "total_field_validations": len(comprehensive_validations)  # Use comprehensive count
         }
     }
     
