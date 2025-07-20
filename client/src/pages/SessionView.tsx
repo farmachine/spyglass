@@ -20,6 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
 import ExtractlyLogo from "@/components/ExtractlyLogo";
 import ValidationIcon from "@/components/ValidationIcon";
+import UserProfile from "@/components/UserProfile";
 
 import type { 
   ExtractionSession, 
@@ -1046,6 +1047,28 @@ Thank you for your assistance.`;
   const canAccessConfigTabs = isAdmin;
   const canAccessPublishing = isPrimaryOrgAdmin;
 
+  // Calculate verification stats for statistics cards (same logic as ProjectLayout)
+  const getVerificationStatusForProject = (sessionId: string): 'verified' | 'in_progress' | 'pending' => {
+    const sessionValidations = allValidations.filter(v => v.sessionId === sessionId);
+    if (sessionValidations.length === 0) return 'pending';
+    
+    const allVerified = sessionValidations.every(v => v.validationStatus === 'valid' || v.validationStatus === 'verified');
+    return allVerified ? 'verified' : 'in_progress';
+  };
+
+  const getVerificationStatsForProject = () => {
+    const stats = { verified: 0, in_progress: 0, pending: 0 };
+    
+    for (const projectSession of project.sessions) {
+      const status = getVerificationStatusForProject(projectSession.id);
+      stats[status]++;
+    }
+    
+    return stats;
+  };
+
+  const verificationStats = getVerificationStatsForProject();
+
   const navItems = [
     { id: "upload", label: `New ${project?.mainObjectName || "Session"}`, icon: Upload, href: `/projects/${projectId}?tab=upload` },
     { id: "data", label: `All ${project?.mainObjectName || "Session"}s`, icon: Database, href: `/projects/${projectId}?tab=all-data` },
@@ -1060,40 +1083,88 @@ Thank you for your assistance.`;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+      {/* Header - Match ProjectLayout exactly */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="w-full px-6 py-4">
           <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-4">
-              <Link href="/">
-                <ExtractlyLogo showText={false} className="!p-0" />
-              </Link>
-              <div>
-                <h1 className="text-2xl font-semibold text-gray-900">
-                  Extractly
-                </h1>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              {/* User profile placeholder - could add user menu here if needed */}
-            </div>
+            <ExtractlyLogo />
+            <UserProfile />
           </div>
         </div>
       </div>
 
-      <div className="flex h-[calc(100vh-80px)]">
-        {/* Sidebar */}
-        <div className="w-64 bg-white border-r border-gray-200">
-          <div className="p-6">
-            <div className="mb-6">
-              <div className="text-lg font-semibold text-gray-900 mb-1">
-                {project.name}
-              </div>
-              <div className="text-sm text-gray-600">
-                {project.description || "Data extraction project"}
+      {/* Page Title - Match ProjectLayout exactly */}
+      <div className="bg-white border-b border-gray-100">
+        <div className="w-full px-6 py-6">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start space-x-3 flex-1 mr-6">
+              <FileText className="h-8 w-8 text-primary mt-1" />
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center space-x-2">
+                  <h2 className="text-3xl font-bold">{project.name}</h2>
+                </div>
+                <div className="flex items-start space-x-2">
+                  {project.description ? (
+                    <p className="text-sm text-gray-600">{project.description}</p>
+                  ) : (
+                    <p className="text-sm text-gray-400">No description</p>
+                  )}
+                </div>
               </div>
             </div>
 
+            {/* Statistics Cards - Match ProjectLayout exactly */}
+            {project.sessions.length > 0 && (
+              <div className="flex gap-4 flex-shrink-0">
+                <Card className="min-w-[140px]">
+                  <CardContent className="pt-1 pb-4">
+                    <div className="flex items-start">
+                      <Database className="h-7 w-7 text-blue-600 mt-1" />
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-gray-600">Total {project.mainObjectName || "Session"}s</p>
+                        <p className="text-2xl font-bold text-gray-900">{project.sessions.length}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="min-w-[140px]">
+                  <CardContent className="pt-1 pb-4">
+                    <div className="flex items-start">
+                      <AlertTriangle className="h-7 w-7 text-red-600 mt-1" />
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-gray-600">Unverified</p>
+                        <p className="text-2xl font-bold text-gray-900">
+                          {verificationStats.in_progress + verificationStats.pending}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="min-w-[140px]">
+                  <CardContent className="pt-1 pb-4">
+                    <div className="flex items-start">
+                      <CheckCircle className="h-7 w-7 text-green-600 mt-1" />
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-gray-600">Verified</p>
+                        <p className="text-2xl font-bold text-gray-900">
+                          {verificationStats.verified}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex h-[calc(100vh-160px)]">
+        {/* Sidebar */}
+        <div className="w-64 bg-white border-r border-gray-200">
+          <div className="p-6">
             <nav className="space-y-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -1121,14 +1192,6 @@ Thank you for your assistance.`;
         {/* Main Content */}
         <div className="flex-1 p-8 overflow-x-hidden">
           <div className="max-w-4xl mx-auto w-full">
-            {/* Project Header - Exact Match to AllData */}
-            <div className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900">{project.mainObjectName || "Session"} Extraction Sessions</h2>
-              <p className="text-sm text-gray-600 mt-1">
-                View extracted data and manage all extraction sessions for this project
-              </p>
-            </div>
-
             {/* Session Review Header */}
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-4">
