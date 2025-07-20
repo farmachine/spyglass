@@ -1383,6 +1383,14 @@ except Exception as e:
             }
           }
           
+          // CRITICAL: Wait for all validation operations to complete before sending response
+          console.log('Waiting for all database operations to complete...');
+          await new Promise(resolve => setTimeout(resolve, 500)); // Give database time to commit
+          
+          // Final verification: Confirm validations are actually in database
+          const finalValidationCheck = await storage.getFieldValidations(sessionId);
+          console.log(`FINAL CHECK: Database contains ${finalValidationCheck.length} validation records for session ${sessionId}`);
+          
           res.json(result);
         } catch (parseError: any) {
           console.error('Error parsing Python output:', parseError);
