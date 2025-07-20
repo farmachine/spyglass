@@ -305,19 +305,28 @@ export default function NewUpload({ project }: NewUploadProps) {
       console.log(`🚀 CONSOLIDATED_FRONTEND: Extraction payload:`, extractionPayload);
       console.log(`🚀 CONSOLIDATED_FRONTEND: Making request to /api/sessions/${session.id}/extract-consolidated`);
       
-      const extractionPromise = apiRequest(`/api/sessions/${session.id}/extract-consolidated`, {
-        method: 'POST',
-        body: JSON.stringify(extractionPayload),
-        headers: {
-          'Content-Type': 'application/json'
+      const extractionPromise = (async () => {
+        try {
+          console.log(`🚀 CONSOLIDATED_FRONTEND: About to make API request`);
+          const result = await apiRequest(`/api/sessions/${session.id}/extract-consolidated`, {
+            method: 'POST',
+            body: JSON.stringify(extractionPayload),
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          console.log(`🚀 CONSOLIDATED_FRONTEND: API request successful:`, result);
+          return result;
+        } catch (error) {
+          console.error(`🚀 CONSOLIDATED_FRONTEND: API request failed with error:`, error);
+          console.error(`🚀 CONSOLIDATED_FRONTEND: Error details:`, {
+            message: error.message,
+            stack: error.stack,
+            type: error.constructor.name
+          });
+          throw error;
         }
-      }).then(result => {
-        console.log(`🚀 CONSOLIDATED_FRONTEND: API request successful:`, result);
-        return result;
-      }).catch(error => {
-        console.error(`🚀 CONSOLIDATED_FRONTEND: API request failed:`, error);
-        throw error;
-      });
+      })();
 
       // Simulate extraction progress
       const progressInterval = setInterval(() => {
