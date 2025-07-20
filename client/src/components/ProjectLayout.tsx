@@ -435,9 +435,9 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
             {project.sessions.length > 0 && (
               <div className="flex gap-4 flex-shrink-0">
                 <Card className="min-w-[140px]">
-                  <CardContent className="pt-4 pb-4">
-                    <div className="flex items-center">
-                      <Database className="h-7 w-7 text-blue-600" />
+                  <CardContent className="pt-1 pb-4">
+                    <div className="flex items-start">
+                      <Database className="h-7 w-7 text-blue-600 mt-1" />
                       <div className="ml-3">
                         <p className="text-sm font-medium text-gray-600">Total {project.mainObjectName || "Session"}s</p>
                         <p className="text-2xl font-bold text-gray-900">{project.sessions.length}</p>
@@ -447,9 +447,9 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                 </Card>
 
                 <Card className="min-w-[140px]">
-                  <CardContent className="pt-4 pb-4">
-                    <div className="flex items-center">
-                      <AlertTriangle className="h-7 w-7 text-red-600" />
+                  <CardContent className="pt-1 pb-4">
+                    <div className="flex items-start">
+                      <AlertTriangle className="h-7 w-7 text-red-600 mt-1" />
                       <div className="ml-3">
                         <p className="text-sm font-medium text-gray-600">Unverified</p>
                         <p className="text-2xl font-bold text-gray-900">
@@ -461,9 +461,9 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                 </Card>
 
                 <Card className="min-w-[140px]">
-                  <CardContent className="pt-4 pb-4">
-                    <div className="flex items-center">
-                      <CheckCircle className="h-7 w-7 text-green-600" />
+                  <CardContent className="pt-1 pb-4">
+                    <div className="flex items-start">
+                      <CheckCircle className="h-7 w-7 text-green-600 mt-1" />
                       <div className="ml-3">
                         <p className="text-sm font-medium text-gray-600">Verified</p>
                         <p className="text-2xl font-bold text-gray-900">
