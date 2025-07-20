@@ -1637,6 +1637,14 @@ print(json.dumps(results))
               const existingValidation = existingValidations.find(v => v.fieldName === validation.field_name);
               
               if (existingValidation) {
+                // DEBUG: Log what batch validation is trying to update for first items
+                if (existingValidation.fieldName.includes('[0]') || existingValidation.fieldType === 'schema_field') {
+                  console.log(`BATCH_VALIDATION_DEBUG - Updating FIRST item: ${existingValidation.fieldName}`);
+                  console.log(`  - Existing extracted value: ${existingValidation.extractedValue}`);
+                  console.log(`  - Batch validation extracted_value: ${validation.extracted_value}`);
+                  console.log(`  - Will preserve: ${validation.extracted_value !== undefined ? validation.extracted_value : existingValidation.extractedValue}`);
+                }
+                
                 // Update existing validation record - PRESERVE extracted values!
                 await storage.updateFieldValidation(existingValidation.id, {
                   confidenceScore: validation.confidence_score,
