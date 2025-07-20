@@ -1175,6 +1175,8 @@ except Exception as e:
           if (result.aggregated_extraction && result.aggregated_extraction.field_validations) {
             validationsToProcess = result.aggregated_extraction.field_validations;
             console.log(`Processing ${validationsToProcess.length} aggregated field validations`);
+            console.log(`DEBUG: First 5 validation field names:`, validationsToProcess.slice(0, 5).map(v => v.field_name));
+            console.log(`DEBUG: Last 5 validation field names:`, validationsToProcess.slice(-5).map(v => v.field_name));
           }
           // Fall back to individual document validations for single-document sessions
           else if (result.processed_documents && result.processed_documents.length > 0) {
@@ -1186,9 +1188,13 @@ except Exception as e:
           }
           
           // Process explicit validations first
+          console.log(`DEBUG: About to process ${validationsToProcess.length} validations for session ${sessionId}`);
+          console.log(`DEBUG: Existing validations count: ${existingValidations.length}`);
+          
           for (const validation of validationsToProcess) {
                 // Extract record index from field name if present
                 const fieldName = validation.field_name;
+                console.log(`DEBUG: Processing validation for field: ${fieldName}`);
                 const recordIndexMatch = fieldName.match(/\[(\d+)\]$/);
                 const recordIndex = recordIndexMatch ? parseInt(recordIndexMatch[1]) : 0;
                 
@@ -1245,10 +1251,12 @@ except Exception as e:
                     updateData.originalAiReasoning = validation.original_ai_reasoning || validation.ai_reasoning;
                   }
                   
+                  console.log(`DEBUG: Updating existing validation ${existingValidation.id} for field ${fieldName}`);
                   await storage.updateFieldValidation(existingValidation.id, updateData);
                 } else {
                   // Create new validation if it doesn't exist
-                  await storage.createFieldValidation({
+                  console.log(`DEBUG: Creating NEW validation for field ${fieldName} with value: ${normalizedValue}`);
+                  const newValidation = await storage.createFieldValidation({
                     sessionId,
                     fieldType: isCollectionProperty ? 'collection_property' : 'schema_field',
                     fieldId: validation.field_id,
@@ -1264,12 +1272,17 @@ except Exception as e:
                     manuallyVerified: false,
                     confidenceScore: validation.confidence_score
                   });
+                  console.log(`DEBUG: Created validation with ID: ${newValidation?.id} for field ${fieldName}`);
                 }
             }
           
           console.log(`Processing complete with ${validationsToProcess.length} total validations`);
           console.log(`Aggregated extraction contains ${result.aggregated_extraction ? Object.keys(result.aggregated_extraction.extracted_data || {}).length : 0} fields`);
           console.log(`Result status: ${result.status}, has aggregated data: ${!!result.aggregated_extraction}`);
+          
+          // Debug: Check final validation count after processing
+          const finalValidations = await storage.getFieldValidations(sessionId);
+          console.log(`DEBUG: Final validation count in database: ${finalValidations.length}`);
           
           // COMPREHENSIVE VALIDATION CREATION: For pure extraction, create validation records for ALL extracted fields
           // This ensures batch validation has records to process even when Python returns empty field_validations
