@@ -1433,9 +1433,16 @@ except Exception as e:
   app.get("/api/sessions/:sessionId/validations", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
+      console.log(`GET /api/sessions/${sessionId}/validations - Fetching validations for session`);
       const validations = await storage.getFieldValidations(sessionId);
+      console.log(`GET /api/sessions/${sessionId}/validations - Found ${validations.length} validations`);
+      if (validations.length > 0) {
+        console.log(`First validation: ${validations[0].fieldName} = ${validations[0].extractedValue}`);
+        console.log(`Collection validations: ${validations.filter(v => v.fieldName.includes('[')).length}`);
+      }
       res.json(validations);
     } catch (error) {
+      console.error(`GET /api/sessions/${sessionId}/validations - Error:`, error);
       res.status(500).json({ message: "Failed to fetch field validations" });
     }
   });
