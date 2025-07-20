@@ -1989,15 +1989,15 @@ print(json.dumps(results))
           const results = JSON.parse(pythonOutput);
           console.log(`🚀 CONSOLIDATED_EXTRACTION: AI extracted ${results.total_records} validation records`);
           
-          // Store validation records using the consolidated approach
+          // Store validation data directly in field/collection records - CONSOLIDATED APPROACH
           const validationRecords = results.validation_records;
           let schemaFieldsUpdated = 0;
-          let collectionInstancesCreated = 0;
+          let collectionPropertiesUpdated = 0;
           
-          // Update schema fields with validation data
+          // Update schema fields with validation data directly
           const schemaFieldRecords = validationRecords.filter(record => record.record_type === 'schema_field');
           for (const field of schemaFieldRecords) {
-            await storage.updateProjectSchemaFieldValidation(field.id, {
+            await storage.updateProjectSchemaField(field.id, {
               sessionId: sessionId,
               extractedValue: field.extractedValue,
               originalExtractedValue: field.originalExtractedValue,
@@ -2011,18 +2011,11 @@ print(json.dumps(results))
             schemaFieldsUpdated++;
           }
           
-          // Create collection property instances with validation data
+          // Update collection properties with validation data directly
           const collectionPropertyRecords = validationRecords.filter(record => record.record_type === 'collection_property');
           for (const property of collectionPropertyRecords) {
-            await storage.createCollectionPropertyInstance({
-              id: crypto.randomUUID(),
-              collectionId: property.collectionId,
+            await storage.updateCollectionProperty(property.id, {
               sessionId: sessionId,
-              propertyName: property.propertyName,
-              propertyType: property.propertyType,
-              description: property.description,
-              autoVerificationConfidence: property.autoVerificationConfidence,
-              orderIndex: property.orderIndex,
               recordIndex: property.recordIndex,
               extractedValue: property.extractedValue,
               originalExtractedValue: property.originalExtractedValue,
@@ -2031,25 +2024,24 @@ print(json.dumps(results))
               validationStatus: property.validationStatus,
               aiReasoning: property.aiReasoning,
               originalAiReasoning: property.originalAiReasoning,
-              manuallyVerified: property.manuallyVerified,
-              collectionName: property.collection_name
+              manuallyVerified: property.manuallyVerified
             });
-            collectionInstancesCreated++;
+            collectionPropertiesUpdated++;
           }
           
           // Update session status
-          await storage.updateSession(sessionId, {
+          await storage.updateExtractionSession(sessionId, {
             status: 'completed'
           });
           
-          console.log(`🚀 CONSOLIDATED_EXTRACTION: Updated ${schemaFieldsUpdated} schema fields, created ${collectionInstancesCreated} collection instances`);
+          console.log(`🚀 CONSOLIDATED_EXTRACTION: Updated ${schemaFieldsUpdated} schema fields and ${collectionPropertiesUpdated} collection properties`);
           
           res.json({
             success: true,
             session_id: sessionId,
             total_records: results.total_records,
             schema_fields_updated: schemaFieldsUpdated,
-            collection_instances_created: collectionInstancesCreated,
+            collection_properties_updated: collectionPropertiesUpdated,
             message: "✅ CONSOLIDATED EXTRACTION COMPLETE - Validation data stored directly in field records"
           });
           
