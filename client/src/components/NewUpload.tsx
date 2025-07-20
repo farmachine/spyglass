@@ -297,6 +297,7 @@ export default function NewUpload({ project }: NewUploadProps) {
       };
       
       console.log(`🚀 CONSOLIDATED_FRONTEND: Extraction payload:`, extractionPayload);
+      console.log(`🚀 CONSOLIDATED_FRONTEND: Making request to /api/sessions/${session.id}/extract-consolidated`);
       
       const extractionPromise = apiRequest(`/api/sessions/${session.id}/extract-consolidated`, {
         method: 'POST',
@@ -304,6 +305,12 @@ export default function NewUpload({ project }: NewUploadProps) {
         headers: {
           'Content-Type': 'application/json'
         }
+      }).then(result => {
+        console.log(`🚀 CONSOLIDATED_FRONTEND: API request successful:`, result);
+        return result;
+      }).catch(error => {
+        console.error(`🚀 CONSOLIDATED_FRONTEND: API request failed:`, error);
+        throw error;
       });
 
       // Simulate extraction progress
