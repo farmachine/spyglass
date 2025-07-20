@@ -220,7 +220,7 @@ export default function ExtractionRuleDialog({
                   <FormLabel>Rule Content *</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Example: 'Dates must be in YYYY-MM-DD format. If date is written as MM/DD/YYYY, convert it to the standard format. Reject invalid dates and flag for manual review.'"
+                      placeholder="Example: 'Company names containing regulated terms (Inc., Corp., LLC) must be verified against regulatory databases. Flag entities in restricted jurisdictions for compliance review. Require manual approval for high-risk classifications.'"
                       className="min-h-[120px]"
                       {...field}
                     />
