@@ -1121,27 +1121,22 @@ Thank you for your assistance.`;
         {/* Main Content */}
         <div className="flex-1 p-8 overflow-x-hidden">
           <div className="max-w-4xl mx-auto w-full">
-            {/* Project Header - Match AllData Style */}
+            {/* Project Header - Exact Match to AllData */}
             <div className="mb-8">
-              <div className="flex items-center gap-3 mb-1">
+              <h2 className="text-2xl font-semibold text-gray-900">{project.mainObjectName || "Session"} Extraction Sessions</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                View extracted data and manage all extraction sessions for this project
+              </p>
+            </div>
+
+            {/* Session Review Header */}
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-4">
                 <Link href={`/projects/${projectId}?tab=all-data`}>
                   <Button variant="ghost" size="sm" className="flex items-center gap-2">
                     <ArrowLeft className="h-4 w-4" />
                   </Button>
                 </Link>
-                <FileText className="h-6 w-6 text-primary" />
-                <h2 className="text-2xl font-semibold text-gray-900">{project.name}</h2>
-              </div>
-              <div className="ml-16">
-                <p className="text-sm text-gray-600">
-                  {project.description || "Data extraction project"}
-                </p>
-              </div>
-            </div>
-
-            {/* Session Header - Match AllData Header Style */}
-            <div className="flex items-center justify-between mb-8">
-              <div>
                 <h3 className="text-xl font-bold text-gray-900">{session?.sessionName}</h3>
               </div>
               
