@@ -417,7 +417,7 @@ export default function DefineData({ project }: DefineDataProps) {
       </div>
 
       {/* Main Object Name Card */}
-      <Card className="mb-6">
+      <Card className="mb-4">
         <CardContent className="pt-6">
           <div className="flex items-center gap-4">
             <div className="flex-1">
