@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -581,6 +581,10 @@ export default function NewUpload({ project }: NewUploadProps) {
       {/* Processing Dialog */}
       <Dialog open={showProcessingDialog} modal={true}>
         <DialogContent className="sm:max-w-md" onEscapeKeyDown={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
+          <DialogHeader className="sr-only">
+            <DialogTitle>Document Processing</DialogTitle>
+            <DialogDescription>Processing your documents through multiple stages</DialogDescription>
+          </DialogHeader>
           <div className="flex flex-col items-center justify-center p-6">
             <div className="w-16 h-16 mb-6 relative">
               <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-100 border-t-blue-600"></div>

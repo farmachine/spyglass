@@ -227,7 +227,6 @@ export default function SessionView() {
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
   const [hasInitializedCollapsed, setHasInitializedCollapsed] = useState(false);
   const [hasRunAutoValidation, setHasRunAutoValidation] = useState(false);
-  const [showValidationPopup, setShowValidationPopup] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -350,10 +349,9 @@ export default function SessionView() {
     }
   });
 
-  // Batch validation mutation for applying extraction rules post-extraction
+  // Batch validation mutation for applying extraction rules post-extraction (silent background operation)
   const batchValidationMutation = useMutation({
     mutationFn: async () => {
-      setShowValidationPopup(true);
       return apiRequest(`/api/sessions/${sessionId}/batch-validate`, {
         method: 'POST'
       });
@@ -363,18 +361,14 @@ export default function SessionView() {
       await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
       await queryClient.invalidateQueries({ queryKey: ['/api/validations/project', projectId] });
       
-      setShowValidationPopup(false);
-      toast({
-        title: "Validation rules applied",
-        description: `Processing complete: ${result.fields_processed} fields validated with confidence adjustments.`,
-      });
+      // Silent success - no popup or toast since validation was handled in processing dialog
+      console.log(`✅ Batch validation completed: ${result.fields_processed} fields processed`);
     },
     onError: (error: any) => {
       console.error('Batch validation failed:', error);
-      setShowValidationPopup(false);
       toast({
-        title: "Batch validation failed",
-        description: error?.message || "An error occurred during batch validation.",
+        title: "Validation processing error",
+        description: "Some validation rules may not have been applied correctly.",
         variant: "destructive"
       });
     }
@@ -1568,23 +1562,7 @@ Thank you for your assistance.`;
         </DialogContent>
       </Dialog>
 
-      {/* Validation Progress Popup */}
-      <Dialog open={showValidationPopup} onOpenChange={() => {}}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <RotateCcw className="h-5 w-5 text-blue-600 animate-spin" />
-              Running Validation Rules
-            </DialogTitle>
-            <DialogDescription>
-              Applying extraction rules and calculating confidence scores for extracted fields...
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          </div>
-        </DialogContent>
-      </Dialog>
+
     </div>
   );
 }
