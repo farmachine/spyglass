@@ -50,12 +50,12 @@ export default function CollectionCard({
   const [isExpanded, setIsExpanded] = useState(safeProperties.length === 0);
   
   // Update collapse state when properties are first added to an empty list
-  useEffect(() => {
-    if (safeProperties.length === 1 && isExpanded) {
-      // When the first property is added to an empty list, collapse it
-      setIsExpanded(false);
-    }
-  }, [safeProperties.length]);
+  // useEffect(() => {
+  //   if (safeProperties.length === 1 && isExpanded) {
+  //     // When the first property is added to an empty list, collapse it
+  //     setIsExpanded(false);
+  //   }
+  // }, [safeProperties.length]);
 
   // Create a mutation that doesn't invalidate any queries for reordering
   const updatePropertyForReorder = useMutation({
