@@ -472,7 +472,7 @@ export default function DefineData({ project }: DefineDataProps) {
       {/* Unified Data Structure Card */}
       <Card>
         <CardContent className="pt-6">
-          <div className="mb-4">
+          <div className="mb-2">
             <Label className="text-sm font-medium">
               Define the fields and lists to extract from your {project.mainObjectName || "Session"} documents
             </Label>
