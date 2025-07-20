@@ -24,7 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCreateExtractionSession } from "@/hooks/useExtractionSessions";
 import { useProcessExtraction } from "@/hooks/useAIExtraction";
 import { useProjectSchemaFields, useObjectCollections } from "@/hooks/useSchema";
-import { useExtractionRules } from "@/hooks/useKnowledge";
+import { useExtractionRules, useKnowledgeDocuments } from "@/hooks/useKnowledge";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -73,9 +73,11 @@ export default function NewUpload({ project }: NewUploadProps) {
   const { toast } = useToast();
   
   // Fetch schema data for validation
-  const { data: schemaFields = [] } = useProjectSchemaFields(project.id);
-  const { data: collections = [] } = useObjectCollections(project.id);
-  const { data: extractionRules = [] } = useExtractionRules(project.id);
+  const projectIdNumber = typeof project.id === 'string' ? parseInt(project.id, 10) : project.id;
+  const { data: schemaFields = [] } = useProjectSchemaFields(projectIdNumber);
+  const { data: collections = [] } = useObjectCollections(projectIdNumber);
+  const { data: extractionRules = [] } = useExtractionRules(projectIdNumber);
+  const { data: knowledgeDocuments = [] } = useKnowledgeDocuments(projectIdNumber);
   
 
 
@@ -274,7 +276,7 @@ export default function NewUpload({ project }: NewUploadProps) {
       // Enhance collections with their properties
       console.log(`🚀 CONSOLIDATED_FRONTEND: Starting collections enhancement for ${collections?.length || 0} collections`);
       const collectionsWithProperties = await Promise.all(
-        (collections || []).map(async (collection) => {
+        (collections || []).map(async (collection: any) => {
           try {
             console.log(`🚀 CONSOLIDATED_FRONTEND: Fetching properties for collection ${collection.id}`);
             const properties = await apiRequest(`/api/collections/${collection.id}/properties`);
@@ -326,7 +328,7 @@ export default function NewUpload({ project }: NewUploadProps) {
           });
           console.log(`🚀 CONSOLIDATED_FRONTEND: API request successful:`, result);
           return result;
-        } catch (error) {
+        } catch (error: any) {
           console.error(`🚀 CONSOLIDATED_FRONTEND: API request failed with error:`, error);
           console.error(`🚀 CONSOLIDATED_FRONTEND: Error details:`, {
             message: error?.message || 'No message',
