@@ -148,11 +148,12 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
     
     // Welcome flow: redirect to define tab ONLY if no data items exist AND user hasn't interacted
     if (!hasDataItems && !hasUserInteracted && !initialTabSetRef.current) {
-      console.log(`Project ${project.id} - no data items, starting welcome flow`);
+      console.log(`Project ${project.id} - no data items, starting welcome flow - fields: ${project.schemaFields.length}, collections: ${project.collections.length}`);
       setActiveTab('define');
       initialTabSetRef.current = true;
     } else if (!activeTab && !initialTabSetRef.current) {
       // Default to upload tab if welcome flow doesn't apply
+      console.log(`Project ${project.id} - defaulting to upload tab - hasDataItems: ${hasDataItems}, hasUserInteracted: ${hasUserInteracted}`);
       setActiveTab('upload');
       initialTabSetRef.current = true;
     }

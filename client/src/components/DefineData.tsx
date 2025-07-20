@@ -486,6 +486,29 @@ export default function DefineData({ project }: DefineDataProps) {
             </div>
           ) : allDataItems.length === 0 ? (
             <div className="text-center py-8">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="bg-blue-100 p-3 rounded-full">
+                    <Settings className="h-8 w-8 text-blue-600" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-semibold text-blue-900 mb-2">
+                  Welcome! Let's define your data structure
+                </h3>
+                <p className="text-blue-700 mb-4">
+                  To start extracting data from your {project.mainObjectName || "Session"} documents, you'll need to define what information you want to capture.
+                </p>
+                <div className="text-left max-w-md mx-auto space-y-2 text-sm text-blue-600">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                    <span>Add fields for single pieces of information (like "Company Name" or "Date")</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                    <span>Create lists for multiple similar items (like "Parties" or "Line Items")</span>
+                  </div>
+                </div>
+              </div>
               <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
                 No data structure defined
