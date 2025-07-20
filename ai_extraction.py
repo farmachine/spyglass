@@ -82,22 +82,43 @@ def generate_human_friendly_reasoning(field_name: str, extracted_value: Any, app
     
     return reasoning
 
-def ai_validate_field(field_name: str, extracted_value: Any, extraction_rules: List[Dict[str, Any]] = None, knowledge_documents: List[Dict[str, Any]] = None) -> tuple[int, List[Dict[str, Any]], str]:
+def ai_validate_batch(field_validations: List[Dict[str, Any]], extraction_rules: List[Dict[str, Any]] = None, knowledge_documents: List[Dict[str, Any]] = None) -> Dict[str, tuple[int, List[Dict[str, Any]], str]]:
     """
-    Use AI to validate field values against extraction rules and knowledge documents.
-    Returns confidence percentage, applied rules, and AI reasoning.
-    """
-    if extracted_value is None or extracted_value == "" or extracted_value == "null":
-        return 0, [], "No value extracted"
+    Use AI to validate multiple field values at once against extraction rules and knowledge documents.
+    Much more efficient than individual field validation.
     
-    logging.info(f"AI_VALIDATE: Validating field '{field_name}' with value '{extracted_value}'")
+    Args:
+        field_validations: List of dicts with 'field_name' and 'extracted_value' keys
+        extraction_rules: List of extraction rules to apply
+        knowledge_documents: List of knowledge documents to check
+    
+    Returns:
+        Dict mapping field_name to (confidence, applied_rules, reasoning) tuples
+    """
+    if not field_validations:
+        return {}
+    
+    # Filter out empty/null values
+    valid_fields = [fv for fv in field_validations if fv.get('extracted_value') not in [None, "", "null"]]
+    
+    if not valid_fields:
+        # Return empty validation for all fields
+        return {fv['field_name']: (0, [], "No value extracted") for fv in field_validations}
+    
+    logging.info(f"AI_VALIDATE_BATCH: Validating {len(valid_fields)} fields at once")
     
     try:
         # Check for API key
         api_key = os.environ.get("GEMINI_API_KEY")
         if not api_key:
             logging.warning("GEMINI_API_KEY not found, falling back to rule-based validation")
-            return calculate_knowledge_based_confidence_fallback(field_name, extracted_value, 95.0, extraction_rules, knowledge_documents)
+            results = {}
+            for fv in field_validations:
+                conf, rules, reason = calculate_knowledge_based_confidence_fallback(
+                    fv['field_name'], fv['extracted_value'], 95.0, extraction_rules, knowledge_documents
+                )
+                results[fv['field_name']] = (conf, rules, reason)
+            return results
         
         # Import Google AI modules
         from google import genai
@@ -106,90 +127,80 @@ def ai_validate_field(field_name: str, extracted_value: Any, extraction_rules: L
         
         client = genai.Client(api_key=api_key)
         
-        # Build validation context
-        validation_context = {
-            "field_name": field_name,
-            "extracted_value": str(extracted_value),
-            "field_type": field_name.split('.')[-1] if '.' in field_name else field_name
-        }
+        # Build fields summary for AI
+        fields_summary = "FIELDS TO VALIDATE:\n"
+        for fv in valid_fields:
+            fields_summary += f"- Field: {fv['field_name']} = '{fv['extracted_value']}'\n"
         
         # Add extraction rules context
         rules_context = ""
         if extraction_rules:
-            applicable_rules = []
+            rules_context = "EXTRACTION RULES:\n"
             for rule in extraction_rules:
                 if rule.get("isActive", True):
-                    target_field = rule.get("targetField", "")
-                    # Check if rule applies to current field
-                    target_fields = [f.strip() for f in target_field.split(',')]
-                    for target in target_fields:
-                        normalized_target = target.replace(' --> ', '.').replace('-->', '.')
-                        if (field_name == normalized_target or 
-                            field_name.startswith(normalized_target + '[') or
-                            normalized_target in field_name):
-                            applicable_rules.append(rule)
-                            break
-            
-            if applicable_rules:
-                rules_context = "EXTRACTION RULES TO APPLY:\n"
-                for rule in applicable_rules:
                     rules_context += f"- Rule: {rule.get('ruleName', 'Unknown')}\n"
-                    rules_context += f"  Content: {rule.get('ruleContent', '')}\n"
-                    rules_context += f"  Target: {rule.get('targetField', '')}\n\n"
+                    rules_context += f"  Target Fields: {rule.get('targetField', '')}\n"
+                    rules_context += f"  Content: {rule.get('ruleContent', '')}\n\n"
         
         # Add knowledge documents context
         knowledge_context = ""
         if knowledge_documents:
-            knowledge_context = "KNOWLEDGE DOCUMENTS FOR REFERENCE:\n"
+            knowledge_context = "KNOWLEDGE DOCUMENTS:\n"
             for doc in knowledge_documents:
                 doc_name = doc.get('displayName', doc.get('fileName', 'Unknown'))
                 content = doc.get('content', '')
                 if content:
-                    # Include relevant excerpts (first 1000 chars)
+                    # Include relevant excerpts (first 800 chars to fit more context)
                     knowledge_context += f"- Document: {doc_name}\n"
-                    knowledge_context += f"  Content excerpt: {content[:1000]}...\n\n"
+                    knowledge_context += f"  Content: {content[:800]}...\n\n"
         
-        # Create AI validation prompt
-        validation_prompt = f"""You are an intelligent validation system for document data extraction. Your task is to validate extracted field values against business rules and policy documents.
+        # Create AI batch validation prompt
+        validation_prompt = f"""You are an intelligent validation system for document data extraction. Validate ALL the extracted field values against business rules and policy documents in a single analysis.
 
-FIELD TO VALIDATE:
-- Field Name: {field_name}
-- Extracted Value: {extracted_value}
+{fields_summary}
 
 {rules_context}
 
 {knowledge_context}
 
 VALIDATION TASK:
-1. Analyze the extracted value against the extraction rules and knowledge documents
-2. Determine if any conflicts exist or special handling is required
-3. Calculate an appropriate confidence percentage (1-100%)
-4. Provide a brief explanation of your reasoning
+For each field, analyze the extracted value against the rules and knowledge documents, then:
+1. Determine if any conflicts exist or special handling is required
+2. Calculate an appropriate confidence percentage (1-100%)
+3. Identify any applicable rules
+4. Provide brief reasoning
 
 CONFIDENCE GUIDELINES:
-- 95-100%: High confidence, no conflicts, value meets all requirements
+- 95-100%: High confidence, no conflicts, meets all requirements
 - 80-94%: Good confidence, minor concerns or formatting issues
 - 50-79%: Medium confidence, some rule violations or policy conflicts
 - 25-49%: Low confidence, significant issues or conflicts
-- 1-24%: Very low confidence, major problems or policy violations
-- 50%: Standard confidence for knowledge document policy conflicts
+- 1-24%: Very low confidence, major problems
+- 50%: Standard for knowledge document policy conflicts
 
 RESPONSE FORMAT:
-Return a JSON object with exactly this structure:
+Return a JSON object with field names as keys and validation results as values:
 {{
-    "confidence_percentage": <integer 1-100>,
-    "applied_rules": [
-        {{
-            "name": "<rule or policy name>",
-            "action": "<description of what was applied or found>"
-        }}
-    ],
-    "reasoning": "<brief explanation of validation decision>"
+    "field_name_1": {{
+        "confidence_percentage": <integer 1-100>,
+        "applied_rules": [
+            {{
+                "name": "<rule or policy name>",
+                "action": "<description of what was applied>"
+            }}
+        ],
+        "reasoning": "<brief explanation>"
+    }},
+    "field_name_2": {{
+        "confidence_percentage": <integer 1-100>,
+        "applied_rules": [],
+        "reasoning": "<brief explanation>"
+    }}
 }}
 
-Important: Be precise and consider context. For example, if a company name contains 'Inc.' and there's a rule about corporate entity ambiguity, apply the appropriate confidence level. If a country value conflicts with jurisdiction requirements in policy documents, flag it appropriately."""
+Important: Process all fields efficiently. Apply rules like 'Inc.' entity ambiguity and jurisdiction conflicts from knowledge documents consistently."""
 
-        logging.info(f"AI_VALIDATE: Sending validation request to AI for field '{field_name}'")
+        logging.info(f"AI_VALIDATE_BATCH: Sending batch validation request for {len(valid_fields)} fields")
         
         # Make AI request
         response = client.models.generate_content(
@@ -197,28 +208,53 @@ Important: Be precise and consider context. For example, if a company name conta
             contents=[types.Content(role="user", parts=[types.Part(text=validation_prompt)])],
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                max_output_tokens=1024,
+                max_output_tokens=2048,  # More tokens for batch processing
                 temperature=0.1  # Low temperature for consistent validation
             )
         )
         
         if response.text:
-            result = json.loads(response.text)
-            confidence = result.get("confidence_percentage", 95)
-            applied_rules = result.get("applied_rules", [])
-            reasoning = result.get("reasoning", "AI validation completed")
+            batch_results = json.loads(response.text)
             
-            logging.info(f"AI_VALIDATE: Field '{field_name}' validated with {confidence}% confidence")
-            logging.info(f"AI_VALIDATE: Applied rules: {applied_rules}")
+            # Process results and build return dictionary
+            results = {}
+            for fv in field_validations:
+                field_name = fv['field_name']
+                
+                if field_name in batch_results:
+                    result = batch_results[field_name]
+                    confidence = result.get("confidence_percentage", 95)
+                    applied_rules = result.get("applied_rules", [])
+                    reasoning = result.get("reasoning", "AI validation completed")
+                    results[field_name] = (confidence, applied_rules, reasoning)
+                elif fv['extracted_value'] in [None, "", "null"]:
+                    results[field_name] = (0, [], "No value extracted")
+                else:
+                    # Fallback for fields not processed
+                    results[field_name] = (95, [], "AI validation completed")
             
-            return confidence, applied_rules, reasoning
+            logging.info(f"AI_VALIDATE_BATCH: Successfully validated {len(results)} fields")
+            return results
         else:
-            logging.warning("AI_VALIDATE: No response from AI, falling back to rule-based validation")
-            return calculate_knowledge_based_confidence_fallback(field_name, extracted_value, 95.0, extraction_rules, knowledge_documents)
+            logging.warning("AI_VALIDATE_BATCH: No response from AI, falling back to rule-based validation")
+            results = {}
+            for fv in field_validations:
+                conf, rules, reason = calculate_knowledge_based_confidence_fallback(
+                    fv['field_name'], fv['extracted_value'], 95.0, extraction_rules, knowledge_documents
+                )
+                results[fv['field_name']] = (conf, rules, reason)
+            return results
             
     except Exception as e:
-        logging.error(f"AI_VALIDATE: Error during AI validation: {e}")
-        return calculate_knowledge_based_confidence_fallback(field_name, extracted_value, 95.0, extraction_rules, knowledge_documents)
+        logging.error(f"AI_VALIDATE_BATCH: Error during batch validation: {e}")
+        # Fallback to individual rule-based validation
+        results = {}
+        for fv in field_validations:
+            conf, rules, reason = calculate_knowledge_based_confidence_fallback(
+                fv['field_name'], fv['extracted_value'], 95.0, extraction_rules, knowledge_documents
+            )
+            results[fv['field_name']] = (conf, rules, reason)
+        return results
 
 def calculate_knowledge_based_confidence_fallback(field_name: str, extracted_value: Any, base_confidence: float, extraction_rules: List[Dict[str, Any]] = None, knowledge_documents: List[Dict[str, Any]] = None) -> tuple[int, List[Dict[str, Any]], str]:
     """
@@ -682,15 +718,18 @@ def extract_data_from_document(
             logging.error(f"Full response text: {response_text}")
             raise Exception("Failed to parse AI response as JSON")
         
-        # Create field validations
+        # Create field validations using batch AI validation
         field_validations = []
         extracted_data = result_data if isinstance(result_data, dict) else {}
         
-        # Validate schema fields
+        # Collect all fields for batch validation
+        fields_to_validate = []
+        field_metadata = {}  # Store field metadata for later use
+        
+        # Collect schema fields
         if project_schema.get("schema_fields"):
             for field in project_schema["schema_fields"]:
                 try:
-                    # Add type checking for field
                     if not isinstance(field, dict):
                         logging.error(f"Field is not a dict: {type(field)} - {field}")
                         continue
@@ -699,45 +738,26 @@ def extract_data_from_document(
                     field_name = field.get("fieldName", "")
                     field_type = field.get("fieldType", "TEXT")
                     extracted_value = extracted_data.get(field_name)
-                except Exception as e:
-                    logging.error(f"Error processing schema field: {e}, field type: {type(field)}, field value: {field}")
-                    continue
-                
-                if extracted_value is not None and extracted_value != "":
-                    # Apply AI-powered validation with extraction rules and knowledge documents
-                    confidence, applied_rules, reasoning = ai_validate_field(
-                        field_name, extracted_value, extraction_rules, knowledge_documents
-                    )
                     
-                    # Use the field's specific auto verification confidence threshold
-                    auto_verification_threshold = field.get("autoVerificationConfidence", 80)
-                    status = "verified" if confidence >= auto_verification_threshold else "unverified"
-                else:
-                    confidence = 0
-                    status = "invalid"
-                    reasoning = f"No value found for {field_name} in document"
-                
-                validation = FieldValidationResult(
-                    field_id=field_id,
-                    field_name=field_name,
-                    field_type=field_type,
-                    extracted_value=extracted_value,
-                    original_extracted_value=extracted_value,  # Store original value for reverting
-                    original_confidence_score=confidence,  # Store original confidence
-                    original_ai_reasoning=reasoning,  # Store original reasoning
-                    validation_status=status,
-                    ai_reasoning=reasoning,
-                    confidence_score=confidence,
-                    document_source=file_name,
-                    document_sections=["Document Content"]
-                )
-                field_validations.append(validation)
+                    fields_to_validate.append({
+                        'field_name': field_name,
+                        'extracted_value': extracted_value
+                    })
+                    
+                    field_metadata[field_name] = {
+                        'field_id': field_id,
+                        'field_type': field_type,
+                        'auto_verification_threshold': field.get("autoVerificationConfidence", 80),
+                        'extracted_value': extracted_value
+                    }
+                except Exception as e:
+                    logging.error(f"Error processing schema field: {e}")
+                    continue
         
-        # Validate collections
+        # Collect collection fields
         if project_schema.get("collections"):
             for collection in project_schema["collections"]:
                 try:
-                    # Add type checking for collection
                     if not isinstance(collection, dict):
                         logging.error(f"Collection is not a dict: {type(collection)} - {collection}")
                         continue
@@ -745,39 +765,28 @@ def extract_data_from_document(
                     collection_name = collection.get('collectionName', collection.get('objectName', ''))
                     collection_data = extracted_data.get(collection_name, [])
                 except Exception as e:
-                    logging.error(f"Error processing collection: {e}, collection type: {type(collection)}, collection value: {collection}")
+                    logging.error(f"Error processing collection: {e}")
                     continue
                 
                 if isinstance(collection_data, list):
                     logging.info(f"📋 Processing collection {collection_name}: {len(collection_data)} items found")
                     for record_index, record in enumerate(collection_data):
-                        # Ensure record is a dictionary before processing
                         if not isinstance(record, dict):
-                            logging.warning(f"Record {record_index} in collection {collection_name} is not a dict: {type(record)} - {record}")
+                            logging.warning(f"Record {record_index} in collection {collection_name} is not a dict")
                             continue
                         
-                        logging.info(f"🔄 Processing item {record_index} in {collection_name}: {record}")
-                            
                         properties_data = collection.get("properties", [])
-                        logging.info(f"COLLECTION {collection_name} PROPERTIES DEBUG:")
-                        logging.info(f"  Type: {type(properties_data)}")
-                        logging.info(f"  Content: {properties_data}")
                         
                         # Handle case where properties might be a dict instead of list
                         if isinstance(properties_data, dict):
-                            logging.warning(f"Properties is a dict, not a list: {properties_data}")
-                            # Try to convert to list if it has numeric keys
                             if all(str(k).isdigit() for k in properties_data.keys()):
-                                properties_list = [properties_data[str(i)] for i in sorted(int(k) for k in properties_data.keys())]
-                                logging.info(f"Converted dict to list with {len(properties_list)} properties")
-                                properties_data = properties_list
+                                properties_data = [properties_data[str(i)] for i in sorted(int(k) for k in properties_data.keys())]
                             else:
                                 logging.error(f"Cannot convert properties dict with keys: {list(properties_data.keys())}")
                                 continue
                         
                         for prop in properties_data:
                             try:
-                                # Add type checking for property
                                 if not isinstance(prop, dict):
                                     logging.error(f"Property is not a dict: {type(prop)} - {prop}")
                                     continue
@@ -786,71 +795,81 @@ def extract_data_from_document(
                                 prop_name = prop.get("propertyName", "")
                                 prop_type = prop.get("propertyType", "TEXT")
                             except Exception as e:
-                                logging.error(f"Error processing property: {e}, prop type: {type(prop)}, prop value: {prop}")
+                                logging.error(f"Error processing property: {e}")
                                 continue
                             
-                            # Try multiple ways to find the extracted value (case-insensitive)
+                            # Find extracted value (case-insensitive)
                             extracted_value = None
                             if prop_name in record:
                                 extracted_value = record[prop_name]
                             elif prop_name.lower() in record:
                                 extracted_value = record[prop_name.lower()]
-                            elif len(prop_name) > 1:
-                                # Try camelCase version
-                                camel_case_name = prop_name[0].lower() + prop_name[1:]
-                                if camel_case_name in record:
-                                    extracted_value = record[camel_case_name]
-                            
-                            # Also check for common field name variations
-                            if extracted_value is None:
+                            else:
+                                # Try other variations
                                 for key, value in record.items():
                                     if key.lower() == prop_name.lower():
                                         extracted_value = value
                                         break
                             
-                            logging.info(f"🔍 Checking {collection_name}.{prop_name}[{record_index}]: found value '{extracted_value}' in record: {record}")
                             field_name_with_index = f"{collection_name}.{prop_name}[{record_index}]"
                             
-                            # CRITICAL: Create validation records for ALL fields, whether they have values or not
-                            # This follows the three-step process: Extract -> Save -> Validate ALL fields
+                            # Add to batch validation list
+                            fields_to_validate.append({
+                                'field_name': field_name_with_index,
+                                'extracted_value': extracted_value
+                            })
                             
-                            if extracted_value is not None and extracted_value != "" and extracted_value != "null":
-                                # Apply AI-powered validation with extraction rules and knowledge documents
-                                confidence, applied_rules, reasoning = ai_validate_field(
-                                    field_name_with_index, extracted_value, extraction_rules, knowledge_documents
-                                )
-                                
-                                # Use the property's specific auto verification confidence threshold
-                                auto_verification_threshold = prop.get("autoVerificationConfidence", 80)
-                                status = "verified" if confidence >= auto_verification_threshold else "unverified"
-                                
-                                logging.info(f"✅ Creating validation with EXTRACTED VALUE for {field_name_with_index}: '{extracted_value}' (confidence: {confidence}%)")
-                            else:
-                                # Field has no value - still create validation record
-                                confidence = 0
-                                status = "invalid"
-                                reasoning = f"No value extracted for {prop_name} in {collection_name} from document"
-                                extracted_value = None  # Ensure null values are stored as None
-                                
-                                logging.info(f"❌ Creating validation with NULL VALUE for {field_name_with_index}: null (status: invalid)")
-                            
-                            validation = FieldValidationResult(
-                                field_id=prop_id,
-                                field_name=field_name_with_index,
-                                field_type=prop_type,
-                                extracted_value=extracted_value,
-                                original_extracted_value=extracted_value,  # Store original value for reverting
-                                original_confidence_score=confidence,  # Store original confidence
-                                original_ai_reasoning=reasoning,  # Store original reasoning
-                                validation_status=status,
-                                ai_reasoning=reasoning,
-                                confidence_score=confidence,
-                                document_source=file_name,
-                                document_sections=["Document Content"],
-                                collection_name=collection_name,  # Add collection metadata
-                                record_index=record_index  # Add record index metadata
-                            )
-                            field_validations.append(validation)
+                            # Store metadata for later processing
+                            field_metadata[field_name_with_index] = {
+                                'field_id': prop_id,
+                                'field_type': prop_type,
+                                'auto_verification_threshold': prop.get("autoVerificationConfidence", 80),
+                                'extracted_value': extracted_value,
+                                'collection_name': collection_name,
+                                'record_index': record_index
+                            }
+        
+        # Perform batch AI validation for all fields at once
+        logging.info(f"BATCH_VALIDATION: Processing {len(fields_to_validate)} fields in single AI call")
+        validation_results = ai_validate_batch(fields_to_validate, extraction_rules, knowledge_documents)
+        
+        # Create validation records from batch results
+        for field_name, metadata in field_metadata.items():
+            if field_name in validation_results:
+                confidence, applied_rules, reasoning = validation_results[field_name]
+            else:
+                # Fallback for missing results
+                confidence = 0 if metadata['extracted_value'] in [None, "", "null"] else 95
+                applied_rules = []
+                reasoning = "No value extracted" if metadata['extracted_value'] in [None, "", "null"] else "AI validation completed"
+            
+            # Determine status based on confidence and threshold
+            extracted_value = metadata['extracted_value']
+            if extracted_value is not None and extracted_value != "" and extracted_value != "null":
+                auto_verification_threshold = metadata['auto_verification_threshold']
+                status = "verified" if confidence >= auto_verification_threshold else "unverified"
+            else:
+                status = "invalid"
+                extracted_value = None
+            
+            # Create validation record
+            validation = FieldValidationResult(
+                field_id=metadata['field_id'],
+                field_name=field_name,
+                field_type=metadata['field_type'],
+                extracted_value=extracted_value,
+                original_extracted_value=extracted_value,
+                original_confidence_score=confidence,
+                original_ai_reasoning=reasoning,
+                validation_status=status,
+                ai_reasoning=reasoning,
+                confidence_score=confidence,
+                document_source=file_name,
+                document_sections=["Document Content"],
+                collection_name=metadata.get('collection_name'),
+                record_index=metadata.get('record_index')
+            )
+            field_validations.append(validation)
                             
                             logging.info(f"🎯 VALIDATION CREATED: {field_name_with_index} | Value: {extracted_value} | Status: {status} | Confidence: {confidence}%")
         
