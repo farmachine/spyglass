@@ -26,6 +26,7 @@ import { useProjectSchemaFields, useObjectCollections } from "@/hooks/useSchema"
 import { useExtractionRules } from "@/hooks/useKnowledge";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import type { ProjectWithDetails } from "@shared/schema";
 
 const uploadFormSchema = z.object({
@@ -254,8 +255,7 @@ export default function NewUpload({ project }: NewUploadProps) {
       const collectionsWithProperties = await Promise.all(
         (collections || []).map(async (collection) => {
           try {
-            const response = await fetch(`/api/collections/${collection.id}/properties`);
-            const properties = await response.json();
+            const properties = await apiRequest(`/api/collections/${collection.id}/properties`);
             return { ...collection, properties };
           } catch (error) {
             console.error(`Failed to fetch properties for collection ${collection.id}:`, error);
