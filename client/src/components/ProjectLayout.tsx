@@ -136,18 +136,12 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       return;
     }
     
-    // Check if user has already interacted with the project
-    const hasInteracted = sessionStorage.getItem(`project-${project.id}-interacted`);
-    
-    // DISABLE ALL WELCOME FLOW LOGIC - let user choose their own tabs
-    if (hasInteracted) {
-      return;
-    }
-    
-    // Only set default tab on very first load without URL parameters
+    // COMPLETELY DISABLE WELCOME FLOW - Only set default tab on very first load
     if (!activeTab && !initialTabSetRef.current) {
       setActiveTab('upload');
       initialTabSetRef.current = true;
+      // Immediately mark as interacted to prevent any future redirects
+      sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
     }
   }, [project, canAccessConfigTabs, canAccessPublishing]);
 

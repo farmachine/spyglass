@@ -198,6 +198,9 @@ export default function NewUpload({ project }: NewUploadProps) {
     setIsProcessing(true);
 
     try {
+      // Mark that user has interacted with this project to prevent welcome flow redirects
+      sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
+      
       // Create extraction session
       const session = await createExtractionSession.mutateAsync({
         sessionName: data.sessionName,

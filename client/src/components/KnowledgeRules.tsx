@@ -46,6 +46,9 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
 
   const handleSaveKnowledgeDocument = async (data: any) => {
     try {
+      // Mark that user has interacted with this project to prevent welcome flow redirects
+      sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
+      
       if (editingDocument) {
         await updateKnowledgeDocument.mutateAsync({ id: editingDocument.id, ...data });
         toast({ title: "Document updated successfully" });
@@ -76,6 +79,9 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
 
   const handleSaveExtractionRule = async (data: any) => {
     try {
+      // Mark that user has interacted with this project to prevent welcome flow redirects
+      sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
+      
       if (editingRule) {
         await updateExtractionRule.mutateAsync({ id: editingRule.id, ...data });
         toast({ title: "Rule updated successfully" });
