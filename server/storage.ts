@@ -1939,7 +1939,10 @@ class PostgreSQLStorage implements IStorage {
     return result.rowCount > 0;
   }
   async getFieldValidations(sessionId: string): Promise<FieldValidation[]> { 
+    console.log(`DEBUG: Querying validations for session ${sessionId}`);
     const result = await this.db.select().from(fieldValidations).where(eq(fieldValidations.sessionId, sessionId));
+    console.log(`DEBUG: Raw query returned ${result.length} validations`);
+    console.log(`DEBUG: First few raw results:`, result.slice(0, 3).map(r => ({ fieldType: r.fieldType, recordIndex: r.recordIndex, extractedValue: r.extractedValue })));
     
     // Enhance results with field names
     const enhancedValidations = await Promise.all(result.map(async (validation) => {
