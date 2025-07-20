@@ -1027,11 +1027,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const existingValidations = await storage.getFieldValidations(sessionId);
           
           // Update field validations from the extraction results
-          if (result.processed_documents && result.processed_documents.length > 0) {
+          let validationsToProcess = [];
+          
+          // Process aggregated validations if available (multi-document sessions)
+          if (result.aggregated_extraction && result.aggregated_extraction.field_validations) {
+            validationsToProcess = result.aggregated_extraction.field_validations;
+            console.log(`Processing ${validationsToProcess.length} aggregated field validations`);
+          }
+          // Fall back to individual document validations for single-document sessions
+          else if (result.processed_documents && result.processed_documents.length > 0) {
             for (const doc of result.processed_documents) {
               const fieldValidations = doc.extraction_result?.field_validations || [];
               console.log(`Processing ${fieldValidations.length} field validations for document: ${doc.file_name}`);
-              for (const validation of fieldValidations) {
+              validationsToProcess.push(...fieldValidations);
+            }
+          }
+          
+          for (const validation of validationsToProcess) {
                 // Extract record index from field name if present
                 const fieldName = validation.field_name;
                 const recordIndexMatch = fieldName.match(/\[(\d+)\]$/);
@@ -1110,9 +1122,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     confidenceScore: validation.confidence_score
                   });
                 }
-              }
             }
-          }
           
           res.json(result);
         } catch (parseError: any) {
