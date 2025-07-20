@@ -23,6 +23,8 @@ class FieldValidationResult:
     confidence_score: int
     document_source: str
     document_sections: List[str]
+    collection_name: str = None  # Collection this field belongs to
+    record_index: int = None  # Index within the collection
 
 @dataclass
 class ExtractionResult:
@@ -570,7 +572,9 @@ def extract_data_from_document(
                                 ai_reasoning=reasoning,
                                 confidence_score=confidence,
                                 document_source=file_name,
-                                document_sections=["Document Content"]
+                                document_sections=["Document Content"],
+                                collection_name=collection_name,  # Add collection metadata
+                                record_index=record_index  # Add record index metadata
                             )
                             field_validations.append(validation)
         
@@ -650,7 +654,9 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
                             "ai_reasoning": fv.ai_reasoning,
                             "confidence_score": fv.confidence_score,
                             "document_source": fv.document_source,
-                            "document_sections": fv.document_sections
+                            "document_sections": fv.document_sections,
+                            "collection_name": fv.collection_name,
+                            "record_index": fv.record_index
                         }
                         for fv in extraction_result.field_validations
                     ]
