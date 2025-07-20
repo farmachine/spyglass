@@ -283,10 +283,10 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
 
 
   const navItems = [
-    { id: "upload" as const, label: `New ${project.mainObjectName || "Session"}`, icon: DropletIcon, disabled: !isSetupComplete },
-    { id: "data" as const, label: `All ${project.mainObjectName || "Session"}s`, icon: FlowIcon, disabled: !isSetupComplete },
+    { id: "upload" as const, label: `New ${project.mainObjectName || "Session"}`, icon: DropletIcon, disabled: false },
+    { id: "data" as const, label: `All ${project.mainObjectName || "Session"}s`, icon: FlowIcon, disabled: false },
     ...(canAccessConfigTabs ? [
-      { id: "knowledge" as const, label: "Knowledge/Rules", icon: TideIcon, disabled: !isSetupComplete },
+      { id: "knowledge" as const, label: "Knowledge/Rules", icon: TideIcon, disabled: false },
       { id: "define" as const, label: "Define Data", icon: StreamIcon, disabled: false },
     ] : []),
     ...(canAccessPublishing ? [

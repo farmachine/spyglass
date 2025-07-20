@@ -65,7 +65,8 @@ Preferred communication style: Simple, everyday language.
 - ✓ Collection properties now display in exact same order as configured in Define Data tab
 - ✓ Ensures consistent field ordering between configuration and review screens for better user experience
 - ✓ **WELCOME FLOW REDIRECT ISSUE COMPLETELY RESOLVED**: Fixed critical navigation problem where welcome flow logic redirected users to define data tab after actions
-- ✓ Completely disabled problematic welcome flow logic that interfered with user navigation after knowledge document uploads, extraction rule creation, and session creation
+- ✓ Removed tab disabling logic that was preventing navigation to Knowledge/Rules tab even when projects had data items
+- ✓ Fixed root cause: tabs were disabled based on isSetupComplete flag instead of checking actual project data (schema fields/collections)
 - ✓ Added comprehensive user interaction tracking to all key components (KnowledgeRules, NewUpload, ProjectLayout tab switching)
 - ✓ Enhanced sessionStorage tracking to mark projects as "interacted" immediately to prevent any future welcome flow interference
 - ✓ Users now stay on their chosen tabs after uploading knowledge documents, creating extraction rules, and uploading documents
