@@ -327,7 +327,18 @@ def calculate_knowledge_based_confidence_fallback(field_name: str, extracted_val
                         })
                         continue
     
-    return confidence_percentage, applied_rules, "Rule-based validation completed"
+    # Generate AI-style reasoning based on applied rules
+    if applied_rules:
+        if len(applied_rules) == 1:
+            rule = applied_rules[0]
+            reasoning = f"Our extraction rules indicate that {rule['action'].lower()}. This adjustment reflects policy-based validation requirements for {field_name}."
+        else:
+            rule_actions = [rule['action'].lower() for rule in applied_rules]
+            reasoning = f"Multiple extraction rules applied: {'; '.join(rule_actions)}. These adjustments ensure compliance with organizational validation policies."
+    else:
+        reasoning = f"Field validation completed with standard confidence scoring. No specific extraction rules apply to {field_name}."
+    
+    return confidence_percentage, applied_rules, reasoning
 
 def check_knowledge_document_conflicts(field_name: str, extracted_value: Any, knowledge_documents: List[Dict[str, Any]] = None) -> tuple[bool, List[str]]:
     """
