@@ -305,27 +305,6 @@ export default function KnowledgeDocumentDialog({
 
             <FormField
               control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>AI Guidance Description *</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Describe how this document should guide AI extraction. Example: 'This policy document contains standard formats for employee information, use it to understand proper data structure for personnel records.'"
-                      className="min-h-[120px]"
-                      {...field}
-                    />
-                  </FormControl>
-                  <p className="text-sm text-gray-500">
-                    Required. This description tells the AI how to use this document during extraction.
-                  </p>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="targetFields"
               render={({ field }) => (
                 <FormItem>
@@ -334,29 +313,43 @@ export default function KnowledgeDocumentDialog({
                     Select specific fields this document applies to. Leave empty to apply to all fields.
                   </FormDescription>
                   <div className="space-y-3">
-                    <Select
-                      onValueChange={(value) => {
-                        const currentFields = field.value || [];
-                        if (value && !currentFields.includes(value)) {
-                          field.onChange([...currentFields, value]);
-                        }
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select fields to target..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableFields.map((availableField) => (
-                          <SelectItem 
-                            key={availableField.value} 
-                            value={availableField.value}
-                            disabled={field.value?.includes(availableField.value)}
-                          >
-                            {availableField.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex gap-2">
+                      <Select
+                        onValueChange={(value) => {
+                          const currentFields = field.value || [];
+                          if (value && !currentFields.includes(value)) {
+                            field.onChange([...currentFields, value]);
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="Select fields to target..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableFields.map((availableField) => (
+                            <SelectItem 
+                              key={availableField.value} 
+                              value={availableField.value}
+                              disabled={field.value?.includes(availableField.value)}
+                            >
+                              {availableField.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      
+                      {field.value && field.value.length > 0 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => field.onChange([])}
+                          className="px-3"
+                        >
+                          Clear All
+                        </Button>
+                      )}
+                    </div>
                     
                     {field.value && field.value.length > 0 && (
                       <div className="flex flex-wrap gap-2">
@@ -378,6 +371,27 @@ export default function KnowledgeDocumentDialog({
                       </div>
                     )}
                   </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>AI Guidance Description *</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Describe how this document should guide AI extraction. Example: 'This policy document contains standard formats for employee information, use it to understand proper data structure for personnel records.'"
+                      className="min-h-[120px]"
+                      {...field}
+                    />
+                  </FormControl>
+                  <p className="text-sm text-gray-500">
+                    Required. This description tells the AI how to use this document during extraction.
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}
