@@ -104,8 +104,8 @@ def extract_data_points(document_text: str, project_schema: Dict[str, Any]) -> D
         
         client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
         
-        # Build extraction prompt based on schema
-        schema_fields = project_schema.get("fields", [])
+        # Build extraction prompt based on schema (fix key mismatch)
+        schema_fields = project_schema.get("schema_fields", [])
         collections = project_schema.get("collections", [])
         
         # Create field descriptions for AI
@@ -150,15 +150,37 @@ CONFIDENCE SCORING:
 - 50-79%: Data partially present or unclear
 - Below 50%: Uncertain or conflicting information
 
-Return structured JSON response with this exact structure:
-{{
-  "field_name_1": "extracted_value",
-  "field_name_2": "extracted_value", 
-  "collection_name_1": [
-    {{"property_1": "value", "property_2": "value"}},
-    {{"property_1": "value", "property_2": "value"}}
-  ]
-}}
+Return JSON response with this EXACT structure (use actual field names from schema):
+{{"""
+        
+        # Build exact JSON template with actual field names
+        if schema_fields:
+            for field in schema_fields:
+                field_name = field['fieldName']
+                extraction_prompt += f'  "{field_name}": null,\n'
+        
+        if collections:
+            for collection in collections:
+                collection_name = collection.get('collectionName', '')
+                extraction_prompt += f'  "{collection_name}": [\n'
+                extraction_prompt += '    {\n'
+                
+                properties = collection.get("properties", [])
+                for prop in properties:
+                    prop_name = prop.get('propertyName', '')
+                    if prop_name:
+                        extraction_prompt += f'      "{prop_name}": null,\n'
+                
+                extraction_prompt += '    }\n'
+                extraction_prompt += '  ],\n'
+        
+        extraction_prompt += """}}
+
+For NDA/Contract Documents - Party Extraction Guidelines:
+- Extract ALL party/company names from signature blocks, headers, and legal text
+- Extract complete addresses including street, city, state, country
+- Count total number of distinct parties/organizations mentioned
+- For each party, extract: Name, Address, Country
 
 Ensure all extracted values are genuine content from the document.
 IMPORTANT: Only return the JSON object, no additional text.
@@ -241,7 +263,7 @@ def create_validation_records(session_data: Dict[str, Any], processed_data: Dict
     validation_records = []
     
     # Process Schema Fields
-    schema_fields = project_schema.get("fields", [])
+    schema_fields = project_schema.get("schema_fields", [])
     for field in schema_fields:
         field_name = field.get("fieldName", "")
         processed_field = processed_data.get(field_name, {})
