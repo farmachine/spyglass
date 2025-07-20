@@ -249,7 +249,14 @@ export default function SessionView() {
 
   const { data: validations = [] } = useQuery<FieldValidation[]>({
     queryKey: ['/api/sessions', sessionId, 'validations'],
-    queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`)
+    queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`),
+    onSuccess: (data) => {
+      console.log(`Session ${sessionId} - Validations loaded:`, data.length);
+      if (data.length > 0) {
+        console.log('Sample validation:', data[0]);
+        console.log('All field names:', data.map(v => v.fieldName));
+      }
+    }
   });
 
   // Fetch project-level validations for statistics cards
@@ -1406,6 +1413,11 @@ Thank you for your assistance.`;
                           
                           const fieldName = `${collection.collectionName}.${property.propertyName}[${index}]`;
                           const validation = validations.find(v => v.fieldName === fieldName);
+                          
+                          // Debug logging for validation matching
+                          if (!validation && originalValue !== undefined && originalValue !== null) {
+                            console.log(`No validation found for ${fieldName}, available validations:`, validations.map(v => v.fieldName));
+                          }
                           
                           // Always show the property, even if no value is extracted
                           // Use validation's extractedValue (which includes manual edits), not the original extracted value
