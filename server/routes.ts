@@ -824,6 +824,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Dashboard Statistics
+  app.get("/api/dashboard/statistics", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      // Get all projects accessible to the user
+      const projects = await storage.getProjectsWithPublishedOrganizations(req.user!.id, req.user!.organizationId, req.user!.role);
+      
+      // Filter only active projects
+      const activeProjects = projects.filter(project => project.status !== "inactive");
+      
+      let totalSessions = 0;
+      let totalValidations = 0;
+      let verifiedValidations = 0;
+      
+      // Get session statistics for each accessible project
+      for (const project of activeProjects) {
+        const projectSessions = await storage.getExtractionSessions(project.id);
+        totalSessions += projectSessions.length;
+        
+        // Get validation statistics for each session
+        for (const session of projectSessions) {
+          const validations = await storage.getFieldValidations(session.id);
+          totalValidations += validations.length;
+          verifiedValidations += validations.filter(v => v.validationStatus === "verified").length;
+        }
+      }
+      
+      const unverifiedValidations = totalValidations - verifiedValidations;
+      
+      res.json({
+        totalProjects: activeProjects.length,
+        totalSessions,
+        totalValidations,
+        verifiedValidations,
+        unverifiedValidations
+      });
+    } catch (error) {
+      console.error("Dashboard statistics error:", error);
+      res.status(500).json({ message: "Failed to fetch dashboard statistics" });
+    }
+  });
+
   // Extraction Sessions
   app.get("/api/projects/:projectId/sessions", async (req, res) => {
     try {

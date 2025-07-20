@@ -1,4 +1,4 @@
-import { Plus, Settings, Search, LayoutDashboard, Shield } from "lucide-react";
+import { Plus, Settings, Search, LayoutDashboard, Shield, Database, AlertTriangle, CheckCircle2, FolderOpen } from "lucide-react";
 import { WaveIcon, DropletIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
 import { useProjects } from "@/hooks/useProjects";
+import { useDashboardStatistics } from "@/hooks/useDashboardStatistics";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
 import ProjectCard from "@/components/ProjectCard";
@@ -22,6 +23,7 @@ export default function Dashboard() {
   const [showDeactivated, setShowDeactivated] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { data: projects, isLoading, error } = useProjects();
+  const { data: statistics, isLoading: statisticsLoading } = useDashboardStatistics();
   const { user } = useAuth();
   const [, navigate] = useLocation();
 
@@ -197,11 +199,84 @@ export default function Dashboard() {
             </h1>
           </div>
           
-          {/* Page Title */}
+          {/* Page Title and Statistics */}
           <div className="py-2">
-            <div className="flex items-center space-x-3">
-              <LayoutDashboard className="h-8 w-8 text-primary" />
-              <h2 className="text-3xl font-bold">Dashboard</h2>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <LayoutDashboard className="h-8 w-8 text-primary" />
+                <h2 className="text-3xl font-bold">Dashboard</h2>
+              </div>
+              
+              {/* Statistics Cards */}
+              <div className="flex items-center space-x-4">
+                {statisticsLoading ? (
+                  <>
+                    <Card className="w-32 h-16">
+                      <CardContent className="p-3">
+                        <Skeleton className="h-3 w-16 mb-1" />
+                        <Skeleton className="h-6 w-8" />
+                      </CardContent>
+                    </Card>
+                    <Card className="w-32 h-16">
+                      <CardContent className="p-3">
+                        <Skeleton className="h-3 w-16 mb-1" />
+                        <Skeleton className="h-6 w-8" />
+                      </CardContent>
+                    </Card>
+                    <Card className="w-32 h-16">
+                      <CardContent className="p-3">
+                        <Skeleton className="h-3 w-16 mb-1" />
+                        <Skeleton className="h-6 w-8" />
+                      </CardContent>
+                    </Card>
+                    <Card className="w-32 h-16">
+                      <CardContent className="p-3">
+                        <Skeleton className="h-3 w-16 mb-1" />
+                        <Skeleton className="h-6 w-8" />
+                      </CardContent>
+                    </Card>
+                  </>
+                ) : statistics ? (
+                  <>
+                    <Card className="bg-blue-50 border-blue-200">
+                      <CardContent className="flex items-center p-3">
+                        <FolderOpen className="h-5 w-5 text-blue-600 mr-2" />
+                        <div>
+                          <p className="text-xs text-blue-600 font-medium">Total Projects</p>
+                          <p className="text-lg font-bold text-blue-800">{statistics.totalProjects}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-purple-50 border-purple-200">
+                      <CardContent className="flex items-center p-3">
+                        <Database className="h-5 w-5 text-purple-600 mr-2" />
+                        <div>
+                          <p className="text-xs text-purple-600 font-medium">Total NDAs</p>
+                          <p className="text-lg font-bold text-purple-800">{statistics.totalSessions}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-red-50 border-red-200">
+                      <CardContent className="flex items-center p-3">
+                        <AlertTriangle className="h-5 w-5 text-red-600 mr-2" />
+                        <div>
+                          <p className="text-xs text-red-600 font-medium">Unverified</p>
+                          <p className="text-lg font-bold text-red-800">{statistics.unverifiedValidations}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-green-50 border-green-200">
+                      <CardContent className="flex items-center p-3">
+                        <CheckCircle2 className="h-5 w-5 text-green-600 mr-2" />
+                        <div>
+                          <p className="text-xs text-green-600 font-medium">Verified</p>
+                          <p className="text-lg font-bold text-green-800">{statistics.verifiedValidations}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </>
+                ) : null}
+              </div>
             </div>
           </div>
           
