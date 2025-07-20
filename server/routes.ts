@@ -1767,7 +1767,7 @@ print(json.dumps(results))
               error: validationResults.error
             });
           }
-        } catch (parseError) {
+        } catch (parseError: any) {
           console.error(`BATCH_VALIDATION: Failed to parse Python output: ${parseError}`);
           console.error(`BATCH_VALIDATION: Raw output: ${pythonOutput}`);
           res.status(500).json({
@@ -1782,7 +1782,7 @@ print(json.dumps(results))
       python.stdin.write(JSON.stringify(sessionData));
       python.stdin.end();
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("BATCH_VALIDATION: API error:", error);
       res.status(500).json({ 
         message: "Failed to run batch validation", 
@@ -1862,7 +1862,7 @@ print(json.dumps(results))
             validation_records: results.validation_records,
             message: "✅ CONSOLIDATED APPROACH WORKING - Ready to implement real extraction flow"
           });
-        } catch (parseError) {
+        } catch (parseError: any) {
           console.error(`TEST_CONSOLIDATED: Failed to parse Python output: ${parseError}`);
           console.error(`TEST_CONSOLIDATED: Raw output: ${pythonOutput}`);
           res.status(500).json({
@@ -1877,7 +1877,7 @@ print(json.dumps(results))
       python.stdin.write(JSON.stringify(sessionData));
       python.stdin.end();
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("TEST_CONSOLIDATED: API error:", error);
       res.status(500).json({ 
         message: "Failed to run consolidated extraction test", 
@@ -1922,7 +1922,7 @@ print(json.dumps(results))
       // Build session data for Python extraction
       const sessionData = {
         session_id: sessionId,
-        files: filesData.map(file => ({
+        files: filesData.map((file: any) => ({
           name: file.name,
           content: file.content,
           type: file.type,
@@ -1973,11 +1973,11 @@ print(json.dumps(results))
       python.stdin.write(JSON.stringify(sessionData));
       python.stdin.end();
 
-      python.stdout.on('data', (data) => {
+      python.stdout.on('data', (data: any) => {
         pythonOutput += data.toString();
       });
 
-      python.stderr.on('data', (data) => {
+      python.stderr.on('data', (data: any) => {
         const errorData = data.toString();
         pythonError += errorData;
         console.log(`🚀 WORKING_EXTRACTION: Python stderr: ${errorData}`);
@@ -2010,7 +2010,7 @@ print(json.dumps(results))
           let collectionPropertiesUpdated = 0;
           
           // Update schema fields with validation data directly
-          const schemaFieldRecords = validationRecords.filter(record => record.record_type === 'schema_field');
+          const schemaFieldRecords = validationRecords.filter((record: any) => record.record_type === 'schema_field');
           for (const field of schemaFieldRecords) {
             await storage.updateProjectSchemaField(field.id, {
               sessionId: sessionId,
@@ -2027,7 +2027,7 @@ print(json.dumps(results))
           }
           
           // Update collection properties with validation data directly
-          const collectionPropertyRecords = validationRecords.filter(record => record.record_type === 'collection_property');
+          const collectionPropertyRecords = validationRecords.filter((record: any) => record.record_type === 'collection_property');
           for (const property of collectionPropertyRecords) {
             await storage.updateCollectionProperty(property.id, {
               sessionId: sessionId,
@@ -2060,7 +2060,7 @@ print(json.dumps(results))
             message: "✅ CONSOLIDATED EXTRACTION COMPLETE - Validation data stored directly in field records"
           });
           
-        } catch (parseError) {
+        } catch (parseError: any) {
           console.error(`🚀 CONSOLIDATED_EXTRACTION: Failed to parse results: ${parseError}`);
           console.error(`🚀 CONSOLIDATED_EXTRACTION: Raw output: ${pythonOutput}`);
           res.status(500).json({
@@ -2071,11 +2071,7 @@ print(json.dumps(results))
         }
       });
 
-      // Send session data to Python process
-      python.stdin.write(JSON.stringify(sessionData));
-      python.stdin.end();
-
-    } catch (error) {
+    } catch (error: any) {
       console.error("🚀 CONSOLIDATED_EXTRACTION: API error:", error);
       res.status(500).json({ 
         message: "Failed to run consolidated extraction", 

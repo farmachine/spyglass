@@ -75,7 +75,7 @@ export interface IStorage {
   // Project Schema Fields
   getProjectSchemaFields(projectId: string): Promise<ProjectSchemaField[]>;
   createProjectSchemaField(field: InsertProjectSchemaField): Promise<ProjectSchemaField>;
-  updateProjectSchemaField(id: number, field: Partial<InsertProjectSchemaField>): Promise<ProjectSchemaField | undefined>;
+  updateProjectSchemaField(id: string, field: Partial<InsertProjectSchemaField>): Promise<ProjectSchemaField | undefined>;
   updateProjectSchemaFieldValidation(id: string, validation: {
     sessionId: string;
     extractedValue: any;
@@ -87,7 +87,7 @@ export interface IStorage {
     originalAiReasoning: string;
     manuallyVerified: boolean;
   }): Promise<ProjectSchemaField | undefined>;
-  deleteProjectSchemaField(id: number): Promise<boolean>;
+  deleteProjectSchemaField(id: string): Promise<boolean>;
 
   // Object Collections
   getObjectCollections(projectId: string): Promise<(ObjectCollection & { properties: CollectionProperty[] })[]>;
@@ -137,8 +137,8 @@ export interface IStorage {
   // Extraction Rules
   getExtractionRules(projectId: string): Promise<ExtractionRule[]>;
   createExtractionRule(rule: InsertExtractionRule): Promise<ExtractionRule>;
-  updateExtractionRule(id: number, rule: Partial<InsertExtractionRule>): Promise<ExtractionRule | undefined>;
-  deleteExtractionRule(id: number): Promise<boolean>;
+  updateExtractionRule(id: string, rule: Partial<InsertExtractionRule>): Promise<ExtractionRule | undefined>;
+  deleteExtractionRule(id: string): Promise<boolean>;
 
   // Field Validations
   getFieldValidations(sessionId: string): Promise<FieldValidation[]>;
@@ -936,7 +936,7 @@ export class MemStorage implements IStorage {
   }
 
   // Object Collections
-  async getObjectCollections(projectId: number): Promise<(ObjectCollection & { properties: CollectionProperty[] })[]> {
+  async getObjectCollections(projectId: string): Promise<(ObjectCollection & { properties: CollectionProperty[] })[]> {
     const collections = Array.from(this.objectCollections.values())
       .filter(collection => collection.projectId === projectId)
       .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
@@ -949,8 +949,10 @@ export class MemStorage implements IStorage {
     }));
   }
 
-  async getObjectCollection(id: number): Promise<ObjectCollection | undefined> {
-    return this.objectCollections.get(id);
+  async getObjectCollection(id: string): Promise<ObjectCollection | undefined> {
+    const numericId = parseInt(id);
+    if (isNaN(numericId)) return undefined;
+    return this.objectCollections.get(numericId);
   }
 
   async createObjectCollection(insertCollection: InsertObjectCollection): Promise<ObjectCollection> {
@@ -1146,7 +1148,7 @@ export class MemStorage implements IStorage {
   }
 
   // Field Validations
-  async getFieldValidations(sessionId: number): Promise<FieldValidation[]> {
+  async getFieldValidations(sessionId: string): Promise<FieldValidation[]> {
     return Array.from(this.fieldValidations.values())
       .filter(validation => validation.sessionId === sessionId)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -1185,8 +1187,11 @@ export class MemStorage implements IStorage {
     return this.fieldValidations.delete(numId);
   }
 
-  async getExtractionSessionWithValidations(sessionId: number): Promise<ExtractionSessionWithValidation | undefined> {
-    const session = this.extractionSessions.get(sessionId);
+  async getExtractionSessionWithValidations(sessionId: string): Promise<ExtractionSessionWithValidation | undefined> {
+    const numericId = parseInt(sessionId);
+    if (isNaN(numericId)) return undefined;
+    
+    const session = this.extractionSessions.get(numericId);
     if (!session) return undefined;
 
     const fieldValidations = await this.getFieldValidations(sessionId);
@@ -1194,6 +1199,40 @@ export class MemStorage implements IStorage {
       ...session,
       fieldValidations
     };
+  }
+
+  // Project Publishing methods
+  async getProjectPublishing(projectId: string): Promise<ProjectPublishing[]> {
+    return Array.from(this.projectPublishing.values())
+      .filter(publishing => publishing.projectId === projectId);
+  }
+
+  async getProjectPublishedOrganizations(projectId: string): Promise<Organization[]> {
+    const publishings = await this.getProjectPublishing(projectId);
+    const orgIds = publishings.map(p => p.organizationId);
+    return Array.from(this.organizations.values())
+      .filter(org => orgIds.includes(org.id));
+  }
+
+  async publishProjectToOrganization(publishing: InsertProjectPublishing): Promise<ProjectPublishing> {
+    const id = this.currentPublishingId++;
+    const newPublishing: ProjectPublishing = {
+      ...publishing,
+      id: uuidv4(),
+      createdAt: new Date(),
+    };
+    this.projectPublishing.set(id, newPublishing);
+    return newPublishing;
+  }
+
+  async unpublishProjectFromOrganization(projectId: string, organizationId: string): Promise<boolean> {
+    const publishing = Array.from(this.projectPublishing.entries())
+      .find(([_, p]) => p.projectId === projectId && p.organizationId === organizationId);
+    
+    if (publishing) {
+      return this.projectPublishing.delete(publishing[0]);
+    }
+    return false;
   }
 }
 
