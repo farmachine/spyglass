@@ -76,6 +76,17 @@ export interface IStorage {
   getProjectSchemaFields(projectId: string): Promise<ProjectSchemaField[]>;
   createProjectSchemaField(field: InsertProjectSchemaField): Promise<ProjectSchemaField>;
   updateProjectSchemaField(id: number, field: Partial<InsertProjectSchemaField>): Promise<ProjectSchemaField | undefined>;
+  updateProjectSchemaFieldValidation(id: string, validation: {
+    sessionId: string;
+    extractedValue: any;
+    originalExtractedValue: any;
+    confidenceScore: number;
+    originalConfidenceScore: number;
+    validationStatus: string;
+    aiReasoning: string;
+    originalAiReasoning: string;
+    manuallyVerified: boolean;
+  }): Promise<ProjectSchemaField | undefined>;
   deleteProjectSchemaField(id: number): Promise<boolean>;
 
   // Object Collections
@@ -88,6 +99,26 @@ export interface IStorage {
   // Collection Properties
   getCollectionProperties(collectionId: string): Promise<CollectionProperty[]>;
   createCollectionProperty(property: InsertCollectionProperty): Promise<CollectionProperty>;
+  createCollectionPropertyInstance(property: {
+    id: string;
+    collectionId: string;
+    sessionId: string;
+    propertyName: string;
+    propertyType: string;
+    description: string | null;
+    autoVerificationConfidence: number;
+    orderIndex: number;
+    recordIndex: number;
+    extractedValue: any;
+    originalExtractedValue: any;
+    confidenceScore: number;
+    originalConfidenceScore: number;
+    validationStatus: string;
+    aiReasoning: string;
+    originalAiReasoning: string;
+    manuallyVerified: boolean;
+    collectionName: string;
+  }): Promise<CollectionProperty>;
   updateCollectionProperty(id: number, property: Partial<InsertCollectionProperty>): Promise<CollectionProperty | undefined>;
   deleteCollectionProperty(id: number): Promise<boolean>;
 
@@ -1764,6 +1795,25 @@ class PostgreSQLStorage implements IStorage {
     return result[0];
   }
 
+  async updateProjectSchemaFieldValidation(id: string, validation: {
+    sessionId: string;
+    extractedValue: any;
+    originalExtractedValue: any;
+    confidenceScore: number;
+    originalConfidenceScore: number;
+    validationStatus: string;
+    aiReasoning: string;
+    originalAiReasoning: string;
+    manuallyVerified: boolean;
+  }): Promise<ProjectSchemaField | undefined> {
+    const result = await this.db
+      .update(projectSchemaFields)
+      .set(validation)
+      .where(eq(projectSchemaFields.id, id))
+      .returning();
+    return result[0];
+  }
+
   async deleteProjectSchemaField(id: string): Promise<boolean> {
     const result = await this.db
       .delete(projectSchemaFields)
@@ -1831,6 +1881,30 @@ class PostgreSQLStorage implements IStorage {
     return result;
   }
   async createCollectionProperty(property: InsertCollectionProperty): Promise<CollectionProperty> { 
+    const result = await this.db.insert(collectionProperties).values(property).returning();
+    return result[0];
+  }
+
+  async createCollectionPropertyInstance(property: {
+    id: string;
+    collectionId: string;
+    sessionId: string;
+    propertyName: string;
+    propertyType: string;
+    description: string | null;
+    autoVerificationConfidence: number;
+    orderIndex: number;
+    recordIndex: number;
+    extractedValue: any;
+    originalExtractedValue: any;
+    confidenceScore: number;
+    originalConfidenceScore: number;
+    validationStatus: string;
+    aiReasoning: string;
+    originalAiReasoning: string;
+    manuallyVerified: boolean;
+    collectionName: string;
+  }): Promise<CollectionProperty> {
     const result = await this.db.insert(collectionProperties).values(property).returning();
     return result[0];
   }
