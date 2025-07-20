@@ -207,6 +207,23 @@ def check_knowledge_document_conflicts(field_name: str, extracted_value: Any, kn
     conflicting_sections = []
     extracted_str = str(extracted_value).lower().strip()
     
+    # Create variations for common terms that might appear in different forms
+    search_terms = [extracted_str]
+    
+    # Add country name variations for better conflict detection
+    country_variations = {
+        'usa': ['united states', 'u.s.', 'us ', 'america', 'american'],
+        'united states': ['usa', 'u.s.', 'us ', 'america', 'american'],
+        'u.s.': ['usa', 'united states', 'us ', 'america', 'american'],
+        'uk': ['united kingdom', 'britain', 'british', 'england'],
+        'united kingdom': ['uk', 'britain', 'british', 'england']
+    }
+    
+    if extracted_str in country_variations:
+        search_terms.extend(country_variations[extracted_str])
+    
+    logging.info(f"CONFLICT DEBUG: Searching for terms: {search_terms}")
+    
     # Search through knowledge documents for potential conflicts
     for doc in knowledge_documents:
         doc_name = doc.get('displayName', doc.get('fileName', 'Unknown Document'))
@@ -219,24 +236,33 @@ def check_knowledge_document_conflicts(field_name: str, extracted_value: Any, kn
         if isinstance(content, str) and content.strip():
             content_lower = content.lower()
             
-            # Generic conflict detection - look for any mention of the extracted value
+            # Generic conflict detection - look for any mention of the extracted value or its variations
             # in knowledge documents that suggests special handling, review, or caution
-            if extracted_str in content_lower:
+            matching_term = None
+            for term in search_terms:
+                if term in content_lower:
+                    matching_term = term
+                    break
+            
+            if matching_term:
+                logging.info(f"CONFLICT DEBUG: Found matching term '{matching_term}' in document '{doc_name}'")
+                
                 # Split content into sentences for section identification
                 sentences = content.split('.')
                 for i, sentence in enumerate(sentences):
                     sentence_lower = sentence.lower().strip()
                     
-                    # Check if this sentence mentions the extracted value and contains
+                    # Check if this sentence mentions the matching term and contains
                     # keywords that suggest conflict, special review, or reduced confidence
                     conflict_keywords = [
                         'review', 'manual', 'caution', 'require', 'flag', 'check', 
                         'verify', 'confirm', 'validate', 'compliance', 'policy',
-                        'restriction', 'limitation', 'special', 'enhanced', 'additional'
+                        'restriction', 'limitation', 'special', 'enhanced', 'additional',
+                        'jurisdiction', 'subject to', 'must include', 'applicable'
                     ]
                     
-                    if extracted_str in sentence_lower and any(keyword in sentence_lower for keyword in conflict_keywords):
-                        conflict_text = f"Knowledge document '{doc_name}' mentions special requirements for '{extracted_value}': {sentence.strip()}"
+                    if matching_term in sentence_lower and any(keyword in sentence_lower for keyword in conflict_keywords):
+                        conflict_text = f"Knowledge document '{doc_name}' mentions special requirements for '{extracted_value}' (matched as '{matching_term}'): {sentence.strip()}"
                         conflicting_sections.append(conflict_text)
                         logging.info(f"CONFLICT DETECTED: {conflict_text}")
                         break
