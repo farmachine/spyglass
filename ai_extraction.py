@@ -675,7 +675,10 @@ def extract_data_from_document(
                             logging.info(f"🔍 Checking {collection_name}.{prop_name}[{record_index}]: found value '{extracted_value}' in record: {record}")
                             field_name_with_index = f"{collection_name}.{prop_name}[{record_index}]"
                             
-                            if extracted_value is not None and extracted_value != "":
+                            # CRITICAL: Create validation records for ALL fields, whether they have values or not
+                            # This follows the three-step process: Extract -> Save -> Validate ALL fields
+                            
+                            if extracted_value is not None and extracted_value != "" and extracted_value != "null":
                                 # Apply knowledge-based confidence calculation with extraction rules
                                 confidence, applied_rules = calculate_knowledge_based_confidence(
                                     field_name_with_index, extracted_value, 95, extraction_rules, knowledge_documents
@@ -687,10 +690,16 @@ def extract_data_from_document(
                                 
                                 # Generate human-friendly reasoning  
                                 reasoning = generate_human_friendly_reasoning(field_name_with_index, extracted_value, applied_rules)
+                                
+                                logging.info(f"✅ Creating validation with EXTRACTED VALUE for {field_name_with_index}: '{extracted_value}' (confidence: {confidence}%)")
                             else:
+                                # Field has no value - still create validation record
                                 confidence = 0
                                 status = "invalid"
-                                reasoning = f"No value found for {prop_name} in {collection_name}"
+                                reasoning = f"No value extracted for {prop_name} in {collection_name} from document"
+                                extracted_value = None  # Ensure null values are stored as None
+                                
+                                logging.info(f"❌ Creating validation with NULL VALUE for {field_name_with_index}: null (status: invalid)")
                             
                             validation = FieldValidationResult(
                                 field_id=prop_id,
@@ -708,8 +717,9 @@ def extract_data_from_document(
                                 collection_name=collection_name,  # Add collection metadata
                                 record_index=record_index  # Add record index metadata
                             )
-                            logging.info(f"🔧 Created validation for {field_name_with_index} (record {record_index}): {extracted_value}")
                             field_validations.append(validation)
+                            
+                            logging.info(f"🎯 VALIDATION CREATED: {field_name_with_index} | Value: {extracted_value} | Status: {status} | Confidence: {confidence}%")
         
         return ExtractionResult(
             extracted_data=extracted_data,
