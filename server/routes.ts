@@ -1259,6 +1259,7 @@ except Exception as e:
           // Create validation records for ALL aggregated extracted data that doesn't already have validations
           if (result.aggregated_extraction && result.aggregated_extraction.extracted_data) {
             const extractedData = result.aggregated_extraction.extracted_data;
+            const session = await storage.getSession(sessionId);
             const project = await storage.getProject(session.projectId);
             const collections = await storage.getCollections(session.projectId);
             
