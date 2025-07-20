@@ -254,6 +254,15 @@ def extract_data_from_document(
     """Extract structured data from a document using AI"""
     
     logging.info("Starting AI data extraction")
+    logging.info(f"PROJECT SCHEMA DEBUG: Type: {type(project_schema)}")
+    logging.info(f"PROJECT SCHEMA DEBUG: Keys: {list(project_schema.keys()) if isinstance(project_schema, dict) else 'Not a dict'}")
+    if isinstance(project_schema, dict):
+        if "schema_fields" in project_schema:
+            logging.info(f"SCHEMA FIELDS DEBUG: Type: {type(project_schema['schema_fields'])}, Length: {len(project_schema['schema_fields']) if hasattr(project_schema['schema_fields'], '__len__') else 'No len'}")
+            if isinstance(project_schema['schema_fields'], list) and len(project_schema['schema_fields']) > 0:
+                logging.info(f"FIRST FIELD DEBUG: Type: {type(project_schema['schema_fields'][0])}, Value: {project_schema['schema_fields'][0]}")
+        if "collections" in project_schema:
+            logging.info(f"COLLECTIONS DEBUG: Type: {type(project_schema['collections'])}, Length: {len(project_schema['collections']) if hasattr(project_schema['collections'], '__len__') else 'No len'}")
     
     try:
         # Check for API key
@@ -519,10 +528,19 @@ def extract_data_from_document(
         # Validate schema fields
         if project_schema.get("schema_fields"):
             for field in project_schema["schema_fields"]:
-                field_id = str(field.get("id", "unknown"))
-                field_name = field.get("fieldName", "")
-                field_type = field.get("fieldType", "TEXT")
-                extracted_value = extracted_data.get(field_name)
+                try:
+                    # Add type checking for field
+                    if not isinstance(field, dict):
+                        logging.error(f"Field is not a dict: {type(field)} - {field}")
+                        continue
+                        
+                    field_id = str(field.get("id", "unknown"))
+                    field_name = field.get("fieldName", "")
+                    field_type = field.get("fieldType", "TEXT")
+                    extracted_value = extracted_data.get(field_name)
+                except Exception as e:
+                    logging.error(f"Error processing schema field: {e}, field type: {type(field)}, field value: {field}")
+                    continue
                 
                 if extracted_value is not None and extracted_value != "":
                     # Apply knowledge-based confidence calculation with extraction rules
@@ -560,8 +578,17 @@ def extract_data_from_document(
         # Validate collections
         if project_schema.get("collections"):
             for collection in project_schema["collections"]:
-                collection_name = collection.get('collectionName', collection.get('objectName', ''))
-                collection_data = extracted_data.get(collection_name, [])
+                try:
+                    # Add type checking for collection
+                    if not isinstance(collection, dict):
+                        logging.error(f"Collection is not a dict: {type(collection)} - {collection}")
+                        continue
+                        
+                    collection_name = collection.get('collectionName', collection.get('objectName', ''))
+                    collection_data = extracted_data.get(collection_name, [])
+                except Exception as e:
+                    logging.error(f"Error processing collection: {e}, collection type: {type(collection)}, collection value: {collection}")
+                    continue
                 
                 if isinstance(collection_data, list):
                     for record_index, record in enumerate(collection_data):
@@ -571,9 +598,18 @@ def extract_data_from_document(
                             continue
                             
                         for prop in collection.get("properties", []):
-                            prop_id = str(prop.get("id", "unknown"))
-                            prop_name = prop.get("propertyName", "")
-                            prop_type = prop.get("propertyType", "TEXT")
+                            try:
+                                # Add type checking for property
+                                if not isinstance(prop, dict):
+                                    logging.error(f"Property is not a dict: {type(prop)} - {prop}")
+                                    continue
+                                    
+                                prop_id = str(prop.get("id", "unknown"))
+                                prop_name = prop.get("propertyName", "")
+                                prop_type = prop.get("propertyType", "TEXT")
+                            except Exception as e:
+                                logging.error(f"Error processing property: {e}, prop type: {type(prop)}, prop value: {prop}")
+                                continue
                             
                             extracted_value = record.get(prop_name) if prop_name in record else None
                             field_name_with_index = f"{collection_name}.{prop_name}[{record_index}]"

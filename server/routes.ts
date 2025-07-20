@@ -1090,6 +1090,12 @@ except Exception as e:
         });
       }
       
+      // Debug project_data structure
+      console.log('DEBUG: Full project_data structure:', JSON.stringify(project_data, null, 2));
+      console.log('DEBUG: project_data keys:', Object.keys(project_data || {}));
+      console.log('DEBUG: schemaFields type:', typeof project_data?.schemaFields, 'length:', project_data?.schemaFields?.length);
+      console.log('DEBUG: collections type:', typeof project_data?.collections, 'length:', project_data?.collections?.length);
+      
       // Prepare data for Python script
       const extractionData = {
         session_id: sessionId,
