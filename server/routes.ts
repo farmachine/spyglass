@@ -1413,7 +1413,6 @@ except Exception as e:
       };
 
       // Call Python batch validation function
-      const { spawn } = require('child_process');
       const python = spawn('python3', ['-c', `
 import sys
 import json
