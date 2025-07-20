@@ -240,10 +240,10 @@ export default function Dashboard() {
                   <>
                     <Card className="bg-blue-50 border-blue-200">
                       <CardContent className="flex items-center p-3">
-                        <FileText className="h-5 w-5 text-blue-600 mr-2" />
+                        <FileText className="h-5 w-5 text-primary mr-2" />
                         <div>
-                          <p className="text-xs text-blue-600 font-medium">Projects</p>
-                          <p className="text-lg font-bold text-blue-600">{statistics.totalProjects}</p>
+                          <p className="text-xs text-primary font-medium">Projects</p>
+                          <p className="text-lg font-bold text-primary">{statistics.totalProjects}</p>
                         </div>
                       </CardContent>
                     </Card>
