@@ -186,21 +186,39 @@ Ensure all extracted values are genuine content from the document.
 IMPORTANT: Only return the JSON object, no additional text.
 """
         
+        # Add debugging for prompt
+        logging.info(f"🚀 AI Extraction Prompt Length: {len(extraction_prompt)} characters")
+        logging.info(f"🚀 Schema Fields: {[f['fieldName'] for f in schema_fields]}")
+        logging.info(f"🚀 Collections: {[c.get('collectionName', 'Unknown') for c in collections]}")
+        
         response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=extraction_prompt
         )
         
+        logging.info(f"🚀 AI Response received, text length: {len(response.text) if response.text else 0}")
+        
         if response.text:
-            extracted_data = json.loads(response.text)
-            logging.info(f"🤖 AI extracted data keys: {list(extracted_data.keys())}")
-            return extracted_data
+            # Log the raw response for debugging
+            logging.info(f"🚀 Raw AI Response: {response.text[:500]}...")
+            
+            try:
+                extracted_data = json.loads(response.text)
+                logging.info(f"🤖 AI extracted data keys: {list(extracted_data.keys())}")
+                logging.info(f"🤖 Extracted data: {extracted_data}")
+                return extracted_data
+            except json.JSONDecodeError as json_error:
+                logging.error(f"❌ JSON parsing failed: {json_error}")
+                logging.error(f"❌ Raw response: {response.text}")
+                return {}
         else:
             logging.error("❌ AI returned empty response")
             return {}
             
     except Exception as e:
         logging.error(f"❌ AI extraction failed: {e}")
+        import traceback
+        logging.error(f"❌ Full traceback: {traceback.format_exc()}")
         return {}
 
 def apply_validation_rules(extracted_data: Dict[str, Any], extraction_rules: List[Dict[str, Any]], knowledge_documents: List[Dict[str, Any]]) -> Dict[str, Any]:
