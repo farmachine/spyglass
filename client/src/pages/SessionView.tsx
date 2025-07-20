@@ -269,6 +269,7 @@ export default function SessionView() {
       if (data.length > 0) {
         console.log('Sample validation:', data[0]);
         console.log('All field names:', data.map(v => v.fieldName));
+        console.log('First few collection validations:', data.filter(v => v.fieldName.includes('[')).slice(0, 5));
       }
     }
   });
