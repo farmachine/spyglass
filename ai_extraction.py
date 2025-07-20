@@ -872,55 +872,16 @@ def extract_data_from_document(
                                 'record_index': record_index
                             }
         
-        # Skip batch validation during extraction - this will happen later after data is saved
-        logging.info(f"📋 INDIVIDUAL_EXTRACTION: Creating {len(field_metadata)} validation records with default confidence")
-        logging.info(f"📋 INDIVIDUAL_EXTRACTION: Batch validation will occur later after data is saved")
-        
-        # Create validation records with default confidence - batch validation will update these later
-        for field_name, metadata in field_metadata.items():
-            extracted_value = metadata['extracted_value']
-            
-            # Use default confidence during extraction - batch validation will update these later
-            if extracted_value is not None and extracted_value != "" and extracted_value != "null":
-                confidence = 95  # Default high confidence for extracted values
-                reasoning = "Value extracted from document"
-            else:
-                confidence = 0
-                reasoning = "No value extracted"
-            
-            # Determine status based on confidence and threshold
-            extracted_value = metadata['extracted_value']
-            if extracted_value is not None and extracted_value != "" and extracted_value != "null":
-                auto_verification_threshold = metadata['auto_verification_threshold']
-                status = "verified" if confidence >= auto_verification_threshold else "unverified"
-            else:
-                status = "invalid"
-                extracted_value = None
-            
-            # Create validation record
-            validation = FieldValidationResult(
-                field_id=metadata['field_id'],
-                field_name=field_name,
-                field_type=metadata['field_type'],
-                extracted_value=extracted_value,
-                original_extracted_value=extracted_value,
-                original_confidence_score=confidence,
-                original_ai_reasoning=reasoning,
-                validation_status=status,
-                ai_reasoning=reasoning,
-                confidence_score=confidence,
-                document_source=file_name,
-                document_sections=["Document Content"],
-                collection_name=metadata.get('collection_name'),
-                record_index=metadata.get('record_index')
-            )
-            field_validations.append(validation)
+        # PURE EXTRACTION: Do not create validation records during extraction phase
+        # Validation records will be created later during batch validation with proper confidence scores
+        logging.info(f"📋 PURE_EXTRACTION: Extraction complete for {len(field_metadata)} fields - NO validation processing during extraction")
+        logging.info(f"📋 PURE_EXTRACTION: Validation records will be created later during batch validation phase")
         
         return ExtractionResult(
             extracted_data=extracted_data,
             confidence_score=0.95,
             processing_notes="AI extraction completed successfully",
-            field_validations=field_validations
+            field_validations=[]  # Empty - validation records created later during batch validation
         )
         
     except Exception as e:
@@ -1078,19 +1039,20 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
             # Create validation record for schema field
             extracted_value = aggregated_data.get(field_name)
             
+            # CREATE INITIAL BLANK VALIDATION RECORDS - Show "No validation data" initially
             if extracted_value is not None and extracted_value != "":
-                # Fast extraction: use simple default confidence without any AI validation
-                confidence = 95
-                reasoning = "Value extracted from document"
-                auto_verification_threshold = field.get("autoVerificationConfidence", 80)
-                status = "verified" if confidence >= auto_verification_threshold else "unverified"
-                logging.info(f"📝 Creating schema field validation: {field_name} = '{extracted_value}'")
+                # Create blank validation record - batch validation will populate real data later
+                confidence = 0  # No confidence score initially (0 to avoid null issues)
+                reasoning = "No validation data"  # Clear initial state
+                status = "unverified"  # Always start unverified
+                extracted_value = extracted_value  # Keep extracted value
+                logging.info(f"📝 Creating BLANK schema field validation: {field_name} = '{extracted_value}' - batch validation will populate later")
             else:
                 confidence = 0
                 status = "invalid"
-                reasoning = f"No value found for {field_name}"
+                reasoning = "No validation data - no value found"
                 extracted_value = None
-                logging.info(f"📝 Creating schema field validation: {field_name} = null")
+                logging.info(f"📝 Creating BLANK schema field validation: {field_name} = null - batch validation will populate later")
             
             validation = FieldValidationResult(
                 field_id=field_id,
@@ -1180,21 +1142,19 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
                                     extracted_value = value
                                     break
                     
-                    # Create validation record
+                    # CREATE INITIAL BLANK VALIDATION RECORDS - Show "No validation data" initially
                     if extracted_value is not None and extracted_value != "" and extracted_value != "null":
-                        # For comprehensive validation, use default confidence since batch validation already processed during extraction
-                        confidence = 95
-                        applied_rules = []
-                        reasoning = "Value found in aggregated data"
-                        auto_verification_threshold = prop.get("autoVerificationConfidence", 80)
-                        status = "verified" if confidence >= auto_verification_threshold else "unverified"
-                        logging.info(f"📝 Creating collection validation: {field_name_with_index} = '{extracted_value}'")
+                        # Create blank validation record - batch validation will populate real data later
+                        confidence = 0  # No confidence score initially
+                        reasoning = "No validation data"  # Clear initial state
+                        status = "unverified"  # Always start unverified
+                        logging.info(f"📝 Creating BLANK collection validation: {field_name_with_index} = '{extracted_value}' - batch validation will populate later")
                     else:
                         confidence = 0
                         status = "invalid"
-                        reasoning = f"No value extracted for {prop_name} in {collection_name}"
+                        reasoning = "No validation data - no value found"
                         extracted_value = None
-                        logging.info(f"📝 Creating collection validation: {field_name_with_index} = null")
+                        logging.info(f"📝 Creating BLANK collection validation: {field_name_with_index} = null - batch validation will populate later")
                     
                     validation = FieldValidationResult(
                         field_id=prop_id,

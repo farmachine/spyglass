@@ -60,6 +60,7 @@ export default function NewUpload({ project }: NewUploadProps) {
   const [selectedFiles, setSelectedFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showExtractionLoading, setShowExtractionLoading] = useState(false);
   const [, setLocation] = useLocation();
   
   const createExtractionSession = useCreateExtractionSession(project.id);
@@ -280,16 +281,18 @@ export default function NewUpload({ project }: NewUploadProps) {
 
       // Verify extraction was successful before redirecting
       if (extractionResult && session?.id) {
+        // Show "Running extraction" loading screen
+        setShowExtractionLoading(true);
+        
         toast({
           title: "AI extraction completed",
-          description: `${selectedFiles.length} file(s) processed successfully. Redirecting to review page...`,
+          description: `${selectedFiles.length} file(s) processed successfully. Loading review page...`,
         });
 
-        // Redirect to session view for immediate data review  
-        // Use a longer delay to ensure extraction is fully complete
+        // Show extraction loading for 2 seconds then redirect
         setTimeout(() => {
           setLocation(`/projects/${project.id}/sessions/${session.id}`);
-        }, 1500);
+        }, 2000);
       } else {
         throw new Error("Extraction completed but session data is missing");
       }
@@ -308,7 +311,9 @@ export default function NewUpload({ project }: NewUploadProps) {
       
       // Don't redirect on error - keep user on upload tab
     } finally {
-      setIsProcessing(false);
+      if (!showExtractionLoading) {
+        setIsProcessing(false);
+      }
     }
   };
 
@@ -337,7 +342,22 @@ export default function NewUpload({ project }: NewUploadProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      {/* Running Extraction Loading Overlay */}
+      {showExtractionLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <div className="text-center">
+              <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Running extraction</h3>
+              <p className="text-gray-600">
+                AI is extracting data from your documents. This will take a moment...
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div>
         <h2 className="text-2xl font-semibold text-gray-900">Add New {project.mainObjectName || "Session"}</h2>
         <p className="text-gray-600 mt-1">
