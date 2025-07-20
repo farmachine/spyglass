@@ -11,6 +11,11 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 20, 2025**
+- ✓ **COLLECTION EXTRACTION COMPLETELY FIXED**: Resolved critical issue where collection items (Parties, etc.) were not being extracted from documents
+- ✓ Fixed Python collection processing logic to use raw extracted_data instead of processed_data for collection validation records
+- ✓ Successfully extracting 864 collection properties from 8-document upload with real company data (3M Company, Cavium Inc., Laboratory Corporation, etc.)
+- ✓ Complete address and country extraction working: "2315 N. First Street San Jose, California 95131", "USA"
+- ✓ Multi-document aggregation creating proper validation records for all extracted parties across document sets
 - ✓ **UPLOAD FUNCTIONALITY COMPLETELY RESTORED**: Fixed critical project ID truncation issue where UUID strings were being converted to numbers causing 500 errors
 - ✓ Updated all React hooks to accept string UUIDs instead of integer project IDs
 - ✓ Resolved TypeScript errors in NewUpload component preventing upload functionality
