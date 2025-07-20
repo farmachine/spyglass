@@ -271,7 +271,7 @@ def calculate_knowledge_based_confidence_fallback(field_name: str, extracted_val
     Fallback rule-based validation when AI is not available.
     """
     if extracted_value is None or extracted_value == "" or extracted_value == "null":
-        return 0, [], "No value extracted"
+        return 20, [], "Missing information - field was not found in document"
     
     # Check for knowledge document conflicts first
     has_conflict, conflicting_sections = check_knowledge_document_conflicts(field_name, extracted_value, knowledge_documents)
@@ -349,16 +349,11 @@ def calculate_knowledge_based_confidence_fallback(field_name: str, extracted_val
     
     display_field_name = get_display_name(field_name)
     
-    # Generate AI-style reasoning based on applied rules
+    # Generate intelligent AI-style reasoning 
     if applied_rules:
-        if len(applied_rules) == 1:
-            rule = applied_rules[0]
-            reasoning = f"Our extraction rules indicate that {rule['action'].lower()}. This adjustment reflects policy-based validation requirements for {display_field_name}."
-        else:
-            rule_actions = [rule['action'].lower() for rule in applied_rules]
-            reasoning = f"Multiple extraction rules applied: {'; '.join(rule_actions)}. These adjustments ensure compliance with organizational validation policies for {display_field_name}."
+        reasoning = generate_human_friendly_reasoning(field_name, extracted_value, applied_rules)
     else:
-        reasoning = f"Field validation completed with standard confidence scoring. No specific extraction rules apply to {display_field_name}."
+        reasoning = f"Extracted during AI processing"
     
     return confidence_percentage, applied_rules, reasoning
 
@@ -1039,20 +1034,21 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
             # Create validation record for schema field
             extracted_value = aggregated_data.get(field_name)
             
-            # CREATE INITIAL BLANK VALIDATION RECORDS - Show "No validation data" initially
-            if extracted_value is not None and extracted_value != "":
-                # Create blank validation record - batch validation will populate real data later
-                confidence = 0  # No confidence score initially (0 to avoid null issues)
-                reasoning = "No validation data"  # Clear initial state
-                status = "unverified"  # Always start unverified
+            # CREATE INITIAL VALIDATION RECORDS - Distinguish between extracted and missing
+            if extracted_value is not None and extracted_value != "" and extracted_value != "null":
+                # Has extracted value - batch validation will populate confidence/reasoning later
+                confidence = 95  # Initial high confidence for extracted values
+                reasoning = "Extracted during AI processing"
+                status = "unverified"
                 extracted_value = extracted_value  # Keep extracted value
                 logging.info(f"📝 Creating BLANK schema field validation: {field_name} = '{extracted_value}' - batch validation will populate later")
             else:
-                confidence = 0
+                # No extracted value - mark as missing/invalid  
+                confidence = 20  # Low confidence for missing values to show Missing Info badge
                 status = "invalid"
-                reasoning = "No validation data - no value found"
+                reasoning = "Missing information - field was not found in document"
                 extracted_value = None
-                logging.info(f"📝 Creating BLANK schema field validation: {field_name} = null - batch validation will populate later")
+                logging.info(f"📝 Creating MISSING schema field validation: {field_name} = null - missing from document")
             
             validation = FieldValidationResult(
                 field_id=field_id,
@@ -1142,19 +1138,20 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
                                     extracted_value = value
                                     break
                     
-                    # CREATE INITIAL BLANK VALIDATION RECORDS - Show "No validation data" initially
+                    # CREATE INITIAL VALIDATION RECORDS - Distinguish between extracted and missing
                     if extracted_value is not None and extracted_value != "" and extracted_value != "null":
-                        # Create blank validation record - batch validation will populate real data later
-                        confidence = 0  # No confidence score initially
-                        reasoning = "No validation data"  # Clear initial state
-                        status = "unverified"  # Always start unverified
-                        logging.info(f"📝 Creating BLANK collection validation: {field_name_with_index} = '{extracted_value}' - batch validation will populate later")
+                        # Has extracted value - batch validation will populate confidence/reasoning later
+                        confidence = 95  # Initial high confidence for extracted values
+                        reasoning = "Extracted during AI processing"
+                        status = "unverified"
+                        logging.info(f"📝 Creating EXTRACTED collection validation: {field_name_with_index} = '{extracted_value}' - batch validation will populate later")
                     else:
-                        confidence = 0
+                        # No extracted value - mark as missing/invalid
+                        confidence = 20  # Low confidence for missing values to show Missing Info badge
                         status = "invalid"
-                        reasoning = "No validation data - no value found"
+                        reasoning = "Missing information - field was not found in document"
                         extracted_value = None
-                        logging.info(f"📝 Creating BLANK collection validation: {field_name_with_index} = null - batch validation will populate later")
+                        logging.info(f"📝 Creating MISSING collection validation: {field_name_with_index} = null - missing from document")
                     
                     validation = FieldValidationResult(
                         field_id=prop_id,

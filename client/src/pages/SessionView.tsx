@@ -184,6 +184,15 @@ const ManualInputBadge = () => (
   </span>
 );
 
+const MissingInfoBadge = () => (
+  <span 
+    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200"
+    title="This field is missing or empty"
+  >
+    Missing Info
+  </span>
+);
+
 // Custom validation toggle component for SessionView
 const ValidationToggle = ({ fieldName, validation, onToggle }: { 
   fieldName: string; 
@@ -1058,8 +1067,12 @@ Thank you for your assistance.`;
             // The validation status 'manual' is set when user actually edits a field
             const wasManuallyUpdated = validation.validationStatus === 'manual';
             
-            // Check if field was extracted (has confidence score > 0)
-            const wasExtracted = validation.confidenceScore > 0;
+            // Check if the field value is missing/empty
+            const fieldValue = validation.extractedValue;
+            const isMissingOrEmpty = fieldValue === null || fieldValue === undefined || fieldValue === "" || fieldValue === "null";
+            
+            // Check if field was extracted (has confidence score > 0 and has actual value)
+            const wasExtracted = validation.confidenceScore > 0 && !isMissingOrEmpty;
             
             if (wasManuallyUpdated) {
               return (
@@ -1076,6 +1089,8 @@ Thank you for your assistance.`;
                   )}
                 </div>
               );
+            } else if (isMissingOrEmpty) {
+              return <MissingInfoBadge />;
             } else if (!wasExtracted) {
               return <NotExtractedBadge />;
             } else {
