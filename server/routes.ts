@@ -829,9 +829,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Get all projects accessible to the user
       const projects = await storage.getProjectsWithPublishedOrganizations(req.user!.id, req.user!.organizationId, req.user!.role);
+      console.log(`Dashboard statistics: User ${req.user!.email} (${req.user!.role}) from org ${req.user!.organizationId} has access to ${projects.length} projects`);
       
       // Filter only active projects
       const activeProjects = projects.filter(project => project.status !== "inactive");
+      console.log(`Dashboard statistics: ${activeProjects.length} active projects out of ${projects.length} total`);
       
       let totalSessions = 0;
       let totalValidations = 0;
@@ -851,6 +853,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const unverifiedValidations = totalValidations - verifiedValidations;
+      
+      console.log(`Dashboard statistics: Total ${totalSessions} sessions, ${totalValidations} validations (${verifiedValidations} verified, ${unverifiedValidations} unverified)`);
       
       res.json({
         totalProjects: activeProjects.length,
