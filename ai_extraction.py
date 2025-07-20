@@ -1086,6 +1086,9 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
             
             # Determine how many items actually exist in the aggregated data
             actual_item_count = len(collection_data) if isinstance(collection_data, list) else 0
+            
+            # For comprehensive validation, we need to create validation records for ALL items that exist
+            # This ensures that every extracted item gets proper validation records
             logging.info(f"🗂️ Processing collection {collection_name}: {actual_item_count} items found in aggregated data")
             
             # Create validation records for each item that exists in the aggregated data

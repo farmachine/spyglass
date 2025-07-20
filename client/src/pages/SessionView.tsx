@@ -433,7 +433,11 @@ export default function SessionView() {
 
   // Get validation for a specific field
   const getValidation = (fieldName: string) => {
-    return validations.find(v => v.fieldName === fieldName);
+    const validation = validations.find(v => v.fieldName === fieldName);
+    if (!validation) {
+      console.log(`No validation found for ${fieldName}, available validations:`, validations.map(v => v.fieldName));
+    }
+    return validation;
   };
 
   // Get session status based on field verification
