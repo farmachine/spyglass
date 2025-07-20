@@ -179,6 +179,20 @@ export default function KnowledgeDocumentDialog({
     }
 
     try {
+      let fileContent = "";
+      
+      // Read file content if uploading a new file
+      if (!document && selectedFile) {
+        fileContent = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            resolve(e.target?.result as string || "");
+          };
+          reader.onerror = () => reject(new Error("Failed to read file"));
+          reader.readAsDataURL(selectedFile);
+        });
+      }
+      
       const submitData = {
         fileName: document ? document.fileName : selectedFile!.name,
         displayName: data.displayName,
@@ -186,6 +200,7 @@ export default function KnowledgeDocumentDialog({
         fileSize: document ? document.fileSize : selectedFile!.size,
         description: data.description,
         targetField: data.targetFields?.join(', ') || '',
+        content: document ? document.content : fileContent, // Include file content for new uploads
       };
 
       await onSave(submitData);
