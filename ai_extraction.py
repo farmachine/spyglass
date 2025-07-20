@@ -276,10 +276,15 @@ def calculate_knowledge_based_confidence_fallback(field_name: str, extracted_val
     # Check for knowledge document conflicts first
     has_conflict, conflicting_sections = check_knowledge_document_conflicts(field_name, extracted_value, knowledge_documents)
     if has_conflict:
+        # Generate intelligent reasoning based on field and value
+        reasoning = generate_human_friendly_reasoning(field_name, extracted_value, [{
+            'name': 'Knowledge Document Conflict',
+            'action': f"Set confidence to 50% due to conflicts found in knowledge documents: {'; '.join(conflicting_sections[:2])}"
+        }])
         return 50, [{
             'name': 'Knowledge Document Conflict',
             'action': f"Set confidence to 50% due to conflicts found in knowledge documents: {'; '.join(conflicting_sections[:2])}"
-        }], "Knowledge document conflict detected"
+        }], reasoning
     
     # Base confidence calculation - use a high default confidence (95%) for field-level validation
     confidence_percentage = 95
