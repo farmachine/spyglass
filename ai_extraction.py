@@ -633,11 +633,14 @@ def extract_data_from_document(
                     continue
                 
                 if isinstance(collection_data, list):
+                    logging.info(f"📋 Processing collection {collection_name}: {len(collection_data)} items found")
                     for record_index, record in enumerate(collection_data):
                         # Ensure record is a dictionary before processing
                         if not isinstance(record, dict):
                             logging.warning(f"Record {record_index} in collection {collection_name} is not a dict: {type(record)} - {record}")
                             continue
+                        
+                        logging.info(f"🔄 Processing item {record_index} in {collection_name}: {record}")
                             
                         for prop in collection.get("properties", []):
                             try:
