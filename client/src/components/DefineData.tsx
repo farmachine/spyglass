@@ -182,11 +182,12 @@ export default function DefineData({ project }: DefineDataProps) {
   // Schema field handlers
   const handleCreateSchemaField = async (data: any) => {
     try {
-      // Mark project as interacted to prevent welcome flow redirects
-      sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
-      
       const orderIndex = safeSchemaFields.length; // Add to the end
       await createSchemaField.mutateAsync({ ...data, orderIndex });
+      
+      // Mark project as interacted AFTER successful creation to prevent welcome flow redirects
+      sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
+      
       setSchemaFieldDialog({ open: false });
       toast({
         title: "Field added",
@@ -242,11 +243,12 @@ export default function DefineData({ project }: DefineDataProps) {
   // Collection handlers
   const handleCreateCollection = async (data: any) => {
     try {
-      // Mark project as interacted to prevent welcome flow redirects
-      sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
-      
       const orderIndex = safeCollections.length; // Add to the end
       await createCollection.mutateAsync({ ...data, orderIndex });
+      
+      // Mark project as interacted AFTER successful creation to prevent welcome flow redirects
+      sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
+      
       setCollectionDialog({ open: false });
       toast({
         title: "List created",

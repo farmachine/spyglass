@@ -136,18 +136,23 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       return;
     }
     
-    // Check if project has any data items created (schema fields or collections) or is setup complete
+    // Check if project has any data items created (schema fields or collections)
     const hasDataItems = project.schemaFields.length > 0 || project.collections.length > 0;
-    const isSetupComplete = project.isInitialSetupComplete;
+    const hasUserInteracted = sessionStorage.getItem(`project-${project.id}-interacted`) === 'true';
     
-    // If project has data items or is marked as setup complete, disable welcome flow
-    if (hasDataItems || isSetupComplete) {
-      console.log(`Project ${project.id} - fields: ${project.schemaFields.length}, collections: ${project.collections.length}, setupComplete: ${isSetupComplete} - marking as interacted`);
+    // If project has data items, disable welcome flow permanently
+    if (hasDataItems) {
+      console.log(`Project ${project.id} - fields: ${project.schemaFields.length}, collections: ${project.collections.length} - marking as interacted`);
       sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
     }
     
-    // Only set default tab on very first load
-    if (!activeTab && !initialTabSetRef.current) {
+    // Welcome flow: redirect to define tab ONLY if no data items exist AND user hasn't interacted
+    if (!hasDataItems && !hasUserInteracted && !initialTabSetRef.current) {
+      console.log(`Project ${project.id} - no data items, starting welcome flow`);
+      setActiveTab('define');
+      initialTabSetRef.current = true;
+    } else if (!activeTab && !initialTabSetRef.current) {
+      // Default to upload tab if welcome flow doesn't apply
       setActiveTab('upload');
       initialTabSetRef.current = true;
     }
@@ -498,8 +503,6 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                     onClick={() => {
                       if (!isDisabled) {
                         userNavigatedRef.current = true;
-                        // Mark that user has interacted with this project
-                        sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
                         setActiveTab(item.id);
                       }
                     }}
