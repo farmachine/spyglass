@@ -16,9 +16,15 @@ export function useDashboardStatistics() {
   return useQuery({
     queryKey: ["/api/dashboard/statistics", user?.id, user?.organizationId],
     queryFn: async (): Promise<DashboardStatistics> => {
+      console.log("Fetching dashboard statistics...");
       const response = await apiRequest("/api/dashboard/statistics");
-      return response.json();
+      const data = await response.json();
+      console.log("Dashboard statistics response:", data);
+      return data;
     },
     enabled: !!user, // Only run query when user is authenticated
+    onError: (error) => {
+      console.error("Dashboard statistics error:", error);
+    }
   });
 }

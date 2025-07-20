@@ -23,8 +23,16 @@ export default function Dashboard() {
   const [showDeactivated, setShowDeactivated] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { data: projects, isLoading, error } = useProjects();
-  const { data: statistics, isLoading: statisticsLoading } = useDashboardStatistics();
+  const { data: statistics, isLoading: statisticsLoading, error: statisticsError } = useDashboardStatistics();
   const { user } = useAuth();
+  
+  // Debug logging
+  console.log("Dashboard debug:", { 
+    user: user ? { id: user.id, email: user.email } : null,
+    statistics, 
+    statisticsLoading,
+    statisticsError 
+  });
   const [, navigate] = useLocation();
 
   const isAdmin = user?.role === "admin";
