@@ -358,6 +358,9 @@ export default function SessionView() {
       // Check if it's the new nested structure or simple flat structure
       if (parsedData.processed_documents && parsedData.processed_documents[0]) {
         extractedData = parsedData.processed_documents[0].extraction_result?.extracted_data || {};
+      } else if (parsedData.extracted_data) {
+        // Handle structure where extracted_data is a direct property
+        extractedData = parsedData.extracted_data;
       } else {
         // Simple flat structure for sample/legacy data
         extractedData = parsedData;
