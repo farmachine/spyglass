@@ -1067,12 +1067,9 @@ Thank you for your assistance.`;
             // The validation status 'manual' is set when user actually edits a field
             const wasManuallyUpdated = validation.validationStatus === 'manual';
             
-            // Check if the field value is missing/empty - use the actual extracted value from validation
-            const fieldValue = validation.extractedValue;
-            const isMissingOrEmpty = fieldValue === null || fieldValue === undefined || fieldValue === "" || fieldValue === "null" || String(fieldValue).trim() === "";
-            
-            // Check if field was extracted (has confidence score > 0 and has actual value)
-            const wasExtracted = validation.confidenceScore > 0 && !isMissingOrEmpty;
+            // Check if AI could not extract any value at all (truly missing)
+            const extractedValue = validation.extractedValue;
+            const isTrulyMissing = extractedValue === null || extractedValue === undefined || extractedValue === "" || extractedValue === "null";
             
             if (wasManuallyUpdated) {
               return (
@@ -1089,11 +1086,14 @@ Thank you for your assistance.`;
                   )}
                 </div>
               );
-            } else if (isMissingOrEmpty) {
+            } else if (isTrulyMissing) {
+              // Only show Missing Info when AI literally found nothing
               return <MissingInfoBadge />;
             } else if (validation.confidenceScore === 0) {
+              // Show Not Extracted for technical issues (confidence = 0 but has value)
               return <NotExtractedBadge />;
             } else {
+              // Show confidence badge for all extracted values regardless of confidence level
               return <ConfidenceBadge confidenceScore={validation.confidenceScore} reasoning={validation.aiReasoning} fieldName={fieldName} getFieldDisplayName={getFieldDisplayName} />;
             }
           })()}
