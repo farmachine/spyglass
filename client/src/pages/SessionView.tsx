@@ -265,11 +265,14 @@ export default function SessionView() {
     queryKey: ['/api/sessions', sessionId, 'validations'],
     queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`),
     onSuccess: (data) => {
-      console.log(`Session ${sessionId} - Validations loaded:`, data.length);
+      console.log(`FRONTEND RECEIVED: Session ${sessionId} - Validations loaded:`, data.length);
+      console.log(`FRONTEND RAW DATA:`, data);
       if (data.length > 0) {
         console.log('Sample validation:', data[0]);
         console.log('All field names:', data.map(v => v.fieldName));
         console.log('First few collection validations:', data.filter(v => v.fieldName.includes('[')).slice(0, 5));
+      } else {
+        console.log('FRONTEND ERROR: No validations received despite backend confirmation');
       }
     }
   });

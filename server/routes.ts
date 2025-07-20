@@ -1446,7 +1446,10 @@ except Exception as e:
       if (validations.length > 0) {
         console.log(`First validation: ${validations[0].fieldName} = ${validations[0].extractedValue}`);
         console.log(`Collection validations: ${validations.filter(v => v.fieldName.includes('[')).length}`);
+        console.log(`Sample validation data:`, JSON.stringify(validations[0], null, 2));
+        console.log(`All field names:`, validations.map(v => v.fieldName).slice(0, 10));
       }
+      console.log(`SENDING TO FRONTEND: ${validations.length} validations`);
       res.json(validations);
     } catch (error) {
       console.error(`GET /api/sessions/${sessionId}/validations - Error:`, error);
