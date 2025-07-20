@@ -1260,8 +1260,72 @@ except Exception as e:
           console.log(`Aggregated extraction contains ${result.aggregated_extraction ? Object.keys(result.aggregated_extraction.extracted_data || {}).length : 0} fields`);
           console.log(`Result status: ${result.status}, has aggregated data: ${!!result.aggregated_extraction}`);
           
-          // Note: Validation records are already processed through the normal field_validations flow above
-          // The aggregated_extraction data structure contains all the extracted data for frontend display
+          // For aggregated extractions, ensure validation records exist for all extracted items
+          if (result.aggregated_extraction && result.aggregated_extraction.extracted_data) {
+            const extractedData = result.aggregated_extraction.extracted_data;
+            const project = await storage.getProject(sessionDetails.projectId);
+            const collections = await storage.getCollections(sessionDetails.projectId);
+            
+            console.log(`Creating missing validation records for aggregated data`);
+            
+            for (const collectionName of Object.keys(extractedData)) {
+              const collectionData = extractedData[collectionName];
+              
+              if (Array.isArray(collectionData)) {
+                const collection = collections.find(c => c.collectionName === collectionName);
+                if (collection) {
+                  const properties = await storage.getCollectionProperties(collection.id);
+                  
+                  for (let itemIndex = 0; itemIndex < collectionData.length; itemIndex++) {
+                    const itemData = collectionData[itemIndex];
+                    
+                    for (const property of properties) {
+                      const fieldName = `${collectionName}.${property.propertyName}[${itemIndex}]`;
+                      
+                      // Check if validation already exists
+                      const existingValidation = existingValidations.find(v => v.fieldName === fieldName);
+                      if (!existingValidation) {
+                        // Get extracted value from item data using case-insensitive matching
+                        const propName = property.propertyName;
+                        let extractedValue = itemData[propName] || 
+                                           itemData[propName.toLowerCase()] ||
+                                           itemData[propName[0].toLowerCase() + propName.slice(1)];
+                        
+                        // Handle null/undefined values
+                        if (!extractedValue || extractedValue === "null" || extractedValue === "undefined") {
+                          extractedValue = null;
+                        }
+                        
+                        const hasValue = extractedValue && extractedValue !== "";
+                        const confidenceScore = hasValue ? 95 : 0;
+                        const validationStatus = hasValue ? "unverified" : "invalid";
+                        
+                        await storage.createFieldValidation({
+                          sessionId,
+                          fieldType: 'collection_property',
+                          fieldId: property.id,
+                          fieldName: fieldName,
+                          collectionName: collectionName,
+                          recordIndex: itemIndex,
+                          extractedValue: extractedValue,
+                          originalExtractedValue: extractedValue,
+                          originalConfidenceScore: confidenceScore,
+                          originalAiReasoning: `Extracted from aggregated multi-document processing`,
+                          validationStatus: validationStatus,
+                          aiReasoning: `Extracted from aggregated multi-document processing`,
+                          manuallyVerified: false,
+                          confidenceScore: confidenceScore
+                        });
+                        
+                        console.log(`Created validation record for ${fieldName} = ${extractedValue} (confidence: ${confidenceScore}%)`);
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            console.log(`Finished creating missing validation records for aggregated extraction`);
+          }
           
           res.json(result);
         } catch (parseError: any) {

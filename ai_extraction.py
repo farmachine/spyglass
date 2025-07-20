@@ -898,56 +898,9 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
         if aggregated_collection:
             aggregated_data[collection_name] = aggregated_collection
             
-            # Create validation records for any items that don't have them yet
-            # This ensures all aggregated items have proper validation records
-            collection_schema = next((c for c in project_schema.get("collections", []) if c.get("collectionName") == collection_name), None)
-            if collection_schema and collection_schema.get("properties"):
-                properties = collection_schema.get("properties", [])
-                
-                # Check each aggregated item to ensure it has validation records
-                for item_index in range(len(aggregated_collection)):
-                    item_data = aggregated_collection[item_index]
-                    
-                    # Check if we have validations for this item index
-                    existing_validations_for_item = [v for v in aggregated_validations if v.get("record_index") == item_index]
-                    
-                    # If no validations exist for this item, create them
-                    if not existing_validations_for_item:
-                        logging.info(f"Creating missing validations for {collection_name} item {item_index}")
-                        
-                        for prop in properties:
-                            prop_name = prop.get("propertyName")
-                            if prop_name:
-                                # Get the extracted value from the item data
-                                extracted_value = item_data.get(prop_name) or item_data.get(prop_name.lower())
-                                if extracted_value is None:
-                                    # Try camelCase version
-                                    camel_case_name = prop_name[0].lower() + prop_name[1:] if len(prop_name) > 1 else prop_name.lower()
-                                    extracted_value = item_data.get(camel_case_name)
-                                
-                                # Determine validation status based on value
-                                if extracted_value and extracted_value not in [None, "", "null", "undefined"]:
-                                    confidence_score = 0.95  # High confidence for extracted values
-                                    validation_status = "pending"  # Needs human verification
-                                else:
-                                    confidence_score = 0.0  # No confidence for missing values
-                                    validation_status = "pending"
-                                    extracted_value = None
-                                
-                                # Create validation record
-                                new_validation = {
-                                    "field_id": str(prop.get("id", "")),  # Ensure string format
-                                    "field_name": f"{collection_name}.{prop_name}[{item_index}]",
-                                    "field_type": prop.get("fieldType", "TEXT"),
-                                    "extracted_value": extracted_value,
-                                    "confidence_score": confidence_score,
-                                    "validation_status": validation_status,
-                                    "ai_reasoning": f"Extracted from multi-document aggregation for {collection_name} item {item_index + 1}",
-                                    "collection_name": collection_name,
-                                    "record_index": item_index
-                                }
-                                aggregated_validations.append(new_validation)
-                                logging.info(f"  Created validation for {collection_name}.{prop_name}[{item_index}] = {extracted_value}")
+            # Note: Validation creation will be handled by the standard backend processing
+            # The aggregated_validations already contains the reindexed validations from individual documents
+            # Additional validation logic should be handled in the backend to avoid Python crashes
             
             all_field_validations.extend(aggregated_validations)
             logging.info(f"✅ Aggregated {collection_name}: {len(aggregated_collection)} total items from {len(results['processed_documents'])} documents with {len(aggregated_validations)} total validations")
