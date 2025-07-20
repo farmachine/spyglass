@@ -576,6 +576,7 @@ def extract_data_from_document(
                                 collection_name=collection_name,  # Add collection metadata
                                 record_index=record_index  # Add record index metadata
                             )
+                            logging.info(f"🔧 Created validation for {field_name_with_index} (record {record_index}): {extracted_value}")
                             field_validations.append(validation)
         
         return ExtractionResult(
@@ -772,7 +773,7 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
                         if f"[{local_item_index}]" in old_field_name:
                             new_field_name = old_field_name.replace(f"[{local_item_index}]", f"[{global_index}]")
                             new_validation["field_name"] = new_field_name
-                            logging.info(f"    Reindexed field: {old_field_name} -> {new_field_name}")
+                            logging.info(f"    🔄 Reindexed validation: {old_field_name} -> {new_field_name} (global_index: {global_index})")
                         
                         aggregated_validations.append(new_validation)
                     
