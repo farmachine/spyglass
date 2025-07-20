@@ -641,6 +641,60 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
                 "status": "error"
             })
     
+    # Aggregate collections across all documents for multi-document extraction
+    aggregated_data = {}
+    all_field_validations = []
+    
+    # Get collections from project schema to know which fields are collections
+    collections = project_schema.get("collections", [])
+    collection_names = [collection.get("collectionName") for collection in collections]
+    
+    logging.info(f"Found collections to aggregate: {collection_names}")
+    
+    # First, collect all non-collection fields from the first successful document
+    for doc in results["processed_documents"]:
+        if doc.get("status") == "completed":
+            extracted_data = doc["extraction_result"]["extracted_data"]
+            for field_name, field_value in extracted_data.items():
+                if field_name not in collection_names and field_value is not None:
+                    # Take the first non-null value for non-collection fields
+                    if field_name not in aggregated_data:
+                        aggregated_data[field_name] = field_value
+            break
+    
+    # Then, aggregate all collection data across documents
+    for collection_name in collection_names:
+        aggregated_collection = []
+        
+        for doc in results["processed_documents"]:
+            if doc.get("status") == "completed":
+                extracted_data = doc["extraction_result"]["extracted_data"]
+                collection_data = extracted_data.get(collection_name, [])
+                
+                if isinstance(collection_data, list) and collection_data:
+                    logging.info(f"Adding {len(collection_data)} items from {doc['file_name']} to {collection_name}")
+                    aggregated_collection.extend(collection_data)
+        
+        # Only add the collection if we found data
+        if aggregated_collection:
+            aggregated_data[collection_name] = aggregated_collection
+            logging.info(f"Final aggregated {collection_name}: {len(aggregated_collection)} total items")
+    
+    # Aggregate all field validations
+    for doc in results["processed_documents"]:
+        if doc.get("status") == "completed":
+            field_validations = doc["extraction_result"]["field_validations"]
+            all_field_validations.extend(field_validations)
+    
+    # Add aggregated data to results
+    results["aggregated_extraction"] = {
+        "extracted_data": aggregated_data,
+        "field_validations": all_field_validations,
+        "total_items": sum(len(v) if isinstance(v, list) else 1 for v in aggregated_data.values())
+    }
+    
+    logging.info(f"Multi-document aggregation complete: {len(aggregated_data)} fields aggregated")
+
     # Calculate summary
     results["summary"]["total_documents"] = len(files)
     results["summary"]["successful_extractions"] = successful_count

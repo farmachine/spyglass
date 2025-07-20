@@ -355,9 +355,14 @@ export default function SessionView() {
   try {
     if (session.extractedData) {
       const parsedData = JSON.parse(session.extractedData);
-      // Check if it's the new nested structure or simple flat structure
-      if (parsedData.processed_documents && parsedData.processed_documents[0]) {
+      // Check for new aggregated multi-document structure first
+      if (parsedData.aggregated_extraction?.extracted_data) {
+        extractedData = parsedData.aggregated_extraction.extracted_data;
+        console.log('Using aggregated multi-document data:', extractedData);
+      } else if (parsedData.processed_documents && parsedData.processed_documents[0]) {
+        // Fall back to first document's data for single-document sessions
         extractedData = parsedData.processed_documents[0].extraction_result?.extracted_data || {};
+        console.log('Using first document data:', extractedData);
       } else if (parsedData.extracted_data) {
         // Handle structure where extracted_data is a direct property
         extractedData = parsedData.extracted_data;
