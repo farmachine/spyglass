@@ -286,17 +286,19 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
     (project.schemaFields && project.schemaFields.length > 0) ||
     (project.collections && project.collections.length > 0);
 
-
+  // Check if we should show welcome flow (no data items exist)
+  const hasDataItems = project.schemaFields.length > 0 || project.collections.length > 0;
+  const showWelcomeFlow = !hasDataItems;
 
   const navItems = [
-    { id: "upload" as const, label: `New ${project.mainObjectName || "Session"}`, icon: DropletIcon, disabled: false },
-    { id: "data" as const, label: `All ${project.mainObjectName || "Session"}s`, icon: FlowIcon, disabled: false },
+    { id: "upload" as const, label: `New ${project.mainObjectName || "Session"}`, icon: DropletIcon, disabled: showWelcomeFlow },
+    { id: "data" as const, label: `All ${project.mainObjectName || "Session"}s`, icon: FlowIcon, disabled: showWelcomeFlow },
     ...(canAccessConfigTabs ? [
-      { id: "knowledge" as const, label: "Knowledge/Rules", icon: TideIcon, disabled: false },
-      { id: "define" as const, label: "Define Data", icon: StreamIcon, disabled: false },
+      { id: "knowledge" as const, label: "Knowledge/Rules", icon: TideIcon, disabled: showWelcomeFlow },
+      { id: "define" as const, label: "Define Data", icon: StreamIcon, disabled: false }, // Define Data always enabled
     ] : []),
     ...(canAccessPublishing ? [
-      { id: "publishing" as const, label: "Publishing", icon: ShipIcon, disabled: false },
+      { id: "publishing" as const, label: "Publishing", icon: ShipIcon, disabled: showWelcomeFlow },
     ] : []),
   ];
 
