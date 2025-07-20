@@ -376,6 +376,7 @@ def extract_data_from_document(
                 if text_content.strip():
                     logging.info(f"Successfully extracted text from PDF: {len(text_content)} characters")
                     full_prompt = prompt + f"\n\nDocument content:\n{text_content}"
+                    logging.info(f"📝 AI Prompt (first 1500 chars): {full_prompt[:1500]}")
                     response = model.generate_content(full_prompt)
                     pdf_processed = True
                     
@@ -445,12 +446,16 @@ def extract_data_from_document(
         elif response_text.startswith("```"):
             response_text = response_text.replace("```", "").strip()
         
+        # Debug: Log the AI response
+        logging.info(f"🤖 AI Response (first 1000 chars): {response_text[:1000]}")
+        
         # Parse JSON response
         try:
             result_data = json.loads(response_text)
+            logging.info(f"✅ Successfully parsed JSON response with keys: {list(result_data.keys()) if isinstance(result_data, dict) else 'Not a dict'}")
         except json.JSONDecodeError as e:
-            logging.error(f"JSON decode error: {e}")
-            logging.error(f"Response text: {response_text[:500]}")
+            logging.error(f"❌ JSON decode error: {e}")
+            logging.error(f"Full response text: {response_text}")
             raise Exception("Failed to parse AI response as JSON")
         
         # Create field validations
