@@ -302,20 +302,47 @@ def extract_data_from_document(
         if project_schema.get("collections"):
             prompt += "\nCollections to extract:\n"
             for collection in project_schema["collections"]:
-                collection_name = collection.get('collectionName', collection.get('objectName', ''))
-                collection_description = collection.get('description', '')
-                if collection_description:
-                    prompt += f"- {collection_name}: {collection_description}\n"
-                else:
-                    prompt += f"- {collection_name}:\n"
-                for prop in collection.get("properties", []):
-                    prop_name = prop['propertyName']
-                    prop_type = prop['propertyType']
-                    prop_description = prop.get('description', '')
-                    if prop_description:
-                        prompt += f"  * {prop_name} ({prop_type}): {prop_description}\n"
+                try:
+                    # Debug collection structure
+                    logging.info(f"COLLECTION DEBUG: Type: {type(collection)}, Keys: {list(collection.keys()) if isinstance(collection, dict) else 'Not a dict'}")
+                    
+                    if not isinstance(collection, dict):
+                        logging.error(f"Collection is not a dict: {type(collection)} - {collection}")
+                        continue
+                        
+                    collection_name = collection.get('collectionName', collection.get('objectName', ''))
+                    collection_description = collection.get('description', '')
+                    if collection_description:
+                        prompt += f"- {collection_name}: {collection_description}\n"
                     else:
-                        prompt += f"  * {prop_name} ({prop_type})\n"
+                        prompt += f"- {collection_name}:\n"
+                        
+                    properties = collection.get("properties", [])
+                    logging.info(f"PROPERTIES DEBUG: Type: {type(properties)}, Length: {len(properties) if hasattr(properties, '__len__') else 'No len'}")
+                    
+                    if isinstance(properties, list):
+                        for prop in properties:
+                            try:
+                                if not isinstance(prop, dict):
+                                    logging.error(f"Property is not a dict: {type(prop)} - {prop}")
+                                    continue
+                                    
+                                prop_name = prop.get('propertyName', '')
+                                prop_type = prop.get('propertyType', 'TEXT')
+                                prop_description = prop.get('description', '')
+                                if prop_description:
+                                    prompt += f"  * {prop_name} ({prop_type}): {prop_description}\n"
+                                else:
+                                    prompt += f"  * {prop_name} ({prop_type})\n"
+                            except Exception as prop_error:
+                                logging.error(f"Error processing property: {prop_error}")
+                                continue
+                    else:
+                        logging.warning(f"Properties is not a list: {type(properties)}")
+                        
+                except Exception as collection_error:
+                    logging.error(f"Error processing collection: {collection_error}")
+                    continue
         
         prompt += "\nExtraction Rules:\n"
         prompt += "1. Extract ONLY real data from the document - NO sample data\n"
@@ -334,14 +361,29 @@ def extract_data_from_document(
         # Add expected collections
         if project_schema.get("collections"):
             for collection in project_schema["collections"]:
-                collection_name = collection.get('collectionName', collection.get('objectName', ''))
-                prompt += f'  "{collection_name}": [\n'
-                prompt += '    {\n'
-                for prop in collection.get("properties", []):
-                    prop_name = prop['propertyName']
-                    prompt += f'      "{prop_name}": null,\n'
-                prompt += '    }\n'
-                prompt += '  ],\n'
+                try:
+                    if not isinstance(collection, dict):
+                        continue
+                        
+                    collection_name = collection.get('collectionName', collection.get('objectName', ''))
+                    prompt += f'  "{collection_name}": [\n'
+                    prompt += '    {\n'
+                    
+                    properties = collection.get("properties", [])
+                    if isinstance(properties, list):
+                        for prop in properties:
+                            try:
+                                if isinstance(prop, dict):
+                                    prop_name = prop.get('propertyName', '')
+                                    if prop_name:
+                                        prompt += f'      "{prop_name}": null,\n'
+                            except Exception:
+                                continue
+                    
+                    prompt += '    }\n'
+                    prompt += '  ],\n'
+                except Exception:
+                    continue
         
         prompt += "}\n"
         prompt += "\nFor NDA/Contract Documents - Party Extraction Guidelines:\n"
