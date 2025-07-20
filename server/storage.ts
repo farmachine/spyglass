@@ -148,6 +148,7 @@ export interface IStorage {
 
   // Extracted Data - separate from schema definitions
   createExtractedSchemaField(field: InsertExtractedSchemaField): Promise<ExtractedSchemaField>;
+  updateExtractedSchemaFieldBySession(sessionId: string, schemaFieldId: string, updates: Partial<InsertExtractedSchemaField>): Promise<ExtractedSchemaField | undefined>;
   createExtractedCollectionItem(item: InsertExtractedCollectionItem): Promise<ExtractedCollectionItem>;
   createExtractedCollectionProperty(property: InsertExtractedCollectionProperty): Promise<ExtractedCollectionProperty>;
   getExtractedDataForSession(sessionId: string): Promise<{
@@ -178,6 +179,11 @@ export class MemStorage implements IStorage {
   private fieldValidations: Map<number, FieldValidation>;
   private projectPublishing: Map<number, ProjectPublishing>;
   
+  // 🚀 SEPARATE_DATA: New separated data structures
+  private extractedSchemaFields: Map<string, ExtractedSchemaField>;
+  private extractedCollectionItems: Map<string, ExtractedCollectionItem>;
+  private extractedCollectionProperties: Map<string, ExtractedCollectionProperty>;
+  
   private currentOrganizationId: number;
   private currentUserId: number;
   private currentProjectId: number;
@@ -202,6 +208,11 @@ export class MemStorage implements IStorage {
     this.extractionRules = new Map();
     this.fieldValidations = new Map();
     this.projectPublishing = new Map();
+    
+    // 🚀 SEPARATE_DATA: Initialize new separated data maps
+    this.extractedSchemaFields = new Map();
+    this.extractedCollectionItems = new Map();
+    this.extractedCollectionProperties = new Map();
     
     this.currentOrganizationId = 1;
     this.currentUserId = 1;
@@ -1244,6 +1255,111 @@ export class MemStorage implements IStorage {
       return this.projectPublishing.delete(publishing[0]);
     }
     return false;
+  }
+
+  // 🚀 SEPARATE_DATA: Methods for separated extracted data architecture
+  async createExtractedSchemaField(field: InsertExtractedSchemaField): Promise<ExtractedSchemaField> {
+    const newField: ExtractedSchemaField = {
+      ...field,
+      id: uuidv4(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.extractedSchemaFields.set(newField.id, newField);
+    return newField;
+  }
+
+  async updateExtractedSchemaFieldBySession(sessionId: string, schemaFieldId: string, updates: Partial<InsertExtractedSchemaField>): Promise<ExtractedSchemaField | undefined> {
+    const existingField = Array.from(this.extractedSchemaFields.values())
+      .find(field => field.sessionId === sessionId && field.schemaFieldId === schemaFieldId);
+    
+    if (!existingField) return undefined;
+
+    const updatedField = { 
+      ...existingField, 
+      ...updates, 
+      updatedAt: new Date() 
+    };
+    this.extractedSchemaFields.set(existingField.id, updatedField);
+    return updatedField;
+  }
+
+  async createExtractedCollectionItem(item: InsertExtractedCollectionItem): Promise<ExtractedCollectionItem> {
+    const newItem: ExtractedCollectionItem = {
+      ...item,
+      id: uuidv4(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.extractedCollectionItems.set(newItem.id, newItem);
+    return newItem;
+  }
+
+  async createExtractedCollectionProperty(property: InsertExtractedCollectionProperty): Promise<ExtractedCollectionProperty> {
+    const newProperty: ExtractedCollectionProperty = {
+      ...property,
+      id: uuidv4(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.extractedCollectionProperties.set(newProperty.id, newProperty);
+    return newProperty;
+  }
+
+  async getExtractedDataForSession(sessionId: string): Promise<{
+    schemaFields: (ExtractedSchemaField & { fieldName: string; fieldType: string })[];
+    collectionItems: (ExtractedCollectionItem & { 
+      collectionName: string;
+      properties: (ExtractedCollectionProperty & { propertyName: string; propertyType: string })[]
+    })[];
+  }> {
+    console.log(`🚀 SEPARATE_DATA: Fetching extracted data for session ${sessionId}`);
+    
+    // Get extracted schema fields for this session
+    const schemaFields = Array.from(this.extractedSchemaFields.values())
+      .filter(field => field.sessionId === sessionId)
+      .map(field => {
+        // Get field name and type from project schema
+        const schemaField = Array.from(this.projectSchemaFields.values())
+          .find(sf => sf.id === field.schemaFieldId);
+        return {
+          ...field,
+          fieldName: schemaField?.fieldName || 'Unknown Field',
+          fieldType: schemaField?.fieldType || 'TEXT'
+        };
+      });
+
+    // Get extracted collection items for this session
+    const collectionItems = Array.from(this.extractedCollectionItems.values())
+      .filter(item => item.sessionId === sessionId)
+      .map(item => {
+        // Get collection name from object collections
+        const collection = Array.from(this.objectCollections.values())
+          .find(col => col.id === item.collectionId);
+        
+        // Get properties for this collection item
+        const properties = Array.from(this.extractedCollectionProperties.values())
+          .filter(prop => prop.collectionItemId === item.id)
+          .map(prop => {
+            // Get property name and type from collection properties
+            const collectionProperty = Array.from(this.collectionProperties.values())
+              .find(cp => cp.id === prop.collectionPropertyId);
+            return {
+              ...prop,
+              propertyName: collectionProperty?.propertyName || 'Unknown Property',
+              propertyType: collectionProperty?.propertyType || 'TEXT'
+            };
+          });
+
+        return {
+          ...item,
+          collectionName: collection?.collectionName || 'Unknown Collection',
+          properties
+        };
+      });
+
+    console.log(`🚀 SEPARATE_DATA: Found ${schemaFields.length} schema fields, ${collectionItems.length} collection items`);
+    return { schemaFields, collectionItems };
   }
 }
 

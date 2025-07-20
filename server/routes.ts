@@ -967,8 +967,8 @@ except Exception as e:
     }
   });
 
-  // Helper function to generate initial field validations for a new session
-  const generateInitialFieldValidations = async (sessionId: string, projectId: string) => {
+  // Helper function to initialize extraction data structure for a new session
+  const initializeExtractionData = async (sessionId: string, projectId: string) => {
     try {
       const project = await storage.getProjectWithDetails(projectId);
       if (!project) {
@@ -976,50 +976,116 @@ except Exception as e:
         return;
       }
 
-      console.log(`Generating validations for session ${sessionId}, project ${projectId}`);
-      console.log(`Schema fields: ${project.schemaFields.length}, Collections: ${project.collections.length}`);
+      console.log(`🚀 SEPARATE_DATA: Initializing extraction data for session ${sessionId}, project ${projectId}`);
+      console.log(`🚀 SEPARATE_DATA: Schema fields: ${project.schemaFields.length}, Collections: ${project.collections.length}`);
 
-      // Create validations for schema fields
+      // Create initial extracted schema field records (empty, ready for AI extraction)
       for (const field of project.schemaFields) {
-        await storage.createFieldValidation({
+        await storage.createExtractedSchemaField({
           sessionId,
-          fieldType: 'schema_field',
-          fieldId: field.id,
-          fieldName: field.fieldName,
-          collectionName: null,
-          recordIndex: 0,
+          schemaFieldId: field.id,
           extractedValue: null,
+          confidenceScore: 0,
           validationStatus: 'pending',
           aiReasoning: null,
-          manuallyVerified: false,
-          confidenceScore: 0
+          manuallyVerified: false
         });
       }
 
-      // Create validations for collection properties
-      for (const collection of project.collections) {
-        const properties = await storage.getCollectionProperties(collection.id);
-        console.log(`Collection ${collection.collectionName} has ${properties.length} properties`);
+      // Note: Collection items will be created dynamically during AI extraction
+      // based on how many instances are found in the document
+      console.log(`🚀 SEPARATE_DATA: Initialized ${project.schemaFields.length} schema field records for session ${sessionId}`);
+    } catch (error) {
+      console.error(`🚀 SEPARATE_DATA: Error initializing extraction data for session ${sessionId}:`, error);
+      throw error;
+    }
+  };
+
+  // Helper function to process AI extraction results using separated data architecture
+  const processExtractionResults = async (sessionId: string, result: any, project_data: any) => {
+    try {
+      console.log(`🚀 SEPARATE_DATA: Processing AI extraction results for session ${sessionId}`);
+      
+      if (result.aggregated_extraction && result.aggregated_extraction.extracted_data) {
+        const extractedData = result.aggregated_extraction.extracted_data;
+        console.log(`🚀 SEPARATE_DATA: Processing extracted data:`, JSON.stringify(extractedData, null, 2));
         
-        for (const property of properties) {
-          // Create at least one instance for each collection property
-          await storage.createFieldValidation({
-            sessionId,
-            fieldType: 'collection_property',
-            fieldId: property.id,
-            fieldName: `${collection.collectionName}.${property.propertyName}[0]`,
-            collectionName: collection.collectionName,
-            recordIndex: 0,
-            extractedValue: null,
-            validationStatus: 'pending',
-            aiReasoning: null,
-            manuallyVerified: false,
-            confidenceScore: 0
-          });
+        // Update extracted schema fields with AI results
+        if (project_data?.schemaFields) {
+          for (const field of project_data.schemaFields) {
+            const fieldName = field.fieldName;
+            let extractedValue = extractedData[fieldName];
+            
+            // Special handling for date fields
+            if (field.fieldType === 'DATE' && extractedValue) {
+              if (extractedValue === "null" || extractedValue === "") {
+                extractedValue = null;
+              } else {
+                try {
+                  const date = new Date(extractedValue);
+                  if (!isNaN(date.getTime())) {
+                    extractedValue = date.toISOString().split('T')[0];
+                  } else {
+                    extractedValue = null;
+                  }
+                } catch (error) {
+                  extractedValue = null;
+                }
+              }
+            }
+            
+            console.log(`🚀 SEPARATE_DATA: Updating schema field ${fieldName} = ${extractedValue}`);
+            await storage.updateExtractedSchemaFieldBySession(sessionId, field.id, {
+              extractedValue: extractedValue,
+              confidenceScore: extractedValue !== null ? 95 : 20,
+              validationStatus: 'unverified',
+              aiReasoning: 'Extracted during AI processing'
+            });
+          }
         }
+        
+        // Create collection items and properties
+        if (project_data?.collections) {
+          for (const collection of project_data.collections) {
+            const collectionName = collection.collectionName;
+            const collectionData = extractedData[collectionName];
+            
+            if (Array.isArray(collectionData) && collection.properties) {
+              console.log(`🚀 SEPARATE_DATA: Processing collection ${collectionName} with ${collectionData.length} items`);
+              
+              for (let recordIndex = 0; recordIndex < collectionData.length; recordIndex++) {
+                const record = collectionData[recordIndex];
+                
+                // Create collection item
+                const collectionItem = await storage.createExtractedCollectionItem({
+                  sessionId,
+                  collectionId: collection.id,
+                  recordIndex
+                });
+                
+                // Create properties for this item
+                for (const property of collection.properties) {
+                  const extractedValue = record[property.propertyName];
+                  
+                  console.log(`🚀 SEPARATE_DATA: Creating property ${property.propertyName}[${recordIndex}] = ${extractedValue}`);
+                  await storage.createExtractedCollectionProperty({
+                    collectionItemId: collectionItem.id,
+                    propertyId: property.id,
+                    extractedValue: extractedValue,
+                    confidenceScore: extractedValue !== null && extractedValue !== undefined ? 95 : 20,
+                    validationStatus: 'unverified',
+                    aiReasoning: 'Extracted during AI processing'
+                  });
+                }
+              }
+            }
+          }
+        }
+        
+        console.log(`🚀 SEPARATE_DATA: Extraction data processing complete for session ${sessionId}`);
       }
     } catch (error) {
-      console.error(`Error generating initial field validations for session ${sessionId}:`, error);
+      console.error('🚀 SEPARATE_DATA: Error during extraction data processing:', error);
       throw error;
     }
   };
@@ -1034,8 +1100,8 @@ except Exception as e:
       
       const session = await storage.createExtractionSession(result.data);
       
-      // Generate initial field validations for the new session
-      await generateInitialFieldValidations(session.id, projectId);
+      // Initialize extraction data structure for the new session
+      await initializeExtractionData(session.id, projectId);
       
       res.status(201).json(session);
     } catch (error) {
@@ -1182,267 +1248,8 @@ except Exception as e:
             extractedData: JSON.stringify(result)
           });
           
-          // Get existing field validations for this session
-          const existingValidations = await storage.getFieldValidations(sessionId);
-          
-          // Update field validations from the extraction results
-          let validationsToProcess = [];
-          
-          // Process aggregated validations if available (multi-document sessions)
-          if (result.aggregated_extraction && result.aggregated_extraction.field_validations) {
-            validationsToProcess = result.aggregated_extraction.field_validations;
-            console.log(`Processing ${validationsToProcess.length} aggregated field validations`);
-            console.log(`DEBUG: First 5 validation field names:`, validationsToProcess.slice(0, 5).map(v => v.field_name));
-            console.log(`DEBUG: Last 5 validation field names:`, validationsToProcess.slice(-5).map(v => v.field_name));
-          }
-          // Fall back to individual document validations for single-document sessions
-          else if (result.processed_documents && result.processed_documents.length > 0) {
-            for (const doc of result.processed_documents) {
-              const fieldValidations = doc.extraction_result?.field_validations || [];
-              console.log(`Processing ${fieldValidations.length} field validations for document: ${doc.file_name}`);
-              validationsToProcess.push(...fieldValidations);
-            }
-          }
-          
-          // Process explicit validations first
-          console.log(`DEBUG: About to process ${validationsToProcess.length} validations for session ${sessionId}`);
-          console.log(`DEBUG: Existing validations count: ${existingValidations.length}`);
-          
-          for (const validation of validationsToProcess) {
-                // Extract record index from field name if present
-                const fieldName = validation.field_name;
-                console.log(`DEBUG: Processing validation for field: ${fieldName}`);
-                const recordIndexMatch = fieldName.match(/\[(\d+)\]$/);
-                const recordIndex = recordIndexMatch ? parseInt(recordIndexMatch[1]) : 0;
-                
-                // Extract collection name from field name
-                const isCollectionProperty = fieldName.includes('.');
-                const collectionName = isCollectionProperty ? fieldName.split('.')[0] : null;
-                
-                // Try to find existing validation for this field
-                const existingValidation = existingValidations.find(v => v.fieldName === fieldName);
-                
-                // Normalize extracted value based on field type
-                let normalizedValue = validation.extracted_value;
-                
-                // Get field type for proper value normalization
-                if (validation.field_type === 'DATE') {
-                  // For date fields, convert various invalid values to null
-                  if (!normalizedValue || 
-                      normalizedValue === "null" || 
-                      normalizedValue === "undefined" || 
-                      normalizedValue === "Not found" ||
-                      normalizedValue === "" ||
-                      normalizedValue.toString().toLowerCase().includes("not found") ||
-                      normalizedValue.toString().toLowerCase().includes("not available")) {
-                    normalizedValue = null;
-                  } else {
-                    // Try to parse and validate date format
-                    try {
-                      const date = new Date(normalizedValue);
-                      if (!isNaN(date.getTime())) {
-                        // Format as ISO date string (YYYY-MM-DD)
-                        normalizedValue = date.toISOString().split('T')[0];
-                      } else {
-                        normalizedValue = null;
-                      }
-                    } catch (error) {
-                      normalizedValue = null;
-                    }
-                  }
-                }
-                
-                if (existingValidation) {
-                  // Update existing validation - preserve original values if they don't exist yet
-                  const updateData: any = {
-                    extractedValue: normalizedValue,
-                    validationStatus: validation.validation_status,
-                    aiReasoning: validation.ai_reasoning,
-                    confidenceScore: validation.confidence_score
-                  };
-                  
-                  // If original values don't exist yet, store them (this handles retroactive population)
-                  if (!existingValidation.originalExtractedValue) {
-                    updateData.originalExtractedValue = validation.original_extracted_value || normalizedValue;
-                    updateData.originalConfidenceScore = validation.original_confidence_score || validation.confidence_score;
-                    updateData.originalAiReasoning = validation.original_ai_reasoning || validation.ai_reasoning;
-                  }
-                  
-                  console.log(`DEBUG: Updating existing validation ${existingValidation.id} for field ${fieldName}`);
-                  await storage.updateFieldValidation(existingValidation.id, updateData);
-                } else {
-                  // Create new validation if it doesn't exist
-                  console.log(`DEBUG: Creating NEW validation for field ${fieldName} with value: ${normalizedValue}`);
-                  const newValidation = await storage.createFieldValidation({
-                    sessionId,
-                    fieldType: isCollectionProperty ? 'collection_property' : 'schema_field',
-                    fieldId: validation.field_id,
-                    fieldName: fieldName,
-                    collectionName,
-                    recordIndex,
-                    extractedValue: normalizedValue,
-                    originalExtractedValue: validation.original_extracted_value || normalizedValue,
-                    originalConfidenceScore: validation.original_confidence_score || validation.confidence_score,
-                    originalAiReasoning: validation.original_ai_reasoning || validation.ai_reasoning,
-                    validationStatus: validation.validation_status,
-                    aiReasoning: validation.ai_reasoning,
-                    manuallyVerified: false,
-                    confidenceScore: validation.confidence_score
-                  });
-                  console.log(`DEBUG: Created validation with ID: ${newValidation?.id} for field ${fieldName}`);
-                }
-            }
-          
-          console.log(`Processing complete with ${validationsToProcess.length} total validations`);
-          console.log(`Aggregated extraction contains ${result.aggregated_extraction ? Object.keys(result.aggregated_extraction.extracted_data || {}).length : 0} fields`);
-          console.log(`Result status: ${result.status}, has aggregated data: ${!!result.aggregated_extraction}`);
-          
-          // Debug: Check final validation count after processing
-          const finalValidations = await storage.getFieldValidations(sessionId);
-          console.log(`DEBUG: Final validation count in database: ${finalValidations.length}`);
-          
-          // COMPREHENSIVE VALIDATION CREATION: For pure extraction, create validation records for ALL extracted fields
-          // This ensures batch validation has records to process even when Python returns empty field_validations
-          if (result.aggregated_extraction && result.aggregated_extraction.extracted_data) {
-            try {
-              const extractedData = result.aggregated_extraction.extracted_data;
-              console.log('Creating comprehensive validation records for all extracted fields...');
-              console.log(`DEBUG AGGREGATED DATA:`, JSON.stringify(extractedData, null, 2));
-              
-              // Create validation records for schema fields
-              if (project_data?.schemaFields) {
-              for (const field of project_data.schemaFields) {
-                const fieldName = field.fieldName;
-                const extractedValue = extractedData[fieldName];
-                
-                // Check if validation already exists
-                const existingValidation = existingValidations.find(v => v.fieldName === fieldName);
-                if (!existingValidation) {
-                  console.log(`Creating validation record for schema field: ${fieldName} = ${extractedValue}`);
-                  await storage.createFieldValidation({
-                    sessionId,
-                    fieldType: 'schema_field',
-                    fieldId: field.id,
-                    fieldName: fieldName,
-                    collectionName: null,
-                    recordIndex: 0,
-                    extractedValue: extractedValue,
-                    originalExtractedValue: extractedValue,
-                    originalConfidenceScore: 95, // Default confidence for extracted data
-                    originalAiReasoning: 'Extracted during AI processing',
-                    validationStatus: 'unverified',
-                    aiReasoning: 'Extracted during AI processing',
-                    manuallyVerified: false,
-                    confidenceScore: 95 // Set proper confidence score so it doesn't show as "Not Extracted"
-                  });
-                }
-              }
-              }
-              
-              // Create validation records for collection properties
-              if (project_data?.collections) {
-                for (const collection of project_data.collections) {
-                  const collectionName = collection.collectionName;
-                  const collectionData = extractedData[collectionName];
-                  
-                  if (Array.isArray(collectionData) && collection.properties) {
-                    for (let recordIndex = 0; recordIndex < collectionData.length; recordIndex++) {
-                      const record = collectionData[recordIndex];
-                      
-                      for (const property of collection.properties) {
-                        const fieldName = `${collectionName}.${property.propertyName}[${recordIndex}]`;
-                        const extractedValue = record[property.propertyName];
-                        
-                        console.log(`DEBUG EXTRACTION: For ${fieldName}`);
-                        console.log(`  - Record:`, record);
-                        console.log(`  - Property name: ${property.propertyName}`);
-                        console.log(`  - Extracted value: ${extractedValue}`);
-                        console.log(`  - Value type: ${typeof extractedValue}`);
-                        
-                        // Check if validation already exists
-                        const existingValidation = existingValidations.find(v => v.fieldName === fieldName);
-                        if (!existingValidation) {
-                          console.log(`Creating validation record for collection property: ${fieldName} = ${extractedValue}`);
-                          
-                          const validationData = {
-                            sessionId,
-                            fieldType: 'collection_property',
-                            fieldId: property.id,
-                            fieldName: fieldName,
-                            collectionName: collectionName,
-                            recordIndex: recordIndex,
-                            extractedValue: extractedValue,
-                            originalExtractedValue: extractedValue,
-                            originalConfidenceScore: 95,
-                            originalAiReasoning: 'Extracted during AI processing',
-                            validationStatus: 'unverified',
-                            aiReasoning: 'Extracted during AI processing',
-                            manuallyVerified: false,
-                            confidenceScore: extractedValue !== null && extractedValue !== undefined ? 95 : 20
-                          };
-                          
-                          console.log(`DEBUG VALIDATION DATA BEFORE INSERT:`, JSON.stringify(validationData, null, 2));
-                          
-                          await storage.createFieldValidation({
-                            sessionId,
-                            fieldType: 'collection_property',
-                            fieldId: property.id,
-                            fieldName: fieldName,
-                            collectionName: collectionName,
-                            recordIndex: recordIndex,
-                            extractedValue: extractedValue,
-                            originalExtractedValue: extractedValue,
-                            originalConfidenceScore: 95, // Default confidence for extracted data
-                            originalAiReasoning: 'Extracted during AI processing',
-                            validationStatus: 'unverified',
-                            aiReasoning: 'Extracted during AI processing',
-                            manuallyVerified: false,
-                            confidenceScore: extractedValue !== null && extractedValue !== undefined ? 95 : 20 // Higher confidence for actual values, lower for null
-                          });
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            
-              console.log('Comprehensive validation record creation complete');
-            } catch (validationError: any) {
-              console.error('Error during comprehensive validation creation:', validationError);
-              console.error('Validation error stack:', validationError.stack);
-              // Don't fail the entire request, just log the error
-            }
-          }
-          
-          // CRITICAL: Wait for all validation operations to complete before sending response
-          console.log('Waiting for all database operations to complete...');
-          
-          // Robust validation check - wait until all expected validations are confirmed in database
-          let attempts = 0;
-          let validationCount = 0;
-          const maxAttempts = 10;
-          const expectedValidations = (project_data?.schemaFields?.length || 0) + 
-            (project_data?.collections?.reduce((total, col) => {
-              const collectionData = result.aggregated_extraction?.extracted_data?.[col.collectionName];
-              const itemCount = Array.isArray(collectionData) ? collectionData.length : 0;
-              return total + (itemCount * (col.properties?.length || 0));
-            }, 0) || 0);
-          
-          console.log(`Expected validation count: ${expectedValidations}`);
-          
-          while (attempts < maxAttempts && validationCount < expectedValidations) {
-            await new Promise(resolve => setTimeout(resolve, 200));
-            const currentValidations = await storage.getFieldValidations(sessionId);
-            validationCount = currentValidations.length;
-            attempts++;
-            console.log(`Attempt ${attempts}: Found ${validationCount}/${expectedValidations} validations in database`);
-          }
-          
-          console.log(`FINAL CHECK: Database contains ${validationCount} validation records for session ${sessionId}`);
-          
-          // Additional safety delay to ensure all database transactions are committed
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          console.log('Database synchronization complete - sending response to frontend');
+          // 🚀 SEPARATE_DATA: Process extraction results using new separated data architecture
+          await processExtractionResults(sessionId, result, project_data);
           
           res.json(result);
         } catch (parseError: any) {
