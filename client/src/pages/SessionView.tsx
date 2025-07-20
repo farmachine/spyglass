@@ -1229,15 +1229,6 @@ Thank you for your assistance.`;
           const validationIndices = collectionValidations.length > 0 ? collectionValidations.map(v => v.recordIndex) : [];
           const maxRecordIndex = Math.max(dataLength, ...validationIndices, -1);
           
-          // Debug logging to understand the calculation
-          console.log(`Collection ${collection.collectionName}:`, {
-            collectionDataLength: collectionData?.length || 0,
-            dataLength,
-            validationIndicesCount: validationIndices.length,
-            maxValidationIndex: validationIndices.length > 0 ? Math.max(...validationIndices) : -1,
-            maxRecordIndex
-          });
-          
           if (maxRecordIndex < 0) return null;
 
           const isExpanded = expandedCollections.has(collection.collectionName);
