@@ -120,28 +120,47 @@ def extract_data_points(document_text: str, project_schema: Dict[str, Any]) -> D
                 props.append(f"  - {prop['propertyName']} ({prop['propertyType']}): {prop.get('description', 'No description')}")
             collection_descriptions.append(f"- {collection['collectionName']} (collection):\n" + "\n".join(props))
         
-        extraction_prompt = f"""
-Extract data from the following document text and return it as JSON.
+        # Build comprehensive extraction prompt (restored from working version)
+        extraction_prompt = f"""Document Data Extraction Task
 
-SCHEMA FIELDS TO EXTRACT:
+EXTRACTION REQUIREMENTS:
+- Extract only authentic content that appears in the document
+- Return null for fields where no real data is found
+- Ensure high accuracy and appropriate confidence levels
+
+Schema Fields to extract:
 {chr(10).join(field_descriptions)}
 
-COLLECTIONS TO EXTRACT:
+Collections (extract up to 3 relevant items per collection):
 {chr(10).join(collection_descriptions)}
 
 DOCUMENT TEXT:
 {document_text}
 
-Return JSON with this exact structure:
+EXTRACTION GUIDELINES:
+1. Read the document thoroughly to identify relevant information
+2. Extract data that precisely matches the requested schema fields
+3. Use actual values found in the document (company names, dates, addresses, numbers)
+4. Return null for fields where no corresponding data exists
+5. Maintain high accuracy and assign appropriate confidence scores
+
+CONFIDENCE SCORING:
+- 95-100%: Data clearly present and unambiguous
+- 80-94%: Data present but requires interpretation
+- 50-79%: Data partially present or unclear
+- Below 50%: Uncertain or conflicting information
+
+Return structured JSON response with this exact structure:
 {{
   "field_name_1": "extracted_value",
-  "field_name_2": "extracted_value",
+  "field_name_2": "extracted_value", 
   "collection_name_1": [
     {{"property_1": "value", "property_2": "value"}},
     {{"property_1": "value", "property_2": "value"}}
   ]
 }}
 
+Ensure all extracted values are genuine content from the document.
 IMPORTANT: Only return the JSON object, no additional text.
 """
         
