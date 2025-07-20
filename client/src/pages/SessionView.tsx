@@ -1357,9 +1357,34 @@ Thank you for your assistance.`;
                 {Array.from({ length: maxRecordIndex + 1 }, (_, index) => {
                   const item = collectionData?.[index] || {};
                   
+                  // Try to get a meaningful name for this item
+                  const getItemDisplayName = (item: any, collection: any, index: number) => {
+                    // Look for common name fields
+                    const nameFields = ['name', 'Name', 'title', 'Title', 'companyName', 'Company Name'];
+                    for (const field of nameFields) {
+                      if (item[field] && typeof item[field] === 'string' && item[field].trim()) {
+                        return item[field].trim();
+                      }
+                    }
+                    
+                    // Look for any property that's marked as a name field
+                    const nameProperty = collection.properties.find((p: any) => 
+                      p.propertyName.toLowerCase().includes('name') || 
+                      p.propertyName.toLowerCase().includes('title')
+                    );
+                    if (nameProperty && item[nameProperty.propertyName]) {
+                      return item[nameProperty.propertyName];
+                    }
+                    
+                    // Fall back to generic "Item X"
+                    return `Item ${index + 1}`;
+                  };
+                  
+                  const itemDisplayName = getItemDisplayName(item, collection, index);
+                  
                   return (
                     <div key={index} className="mb-6 p-4 bg-gray-50 rounded-lg w-full overflow-hidden">
-                      <h4 className="font-medium mb-4">Item {index + 1}</h4>
+                      <h4 className="font-medium mb-4">{itemDisplayName}</h4>
                       <div className="space-y-4">
                         {collection.properties
                           .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
