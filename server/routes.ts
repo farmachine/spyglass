@@ -1174,6 +1174,7 @@ except Exception as e:
             }
           }
           
+          // Process explicit validations first
           for (const validation of validationsToProcess) {
                 // Extract record index from field name if present
                 const fieldName = validation.field_name;
@@ -1254,6 +1255,72 @@ except Exception as e:
                   });
                 }
             }
+          
+          // Create validation records for ALL aggregated extracted data that doesn't already have validations
+          if (result.aggregated_extraction && result.aggregated_extraction.extracted_data) {
+            const extractedData = result.aggregated_extraction.extracted_data;
+            const project = await storage.getProject(session.projectId);
+            const collections = await storage.getCollections(session.projectId);
+            
+            console.log(`Creating validation records for aggregated data with ${JSON.stringify(Object.keys(extractedData))} fields`);
+            
+            // Process each collection in extracted data
+            for (const collectionName of Object.keys(extractedData)) {
+              const collectionData = extractedData[collectionName];
+              
+              if (Array.isArray(collectionData)) {
+                // Find the collection schema
+                const collection = collections.find(c => c.collectionName === collectionName);
+                if (collection) {
+                  const properties = await storage.getCollectionProperties(collection.id);
+                  
+                  // Create validations for each item in the collection
+                  for (let itemIndex = 0; itemIndex < collectionData.length; itemIndex++) {
+                    const itemData = collectionData[itemIndex];
+                    
+                    // Create validation for each property
+                    for (const property of properties) {
+                      const fieldName = `${collectionName}.${property.propertyName}[${itemIndex}]`;
+                      
+                      // Check if validation already exists
+                      const existingValidation = existingValidations.find(v => v.fieldName === fieldName);
+                      if (!existingValidation) {
+                        // Get extracted value from item data
+                        const extractedValue = itemData[property.propertyName] || 
+                                             itemData[property.propertyName.toLowerCase()] ||
+                                             itemData[property.propertyName[0].toLowerCase() + property.propertyName.slice(1)];
+                        
+                        // Determine validation status and confidence
+                        const hasValue = extractedValue && extractedValue !== "" && extractedValue !== null;
+                        const confidenceScore = hasValue ? 0.95 : 0.0;
+                        const validationStatus = "pending";
+                        
+                        // Create the validation record
+                        await storage.createFieldValidation({
+                          sessionId,
+                          fieldType: 'collection_property',
+                          fieldId: property.id,
+                          fieldName: fieldName,
+                          collectionName: collectionName,
+                          recordIndex: itemIndex,
+                          extractedValue: extractedValue || null,
+                          originalExtractedValue: extractedValue || null,
+                          originalConfidenceScore: confidenceScore,
+                          originalAiReasoning: `Extracted from aggregated multi-document data for ${collectionName} item ${itemIndex + 1}`,
+                          validationStatus: validationStatus,
+                          aiReasoning: `Extracted from aggregated multi-document data for ${collectionName} item ${itemIndex + 1}`,
+                          manuallyVerified: false,
+                          confidenceScore: confidenceScore
+                        });
+                        
+                        console.log(`Created validation record for ${fieldName} = ${extractedValue}`);
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
           
           res.json(result);
         } catch (parseError: any) {
