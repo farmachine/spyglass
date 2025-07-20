@@ -840,8 +840,15 @@ def extract_data_from_document(
                             }
         
         # Perform batch AI validation for all fields at once
-        logging.info(f"BATCH_VALIDATION: Processing {len(fields_to_validate)} fields in single AI call")
-        validation_results = ai_validate_batch(fields_to_validate, extraction_rules, knowledge_documents)
+        logging.info(f"🚀 BATCH_VALIDATION: About to process {len(fields_to_validate)} fields in single AI call")
+        logging.info(f"🚀 BATCH_VALIDATION: Fields collected: {[f['field_name'] for f in fields_to_validate[:5]]}...")
+        
+        if len(fields_to_validate) == 0:
+            logging.warning("🚀 BATCH_VALIDATION: No fields to validate - skipping batch validation")
+            validation_results = {}
+        else:
+            validation_results = ai_validate_batch(fields_to_validate, extraction_rules, knowledge_documents)
+            logging.info(f"🚀 BATCH_VALIDATION: Received {len(validation_results)} validation results")
         
         # Create validation records from batch results
         for field_name, metadata in field_metadata.items():
