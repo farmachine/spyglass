@@ -748,6 +748,7 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
     
     logging.info(f"🔧 STEP 3: Creating comprehensive validation records for ALL schema fields")
     logging.info(f"📊 Starting with {len(existing_validations)} existing validations")
+    logging.info(f"🔍 Existing field names: {sorted(list(existing_field_names))}")
     
     # Process schema fields (non-collection fields)
     if project_schema.get("schema_fields"):
@@ -826,10 +827,12 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
                     prop_type = prop.get("propertyType", "TEXT")
                     field_name_with_index = f"{collection_name}.{prop_name}[{record_index}]"
                     
-                    # Skip if validation already exists
+                    # Skip if validation already exists for this exact field name with index
                     if field_name_with_index in existing_field_names:
-                        logging.info(f"✅ Collection validation exists: {field_name_with_index}")
+                        logging.info(f"⏭️ Skipping existing validation: {field_name_with_index}")
                         continue
+                    
+                    logging.info(f"🔨 Creating NEW validation: {field_name_with_index}")
                     
                     # Find extracted value using the same logic as individual processing
                     extracted_value = None
