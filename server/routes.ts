@@ -1911,9 +1911,23 @@ print(json.dumps(results))
         return res.status(404).json({ message: "Project not found" });
       }
 
+      // Get request body with files data from frontend
+      const requestBody = req.body;
+      console.log(`🚀 CONSOLIDATED_EXTRACTION: Request body keys:`, Object.keys(requestBody || {}));
+      
+      // Extract files data from request
+      const filesData = requestBody?.files || [];
+      console.log(`🚀 CONSOLIDATED_EXTRACTION: Processing ${filesData.length} files`);
+
       // Build session data for Python extraction
       const sessionData = {
         session_id: sessionId,
+        files: filesData.map(file => ({
+          name: file.name,
+          content: file.content,
+          type: file.type,
+          size: file.size
+        })),
         project_schema: {
           fields: schemaFields.map(field => ({
             id: field.id,
@@ -1925,6 +1939,7 @@ print(json.dumps(results))
             orderIndex: field.orderIndex
           })),
           collections: collections.map(collection => ({
+            id: collection.id,
             collectionName: collection.collectionName,
             properties: collection.properties.map(prop => ({
               id: prop.id,
