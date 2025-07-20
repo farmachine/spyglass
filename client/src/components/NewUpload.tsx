@@ -282,16 +282,10 @@ export default function NewUpload({ project }: NewUploadProps) {
         })
       );
 
-      // Start extraction with progress simulation
-      const extractionPromise = processExtraction.mutateAsync({
-        sessionId: session.id,
-        files: filesData,
-        project_data: {
-          ...project,
-          schemaFields: projectSchema,
-          collections: collectionsWithProperties,
-          extractionRules: projectRules
-        }
+      // Start CONSOLIDATED extraction - NEW ARCHITECTURE
+      console.log(`🚀 CONSOLIDATED_FRONTEND: Starting consolidated extraction for session ${session.id}`);
+      const extractionPromise = apiRequest(`/api/sessions/${session.id}/extract-consolidated`, {
+        method: 'POST'
       });
 
       // Simulate extraction progress
@@ -302,35 +296,31 @@ export default function NewUpload({ project }: NewUploadProps) {
         });
       }, 300);
 
-      // Wait for extraction to complete
-      const extractionResult = await extractionPromise;
+      // Wait for CONSOLIDATED extraction to complete
+      const extractionResponse = await extractionPromise;
+      const extractionResult = await extractionResponse.json();
       clearInterval(progressInterval);
       setProcessingProgress(100);
+      
+      console.log(`🚀 CONSOLIDATED_FRONTEND: Extraction completed - ${extractionResult.schema_fields_updated} fields, ${extractionResult.collection_instances_created} collection instances`);
 
-      // Step 4: Validation Phase - Run actual batch validation
+      // Step 4: Validation Phase - CONSOLIDATED APPROACH INCLUDES VALIDATION
       setProcessingStep('validating');
       setProcessingProgress(0);
 
-      try {
-        // Start batch validation progress simulation
-        const validationProgressInterval = setInterval(() => {
-          setProcessingProgress(prev => Math.min(prev + 15, 90));
-        }, 500);
+      // CONSOLIDATED APPROACH: Validation data is already created during extraction
+      // No separate batch validation needed - all validation records are created directly in field/collection records
+      const validationProgressInterval = setInterval(() => {
+        setProcessingProgress(prev => Math.min(prev + 20, 100));
+      }, 200);
 
-        // Call actual batch validation API
-        const batchValidationResult = await apiRequest(`/api/sessions/${session.id}/batch-validate`, {
-          method: 'POST'
-        });
-
-        clearInterval(validationProgressInterval);
-        setProcessingProgress(100);
-        
-        console.log(`✅ Batch validation completed during processing: ${batchValidationResult.fields_processed} fields processed`);
-      } catch (error) {
-        console.error('Batch validation failed during processing:', error);
-        // Continue processing even if validation fails - user can manually run validation later
-        setProcessingProgress(100);
-      }
+      // Brief delay to show validation step (data is already processed)
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      clearInterval(validationProgressInterval);
+      setProcessingProgress(100);
+      
+      console.log(`✅ CONSOLIDATED validation completed: ${extractionResult.total_records} validation records created directly in field structure`);
 
       // Step 5: Complete
       setProcessingStep('complete');

@@ -145,7 +145,7 @@ export interface IStorage {
   createFieldValidation(validation: InsertFieldValidation): Promise<FieldValidation>;
   updateFieldValidation(id: string, validation: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined>;
   deleteFieldValidation(id: string): Promise<boolean>;
-  getSessionWithValidations(sessionId: string): Promise<ExtractionSessionWithValidation | undefined>;
+  getExtractionSessionWithValidations(sessionId: string): Promise<ExtractionSessionWithValidation | undefined>;
 
   // Project Publishing
   getProjectPublishing(projectId: string): Promise<ProjectPublishing[]>;
@@ -1185,7 +1185,7 @@ export class MemStorage implements IStorage {
     return this.fieldValidations.delete(numId);
   }
 
-  async getSessionWithValidations(sessionId: number): Promise<ExtractionSessionWithValidation | undefined> {
+  async getExtractionSessionWithValidations(sessionId: number): Promise<ExtractionSessionWithValidation | undefined> {
     const session = this.extractionSessions.get(sessionId);
     if (!session) return undefined;
 
@@ -2066,7 +2066,7 @@ class PostgreSQLStorage implements IStorage {
     const result = await this.db.delete(fieldValidations).where(eq(fieldValidations.id, id));
     return result.rowCount > 0;
   }
-  async getSessionWithValidations(sessionId: string): Promise<ExtractionSessionWithValidation | undefined> { 
+  async getExtractionSessionWithValidations(sessionId: string): Promise<ExtractionSessionWithValidation | undefined> { 
     const session = await this.getExtractionSession(sessionId);
     if (!session) return undefined;
     

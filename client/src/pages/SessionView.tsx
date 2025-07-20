@@ -262,17 +262,18 @@ export default function SessionView() {
   });
 
   const { data: validations = [] } = useQuery<FieldValidation[]>({
-    queryKey: ['/api/sessions', sessionId, 'validations'],
-    queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`),
+    queryKey: ['/api/sessions', sessionId, 'validations-consolidated'],
+    queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations-consolidated`),
     onSuccess: (data) => {
-      console.log(`FRONTEND RECEIVED: Session ${sessionId} - Validations loaded:`, data.length);
-      console.log(`FRONTEND RAW DATA:`, data);
+      console.log(`🚀 CONSOLIDATED_FRONTEND: Session ${sessionId} - Consolidated validations loaded:`, data.length);
+      console.log(`🚀 CONSOLIDATED_FRONTEND RAW DATA:`, data);
       if (data.length > 0) {
-        console.log('Sample validation:', data[0]);
-        console.log('All field names:', data.map(v => v.fieldName));
-        console.log('First few collection validations:', data.filter(v => v.fieldName.includes('[')).slice(0, 5));
+        console.log('🚀 Sample consolidated validation:', data[0]);
+        console.log('🚀 All field names:', data.map(v => v.fieldName));
+        console.log('🚀 Schema fields:', data.filter(v => v.fieldType === 'schema_field').length);
+        console.log('🚀 Collection properties:', data.filter(v => v.fieldType === 'collection_property').length);
       } else {
-        console.log('FRONTEND ERROR: No validations received despite backend confirmation');
+        console.log('🚀 CONSOLIDATED_FRONTEND: No consolidated validations received');
       }
     }
   });

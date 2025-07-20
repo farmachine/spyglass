@@ -1478,6 +1478,88 @@ except Exception as e:
     }
   });
 
+  // CONSOLIDATED Field Validations - fetches from field records directly
+  app.get("/api/sessions/:sessionId/validations-consolidated", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      console.log(`🚀 CONSOLIDATED_VALIDATIONS: Fetching consolidated validations for session ${sessionId}`);
+      
+      // Get session to find project
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      
+      const projectId = session.projectId;
+      
+      // Get schema fields and collections with validation data for this session
+      const [schemaFields, collections] = await Promise.all([
+        storage.getProjectSchemaFields(projectId),
+        storage.getObjectCollections(projectId)
+      ]);
+      
+      const consolidatedValidations = [];
+      
+      // Add schema field validations
+      for (const field of schemaFields) {
+        if (field.sessionId === sessionId && field.extractedValue !== undefined) {
+          consolidatedValidations.push({
+            id: field.id,
+            sessionId: sessionId,
+            fieldType: 'schema_field',
+            fieldId: field.id,
+            fieldName: field.fieldName,
+            extractedValue: field.extractedValue,
+            originalExtractedValue: field.originalExtractedValue,
+            confidenceScore: field.confidenceScore,
+            originalConfidenceScore: field.originalConfidenceScore,
+            validationStatus: field.validationStatus,
+            aiReasoning: field.aiReasoning,
+            originalAiReasoning: field.originalAiReasoning,
+            manuallyVerified: field.manuallyVerified,
+            createdAt: field.createdAt,
+            updatedAt: field.createdAt
+          });
+        }
+      }
+      
+      // Add collection property validations
+      for (const collection of collections) {
+        const collectionProperties = await storage.getCollectionProperties(collection.id);
+        for (const property of collectionProperties) {
+          if (property.sessionId === sessionId && property.extractedValue !== undefined) {
+            consolidatedValidations.push({
+              id: property.id,
+              sessionId: sessionId,
+              fieldType: 'collection_property',
+              fieldId: property.id,
+              fieldName: `${property.collectionName}.${property.propertyName}[${property.recordIndex}]`,
+              collectionName: property.collectionName,
+              recordIndex: property.recordIndex,
+              extractedValue: property.extractedValue,
+              originalExtractedValue: property.originalExtractedValue,
+              confidenceScore: property.confidenceScore,
+              originalConfidenceScore: property.originalConfidenceScore,
+              validationStatus: property.validationStatus,
+              aiReasoning: property.aiReasoning,
+              originalAiReasoning: property.originalAiReasoning,
+              manuallyVerified: property.manuallyVerified,
+              createdAt: property.createdAt,
+              updatedAt: property.createdAt
+            });
+          }
+        }
+      }
+      
+      console.log(`🚀 CONSOLIDATED_VALIDATIONS: Found ${consolidatedValidations.length} validations (${consolidatedValidations.filter(v => v.fieldType === 'schema_field').length} schema fields, ${consolidatedValidations.filter(v => v.fieldType === 'collection_property').length} collection properties)`);
+      
+      res.json(consolidatedValidations);
+    } catch (error) {
+      console.error("🚀 CONSOLIDATED_VALIDATIONS: Error fetching consolidated validations:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.post("/api/sessions/:sessionId/validations", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
@@ -1532,7 +1614,7 @@ except Exception as e:
   app.get("/api/sessions/:sessionId/with-validations", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
-      const session = await storage.getSessionWithValidations(sessionId);
+      const session = await storage.getExtractionSessionWithValidations(sessionId);
       if (!session) {
         return res.status(404).json({ message: "Session not found" });
       }
@@ -1716,7 +1798,7 @@ print(json.dumps(results))
       console.log(`🧪 TEST_CONSOLIDATED: Starting test for session ${sessionId}`);
       
       // Get session and project data
-      const session = await storage.getSession(sessionId);
+      const session = await storage.getExtractionSession(sessionId);
       if (!session) {
         return res.status(404).json({ message: "Session not found" });
       }
@@ -1804,13 +1886,189 @@ print(json.dumps(results))
     }
   });
 
+  // Consolidated AI Extraction endpoint - NEW ARCHITECTURE
+  app.post("/api/sessions/:sessionId/extract-consolidated", async (req, res) => {
+    const sessionId = req.params.sessionId;
+    console.log(`🚀 CONSOLIDATED_EXTRACTION: Starting extraction for session ${sessionId}`);
+
+    try {
+      // Get session and project data
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      const projectId = session.projectId;
+      const [project, schemaFields, collections, extractionRules, knowledgeDocuments] = await Promise.all([
+        storage.getProject(projectId),
+        storage.getProjectSchemaFields(projectId),
+        storage.getObjectCollections(projectId),
+        storage.getExtractionRules(projectId),
+        storage.getKnowledgeDocuments(projectId)
+      ]);
+
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      // Build session data for Python extraction
+      const sessionData = {
+        session_id: sessionId,
+        project_schema: {
+          fields: schemaFields.map(field => ({
+            id: field.id,
+            fieldName: field.fieldName,
+            fieldType: field.fieldType,
+            projectId: field.projectId,
+            description: field.description,
+            autoVerificationConfidence: field.autoVerificationConfidence,
+            orderIndex: field.orderIndex
+          })),
+          collections: collections.map(collection => ({
+            collectionName: collection.collectionName,
+            properties: collection.properties.map(prop => ({
+              id: prop.id,
+              collectionId: collection.id,
+              propertyName: prop.propertyName,
+              propertyType: prop.propertyType,
+              description: prop.description,
+              autoVerificationConfidence: prop.autoVerificationConfidence,
+              orderIndex: prop.orderIndex
+            }))
+          }))
+        },
+        extraction_rules: extractionRules,
+        knowledge_documents: knowledgeDocuments
+      };
+
+      console.log(`🚀 CONSOLIDATED_EXTRACTION: Processing ${schemaFields.length} schema fields and ${collections.length} collections`);
+
+      // Run consolidated AI extraction
+      const python = spawn('python3', ['ai_extraction_consolidated.py'], {
+        stdio: 'pipe'
+      });
+
+      let pythonOutput = '';
+      let pythonError = '';
+
+      python.stdout.on('data', (data) => {
+        pythonOutput += data.toString();
+      });
+
+      python.stderr.on('data', (data) => {
+        pythonError += data.toString();
+      });
+
+      python.on('close', async (code) => {
+        if (code !== 0) {
+          console.error(`🚀 CONSOLIDATED_EXTRACTION: Python extraction failed with code ${code}`);
+          console.error(`🚀 CONSOLIDATED_EXTRACTION: Error: ${pythonError}`);
+          return res.status(500).json({ 
+            message: "Consolidated AI extraction failed", 
+            error: pythonError,
+            code: code
+          });
+        }
+
+        try {
+          const results = JSON.parse(pythonOutput);
+          console.log(`🚀 CONSOLIDATED_EXTRACTION: AI extracted ${results.total_records} validation records`);
+          
+          // Store validation records using the consolidated approach
+          const validationRecords = results.validation_records;
+          let schemaFieldsUpdated = 0;
+          let collectionInstancesCreated = 0;
+          
+          // Update schema fields with validation data
+          const schemaFieldRecords = validationRecords.filter(record => record.record_type === 'schema_field');
+          for (const field of schemaFieldRecords) {
+            await storage.updateProjectSchemaFieldValidation(field.id, {
+              sessionId: sessionId,
+              extractedValue: field.extractedValue,
+              originalExtractedValue: field.originalExtractedValue,
+              confidenceScore: field.confidenceScore,
+              originalConfidenceScore: field.originalConfidenceScore,
+              validationStatus: field.validationStatus,
+              aiReasoning: field.aiReasoning,
+              originalAiReasoning: field.originalAiReasoning,
+              manuallyVerified: field.manuallyVerified
+            });
+            schemaFieldsUpdated++;
+          }
+          
+          // Create collection property instances with validation data
+          const collectionPropertyRecords = validationRecords.filter(record => record.record_type === 'collection_property');
+          for (const property of collectionPropertyRecords) {
+            await storage.createCollectionPropertyInstance({
+              id: crypto.randomUUID(),
+              collectionId: property.collectionId,
+              sessionId: sessionId,
+              propertyName: property.propertyName,
+              propertyType: property.propertyType,
+              description: property.description,
+              autoVerificationConfidence: property.autoVerificationConfidence,
+              orderIndex: property.orderIndex,
+              recordIndex: property.recordIndex,
+              extractedValue: property.extractedValue,
+              originalExtractedValue: property.originalExtractedValue,
+              confidenceScore: property.confidenceScore,
+              originalConfidenceScore: property.originalConfidenceScore,
+              validationStatus: property.validationStatus,
+              aiReasoning: property.aiReasoning,
+              originalAiReasoning: property.originalAiReasoning,
+              manuallyVerified: property.manuallyVerified,
+              collectionName: property.collection_name
+            });
+            collectionInstancesCreated++;
+          }
+          
+          // Update session status
+          await storage.updateSession(sessionId, {
+            status: 'completed'
+          });
+          
+          console.log(`🚀 CONSOLIDATED_EXTRACTION: Updated ${schemaFieldsUpdated} schema fields, created ${collectionInstancesCreated} collection instances`);
+          
+          res.json({
+            success: true,
+            session_id: sessionId,
+            total_records: results.total_records,
+            schema_fields_updated: schemaFieldsUpdated,
+            collection_instances_created: collectionInstancesCreated,
+            message: "✅ CONSOLIDATED EXTRACTION COMPLETE - Validation data stored directly in field records"
+          });
+          
+        } catch (parseError) {
+          console.error(`🚀 CONSOLIDATED_EXTRACTION: Failed to parse results: ${parseError}`);
+          console.error(`🚀 CONSOLIDATED_EXTRACTION: Raw output: ${pythonOutput}`);
+          res.status(500).json({
+            message: "Failed to parse consolidated extraction results",
+            error: parseError.message,
+            output: pythonOutput
+          });
+        }
+      });
+
+      // Send session data to Python process
+      python.stdin.write(JSON.stringify(sessionData));
+      python.stdin.end();
+
+    } catch (error) {
+      console.error("🚀 CONSOLIDATED_EXTRACTION: API error:", error);
+      res.status(500).json({ 
+        message: "Failed to run consolidated extraction", 
+        error: error.message 
+      });
+    }
+  });
+
   app.post("/api/sessions/:sessionId/recalculate-validations", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
       console.log(`DEBUG: Recalculating validations for session ${sessionId}`);
       
       // Get session project ID
-      const session = await storage.getSession(sessionId);
+      const session = await storage.getExtractionSession(sessionId);
       if (!session) {
         return res.status(404).json({ message: "Session not found" });
       }
