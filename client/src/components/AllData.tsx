@@ -176,7 +176,7 @@ export default function AllData({ project }: AllDataProps) {
   return (
     <div>
       <div className="mb-8">
-        <h2 className="text-2xl font-semibold text-gray-900">All {project.mainObjectName || "Session"} Data</h2>
+        <h2 className="text-2xl font-semibold text-gray-900">{project.mainObjectName || "Session"} Extraction Sessions</h2>
         <p className="text-sm text-gray-600 mt-1">
           View extracted data and manage all extraction sessions for this project
         </p>
@@ -227,9 +227,6 @@ export default function AllData({ project }: AllDataProps) {
 
       {/* Sessions Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>{project.mainObjectName || "Session"} Extraction Sessions</CardTitle>
-        </CardHeader>
         <CardContent>
           {project.sessions.length === 0 ? (
             <div className="text-center py-8">
