@@ -1634,7 +1634,16 @@ print(json.dumps(results))
             const updatedValidations = validationResults.updated_validations || [];
             
             for (const validation of updatedValidations) {
-              const existingValidation = existingValidations.find(v => v.fieldName === validation.field_name);
+              // WORKAROUND: For schema fields, the validation record is stored with [1] suffix
+              // Try both original field name and shifted field name for schema fields
+              let existingValidation = existingValidations.find(v => v.fieldName === validation.field_name);
+              
+              // If not found and it's a schema field (no dots or brackets), try the shifted version
+              if (!existingValidation && !validation.field_name.includes('.') && !validation.field_name.includes('[')) {
+                const shiftedFieldName = `${validation.field_name}[1]`;
+                existingValidation = existingValidations.find(v => v.fieldName === shiftedFieldName);
+                console.log(`BATCH_VALIDATION_DEBUG - Schema field lookup: "${validation.field_name}" not found, trying shifted "${shiftedFieldName}" - ${existingValidation ? 'FOUND' : 'NOT FOUND'}`);
+              }
               
               if (existingValidation) {
                 // DEBUG: Log what batch validation is trying to update for first items
