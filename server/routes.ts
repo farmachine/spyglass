@@ -828,7 +828,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/dashboard/statistics", authenticateToken, async (req: AuthRequest, res) => {
     try {
       // Get all projects accessible to the user
-      const projects = await storage.getProjectsWithPublishedOrganizations(req.user!.id, req.user!.organizationId, req.user!.role);
+      const projects = await storage.getProjectsWithPublishedOrganizations(req.user!.organizationId, req.user!.role);
       console.log(`Dashboard statistics: User ${req.user!.email} (${req.user!.role}) from org ${req.user!.organizationId} has access to ${projects.length} projects`);
       
       // Filter only active projects

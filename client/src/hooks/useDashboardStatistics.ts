@@ -14,9 +14,9 @@ export function useDashboardStatistics() {
   const { user } = useAuth();
   
   return useQuery({
-    queryKey: ["/api/dashboard/statistics"],
+    queryKey: ["/api/dashboard/statistics", user?.id], // Add user ID to force refetch
     enabled: !!user, // Only run query when user is authenticated
-    staleTime: 30000, // Consider data stale after 30 seconds
+    staleTime: 0, // Force fresh data
     refetchOnMount: true,
     refetchOnWindowFocus: false,
   });
