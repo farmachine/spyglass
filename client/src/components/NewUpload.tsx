@@ -284,8 +284,26 @@ export default function NewUpload({ project }: NewUploadProps) {
 
       // Start CONSOLIDATED extraction - NEW ARCHITECTURE
       console.log(`🚀 CONSOLIDATED_FRONTEND: Starting consolidated extraction for session ${session.id}`);
+      
+      // Build extraction payload
+      const extractionPayload = {
+        files: filesData,
+        projectSchema: {
+          fields: projectSchema,
+          collections: collectionsWithProperties
+        },
+        extractionRules: projectRules,
+        knowledgeDocuments: knowledgeDocuments || []
+      };
+      
+      console.log(`🚀 CONSOLIDATED_FRONTEND: Extraction payload:`, extractionPayload);
+      
       const extractionPromise = apiRequest(`/api/sessions/${session.id}/extract-consolidated`, {
-        method: 'POST'
+        method: 'POST',
+        body: JSON.stringify(extractionPayload),
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
 
       // Simulate extraction progress
@@ -297,12 +315,12 @@ export default function NewUpload({ project }: NewUploadProps) {
       }, 300);
 
       // Wait for CONSOLIDATED extraction to complete
-      const extractionResponse = await extractionPromise;
-      const extractionResult = await extractionResponse.json();
+      const extractionResult = await extractionPromise;
       clearInterval(progressInterval);
       setProcessingProgress(100);
       
-      console.log(`🚀 CONSOLIDATED_FRONTEND: Extraction completed - ${extractionResult.schema_fields_updated} fields, ${extractionResult.collection_instances_created} collection instances`);
+      console.log(`🚀 CONSOLIDATED_FRONTEND: Extraction completed successfully`);
+      console.log(`🚀 CONSOLIDATED_FRONTEND: Response:`, extractionResult);
 
       // Step 4: Validation Phase - CONSOLIDATED APPROACH INCLUDES VALIDATION
       setProcessingStep('validating');
