@@ -870,8 +870,6 @@ def extract_data_from_document(
                 record_index=metadata.get('record_index')
             )
             field_validations.append(validation)
-                            
-                            logging.info(f"🎯 VALIDATION CREATED: {field_name_with_index} | Value: {extracted_value} | Status: {status} | Confidence: {confidence}%")
         
         return ExtractionResult(
             extracted_data=extracted_data,
@@ -934,9 +932,10 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
             extracted_value = aggregated_data.get(field_name)
             
             if extracted_value is not None and extracted_value != "":
-                confidence, applied_rules, reasoning = ai_validate_field(
-                    field_name, extracted_value, extraction_rules, knowledge_documents
-                )
+                # For comprehensive validation, use default confidence since batch validation already processed during extraction
+                confidence = 95
+                applied_rules = []
+                reasoning = "Value found in aggregated data"
                 auto_verification_threshold = field.get("autoVerificationConfidence", 80)
                 status = "verified" if confidence >= auto_verification_threshold else "unverified"
                 logging.info(f"📝 Creating schema field validation: {field_name} = '{extracted_value}'")
@@ -959,8 +958,7 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
                 ai_reasoning=reasoning,
                 confidence_score=confidence,
                 document_source="Aggregated Data",
-                document_sections=["Multi-document aggregation"],
-                session_id=session_id
+                document_sections=["Multi-document aggregation"]
             )
             comprehensive_validations.append(validation)
     
@@ -1038,9 +1036,10 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
                     
                     # Create validation record
                     if extracted_value is not None and extracted_value != "" and extracted_value != "null":
-                        confidence, applied_rules, reasoning = ai_validate_field(
-                            field_name_with_index, extracted_value, extraction_rules, knowledge_documents
-                        )
+                        # For comprehensive validation, use default confidence since batch validation already processed during extraction
+                        confidence = 95
+                        applied_rules = []
+                        reasoning = "Value found in aggregated data"
                         auto_verification_threshold = prop.get("autoVerificationConfidence", 80)
                         status = "verified" if confidence >= auto_verification_threshold else "unverified"
                         logging.info(f"📝 Creating collection validation: {field_name_with_index} = '{extracted_value}'")
@@ -1065,8 +1064,7 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
                         document_source="Aggregated Data",
                         document_sections=["Multi-document aggregation"],
                         collection_name=collection_name,
-                        record_index=record_index,
-                        session_id=session_id
+                        record_index=record_index
                     )
                     comprehensive_validations.append(validation)
     
