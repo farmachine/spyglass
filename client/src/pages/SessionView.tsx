@@ -252,6 +252,12 @@ export default function SessionView() {
     queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`)
   });
 
+  // Fetch project-level validations for statistics cards
+  const { data: projectValidations = [] } = useQuery<FieldValidation[]>({
+    queryKey: ['/api/validations/project', projectId],
+    enabled: !!projectId
+  });
+
   // Initialize collapse state once data is loaded
   useEffect(() => {
     if (project?.collections && validations && session && !hasInitializedCollapsed) {
@@ -1046,12 +1052,6 @@ Thank you for your assistance.`;
   const isPrimaryOrgAdmin = isAdmin && user?.organization?.type === 'primary';
   const canAccessConfigTabs = isAdmin;
   const canAccessPublishing = isPrimaryOrgAdmin;
-
-  // Fetch project-level validations for statistics cards
-  const { data: projectValidations = [] } = useQuery<FieldValidation[]>({
-    queryKey: ['/api/validations/project', projectId],
-    enabled: !!projectId
-  });
 
   // Calculate verification stats for statistics cards (same logic as ProjectLayout)
   const getVerificationStatusForProject = (sessionId: string): 'verified' | 'in_progress' | 'pending' => {
