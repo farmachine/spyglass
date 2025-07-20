@@ -690,12 +690,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let processedData = { ...result.data };
       
-      // Extract content from PDF files for knowledge documents
+      // Extract text content from PDFs and store as readable text
       if (result.data.fileType === 'pdf' && result.data.content) {
         try {
           console.log('DEBUG: Processing knowledge document PDF content extraction');
           
-          // Spawn Python script to extract text from PDF
+          // Use the simple PDF processing script for knowledge documents
+          const { spawn } = await import('child_process');
           const python = spawn('python3', ['test_pdf_processing.py'], {
             stdio: ['pipe', 'pipe', 'pipe']
           });
@@ -710,19 +711,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           await new Promise((resolve, reject) => {
             python.on('close', (code) => {
-              if (code === 0) {
-                console.log('DEBUG: Knowledge document PDF processing successful, extracted', extractedText.length, 'characters');
-                processedData.content = extractedText;
+              if (code === 0 && extractedText.trim()) {
+                processedData.content = extractedText.trim();
+                console.log('DEBUG: Knowledge document PDF processing successful, extracted', extractedText.length, 'characters of text');
                 resolve(extractedText);
               } else {
                 console.error('PDF processing failed with code:', code);
-                reject(new Error('PDF processing failed'));
+                // Set fallback content that explains the issue
+                processedData.content = "PDF content could not be extracted automatically. Please edit this knowledge document to add the text content manually.";
+                resolve("fallback");
               }
             });
           });
         } catch (pdfError) {
           console.error('PDF processing error:', pdfError);
-          // Continue with original content if PDF processing fails
+          processedData.content = "PDF content could not be extracted automatically. Please edit this knowledge document to add the text content manually.";
         }
       }
       
