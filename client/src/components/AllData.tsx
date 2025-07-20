@@ -175,54 +175,57 @@ export default function AllData({ project }: AllDataProps) {
 
   return (
     <div>
-      <div className="mb-8">
-        <h2 className="text-2xl font-semibold text-gray-900">{project.mainObjectName || "Session"} Extraction Sessions</h2>
-        <p className="text-sm text-gray-600 mt-1">
-          View extracted data and manage all extraction sessions for this project
-        </p>
-      </div>
-
-      {/* Sessions Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center">
-              <Database className="h-8 w-8 text-blue-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total {project.mainObjectName || "Session"}s</p>
-                <p className="text-2xl font-bold text-gray-900">{project.sessions.length}</p>
+      {/* Header with Statistics */}
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-semibold text-gray-900">{project.mainObjectName || "Session"} Extraction Sessions</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            View extracted data and manage all extraction sessions for this project
+          </p>
+        </div>
+        
+        {/* Compact Statistics Cards */}
+        <div className="flex gap-4">
+          <Card className="min-w-[120px]">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center">
+                <Database className="h-6 w-6 text-blue-600" />
+                <div className="ml-3">
+                  <p className="text-xs font-medium text-gray-600">Total {project.mainObjectName || "Session"}s</p>
+                  <p className="text-xl font-bold text-gray-900">{project.sessions.length}</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center">
-              <AlertTriangle className="h-8 w-8 text-red-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Unverified</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {verificationStats.in_progress + verificationStats.pending}
-                </p>
+          <Card className="min-w-[120px]">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center">
+                <AlertTriangle className="h-6 w-6 text-red-600" />
+                <div className="ml-3">
+                  <p className="text-xs font-medium text-gray-600">Unverified</p>
+                  <p className="text-xl font-bold text-gray-900">
+                    {verificationStats.in_progress + verificationStats.pending}
+                  </p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center">
-              <CheckCircle className="h-8 w-8 text-green-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Verified</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {verificationStats.verified}
-                </p>
+          <Card className="min-w-[120px]">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center">
+                <CheckCircle className="h-6 w-6 text-green-600" />
+                <div className="ml-3">
+                  <p className="text-xs font-medium text-gray-600">Verified</p>
+                  <p className="text-xl font-bold text-gray-900">
+                    {verificationStats.verified}
+                  </p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Sessions Table */}
