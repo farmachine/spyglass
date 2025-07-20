@@ -411,19 +411,18 @@ export default function DefineData({ project }: DefineDataProps) {
 
   return (
     <div className="space-y-6">
+      {/* Page Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Define Data</h1>
+      </div>
+
       {/* Main Object Name Card */}
       <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Tag className="h-5 w-5" />
-            Main Object Name
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <Label htmlFor="mainObjectName" className="text-sm font-medium">
-                What type of object are you extracting data from?
+                What type of data are you extracting?
               </Label>
               <p className="text-sm text-gray-600 mb-2">
                 This will replace "Session" throughout the interface (e.g. "Invoice", "Contract", "Report")
