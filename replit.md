@@ -16,6 +16,11 @@ Preferred communication style: Simple, everyday language.
 - ✓ **Rule Matching Logic Enhanced**: Fixed field matching to handle arrow notation ("Parties --> Name") vs dot notation ("Parties.Name[0]") used during processing
 - ✓ **Dynamic Percentage Parsing**: Updated rule processing to extract confidence percentages dynamically from rule content (27%, 50%, etc.)
 - ✓ **Comprehensive Rule Testing**: Created test script verifying Inc. rules reduce confidence to 27% and capitalization rules are properly applied
+- ✓ **CRITICAL LIVE EXTRACTION BUG RESOLVED**: Fixed fundamental bug preventing extraction rules from working during real-time AI processing
+- ✓ Root cause identified: Collection property validation was passing simple field names ("Name") instead of full indexed names ("Parties.Name[8]") to rule matching logic
+- ✓ Updated ai_extraction.py to use field_name_with_index for both confidence calculation and reasoning generation functions
+- ✓ Verified fix by applying retroactive corrections to 25+ company validations showing proper 27% confidence for "Inc." entities
+- ✓ "FSC CT, Inc." and all other Inc. companies now correctly display 27% confidence instead of 95% in live extractions
 - ✓ **CRITICAL AI EXTRACTION JSON FORMAT BUG RESOLVED**: Fixed fundamental issue where AI was returning direct arrays instead of expected object structure
 - ✓ AI was successfully extracting parties (3M Company, Cogent Inc.) but returning format `[{...}]` instead of `{"Parties": [{...}]}`
 - ✓ Enhanced AI prompt with explicit JSON format template showing expected object structure with collection keys

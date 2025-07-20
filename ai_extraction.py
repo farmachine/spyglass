@@ -576,7 +576,7 @@ def extract_data_from_document(
                             if extracted_value is not None and extracted_value != "":
                                 # Apply knowledge-based confidence calculation with extraction rules
                                 confidence, applied_rules = calculate_knowledge_based_confidence(
-                                    prop_name, extracted_value, 95, extraction_rules, knowledge_documents
+                                    field_name_with_index, extracted_value, 95, extraction_rules, knowledge_documents
                                 )
                                 
                                 # Use the property's specific auto verification confidence threshold
@@ -584,7 +584,7 @@ def extract_data_from_document(
                                 status = "verified" if confidence >= auto_verification_threshold else "unverified"
                                 
                                 # Generate human-friendly reasoning  
-                                reasoning = generate_human_friendly_reasoning(prop_name, extracted_value, applied_rules)
+                                reasoning = generate_human_friendly_reasoning(field_name_with_index, extracted_value, applied_rules)
                             else:
                                 confidence = 0
                                 status = "invalid"
