@@ -6,6 +6,7 @@ import os
 import logging
 import tempfile
 import base64
+import traceback
 from typing import Dict, Any, List
 from dataclasses import dataclass
 
@@ -1410,9 +1411,15 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
     total_aggregated_items = sum(len(v) if isinstance(v, list) else 1 for v in aggregated_data.values())
     
     # Create comprehensive validation records for all fields
-    comprehensive_validations = create_comprehensive_validation_records(aggregated_data, project_schema, [])
-    logging.info(f"🎯 FINAL VALIDATION COUNT: {len(comprehensive_validations)} comprehensive validation records created")
-    logging.info(f"🎯 FIELD_VALIDATIONS will be included in aggregated_extraction with {len(comprehensive_validations)} records")
+    try:
+        logging.info(f"🎯 STARTING comprehensive validation creation for aggregated_data with {len(aggregated_data)} fields")
+        comprehensive_validations = create_comprehensive_validation_records(aggregated_data, project_schema, [])
+        logging.info(f"🎯 FINAL VALIDATION COUNT: {len(comprehensive_validations)} comprehensive validation records created")
+        logging.info(f"🎯 FIELD_VALIDATIONS will be included in aggregated_extraction with {len(comprehensive_validations)} records")
+    except Exception as validation_error:
+        logging.error(f"❌ ERROR during comprehensive validation creation: {validation_error}")
+        logging.error(f"❌ ERROR traceback: {traceback.format_exc()}")
+        comprehensive_validations = []  # Fallback to empty list
     
     # Convert FieldValidationResult objects to dictionaries for JSON serialization
     serialized_validations = []
