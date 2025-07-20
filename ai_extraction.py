@@ -82,27 +82,150 @@ def generate_human_friendly_reasoning(field_name: str, extracted_value: Any, app
     
     return reasoning
 
-def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, base_confidence: float, extraction_rules: List[Dict[str, Any]] = None, knowledge_documents: List[Dict[str, Any]] = None) -> tuple[int, list]:
+def ai_validate_field(field_name: str, extracted_value: Any, extraction_rules: List[Dict[str, Any]] = None, knowledge_documents: List[Dict[str, Any]] = None) -> tuple[int, List[Dict[str, Any]], str]:
     """
-    Calculate confidence percentage based on knowledge base and rules compliance.
-    
-    Core Logic:
-    - If knowledge document conflicts exist → Set confidence to 50%
-    - If no rules/knowledge apply to a field AND value is extracted → Show 95% confidence (high default)
-    - If rules/knowledge apply → Calculate confidence based on compliance level (1-100%)
-    
-    Args:
-        field_name: Name of the field being validated
-        extracted_value: The extracted value
-        base_confidence: Base AI confidence from extraction
-        extraction_rules: List of extraction rules to apply
-        knowledge_documents: List of knowledge documents to check for conflicts
-    
-    Returns:
-        Tuple of (confidence_percentage, applied_rules_list)
+    Use AI to validate field values against extraction rules and knowledge documents.
+    Returns confidence percentage, applied rules, and AI reasoning.
     """
     if extracted_value is None or extracted_value == "" or extracted_value == "null":
-        return 0, []
+        return 0, [], "No value extracted"
+    
+    logging.info(f"AI_VALIDATE: Validating field '{field_name}' with value '{extracted_value}'")
+    
+    try:
+        # Check for API key
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            logging.warning("GEMINI_API_KEY not found, falling back to rule-based validation")
+            return calculate_knowledge_based_confidence_fallback(field_name, extracted_value, 95.0, extraction_rules, knowledge_documents)
+        
+        # Import Google AI modules
+        from google import genai
+        from google.genai import types
+        import json
+        
+        client = genai.Client(api_key=api_key)
+        
+        # Build validation context
+        validation_context = {
+            "field_name": field_name,
+            "extracted_value": str(extracted_value),
+            "field_type": field_name.split('.')[-1] if '.' in field_name else field_name
+        }
+        
+        # Add extraction rules context
+        rules_context = ""
+        if extraction_rules:
+            applicable_rules = []
+            for rule in extraction_rules:
+                if rule.get("isActive", True):
+                    target_field = rule.get("targetField", "")
+                    # Check if rule applies to current field
+                    target_fields = [f.strip() for f in target_field.split(',')]
+                    for target in target_fields:
+                        normalized_target = target.replace(' --> ', '.').replace('-->', '.')
+                        if (field_name == normalized_target or 
+                            field_name.startswith(normalized_target + '[') or
+                            normalized_target in field_name):
+                            applicable_rules.append(rule)
+                            break
+            
+            if applicable_rules:
+                rules_context = "EXTRACTION RULES TO APPLY:\n"
+                for rule in applicable_rules:
+                    rules_context += f"- Rule: {rule.get('ruleName', 'Unknown')}\n"
+                    rules_context += f"  Content: {rule.get('ruleContent', '')}\n"
+                    rules_context += f"  Target: {rule.get('targetField', '')}\n\n"
+        
+        # Add knowledge documents context
+        knowledge_context = ""
+        if knowledge_documents:
+            knowledge_context = "KNOWLEDGE DOCUMENTS FOR REFERENCE:\n"
+            for doc in knowledge_documents:
+                doc_name = doc.get('displayName', doc.get('fileName', 'Unknown'))
+                content = doc.get('content', '')
+                if content:
+                    # Include relevant excerpts (first 1000 chars)
+                    knowledge_context += f"- Document: {doc_name}\n"
+                    knowledge_context += f"  Content excerpt: {content[:1000]}...\n\n"
+        
+        # Create AI validation prompt
+        validation_prompt = f"""You are an intelligent validation system for document data extraction. Your task is to validate extracted field values against business rules and policy documents.
+
+FIELD TO VALIDATE:
+- Field Name: {field_name}
+- Extracted Value: {extracted_value}
+
+{rules_context}
+
+{knowledge_context}
+
+VALIDATION TASK:
+1. Analyze the extracted value against the extraction rules and knowledge documents
+2. Determine if any conflicts exist or special handling is required
+3. Calculate an appropriate confidence percentage (1-100%)
+4. Provide a brief explanation of your reasoning
+
+CONFIDENCE GUIDELINES:
+- 95-100%: High confidence, no conflicts, value meets all requirements
+- 80-94%: Good confidence, minor concerns or formatting issues
+- 50-79%: Medium confidence, some rule violations or policy conflicts
+- 25-49%: Low confidence, significant issues or conflicts
+- 1-24%: Very low confidence, major problems or policy violations
+- 50%: Standard confidence for knowledge document policy conflicts
+
+RESPONSE FORMAT:
+Return a JSON object with exactly this structure:
+{{
+    "confidence_percentage": <integer 1-100>,
+    "applied_rules": [
+        {{
+            "name": "<rule or policy name>",
+            "action": "<description of what was applied or found>"
+        }}
+    ],
+    "reasoning": "<brief explanation of validation decision>"
+}}
+
+Important: Be precise and consider context. For example, if a company name contains 'Inc.' and there's a rule about corporate entity ambiguity, apply the appropriate confidence level. If a country value conflicts with jurisdiction requirements in policy documents, flag it appropriately."""
+
+        logging.info(f"AI_VALIDATE: Sending validation request to AI for field '{field_name}'")
+        
+        # Make AI request
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[types.Content(role="user", parts=[types.Part(text=validation_prompt)])],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                max_output_tokens=1024,
+                temperature=0.1  # Low temperature for consistent validation
+            )
+        )
+        
+        if response.text:
+            result = json.loads(response.text)
+            confidence = result.get("confidence_percentage", 95)
+            applied_rules = result.get("applied_rules", [])
+            reasoning = result.get("reasoning", "AI validation completed")
+            
+            logging.info(f"AI_VALIDATE: Field '{field_name}' validated with {confidence}% confidence")
+            logging.info(f"AI_VALIDATE: Applied rules: {applied_rules}")
+            
+            return confidence, applied_rules, reasoning
+        else:
+            logging.warning("AI_VALIDATE: No response from AI, falling back to rule-based validation")
+            return calculate_knowledge_based_confidence_fallback(field_name, extracted_value, 95.0, extraction_rules, knowledge_documents)
+            
+    except Exception as e:
+        logging.error(f"AI_VALIDATE: Error during AI validation: {e}")
+        return calculate_knowledge_based_confidence_fallback(field_name, extracted_value, 95.0, extraction_rules, knowledge_documents)
+
+def calculate_knowledge_based_confidence_fallback(field_name: str, extracted_value: Any, base_confidence: float, extraction_rules: List[Dict[str, Any]] = None, knowledge_documents: List[Dict[str, Any]] = None) -> tuple[int, List[Dict[str, Any]], str]:
+    """
+    Fallback rule-based validation when AI is not available.
+    """
+    if extracted_value is None or extracted_value == "" or extracted_value == "null":
+        return 0, [], "No value extracted"
     
     # Check for knowledge document conflicts first
     has_conflict, conflicting_sections = check_knowledge_document_conflicts(field_name, extracted_value, knowledge_documents)
@@ -110,58 +233,43 @@ def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, 
         return 50, [{
             'name': 'Knowledge Document Conflict',
             'action': f"Set confidence to 50% due to conflicts found in knowledge documents: {'; '.join(conflicting_sections[:2])}"
-        }]
+        }], "Knowledge document conflict detected"
     
     # Base confidence calculation - use a high default confidence (95%) for field-level validation
-    confidence_percentage = 95  # Default high confidence for extracted fields
+    confidence_percentage = 95
     applied_rules = []
     
     # Apply extraction rules if available
     if extraction_rules:
-        logging.info(f"Applying extraction rules for field '{field_name}' with value '{extracted_value}'")
-        logging.info(f"Available extraction rules: {extraction_rules}")
         for rule in extraction_rules:
             rule_name = rule.get("ruleName", "")
             target_field = rule.get("targetField", "")
             rule_content = rule.get("ruleContent", "")
             is_active = rule.get("isActive", True)
             
-            logging.info(f"Checking rule: {rule_name} - Target: {target_field}, Active: {is_active}")
-            logging.info(f"Rule content: {rule_content}")
-            
-            # Skip inactive rules
             if not is_active:
                 continue
                 
             # Check if this rule applies to the current field
-            # Handle multiple target fields separated by commas and convert arrow notation to dot notation
             target_fields = [f.strip() for f in target_field.split(',')]
             field_matches = False
             
             for target in target_fields:
                 target = target.strip()
-                # Convert arrow notation to dot notation for comparison
-                # "Parties --> Name" becomes "Parties.Name"
                 normalized_target = target.replace(' --> ', '.').replace('-->', '.')
                 
-                # Check various matching patterns:
-                # 1. Exact match: "Parties.Name" matches "Parties.Name[0]"
-                # 2. Base match: "Parties.Name" matches field that starts with "Parties.Name"
-                # 3. Collection property match: handle array indices like [0], [1], etc.
                 if (field_name == normalized_target or 
                     field_name.startswith(normalized_target + '[') or
                     field_name.startswith(normalized_target + '.') or
                     normalized_target in field_name):
                     field_matches = True
-                    logging.info(f"Rule target '{target}' (normalized: '{normalized_target}') matches field '{field_name}'")
                     break
             
             if field_matches:
                 rule_content_lower = rule_content.lower()
                 
-                # Check for Inc. confidence rule - parse percentage from rule content
+                # Check for Inc. confidence rule
                 if "inc" in rule_content_lower and "confidence" in rule_content_lower:
-                    # Extract percentage from rule content (e.g., "27%", "50%", etc.)
                     import re
                     percentage_match = re.search(r'(\d+)%', rule_content_lower)
                     if percentage_match and isinstance(extracted_value, str) and "inc" in extracted_value.lower():
@@ -169,26 +277,11 @@ def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, 
                         confidence_percentage = target_confidence
                         applied_rules.append({
                             'name': rule_name,
-                            'action': f"Set confidence to {target_confidence}% due to 'Inc' in company name - indicates potential entity ambiguity"
+                            'action': f"Set confidence to {target_confidence}% due to 'Inc' in company name"
                         })
-                        logging.info(f"Applied rule '{rule_name}': Set confidence to {target_confidence}% because value contains 'Inc'")
                         continue
-                    else:
-                        logging.info(f"Inc. rule '{rule_name}' not applied - value '{extracted_value}' does not contain 'Inc' or no percentage found")
-                        continue
-                
-                # Check for capitalization rules
-                if "capital" in rule_content_lower and isinstance(extracted_value, str):
-                    # Apply capitalization but keep the same confidence percentage
-                    logging.info(f"Applied rule '{rule_name}': Capitalization rule noted for value '{extracted_value}'")
-                    applied_rules.append({
-                        'name': rule_name,
-                        'action': f"Capitalization formatting applied to extracted value"
-                    })
-                    # Note: Actual capitalization would be handled in the UI/display layer
-                    continue
     
-    return confidence_percentage, applied_rules
+    return confidence_percentage, applied_rules, "Rule-based validation completed"
 
 def check_knowledge_document_conflicts(field_name: str, extracted_value: Any, knowledge_documents: List[Dict[str, Any]] = None) -> tuple[bool, List[str]]:
     """
@@ -611,17 +704,14 @@ def extract_data_from_document(
                     continue
                 
                 if extracted_value is not None and extracted_value != "":
-                    # Apply knowledge-based confidence calculation with extraction rules
-                    confidence, applied_rules = calculate_knowledge_based_confidence(
-                        field_name, extracted_value, 95, extraction_rules, knowledge_documents
+                    # Apply AI-powered validation with extraction rules and knowledge documents
+                    confidence, applied_rules, reasoning = ai_validate_field(
+                        field_name, extracted_value, extraction_rules, knowledge_documents
                     )
                     
                     # Use the field's specific auto verification confidence threshold
                     auto_verification_threshold = field.get("autoVerificationConfidence", 80)
                     status = "verified" if confidence >= auto_verification_threshold else "unverified"
-                    
-                    # Generate human-friendly reasoning
-                    reasoning = generate_human_friendly_reasoning(field_name, extracted_value, applied_rules)
                 else:
                     confidence = 0
                     status = "invalid"
@@ -725,17 +815,14 @@ def extract_data_from_document(
                             # This follows the three-step process: Extract -> Save -> Validate ALL fields
                             
                             if extracted_value is not None and extracted_value != "" and extracted_value != "null":
-                                # Apply knowledge-based confidence calculation with extraction rules
-                                confidence, applied_rules = calculate_knowledge_based_confidence(
-                                    field_name_with_index, extracted_value, 95, extraction_rules, knowledge_documents
+                                # Apply AI-powered validation with extraction rules and knowledge documents
+                                confidence, applied_rules, reasoning = ai_validate_field(
+                                    field_name_with_index, extracted_value, extraction_rules, knowledge_documents
                                 )
                                 
                                 # Use the property's specific auto verification confidence threshold
                                 auto_verification_threshold = prop.get("autoVerificationConfidence", 80)
                                 status = "verified" if confidence >= auto_verification_threshold else "unverified"
-                                
-                                # Generate human-friendly reasoning  
-                                reasoning = generate_human_friendly_reasoning(field_name_with_index, extracted_value, applied_rules)
                                 
                                 logging.info(f"✅ Creating validation with EXTRACTED VALUE for {field_name_with_index}: '{extracted_value}' (confidence: {confidence}%)")
                             else:
@@ -828,12 +915,11 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
             extracted_value = aggregated_data.get(field_name)
             
             if extracted_value is not None and extracted_value != "":
-                confidence, applied_rules = calculate_knowledge_based_confidence(
-                    field_name, extracted_value, 95, extraction_rules, knowledge_documents
+                confidence, applied_rules, reasoning = ai_validate_field(
+                    field_name, extracted_value, extraction_rules, knowledge_documents
                 )
                 auto_verification_threshold = field.get("autoVerificationConfidence", 80)
                 status = "verified" if confidence >= auto_verification_threshold else "unverified"
-                reasoning = generate_human_friendly_reasoning(field_name, extracted_value, applied_rules)
                 logging.info(f"📝 Creating schema field validation: {field_name} = '{extracted_value}'")
             else:
                 confidence = 0
@@ -933,12 +1019,11 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
                     
                     # Create validation record
                     if extracted_value is not None and extracted_value != "" and extracted_value != "null":
-                        confidence, applied_rules = calculate_knowledge_based_confidence(
-                            field_name_with_index, extracted_value, 95, extraction_rules, knowledge_documents
+                        confidence, applied_rules, reasoning = ai_validate_field(
+                            field_name_with_index, extracted_value, extraction_rules, knowledge_documents
                         )
                         auto_verification_threshold = prop.get("autoVerificationConfidence", 80)
                         status = "verified" if confidence >= auto_verification_threshold else "unverified"
-                        reasoning = generate_human_friendly_reasoning(field_name_with_index, extracted_value, applied_rules)
                         logging.info(f"📝 Creating collection validation: {field_name_with_index} = '{extracted_value}'")
                     else:
                         confidence = 0
