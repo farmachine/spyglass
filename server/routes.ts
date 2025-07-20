@@ -1359,6 +1359,26 @@ except Exception as e:
                         const existingValidation = existingValidations.find(v => v.fieldName === fieldName);
                         if (!existingValidation) {
                           console.log(`Creating validation record for collection property: ${fieldName} = ${extractedValue}`);
+                          
+                          const validationData = {
+                            sessionId,
+                            fieldType: 'collection_property',
+                            fieldId: property.id,
+                            fieldName: fieldName,
+                            collectionName: collectionName,
+                            recordIndex: recordIndex,
+                            extractedValue: extractedValue,
+                            originalExtractedValue: extractedValue,
+                            originalConfidenceScore: 95,
+                            originalAiReasoning: 'Extracted during AI processing',
+                            validationStatus: 'unverified',
+                            aiReasoning: 'Extracted during AI processing',
+                            manuallyVerified: false,
+                            confidenceScore: extractedValue !== null && extractedValue !== undefined ? 95 : 20
+                          };
+                          
+                          console.log(`DEBUG VALIDATION DATA BEFORE INSERT:`, JSON.stringify(validationData, null, 2));
+                          
                           await storage.createFieldValidation({
                             sessionId,
                             fieldType: 'collection_property',

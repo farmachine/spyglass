@@ -1976,7 +1976,9 @@ class PostgreSQLStorage implements IStorage {
     return enhancedValidations;
   }
   async createFieldValidation(validation: InsertFieldValidation): Promise<FieldValidation> { 
+    console.log(`STORAGE: Creating validation with data:`, JSON.stringify(validation, null, 2));
     const result = await this.db.insert(fieldValidations).values(validation).returning();
+    console.log(`STORAGE: Inserted validation result:`, JSON.stringify(result[0], null, 2));
     return result[0];
   }
   async updateFieldValidation(id: string, validation: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined> { 
