@@ -143,6 +143,7 @@ export interface IStorage {
   // Field Validations
   getFieldValidations(sessionId: string): Promise<FieldValidation[]>;
   createFieldValidation(validation: InsertFieldValidation): Promise<FieldValidation>;
+  createOrUpdateFieldValidation(validation: InsertFieldValidation): Promise<FieldValidation>;
   updateFieldValidation(id: string, validation: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined>;
   deleteFieldValidation(id: string): Promise<boolean>;
   getExtractionSessionWithValidations(sessionId: string): Promise<ExtractionSessionWithValidation | undefined>;
@@ -2096,6 +2097,36 @@ class PostgreSQLStorage implements IStorage {
     const result = await this.db.insert(fieldValidations).values(validation).returning();
     console.log(`STORAGE: Inserted validation result:`, JSON.stringify(result[0], null, 2));
     return result[0];
+  }
+
+  async createOrUpdateFieldValidation(validation: InsertFieldValidation): Promise<FieldValidation> {
+    // Check if a validation record for this session, field, and record index already exists
+    const existingValidation = await this.db
+      .select()
+      .from(fieldValidations)
+      .where(and(
+        eq(fieldValidations.sessionId, validation.sessionId),
+        eq(fieldValidations.fieldId, validation.fieldId),
+        eq(fieldValidations.recordIndex, validation.recordIndex || 0)
+      ))
+      .limit(1);
+
+    if (existingValidation.length > 0) {
+      // If it exists, update it
+      const updated = await this.db
+        .update(fieldValidations)
+        .set({ ...validation, updatedAt: new Date() })
+        .where(eq(fieldValidations.id, existingValidation[0].id))
+        .returning();
+      return updated[0];
+    } else {
+      // If it does not exist, create a new one
+      const created = await this.db
+        .insert(fieldValidations)
+        .values(validation)
+        .returning();
+      return created[0];
+    }
   }
   async updateFieldValidation(id: string, validation: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined> { 
     const result = await this.db.update(fieldValidations).set(validation).where(eq(fieldValidations.id, id)).returning();

@@ -2004,44 +2004,53 @@ print(json.dumps(results))
           console.log(`🚀 WORKING_EXTRACTION: AI extracted ${results.total_records} validation records`);
           console.log(`🚀 WORKING_EXTRACTION: Schema fields: ${results.schema_fields_updated}, Collection properties: ${results.collection_properties_updated}`);
           
-          // Store validation data directly in field/collection records - CONSOLIDATED APPROACH
+          // Store validation data in fieldValidations table - PROPER APPROACH
           const validationRecords = results.validation_records;
           let schemaFieldsUpdated = 0;
           let collectionPropertiesUpdated = 0;
           
-          // Update schema fields with validation data directly
-          const schemaFieldRecords = validationRecords.filter((record: any) => record.record_type === 'schema_field');
-          for (const field of schemaFieldRecords) {
-            await storage.updateProjectSchemaField(field.id, {
-              sessionId: sessionId,
-              extractedValue: field.extractedValue,
-              originalExtractedValue: field.originalExtractedValue,
-              confidenceScore: field.confidenceScore,
-              originalConfidenceScore: field.originalConfidenceScore,
-              validationStatus: field.validationStatus,
-              aiReasoning: field.aiReasoning,
-              originalAiReasoning: field.originalAiReasoning,
-              manuallyVerified: field.manuallyVerified
-            });
-            schemaFieldsUpdated++;
-          }
+          console.log(`🔍 PROCESSING ${validationRecords.length} validation records from Python`);
           
-          // Update collection properties with validation data directly
-          const collectionPropertyRecords = validationRecords.filter((record: any) => record.record_type === 'collection_property');
-          for (const property of collectionPropertyRecords) {
-            await storage.updateCollectionProperty(property.id, {
-              sessionId: sessionId,
-              recordIndex: property.recordIndex,
-              extractedValue: property.extractedValue,
-              originalExtractedValue: property.originalExtractedValue,
-              confidenceScore: property.confidenceScore,
-              originalConfidenceScore: property.originalConfidenceScore,
-              validationStatus: property.validationStatus,
-              aiReasoning: property.aiReasoning,
-              originalAiReasoning: property.originalAiReasoning,
-              manuallyVerified: property.manuallyVerified
-            });
-            collectionPropertiesUpdated++;
+          // Process each validation record and save to fieldValidations table
+          for (const record of validationRecords) {
+            try {
+              // Determine field name based on record type
+              let fieldName;
+              if (record.record_type === 'schema_field') {
+                fieldName = record.fieldName;
+              } else {
+                // For collection properties, construct the indexed field name
+                fieldName = `${record.collectionName}.${record.propertyName}[${record.recordIndex}]`;
+              }
+              
+              console.log(`🔍 Processing validation: ${fieldName} = ${record.extractedValue}`);
+              
+              // Create or update field validation record
+              await storage.createOrUpdateFieldValidation({
+                sessionId: sessionId,
+                fieldType: record.record_type === 'schema_field' ? 'schema_field' : 'collection_property',
+                fieldId: record.id,
+                fieldName: fieldName,
+                collectionName: record.collectionName || null,
+                recordIndex: record.recordIndex || 0,
+                extractedValue: record.extractedValue,
+                originalExtractedValue: record.originalExtractedValue,
+                originalConfidenceScore: record.originalConfidenceScore,
+                originalAiReasoning: record.originalAiReasoning,
+                validationStatus: record.validationStatus,
+                aiReasoning: record.aiReasoning,
+                manuallyVerified: record.manuallyVerified,
+                confidenceScore: record.confidenceScore
+              });
+              
+              if (record.record_type === 'schema_field') {
+                schemaFieldsUpdated++;
+              } else {
+                collectionPropertiesUpdated++;
+              }
+            } catch (error) {
+              console.error(`🚨 Error processing validation record for ${record.fieldName}:`, error);
+            }
           }
           
           // Update session status
