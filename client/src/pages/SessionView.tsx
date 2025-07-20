@@ -1361,7 +1361,9 @@ Thank you for your assistance.`;
                     <div key={index} className="mb-6 p-4 bg-gray-50 rounded-lg w-full overflow-hidden">
                       <h4 className="font-medium mb-4">Item {index + 1}</h4>
                       <div className="space-y-4">
-                        {collection.properties.map((property) => {
+                        {collection.properties
+                          .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+                          .map((property) => {
                           const originalValue = item[property.propertyName];
                           const fieldName = `${collection.collectionName}.${property.propertyName}[${index}]`;
                           const validation = validations.find(v => v.fieldName === fieldName);

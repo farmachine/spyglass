@@ -264,7 +264,7 @@ export default function NewUpload({ project }: NewUploadProps) {
         })
       );
 
-      await processExtraction.mutateAsync({
+      const extractionResult = await processExtraction.mutateAsync({
         sessionId: session.id,
         files: filesData,
         project_data: {
@@ -278,15 +278,21 @@ export default function NewUpload({ project }: NewUploadProps) {
       // Mark files as completed
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
 
-      toast({
-        title: "AI extraction completed",
-        description: `${selectedFiles.length} file(s) processed successfully. Redirecting to review page...`,
-      });
+      // Verify extraction was successful before redirecting
+      if (extractionResult && session?.id) {
+        toast({
+          title: "AI extraction completed",
+          description: `${selectedFiles.length} file(s) processed successfully. Redirecting to review page...`,
+        });
 
-      // Redirect to session view for immediate data review
-      setTimeout(() => {
-        setLocation(`/projects/${project.id}/sessions/${session.id}`);
-      }, 100);
+        // Redirect to session view for immediate data review  
+        // Use a longer delay to ensure extraction is fully complete
+        setTimeout(() => {
+          setLocation(`/projects/${project.id}/sessions/${session.id}`);
+        }, 1500);
+      } else {
+        throw new Error("Extraction completed but session data is missing");
+      }
       
       // Reset form
       form.reset();
@@ -299,6 +305,8 @@ export default function NewUpload({ project }: NewUploadProps) {
         description: "There was an error processing your files. Please try again.",
         variant: "destructive",
       });
+      
+      // Don't redirect on error - keep user on upload tab
     } finally {
       setIsProcessing(false);
     }
