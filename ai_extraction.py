@@ -1416,21 +1416,22 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
     # Convert FieldValidationResult objects to dictionaries for JSON serialization
     serialized_validations = []
     for fv in comprehensive_validations:
+        # Ensure all values are JSON serializable
         serialized_validations.append({
-            "field_id": fv.field_id,
-            "field_name": fv.field_name,
-            "field_type": fv.field_type,
+            "field_id": str(fv.field_id) if fv.field_id else "unknown",
+            "field_name": str(fv.field_name) if fv.field_name else "",
+            "field_type": str(fv.field_type) if fv.field_type else "TEXT",
             "extracted_value": fv.extracted_value,
             "original_extracted_value": fv.original_extracted_value,
-            "original_confidence_score": fv.original_confidence_score,
-            "original_ai_reasoning": fv.original_ai_reasoning,
-            "validation_status": fv.validation_status,
-            "ai_reasoning": fv.ai_reasoning,
-            "confidence_score": fv.confidence_score,
-            "document_source": fv.document_source,
-            "document_sections": fv.document_sections,
-            "collection_name": fv.collection_name,
-            "record_index": fv.record_index
+            "original_confidence_score": float(fv.original_confidence_score) if fv.original_confidence_score is not None else 0.0,
+            "original_ai_reasoning": str(fv.original_ai_reasoning) if fv.original_ai_reasoning else "",
+            "validation_status": str(fv.validation_status) if fv.validation_status else "unverified",
+            "ai_reasoning": str(fv.ai_reasoning) if fv.ai_reasoning else "",
+            "confidence_score": float(fv.confidence_score) if fv.confidence_score is not None else 0.0,
+            "document_source": str(fv.document_source) if fv.document_source else "",
+            "document_sections": list(fv.document_sections) if fv.document_sections else [],
+            "collection_name": str(fv.collection_name) if fv.collection_name else None,
+            "record_index": int(fv.record_index) if fv.record_index is not None else 0
         })
     
     results["aggregated_extraction"] = {
@@ -1448,7 +1449,7 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
     logging.info(f"✅ Multi-document aggregation complete:")
     logging.info(f"   - {len(aggregated_data)} total fields aggregated")
     logging.info(f"   - {total_aggregated_items} total items")
-    logging.info(f"   - 0 field validations (pure extraction phase)")
+    logging.info(f"   - {len(comprehensive_validations)} field validations created")
     logging.info(f"   - Processed {len(results['processed_documents'])} documents")
 
     # Calculate summary
