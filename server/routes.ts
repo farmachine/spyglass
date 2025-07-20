@@ -1533,8 +1533,8 @@ except Exception as e:
               sessionId: sessionId,
               fieldType: 'collection_property',
               fieldId: property.id,
-              fieldName: `${property.collectionName}.${property.propertyName}[${property.recordIndex}]`,
-              collectionName: property.collectionName,
+              fieldName: `${collection.collectionName}.${property.propertyName}[${property.recordIndex}]`,
+              collectionName: collection.collectionName,
               recordIndex: property.recordIndex,
               extractedValue: property.extractedValue,
               originalExtractedValue: property.originalExtractedValue,
@@ -2004,52 +2004,65 @@ print(json.dumps(results))
           console.log(`🚀 WORKING_EXTRACTION: AI extracted ${results.total_records} validation records`);
           console.log(`🚀 WORKING_EXTRACTION: Schema fields: ${results.schema_fields_updated}, Collection properties: ${results.collection_properties_updated}`);
           
-          // Store validation data in fieldValidations table - PROPER APPROACH
+          // SIMPLIFIED APPROACH: Store validation data directly in schema fields and collection properties
           const validationRecords = results.validation_records;
           let schemaFieldsUpdated = 0;
-          let collectionPropertiesUpdated = 0;
+          let collectionPropertiesCreated = 0;
           
-          console.log(`🔍 PROCESSING ${validationRecords.length} validation records from Python`);
+          console.log(`🔍 SIMPLE_EXTRACTION: Processing ${validationRecords.length} validation records from Python`);
           
-          // Process each validation record and save to fieldValidations table
-          for (const record of validationRecords) {
+          // Process schema fields
+          for (const record of validationRecords.filter(r => r.record_type === 'schema_field')) {
             try {
-              // Determine field name based on record type
-              let fieldName;
-              if (record.record_type === 'schema_field') {
-                fieldName = record.fieldName;
-              } else {
-                // For collection properties, construct the indexed field name
-                fieldName = `${record.collectionName}.${record.propertyName}[${record.recordIndex}]`;
-              }
+              console.log(`🔍 SIMPLE: Updating schema field ${record.fieldName} = ${record.extractedValue}`);
               
-              console.log(`🔍 Processing validation: ${fieldName} = ${record.extractedValue}`);
-              
-              // Create or update field validation record
-              await storage.createOrUpdateFieldValidation({
+              await storage.updateProjectSchemaField(record.id, {
                 sessionId: sessionId,
-                fieldType: record.record_type === 'schema_field' ? 'schema_field' : 'collection_property',
-                fieldId: record.id,
-                fieldName: fieldName,
-                collectionName: record.collectionName || null,
-                recordIndex: record.recordIndex || 0,
                 extractedValue: record.extractedValue,
                 originalExtractedValue: record.originalExtractedValue,
+                confidenceScore: record.confidenceScore,
                 originalConfidenceScore: record.originalConfidenceScore,
-                originalAiReasoning: record.originalAiReasoning,
                 validationStatus: record.validationStatus,
                 aiReasoning: record.aiReasoning,
-                manuallyVerified: record.manuallyVerified,
-                confidenceScore: record.confidenceScore
+                originalAiReasoning: record.originalAiReasoning,
+                manuallyVerified: record.manuallyVerified || false
               });
               
-              if (record.record_type === 'schema_field') {
-                schemaFieldsUpdated++;
-              } else {
-                collectionPropertiesUpdated++;
-              }
+              schemaFieldsUpdated++;
             } catch (error) {
-              console.error(`🚨 Error processing validation record for ${record.fieldName}:`, error);
+              console.error(`🚨 SIMPLE: Error updating schema field ${record.fieldName}:`, error);
+            }
+          }
+          
+          // Process collection properties - create new instances for each extracted item
+          for (const record of validationRecords.filter(r => r.record_type === 'collection_property')) {
+            try {
+              console.log(`🔍 SIMPLE: Creating collection property ${record.collectionName}.${record.propertyName}[${record.recordIndex}] = ${record.extractedValue}`);
+              
+              // Create new collection property instance for each item
+              await storage.createCollectionProperty({
+                collectionId: record.collectionId,
+                propertyName: record.propertyName,
+                propertyType: record.propertyType,
+                description: record.description || "",
+                autoVerificationConfidence: record.autoVerificationConfidence || 80,
+                orderIndex: record.orderIndex || 0,
+                // Validation data
+                recordIndex: record.recordIndex,
+                sessionId: sessionId,
+                extractedValue: record.extractedValue,
+                originalExtractedValue: record.originalExtractedValue,
+                confidenceScore: record.confidenceScore,
+                originalConfidenceScore: record.originalConfidenceScore,
+                validationStatus: record.validationStatus,
+                aiReasoning: record.aiReasoning,
+                originalAiReasoning: record.originalAiReasoning,
+                manuallyVerified: record.manuallyVerified || false
+              });
+              
+              collectionPropertiesCreated++;
+            } catch (error) {
+              console.error(`🚨 SIMPLE: Error creating collection property ${record.collectionName}.${record.propertyName}[${record.recordIndex}]:`, error);
             }
           }
           
@@ -2058,15 +2071,15 @@ print(json.dumps(results))
             status: 'completed'
           });
           
-          console.log(`🚀 CONSOLIDATED_EXTRACTION: Updated ${schemaFieldsUpdated} schema fields and ${collectionPropertiesUpdated} collection properties`);
+          console.log(`🚀 SIMPLE_EXTRACTION: Updated ${schemaFieldsUpdated} schema fields and created ${collectionPropertiesCreated} collection property instances`);
           
           res.json({
             success: true,
             session_id: sessionId,
             total_records: results.total_records,
             schema_fields_updated: schemaFieldsUpdated,
-            collection_properties_updated: collectionPropertiesUpdated,
-            message: "✅ CONSOLIDATED EXTRACTION COMPLETE - Validation data stored directly in field records"
+            collection_properties_created: collectionPropertiesCreated,
+            message: "✅ SIMPLE EXTRACTION COMPLETE - Data stored directly in schema fields and collection properties"
           });
           
         } catch (parseError: any) {
