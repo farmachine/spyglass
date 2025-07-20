@@ -226,7 +226,6 @@ export default function SessionView() {
   const [showReasoningDialog, setShowReasoningDialog] = useState(false);
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
   const [hasInitializedCollapsed, setHasInitializedCollapsed] = useState(false);
-  const [hasRunAutoValidation, setHasRunAutoValidation] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -374,25 +373,8 @@ export default function SessionView() {
     }
   });
 
-  // Auto-run batch validation after extraction redirect
-  useEffect(() => {
-    if (session && validations.length > 0 && !hasRunAutoValidation && !batchValidationMutation.isPending) {
-      // Check if this session was recently created (within last 5 minutes) to determine if we just extracted
-      const sessionCreatedAt = new Date(session.createdAt);
-      const now = new Date();
-      const timeDiffMinutes = (now.getTime() - sessionCreatedAt.getTime()) / (1000 * 60);
-      
-      // Only auto-validate for recently created sessions
-      if (timeDiffMinutes <= 5) {
-        console.log('🚀 Auto-running batch validation for new session');
-        setHasRunAutoValidation(true);
-        batchValidationMutation.mutate();
-      } else {
-        // Mark as already processed for older sessions
-        setHasRunAutoValidation(true);
-      }
-    }
-  }, [session, validations, hasRunAutoValidation, batchValidationMutation]);
+  // Note: Batch validation now runs during the processing phase in NewUpload component
+  // No automatic validation needed on session load
 
   if (projectLoading || sessionLoading) {
     return (

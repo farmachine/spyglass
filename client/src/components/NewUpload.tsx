@@ -307,14 +307,29 @@ export default function NewUpload({ project }: NewUploadProps) {
       clearInterval(progressInterval);
       setProcessingProgress(100);
 
-      // Step 4: Validation Phase
+      // Step 4: Validation Phase - Run actual batch validation
       setProcessingStep('validating');
       setProcessingProgress(0);
 
-      // Simulate validation progress
-      for (let progress = 0; progress <= 100; progress += 20) {
-        await new Promise(resolve => setTimeout(resolve, 200));
-        setProcessingProgress(progress);
+      try {
+        // Start batch validation progress simulation
+        const validationProgressInterval = setInterval(() => {
+          setProcessingProgress(prev => Math.min(prev + 15, 90));
+        }, 500);
+
+        // Call actual batch validation API
+        const batchValidationResult = await apiRequest(`/api/sessions/${session.id}/batch-validate`, {
+          method: 'POST'
+        });
+
+        clearInterval(validationProgressInterval);
+        setProcessingProgress(100);
+        
+        console.log(`✅ Batch validation completed during processing: ${batchValidationResult.fields_processed} fields processed`);
+      } catch (error) {
+        console.error('Batch validation failed during processing:', error);
+        // Continue processing even if validation fails - user can manually run validation later
+        setProcessingProgress(100);
       }
 
       // Step 5: Complete
