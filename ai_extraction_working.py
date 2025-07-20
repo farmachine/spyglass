@@ -279,6 +279,7 @@ def create_validation_records(processed_data: Dict[str, Any], extracted_data: Di
                 property_record = {
                     "id": property_def.get("id"),
                     "collectionId": collection.get("id"),
+                    "collectionName": collection_name,  # CRITICAL: Add collectionName field
                     "propertyName": property_name,
                     "propertyType": property_def.get("propertyType"),
                     "description": property_def.get("description"),

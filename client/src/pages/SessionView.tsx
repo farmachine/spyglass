@@ -1369,11 +1369,16 @@ Thank you for your assistance.`;
           const collectionData = extractedData[collection.collectionName];
           
           // Get all validations for this collection
-          const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
+          const collectionValidations = validations.filter(v => 
+            v.collectionName === collection.collectionName || 
+            (v.fieldName && v.fieldName.startsWith(`${collection.collectionName}.`))
+          );
+          
+          console.log(`🔍 Collection ${collection.collectionName}: Found ${collectionValidations.length} validations`);
           
           // Determine how many instances we need to show
           // WORKAROUND: Filter out dummy validation records at index -1
-          const realValidations = collectionValidations.filter(v => v.recordIndex > 0);
+          const realValidations = collectionValidations.filter(v => v.recordIndex >= 0);
           const dataLength = collectionData ? collectionData.length : 0;
           const validationIndices = realValidations.length > 0 ? realValidations.map(v => v.recordIndex) : [];
           const maxRecordIndex = Math.max(dataLength, ...validationIndices, 0);
