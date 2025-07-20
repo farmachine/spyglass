@@ -1385,11 +1385,33 @@ except Exception as e:
           
           // CRITICAL: Wait for all validation operations to complete before sending response
           console.log('Waiting for all database operations to complete...');
-          await new Promise(resolve => setTimeout(resolve, 500)); // Give database time to commit
           
-          // Final verification: Confirm validations are actually in database
-          const finalValidationCheck = await storage.getFieldValidations(sessionId);
-          console.log(`FINAL CHECK: Database contains ${finalValidationCheck.length} validation records for session ${sessionId}`);
+          // Robust validation check - wait until all expected validations are confirmed in database
+          let attempts = 0;
+          let validationCount = 0;
+          const maxAttempts = 10;
+          const expectedValidations = (project_data?.schemaFields?.length || 0) + 
+            (project_data?.collections?.reduce((total, col) => {
+              const collectionData = result.aggregated_extraction?.extracted_data?.[col.collectionName];
+              const itemCount = Array.isArray(collectionData) ? collectionData.length : 0;
+              return total + (itemCount * (col.properties?.length || 0));
+            }, 0) || 0);
+          
+          console.log(`Expected validation count: ${expectedValidations}`);
+          
+          while (attempts < maxAttempts && validationCount < expectedValidations) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+            const currentValidations = await storage.getFieldValidations(sessionId);
+            validationCount = currentValidations.length;
+            attempts++;
+            console.log(`Attempt ${attempts}: Found ${validationCount}/${expectedValidations} validations in database`);
+          }
+          
+          console.log(`FINAL CHECK: Database contains ${validationCount} validation records for session ${sessionId}`);
+          
+          // Additional safety delay to ensure all database transactions are committed
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          console.log('Database synchronization complete - sending response to frontend');
           
           res.json(result);
         } catch (parseError: any) {
