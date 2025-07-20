@@ -835,32 +835,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Dashboard statistics: ${activeProjects.length} active projects out of ${projects.length} total`);
       
       let totalSessions = 0;
-      let totalValidations = 0;
-      let verifiedValidations = 0;
+      let verifiedSessions = 0;
+      let unverifiedSessions = 0;
       
       // Get session statistics for each accessible project
       for (const project of activeProjects) {
         const projectSessions = await storage.getExtractionSessions(project.id);
         totalSessions += projectSessions.length;
         
-        // Get validation statistics for each session
+        // Check session-level verification status
         for (const session of projectSessions) {
           const validations = await storage.getFieldValidations(session.id);
-          totalValidations += validations.length;
-          verifiedValidations += validations.filter(v => v.validationStatus === "verified").length;
+          
+          // A session is considered verified if ALL its validations are verified
+          // A session is unverified if ANY validation is unverified or missing
+          const allVerified = validations.length > 0 && validations.every(v => v.validationStatus === "verified");
+          
+          if (allVerified) {
+            verifiedSessions++;
+          } else {
+            unverifiedSessions++;
+          }
         }
       }
       
-      const unverifiedValidations = totalValidations - verifiedValidations;
-      
-      console.log(`Dashboard statistics: Total ${totalSessions} sessions, ${totalValidations} validations (${verifiedValidations} verified, ${unverifiedValidations} unverified)`);
+      console.log(`Dashboard statistics: Total ${totalSessions} sessions (${verifiedSessions} verified, ${unverifiedSessions} unverified)`);
       
       res.json({
         totalProjects: activeProjects.length,
         totalSessions,
-        totalValidations,
-        verifiedValidations,
-        unverifiedValidations
+        verifiedSessions,
+        unverifiedSessions
       });
     } catch (error) {
       console.error("Dashboard statistics error:", error);

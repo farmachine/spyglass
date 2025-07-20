@@ -240,37 +240,37 @@ export default function Dashboard() {
                   <>
                     <Card className="bg-blue-50 border-blue-200">
                       <CardContent className="flex items-center p-3">
-                        <FolderOpen className="h-5 w-5 text-blue-600 mr-2" />
+                        <FolderOpen className="h-5 w-5 text-gray-600 mr-2" />
                         <div>
-                          <p className="text-xs text-blue-600 font-medium">Total Projects</p>
+                          <p className="text-xs text-blue-600 font-medium">Projects</p>
                           <p className="text-lg font-bold text-blue-800">{statistics.totalProjects}</p>
                         </div>
                       </CardContent>
                     </Card>
                     <Card className="bg-purple-50 border-purple-200">
                       <CardContent className="flex items-center p-3">
-                        <Database className="h-5 w-5 text-purple-600 mr-2" />
+                        <Database className="h-5 w-5 text-gray-600 mr-2" />
                         <div>
-                          <p className="text-xs text-purple-600 font-medium">Total NDAs</p>
+                          <p className="text-xs text-purple-600 font-medium">Sessions</p>
                           <p className="text-lg font-bold text-purple-800">{statistics.totalSessions}</p>
                         </div>
                       </CardContent>
                     </Card>
                     <Card className="bg-red-50 border-red-200">
                       <CardContent className="flex items-center p-3">
-                        <AlertTriangle className="h-5 w-5 text-red-600 mr-2" />
+                        <AlertTriangle className="h-5 w-5 text-gray-600 mr-2" />
                         <div>
                           <p className="text-xs text-red-600 font-medium">Unverified</p>
-                          <p className="text-lg font-bold text-red-800">{statistics.unverifiedValidations}</p>
+                          <p className="text-lg font-bold text-red-800">{statistics.unverifiedSessions}</p>
                         </div>
                       </CardContent>
                     </Card>
                     <Card className="bg-green-50 border-green-200">
                       <CardContent className="flex items-center p-3">
-                        <CheckCircle2 className="h-5 w-5 text-green-600 mr-2" />
+                        <CheckCircle2 className="h-5 w-5 text-gray-600 mr-2" />
                         <div>
                           <p className="text-xs text-green-600 font-medium">Verified</p>
-                          <p className="text-lg font-bold text-green-800">{statistics.verifiedValidations}</p>
+                          <p className="text-lg font-bold text-green-800">{statistics.verifiedSessions}</p>
                         </div>
                       </CardContent>
                     </Card>

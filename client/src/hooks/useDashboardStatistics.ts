@@ -5,9 +5,8 @@ import { useAuth } from "@/contexts/AuthContext";
 export interface DashboardStatistics {
   totalProjects: number;
   totalSessions: number;
-  totalValidations: number;
-  verifiedValidations: number;
-  unverifiedValidations: number;
+  verifiedSessions: number;
+  unverifiedSessions: number;
 }
 
 export function useDashboardStatistics() {
