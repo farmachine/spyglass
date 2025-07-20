@@ -1070,13 +1070,8 @@ Thank you for your assistance.`;
               </Link>
               <div>
                 <h1 className="text-2xl font-semibold text-gray-900">
-                  {session.sessionName}
+                  Extractly
                 </h1>
-                {session.description && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    {session.description}
-                  </p>
-                )}
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -1135,8 +1130,7 @@ Thank you for your assistance.`;
                   </Button>
                 </Link>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">{project?.name}</h2>
-
+                  <h2 className="text-2xl font-bold text-gray-900">{session?.sessionName}</h2>
                 </div>
               </div>
               
@@ -1194,10 +1188,9 @@ Thank you for your assistance.`;
         {/* Unified Data Structure - Fields and Collections */}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <span>{session?.sessionName}</span>
+            <CardTitle className="text-lg font-semibold text-gray-900 mb-2">
+              Review and verify extracted data
             </CardTitle>
-            <p className="text-sm text-gray-600">Review and verify extracted data</p>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Project Schema Fields */}
