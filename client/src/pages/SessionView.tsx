@@ -226,6 +226,8 @@ export default function SessionView() {
   const [showReasoningDialog, setShowReasoningDialog] = useState(false);
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
   const [hasInitializedCollapsed, setHasInitializedCollapsed] = useState(false);
+  const [hasRunAutoValidation, setHasRunAutoValidation] = useState(false);
+  const [showValidationPopup, setShowValidationPopup] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -351,6 +353,7 @@ export default function SessionView() {
   // Batch validation mutation for applying extraction rules post-extraction
   const batchValidationMutation = useMutation({
     mutationFn: async () => {
+      setShowValidationPopup(true);
       return apiRequest(`/api/sessions/${sessionId}/batch-validate`, {
         method: 'POST'
       });
@@ -360,13 +363,15 @@ export default function SessionView() {
       await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
       await queryClient.invalidateQueries({ queryKey: ['/api/validations/project', projectId] });
       
+      setShowValidationPopup(false);
       toast({
-        title: "Batch validation complete",
-        description: `Applied extraction rules to ${result.fields_processed} fields with real confidence scores.`,
+        title: "Validation rules applied",
+        description: `Processing complete: ${result.fields_processed} fields validated with confidence adjustments.`,
       });
     },
     onError: (error: any) => {
       console.error('Batch validation failed:', error);
+      setShowValidationPopup(false);
       toast({
         title: "Batch validation failed",
         description: error?.message || "An error occurred during batch validation.",
@@ -374,6 +379,26 @@ export default function SessionView() {
       });
     }
   });
+
+  // Auto-run batch validation after extraction redirect
+  useEffect(() => {
+    if (session && validations.length > 0 && !hasRunAutoValidation && !batchValidationMutation.isPending) {
+      // Check if this session was recently created (within last 5 minutes) to determine if we just extracted
+      const sessionCreatedAt = new Date(session.createdAt);
+      const now = new Date();
+      const timeDiffMinutes = (now.getTime() - sessionCreatedAt.getTime()) / (1000 * 60);
+      
+      // Only auto-validate for recently created sessions
+      if (timeDiffMinutes <= 5) {
+        console.log('🚀 Auto-running batch validation for new session');
+        setHasRunAutoValidation(true);
+        batchValidationMutation.mutate();
+      } else {
+        // Mark as already processed for older sessions
+        setHasRunAutoValidation(true);
+      }
+    }
+  }, [session, validations, hasRunAutoValidation, batchValidationMutation]);
 
   if (projectLoading || sessionLoading) {
     return (
@@ -1539,6 +1564,24 @@ Thank you for your assistance.`;
             <Button onClick={() => setShowReasoningDialog(false)}>
               Close
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Validation Progress Popup */}
+      <Dialog open={showValidationPopup} onOpenChange={() => {}}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RotateCcw className="h-5 w-5 text-blue-600 animate-spin" />
+              Running Validation Rules
+            </DialogTitle>
+            <DialogDescription>
+              Applying extraction rules and calculating confidence scores for extracted fields...
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
         </DialogContent>
       </Dialog>
