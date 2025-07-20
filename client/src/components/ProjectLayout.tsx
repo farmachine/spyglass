@@ -146,8 +146,8 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
     }
     
-    // Welcome flow: redirect to define tab ONLY if no data items exist AND user hasn't interacted
-    if (!hasDataItems && !hasUserInteracted && !initialTabSetRef.current) {
+    // Welcome flow: redirect to define tab ONLY if no data items exist AND user hasn't interacted AND no active tab is set
+    if (!hasDataItems && !hasUserInteracted && !activeTab && !initialTabSetRef.current) {
       console.log(`Project ${project.id} - no data items, starting welcome flow - fields: ${project.schemaFields.length}, collections: ${project.collections.length}`);
       setActiveTab('define');
       initialTabSetRef.current = true;
@@ -506,6 +506,8 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                     onClick={() => {
                       if (!isDisabled) {
                         userNavigatedRef.current = true;
+                        // Mark that user has interacted with this project when they navigate manually
+                        sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
                         setActiveTab(item.id);
                       }
                     }}

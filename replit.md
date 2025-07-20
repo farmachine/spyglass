@@ -69,7 +69,9 @@ Preferred communication style: Simple, everyday language.
 - ✓ Fixed root cause: tabs were disabled based on isSetupComplete flag instead of checking actual project data (schema fields/collections)
 - ✓ **WELCOME FLOW COMPLETELY RESTORED**: New projects now properly show welcome message and start on Define Data tab
 - ✓ Enhanced blue-themed welcome banner positioned at top of Define Data page with step-by-step guidance
-- ✓ Proper interaction tracking: only schema field/collection creation disables welcome flow (not knowledge docs, rules, or uploads)
+- ✓ **Tab restrictions during welcome flow**: All tabs except Define Data are disabled/greyed out until first field or collection is created
+- ✓ **Smart redirect prevention**: Welcome flow only redirects on initial project load, not after user navigation or knowledge uploads
+- ✓ Proper interaction tracking: manual tab navigation immediately marks project as "interacted" to prevent future redirects
 - ✓ Enhanced debug logging shows welcome flow decision-making process with field/collection counts
 - ✓ Users now stay on their chosen tabs after uploading knowledge documents, creating extraction rules, and uploading documents
 
