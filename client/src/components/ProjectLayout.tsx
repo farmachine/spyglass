@@ -161,7 +161,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       setActiveTab('define');
       initialTabSetRef.current = true;
     }
-  }, [project, canAccessConfigTabs, canAccessPublishing]);
+  }, [project?.id]); // Only run when project ID changes, not on every project data update
 
   // Project update mutation
   const updateProjectMutation = useMutation({
