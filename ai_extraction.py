@@ -919,6 +919,12 @@ def run_post_extraction_batch_validation(session_data: Dict[str, Any]) -> Dict[s
             field_name = validation.get("field_name", "")
             extracted_value = validation.get("extracted_value")
             
+            # DEBUG: Log first items specifically
+            if '[0]' in field_name or field_name == 'Number of Parties':
+                logging.info(f"🔍 BATCH_VALIDATION_DEBUG: First item {field_name}")
+                logging.info(f"   - extracted_value from validation: {extracted_value}")
+                logging.info(f"   - type: {type(extracted_value)}")
+            
             # Only validate fields that have actual extracted values
             if extracted_value is not None and extracted_value != "" and extracted_value != "null":
                 fields_to_validate.append({
@@ -926,6 +932,10 @@ def run_post_extraction_batch_validation(session_data: Dict[str, Any]) -> Dict[s
                     'extracted_value': extracted_value
                 })
                 validation_lookup[field_name] = validation
+            else:
+                # DEBUG: Log why first items are being excluded
+                if '[0]' in field_name or field_name == 'Number of Parties':
+                    logging.info(f"🚨 BATCH_VALIDATION_DEBUG: EXCLUDING {field_name} because extracted_value is {extracted_value}")
         
         if len(fields_to_validate) > 0:
             logging.info(f"🚀 POST_EXTRACTION_BATCH_VALIDATION: Validating {len(fields_to_validate)} fields with real values")
