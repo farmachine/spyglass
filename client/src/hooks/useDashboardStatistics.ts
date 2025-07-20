@@ -17,14 +17,27 @@ export function useDashboardStatistics() {
     queryKey: ["/api/dashboard/statistics", user?.id, user?.organizationId],
     queryFn: async (): Promise<DashboardStatistics> => {
       console.log("Fetching dashboard statistics...");
-      const response = await apiRequest("/api/dashboard/statistics");
-      const data = await response.json();
-      console.log("Dashboard statistics response:", data);
-      return data;
+      try {
+        const response = await apiRequest("/api/dashboard/statistics");
+        console.log("Response status:", response.status, response.statusText);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("API error response:", errorText);
+          throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log("Dashboard statistics response:", data);
+        return data;
+      } catch (error) {
+        console.error("Query function error:", error);
+        throw error;
+      }
     },
     enabled: !!user, // Only run query when user is authenticated
-    onError: (error) => {
-      console.error("Dashboard statistics error:", error);
-    }
+    staleTime: 30000, // Consider data stale after 30 seconds
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 }
