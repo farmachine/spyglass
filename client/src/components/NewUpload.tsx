@@ -227,19 +227,25 @@ export default function NewUpload({ project }: NewUploadProps) {
       }
 
       // Prepare file data for AI processing
+      console.log(`🚀 CONSOLIDATED_FRONTEND: Starting file reading for ${selectedFiles.length} files`);
       const filesData = await Promise.all(selectedFiles.map(async (fileData) => {
         try {
+          console.log(`🚀 CONSOLIDATED_FRONTEND: Reading file ${fileData.file.name}`);
           // Read file content as base64
           const base64Content = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = () => {
               if (typeof reader.result === 'string') {
+                console.log(`🚀 CONSOLIDATED_FRONTEND: Successfully read file ${fileData.file.name}`);
                 resolve(reader.result);
               } else {
                 reject(new Error('Failed to read file as data URL'));
               }
             };
-            reader.onerror = reject;
+            reader.onerror = (error) => {
+              console.error(`🚀 CONSOLIDATED_FRONTEND: FileReader error for ${fileData.file.name}:`, error);
+              reject(error);
+            };
             reader.readAsDataURL(fileData.file);
           });
 
@@ -250,15 +256,11 @@ export default function NewUpload({ project }: NewUploadProps) {
             content: base64Content
           };
         } catch (error) {
-          console.error(`Failed to read file ${fileData.file.name}:`, error);
-          return {
-            name: fileData.file.name,
-            size: fileData.file.size,
-            type: fileData.file.type,
-            content: ""
-          };
+          console.error(`🚀 CONSOLIDATED_FRONTEND: Failed to read file ${fileData.file.name}:`, error);
+          throw error; // Don't silently continue with empty content
         }
       }));
+      console.log(`🚀 CONSOLIDATED_FRONTEND: File reading completed for ${filesData.length} files`);
 
       // Step 3: AI Extraction Phase
       setProcessingStep('extracting');
@@ -270,17 +272,21 @@ export default function NewUpload({ project }: NewUploadProps) {
       const projectRules = extractionRules || [];
       
       // Enhance collections with their properties
+      console.log(`🚀 CONSOLIDATED_FRONTEND: Starting collections enhancement for ${collections?.length || 0} collections`);
       const collectionsWithProperties = await Promise.all(
         (collections || []).map(async (collection) => {
           try {
+            console.log(`🚀 CONSOLIDATED_FRONTEND: Fetching properties for collection ${collection.id}`);
             const properties = await apiRequest(`/api/collections/${collection.id}/properties`);
+            console.log(`🚀 CONSOLIDATED_FRONTEND: Successfully fetched ${properties.length} properties for collection ${collection.id}`);
             return { ...collection, properties };
           } catch (error) {
-            console.error(`Failed to fetch properties for collection ${collection.id}:`, error);
-            return { ...collection, properties: [] };
+            console.error(`🚀 CONSOLIDATED_FRONTEND: Failed to fetch properties for collection ${collection.id}:`, error);
+            throw error; // Don't silently continue
           }
         })
       );
+      console.log(`🚀 CONSOLIDATED_FRONTEND: Collections enhancement completed`);
 
       // Start CONSOLIDATED extraction - NEW ARCHITECTURE
       console.log(`🚀 CONSOLIDATED_FRONTEND: Starting consolidated extraction for session ${session.id}`);
