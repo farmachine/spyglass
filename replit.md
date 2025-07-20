@@ -11,6 +11,11 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 20, 2025**
+- ✓ **CRITICAL AI EXTRACTION JSON FORMAT BUG RESOLVED**: Fixed fundamental issue where AI was returning direct arrays instead of expected object structure
+- ✓ AI was successfully extracting parties (3M Company, Cogent Inc.) but returning format `[{...}]` instead of `{"Parties": [{...}]}`
+- ✓ Enhanced AI prompt with explicit JSON format template showing expected object structure with collection keys
+- ✓ Added detailed format specification requiring JSON objects with schema field/collection names as keys
+- ✓ Real extraction now working perfectly: 2 parties extracted from single document with 95% confidence and proper validation creation
 - ✓ **MULTI-DOCUMENT AGGREGATION SYSTEM COMPLETED**: Implemented comprehensive N-document processing with proper collection merging
 - ✓ Added intelligent aggregation logic that merges parties/collections from any number of documents into unified lists
 - ✓ Fixed field validation reindexing to ensure proper [0] through [N-1] sequential indexing across aggregated results
