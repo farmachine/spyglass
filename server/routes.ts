@@ -1300,11 +1300,12 @@ except Exception as e:
           // COMPREHENSIVE VALIDATION CREATION: For pure extraction, create validation records for ALL extracted fields
           // This ensures batch validation has records to process even when Python returns empty field_validations
           if (result.aggregated_extraction && result.aggregated_extraction.extracted_data) {
-            const extractedData = result.aggregated_extraction.extracted_data;
-            console.log('Creating comprehensive validation records for all extracted fields...');
-            
-            // Create validation records for schema fields
-            if (project_data?.schemaFields) {
+            try {
+              const extractedData = result.aggregated_extraction.extracted_data;
+              console.log('Creating comprehensive validation records for all extracted fields...');
+              
+              // Create validation records for schema fields
+              if (project_data?.schemaFields) {
               for (const field of project_data.schemaFields) {
                 const fieldName = field.fieldName;
                 const extractedValue = extractedData[fieldName];
@@ -1331,50 +1332,55 @@ except Exception as e:
                   });
                 }
               }
-            }
-            
-            // Create validation records for collection properties
-            if (project_data?.collections) {
-              for (const collection of project_data.collections) {
-                const collectionName = collection.collectionName;
-                const collectionData = extractedData[collectionName];
-                
-                if (Array.isArray(collectionData) && collection.properties) {
-                  for (let recordIndex = 0; recordIndex < collectionData.length; recordIndex++) {
-                    const record = collectionData[recordIndex];
-                    
-                    for (const property of collection.properties) {
-                      const fieldName = `${collectionName}.${property.propertyName}[${recordIndex}]`;
-                      const extractedValue = record[property.propertyName];
+              }
+              
+              // Create validation records for collection properties
+              if (project_data?.collections) {
+                for (const collection of project_data.collections) {
+                  const collectionName = collection.collectionName;
+                  const collectionData = extractedData[collectionName];
+                  
+                  if (Array.isArray(collectionData) && collection.properties) {
+                    for (let recordIndex = 0; recordIndex < collectionData.length; recordIndex++) {
+                      const record = collectionData[recordIndex];
                       
-                      // Check if validation already exists
-                      const existingValidation = existingValidations.find(v => v.fieldName === fieldName);
-                      if (!existingValidation) {
-                        console.log(`Creating validation record for collection property: ${fieldName} = ${extractedValue}`);
-                        await storage.createFieldValidation({
-                          sessionId,
-                          fieldType: 'collection_property',
-                          fieldId: property.id,
-                          fieldName: fieldName,
-                          collectionName: collectionName,
-                          recordIndex: recordIndex,
-                          extractedValue: extractedValue,
-                          originalExtractedValue: extractedValue,
-                          originalConfidenceScore: 95, // Default confidence for extracted data
-                          originalAiReasoning: 'Extracted during AI processing',
-                          validationStatus: 'unverified',
-                          aiReasoning: 'Extracted during AI processing',
-                          manuallyVerified: false,
-                          confidenceScore: extractedValue !== null && extractedValue !== undefined ? 95 : 20 // Higher confidence for actual values, lower for null
-                        });
+                      for (const property of collection.properties) {
+                        const fieldName = `${collectionName}.${property.propertyName}[${recordIndex}]`;
+                        const extractedValue = record[property.propertyName];
+                        
+                        // Check if validation already exists
+                        const existingValidation = existingValidations.find(v => v.fieldName === fieldName);
+                        if (!existingValidation) {
+                          console.log(`Creating validation record for collection property: ${fieldName} = ${extractedValue}`);
+                          await storage.createFieldValidation({
+                            sessionId,
+                            fieldType: 'collection_property',
+                            fieldId: property.id,
+                            fieldName: fieldName,
+                            collectionName: collectionName,
+                            recordIndex: recordIndex,
+                            extractedValue: extractedValue,
+                            originalExtractedValue: extractedValue,
+                            originalConfidenceScore: 95, // Default confidence for extracted data
+                            originalAiReasoning: 'Extracted during AI processing',
+                            validationStatus: 'unverified',
+                            aiReasoning: 'Extracted during AI processing',
+                            manuallyVerified: false,
+                            confidenceScore: extractedValue !== null && extractedValue !== undefined ? 95 : 20 // Higher confidence for actual values, lower for null
+                          });
+                        }
                       }
                     }
                   }
                 }
               }
-            }
             
-            console.log('Comprehensive validation record creation complete');
+              console.log('Comprehensive validation record creation complete');
+            } catch (validationError: any) {
+              console.error('Error during comprehensive validation creation:', validationError);
+              console.error('Validation error stack:', validationError.stack);
+              // Don't fail the entire request, just log the error
+            }
           }
           
           res.json(result);
