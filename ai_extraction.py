@@ -201,6 +201,7 @@ Return a JSON object with field names as keys and validation results as values:
 Important: Process all fields efficiently. Apply rules like 'Inc.' entity ambiguity and jurisdiction conflicts from knowledge documents consistently."""
 
         logging.info(f"AI_VALIDATE_BATCH: Sending batch validation request for {len(valid_fields)} fields")
+        logging.info(f"AI_VALIDATE_BATCH: Prompt length: {len(validation_prompt)} characters")
         
         # Make AI request
         response = client.models.generate_content(
@@ -213,28 +214,37 @@ Important: Process all fields efficiently. Apply rules like 'Inc.' entity ambigu
             )
         )
         
+        logging.info(f"AI_VALIDATE_BATCH: Response received: {response.text[:200] if response.text else 'None'}...")
+        
         if response.text:
-            batch_results = json.loads(response.text)
-            
-            # Process results and build return dictionary
-            results = {}
-            for fv in field_validations:
-                field_name = fv['field_name']
+            try:
+                batch_results = json.loads(response.text)
+                logging.info(f"AI_VALIDATE_BATCH: Successfully parsed JSON with {len(batch_results)} field results")
                 
-                if field_name in batch_results:
-                    result = batch_results[field_name]
-                    confidence = result.get("confidence_percentage", 95)
-                    applied_rules = result.get("applied_rules", [])
-                    reasoning = result.get("reasoning", "AI validation completed")
-                    results[field_name] = (confidence, applied_rules, reasoning)
-                elif fv['extracted_value'] in [None, "", "null"]:
-                    results[field_name] = (0, [], "No value extracted")
-                else:
-                    # Fallback for fields not processed
-                    results[field_name] = (95, [], "AI validation completed")
-            
-            logging.info(f"AI_VALIDATE_BATCH: Successfully validated {len(results)} fields")
-            return results
+                # Process results and build return dictionary
+                results = {}
+                for fv in field_validations:
+                    field_name = fv['field_name']
+                    
+                    if field_name in batch_results:
+                        result = batch_results[field_name]
+                        confidence = result.get("confidence_percentage", 95)
+                        applied_rules = result.get("applied_rules", [])
+                        reasoning = result.get("reasoning", "AI validation completed")
+                        results[field_name] = (confidence, applied_rules, reasoning)
+                        logging.info(f"AI_VALIDATE_BATCH: Field {field_name} -> {confidence}% confidence")
+                    elif fv['extracted_value'] in [None, "", "null"]:
+                        results[field_name] = (0, [], "No value extracted")
+                    else:
+                        # Fallback for fields not processed
+                        results[field_name] = (95, [], "AI validation completed")
+                
+                logging.info(f"AI_VALIDATE_BATCH: Successfully validated {len(results)} fields")
+                return results
+            except json.JSONDecodeError as e:
+                logging.error(f"AI_VALIDATE_BATCH: JSON parse error: {e}")
+                logging.error(f"AI_VALIDATE_BATCH: Raw response: {response.text}")
+                # Fall through to fallback
         else:
             logging.warning("AI_VALIDATE_BATCH: No response from AI, falling back to rule-based validation")
             results = {}
