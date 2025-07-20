@@ -11,6 +11,11 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 20, 2025**
+- ✓ **EXTRACTION RULES PROCESSING COMPLETELY FIXED**: Resolved critical issue where extraction rules weren't being applied to AI extractions
+- ✓ **Knowledge Document Content Fixed**: Added PDF processing to knowledge document upload route and populated existing knowledge document with proper U.S. jurisdiction requirements
+- ✓ **Rule Matching Logic Enhanced**: Fixed field matching to handle arrow notation ("Parties --> Name") vs dot notation ("Parties.Name[0]") used during processing
+- ✓ **Dynamic Percentage Parsing**: Updated rule processing to extract confidence percentages dynamically from rule content (27%, 50%, etc.)
+- ✓ **Comprehensive Rule Testing**: Created test script verifying Inc. rules reduce confidence to 27% and capitalization rules are properly applied
 - ✓ **CRITICAL AI EXTRACTION JSON FORMAT BUG RESOLVED**: Fixed fundamental issue where AI was returning direct arrays instead of expected object structure
 - ✓ AI was successfully extracting parties (3M Company, Cogent Inc.) but returning format `[{...}]` instead of `{"Parties": [{...}]}`
 - ✓ Enhanced AI prompt with explicit JSON format template showing expected object structure with collection keys

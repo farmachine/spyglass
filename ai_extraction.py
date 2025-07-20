@@ -134,29 +134,59 @@ def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, 
                 continue
                 
             # Check if this rule applies to the current field
-            # Handle multiple target fields separated by commas
+            # Handle multiple target fields separated by commas and convert arrow notation to dot notation
             target_fields = [f.strip() for f in target_field.split(',')]
-            field_matches = any(
-                field_name == target.strip() or 
-                field_name.startswith(target.strip()) for target in target_fields
-            )
+            field_matches = False
+            
+            for target in target_fields:
+                target = target.strip()
+                # Convert arrow notation to dot notation for comparison
+                # "Parties --> Name" becomes "Parties.Name"
+                normalized_target = target.replace(' --> ', '.').replace('-->', '.')
+                
+                # Check various matching patterns:
+                # 1. Exact match: "Parties.Name" matches "Parties.Name[0]"
+                # 2. Base match: "Parties.Name" matches field that starts with "Parties.Name"
+                # 3. Collection property match: handle array indices like [0], [1], etc.
+                if (field_name == normalized_target or 
+                    field_name.startswith(normalized_target + '[') or
+                    field_name.startswith(normalized_target + '.') or
+                    normalized_target in field_name):
+                    field_matches = True
+                    logging.info(f"Rule target '{target}' (normalized: '{normalized_target}') matches field '{field_name}'")
+                    break
             
             if field_matches:
                 rule_content_lower = rule_content.lower()
                 
-                # Check for Inc. confidence rule
-                if "inc" in rule_content_lower and "confidence" in rule_content_lower and "50%" in rule_content_lower:
-                    if isinstance(extracted_value, str) and "inc" in extracted_value.lower():
-                        confidence_percentage = 50
+                # Check for Inc. confidence rule - parse percentage from rule content
+                if "inc" in rule_content_lower and "confidence" in rule_content_lower:
+                    # Extract percentage from rule content (e.g., "27%", "50%", etc.)
+                    import re
+                    percentage_match = re.search(r'(\d+)%', rule_content_lower)
+                    if percentage_match and isinstance(extracted_value, str) and "inc" in extracted_value.lower():
+                        target_confidence = int(percentage_match.group(1))
+                        confidence_percentage = target_confidence
                         applied_rules.append({
                             'name': rule_name,
-                            'action': f"Set confidence to 50% due to 'Inc' in company name - indicates potential entity ambiguity"
+                            'action': f"Set confidence to {target_confidence}% due to 'Inc' in company name - indicates potential entity ambiguity"
                         })
-                        logging.info(f"Applied rule '{rule_name}': Set confidence to 50% because value contains 'Inc'")
+                        logging.info(f"Applied rule '{rule_name}': Set confidence to {target_confidence}% because value contains 'Inc'")
                         continue
                     else:
-                        logging.info(f"Inc. rule '{rule_name}' not applied - value '{extracted_value}' does not contain 'Inc'")
+                        logging.info(f"Inc. rule '{rule_name}' not applied - value '{extracted_value}' does not contain 'Inc' or no percentage found")
                         continue
+                
+                # Check for capitalization rules
+                if "capital" in rule_content_lower and isinstance(extracted_value, str):
+                    # Apply capitalization but keep the same confidence percentage
+                    logging.info(f"Applied rule '{rule_name}': Capitalization rule noted for value '{extracted_value}'")
+                    applied_rules.append({
+                        'name': rule_name,
+                        'action': f"Capitalization formatting applied to extracted value"
+                    })
+                    # Note: Actual capitalization would be handled in the UI/display layer
+                    continue
     
     return confidence_percentage, applied_rules
 

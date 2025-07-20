@@ -1254,6 +1254,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/sessions/:sessionId/recalculate-validations", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      console.log(`DEBUG: Recalculating validations for session ${sessionId}`);
+      
+      // Get session project ID
+      const session = await storage.getSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      
+      // Get project schema, rules, and knowledge documents
+      const projectId = session.projectId;
+      const [extractionRules, knowledgeDocuments] = await Promise.all([
+        storage.getExtractionRules(projectId),
+        storage.getKnowledgeDocuments(projectId)
+      ]);
+      
+      // Get all validations for this session
+      const validations = await storage.getFieldValidations(sessionId);
+      console.log(`DEBUG: Found ${validations.length} validations to recalculate`);
+      
+      // Import Python calculation function
+      const { spawn } = require('child_process');
+      const python = spawn('python3', ['-c', `
+import sys
+import json
+sys.path.append('.')
+from ai_extraction import calculate_knowledge_based_confidence
+
+# Read input data
+input_data = json.loads(sys.stdin.read())
+validations = input_data['validations']
+extraction_rules = input_data['extraction_rules']
+knowledge_documents = input_data['knowledge_documents']
+
+results = []
+for validation in validations:
+    field_name = validation['fieldName']
+    extracted_value = validation['extractedValue']
+    
+    if extracted_value is not None and extracted_value != "":
+        confidence, applied_rules = calculate_knowledge_based_confidence(
+            field_name, extracted_value, 95, extraction_rules, knowledge_documents
+        )
+        
+        # Only include if confidence changed
+        if confidence != validation['confidenceScore']:
+            results.append({
+                'id': validation['id'],
+                'fieldName': field_name,
+                'extractedValue': extracted_value,
+                'oldConfidence': validation['confidenceScore'],
+                'newConfidence': confidence,
+                'appliedRules': applied_rules
+            })
+
+print(json.dumps(results))
+`], { stdio: ['pipe', 'pipe', 'pipe'] });
+      
+      const inputData = {
+        validations: validations,
+        extraction_rules: extractionRules,
+        knowledge_documents: knowledgeDocuments
+      };
+      
+      python.stdin.write(JSON.stringify(inputData));
+      python.stdin.end();
+      
+      let pythonOutput = '';
+      python.stdout.on('data', (data) => {
+        pythonOutput += data.toString();
+      });
+      
+      python.stderr.on('data', (data) => {
+        console.log('Python stderr:', data.toString());
+      });
+      
+      await new Promise((resolve, reject) => {
+        python.on('close', async (code) => {
+          if (code === 0) {
+            try {
+              const results = JSON.parse(pythonOutput);
+              console.log(`DEBUG: Found ${results.length} validations needing updates`);
+              
+              let updatedCount = 0;
+              // Update each validation with new confidence scores
+              for (const result of results) {
+                await storage.updateFieldValidation(result.id, {
+                  confidenceScore: result.newConfidence
+                });
+                updatedCount++;
+                console.log(`Updated ${result.fieldName}: ${result.oldConfidence}% → ${result.newConfidence}%`);
+              }
+              
+              res.json({
+                message: `Recalculated validation scores for ${updatedCount} fields`,
+                updatedValidations: results,
+                totalValidations: validations.length
+              });
+              resolve(results);
+            } catch (error) {
+              console.error('Error parsing Python output:', error);
+              res.status(500).json({ message: "Failed to parse recalculation results" });
+              reject(error);
+            }
+          } else {
+            console.error('Python script failed with code:', code);
+            res.status(500).json({ message: "Failed to recalculate validation scores" });
+            reject(new Error('Python script failed'));
+          }
+        });
+      });
+      
+    } catch (error) {
+      console.error("Recalculate validations error:", error);
+      res.status(500).json({ message: "Failed to recalculate validation scores" });
+    }
+  });
+
   // Project Publishing Routes
   app.get("/api/projects/:projectId/publishing", authenticateToken, async (req: AuthRequest, res) => {
     try {
