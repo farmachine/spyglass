@@ -52,6 +52,16 @@ export const projectSchemaFields = pgTable("project_schema_fields", {
   description: text("description"),
   autoVerificationConfidence: integer("auto_verification_confidence").default(80), // 0-100 threshold for auto verification
   orderIndex: integer("order_index").default(0),
+  // CONSOLIDATED VALIDATION FIELDS - eliminates need for separate validation table
+  extractedValue: text("extracted_value"), // The extracted value for this field
+  originalExtractedValue: text("original_extracted_value"), // Original AI extracted value
+  confidenceScore: integer("confidence_score").default(0), // 0-100 confidence percentage
+  originalConfidenceScore: integer("original_confidence_score").default(0), // Original AI confidence
+  validationStatus: text("validation_status", { enum: ["verified", "unverified", "pending", "manual"] }).default("pending"),
+  aiReasoning: text("ai_reasoning"), // AI explanation for this field
+  originalAiReasoning: text("original_ai_reasoning"), // Original AI reasoning
+  manuallyVerified: boolean("manually_verified").default(false),
+  sessionId: uuid("session_id"), // Link to extraction session - nullable since fields exist before sessions
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -72,6 +82,17 @@ export const collectionProperties = pgTable("collection_properties", {
   description: text("description"),
   autoVerificationConfidence: integer("auto_verification_confidence").default(80), // 0-100 threshold for auto verification
   orderIndex: integer("order_index").default(0),
+  // CONSOLIDATED VALIDATION FIELDS - eliminates need for separate validation table
+  recordIndex: integer("record_index").default(0), // Which collection item instance (0, 1, 2, etc.)
+  extractedValue: text("extracted_value"), // The extracted value for this property
+  originalExtractedValue: text("original_extracted_value"), // Original AI extracted value
+  confidenceScore: integer("confidence_score").default(0), // 0-100 confidence percentage
+  originalConfidenceScore: integer("original_confidence_score").default(0), // Original AI confidence
+  validationStatus: text("validation_status", { enum: ["verified", "unverified", "pending", "manual"] }).default("pending"),
+  aiReasoning: text("ai_reasoning"), // AI explanation for this property
+  originalAiReasoning: text("original_ai_reasoning"), // Original AI reasoning
+  manuallyVerified: boolean("manually_verified").default(false),
+  sessionId: uuid("session_id"), // Link to extraction session - nullable since properties exist before sessions
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

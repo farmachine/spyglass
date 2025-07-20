@@ -1708,6 +1708,105 @@ print(json.dumps(results))
     }
   });
 
+  // TEST: Consolidated extraction approach
+  app.post("/api/sessions/:sessionId/test-consolidated", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      console.log(`🧪 TEST_CONSOLIDATED: Starting test for session ${sessionId}`);
+      
+      // Get session and project data
+      const session = await storage.getSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      
+      const projectId = session.projectId;
+      const [projectSchema, collections] = await Promise.all([
+        storage.getProjectSchemaFields(projectId),
+        storage.getObjectCollections(projectId)
+      ]);
+      
+      // Build project schema structure for Python
+      const collectionsWithProperties = await Promise.all(
+        collections.map(async (collection) => {
+          const properties = await storage.getCollectionProperties(collection.id);
+          return { ...collection, properties };
+        })
+      );
+      
+      const sessionData = {
+        session_id: sessionId,
+        project_schema: {
+          fields: projectSchema,
+          collections: collectionsWithProperties
+        }
+      };
+      
+      // Call consolidated Python extraction
+      const { spawn } = require('child_process');
+      const python = spawn('python3', ['ai_extraction_consolidated.py']);
+      
+      let pythonOutput = '';
+      let pythonError = '';
+      
+      python.stdout.on('data', (data) => {
+        pythonOutput += data.toString();
+      });
+      
+      python.stderr.on('data', (data) => {
+        pythonError += data.toString();
+      });
+      
+      python.on('close', async (code) => {
+        if (code !== 0) {
+          console.error(`TEST_CONSOLIDATED: Python process failed with code ${code}`);
+          console.error(`TEST_CONSOLIDATED: Error output: ${pythonError}`);
+          return res.status(500).json({ 
+            message: "Consolidated extraction test failed", 
+            error: pythonError,
+            code: code
+          });
+        }
+
+        try {
+          const results = JSON.parse(pythonOutput);
+          console.log(`🧪 TEST_CONSOLIDATED: Created ${results.total_records} validation records`);
+          
+          // TODO: Store these validation records in the database
+          // For schema fields: UPDATE projectSchemaFields SET extractedValue=..., confidenceScore=..., etc WHERE id=...
+          // For collection properties: INSERT INTO collectionProperties with validation data and recordIndex
+          
+          res.json({
+            success: true,
+            session_id: sessionId,
+            total_records: results.total_records,
+            validation_records: results.validation_records,
+            message: "Consolidated extraction test completed successfully - next step: implement database storage"
+          });
+        } catch (parseError) {
+          console.error(`TEST_CONSOLIDATED: Failed to parse Python output: ${parseError}`);
+          console.error(`TEST_CONSOLIDATED: Raw output: ${pythonOutput}`);
+          res.status(500).json({
+            message: "Failed to parse consolidated extraction results",
+            error: parseError.message,
+            output: pythonOutput
+          });
+        }
+      });
+
+      // Send session data to Python process
+      python.stdin.write(JSON.stringify(sessionData));
+      python.stdin.end();
+
+    } catch (error) {
+      console.error("TEST_CONSOLIDATED: API error:", error);
+      res.status(500).json({ 
+        message: "Failed to run consolidated extraction test", 
+        error: error.message 
+      });
+    }
+  });
+
   app.post("/api/sessions/:sessionId/recalculate-validations", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;

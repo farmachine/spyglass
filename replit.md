@@ -11,6 +11,10 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 20, 2025**
+- ✓ **ARCHITECTURAL CONSOLIDATION - VALIDATION TABLE ELIMINATION**: Moved validation data from separate table directly into field/collection records
+- ✓ Added validation fields (extractedValue, confidenceScore, validationStatus, aiReasoning, etc.) to projectSchemaFields and collectionProperties tables
+- ✓ Eliminated complex index [0] corruption issues by removing separate validation table lookups
+- ✓ Schema fields and collection properties now store validation data directly, eliminating field name shifting workarounds
 - ✓ **BATCH VALIDATION INTEGRATED INTO PROCESSING FLOW**: Complete elimination of post-redirect loading screens
 - ✓ **Real validation during processing**: Multi-step popup now calls actual batch validation API during "Validate" phase instead of simulation
 - ✓ **Background validation eliminated**: Removed auto-validation logic that was running after redirect to session view
