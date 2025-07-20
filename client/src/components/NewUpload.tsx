@@ -339,6 +339,8 @@ export default function NewUpload({ project }: NewUploadProps) {
       setProcessingProgress(100);
       
       console.log(`✅ CONSOLIDATED validation completed: ${extractionResult.total_records} validation records created directly in field structure`);
+      console.log('🚀 CONSOLIDATED_FRONTEND: extractionResult:', extractionResult);
+      console.log('🚀 CONSOLIDATED_FRONTEND: session:', session);
 
       // Step 5: Complete
       setProcessingStep('complete');
@@ -351,7 +353,7 @@ export default function NewUpload({ project }: NewUploadProps) {
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Verify extraction was successful before redirecting
-      if (extractionResult && session?.id) {
+      if (extractionResult?.success && session?.id) {
         toast({
           title: "Processing complete",
           description: `${selectedFiles.length} file(s) processed successfully. Redirecting to review page...`,
@@ -361,7 +363,14 @@ export default function NewUpload({ project }: NewUploadProps) {
         setShowProcessingDialog(false);
         setLocation(`/projects/${project.id}/sessions/${session.id}`);
       } else {
-        throw new Error("Extraction completed but session data is missing");
+        console.error('🚀 CONSOLIDATED_FRONTEND: Validation failed', {
+          extractionResult,
+          extractionSuccess: extractionResult?.success,
+          sessionId: session?.id,
+          hasExtraction: !!extractionResult,
+          hasSession: !!session
+        });
+        throw new Error(`Extraction validation failed - extractionResult.success: ${extractionResult?.success}, session.id: ${session?.id}`);
       }
       
       // Reset form
