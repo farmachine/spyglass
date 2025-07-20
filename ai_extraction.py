@@ -1394,36 +1394,32 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
                 if not validation.get("collection_name") or validation.get("collection_name") not in collection_names:
                     all_field_validations.append(validation)
     
-    # STEP 3: Create validation records for ALL schema fields after aggregation (per user requirements)
-    # This follows the three-step process: 1) Extract, 2) Save data, 3) Create validations for ALL fields
+    # PURE EXTRACTION: Skip all validation processing during extraction phase
+    # Validation records will be created later during separate batch validation process  
     session_id = session_data.get("session_id")
-    comprehensive_validations = create_comprehensive_validation_records(
-        aggregated_data, project_schema, all_field_validations, extraction_rules, knowledge_documents, session_id
-    )
+    comprehensive_validations = []  # Empty - no validation records during extraction
     
-    # STEP 4: Batch validation should be triggered separately by the backend after data is saved
-    # For now, we skip this to make extraction fast as requested
-    logging.info(f"📋 EXTRACTION_COMPLETE: Session {session_id} ready for separate batch validation process")
+    logging.info(f"📋 PURE_EXTRACTION_COMPLETE: Session {session_id} ready for separate batch validation process")
     
     # Add aggregated data to results with comprehensive summary
     total_aggregated_items = sum(len(v) if isinstance(v, list) else 1 for v in aggregated_data.values())
     
     results["aggregated_extraction"] = {
         "extracted_data": aggregated_data,
-        "field_validations": comprehensive_validations,  # Use comprehensive validations instead
+        "field_validations": [],  # Empty - no validation records during pure extraction phase
         "total_items": total_aggregated_items,
         "aggregation_summary": {
             "total_documents_processed": len([d for d in results["processed_documents"] if d.get("status") == "completed"]),
             "collections_aggregated": len([k for k, v in aggregated_data.items() if isinstance(v, list)]),
             "total_collection_items": sum(len(v) for v in aggregated_data.values() if isinstance(v, list)),
-            "total_field_validations": len(comprehensive_validations)  # Use comprehensive count
+            "total_field_validations": 0  # No validation records during pure extraction
         }
     }
     
     logging.info(f"✅ Multi-document aggregation complete:")
     logging.info(f"   - {len(aggregated_data)} total fields aggregated")
     logging.info(f"   - {total_aggregated_items} total items")
-    logging.info(f"   - {len(all_field_validations)} field validations")
+    logging.info(f"   - 0 field validations (pure extraction phase)")
     logging.info(f"   - Processed {len(results['processed_documents'])} documents")
 
     # Calculate summary
