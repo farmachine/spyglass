@@ -1106,6 +1106,14 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
             for record_index in range(actual_item_count):
                 record = collection_data[record_index] if record_index < len(collection_data) else {}
                 
+                # DEBUG: Log what we're accessing for index 0
+                if record_index == 0:
+                    logging.info(f"🔍 INDEX_0_DEBUG: Collection {collection_name}")
+                    logging.info(f"   - record_index: {record_index}")
+                    logging.info(f"   - collection_data length: {len(collection_data)}")
+                    logging.info(f"   - collection_data[0]: {collection_data[0] if len(collection_data) > 0 else 'EMPTY'}")
+                    logging.info(f"   - record variable: {record}")
+                
                 properties_data = collection.get("properties", [])
                 logging.info(f"COMPREHENSIVE VALIDATION - COLLECTION {collection_name} PROPERTIES DEBUG:")
                 logging.info(f"  Type: {type(properties_data)}")
