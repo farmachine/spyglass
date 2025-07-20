@@ -329,10 +329,15 @@ export default function NewUpload({ project }: NewUploadProps) {
         } catch (error) {
           console.error(`🚀 CONSOLIDATED_FRONTEND: API request failed with error:`, error);
           console.error(`🚀 CONSOLIDATED_FRONTEND: Error details:`, {
-            message: error.message,
-            stack: error.stack,
-            type: error.constructor.name
+            message: error?.message || 'No message',
+            stack: error?.stack || 'No stack',
+            type: error?.constructor?.name || 'Unknown',
+            status: error?.status || 'No status',
+            statusText: error?.statusText || 'No statusText',
+            response: error?.response || 'No response',
+            toString: error?.toString() || 'Cannot convert to string'
           });
+          console.error(`🚀 CONSOLIDATED_FRONTEND: Raw error object:`, JSON.stringify(error, Object.getOwnPropertyNames(error)));
           throw error;
         }
       })();
