@@ -279,8 +279,30 @@ def extract_data_from_document(
         prompt += "\nExtraction Rules:\n"
         prompt += "1. Extract ONLY real data from the document - NO sample data\n"
         prompt += "2. If data is not found, return null\n"
-        prompt += "3. Return proper JSON format\n"
+        prompt += "3. Return JSON as an OBJECT with keys matching the schema field/collection names\n"
         prompt += "4. IMPORTANT: Pay careful attention to field descriptions for context\n"
+        prompt += "\nExpected JSON format:\n"
+        prompt += "{\n"
+        
+        # Add expected fields 
+        if project_schema.get("schema_fields"):
+            for field in project_schema["schema_fields"]:
+                field_name = field['fieldName']
+                prompt += f'  "{field_name}": null,\n'
+        
+        # Add expected collections
+        if project_schema.get("collections"):
+            for collection in project_schema["collections"]:
+                collection_name = collection.get('collectionName', collection.get('objectName', ''))
+                prompt += f'  "{collection_name}": [\n'
+                prompt += '    {\n'
+                for prop in collection.get("properties", []):
+                    prop_name = prop['propertyName']
+                    prompt += f'      "{prop_name}": null,\n'
+                prompt += '    }\n'
+                prompt += '  ],\n'
+        
+        prompt += "}\n"
         prompt += "\nFor NDA/Contract Documents - Party Extraction Guidelines:\n"
         prompt += "• A 'Party' is any organization, company, or individual that is signing or involved in the agreement\n"
         prompt += "• Look for company names, organization names, and individual names throughout the document\n"
