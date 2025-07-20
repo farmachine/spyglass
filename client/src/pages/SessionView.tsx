@@ -35,13 +35,15 @@ const AIReasoningModal = ({
   onClose, 
   reasoning, 
   fieldName, 
-  confidenceScore 
+  confidenceScore,
+  getFieldDisplayName
 }: { 
   isOpen: boolean; 
   onClose: () => void; 
   reasoning: string; 
   fieldName: string; 
-  confidenceScore: number; 
+  confidenceScore: number;
+  getFieldDisplayName: (fieldName: string) => string;
 }) => {
   const { toast } = useToast();
 
@@ -67,7 +69,7 @@ const AIReasoningModal = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Info className="h-5 w-5 text-blue-600" />
-            AI Reasoning - {fieldName}
+            AI Reasoning - {getFieldDisplayName(fieldName)}
           </DialogTitle>
           <DialogDescription>
             Confidence Score: {confidenceScore}% - Detailed analysis and suggested resolution
@@ -99,11 +101,13 @@ const AIReasoningModal = ({
 const ConfidenceBadge = ({ 
   confidenceScore, 
   reasoning, 
-  fieldName 
+  fieldName,
+  getFieldDisplayName
 }: { 
   confidenceScore: number; 
   reasoning?: string; 
-  fieldName: string; 
+  fieldName: string;
+  getFieldDisplayName: (fieldName: string) => string;
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   
@@ -155,6 +159,7 @@ const ConfidenceBadge = ({
           reasoning={reasoning}
           fieldName={fieldName}
           confidenceScore={confidenceScore}
+          getFieldDisplayName={getFieldDisplayName}
         />
       )}
     </div>
@@ -1073,7 +1078,7 @@ Thank you for your assistance.`;
             } else if (!wasExtracted) {
               return <NotExtractedBadge />;
             } else {
-              return <ConfidenceBadge confidenceScore={validation.confidenceScore} reasoning={validation.aiReasoning} fieldName={fieldName} />;
+              return <ConfidenceBadge confidenceScore={validation.confidenceScore} reasoning={validation.aiReasoning} fieldName={fieldName} getFieldDisplayName={getFieldDisplayName} />;
             }
           })()}
         </div>

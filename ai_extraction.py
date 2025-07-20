@@ -327,16 +327,38 @@ def calculate_knowledge_based_confidence_fallback(field_name: str, extracted_val
                         })
                         continue
     
+    # Generate display-friendly field name for better user experience
+    def get_display_name(technical_field_name):
+        """Convert technical field names like 'Parties.Name[1]' to user-friendly names like 'Name (Item 2)'"""
+        if '.' in technical_field_name:
+            # Collection field: "Parties.Name[1]" -> "Name (Item 2)"
+            parts = technical_field_name.split('.')
+            if len(parts) >= 2:
+                property_part = parts[1]  # e.g., "Name[1]"
+                base_property_name = property_part.split('[')[0]  # Remove [index]
+                index_match = property_part.find('[')
+                if index_match != -1 and ']' in property_part:
+                    index_str = property_part[index_match+1:property_part.find(']')]
+                    try:
+                        index = int(index_str)
+                        return f"{base_property_name} (Item {index + 1})"
+                    except ValueError:
+                        pass
+                return base_property_name
+        return technical_field_name
+    
+    display_field_name = get_display_name(field_name)
+    
     # Generate AI-style reasoning based on applied rules
     if applied_rules:
         if len(applied_rules) == 1:
             rule = applied_rules[0]
-            reasoning = f"Our extraction rules indicate that {rule['action'].lower()}. This adjustment reflects policy-based validation requirements for {field_name}."
+            reasoning = f"Our extraction rules indicate that {rule['action'].lower()}. This adjustment reflects policy-based validation requirements for {display_field_name}."
         else:
             rule_actions = [rule['action'].lower() for rule in applied_rules]
-            reasoning = f"Multiple extraction rules applied: {'; '.join(rule_actions)}. These adjustments ensure compliance with organizational validation policies."
+            reasoning = f"Multiple extraction rules applied: {'; '.join(rule_actions)}. These adjustments ensure compliance with organizational validation policies for {display_field_name}."
     else:
-        reasoning = f"Field validation completed with standard confidence scoring. No specific extraction rules apply to {field_name}."
+        reasoning = f"Field validation completed with standard confidence scoring. No specific extraction rules apply to {display_field_name}."
     
     return confidence_percentage, applied_rules, reasoning
 
