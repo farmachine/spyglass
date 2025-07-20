@@ -653,7 +653,26 @@ def extract_data_from_document(
                                 logging.error(f"Error processing property: {e}, prop type: {type(prop)}, prop value: {prop}")
                                 continue
                             
-                            extracted_value = record.get(prop_name) if prop_name in record else None
+                            # Try multiple ways to find the extracted value (case-insensitive)
+                            extracted_value = None
+                            if prop_name in record:
+                                extracted_value = record[prop_name]
+                            elif prop_name.lower() in record:
+                                extracted_value = record[prop_name.lower()]
+                            elif len(prop_name) > 1:
+                                # Try camelCase version
+                                camel_case_name = prop_name[0].lower() + prop_name[1:]
+                                if camel_case_name in record:
+                                    extracted_value = record[camel_case_name]
+                            
+                            # Also check for common field name variations
+                            if extracted_value is None:
+                                for key, value in record.items():
+                                    if key.lower() == prop_name.lower():
+                                        extracted_value = value
+                                        break
+                            
+                            logging.info(f"🔍 Checking {collection_name}.{prop_name}[{record_index}]: found value '{extracted_value}' in record: {record}")
                             field_name_with_index = f"{collection_name}.{prop_name}[{record_index}]"
                             
                             if extracted_value is not None and extracted_value != "":
