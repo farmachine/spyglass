@@ -140,21 +140,25 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
     const hasDataItems = project.schemaFields.length > 0 || project.collections.length > 0;
     const hasUserInteracted = sessionStorage.getItem(`project-${project.id}-interacted`) === 'true';
     
+    console.log(`Project ${project.id} DEBUG - hasDataItems: ${hasDataItems}, hasUserInteracted: ${hasUserInteracted}, activeTab: ${activeTab}, initialTabSet: ${initialTabSetRef.current}`);
+    
     // If project has data items, disable welcome flow permanently
     if (hasDataItems) {
       console.log(`Project ${project.id} - fields: ${project.schemaFields.length}, collections: ${project.collections.length} - marking as interacted`);
       sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
+      return; // Don't change tabs if user already has data
     }
     
-    // Welcome flow: redirect to define tab ONLY if no data items exist AND user hasn't interacted AND no active tab is set
-    if (!hasDataItems && !hasUserInteracted && !activeTab && !initialTabSetRef.current) {
+    // If user has interacted, don't redirect them
+    if (hasUserInteracted) {
+      console.log(`Project ${project.id} - user has interacted, not redirecting`);
+      return;
+    }
+    
+    // Welcome flow: redirect to define tab ONLY on very first load when no active tab is set
+    if (!activeTab && !initialTabSetRef.current) {
       console.log(`Project ${project.id} - no data items, starting welcome flow - fields: ${project.schemaFields.length}, collections: ${project.collections.length}`);
       setActiveTab('define');
-      initialTabSetRef.current = true;
-    } else if (!activeTab && !initialTabSetRef.current) {
-      // Default to upload tab if welcome flow doesn't apply
-      console.log(`Project ${project.id} - defaulting to upload tab - hasDataItems: ${hasDataItems}, hasUserInteracted: ${hasUserInteracted}`);
-      setActiveTab('upload');
       initialTabSetRef.current = true;
     }
   }, [project, canAccessConfigTabs, canAccessPublishing]);
