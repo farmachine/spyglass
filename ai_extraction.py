@@ -565,12 +565,17 @@ def extract_data_from_document(
                 
                 if isinstance(collection_data, list):
                     for record_index, record in enumerate(collection_data):
+                        # Ensure record is a dictionary before processing
+                        if not isinstance(record, dict):
+                            logging.warning(f"Record {record_index} in collection {collection_name} is not a dict: {type(record)} - {record}")
+                            continue
+                            
                         for prop in collection.get("properties", []):
                             prop_id = str(prop.get("id", "unknown"))
                             prop_name = prop.get("propertyName", "")
                             prop_type = prop.get("propertyType", "TEXT")
                             
-                            extracted_value = record.get(prop_name) if isinstance(record, dict) else None
+                            extracted_value = record.get(prop_name) if prop_name in record else None
                             field_name_with_index = f"{collection_name}.{prop_name}[{record_index}]"
                             
                             if extracted_value is not None and extracted_value != "":
