@@ -31,48 +31,69 @@ def extract_document_content(files_data: List[Dict[str, Any]]) -> str:
         file_content = file_data.get('content', '')
         
         logging.info(f"📄 Processing document: {file_name}")
+        logging.info(f"🔍 File content type: {type(file_content)}, length: {len(file_content)}")
+        logging.info(f"🔍 Content preview: {file_content[:100]}...")
         
         try:
             # Handle data URL format (data:application/pdf;base64,...)
             if file_content.startswith('data:'):
+                logging.info(f"🔍 Detected data URL format")
                 # Extract base64 content from data URL
                 header, encoded = file_content.split(',', 1)
+                logging.info(f"🔍 Header: {header}, encoded length: {len(encoded)}")
                 file_bytes = base64.b64decode(encoded)
+                logging.info(f"🔍 Decoded {len(file_bytes)} bytes")
                 
                 # Save to temporary file for processing
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
                     temp_file.write(file_bytes)
                     temp_path = temp_file.name
+                    logging.info(f"🔍 Saved to temp file: {temp_path}")
                 
                 # Extract text from PDF
                 try:
                     import PyPDF2
+                    logging.info(f"🔍 Attempting PyPDF2 extraction for {file_name}")
                     with open(temp_path, 'rb') as pdf_file:
                         pdf_reader = PyPDF2.PdfReader(pdf_file)
+                        logging.info(f"🔍 PDF has {len(pdf_reader.pages)} pages")
                         text_content = ""
-                        for page in pdf_reader.pages:
-                            text_content += page.extract_text() + "\n"
+                        for i, page in enumerate(pdf_reader.pages):
+                            page_text = page.extract_text()
+                            text_content += page_text + "\n"
+                            logging.info(f"🔍 Page {i+1}: extracted {len(page_text)} characters")
+                        
+                        logging.info(f"🔍 Total text extracted: {len(text_content)} characters")
+                        logging.info(f"🔍 Text preview: {text_content[:200]}...")
                         
                         if text_content.strip():
                             combined_text += f"\n=== Document: {file_name} ===\n{text_content}\n"
                             logging.info(f"✅ Extracted {len(text_content)} characters from {file_name}")
                         else:
+                            logging.warning(f"⚠️ PyPDF2 returned empty text for {file_name}, trying OCR")
                             # Fallback to OCR with pdf2image if no text found
                             try:
                                 from pdf2image import convert_from_path
                                 import pytesseract
                                 
+                                logging.info(f"🔍 Converting {file_name} to images for OCR")
                                 images = convert_from_path(temp_path, dpi=200)
+                                logging.info(f"🔍 Generated {len(images)} images from PDF")
                                 ocr_text = ""
-                                for image in images:
-                                    ocr_text += pytesseract.image_to_string(image) + "\n"
+                                for i, image in enumerate(images):
+                                    page_ocr = pytesseract.image_to_string(image)
+                                    ocr_text += page_ocr + "\n"
+                                    logging.info(f"🔍 OCR page {i+1}: {len(page_ocr)} characters")
                                 
+                                logging.info(f"🔍 Total OCR text: {len(ocr_text)} characters")
                                 if ocr_text.strip():
                                     combined_text += f"\n=== Document: {file_name} (OCR) ===\n{ocr_text}\n"
                                     logging.info(f"✅ OCR extracted {len(ocr_text)} characters from {file_name}")
+                                else:
+                                    logging.error(f"❌ Both PyPDF2 and OCR failed for {file_name}")
                                 
                             except Exception as ocr_error:
-                                logging.warning(f"⚠️ OCR failed for {file_name}: {ocr_error}")
+                                logging.error(f"❌ OCR failed for {file_name}: {ocr_error}")
                                 combined_text += f"\n=== Document: {file_name} ===\n[Content extraction failed]\n"
                 
                 except Exception as pdf_error:
@@ -379,15 +400,10 @@ def main():
         document_text = extract_document_content(files_data)
         
         if not document_text.strip():
-            logging.warning("⚠️ No document content extracted, using demo data")
-            # Provide basic fallback structure
-            demo_data = {
-                "Number of Parties": "2",
-                "Parties": [
-                    {"Name": "Demo Company 1", "Address": "123 Demo St", "Country": "USA"},
-                    {"Name": "Demo Company 2", "Address": "456 Test Ave", "Country": "USA"}
-                ]
-            }
+            logging.error("❌ CRITICAL: No document content extracted from any files!")
+            logging.error("❌ PDF processing completely failed - no text content available for AI extraction")
+            # Return empty data structure instead of demo data
+            demo_data = {}
         else:
             # Step 2: Extract data points based on schema  
             project_schema = session_data.get("project_schema", {})
