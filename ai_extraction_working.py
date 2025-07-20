@@ -220,7 +220,7 @@ def apply_validation_rules(extracted_data: Dict[str, Any], extraction_rules: Lis
     
     return processed_data
 
-def create_validation_records(processed_data: Dict[str, Any], project_schema: Dict[str, Any], session_id: str) -> List[Dict[str, Any]]:
+def create_validation_records(processed_data: Dict[str, Any], extracted_data: Dict[str, Any], project_schema: Dict[str, Any], session_id: str) -> List[Dict[str, Any]]:
     """
     Create validation records from processed data
     """
@@ -259,7 +259,10 @@ def create_validation_records(processed_data: Dict[str, Any], project_schema: Di
     collections = project_schema.get("collections", [])
     for collection in collections:
         collection_name = collection.get("collectionName", "")
-        collection_data = processed_data.get(collection_name, [])
+        # Get collection data from the raw extracted_data, not processed_data
+        collection_data = extracted_data.get(collection_name, [])
+        logging.info(f"🔍 Processing collection '{collection_name}' with {len(collection_data) if isinstance(collection_data, list) else 'non-list'} items")
+        logging.info(f"🔍 Collection data type: {type(collection_data)}, content: {collection_data}")
         
         # Ensure collection_data is a list
         if not isinstance(collection_data, list):
@@ -296,7 +299,7 @@ def create_validation_records(processed_data: Dict[str, Any], project_schema: Di
                 }
                 
                 validation_records.append(property_record)
-                logging.info(f"✅ Collection property: {collection_name}.{property_name}[{record_index}] = {property_value} (95%)")
+                logging.info(f"✅ Collection property: {collection_name}.{property_name}[{record_index}] = {property_value}")
     
     return validation_records
 
@@ -327,7 +330,7 @@ def main():
         processed_data = apply_validation_rules(extracted_data, extraction_rules, knowledge_documents)
         
         # Step 3: Create validation records
-        validation_records = create_validation_records(processed_data, project_schema, session_id)
+        validation_records = create_validation_records(processed_data, extracted_data, project_schema, session_id)
         
         # Return results
         result = {
