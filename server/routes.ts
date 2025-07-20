@@ -1159,6 +1159,19 @@ except Exception as e:
           const result = JSON.parse(output);
           console.log('Parsed Python result:', JSON.stringify(result, null, 2).substring(0, 500) + '...');
           
+          // DEBUG: Check if aggregated_extraction has field_validations
+          if (result.aggregated_extraction) {
+            console.log('DEBUG: aggregated_extraction exists');
+            console.log('DEBUG: aggregated_extraction keys:', Object.keys(result.aggregated_extraction));
+            if (result.aggregated_extraction.field_validations) {
+              console.log('DEBUG: field_validations count in aggregated_extraction:', result.aggregated_extraction.field_validations.length);
+            } else {
+              console.log('DEBUG: NO field_validations in aggregated_extraction');
+            }
+          } else {
+            console.log('DEBUG: NO aggregated_extraction found');
+          }
+          
           // Update session status
           await storage.updateExtractionSession(sessionId, {
             status: "completed",

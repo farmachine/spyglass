@@ -1409,15 +1409,39 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
     # Add aggregated data to results with comprehensive summary
     total_aggregated_items = sum(len(v) if isinstance(v, list) else 1 for v in aggregated_data.values())
     
+    # Create comprehensive validation records for all fields
+    comprehensive_validations = create_comprehensive_validation_records(aggregated_data, project_schema, [])
+    logging.info(f"🎯 FINAL VALIDATION COUNT: {len(comprehensive_validations)} comprehensive validation records created")
+    
+    # Convert FieldValidationResult objects to dictionaries for JSON serialization
+    serialized_validations = []
+    for fv in comprehensive_validations:
+        serialized_validations.append({
+            "field_id": fv.field_id,
+            "field_name": fv.field_name,
+            "field_type": fv.field_type,
+            "extracted_value": fv.extracted_value,
+            "original_extracted_value": fv.original_extracted_value,
+            "original_confidence_score": fv.original_confidence_score,
+            "original_ai_reasoning": fv.original_ai_reasoning,
+            "validation_status": fv.validation_status,
+            "ai_reasoning": fv.ai_reasoning,
+            "confidence_score": fv.confidence_score,
+            "document_source": fv.document_source,
+            "document_sections": fv.document_sections,
+            "collection_name": fv.collection_name,
+            "record_index": fv.record_index
+        })
+    
     results["aggregated_extraction"] = {
         "extracted_data": aggregated_data,
-        "field_validations": [],  # Empty - no validation records during pure extraction phase
+        "field_validations": serialized_validations,  # Include comprehensive validation records
         "total_items": total_aggregated_items,
         "aggregation_summary": {
             "total_documents_processed": len([d for d in results["processed_documents"] if d.get("status") == "completed"]),
             "collections_aggregated": len([k for k, v in aggregated_data.items() if isinstance(v, list)]),
             "total_collection_items": sum(len(v) for v in aggregated_data.values() if isinstance(v, list)),
-            "total_field_validations": 0  # No validation records during pure extraction
+            "total_field_validations": len(comprehensive_validations)  # Actual validation count
         }
     }
     
