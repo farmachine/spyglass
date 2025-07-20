@@ -11,6 +11,12 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 20, 2025**
+- ✓ **PRIMARY ORGANIZATION ADMIN ACCESS CONTROL BUG COMPLETELY RESOLVED**: Fixed critical issue where primary organization admins couldn't access dashboard statistics
+- ✓ Root cause identified: React Query queryKey was incorrectly building API URLs by appending user IDs as path segments ("/api/dashboard/statistics/user-id")
+- ✓ Fixed by using simple string queryKey instead of array for single-parameter endpoints without URL parameters
+- ✓ Confirmed Josh (primary admin) now correctly sees all 13 projects and proper statistics: 84 sessions, 2209 validations (1437 verified, 772 unverified)
+- ✓ Primary organization logic working perfectly: getProjectsWithPublishedOrganizations correctly identifies primary org admins and returns ALL projects
+- ✓ Dashboard statistics API now functional with correct project counts, session counts, and validation data for primary organization admins
 - ✓ **EXTRACTION RULES PROCESSING COMPLETELY FIXED**: Resolved critical issue where extraction rules weren't being applied to AI extractions
 - ✓ **Knowledge Document Content Fixed**: Added PDF processing to knowledge document upload route and populated existing knowledge document with proper U.S. jurisdiction requirements
 - ✓ **Rule Matching Logic Enhanced**: Fixed field matching to handle arrow notation ("Parties --> Name") vs dot notation ("Parties.Name[0]") used during processing

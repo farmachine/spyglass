@@ -829,7 +829,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Get all projects accessible to the user
       const projects = await storage.getProjectsWithPublishedOrganizations(req.user!.organizationId, req.user!.role);
-      console.log(`Dashboard statistics: User ${req.user!.email} (${req.user!.role}) from org ${req.user!.organizationId} has access to ${projects.length} projects`);
       
       // Filter only active projects
       const activeProjects = projects.filter(project => project.status !== "inactive");

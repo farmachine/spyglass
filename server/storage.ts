@@ -1380,15 +1380,11 @@ class PostgreSQLStorage implements IStorage {
   async getProjectsWithPublishedOrganizations(organizationId?: string, userRole?: string): Promise<(Project & { publishedOrganizations: Organization[] })[]> {
     let projectsList;
     
-    console.log(`getProjectsWithPublishedOrganizations called with organizationId: ${organizationId}, userRole: ${userRole}`);
-    
     if (organizationId) {
       // Get organization details to check if it's primary
       const organization = await this.getOrganization(organizationId);
-      console.log(`Organization details:`, organization);
       
       if (organization?.type === 'primary' && userRole === 'admin') {
-        console.log(`Primary organization admin detected - getting ALL projects`);
         // Primary organization admins can see ALL projects in the system
         projectsList = await this.db
           .select({
