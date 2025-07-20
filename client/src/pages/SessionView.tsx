@@ -1389,20 +1389,31 @@ Thank you for your assistance.`;
                         {collection.properties
                           .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
                           .map((property) => {
-                          const originalValue = item[property.propertyName];
+                          // Try multiple possible property name mappings for extracted data
+                          const possibleKeys = [
+                            property.propertyName, // exact match
+                            property.propertyName.toLowerCase(), // lowercase
+                            property.propertyName.charAt(0).toLowerCase() + property.propertyName.slice(1), // camelCase
+                          ];
+                          
+                          let originalValue = undefined;
+                          for (const key of possibleKeys) {
+                            if (item[key] !== undefined) {
+                              originalValue = item[key];
+                              break;
+                            }
+                          }
+                          
                           const fieldName = `${collection.collectionName}.${property.propertyName}[${index}]`;
                           const validation = validations.find(v => v.fieldName === fieldName);
                           
-                          // Show property if it has a value OR if there's a validation for it
-                          if (originalValue !== undefined || validation) {
-                            // Use validation's extractedValue (which includes manual edits), not the original extracted value
-                            let displayValue = validation?.extractedValue ?? originalValue ?? null;
-                            if (displayValue === "null" || displayValue === "undefined") {
-                              displayValue = null;
-                            }
-                            return renderFieldWithValidation(fieldName, displayValue);
+                          // Always show the property, even if no value is extracted
+                          // Use validation's extractedValue (which includes manual edits), not the original extracted value
+                          let displayValue = validation?.extractedValue ?? originalValue ?? null;
+                          if (displayValue === "null" || displayValue === "undefined") {
+                            displayValue = null;
                           }
-                          return null;
+                          return renderFieldWithValidation(fieldName, displayValue);
                         })}
                       </div>
                     </div>
