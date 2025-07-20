@@ -1206,7 +1206,7 @@ Thank you for your assistance.`;
                     <ArrowLeft className="h-4 w-4" />
                   </Button>
                 </Link>
-                <h3 className="text-xl font-bold text-gray-900">{session?.sessionName}</h3>
+                <h3 className="text-xl font-bold text-gray-900">{project.mainObjectName || "Session"}: {session?.sessionName}</h3>
               </div>
               
               {/* Status and progress bar aligned to right */}
@@ -1260,12 +1260,7 @@ Thank you for your assistance.`;
 
         {/* Unified Data Structure - Fields and Collections */}
         <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-900 mb-2">
-              Review and verify extracted data
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 pt-4">
             {/* Project Schema Fields */}
             {project.schemaFields.map((field) => {
               const originalValue = extractedData[field.fieldName];
