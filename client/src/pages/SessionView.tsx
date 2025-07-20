@@ -437,11 +437,20 @@ export default function SessionView() {
 
   // Get validation for a specific field
   const getValidation = (fieldName: string) => {
-    const validation = validations.find(v => v.fieldName === fieldName);
-    if (!validation) {
-      console.log(`No validation found for ${fieldName}, available validations:`, validations.map(v => v.fieldName));
+    // WORKAROUND: Try direct match first
+    const directMatch = validations.find(v => v.fieldName === fieldName);
+    if (directMatch) return directMatch;
+    
+    // For schema fields that don't contain brackets or dots, try the shifted version with [1]
+    if (!fieldName.includes('[') && !fieldName.includes('.')) {
+      const shiftedFieldName = `${fieldName}[1]`;
+      const shiftedMatch = validations.find(v => v.fieldName === shiftedFieldName);
+      if (shiftedMatch) return shiftedMatch;
     }
-    return validation;
+    
+    // Log if no validation found for debugging
+    console.log(`No validation found for ${fieldName}, available validations:`, validations.map(v => v.fieldName));
+    return undefined;
   };
 
   // Get session status based on field verification

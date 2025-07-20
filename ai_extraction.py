@@ -1033,6 +1033,7 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
             logging.info(f"  Collection {i}: {collection.get('collectionName', 'Unknown')} with properties type: {type(collection.get('properties', []))}")
     
     # Process schema fields (non-collection fields)
+    # WORKAROUND: Create dummy validation records at index -1 for schema fields too
     if project_schema.get("schema_fields"):
         for field in project_schema["schema_fields"]:
             if not isinstance(field, dict):
@@ -1041,13 +1042,35 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
             field_id = str(field.get("id", "unknown"))
             field_name = field.get("fieldName", "")
             field_type = field.get("fieldType", "TEXT")
+            dummy_field_name = f"{field_name}[-1]"
             
-            # Skip if validation already exists
-            if field_name in existing_field_names:
+            # Create dummy validation at index -1 for schema fields
+            if dummy_field_name not in existing_field_names:
+                dummy_validation = FieldValidationResult(
+                    field_id=field_id,
+                    field_name=dummy_field_name,
+                    field_type=field_type,
+                    extracted_value=None,
+                    original_extracted_value=None,
+                    original_confidence_score=0,
+                    original_ai_reasoning="Dummy placeholder record",
+                    validation_status="invalid",
+                    ai_reasoning="Dummy placeholder record",
+                    confidence_score=0,
+                    document_source="System",
+                    document_sections=["Placeholder"],
+                    record_index=-1
+                )
+                comprehensive_validations.append(dummy_validation)
+                logging.info(f"🔧 Created dummy schema field validation at index -1: {dummy_field_name}")
+            
+            # Skip if real validation already exists
+            shifted_field_name = f"{field_name}[1]"
+            if field_name in existing_field_names or shifted_field_name in existing_field_names:
                 logging.info(f"✅ Schema field validation exists: {field_name}")
                 continue
                 
-            # Create validation record for schema field
+            # Create validation record for schema field at index [1] instead of [0]
             extracted_value = aggregated_data.get(field_name)
             
             # CREATE INITIAL VALIDATION RECORDS - Distinguish between extracted and missing
@@ -1066,9 +1089,12 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
                 extracted_value = None
                 logging.info(f"📝 Creating MISSING schema field validation: {field_name} = null - missing from document")
             
+            # WORKAROUND: Use shifted field name with index [1] to avoid index [0] corruption bug
+            shifted_field_name = f"{field_name}[1]"
+            
             validation = FieldValidationResult(
                 field_id=field_id,
-                field_name=field_name,
+                field_name=shifted_field_name,  # Use shifted name
                 field_type=field_type,
                 extracted_value=extracted_value,
                 original_extracted_value=extracted_value,
@@ -1078,7 +1104,8 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
                 ai_reasoning=reasoning,
                 confidence_score=confidence,
                 document_source="Aggregated Data",
-                document_sections=["Multi-document aggregation"]
+                document_sections=["Multi-document aggregation"],
+                record_index=1  # WORKAROUND: Schema fields use index 1 instead of 0
             )
             comprehensive_validations.append(validation)
     
