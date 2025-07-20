@@ -1887,7 +1887,7 @@ print(json.dumps(results))
   });
 
   // Consolidated AI Extraction endpoint - NEW ARCHITECTURE
-  app.post("/api/sessions/:sessionId/extract-consolidated", async (req, res) => {
+  app.post("/api/sessions/:sessionId/extract-consolidated", authenticateToken, async (req: AuthRequest, res) => {
     const sessionId = req.params.sessionId;
     console.log(`🚀 CONSOLIDATED_EXTRACTION: Starting extraction for session ${sessionId}`);
 
