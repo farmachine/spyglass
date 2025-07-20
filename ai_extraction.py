@@ -919,9 +919,13 @@ def run_post_extraction_batch_validation(session_data: Dict[str, Any]) -> Dict[s
             field_name = validation.get("field_name", "")
             extracted_value = validation.get("extracted_value")
             
-            # DEBUG: Log first items specifically
-            if '[0]' in field_name or field_name == 'Number of Parties':
-                logging.info(f"🔍 BATCH_VALIDATION_DEBUG: First item {field_name}")
+            # DEBUG: Log schema field processing (both [0] and [1] indices)
+            if '[1]' in field_name and not '.' in field_name:  # Schema fields with [1] index
+                logging.info(f"🔍 BATCH_VALIDATION_DEBUG - Schema field with [1]: {field_name}")
+                logging.info(f"   - extracted_value from validation: {extracted_value}")
+                logging.info(f"   - type: {type(extracted_value)}")
+            elif '[0]' in field_name or field_name == 'Number of Parties':
+                logging.info(f"🔍 BATCH_VALIDATION_DEBUG - Index [0] field: {field_name}")
                 logging.info(f"   - extracted_value from validation: {extracted_value}")
                 logging.info(f"   - type: {type(extracted_value)}")
             
@@ -933,8 +937,8 @@ def run_post_extraction_batch_validation(session_data: Dict[str, Any]) -> Dict[s
                 })
                 validation_lookup[field_name] = validation
             else:
-                # DEBUG: Log why first items are being excluded
-                if '[0]' in field_name or field_name == 'Number of Parties':
+                # DEBUG: Log why items are being excluded
+                if '[0]' in field_name or '[1]' in field_name or field_name == 'Number of Parties':
                     logging.info(f"🚨 BATCH_VALIDATION_DEBUG: EXCLUDING {field_name} because extracted_value is {extracted_value}")
         
         if len(fields_to_validate) > 0:
