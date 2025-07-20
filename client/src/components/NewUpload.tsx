@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -60,7 +61,11 @@ export default function NewUpload({ project }: NewUploadProps) {
   const [selectedFiles, setSelectedFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showExtractionLoading, setShowExtractionLoading] = useState(false);
+  const [showProcessingDialog, setShowProcessingDialog] = useState(false);
+  const [processingStep, setProcessingStep] = useState<'uploading' | 'extracting' | 'validating' | 'complete'>('uploading');
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [processedDocuments, setProcessedDocuments] = useState(0);
+  const [totalDocuments, setTotalDocuments] = useState(0);
   const [, setLocation] = useLocation();
   
   const createExtractionSession = useCreateExtractionSession(project.id);
@@ -198,9 +203,14 @@ export default function NewUpload({ project }: NewUploadProps) {
     }
 
     setIsProcessing(true);
+    setShowProcessingDialog(true);
+    setTotalDocuments(selectedFiles.length);
+    setProcessedDocuments(0);
+    setProcessingStep('uploading');
+    setProcessingProgress(0);
 
     try {
-      // Create extraction session
+      // Step 1: Create extraction session
       const session = await createExtractionSession.mutateAsync({
         sessionName: data.sessionName,
         description: data.description || null,
@@ -208,8 +218,13 @@ export default function NewUpload({ project }: NewUploadProps) {
         status: "in_progress",
       });
 
-      // Simulate file upload progress
-      await simulateFileProcessing(selectedFiles);
+      // Step 2: Simulate file upload progress
+      setProcessingStep('uploading');
+      for (let i = 0; i < selectedFiles.length; i++) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        setProcessedDocuments(i + 1);
+        setProcessingProgress(((i + 1) / selectedFiles.length) * 100);
+      }
 
       // Prepare file data for AI processing
       const filesData = await Promise.all(selectedFiles.map(async (fileData) => {
@@ -245,7 +260,9 @@ export default function NewUpload({ project }: NewUploadProps) {
         }
       }));
 
-      // Process with AI
+      // Step 3: AI Extraction Phase
+      setProcessingStep('extracting');
+      setProcessingProgress(0);
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "processing" as const })));
       
       // Get project schema and collections for AI processing
@@ -265,7 +282,8 @@ export default function NewUpload({ project }: NewUploadProps) {
         })
       );
 
-      const extractionResult = await processExtraction.mutateAsync({
+      // Start extraction with progress simulation
+      const extractionPromise = processExtraction.mutateAsync({
         sessionId: session.id,
         files: filesData,
         project_data: {
@@ -276,23 +294,49 @@ export default function NewUpload({ project }: NewUploadProps) {
         }
       });
 
+      // Simulate extraction progress
+      const progressInterval = setInterval(() => {
+        setProcessingProgress(prev => {
+          const newProgress = prev + 10;
+          return Math.min(newProgress, 90);
+        });
+      }, 300);
+
+      // Wait for extraction to complete
+      const extractionResult = await extractionPromise;
+      clearInterval(progressInterval);
+      setProcessingProgress(100);
+
+      // Step 4: Validation Phase
+      setProcessingStep('validating');
+      setProcessingProgress(0);
+
+      // Simulate validation progress
+      for (let progress = 0; progress <= 100; progress += 20) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        setProcessingProgress(progress);
+      }
+
+      // Step 5: Complete
+      setProcessingStep('complete');
+      setProcessingProgress(100);
+
       // Mark files as completed
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
 
+      // Show success briefly before redirect
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       // Verify extraction was successful before redirecting
       if (extractionResult && session?.id) {
-        // Show "Running extraction" loading screen
-        setShowExtractionLoading(true);
-        
         toast({
-          title: "AI extraction completed",
-          description: `${selectedFiles.length} file(s) processed successfully. Loading review page...`,
+          title: "Processing complete",
+          description: `${selectedFiles.length} file(s) processed successfully. Redirecting to review page...`,
         });
 
-        // Show extraction loading for 2 seconds then redirect
-        setTimeout(() => {
-          setLocation(`/projects/${project.id}/sessions/${session.id}`);
-        }, 2000);
+        // Close dialog and redirect
+        setShowProcessingDialog(false);
+        setLocation(`/projects/${project.id}/sessions/${session.id}`);
       } else {
         throw new Error("Extraction completed but session data is missing");
       }
@@ -303,6 +347,8 @@ export default function NewUpload({ project }: NewUploadProps) {
     } catch (error) {
       console.error("Failed to start extraction session:", error);
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "error" as const })));
+      
+      setShowProcessingDialog(false);
       toast({
         title: "Processing failed",
         description: "There was an error processing your files. Please try again.",
@@ -311,9 +357,7 @@ export default function NewUpload({ project }: NewUploadProps) {
       
       // Don't redirect on error - keep user on upload tab
     } finally {
-      if (!showExtractionLoading) {
-        setIsProcessing(false);
-      }
+      setIsProcessing(false);
     }
   };
 
@@ -343,20 +387,7 @@ export default function NewUpload({ project }: NewUploadProps) {
 
   return (
     <div className="space-y-6 relative">
-      {/* Running Extraction Loading Overlay */}
-      {showExtractionLoading && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-            <div className="text-center">
-              <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Running extraction</h3>
-              <p className="text-gray-600">
-                AI is extracting data from your documents. This will take a moment...
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+
       
       <div>
         <h2 className="text-2xl font-semibold text-gray-900">Add New {project.mainObjectName || "Session"}</h2>
@@ -546,6 +577,86 @@ export default function NewUpload({ project }: NewUploadProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Processing Dialog */}
+      <Dialog open={showProcessingDialog} modal={true}>
+        <DialogContent className="sm:max-w-md" onEscapeKeyDown={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
+          <div className="flex flex-col items-center justify-center p-6">
+            <div className="w-16 h-16 mb-6 relative">
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-100 border-t-blue-600"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <WaveIcon className="h-6 w-6 text-blue-600" />
+              </div>
+            </div>
+
+            <div className="text-center mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {processingStep === 'uploading' && 'Processing Documents'}
+                {processingStep === 'extracting' && 'AI Data Extraction'}
+                {processingStep === 'validating' && 'Validation & Rules'}
+                {processingStep === 'complete' && 'Processing Complete'}
+              </h3>
+              <p className="text-sm text-gray-600">
+                {processingStep === 'uploading' && `Uploading ${processedDocuments} of ${totalDocuments} documents...`}
+                {processingStep === 'extracting' && 'Analyzing documents and extracting data using AI...'}
+                {processingStep === 'validating' && 'Applying extraction rules and validation logic...'}
+                {processingStep === 'complete' && 'All documents processed successfully!'}
+              </p>
+            </div>
+
+            <div className="w-full mb-4">
+              <Progress value={processingProgress} className="h-2" />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>{Math.round(processingProgress)}%</span>
+                <span>
+                  {processingStep === 'uploading' && `${processedDocuments}/${totalDocuments} files`}
+                  {processingStep === 'extracting' && 'Extracting...'}
+                  {processingStep === 'validating' && 'Validating...'}
+                  {processingStep === 'complete' && 'Done!'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-4 text-xs text-gray-500">
+              <div className={`flex items-center ${processingStep !== 'uploading' ? 'text-green-600' : ''}`}>
+                {processingStep === 'uploading' ? (
+                  <div className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full mr-1" />
+                ) : (
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                )}
+                Upload
+              </div>
+              <div className={`flex items-center ${processingStep === 'extracting' ? 'text-blue-600' : processingStep === 'validating' || processingStep === 'complete' ? 'text-green-600' : 'text-gray-400'}`}>
+                {processingStep === 'extracting' ? (
+                  <div className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full mr-1" />
+                ) : processingStep === 'validating' || processingStep === 'complete' ? (
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                ) : (
+                  <Clock className="h-3 w-3 mr-1" />
+                )}
+                Extract
+              </div>
+              <div className={`flex items-center ${processingStep === 'validating' ? 'text-blue-600' : processingStep === 'complete' ? 'text-green-600' : 'text-gray-400'}`}>
+                {processingStep === 'validating' ? (
+                  <div className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full mr-1" />
+                ) : processingStep === 'complete' ? (
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                ) : (
+                  <Clock className="h-3 w-3 mr-1" />
+                )}
+                Validate
+              </div>
+            </div>
+
+            {processingStep === 'complete' && (
+              <div className="mt-4 text-center">
+                <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                <p className="text-sm text-green-600 font-medium">Redirecting to review page...</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

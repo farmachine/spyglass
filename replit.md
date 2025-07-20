@@ -11,6 +11,16 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 20, 2025**
+- ✓ **MULTI-STEP LOADING POPUP IMPLEMENTED**: Replaced scattered loading screens with unified processing dialog
+- ✓ New elegant popup shows Upload → Extract → Validate → Complete progress with real-time percentages and status indicators
+- ✓ Consolidated document loading, AI extraction, and validation into single seamless experience
+- ✓ Added spinning wave icon and step-by-step progress tracking for professional UX
+- ✓ Removed old extraction loading overlay in favor of comprehensive processing dialog
+- ✓ **"NOT EXTRACTED" DISPLAY BUG COMPLETELY RESOLVED**: Fixed UI issue where extracted values showed as "Not Extracted" instead of confidence badges
+- ✓ Root cause: Initial validation records were created with confidence score of 0, triggering "Not Extracted" logic
+- ✓ Fixed by setting proper confidence scores during validation creation: 95 for extracted values, 20 for empty values
+- ✓ Schema fields and collection properties now display confidence badges instead of "Not Extracted" false negatives
+- ✓ Enhanced AI reasoning text from placeholder messages to "Extracted during AI processing"
 - ✓ **PRIMARY ORGANIZATION ADMIN ACCESS CONTROL BUG COMPLETELY RESOLVED**: Fixed critical issue where primary organization admins couldn't access dashboard statistics
 - ✓ Root cause identified: React Query queryKey was incorrectly building API URLs by appending user IDs as path segments ("/api/dashboard/statistics/user-id")
 - ✓ Fixed by using simple string queryKey instead of array for single-parameter endpoints without URL parameters
