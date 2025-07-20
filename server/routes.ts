@@ -745,16 +745,27 @@ except Exception as e:
           
           await new Promise((resolve, reject) => {
             python.on('close', (code) => {
+              console.log(`DEBUG: Python extraction process completed with code: ${code}`);
+              console.log(`DEBUG: Extracted text length: ${extractedText.length}`);
+              console.log(`DEBUG: Extracted text preview: ${extractedText.substring(0, 500)}`);
+              
               if (code === 0 && extractedText.trim() && !extractedText.includes('PDF_EXTRACTION_FAILED')) {
                 processedData.content = extractedText.trim();
                 console.log('DEBUG: Knowledge document PDF processing successful, extracted', extractedText.length, 'characters of text');
                 resolve(extractedText);
               } else {
-                console.log('DEBUG: PDF text extraction failed or returned no content');
+                console.log('DEBUG: PDF text extraction failed or returned no content, code:', code);
+                console.log('DEBUG: Raw extracted text:', JSON.stringify(extractedText));
                 // Leave content empty so user can manually add text
                 processedData.content = "";
                 resolve("no_content");
               }
+            });
+            
+            python.on('error', (error) => {
+              console.error('DEBUG: Python process error:', error);
+              processedData.content = "";
+              resolve("error");
             });
           });
         } catch (pdfError) {
