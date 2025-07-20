@@ -1,4 +1,4 @@
-import { Plus, Settings, Search, LayoutDashboard, Shield, Database, AlertTriangle, CheckCircle2, FolderOpen } from "lucide-react";
+import { Plus, Settings, Search, LayoutDashboard, Shield, Database, AlertTriangle, CheckCircle2, FileText } from "lucide-react";
 import { WaveIcon, DropletIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -240,10 +240,10 @@ export default function Dashboard() {
                   <>
                     <Card className="bg-blue-50 border-blue-200">
                       <CardContent className="flex items-center p-3">
-                        <FolderOpen className="h-5 w-5 text-blue-600 mr-2" />
+                        <FileText className="h-5 w-5 text-blue-600 mr-2" />
                         <div>
                           <p className="text-xs text-blue-600 font-medium">Projects</p>
-                          <p className="text-lg font-bold text-blue-800">{statistics.totalProjects}</p>
+                          <p className="text-lg font-bold text-blue-600">{statistics.totalProjects}</p>
                         </div>
                       </CardContent>
                     </Card>
