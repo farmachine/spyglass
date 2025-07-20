@@ -1637,13 +1637,16 @@ print(json.dumps(results))
               const existingValidation = existingValidations.find(v => v.fieldName === validation.field_name);
               
               if (existingValidation) {
-                // Update existing validation record
+                // Update existing validation record - PRESERVE extracted values!
                 await storage.updateFieldValidation(existingValidation.id, {
                   confidenceScore: validation.confidence_score,
                   validationStatus: validation.validation_status,
                   aiReasoning: validation.ai_reasoning,
                   originalConfidenceScore: validation.original_confidence_score,
-                  originalAiReasoning: validation.original_ai_reasoning
+                  originalAiReasoning: validation.original_ai_reasoning,
+                  // CRITICAL: Preserve the extracted values from batch validation
+                  extractedValue: validation.extracted_value !== undefined ? validation.extracted_value : existingValidation.extractedValue,
+                  originalExtractedValue: validation.original_extracted_value !== undefined ? validation.original_extracted_value : existingValidation.originalExtractedValue
                 });
               }
             }
