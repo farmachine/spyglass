@@ -176,8 +176,8 @@ export default function AllData({ project }: AllDataProps) {
   return (
     <div>
       {/* Header with Statistics */}
-      <div className="flex items-start justify-between mb-6">
-        <div>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex-1 mr-8">
           <h2 className="text-2xl font-semibold text-gray-900">{project.mainObjectName || "Session"} Extraction Sessions</h2>
           <p className="text-sm text-gray-600 mt-1">
             View extracted data and manage all extraction sessions for this project
@@ -185,26 +185,26 @@ export default function AllData({ project }: AllDataProps) {
         </div>
         
         {/* Compact Statistics Cards */}
-        <div className="flex gap-4">
-          <Card className="min-w-[120px]">
-            <CardContent className="pt-4 pb-4">
+        <div className="flex gap-3 flex-shrink-0">
+          <Card className="min-w-[110px]">
+            <CardContent className="pt-3 pb-3">
               <div className="flex items-center">
-                <Database className="h-6 w-6 text-blue-600" />
-                <div className="ml-3">
+                <Database className="h-5 w-5 text-blue-600" />
+                <div className="ml-2">
                   <p className="text-xs font-medium text-gray-600">Total {project.mainObjectName || "Session"}s</p>
-                  <p className="text-xl font-bold text-gray-900">{project.sessions.length}</p>
+                  <p className="text-lg font-bold text-gray-900">{project.sessions.length}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="min-w-[120px]">
-            <CardContent className="pt-4 pb-4">
+          <Card className="min-w-[110px]">
+            <CardContent className="pt-3 pb-3">
               <div className="flex items-center">
-                <AlertTriangle className="h-6 w-6 text-red-600" />
-                <div className="ml-3">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+                <div className="ml-2">
                   <p className="text-xs font-medium text-gray-600">Unverified</p>
-                  <p className="text-xl font-bold text-gray-900">
+                  <p className="text-lg font-bold text-gray-900">
                     {verificationStats.in_progress + verificationStats.pending}
                   </p>
                 </div>
@@ -212,13 +212,13 @@ export default function AllData({ project }: AllDataProps) {
             </CardContent>
           </Card>
 
-          <Card className="min-w-[120px]">
-            <CardContent className="pt-4 pb-4">
+          <Card className="min-w-[110px]">
+            <CardContent className="pt-3 pb-3">
               <div className="flex items-center">
-                <CheckCircle className="h-6 w-6 text-green-600" />
-                <div className="ml-3">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <div className="ml-2">
                   <p className="text-xs font-medium text-gray-600">Verified</p>
-                  <p className="text-xl font-bold text-gray-900">
+                  <p className="text-lg font-bold text-gray-900">
                     {verificationStats.verified}
                   </p>
                 </div>
