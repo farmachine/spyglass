@@ -1365,6 +1365,154 @@ except Exception as e:
     }
   });
 
+  // Batch validation endpoint for post-extraction validation
+  app.post("/api/sessions/:sessionId/batch-validate", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      console.log(`BATCH_VALIDATION: Starting batch validation for session ${sessionId}`);
+      
+      // Get session and project data
+      const session = await storage.getSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      const projectId = session.projectId;
+      
+      // Get project schema, rules, and knowledge documents
+      const [project, extractionRules, knowledgeDocuments, existingValidations] = await Promise.all([
+        storage.getProject(projectId),
+        storage.getExtractionRules(projectId),
+        storage.getKnowledgeDocuments(projectId),
+        storage.getFieldValidations(sessionId)
+      ]);
+
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      // Prepare session data for batch validation
+      const sessionData = {
+        session_id: sessionId,
+        project_schema: {
+          schema_fields: project.schemaFields || [],
+          collections: project.collections || []
+        },
+        extraction_rules: extractionRules || [],
+        knowledge_documents: knowledgeDocuments || [],
+        existing_validations: existingValidations.map(v => ({
+          field_name: v.fieldName,
+          field_id: v.fieldId,
+          field_type: v.fieldType,
+          extracted_value: v.extractedValue,
+          confidence_score: v.confidenceScore,
+          validation_status: v.validationStatus,
+          ai_reasoning: v.aiReasoning,
+          auto_verification_threshold: 80 // Default threshold
+        }))
+      };
+
+      // Call Python batch validation function
+      const { spawn } = require('child_process');
+      const python = spawn('python3', ['-c', `
+import sys
+import json
+sys.path.append('.')
+from ai_extraction import run_post_extraction_batch_validation
+
+# Read input data
+input_data = json.loads(sys.stdin.read())
+
+# Run batch validation
+results = run_post_extraction_batch_validation(input_data)
+
+print(json.dumps(results))
+`]);
+
+      let pythonOutput = '';
+      let pythonError = '';
+      
+      python.stdout.on('data', (data) => {
+        pythonOutput += data.toString();
+      });
+      
+      python.stderr.on('data', (data) => {
+        pythonError += data.toString();
+      });
+      
+      python.on('close', async (code) => {
+        if (code !== 0) {
+          console.error(`BATCH_VALIDATION: Python process failed with code ${code}`);
+          console.error(`BATCH_VALIDATION: Error output: ${pythonError}`);
+          return res.status(500).json({ 
+            message: "Batch validation failed", 
+            error: pythonError,
+            code: code
+          });
+        }
+
+        try {
+          const validationResults = JSON.parse(pythonOutput);
+          
+          if (validationResults.success) {
+            // Update database with new validation data
+            const updatedValidations = validationResults.updated_validations || [];
+            
+            for (const validation of updatedValidations) {
+              const existingValidation = existingValidations.find(v => v.fieldName === validation.field_name);
+              
+              if (existingValidation) {
+                // Update existing validation record
+                await storage.updateFieldValidation(existingValidation.id, {
+                  confidenceScore: validation.confidence_score,
+                  validationStatus: validation.validation_status,
+                  aiReasoning: validation.ai_reasoning,
+                  originalConfidenceScore: validation.original_confidence_score,
+                  originalAiReasoning: validation.original_ai_reasoning
+                });
+              }
+            }
+            
+            console.log(`BATCH_VALIDATION: Successfully updated ${validationResults.fields_processed} field validations`);
+            
+            res.json({
+              success: true,
+              session_id: sessionId,
+              fields_processed: validationResults.fields_processed,
+              total_validations: validationResults.total_validations,
+              message: `Batch validation complete. Updated ${validationResults.fields_processed} fields.`
+            });
+          } else {
+            console.error(`BATCH_VALIDATION: Validation failed: ${validationResults.error}`);
+            res.status(500).json({
+              message: "Batch validation failed",
+              error: validationResults.error
+            });
+          }
+        } catch (parseError) {
+          console.error(`BATCH_VALIDATION: Failed to parse Python output: ${parseError}`);
+          console.error(`BATCH_VALIDATION: Raw output: ${pythonOutput}`);
+          res.status(500).json({
+            message: "Failed to parse batch validation results",
+            error: parseError.message,
+            output: pythonOutput
+          });
+        }
+      });
+
+      // Send session data to Python process
+      python.stdin.write(JSON.stringify(sessionData));
+      python.stdin.end();
+
+    } catch (error) {
+      console.error("BATCH_VALIDATION: API error:", error);
+      res.status(500).json({ 
+        message: "Failed to run batch validation", 
+        error: error.message 
+      });
+    }
+  });
+
   app.post("/api/sessions/:sessionId/recalculate-validations", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;

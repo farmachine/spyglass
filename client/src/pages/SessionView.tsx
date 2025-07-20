@@ -343,6 +343,33 @@ export default function SessionView() {
     }
   });
 
+  // Batch validation mutation for applying extraction rules post-extraction
+  const batchValidationMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest(`/api/sessions/${sessionId}/batch-validate`, {
+        method: 'POST'
+      });
+    },
+    onSuccess: async (result) => {
+      // Invalidate and refetch validation queries to update UI
+      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/validations/project', projectId] });
+      
+      toast({
+        title: "Batch validation complete",
+        description: `Applied extraction rules to ${result.fields_processed} fields with real confidence scores.`,
+      });
+    },
+    onError: (error: any) => {
+      console.error('Batch validation failed:', error);
+      toast({
+        title: "Batch validation failed",
+        description: error?.message || "An error occurred during batch validation.",
+        variant: "destructive"
+      });
+    }
+  });
+
   if (projectLoading || sessionLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -1261,6 +1288,19 @@ Thank you for your assistance.`;
                   className="px-3 py-2"
                 >
                   <Download className="h-4 w-4" />
+                </Button>
+                <Button
+                  onClick={() => batchValidationMutation.mutate()}
+                  variant="outline"
+                  size="sm"
+                  className="px-3 py-2"
+                  disabled={batchValidationMutation.isPending}
+                >
+                  {batchValidationMutation.isPending ? (
+                    <RotateCcw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Brain className="h-4 w-4" />
+                  )}
                 </Button>
               </div>
             </div>

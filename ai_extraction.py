@@ -894,63 +894,107 @@ def extract_data_from_document(
         logging.error(f"Extraction failed: {e}")
         raise Exception(f"Extraction failed for {file_name}: {str(e)}")
 
-def run_post_extraction_batch_validation(session_id: str, project_schema: Dict[str, Any], extraction_rules: List[Dict[str, Any]], knowledge_documents: List[Dict[str, Any]]) -> bool:
+def run_post_extraction_batch_validation(session_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Run batch AI validation AFTER data extraction and saving is complete.
     This updates the confidence scores and reasoning for all extracted fields.
+    
+    Args:
+        session_data: Complete session data including session_id, project_schema, extraction_rules, etc.
+    
+    Returns:
+        Results dict with updated validation information
     """
+    session_id = session_data.get("session_id")
+    project_schema = session_data.get("project_schema", {})
+    extraction_rules = session_data.get("extraction_rules", [])
+    knowledge_documents = session_data.get("knowledge_documents", [])
+    
     logging.info(f"🚀 POST_EXTRACTION_BATCH_VALIDATION: Starting batch validation for session {session_id}")
     
     try:
-        # For now, we'll collect fields from the aggregated data and run batch validation
-        # In the future, this should read from the database after data is saved
-        # This is a simplified implementation to demonstrate the architecture
+        # Read actual field validations from the session data (this would be from database in real implementation)
+        all_validations = session_data.get("existing_validations", [])
         
+        # Collect fields that have extracted values for batch validation
         fields_to_validate = []
+        validation_lookup = {}
         
-        # Collect schema fields that have values
-        for field in project_schema.get("schema_fields", []):
-            field_name = field['fieldName']
-            # For now, we'll assume these fields have values - in real implementation,
-            # we would read the actual saved data from the database
-            fields_to_validate.append({
-                'field_name': field_name,
-                'extracted_value': "placeholder_value"  # Would be real value from database
-            })
-        
-        # Collect collection properties that have values  
-        for collection in project_schema.get("collections", []):
-            collection_name = collection.get('collectionName', '')
-            for prop in collection.get("properties", []):
-                prop_name = prop.get('propertyName', '')
-                # Simulate multiple records
-                for record_index in range(2):  # Assume 2 records for demo
-                    field_name_with_index = f"{collection_name}.{prop_name}[{record_index}]"
-                    fields_to_validate.append({
-                        'field_name': field_name_with_index,
-                        'extracted_value': "placeholder_value"  # Would be real value from database
-                    })
+        for validation in all_validations:
+            field_name = validation.get("field_name", "")
+            extracted_value = validation.get("extracted_value")
+            
+            # Only validate fields that have actual extracted values
+            if extracted_value is not None and extracted_value != "" and extracted_value != "null":
+                fields_to_validate.append({
+                    'field_name': field_name,
+                    'extracted_value': extracted_value
+                })
+                validation_lookup[field_name] = validation
         
         if len(fields_to_validate) > 0:
-            logging.info(f"🚀 POST_EXTRACTION_BATCH_VALIDATION: Validating {len(fields_to_validate)} fields")
+            logging.info(f"🚀 POST_EXTRACTION_BATCH_VALIDATION: Validating {len(fields_to_validate)} fields with real values")
             
-            # Run the batch validation
+            # Run the batch validation with real extracted values
             validation_results = ai_validate_batch(fields_to_validate, extraction_rules, knowledge_documents)
             
             logging.info(f"🚀 POST_EXTRACTION_BATCH_VALIDATION: Received {len(validation_results)} validation results")
             
-            # TODO: Update the database with the new confidence scores and reasoning
-            # This would involve updating the field_validations table with the new data
+            # Update validation records with new confidence scores and reasoning
+            updated_validations = []
+            for validation in all_validations:
+                field_name = validation.get("field_name", "")
+                
+                if field_name in validation_results:
+                    # Update with batch validation results
+                    confidence, applied_rules, reasoning = validation_results[field_name]
+                    
+                    # Create updated validation with new AI results
+                    updated_validation = validation.copy()
+                    updated_validation["confidence_score"] = confidence
+                    updated_validation["ai_reasoning"] = reasoning
+                    updated_validation["original_confidence_score"] = confidence
+                    updated_validation["original_ai_reasoning"] = reasoning
+                    
+                    # Update validation status based on new confidence
+                    auto_threshold = validation.get("auto_verification_threshold", 80)
+                    if confidence >= auto_threshold:
+                        updated_validation["validation_status"] = "verified"
+                    else:
+                        updated_validation["validation_status"] = "unverified"
+                    
+                    updated_validations.append(updated_validation)
+                    logging.info(f"✅ Updated {field_name}: {confidence}% confidence")
+                else:
+                    # Keep original validation unchanged
+                    updated_validations.append(validation)
+            
+            return {
+                "success": True,
+                "session_id": session_id,
+                "updated_validations": updated_validations,
+                "fields_processed": len(validation_results),
+                "total_validations": len(all_validations)
+            }
             
         else:
-            logging.info(f"🚀 POST_EXTRACTION_BATCH_VALIDATION: No fields found to validate")
-        
-        logging.info(f"🚀 POST_EXTRACTION_BATCH_VALIDATION: Batch validation complete for session {session_id}")
-        return True
+            logging.info(f"🚀 POST_EXTRACTION_BATCH_VALIDATION: No fields with values found to validate")
+            return {
+                "success": True,
+                "session_id": session_id,
+                "updated_validations": all_validations,
+                "fields_processed": 0,
+                "total_validations": len(all_validations)
+            }
         
     except Exception as e:
         logging.error(f"🚀 POST_EXTRACTION_BATCH_VALIDATION: Error during batch validation: {e}")
-        return False
+        return {
+            "success": False,
+            "session_id": session_id,
+            "error": str(e),
+            "fields_processed": 0
+        }
 
 def create_comprehensive_validation_records(aggregated_data, project_schema, existing_validations, extraction_rules, knowledge_documents, session_id):
     """
