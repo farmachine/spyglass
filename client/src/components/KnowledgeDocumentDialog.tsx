@@ -309,48 +309,8 @@ export default function KnowledgeDocumentDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Target Fields (Optional)</FormLabel>
-                  <FormDescription>
-                    Select specific fields this document applies to. Leave empty to apply to all fields.
-                  </FormDescription>
-                  <div className="space-y-3">
-                    <div className="flex gap-2">
-                      <Select
-                        onValueChange={(value) => {
-                          const currentFields = field.value || [];
-                          if (value && !currentFields.includes(value)) {
-                            field.onChange([...currentFields, value]);
-                          }
-                        }}
-                      >
-                        <SelectTrigger className="flex-1">
-                          <SelectValue placeholder="Select fields to target..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableFields.map((availableField) => (
-                            <SelectItem 
-                              key={availableField.value} 
-                              value={availableField.value}
-                              disabled={field.value?.includes(availableField.value)}
-                            >
-                              {availableField.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      
-                      {field.value && field.value.length > 0 && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => field.onChange([])}
-                          className="px-3"
-                        >
-                          Clear All
-                        </Button>
-                      )}
-                    </div>
-                    
+                  <div className="space-y-2">
+                    {/* Selected fields display */}
                     {field.value && field.value.length > 0 && (
                       <div className="flex flex-wrap gap-2">
                         {field.value.map((targetField) => (
@@ -359,18 +319,48 @@ export default function KnowledgeDocumentDialog({
                             variant="secondary"
                             className="flex items-center gap-1"
                           >
-                            {targetField}
+                            {availableFields.find(opt => opt.value === targetField)?.label || targetField}
                             <X
-                              className="h-3 w-3 cursor-pointer hover:text-red-500"
+                              className="h-3 w-3 cursor-pointer"
                               onClick={() => {
-                                field.onChange(field.value?.filter(f => f !== targetField) || []);
+                                const newValue = field.value?.filter(f => f !== targetField) || [];
+                                field.onChange(newValue);
                               }}
                             />
                           </Badge>
                         ))}
                       </div>
                     )}
+                    
+                    {/* Add field selector */}
+                    <Select
+                      onValueChange={(value) => {
+                        if (value && !field.value?.includes(value)) {
+                          const newValue = [...(field.value || []), value];
+                          field.onChange(newValue);
+                        }
+                      }}
+                      value=""
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Add target field" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {availableFields
+                          .filter(option => !field.value?.includes(option.value))
+                          .map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
                   </div>
+                  <FormDescription>
+                    Choose specific fields this document applies to, or leave empty for all fields
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
