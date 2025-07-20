@@ -136,12 +136,20 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       return;
     }
     
-    // COMPLETELY DISABLE WELCOME FLOW - Only set default tab on very first load
+    // Check if project has any data items created (schema fields or collections) or is setup complete
+    const hasDataItems = project.schemaFields.length > 0 || project.collections.length > 0;
+    const isSetupComplete = project.isInitialSetupComplete;
+    
+    // If project has data items or is marked as setup complete, disable welcome flow
+    if (hasDataItems || isSetupComplete) {
+      console.log(`Project ${project.id} - fields: ${project.schemaFields.length}, collections: ${project.collections.length}, setupComplete: ${isSetupComplete} - marking as interacted`);
+      sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
+    }
+    
+    // Only set default tab on very first load
     if (!activeTab && !initialTabSetRef.current) {
       setActiveTab('upload');
       initialTabSetRef.current = true;
-      // Immediately mark as interacted to prevent any future redirects
-      sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
     }
   }, [project, canAccessConfigTabs, canAccessPublishing]);
 
