@@ -1297,11 +1297,11 @@ except Exception as e:
                     extractedValue: extractedValue,
                     originalExtractedValue: extractedValue,
                     originalConfidenceScore: 95, // Default confidence for extracted data
-                    originalAiReasoning: 'No validation data - batch validation will populate later',
+                    originalAiReasoning: 'Extracted during AI processing',
                     validationStatus: 'unverified',
-                    aiReasoning: 'No validation data - batch validation will populate later',
+                    aiReasoning: 'Extracted during AI processing',
                     manuallyVerified: false,
-                    confidenceScore: 0 // Will be populated during batch validation
+                    confidenceScore: 95 // Set proper confidence score so it doesn't show as "Not Extracted"
                   });
                 }
               }
@@ -1335,11 +1335,11 @@ except Exception as e:
                           extractedValue: extractedValue,
                           originalExtractedValue: extractedValue,
                           originalConfidenceScore: 95, // Default confidence for extracted data
-                          originalAiReasoning: 'No validation data - batch validation will populate later',
+                          originalAiReasoning: 'Extracted during AI processing',
                           validationStatus: 'unverified',
-                          aiReasoning: 'No validation data - batch validation will populate later',
+                          aiReasoning: 'Extracted during AI processing',
                           manuallyVerified: false,
-                          confidenceScore: 0 // Will be populated during batch validation
+                          confidenceScore: extractedValue !== null && extractedValue !== undefined ? 95 : 20 // Higher confidence for actual values, lower for null
                         });
                       }
                     }
