@@ -1121,20 +1121,31 @@ Thank you for your assistance.`;
         {/* Main Content */}
         <div className="flex-1 p-8 overflow-x-hidden">
           <div className="max-w-4xl mx-auto w-full">
-            {/* Session Header */}
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-4">
+            {/* Project Header - Match AllData Style */}
+            <div className="mb-8">
+              <div className="flex items-center gap-3 mb-1">
                 <Link href={`/projects/${projectId}?tab=all-data`}>
                   <Button variant="ghost" size="sm" className="flex items-center gap-2">
                     <ArrowLeft className="h-4 w-4" />
                   </Button>
                 </Link>
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">{session?.sessionName}</h2>
-                </div>
+                <FileText className="h-6 w-6 text-primary" />
+                <h2 className="text-2xl font-semibold text-gray-900">{project.name}</h2>
+              </div>
+              <div className="ml-16">
+                <p className="text-sm text-gray-600">
+                  {project.description || "Data extraction project"}
+                </p>
+              </div>
+            </div>
+
+            {/* Session Header - Match AllData Header Style */}
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">{session?.sessionName}</h3>
               </div>
               
-              {/* Centered status and progress bar */}
+              {/* Status and progress bar aligned to right */}
               <div className="flex items-center gap-3">
                 {getVerificationProgress().percentage === 100 ? (
                   <div className="flex items-center gap-1">
@@ -1163,9 +1174,7 @@ Thank you for your assistance.`;
                     {getVerificationProgress().percentage}%
                   </span>
                 </div>
-              </div>
-              
-              <div className="flex flex-col gap-1">
+                
                 <Button 
                   onClick={() => setShowReasoningDialog(true)} 
                   variant="outline" 
