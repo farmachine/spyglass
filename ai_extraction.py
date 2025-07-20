@@ -276,13 +276,22 @@ def extract_data_from_document(
                     else:
                         prompt += f"  * {prop_name} ({prop_type})\n"
         
-        prompt += "\nRules:\n"
-        prompt += "1. Extract ONLY real data from the document\n"
+        prompt += "\nExtraction Rules:\n"
+        prompt += "1. Extract ONLY real data from the document - NO sample data\n"
         prompt += "2. If data is not found, return null\n"
-        prompt += "3. Do NOT generate sample data\n"
-        prompt += "4. Return proper JSON format\n"
-        prompt += "5. IMPORTANT: Pay careful attention to field descriptions - they provide context about WHICH data to extract\n"
-        prompt += "6. For example, if Company Name description says 'software provider', extract the company providing software, not the customer\n"
+        prompt += "3. Return proper JSON format\n"
+        prompt += "4. IMPORTANT: Pay careful attention to field descriptions for context\n"
+        prompt += "\nFor NDA/Contract Documents - Party Extraction Guidelines:\n"
+        prompt += "• A 'Party' is any organization, company, or individual that is signing or involved in the agreement\n"
+        prompt += "• Look for company names, organization names, and individual names throughout the document\n"
+        prompt += "• Parties are often mentioned in:\n"
+        prompt += "  - The document header/title\n"
+        prompt += "  - 'BETWEEN' clauses at the beginning\n"
+        prompt += "  - Signature sections at the end\n"
+        prompt += "  - 'Party A', 'Party B' references\n"
+        prompt += "  - Corporate entity names (Inc., LLC, Ltd., Corp., etc.)\n"
+        prompt += "• Each party should include their name, address if available, and country\n"
+        prompt += "• Extract ALL parties mentioned in the document, not just the primary ones\n"
         
         # Add knowledge documents context if available
         if knowledge_documents:
