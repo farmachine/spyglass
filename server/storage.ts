@@ -6,7 +6,9 @@ import {
   extractionSessions,
   knowledgeDocuments,
   extractionRules,
-  fieldValidations,
+  extractedSchemaFields,
+  extractedCollectionItems,
+  extractedCollectionProperties,
   organizations,
   users,
   projectPublishing,
@@ -24,8 +26,12 @@ import {
   type InsertKnowledgeDocument,
   type ExtractionRule,
   type InsertExtractionRule,
-  type FieldValidation,
-  type InsertFieldValidation,
+  type ExtractedSchemaField,
+  type InsertExtractedSchemaField,
+  type ExtractedCollectionItem,
+  type InsertExtractedCollectionItem,
+  type ExtractedCollectionProperty,
+  type InsertExtractedCollectionProperty,
   type ExtractionSessionWithValidation,
   type ProjectWithDetails,
   type Organization,
@@ -140,13 +146,17 @@ export interface IStorage {
   updateExtractionRule(id: string, rule: Partial<InsertExtractionRule>): Promise<ExtractionRule | undefined>;
   deleteExtractionRule(id: string): Promise<boolean>;
 
-  // Field Validations
-  getFieldValidations(sessionId: string): Promise<FieldValidation[]>;
-  createFieldValidation(validation: InsertFieldValidation): Promise<FieldValidation>;
-  createOrUpdateFieldValidation(validation: InsertFieldValidation): Promise<FieldValidation>;
-  updateFieldValidation(id: string, validation: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined>;
-  deleteFieldValidation(id: string): Promise<boolean>;
-  getExtractionSessionWithValidations(sessionId: string): Promise<ExtractionSessionWithValidation | undefined>;
+  // Extracted Data - separate from schema definitions
+  createExtractedSchemaField(field: InsertExtractedSchemaField): Promise<ExtractedSchemaField>;
+  createExtractedCollectionItem(item: InsertExtractedCollectionItem): Promise<ExtractedCollectionItem>;
+  createExtractedCollectionProperty(property: InsertExtractedCollectionProperty): Promise<ExtractedCollectionProperty>;
+  getExtractedDataForSession(sessionId: string): Promise<{
+    schemaFields: (ExtractedSchemaField & { fieldName: string; fieldType: string })[];
+    collectionItems: (ExtractedCollectionItem & { 
+      collectionName: string;
+      properties: (ExtractedCollectionProperty & { propertyName: string; propertyType: string })[]
+    })[];
+  }>;
 
   // Project Publishing
   getProjectPublishing(projectId: string): Promise<ProjectPublishing[]>;
@@ -2052,99 +2062,122 @@ class PostgreSQLStorage implements IStorage {
       .where(eq(extractionRules.id, id));
     return result.rowCount > 0;
   }
-  async getFieldValidations(sessionId: string): Promise<FieldValidation[]> { 
-    console.log(`DEBUG: Querying validations for session ${sessionId}`);
-    const result = await this.db.select().from(fieldValidations).where(eq(fieldValidations.sessionId, sessionId));
-    console.log(`DEBUG: Raw query returned ${result.length} validations`);
-    console.log(`DEBUG: First few raw results:`, result.slice(0, 3).map(r => ({ fieldType: r.fieldType, recordIndex: r.recordIndex, extractedValue: r.extractedValue })));
+  // Extracted Data - separate from schema definitions
+  async createExtractedSchemaField(field: InsertExtractedSchemaField): Promise<ExtractedSchemaField> {
+    const result = await this.db.insert(extractedSchemaFields).values(field).returning();
+    return result[0];
+  }
+
+  async createExtractedCollectionItem(item: InsertExtractedCollectionItem): Promise<ExtractedCollectionItem> {
+    const result = await this.db.insert(extractedCollectionItems).values(item).returning();
+    return result[0];
+  }
+
+  async createExtractedCollectionProperty(property: InsertExtractedCollectionProperty): Promise<ExtractedCollectionProperty> {
+    const result = await this.db.insert(extractedCollectionProperties).values(property).returning();
+    return result[0];
+  }
+
+  async getExtractedDataForSession(sessionId: string): Promise<{
+    schemaFields: (ExtractedSchemaField & { fieldName: string; fieldType: string })[];
+    collectionItems: (ExtractedCollectionItem & { 
+      collectionName: string;
+      properties: (ExtractedCollectionProperty & { propertyName: string; propertyType: string })[]
+    })[];
+  }> {
+    console.log(`🚀 SEPARATE_DATA: Fetching extracted data for session ${sessionId}`);
     
-    // Enhance results with field names
-    const enhancedValidations = await Promise.all(result.map(async (validation) => {
-      let fieldName = '';
-      
-      if (validation.fieldType === 'schema_field') {
-        // Get field name from project schema fields
-        const schemaField = await this.db
-          .select({ fieldName: projectSchemaFields.fieldName })
-          .from(projectSchemaFields)
-          .where(eq(projectSchemaFields.id, validation.fieldId))
-          .limit(1);
-        
-        fieldName = schemaField[0]?.fieldName || '';
-      } else if (validation.fieldType === 'collection_property') {
-        // Get property name from collection properties and build collection field name
-        const property = await this.db
-          .select({ propertyName: collectionProperties.propertyName })
-          .from(collectionProperties)
-          .where(eq(collectionProperties.id, validation.fieldId))
-          .limit(1);
-        
-        if (property[0] && validation.collectionName && validation.recordIndex !== null) {
-          fieldName = `${validation.collectionName}.${property[0].propertyName}[${validation.recordIndex}]`;
-        }
+    // Get extracted schema fields with schema field info
+    const schemaFields = await this.db
+      .select({
+        id: extractedSchemaFields.id,
+        sessionId: extractedSchemaFields.sessionId,
+        schemaFieldId: extractedSchemaFields.schemaFieldId,
+        extractedValue: extractedSchemaFields.extractedValue,
+        originalExtractedValue: extractedSchemaFields.originalExtractedValue,
+        confidenceScore: extractedSchemaFields.confidenceScore,
+        originalConfidenceScore: extractedSchemaFields.originalConfidenceScore,
+        validationStatus: extractedSchemaFields.validationStatus,
+        aiReasoning: extractedSchemaFields.aiReasoning,
+        originalAiReasoning: extractedSchemaFields.originalAiReasoning,
+        manuallyVerified: extractedSchemaFields.manuallyVerified,
+        createdAt: extractedSchemaFields.createdAt,
+        updatedAt: extractedSchemaFields.updatedAt,
+        fieldName: projectSchemaFields.fieldName,
+        fieldType: projectSchemaFields.fieldType
+      })
+      .from(extractedSchemaFields)
+      .innerJoin(projectSchemaFields, eq(extractedSchemaFields.schemaFieldId, projectSchemaFields.id))
+      .where(eq(extractedSchemaFields.sessionId, sessionId));
+    
+    // Get extracted collection items with properties
+    const collectionItemsResult = await this.db
+      .select({
+        itemId: extractedCollectionItems.id,
+        sessionId: extractedCollectionItems.sessionId,
+        collectionId: extractedCollectionItems.collectionId,
+        recordIndex: extractedCollectionItems.recordIndex,
+        createdAt: extractedCollectionItems.createdAt,
+        collectionName: objectCollections.collectionName,
+        propertyId: extractedCollectionProperties.id,
+        propertyName: collectionProperties.propertyName,
+        propertyType: collectionProperties.propertyType,
+        extractedValue: extractedCollectionProperties.extractedValue,
+        originalExtractedValue: extractedCollectionProperties.originalExtractedValue,
+        confidenceScore: extractedCollectionProperties.confidenceScore,
+        originalConfidenceScore: extractedCollectionProperties.originalConfidenceScore,
+        validationStatus: extractedCollectionProperties.validationStatus,
+        aiReasoning: extractedCollectionProperties.aiReasoning,
+        originalAiReasoning: extractedCollectionProperties.originalAiReasoning,
+        manuallyVerified: extractedCollectionProperties.manuallyVerified,
+        propertyCreatedAt: extractedCollectionProperties.createdAt,
+        propertyUpdatedAt: extractedCollectionProperties.updatedAt
+      })
+      .from(extractedCollectionItems)
+      .innerJoin(objectCollections, eq(extractedCollectionItems.collectionId, objectCollections.id))
+      .innerJoin(extractedCollectionProperties, eq(extractedCollectionItems.id, extractedCollectionProperties.collectionItemId))
+      .innerJoin(collectionProperties, eq(extractedCollectionProperties.propertyId, collectionProperties.id))
+      .where(eq(extractedCollectionItems.sessionId, sessionId));
+    
+    // Group properties by collection item
+    const collectionItemsMap = new Map();
+    for (const row of collectionItemsResult) {
+      if (!collectionItemsMap.has(row.itemId)) {
+        collectionItemsMap.set(row.itemId, {
+          id: row.itemId,
+          sessionId: row.sessionId,
+          collectionId: row.collectionId,
+          recordIndex: row.recordIndex,
+          createdAt: row.createdAt,
+          collectionName: row.collectionName,
+          properties: []
+        });
       }
       
-      return {
-        ...validation,
-        fieldName
-      };
-    }));
-    
-    return enhancedValidations;
-  }
-  async createFieldValidation(validation: InsertFieldValidation): Promise<FieldValidation> { 
-    console.log(`STORAGE: Creating validation with data:`, JSON.stringify(validation, null, 2));
-    const result = await this.db.insert(fieldValidations).values(validation).returning();
-    console.log(`STORAGE: Inserted validation result:`, JSON.stringify(result[0], null, 2));
-    return result[0];
-  }
-
-  async createOrUpdateFieldValidation(validation: InsertFieldValidation): Promise<FieldValidation> {
-    // Check if a validation record for this session, field, and record index already exists
-    const existingValidation = await this.db
-      .select()
-      .from(fieldValidations)
-      .where(and(
-        eq(fieldValidations.sessionId, validation.sessionId),
-        eq(fieldValidations.fieldId, validation.fieldId),
-        eq(fieldValidations.recordIndex, validation.recordIndex || 0)
-      ))
-      .limit(1);
-
-    if (existingValidation.length > 0) {
-      // If it exists, update it
-      const updated = await this.db
-        .update(fieldValidations)
-        .set({ ...validation, updatedAt: new Date() })
-        .where(eq(fieldValidations.id, existingValidation[0].id))
-        .returning();
-      return updated[0];
-    } else {
-      // If it does not exist, create a new one
-      const created = await this.db
-        .insert(fieldValidations)
-        .values(validation)
-        .returning();
-      return created[0];
+      collectionItemsMap.get(row.itemId).properties.push({
+        id: row.propertyId,
+        collectionItemId: row.itemId,
+        propertyId: row.propertyId,
+        extractedValue: row.extractedValue,
+        originalExtractedValue: row.originalExtractedValue,
+        confidenceScore: row.confidenceScore,
+        originalConfidenceScore: row.originalConfidenceScore,
+        validationStatus: row.validationStatus,
+        aiReasoning: row.aiReasoning,
+        originalAiReasoning: row.originalAiReasoning,
+        manuallyVerified: row.manuallyVerified,
+        createdAt: row.propertyCreatedAt,
+        updatedAt: row.propertyUpdatedAt,
+        propertyName: row.propertyName,
+        propertyType: row.propertyType
+      });
     }
-  }
-  async updateFieldValidation(id: string, validation: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined> { 
-    const result = await this.db.update(fieldValidations).set(validation).where(eq(fieldValidations.id, id)).returning();
-    return result[0];
-  }
-  async deleteFieldValidation(id: string): Promise<boolean> { 
-    const result = await this.db.delete(fieldValidations).where(eq(fieldValidations.id, id));
-    return result.rowCount > 0;
-  }
-  async getExtractionSessionWithValidations(sessionId: string): Promise<ExtractionSessionWithValidation | undefined> { 
-    const session = await this.getExtractionSession(sessionId);
-    if (!session) return undefined;
     
-    const validations = await this.getFieldValidations(sessionId);
-    return {
-      ...session,
-      fieldValidations: validations
-    };
+    const collectionItems = Array.from(collectionItemsMap.values());
+    
+    console.log(`🚀 SEPARATE_DATA: Found ${schemaFields.length} schema fields, ${collectionItems.length} collection items`);
+    
+    return { schemaFields, collectionItems };
   }
 
   // Project Publishing methods

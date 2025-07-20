@@ -52,16 +52,6 @@ export const projectSchemaFields = pgTable("project_schema_fields", {
   description: text("description"),
   autoVerificationConfidence: integer("auto_verification_confidence").default(80), // 0-100 threshold for auto verification
   orderIndex: integer("order_index").default(0),
-  // CONSOLIDATED VALIDATION FIELDS - eliminates need for separate validation table
-  extractedValue: text("extracted_value"), // The extracted value for this field
-  originalExtractedValue: text("original_extracted_value"), // Original AI extracted value
-  confidenceScore: integer("confidence_score").default(0), // 0-100 confidence percentage
-  originalConfidenceScore: integer("original_confidence_score").default(0), // Original AI confidence
-  validationStatus: text("validation_status", { enum: ["verified", "unverified", "pending", "manual"] }).default("pending"),
-  aiReasoning: text("ai_reasoning"), // AI explanation for this field
-  originalAiReasoning: text("original_ai_reasoning"), // Original AI reasoning
-  manuallyVerified: boolean("manually_verified").default(false),
-  sessionId: uuid("session_id"), // Link to extraction session - nullable since fields exist before sessions
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -82,17 +72,6 @@ export const collectionProperties = pgTable("collection_properties", {
   description: text("description"),
   autoVerificationConfidence: integer("auto_verification_confidence").default(80), // 0-100 threshold for auto verification
   orderIndex: integer("order_index").default(0),
-  // CONSOLIDATED VALIDATION FIELDS - eliminates need for separate validation table
-  recordIndex: integer("record_index").default(0), // Which collection item instance (0, 1, 2, etc.)
-  extractedValue: text("extracted_value"), // The extracted value for this property
-  originalExtractedValue: text("original_extracted_value"), // Original AI extracted value
-  confidenceScore: integer("confidence_score").default(0), // 0-100 confidence percentage
-  originalConfidenceScore: integer("original_confidence_score").default(0), // Original AI confidence
-  validationStatus: text("validation_status", { enum: ["verified", "unverified", "pending", "manual"] }).default("pending"),
-  aiReasoning: text("ai_reasoning"), // AI explanation for this property
-  originalAiReasoning: text("original_ai_reasoning"), // Original AI reasoning
-  manuallyVerified: boolean("manually_verified").default(false),
-  sessionId: uuid("session_id"), // Link to extraction session - nullable since properties exist before sessions
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -108,27 +87,7 @@ export const extractionSessions = pgTable("extraction_sessions", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// New table for field-level validation tracking
-export const fieldValidations = pgTable("field_validations", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
-  fieldType: text("field_type").notNull(), // 'schema_field' or 'collection_property'
-  fieldId: uuid("field_id").notNull(), // references projectSchemaFields.id or collectionProperties.id
-  collectionName: text("collection_name"), // for collection properties only
-  recordIndex: integer("record_index").default(0), // for collection properties, which record instance
-  extractedValue: text("extracted_value"),
-  originalExtractedValue: text("original_extracted_value"), // stores original AI extracted value for reverting
-  originalConfidenceScore: integer("original_confidence_score").default(0), // original AI confidence score
-  originalAiReasoning: text("original_ai_reasoning"), // original AI reasoning for reverting
-  validationStatus: text("validation_status").default("pending").notNull(), // 'valid', 'invalid', 'pending', 'manual'
-  aiReasoning: text("ai_reasoning"), // AI explanation for validation status
-  manuallyVerified: boolean("manually_verified").default(false).notNull(),
-  confidenceScore: integer("confidence_score").default(0), // 0-100
-  documentSource: text("document_source"), // name of the document where data was found
-  documentSections: text("document_sections"), // sections where data was found (JSON array)
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+
 
 export const knowledgeDocuments = pgTable("knowledge_documents", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -151,6 +110,47 @@ export const extractionRules = pgTable("extraction_rules", {
   ruleContent: text("rule_content").notNull(), // the actual rule logic/description
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// EXTRACTED DATA TABLES - separate from schema definitions
+export const extractedSchemaFields = pgTable("extracted_schema_fields", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
+  schemaFieldId: uuid("schema_field_id").notNull().references(() => projectSchemaFields.id, { onDelete: "cascade" }),
+  extractedValue: text("extracted_value"),
+  originalExtractedValue: text("original_extracted_value"),
+  confidenceScore: integer("confidence_score").default(0),
+  originalConfidenceScore: integer("original_confidence_score").default(0),
+  validationStatus: text("validation_status").default("pending").$type<"verified" | "unverified" | "pending" | "manual">(),
+  aiReasoning: text("ai_reasoning"),
+  originalAiReasoning: text("original_ai_reasoning"),
+  manuallyVerified: boolean("manually_verified").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const extractedCollectionItems = pgTable("extracted_collection_items", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
+  collectionId: uuid("collection_id").notNull().references(() => objectCollections.id, { onDelete: "cascade" }),
+  recordIndex: integer("record_index").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const extractedCollectionProperties = pgTable("extracted_collection_properties", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  collectionItemId: uuid("collection_item_id").notNull().references(() => extractedCollectionItems.id, { onDelete: "cascade" }),
+  propertyId: uuid("property_id").notNull().references(() => collectionProperties.id, { onDelete: "cascade" }),
+  extractedValue: text("extracted_value"),
+  originalExtractedValue: text("original_extracted_value"),
+  confidenceScore: integer("confidence_score").default(0),
+  originalConfidenceScore: integer("original_confidence_score").default(0),
+  validationStatus: text("validation_status").default("pending").$type<"verified" | "unverified" | "pending" | "manual">(),
+  aiReasoning: text("ai_reasoning"),
+  originalAiReasoning: text("original_ai_reasoning"),
+  manuallyVerified: boolean("manually_verified").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Insert schemas
@@ -204,7 +204,18 @@ export const insertExtractionRuleSchema = createInsertSchema(extractionRules).om
   createdAt: true,
 });
 
-export const insertFieldValidationSchema = createInsertSchema(fieldValidations).omit({
+export const insertExtractedSchemaFieldSchema = createInsertSchema(extractedSchemaFields).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertExtractedCollectionItemSchema = createInsertSchema(extractedCollectionItems).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertExtractedCollectionPropertySchema = createInsertSchema(extractedCollectionProperties).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -238,8 +249,12 @@ export type KnowledgeDocument = typeof knowledgeDocuments.$inferSelect;
 export type InsertKnowledgeDocument = z.infer<typeof insertKnowledgeDocumentSchema>;
 export type ExtractionRule = typeof extractionRules.$inferSelect;
 export type InsertExtractionRule = z.infer<typeof insertExtractionRuleSchema>;
-export type FieldValidation = typeof fieldValidations.$inferSelect;
-export type InsertFieldValidation = z.infer<typeof insertFieldValidationSchema>;
+export type ExtractedSchemaField = typeof extractedSchemaFields.$inferSelect;
+export type InsertExtractedSchemaField = z.infer<typeof insertExtractedSchemaFieldSchema>;
+export type ExtractedCollectionItem = typeof extractedCollectionItems.$inferSelect;
+export type InsertExtractedCollectionItem = z.infer<typeof insertExtractedCollectionItemSchema>;
+export type ExtractedCollectionProperty = typeof extractedCollectionProperties.$inferSelect;
+export type InsertExtractedCollectionProperty = z.infer<typeof insertExtractedCollectionPropertySchema>;
 export type ProjectPublishing = typeof projectPublishing.$inferSelect;
 export type InsertProjectPublishing = z.infer<typeof insertProjectPublishingSchema>;
 
