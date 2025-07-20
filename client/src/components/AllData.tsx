@@ -175,51 +175,7 @@ export default function AllData({ project }: AllDataProps) {
 
   return (
     <div>
-      {/* Statistics Cards */}
-      <div className="flex justify-end gap-3 mb-4">
-        <Card className="min-w-[110px]">
-          <CardContent className="pt-3 pb-3">
-            <div className="flex items-center">
-              <Database className="h-5 w-5 text-blue-600" />
-              <div className="ml-2">
-                <p className="text-xs font-medium text-gray-600">Total {project.mainObjectName || "Session"}s</p>
-                <p className="text-lg font-bold text-gray-900">{project.sessions.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="min-w-[110px]">
-          <CardContent className="pt-3 pb-3">
-            <div className="flex items-center">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
-              <div className="ml-2">
-                <p className="text-xs font-medium text-gray-600">Unverified</p>
-                <p className="text-lg font-bold text-gray-900">
-                  {verificationStats.in_progress + verificationStats.pending}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="min-w-[110px]">
-          <CardContent className="pt-3 pb-3">
-            <div className="flex items-center">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <div className="ml-2">
-                <p className="text-xs font-medium text-gray-600">Verified</p>
-                <p className="text-lg font-bold text-gray-900">
-                  {verificationStats.verified}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Header */}
-      <div className="mb-6">
+      <div className="mb-8">
         <h2 className="text-2xl font-semibold text-gray-900">{project.mainObjectName || "Session"} Extraction Sessions</h2>
         <p className="text-sm text-gray-600 mt-1">
           View extracted data and manage all extraction sessions for this project

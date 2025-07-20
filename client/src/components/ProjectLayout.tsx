@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Upload, Database, Brain, Settings, FolderOpen, Home as HomeIcon, FileText, Edit3, Check, X } from "lucide-react";
+import { ArrowLeft, Upload, Database, Brain, Settings, FolderOpen, Home as HomeIcon, FileText, Edit3, Check, X, AlertTriangle, CheckCircle } from "lucide-react";
 import { WaveIcon, FlowIcon, StreamIcon, TideIcon, ShipIcon, DropletIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,6 +12,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useProject } from "@/hooks/useProjects";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import type { FieldValidation } from "@/types/api";
 import NewUpload from "./NewUpload";
 import AllData from "./AllData";
 import KnowledgeRules from "./KnowledgeRules";
@@ -50,6 +52,55 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const canAccessConfigTabs = isAdmin;
   const canAccessPublishing = isPrimaryOrgAdmin;
   const canEditProject = isAdmin;
+
+  // Fetch validation data for statistics (only when project has sessions)
+  const { data: allValidations = [] } = useQuery<FieldValidation[]>({
+    queryKey: ['/api/validations/project', project?.id],
+    queryFn: async () => {
+      if (!project || project.sessions.length === 0) return [];
+      const validations: FieldValidation[] = [];
+      for (const session of project.sessions) {
+        try {
+          const response = await fetch(`/api/sessions/${session.id}/validations`);
+          if (response.ok) {
+            const sessionValidations = await response.json();
+            validations.push(...sessionValidations);
+          }
+        } catch (error) {
+          console.error(`Failed to fetch validations for session ${session.id}:`, error);
+        }
+      }
+      return validations;
+    },
+    enabled: !!project && project.sessions.length > 0,
+    refetchOnWindowFocus: false,
+    staleTime: 0
+  });
+
+  // Calculate verification statistics
+  const getVerificationStats = () => {
+    if (!project) return { verified: 0, in_progress: 0, pending: 0 };
+    
+    const stats = { verified: 0, in_progress: 0, pending: 0 };
+    
+    for (const session of project.sessions) {
+      const sessionValidations = allValidations.filter(v => v.sessionId === session.id);
+      if (sessionValidations.length === 0) {
+        stats.pending++;
+      } else {
+        const allVerified = sessionValidations.every(v => v.validationStatus === 'valid' || v.validationStatus === 'verified');
+        if (allVerified) {
+          stats.verified++;
+        } else {
+          stats.in_progress++;
+        }
+      }
+    }
+    
+    return stats;
+  };
+
+  const verificationStats = getVerificationStats();
 
   // Read URL parameters and handle initial tab setup
   useEffect(() => {
@@ -271,112 +322,159 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       {/* Page Title */}
       <div className="bg-white border-b border-gray-100">
         <div className="w-full px-6 py-6">
-          <div className="flex items-start space-x-3">
-            <FileText className="h-8 w-8 text-primary mt-1" />
-            <div className="flex-1 space-y-2">
-              {/* Project Title */}
-              <div className="flex items-center space-x-2">
-                {isEditingTitle ? (
-                  <div className="flex items-center space-x-2 flex-1">
-                    <Input
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                      className="text-2xl font-bold border-primary"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleTitleSave();
-                        if (e.key === 'Escape') handleTitleCancel();
-                      }}
-                      autoFocus
-                    />
-                    <Button
-                      size="sm"
-                      onClick={handleTitleSave}
-                      disabled={!editTitle.trim() || updateProjectMutation.isPending}
-                    >
-                      <Check className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleTitleCancel}
-                      disabled={updateProjectMutation.isPending}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-2 flex-1 group">
-                    <h2 className="text-3xl font-bold">{project.name}</h2>
-                    {canEditProject && (
+          <div className="flex items-start justify-between">
+            <div className="flex items-start space-x-3 flex-1 mr-6">
+              <FileText className="h-8 w-8 text-primary mt-1" />
+              <div className="flex-1 space-y-2">
+                {/* Project Title */}
+                <div className="flex items-center space-x-2">
+                  {isEditingTitle ? (
+                    <div className="flex items-center space-x-2 flex-1">
+                      <Input
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className="text-2xl font-bold border-primary"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleTitleSave();
+                          if (e.key === 'Escape') handleTitleCancel();
+                        }}
+                        autoFocus
+                      />
                       <Button
                         size="sm"
-                        variant="ghost"
-                        onClick={handleTitleEdit}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <Edit3 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Project Description */}
-              <div className="flex items-start space-x-2">
-                {isEditingDescription ? (
-                  <div className="flex items-start space-x-2 flex-1">
-                    <Textarea
-                      value={editDescription}
-                      onChange={(e) => setEditDescription(e.target.value)}
-                      className="text-sm text-gray-600 border-primary min-h-[60px]"
-                      placeholder="Add a project description..."
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && e.ctrlKey) handleDescriptionSave();
-                        if (e.key === 'Escape') handleDescriptionCancel();
-                      }}
-                      autoFocus
-                    />
-                    <div className="flex flex-col space-y-1">
-                      <Button
-                        size="sm"
-                        onClick={handleDescriptionSave}
-                        disabled={updateProjectMutation.isPending}
+                        onClick={handleTitleSave}
+                        disabled={!editTitle.trim() || updateProjectMutation.isPending}
                       >
                         <Check className="h-4 w-4" />
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={handleDescriptionCancel}
+                        onClick={handleTitleCancel}
                         disabled={updateProjectMutation.isPending}
                       >
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
-                  </div>
-                ) : (
-                  <div className="flex items-start space-x-2 flex-1 group">
-                    {project.description ? (
-                      <p className="text-sm text-gray-600">{project.description}</p>
-                    ) : canEditProject ? (
-                      <p className="text-sm text-gray-400 italic">Click to add description</p>
-                    ) : (
-                      <p className="text-sm text-gray-400">No description</p>
-                    )}
-                    {canEditProject && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={handleDescriptionEdit}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <Edit3 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                )}
+                  ) : (
+                    <div className="flex items-center space-x-2 flex-1 group">
+                      <h2 className="text-3xl font-bold">{project.name}</h2>
+                      {canEditProject && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={handleTitleEdit}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Edit3 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Project Description */}
+                <div className="flex items-start space-x-2">
+                  {isEditingDescription ? (
+                    <div className="flex items-start space-x-2 flex-1">
+                      <Textarea
+                        value={editDescription}
+                        onChange={(e) => setEditDescription(e.target.value)}
+                        className="text-sm text-gray-600 border-primary min-h-[60px]"
+                        placeholder="Add a project description..."
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && e.ctrlKey) handleDescriptionSave();
+                          if (e.key === 'Escape') handleDescriptionCancel();
+                        }}
+                        autoFocus
+                      />
+                      <div className="flex flex-col space-y-1">
+                        <Button
+                          size="sm"
+                          onClick={handleDescriptionSave}
+                          disabled={updateProjectMutation.isPending}
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleDescriptionCancel}
+                          disabled={updateProjectMutation.isPending}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-start space-x-2 flex-1 group">
+                      {project.description ? (
+                        <p className="text-sm text-gray-600">{project.description}</p>
+                      ) : canEditProject ? (
+                        <p className="text-sm text-gray-400 italic">Click to add description</p>
+                      ) : (
+                        <p className="text-sm text-gray-400">No description</p>
+                      )}
+                      {canEditProject && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={handleDescriptionEdit}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Edit3 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
+
+            {/* Statistics Cards */}
+            {project.sessions.length > 0 && (
+              <div className="flex gap-4 flex-shrink-0">
+                <Card className="min-w-[140px]">
+                  <CardContent className="pt-4 pb-4">
+                    <div className="flex items-center">
+                      <Database className="h-7 w-7 text-blue-600" />
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-gray-600">Total {project.mainObjectName || "Session"}s</p>
+                        <p className="text-2xl font-bold text-gray-900">{project.sessions.length}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="min-w-[140px]">
+                  <CardContent className="pt-4 pb-4">
+                    <div className="flex items-center">
+                      <AlertTriangle className="h-7 w-7 text-red-600" />
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-gray-600">Unverified</p>
+                        <p className="text-2xl font-bold text-gray-900">
+                          {verificationStats.in_progress + verificationStats.pending}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="min-w-[140px]">
+                  <CardContent className="pt-4 pb-4">
+                    <div className="flex items-center">
+                      <CheckCircle className="h-7 w-7 text-green-600" />
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-gray-600">Verified</p>
+                        <p className="text-2xl font-bold text-gray-900">
+                          {verificationStats.verified}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
         </div>
       </div>
