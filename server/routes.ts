@@ -688,9 +688,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid knowledge document data", errors: result.error.errors });
       }
       
-      const document = await storage.createKnowledgeDocument(result.data);
+      let processedData = { ...result.data };
+      
+      // Extract content from PDF files for knowledge documents
+      if (result.data.fileType === 'pdf' && result.data.content) {
+        try {
+          console.log('DEBUG: Processing knowledge document PDF content extraction');
+          
+          // Spawn Python script to extract text from PDF
+          const python = spawn('python3', ['test_pdf_processing.py'], {
+            stdio: ['pipe', 'pipe', 'pipe']
+          });
+          
+          python.stdin.write(result.data.content);
+          python.stdin.end();
+          
+          let extractedText = '';
+          python.stdout.on('data', (data) => {
+            extractedText += data.toString();
+          });
+          
+          await new Promise((resolve, reject) => {
+            python.on('close', (code) => {
+              if (code === 0) {
+                console.log('DEBUG: Knowledge document PDF processing successful, extracted', extractedText.length, 'characters');
+                processedData.content = extractedText;
+                resolve(extractedText);
+              } else {
+                console.error('PDF processing failed with code:', code);
+                reject(new Error('PDF processing failed'));
+              }
+            });
+          });
+        } catch (pdfError) {
+          console.error('PDF processing error:', pdfError);
+          // Continue with original content if PDF processing fails
+        }
+      }
+      
+      const document = await storage.createKnowledgeDocument(processedData);
       res.status(201).json(document);
     } catch (error) {
+      console.error("Knowledge document creation error:", error);
       res.status(500).json({ message: "Failed to create knowledge document" });
     }
   });
