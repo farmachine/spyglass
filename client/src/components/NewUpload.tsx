@@ -73,11 +73,10 @@ export default function NewUpload({ project }: NewUploadProps) {
   const { toast } = useToast();
   
   // Fetch schema data for validation
-  const projectIdNumber = typeof project.id === 'string' ? parseInt(project.id, 10) : project.id;
-  const { data: schemaFields = [] } = useProjectSchemaFields(projectIdNumber);
-  const { data: collections = [] } = useObjectCollections(projectIdNumber);
-  const { data: extractionRules = [] } = useExtractionRules(projectIdNumber);
-  const { data: knowledgeDocuments = [] } = useKnowledgeDocuments(projectIdNumber);
+  const { data: schemaFields = [] } = useProjectSchemaFields(project.id);
+  const { data: collections = [] } = useObjectCollections(project.id);
+  const { data: extractionRules = [] } = useExtractionRules(project.id);
+  const { data: knowledgeDocuments = [] } = useKnowledgeDocuments(project.id);
   
 
 
@@ -200,10 +199,15 @@ export default function NewUpload({ project }: NewUploadProps) {
   };
 
   const handleSubmit = async (data: UploadForm) => {
+    console.log(`🚀 CONSOLIDATED_FRONTEND: handleSubmit called with data:`, data);
+    console.log(`🚀 CONSOLIDATED_FRONTEND: selectedFiles.length:`, selectedFiles.length);
+    
     if (selectedFiles.length === 0) {
+      console.log(`🚀 CONSOLIDATED_FRONTEND: No files selected, returning early`);
       return;
     }
 
+    console.log(`🚀 CONSOLIDATED_FRONTEND: Starting processing workflow`);
     setIsProcessing(true);
     setShowProcessingDialog(true);
     setTotalDocuments(selectedFiles.length);
