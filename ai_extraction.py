@@ -1102,17 +1102,58 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
             # This ensures that every extracted item gets proper validation records
             logging.info(f"🗂️ Processing collection {collection_name}: {actual_item_count} items found in aggregated data")
             
-            # Create validation records for each item that exists in the aggregated data
-            for record_index in range(actual_item_count):
-                record = collection_data[record_index] if record_index < len(collection_data) else {}
+            # WORKAROUND: Create dummy validation records at index -1 to avoid index[0] corruption bug
+            # First, create dummy placeholder records for each property at index -1
+            properties_data = collection.get("properties", [])
+            if isinstance(properties_data, dict):
+                if all(str(k).isdigit() for k in properties_data.keys()):
+                    properties_list = [properties_data[str(i)] for i in sorted(int(k) for k in properties_data.keys())]
+                    properties_data = properties_list
+                else:
+                    logging.error(f"Cannot convert properties dict with keys: {list(properties_data.keys())}")
+                    continue
+            
+            for prop in properties_data:
+                if not isinstance(prop, dict):
+                    continue
+                    
+                prop_id = str(prop.get("id", "unknown"))
+                prop_name = prop.get("propertyName", "")
+                prop_type = prop.get("propertyType", "TEXT")
+                dummy_field_name = f"{collection_name}.{prop_name}[-1]"
                 
-                # DEBUG: Log what we're accessing for index 0
-                if record_index == 0:
-                    logging.info(f"🔍 INDEX_0_DEBUG: Collection {collection_name}")
-                    logging.info(f"   - record_index: {record_index}")
-                    logging.info(f"   - collection_data length: {len(collection_data)}")
-                    logging.info(f"   - collection_data[0]: {collection_data[0] if len(collection_data) > 0 else 'EMPTY'}")
-                    logging.info(f"   - record variable: {record}")
+                # Skip if validation already exists
+                if dummy_field_name in existing_field_names:
+                    continue
+                
+                # Create dummy validation at index -1 to occupy the problematic slot
+                dummy_validation = FieldValidationResult(
+                    field_id=prop_id,
+                    field_name=dummy_field_name,
+                    field_type=prop_type,
+                    extracted_value=None,
+                    original_extracted_value=None,
+                    original_confidence_score=0,
+                    original_ai_reasoning="Dummy placeholder record",
+                    validation_status="invalid",
+                    ai_reasoning="Dummy placeholder record",
+                    confidence_score=0,
+                    document_source="System",
+                    document_sections=["Placeholder"],
+                    collection_name=collection_name,
+                    record_index=-1
+                )
+                comprehensive_validations.append(dummy_validation)
+                logging.info(f"🔧 Created dummy validation at index -1: {dummy_field_name}")
+            
+            # WORKAROUND: Create validation records using index+1 to avoid index[0] corruption bug
+            # This shifts all validation indices by 1, so the first real item becomes [1] instead of [0]
+            for array_index in range(actual_item_count):
+                # Use validation_index = array_index + 1 to avoid the index[0] bug
+                validation_index = array_index + 1
+                record = collection_data[array_index] if array_index < len(collection_data) else {}
+                
+                logging.info(f"🔧 INDEX_SHIFT_WORKAROUND: Collection {collection_name} item {array_index} -> validation index {validation_index}")
                 
                 properties_data = collection.get("properties", [])
                 logging.info(f"COMPREHENSIVE VALIDATION - COLLECTION {collection_name} PROPERTIES DEBUG:")
@@ -1138,7 +1179,7 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
                     prop_id = str(prop.get("id", "unknown"))
                     prop_name = prop.get("propertyName", "")
                     prop_type = prop.get("propertyType", "TEXT")
-                    field_name_with_index = f"{collection_name}.{prop_name}[{record_index}]"
+                    field_name_with_index = f"{collection_name}.{prop_name}[{validation_index}]"
                     
                     # Skip if validation already exists for this exact field name with index
                     if field_name_with_index in existing_field_names:
@@ -1194,7 +1235,7 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
                         document_source="Aggregated Data",
                         document_sections=["Multi-document aggregation"],
                         collection_name=collection_name,
-                        record_index=record_index
+                        record_index=validation_index
                     )
                     comprehensive_validations.append(validation)
     

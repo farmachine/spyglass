@@ -1362,11 +1362,13 @@ Thank you for your assistance.`;
           const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
           
           // Determine how many instances we need to show
-          const dataLength = collectionData ? collectionData.length - 1 : -1;
-          const validationIndices = collectionValidations.length > 0 ? collectionValidations.map(v => v.recordIndex) : [];
-          const maxRecordIndex = Math.max(dataLength, ...validationIndices, -1);
+          // WORKAROUND: Filter out dummy validation records at index -1
+          const realValidations = collectionValidations.filter(v => v.recordIndex > 0);
+          const dataLength = collectionData ? collectionData.length : 0;
+          const validationIndices = realValidations.length > 0 ? realValidations.map(v => v.recordIndex) : [];
+          const maxRecordIndex = Math.max(dataLength, ...validationIndices, 0);
           
-          if (maxRecordIndex < 0) return null;
+          if (maxRecordIndex < 1) return null;
 
           const isExpanded = expandedCollections.has(collection.collectionName);
 
@@ -1391,7 +1393,7 @@ Thank you for your assistance.`;
                       <div className="flex items-center gap-2">
                         <h3 className="text-lg font-semibold">{collection.collectionName}</h3>
                         <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                          {maxRecordIndex + 1} {maxRecordIndex === 0 ? 'item' : 'items'}
+                          {maxRecordIndex} {maxRecordIndex === 1 ? 'item' : 'items'}
                         </span>
                       </div>
                       <p className="text-sm text-gray-600 mt-1">{collection.description}</p>
@@ -1430,8 +1432,10 @@ Thank you for your assistance.`;
                 </div>
                 {isExpanded && (
                   <div>
-                {Array.from({ length: maxRecordIndex + 1 }, (_, index) => {
-                  const item = collectionData?.[index] || {};
+                {Array.from({ length: maxRecordIndex }, (_, arrayIndex) => {
+                  // WORKAROUND: Map display index to validation index (arrayIndex 0 -> validationIndex 1)
+                  const validationIndex = arrayIndex + 1;
+                  const item = collectionData?.[arrayIndex] || {};
                   
                   // Try to get a meaningful name for this item
                   const getItemDisplayName = (item: any, collection: any, index: number) => {
@@ -1456,10 +1460,10 @@ Thank you for your assistance.`;
                     return `Item ${index + 1}`;
                   };
                   
-                  const itemDisplayName = getItemDisplayName(item, collection, index);
+                  const itemDisplayName = getItemDisplayName(item, collection, arrayIndex);
                   
                   return (
-                    <div key={index} className="mb-6 p-4 bg-gray-50 rounded-lg w-full overflow-hidden">
+                    <div key={arrayIndex} className="mb-6 p-4 bg-gray-50 rounded-lg w-full overflow-hidden">
                       <h4 className="font-medium mb-4">{itemDisplayName}</h4>
                       <div className="space-y-4">
                         {collection.properties
@@ -1480,7 +1484,7 @@ Thank you for your assistance.`;
                             }
                           }
                           
-                          const fieldName = `${collection.collectionName}.${property.propertyName}[${index}]`;
+                          const fieldName = `${collection.collectionName}.${property.propertyName}[${validationIndex}]`;
                           const validation = validations.find(v => v.fieldName === fieldName);
                           
                           // Debug logging for validation matching
