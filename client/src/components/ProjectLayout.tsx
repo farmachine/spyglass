@@ -322,7 +322,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       {/* Page Title */}
       <div className="bg-white border-b border-gray-100">
         <div className="w-full px-6 py-6">
-          <div className="flex items-start justify-between">
+          <div className="flex items-center justify-between">
             <div className="flex items-start space-x-3 flex-1 mr-6">
               <FileText className="h-8 w-8 text-primary mt-1" />
               <div className="flex-1 space-y-2">
