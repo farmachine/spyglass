@@ -471,16 +471,12 @@ export default function DefineData({ project }: DefineDataProps) {
 
       {/* Unified Data Structure Card */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Data Structure
-          </CardTitle>
-          <CardDescription>
-            Define the fields and lists to extract from your {project.mainObjectName || "Session"} documents
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
+          <div className="mb-6">
+            <Label className="text-sm font-medium">
+              Define the fields and lists to extract from your {project.mainObjectName || "Session"} documents
+            </Label>
+          </div>
           {(schemaFieldsLoading || collectionsLoading) ? (
             <div className="text-center py-8">
               <div className="animate-spin h-12 w-12 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
