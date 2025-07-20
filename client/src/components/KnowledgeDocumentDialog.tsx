@@ -19,15 +19,26 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import type { KnowledgeDocument } from "@shared/schema";
+import { useProjectSchemaFields, useAllProjectProperties } from "@/hooks/useSchema";
+import type { KnowledgeDocument, ProjectWithDetails } from "@shared/schema";
 
 const knowledgeDocumentFormSchema = z.object({
   displayName: z.string().min(1, "Display name is required"),
   description: z.string().min(1, "Description is required to guide AI extraction"),
+  targetFields: z.array(z.string()).optional(),
   file: z.any().optional(),
 });
 
@@ -36,9 +47,10 @@ type KnowledgeDocumentForm = z.infer<typeof knowledgeDocumentFormSchema>;
 interface KnowledgeDocumentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (data: { fileName: string; displayName: string; fileType: string; fileSize: number; description: string }) => Promise<void>;
+  onSave: (data: { fileName: string; displayName: string; fileType: string; fileSize: number; description: string; targetField?: string }) => Promise<void>;
   document?: KnowledgeDocument | null;
   isLoading?: boolean;
+  project: ProjectWithDetails;
 }
 
 const ACCEPTED_FILE_TYPES = [
@@ -52,17 +64,23 @@ export default function KnowledgeDocumentDialog({
   onOpenChange, 
   onSave, 
   document,
-  isLoading = false 
+  isLoading = false,
+  project
 }: KnowledgeDocumentDialogProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
+
+  // Fetch schema fields and all project properties
+  const { data: schemaFields = [] } = useProjectSchemaFields(project.id);
+  const { data: allProperties = [] } = useAllProjectProperties(project.id);
 
   const form = useForm<KnowledgeDocumentForm>({
     resolver: zodResolver(knowledgeDocumentFormSchema),
     defaultValues: {
       displayName: document?.displayName || "",
       description: document?.description || "",
+      targetFields: document?.targetField ? document.targetField.split(',').map(f => f.trim()) : [],
     },
   });
 
@@ -72,14 +90,30 @@ export default function KnowledgeDocumentDialog({
       form.reset({
         displayName: document.displayName || "",
         description: document.description || "",
+        targetFields: document.targetField ? document.targetField.split(',').map(f => f.trim()) : [],
       });
     } else {
       form.reset({
         displayName: "",
         description: "",
+        targetFields: [],
       });
     }
   }, [document, form]);
+
+  // Available target fields (same logic as extraction rules)
+  const availableFields = [
+    ...schemaFields.map(field => ({
+      value: field.fieldName,
+      label: `${field.fieldName} (Main Field)`,
+      isProperty: false
+    })),
+    ...allProperties.map(property => ({
+      value: `${property.collectionName} --> ${property.propertyName}`,
+      label: `${property.collectionName} --> ${property.propertyName}`,
+      isProperty: true
+    }))
+  ];
 
   const validateFile = (file: File): string | null => {
     const extension = `.${file.name.split('.').pop()?.toLowerCase()}`;
@@ -151,6 +185,7 @@ export default function KnowledgeDocumentDialog({
         fileType: document ? document.fileType : selectedFile!.name.split('.').pop()?.toLowerCase() || "unknown",
         fileSize: document ? document.fileSize : selectedFile!.size,
         description: data.description,
+        targetField: data.targetFields?.join(', ') || '',
       };
 
       await onSave(submitData);
@@ -284,6 +319,65 @@ export default function KnowledgeDocumentDialog({
                   <p className="text-sm text-gray-500">
                     Required. This description tells the AI how to use this document during extraction.
                   </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="targetFields"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Target Fields (Optional)</FormLabel>
+                  <FormDescription>
+                    Select specific fields this document applies to. Leave empty to apply to all fields.
+                  </FormDescription>
+                  <div className="space-y-3">
+                    <Select
+                      onValueChange={(value) => {
+                        const currentFields = field.value || [];
+                        if (value && !currentFields.includes(value)) {
+                          field.onChange([...currentFields, value]);
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select fields to target..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableFields.map((availableField) => (
+                          <SelectItem 
+                            key={availableField.value} 
+                            value={availableField.value}
+                            disabled={field.value?.includes(availableField.value)}
+                          >
+                            {availableField.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    
+                    {field.value && field.value.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {field.value.map((targetField) => (
+                          <Badge
+                            key={targetField}
+                            variant="secondary"
+                            className="flex items-center gap-1"
+                          >
+                            {targetField}
+                            <X
+                              className="h-3 w-3 cursor-pointer hover:text-red-500"
+                              onClick={() => {
+                                field.onChange(field.value?.filter(f => f !== targetField) || []);
+                              }}
+                            />
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}

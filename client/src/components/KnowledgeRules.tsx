@@ -341,6 +341,7 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
         onSave={handleSaveKnowledgeDocument}
         document={editingDocument}
         isLoading={createKnowledgeDocument.isPending || updateKnowledgeDocument.isPending}
+        project={project}
       />
 
       <ExtractionRuleDialog

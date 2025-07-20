@@ -118,6 +118,7 @@ export const knowledgeDocuments = pgTable("knowledge_documents", {
   fileSize: integer("file_size").notNull(),
   content: text("content"), // extracted text content for conflict detection
   description: text("description").notNull(),
+  targetField: text("target_field"), // which field/property this document applies to (same as extraction rules)
   uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
 });
 

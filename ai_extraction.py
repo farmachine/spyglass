@@ -177,18 +177,23 @@ def calculate_knowledge_based_confidence(field_name: str, extracted_value: Any, 
                         logging.info(f"Inc. rule '{rule_name}' not applied - value '{extracted_value}' does not contain 'Inc' or no percentage found")
                         continue
                 
-                # Check for capitalization rules
+                # Check for capitalization rules - actually apply capitalization
                 if "capital" in rule_content_lower and isinstance(extracted_value, str):
-                    # Apply capitalization but keep the same confidence percentage
-                    logging.info(f"Applied rule '{rule_name}': Capitalization rule noted for value '{extracted_value}'")
+                    # Apply actual capitalization to the value
+                    original_value = extracted_value
+                    capitalized_value = extracted_value.upper()
+                    
+                    logging.info(f"Applied rule '{rule_name}': Capitalized '{original_value}' to '{capitalized_value}'")
                     applied_rules.append({
                         'name': rule_name,
-                        'action': f"Capitalization formatting applied to extracted value"
+                        'action': f"Capitalized extracted value from '{original_value}' to '{capitalized_value}'"
                     })
-                    # Note: Actual capitalization would be handled in the UI/display layer
-                    continue
+                    
+                    # Return the capitalized value along with the original confidence
+                    return confidence_percentage, applied_rules, capitalized_value
     
-    return confidence_percentage, applied_rules
+    # If no rule modified the value, return None for the modified value
+    return confidence_percentage, applied_rules, None
 
 def check_knowledge_document_conflicts(field_name: str, extracted_value: Any, knowledge_documents: List[Dict[str, Any]] = None) -> tuple[bool, List[str]]:
     """
