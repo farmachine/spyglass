@@ -207,7 +207,8 @@ export default function DefineData({ project }: DefineDataProps) {
     try {
       await updateSchemaField.mutateAsync({ 
         id: schemaFieldDialog.field.id, 
-        field: data 
+        field: data,
+        projectId: project.id // Pass the current project ID for cache invalidation
       });
       setSchemaFieldDialog({ open: false });
       toast({
@@ -268,7 +269,8 @@ export default function DefineData({ project }: DefineDataProps) {
     try {
       await updateCollection.mutateAsync({ 
         id: collectionDialog.collection.id, 
-        collection: data 
+        collection: data,
+        projectId: project.id // Pass the current project ID for cache invalidation
       });
       setCollectionDialog({ open: false });
       toast({
@@ -340,7 +342,8 @@ export default function DefineData({ project }: DefineDataProps) {
     try {
       await updateProperty.mutateAsync({ 
         id: propertyDialog.property.id, 
-        property: data 
+        property: data,
+        collectionId: propertyDialog.property.collectionId // Pass the collection ID for cache invalidation
       });
       setPropertyDialog({ open: false });
       toast({

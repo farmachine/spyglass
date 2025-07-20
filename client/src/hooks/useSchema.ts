@@ -38,16 +38,20 @@ export function useUpdateSchemaField() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, field }: { id: number; field: Partial<InsertProjectSchemaField> }) =>
+    mutationFn: ({ id, field, projectId }: { id: number; field: Partial<InsertProjectSchemaField>; projectId?: number }) =>
       apiRequest(`/api/schema-fields/${id}`, {
         method: "PUT",
         body: JSON.stringify(field),
       }),
-    onSuccess: (_, { field }) => {
-      if (field.projectId) {
-        queryClient.invalidateQueries({ queryKey: ["/api/projects", field.projectId] });
-        queryClient.invalidateQueries({ queryKey: ["/api/projects", field.projectId, "schema"] });
+    onSuccess: (_, { field, projectId }) => {
+      // Use the projectId parameter or the field's projectId
+      const targetProjectId = projectId || field.projectId;
+      if (targetProjectId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/projects", targetProjectId] });
+        queryClient.invalidateQueries({ queryKey: ["/api/projects", targetProjectId, "schema"] });
       }
+      // Also invalidate all projects to ensure broader cache refresh
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
     },
   });
 }
@@ -95,16 +99,20 @@ export function useUpdateCollection() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, collection }: { id: number; collection: Partial<InsertObjectCollection> }) =>
+    mutationFn: ({ id, collection, projectId }: { id: number; collection: Partial<InsertObjectCollection>; projectId?: number }) =>
       apiRequest(`/api/collections/${id}`, {
         method: "PUT",
         body: JSON.stringify(collection),
       }),
-    onSuccess: (_, { collection }) => {
-      if (collection.projectId) {
-        queryClient.invalidateQueries({ queryKey: ["/api/projects", collection.projectId] });
-        queryClient.invalidateQueries({ queryKey: ["/api/projects", collection.projectId, "collections"] });
+    onSuccess: (_, { collection, projectId }) => {
+      // Use the projectId parameter or the collection's projectId
+      const targetProjectId = projectId || collection.projectId;
+      if (targetProjectId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/projects", targetProjectId] });
+        queryClient.invalidateQueries({ queryKey: ["/api/projects", targetProjectId, "collections"] });
       }
+      // Also invalidate all projects to ensure broader cache refresh
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
     },
   });
 }
@@ -185,16 +193,20 @@ export function useUpdateProperty() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, property }: { id: number; property: Partial<InsertCollectionProperty> }) =>
+    mutationFn: ({ id, property, collectionId }: { id: number; property: Partial<InsertCollectionProperty>; collectionId?: number }) =>
       apiRequest(`/api/properties/${id}`, {
         method: "PUT",
         body: JSON.stringify(property),
       }),
-    onSuccess: (_, { property }) => {
-      if (property.collectionId) {
-        queryClient.invalidateQueries({ queryKey: ["/api/collections", property.collectionId, "properties"] });
+    onSuccess: (_, { property, collectionId }) => {
+      // Use the collectionId parameter or the property's collectionId
+      const targetCollectionId = collectionId || property.collectionId;
+      if (targetCollectionId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/collections", targetCollectionId, "properties"] });
       }
+      // Invalidate all project-related queries for broader cache refresh
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/collections"] });
     },
   });
 }
