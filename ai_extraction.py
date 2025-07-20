@@ -767,6 +767,22 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
     logging.info(f"📊 Starting with {len(existing_validations)} existing validations")
     logging.info(f"🔍 Existing field names: {sorted(list(existing_field_names))}")
     
+    # Debug the aggregated data structure
+    logging.info(f"🔍 AGGREGATED DATA DEBUG:")
+    for key, value in aggregated_data.items():
+        if isinstance(value, list):
+            logging.info(f"  {key}: {len(value)} items (first 2: {value[:2] if len(value) > 1 else value})")
+        else:
+            logging.info(f"  {key}: {type(value)} = {value}")
+    
+    # Debug the project schema structure  
+    logging.info(f"🔍 PROJECT SCHEMA DEBUG:")
+    logging.info(f"  Schema fields: {len(project_schema.get('schema_fields', []))}")
+    logging.info(f"  Collections: {len(project_schema.get('collections', []))}")
+    if project_schema.get('collections'):
+        for i, collection in enumerate(project_schema['collections']):
+            logging.info(f"  Collection {i}: {collection.get('collectionName', 'Unknown')} with properties type: {type(collection.get('properties', []))}")
+    
     # Process schema fields (non-collection fields)
     if project_schema.get("schema_fields"):
         for field in project_schema["schema_fields"]:
@@ -830,10 +846,12 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
             if not isinstance(collection_data, list):
                 collection_data = []
             
-            logging.info(f"🗂️ Processing collection {collection_name}: {len(collection_data)} items")
+            # Determine how many items actually exist in the aggregated data
+            actual_item_count = len(collection_data) if isinstance(collection_data, list) else 0
+            logging.info(f"🗂️ Processing collection {collection_name}: {actual_item_count} items found in aggregated data")
             
-            # Create validation records for each item in the collection
-            for record_index in range(len(collection_data)):
+            # Create validation records for each item that exists in the aggregated data
+            for record_index in range(actual_item_count):
                 record = collection_data[record_index] if record_index < len(collection_data) else {}
                 
                 properties_data = collection.get("properties", [])
