@@ -1372,7 +1372,7 @@ except Exception as e:
       console.log(`BATCH_VALIDATION: Starting batch validation for session ${sessionId}`);
       
       // Get session and project data
-      const session = await storage.getSession(sessionId);
+      const session = await storage.getExtractionSession(sessionId);
       if (!session) {
         return res.status(404).json({ message: "Session not found" });
       }
@@ -1381,7 +1381,7 @@ except Exception as e:
       
       // Get project schema, rules, and knowledge documents
       const [project, extractionRules, knowledgeDocuments, existingValidations] = await Promise.all([
-        storage.getProject(projectId),
+        storage.getProjectWithDetails(projectId),
         storage.getExtractionRules(projectId),
         storage.getKnowledgeDocuments(projectId),
         storage.getFieldValidations(sessionId)
