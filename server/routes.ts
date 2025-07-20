@@ -1929,7 +1929,7 @@ print(json.dumps(results))
           size: file.size
         })),
         project_schema: {
-          fields: schemaFields.map(field => ({
+          schema_fields: schemaFields.map(field => ({
             id: field.id,
             fieldName: field.fieldName,
             fieldType: field.fieldType,
@@ -1956,10 +1956,10 @@ print(json.dumps(results))
         knowledge_documents: knowledgeDocuments
       };
 
-      console.log(`🚀 CONSOLIDATED_EXTRACTION: Processing ${schemaFields.length} schema fields and ${collections.length} collections`);
+      console.log(`🚀 WORKING_EXTRACTION: Processing ${schemaFields.length} schema fields and ${collections.length} collections`);
 
-      // Run consolidated AI extraction
-      const python = spawn('python3', ['ai_extraction_consolidated.py'], {
+      // Run working multimodal AI extraction
+      const python = spawn('python3', ['ai_extraction_working.py'], {
         stdio: 'pipe'
       });
 
@@ -1976,10 +1976,10 @@ print(json.dumps(results))
 
       python.on('close', async (code) => {
         if (code !== 0) {
-          console.error(`🚀 CONSOLIDATED_EXTRACTION: Python extraction failed with code ${code}`);
-          console.error(`🚀 CONSOLIDATED_EXTRACTION: Error: ${pythonError}`);
+          console.error(`🚀 WORKING_EXTRACTION: Python extraction failed with code ${code}`);
+          console.error(`🚀 WORKING_EXTRACTION: Error: ${pythonError}`);
           return res.status(500).json({ 
-            message: "Consolidated AI extraction failed", 
+            message: "Working AI extraction failed", 
             error: pythonError,
             code: code
           });
@@ -1987,7 +1987,7 @@ print(json.dumps(results))
 
         try {
           const results = JSON.parse(pythonOutput);
-          console.log(`🚀 CONSOLIDATED_EXTRACTION: AI extracted ${results.total_records} validation records`);
+          console.log(`🚀 WORKING_EXTRACTION: AI extracted ${results.total_records} validation records`);
           
           // Store validation data directly in field/collection records - CONSOLIDATED APPROACH
           const validationRecords = results.validation_records;
