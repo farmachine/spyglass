@@ -642,7 +642,24 @@ def extract_data_from_document(
                         
                         logging.info(f"🔄 Processing item {record_index} in {collection_name}: {record}")
                             
-                        for prop in collection.get("properties", []):
+                        properties_data = collection.get("properties", [])
+                        logging.info(f"COLLECTION {collection_name} PROPERTIES DEBUG:")
+                        logging.info(f"  Type: {type(properties_data)}")
+                        logging.info(f"  Content: {properties_data}")
+                        
+                        # Handle case where properties might be a dict instead of list
+                        if isinstance(properties_data, dict):
+                            logging.warning(f"Properties is a dict, not a list: {properties_data}")
+                            # Try to convert to list if it has numeric keys
+                            if all(str(k).isdigit() for k in properties_data.keys()):
+                                properties_list = [properties_data[str(i)] for i in sorted(int(k) for k in properties_data.keys())]
+                                logging.info(f"Converted dict to list with {len(properties_list)} properties")
+                                properties_data = properties_list
+                            else:
+                                logging.error(f"Cannot convert properties dict with keys: {list(properties_data.keys())}")
+                                continue
+                        
+                        for prop in properties_data:
                             try:
                                 # Add type checking for property
                                 if not isinstance(prop, dict):
@@ -735,7 +752,7 @@ def extract_data_from_document(
         logging.error(f"Extraction failed: {e}")
         raise Exception(f"Extraction failed for {file_name}: {str(e)}")
 
-def create_comprehensive_validation_records(aggregated_data, project_schema, existing_validations, extraction_rules, knowledge_documents):
+def create_comprehensive_validation_records(aggregated_data, project_schema, existing_validations, extraction_rules, knowledge_documents, session_id):
     """
     Create validation records for ALL schema fields after aggregation is complete.
     This implements the three-step process: 1) Extract, 2) Save data, 3) Create validations for ALL fields.
@@ -795,7 +812,8 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
                 ai_reasoning=reasoning,
                 confidence_score=confidence,
                 document_source="Aggregated Data",
-                document_sections=["Multi-document aggregation"]
+                document_sections=["Multi-document aggregation"],
+                session_id=session_id
             )
             comprehensive_validations.append(validation)
     
@@ -818,7 +836,24 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
             for record_index in range(len(collection_data)):
                 record = collection_data[record_index] if record_index < len(collection_data) else {}
                 
-                for prop in collection.get("properties", []):
+                properties_data = collection.get("properties", [])
+                logging.info(f"COMPREHENSIVE VALIDATION - COLLECTION {collection_name} PROPERTIES DEBUG:")
+                logging.info(f"  Type: {type(properties_data)}")
+                logging.info(f"  Content: {properties_data}")
+                
+                # Handle case where properties might be a dict instead of list
+                if isinstance(properties_data, dict):
+                    logging.warning(f"Properties is a dict, not a list: {properties_data}")
+                    # Try to convert to list if it has numeric keys
+                    if all(str(k).isdigit() for k in properties_data.keys()):
+                        properties_list = [properties_data[str(i)] for i in sorted(int(k) for k in properties_data.keys())]
+                        logging.info(f"Converted dict to list with {len(properties_list)} properties")
+                        properties_data = properties_list
+                    else:
+                        logging.error(f"Cannot convert properties dict with keys: {list(properties_data.keys())}")
+                        continue
+                
+                for prop in properties_data:
                     if not isinstance(prop, dict):
                         continue
                         
@@ -882,7 +917,8 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
                         document_source="Aggregated Data",
                         document_sections=["Multi-document aggregation"],
                         collection_name=collection_name,
-                        record_index=record_index
+                        record_index=record_index,
+                        session_id=session_id
                     )
                     comprehensive_validations.append(validation)
     
@@ -1108,8 +1144,9 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
     
     # STEP 3: Create validation records for ALL schema fields after aggregation (per user requirements)
     # This follows the three-step process: 1) Extract, 2) Save data, 3) Create validations for ALL fields
+    session_id = session_data.get("session_id")
     comprehensive_validations = create_comprehensive_validation_records(
-        aggregated_data, project_schema, all_field_validations, extraction_rules, knowledge_documents
+        aggregated_data, project_schema, all_field_validations, extraction_rules, knowledge_documents, session_id
     )
     
     # Add aggregated data to results with comprehensive summary
