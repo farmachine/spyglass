@@ -1047,9 +1047,15 @@ Thank you for your assistance.`;
   const canAccessConfigTabs = isAdmin;
   const canAccessPublishing = isPrimaryOrgAdmin;
 
+  // Fetch project-level validations for statistics cards
+  const { data: projectValidations = [] } = useQuery<FieldValidation[]>({
+    queryKey: ['/api/validations/project', projectId],
+    enabled: !!projectId
+  });
+
   // Calculate verification stats for statistics cards (same logic as ProjectLayout)
   const getVerificationStatusForProject = (sessionId: string): 'verified' | 'in_progress' | 'pending' => {
-    const sessionValidations = allValidations.filter(v => v.sessionId === sessionId);
+    const sessionValidations = projectValidations.filter(v => v.sessionId === sessionId);
     if (sessionValidations.length === 0) return 'pending';
     
     const allVerified = sessionValidations.every(v => v.validationStatus === 'valid' || v.validationStatus === 'verified');
