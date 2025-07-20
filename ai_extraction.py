@@ -1002,10 +1002,9 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
             extracted_value = aggregated_data.get(field_name)
             
             if extracted_value is not None and extracted_value != "":
-                # For comprehensive validation, use default confidence since batch validation already processed during extraction
+                # Fast extraction: use simple default confidence without any AI validation
                 confidence = 95
-                applied_rules = []
-                reasoning = "Value found in aggregated data"
+                reasoning = "Value extracted from document"
                 auto_verification_threshold = field.get("autoVerificationConfidence", 80)
                 status = "verified" if confidence >= auto_verification_threshold else "unverified"
                 logging.info(f"📝 Creating schema field validation: {field_name} = '{extracted_value}'")
@@ -1365,10 +1364,9 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
         aggregated_data, project_schema, all_field_validations, extraction_rules, knowledge_documents, session_id
     )
     
-    # STEP 4: Run batch AI validation AFTER data is saved (per user architecture requirements)
-    # This updates confidence scores and reasoning for all extracted fields
-    logging.info(f"🚀 TRIGGERING POST_EXTRACTION_BATCH_VALIDATION for session {session_id}")
-    run_post_extraction_batch_validation(session_id, project_schema, extraction_rules, knowledge_documents)
+    # STEP 4: Batch validation should be triggered separately by the backend after data is saved
+    # For now, we skip this to make extraction fast as requested
+    logging.info(f"📋 EXTRACTION_COMPLETE: Session {session_id} ready for separate batch validation process")
     
     # Add aggregated data to results with comprehensive summary
     total_aggregated_items = sum(len(v) if isinstance(v, list) else 1 for v in aggregated_data.values())
