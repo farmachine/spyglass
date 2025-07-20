@@ -647,9 +647,27 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
     
     # Get collections from project schema to know which fields are collections
     collections = project_schema.get("collections", [])
-    collection_names = [collection.get("collectionName") for collection in collections]
+    collection_names = [collection.get("collectionName") for collection in collections if collection.get("collectionName")]
     
-    logging.info(f"Found collections to aggregate: {collection_names}")
+    # Validate we have documents to process
+    completed_docs = [d for d in results["processed_documents"] if d.get("status") == "completed"]
+    if not completed_docs:
+        logging.warning("No completed documents found for aggregation")
+        results["aggregated_extraction"] = {
+            "extracted_data": {},
+            "field_validations": [],
+            "total_items": 0,
+            "aggregation_summary": {
+                "total_documents_processed": 0,
+                "collections_aggregated": 0,
+                "total_collection_items": 0,
+                "total_field_validations": 0
+            }
+        }
+        return results
+    
+    logging.info(f"Found {len(collection_names)} collections to aggregate: {collection_names}")
+    logging.info(f"Processing {len(completed_docs)} completed documents")
     
     # First, collect all non-collection fields from the first successful document
     for doc in results["processed_documents"]:
@@ -663,48 +681,70 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
             break
     
     # Then, aggregate all collection data across documents with proper reindexing
+    # This logic handles any N number of documents and M number of collections
     for collection_name in collection_names:
         aggregated_collection = []
         aggregated_validations = []
-        current_index = 0
+        global_index = 0  # Track global index across all documents
         
-        for doc in results["processed_documents"]:
-            if doc.get("status") == "completed":
-                extracted_data = doc["extraction_result"]["extracted_data"]
-                collection_data = extracted_data.get(collection_name, [])
-                field_validations = doc["extraction_result"]["field_validations"]
+        logging.info(f"Starting aggregation for collection: {collection_name}")
+        
+        for doc_idx, doc in enumerate(results["processed_documents"]):
+            if doc.get("status") != "completed":
+                logging.info(f"Skipping document {doc.get('file_name', 'unknown')} - status: {doc.get('status')}")
+                continue
                 
-                if isinstance(collection_data, list) and collection_data:
-                    logging.info(f"Adding {len(collection_data)} items from {doc['file_name']} to {collection_name}")
+            extracted_data = doc["extraction_result"]["extracted_data"]
+            collection_data = extracted_data.get(collection_name, [])
+            field_validations = doc["extraction_result"]["field_validations"]
+            
+            # Handle both list and empty/null collection data
+            if not isinstance(collection_data, list):
+                collection_data = []
+            
+            doc_items_count = len(collection_data)
+            if doc_items_count > 0:
+                logging.info(f"Document {doc_idx + 1}/{len(results['processed_documents'])}: '{doc['file_name']}' has {doc_items_count} {collection_name} items")
+                
+                # Add all collection items from this document
+                aggregated_collection.extend(collection_data)
+                
+                # Reindex and aggregate field validations for each item in this document
+                for local_item_index in range(doc_items_count):
+                    # Find all validations for this specific item in this document
+                    item_validations = [
+                        v for v in field_validations 
+                        if (v.get("collection_name") == collection_name and 
+                            v.get("record_index") == local_item_index)
+                    ]
                     
-                    # Add collection items to aggregated data
-                    aggregated_collection.extend(collection_data)
+                    logging.info(f"  Item {local_item_index} -> global index {global_index}: found {len(item_validations)} validations")
                     
-                    # Reindex and add field validations for this collection
-                    for item_index in range(len(collection_data)):
-                        for validation in field_validations:
-                            if (validation.get("collection_name") == collection_name and 
-                                validation.get("record_index") == item_index):
-                                
-                                # Create new validation with updated index
-                                new_validation = validation.copy()
-                                new_validation["record_index"] = current_index
-                                
-                                # Update field name to reflect new index
-                                old_field_name = validation.get("field_name", "")
-                                if f"[{item_index}]" in old_field_name:
-                                    new_field_name = old_field_name.replace(f"[{item_index}]", f"[{current_index}]")
-                                    new_validation["field_name"] = new_field_name
-                                
-                                aggregated_validations.append(new_validation)
+                    # Reindex each validation to the global aggregated index
+                    for validation in item_validations:
+                        new_validation = validation.copy()
+                        new_validation["record_index"] = global_index
                         
-                        current_index += 1
+                        # Update field name with new global index
+                        old_field_name = validation.get("field_name", "")
+                        if f"[{local_item_index}]" in old_field_name:
+                            new_field_name = old_field_name.replace(f"[{local_item_index}]", f"[{global_index}]")
+                            new_validation["field_name"] = new_field_name
+                            logging.info(f"    Reindexed field: {old_field_name} -> {new_field_name}")
+                        
+                        aggregated_validations.append(new_validation)
+                    
+                    global_index += 1  # Increment global index for next item
+            else:
+                logging.info(f"Document {doc_idx + 1}/{len(results['processed_documents'])}: '{doc['file_name']}' has no {collection_name} items")
         
-        # Only add the collection if we found data
+        # Add aggregated collection to results if we found any data
         if aggregated_collection:
             aggregated_data[collection_name] = aggregated_collection
             all_field_validations.extend(aggregated_validations)
-            logging.info(f"Final aggregated {collection_name}: {len(aggregated_collection)} total items with {len(aggregated_validations)} validations")
+            logging.info(f"✅ Aggregated {collection_name}: {len(aggregated_collection)} total items from {len(results['processed_documents'])} documents with {len(aggregated_validations)} reindexed validations")
+        else:
+            logging.info(f"❌ No {collection_name} data found across any documents")
     
     # Aggregate non-collection field validations
     for doc in results["processed_documents"]:
@@ -715,14 +755,26 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
                 if not validation.get("collection_name") or validation.get("collection_name") not in collection_names:
                     all_field_validations.append(validation)
     
-    # Add aggregated data to results
+    # Add aggregated data to results with comprehensive summary
+    total_aggregated_items = sum(len(v) if isinstance(v, list) else 1 for v in aggregated_data.values())
+    
     results["aggregated_extraction"] = {
         "extracted_data": aggregated_data,
         "field_validations": all_field_validations,
-        "total_items": sum(len(v) if isinstance(v, list) else 1 for v in aggregated_data.values())
+        "total_items": total_aggregated_items,
+        "aggregation_summary": {
+            "total_documents_processed": len([d for d in results["processed_documents"] if d.get("status") == "completed"]),
+            "collections_aggregated": len([k for k, v in aggregated_data.items() if isinstance(v, list)]),
+            "total_collection_items": sum(len(v) for v in aggregated_data.values() if isinstance(v, list)),
+            "total_field_validations": len(all_field_validations)
+        }
     }
     
-    logging.info(f"Multi-document aggregation complete: {len(aggregated_data)} fields aggregated")
+    logging.info(f"✅ Multi-document aggregation complete:")
+    logging.info(f"   - {len(aggregated_data)} total fields aggregated")
+    logging.info(f"   - {total_aggregated_items} total items")
+    logging.info(f"   - {len(all_field_validations)} field validations")
+    logging.info(f"   - Processed {len(results['processed_documents'])} documents")
 
     # Calculate summary
     results["summary"]["total_documents"] = len(files)
