@@ -1303,6 +1303,7 @@ except Exception as e:
             try {
               const extractedData = result.aggregated_extraction.extracted_data;
               console.log('Creating comprehensive validation records for all extracted fields...');
+              console.log(`DEBUG AGGREGATED DATA:`, JSON.stringify(extractedData, null, 2));
               
               // Create validation records for schema fields
               if (project_data?.schemaFields) {
@@ -1347,6 +1348,12 @@ except Exception as e:
                       for (const property of collection.properties) {
                         const fieldName = `${collectionName}.${property.propertyName}[${recordIndex}]`;
                         const extractedValue = record[property.propertyName];
+                        
+                        console.log(`DEBUG EXTRACTION: For ${fieldName}`);
+                        console.log(`  - Record:`, record);
+                        console.log(`  - Property name: ${property.propertyName}`);
+                        console.log(`  - Extracted value: ${extractedValue}`);
+                        console.log(`  - Value type: ${typeof extractedValue}`);
                         
                         // Check if validation already exists
                         const existingValidation = existingValidations.find(v => v.fieldName === fieldName);
