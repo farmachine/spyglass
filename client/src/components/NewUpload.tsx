@@ -302,8 +302,17 @@ export default function NewUpload({ project }: NewUploadProps) {
         knowledgeDocuments: knowledgeDocuments || []
       };
       
-      console.log(`🚀 CONSOLIDATED_FRONTEND: Extraction payload:`, extractionPayload);
+      // Check payload size
+      const payloadString = JSON.stringify(extractionPayload);
+      const payloadSizeMB = (payloadString.length / 1024 / 1024).toFixed(2);
+      console.log(`🚀 CONSOLIDATED_FRONTEND: Extraction payload size: ${payloadSizeMB}MB`);
+      console.log(`🚀 CONSOLIDATED_FRONTEND: Files in payload: ${extractionPayload.files.length}`);
       console.log(`🚀 CONSOLIDATED_FRONTEND: Making request to /api/sessions/${session.id}/extract-consolidated`);
+      
+      // Log first 200 chars of each file content for debugging
+      extractionPayload.files.forEach((file, index) => {
+        console.log(`🚀 CONSOLIDATED_FRONTEND: File ${index + 1} (${file.name}): ${file.content.length} chars, starts with: ${file.content.substring(0, 50)}...`);
+      });
       
       const extractionPromise = (async () => {
         try {
