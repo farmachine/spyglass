@@ -1271,8 +1271,85 @@ except Exception as e:
           console.log(`Aggregated extraction contains ${result.aggregated_extraction ? Object.keys(result.aggregated_extraction.extracted_data || {}).length : 0} fields`);
           console.log(`Result status: ${result.status}, has aggregated data: ${!!result.aggregated_extraction}`);
           
-          // Note: Validation records are already processed through the field_validations from Python
-          // The three-step process: 1) Extract, 2) Save data, 3) Create validations is handled by Python script
+          // COMPREHENSIVE VALIDATION CREATION: For pure extraction, create validation records for ALL extracted fields
+          // This ensures batch validation has records to process even when Python returns empty field_validations
+          if (result.aggregated_extraction && result.aggregated_extraction.extracted_data) {
+            const extractedData = result.aggregated_extraction.extracted_data;
+            console.log('Creating comprehensive validation records for all extracted fields...');
+            
+            // Create validation records for schema fields
+            if (project_data?.schemaFields) {
+              for (const field of project_data.schemaFields) {
+                const fieldName = field.fieldName;
+                const extractedValue = extractedData[fieldName];
+                
+                // Check if validation already exists
+                const existingValidation = existingValidations.find(v => v.fieldName === fieldName);
+                if (!existingValidation) {
+                  console.log(`Creating validation record for schema field: ${fieldName} = ${extractedValue}`);
+                  await storage.createFieldValidation({
+                    sessionId,
+                    fieldType: 'schema_field',
+                    fieldId: field.id,
+                    fieldName: fieldName,
+                    collectionName: null,
+                    recordIndex: 0,
+                    extractedValue: extractedValue,
+                    originalExtractedValue: extractedValue,
+                    originalConfidenceScore: 95, // Default confidence for extracted data
+                    originalAiReasoning: 'No validation data - batch validation will populate later',
+                    validationStatus: 'unverified',
+                    aiReasoning: 'No validation data - batch validation will populate later',
+                    manuallyVerified: false,
+                    confidenceScore: 0 // Will be populated during batch validation
+                  });
+                }
+              }
+            }
+            
+            // Create validation records for collection properties
+            if (project_data?.collections) {
+              for (const collection of project_data.collections) {
+                const collectionName = collection.collectionName;
+                const collectionData = extractedData[collectionName];
+                
+                if (Array.isArray(collectionData) && collection.properties) {
+                  for (let recordIndex = 0; recordIndex < collectionData.length; recordIndex++) {
+                    const record = collectionData[recordIndex];
+                    
+                    for (const property of collection.properties) {
+                      const fieldName = `${collectionName}.${property.propertyName}[${recordIndex}]`;
+                      const extractedValue = record[property.propertyName];
+                      
+                      // Check if validation already exists
+                      const existingValidation = existingValidations.find(v => v.fieldName === fieldName);
+                      if (!existingValidation) {
+                        console.log(`Creating validation record for collection property: ${fieldName} = ${extractedValue}`);
+                        await storage.createFieldValidation({
+                          sessionId,
+                          fieldType: 'collection_property',
+                          fieldId: property.id,
+                          fieldName: fieldName,
+                          collectionName: collectionName,
+                          recordIndex: recordIndex,
+                          extractedValue: extractedValue,
+                          originalExtractedValue: extractedValue,
+                          originalConfidenceScore: 95, // Default confidence for extracted data
+                          originalAiReasoning: 'No validation data - batch validation will populate later',
+                          validationStatus: 'unverified',
+                          aiReasoning: 'No validation data - batch validation will populate later',
+                          manuallyVerified: false,
+                          confidenceScore: 0 // Will be populated during batch validation
+                        });
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            
+            console.log('Comprehensive validation record creation complete');
+          }
           
           res.json(result);
         } catch (parseError: any) {
