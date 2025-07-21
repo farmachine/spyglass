@@ -2,7 +2,6 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { spawn } from "child_process";
 import { storage } from "./storage";
-import crypto from "crypto";
 import { 
   insertProjectSchema,
   insertProjectSchemaFieldSchema,
@@ -11,9 +10,7 @@ import {
   insertKnowledgeDocumentSchema,
   insertExtractionRuleSchema,
   insertExtractionSessionSchema,
-  insertExtractedSchemaFieldSchema,
-  insertExtractedCollectionItemSchema,
-  insertExtractedCollectionPropertySchema,
+  insertFieldValidationSchema,
   insertOrganizationSchema,
   insertUserSchema,
   loginSchema,
@@ -896,8 +893,7 @@ except Exception as e:
         
         // Check session-level verification status
         for (const session of projectSessions) {
-          const extractedData = await storage.getExtractedDataForSession(session.id);
-          const validations = [...extractedData.schemaFields, ...extractedData.collectionItems.flatMap(item => item.properties)];
+          const validations = await storage.getFieldValidations(session.id);
           
           // A session is considered verified if ALL its validations are verified
           // A session is unverified if ANY validation is unverified or missing
@@ -967,8 +963,8 @@ except Exception as e:
     }
   });
 
-  // Helper function to initialize extraction data structure for a new session
-  const initializeExtractionData = async (sessionId: string, projectId: string) => {
+  // Helper function to generate initial field validations for a new session
+  const generateInitialFieldValidations = async (sessionId: string, projectId: string) => {
     try {
       const project = await storage.getProjectWithDetails(projectId);
       if (!project) {
@@ -976,116 +972,50 @@ except Exception as e:
         return;
       }
 
-      console.log(`🚀 SEPARATE_DATA: Initializing extraction data for session ${sessionId}, project ${projectId}`);
-      console.log(`🚀 SEPARATE_DATA: Schema fields: ${project.schemaFields.length}, Collections: ${project.collections.length}`);
+      console.log(`Generating validations for session ${sessionId}, project ${projectId}`);
+      console.log(`Schema fields: ${project.schemaFields.length}, Collections: ${project.collections.length}`);
 
-      // Create initial extracted schema field records (empty, ready for AI extraction)
+      // Create validations for schema fields
       for (const field of project.schemaFields) {
-        await storage.createExtractedSchemaField({
+        await storage.createFieldValidation({
           sessionId,
-          schemaFieldId: field.id,
+          fieldType: 'schema_field',
+          fieldId: field.id,
+          fieldName: field.fieldName,
+          collectionName: null,
+          recordIndex: 0,
           extractedValue: null,
-          confidenceScore: 0,
           validationStatus: 'pending',
           aiReasoning: null,
-          manuallyVerified: false
+          manuallyVerified: false,
+          confidenceScore: 0
         });
       }
 
-      // Note: Collection items will be created dynamically during AI extraction
-      // based on how many instances are found in the document
-      console.log(`🚀 SEPARATE_DATA: Initialized ${project.schemaFields.length} schema field records for session ${sessionId}`);
-    } catch (error) {
-      console.error(`🚀 SEPARATE_DATA: Error initializing extraction data for session ${sessionId}:`, error);
-      throw error;
-    }
-  };
-
-  // Helper function to process AI extraction results using separated data architecture
-  const processExtractionResults = async (sessionId: string, result: any, project_data: any) => {
-    try {
-      console.log(`🚀 SEPARATE_DATA: Processing AI extraction results for session ${sessionId}`);
-      
-      if (result.aggregated_extraction && result.aggregated_extraction.extracted_data) {
-        const extractedData = result.aggregated_extraction.extracted_data;
-        console.log(`🚀 SEPARATE_DATA: Processing extracted data:`, JSON.stringify(extractedData, null, 2));
+      // Create validations for collection properties
+      for (const collection of project.collections) {
+        const properties = await storage.getCollectionProperties(collection.id);
+        console.log(`Collection ${collection.collectionName} has ${properties.length} properties`);
         
-        // Update extracted schema fields with AI results
-        if (project_data?.schemaFields) {
-          for (const field of project_data.schemaFields) {
-            const fieldName = field.fieldName;
-            let extractedValue = extractedData[fieldName];
-            
-            // Special handling for date fields
-            if (field.fieldType === 'DATE' && extractedValue) {
-              if (extractedValue === "null" || extractedValue === "") {
-                extractedValue = null;
-              } else {
-                try {
-                  const date = new Date(extractedValue);
-                  if (!isNaN(date.getTime())) {
-                    extractedValue = date.toISOString().split('T')[0];
-                  } else {
-                    extractedValue = null;
-                  }
-                } catch (error) {
-                  extractedValue = null;
-                }
-              }
-            }
-            
-            console.log(`🚀 SEPARATE_DATA: Updating schema field ${fieldName} = ${extractedValue}`);
-            await storage.updateExtractedSchemaFieldBySession(sessionId, field.id, {
-              extractedValue: extractedValue,
-              confidenceScore: extractedValue !== null ? 95 : 20,
-              validationStatus: 'unverified',
-              aiReasoning: 'Extracted during AI processing'
-            });
-          }
+        for (const property of properties) {
+          // Create at least one instance for each collection property
+          await storage.createFieldValidation({
+            sessionId,
+            fieldType: 'collection_property',
+            fieldId: property.id,
+            fieldName: `${collection.collectionName}.${property.propertyName}[0]`,
+            collectionName: collection.collectionName,
+            recordIndex: 0,
+            extractedValue: null,
+            validationStatus: 'pending',
+            aiReasoning: null,
+            manuallyVerified: false,
+            confidenceScore: 0
+          });
         }
-        
-        // Create collection items and properties
-        if (project_data?.collections) {
-          for (const collection of project_data.collections) {
-            const collectionName = collection.collectionName;
-            const collectionData = extractedData[collectionName];
-            
-            if (Array.isArray(collectionData) && collection.properties) {
-              console.log(`🚀 SEPARATE_DATA: Processing collection ${collectionName} with ${collectionData.length} items`);
-              
-              for (let recordIndex = 0; recordIndex < collectionData.length; recordIndex++) {
-                const record = collectionData[recordIndex];
-                
-                // Create collection item
-                const collectionItem = await storage.createExtractedCollectionItem({
-                  sessionId,
-                  collectionId: collection.id,
-                  recordIndex
-                });
-                
-                // Create properties for this item
-                for (const property of collection.properties) {
-                  const extractedValue = record[property.propertyName];
-                  
-                  console.log(`🚀 SEPARATE_DATA: Creating property ${property.propertyName}[${recordIndex}] = ${extractedValue}`);
-                  await storage.createExtractedCollectionProperty({
-                    collectionItemId: collectionItem.id,
-                    propertyId: property.id,
-                    extractedValue: extractedValue,
-                    confidenceScore: extractedValue !== null && extractedValue !== undefined ? 95 : 20,
-                    validationStatus: 'unverified',
-                    aiReasoning: 'Extracted during AI processing'
-                  });
-                }
-              }
-            }
-          }
-        }
-        
-        console.log(`🚀 SEPARATE_DATA: Extraction data processing complete for session ${sessionId}`);
       }
     } catch (error) {
-      console.error('🚀 SEPARATE_DATA: Error during extraction data processing:', error);
+      console.error(`Error generating initial field validations for session ${sessionId}:`, error);
       throw error;
     }
   };
@@ -1100,8 +1030,8 @@ except Exception as e:
       
       const session = await storage.createExtractionSession(result.data);
       
-      // Initialize extraction data structure for the new session
-      await initializeExtractionData(session.id, projectId);
+      // Generate initial field validations for the new session
+      await generateInitialFieldValidations(session.id, projectId);
       
       res.status(201).json(session);
     } catch (error) {
@@ -1229,27 +1159,197 @@ except Exception as e:
           const result = JSON.parse(output);
           console.log('Parsed Python result:', JSON.stringify(result, null, 2).substring(0, 500) + '...');
           
-          // DEBUG: Check if aggregated_extraction has field_validations
-          if (result.aggregated_extraction) {
-            console.log('DEBUG: aggregated_extraction exists');
-            console.log('DEBUG: aggregated_extraction keys:', Object.keys(result.aggregated_extraction));
-            if (result.aggregated_extraction.field_validations) {
-              console.log('DEBUG: field_validations count in aggregated_extraction:', result.aggregated_extraction.field_validations.length);
-            } else {
-              console.log('DEBUG: NO field_validations in aggregated_extraction');
-            }
-          } else {
-            console.log('DEBUG: NO aggregated_extraction found');
-          }
-          
           // Update session status
           await storage.updateExtractionSession(sessionId, {
             status: "completed",
             extractedData: JSON.stringify(result)
           });
           
-          // 🚀 SEPARATE_DATA: Process extraction results using new separated data architecture
-          await processExtractionResults(sessionId, result, project_data);
+          // Get existing field validations for this session
+          const existingValidations = await storage.getFieldValidations(sessionId);
+          
+          // Update field validations from the extraction results
+          let validationsToProcess = [];
+          
+          // Process aggregated validations if available (multi-document sessions)
+          if (result.aggregated_extraction && result.aggregated_extraction.field_validations) {
+            validationsToProcess = result.aggregated_extraction.field_validations;
+            console.log(`Processing ${validationsToProcess.length} aggregated field validations`);
+          }
+          // Fall back to individual document validations for single-document sessions
+          else if (result.processed_documents && result.processed_documents.length > 0) {
+            for (const doc of result.processed_documents) {
+              const fieldValidations = doc.extraction_result?.field_validations || [];
+              console.log(`Processing ${fieldValidations.length} field validations for document: ${doc.file_name}`);
+              validationsToProcess.push(...fieldValidations);
+            }
+          }
+          
+          // Process explicit validations first
+          for (const validation of validationsToProcess) {
+                // Extract record index from field name if present
+                const fieldName = validation.field_name;
+                const recordIndexMatch = fieldName.match(/\[(\d+)\]$/);
+                const recordIndex = recordIndexMatch ? parseInt(recordIndexMatch[1]) : 0;
+                
+                // Extract collection name from field name
+                const isCollectionProperty = fieldName.includes('.');
+                const collectionName = isCollectionProperty ? fieldName.split('.')[0] : null;
+                
+                // Try to find existing validation for this field
+                const existingValidation = existingValidations.find(v => v.fieldName === fieldName);
+                
+                // Normalize extracted value based on field type
+                let normalizedValue = validation.extracted_value;
+                
+                // Get field type for proper value normalization
+                if (validation.field_type === 'DATE') {
+                  // For date fields, convert various invalid values to null
+                  if (!normalizedValue || 
+                      normalizedValue === "null" || 
+                      normalizedValue === "undefined" || 
+                      normalizedValue === "Not found" ||
+                      normalizedValue === "" ||
+                      normalizedValue.toString().toLowerCase().includes("not found") ||
+                      normalizedValue.toString().toLowerCase().includes("not available")) {
+                    normalizedValue = null;
+                  } else {
+                    // Try to parse and validate date format
+                    try {
+                      const date = new Date(normalizedValue);
+                      if (!isNaN(date.getTime())) {
+                        // Format as ISO date string (YYYY-MM-DD)
+                        normalizedValue = date.toISOString().split('T')[0];
+                      } else {
+                        normalizedValue = null;
+                      }
+                    } catch (error) {
+                      normalizedValue = null;
+                    }
+                  }
+                }
+                
+                if (existingValidation) {
+                  // Update existing validation - preserve original values if they don't exist yet
+                  const updateData: any = {
+                    extractedValue: normalizedValue,
+                    validationStatus: validation.validation_status,
+                    aiReasoning: validation.ai_reasoning,
+                    confidenceScore: validation.confidence_score
+                  };
+                  
+                  // If original values don't exist yet, store them (this handles retroactive population)
+                  if (!existingValidation.originalExtractedValue) {
+                    updateData.originalExtractedValue = validation.original_extracted_value || normalizedValue;
+                    updateData.originalConfidenceScore = validation.original_confidence_score || validation.confidence_score;
+                    updateData.originalAiReasoning = validation.original_ai_reasoning || validation.ai_reasoning;
+                  }
+                  
+                  await storage.updateFieldValidation(existingValidation.id, updateData);
+                } else {
+                  // Create new validation if it doesn't exist
+                  await storage.createFieldValidation({
+                    sessionId,
+                    fieldType: isCollectionProperty ? 'collection_property' : 'schema_field',
+                    fieldId: validation.field_id,
+                    fieldName: fieldName,
+                    collectionName,
+                    recordIndex,
+                    extractedValue: normalizedValue,
+                    originalExtractedValue: validation.original_extracted_value || normalizedValue,
+                    originalConfidenceScore: validation.original_confidence_score || validation.confidence_score,
+                    originalAiReasoning: validation.original_ai_reasoning || validation.ai_reasoning,
+                    validationStatus: validation.validation_status,
+                    aiReasoning: validation.ai_reasoning,
+                    manuallyVerified: false,
+                    confidenceScore: validation.confidence_score
+                  });
+                }
+            }
+          
+          console.log(`Processing complete with ${validationsToProcess.length} total validations`);
+          console.log(`Aggregated extraction contains ${result.aggregated_extraction ? Object.keys(result.aggregated_extraction.extracted_data || {}).length : 0} fields`);
+          console.log(`Result status: ${result.status}, has aggregated data: ${!!result.aggregated_extraction}`);
+          
+          // COMPREHENSIVE VALIDATION CREATION: For pure extraction, create validation records for ALL extracted fields
+          // This ensures batch validation has records to process even when Python returns empty field_validations
+          if (result.aggregated_extraction && result.aggregated_extraction.extracted_data) {
+            const extractedData = result.aggregated_extraction.extracted_data;
+            console.log('Creating comprehensive validation records for all extracted fields...');
+            
+            // Create validation records for schema fields
+            if (project_data?.schemaFields) {
+              for (const field of project_data.schemaFields) {
+                const fieldName = field.fieldName;
+                const extractedValue = extractedData[fieldName];
+                
+                // Check if validation already exists
+                const existingValidation = existingValidations.find(v => v.fieldName === fieldName);
+                if (!existingValidation) {
+                  console.log(`Creating validation record for schema field: ${fieldName} = ${extractedValue}`);
+                  await storage.createFieldValidation({
+                    sessionId,
+                    fieldType: 'schema_field',
+                    fieldId: field.id,
+                    fieldName: fieldName,
+                    collectionName: null,
+                    recordIndex: 0,
+                    extractedValue: extractedValue,
+                    originalExtractedValue: extractedValue,
+                    originalConfidenceScore: 95, // Default confidence for extracted data
+                    originalAiReasoning: 'Extracted during AI processing',
+                    validationStatus: 'unverified',
+                    aiReasoning: 'Extracted during AI processing',
+                    manuallyVerified: false,
+                    confidenceScore: 95 // Set proper confidence score so it doesn't show as "Not Extracted"
+                  });
+                }
+              }
+            }
+            
+            // Create validation records for collection properties
+            if (project_data?.collections) {
+              for (const collection of project_data.collections) {
+                const collectionName = collection.collectionName;
+                const collectionData = extractedData[collectionName];
+                
+                if (Array.isArray(collectionData) && collection.properties) {
+                  for (let recordIndex = 0; recordIndex < collectionData.length; recordIndex++) {
+                    const record = collectionData[recordIndex];
+                    
+                    for (const property of collection.properties) {
+                      const fieldName = `${collectionName}.${property.propertyName}[${recordIndex}]`;
+                      const extractedValue = record[property.propertyName];
+                      
+                      // Check if validation already exists
+                      const existingValidation = existingValidations.find(v => v.fieldName === fieldName);
+                      if (!existingValidation) {
+                        console.log(`Creating validation record for collection property: ${fieldName} = ${extractedValue}`);
+                        await storage.createFieldValidation({
+                          sessionId,
+                          fieldType: 'collection_property',
+                          fieldId: property.id,
+                          fieldName: fieldName,
+                          collectionName: collectionName,
+                          recordIndex: recordIndex,
+                          extractedValue: extractedValue,
+                          originalExtractedValue: extractedValue,
+                          originalConfidenceScore: 95, // Default confidence for extracted data
+                          originalAiReasoning: 'Extracted during AI processing',
+                          validationStatus: 'unverified',
+                          aiReasoning: 'Extracted during AI processing',
+                          manuallyVerified: false,
+                          confidenceScore: extractedValue !== null && extractedValue !== undefined ? 95 : 20 // Higher confidence for actual values, lower for null
+                        });
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            
+            console.log('Comprehensive validation record creation complete');
+          }
           
           res.json(result);
         } catch (parseError: any) {
@@ -1267,160 +1367,14 @@ except Exception as e:
     }
   });
 
-  // Extracted Data - NEW APPROACH
+  // Field Validations
   app.get("/api/sessions/:sessionId/validations", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
-      console.log(`🚀 SEPARATE_DATA: Fetching extracted data for session ${sessionId}`);
-      
-      const extractedData = await storage.getExtractedDataForSession(sessionId);
-      
-      // Convert to compatible validation format for frontend
-      const validations = [];
-      
-      // Add schema fields
-      for (const field of extractedData.schemaFields) {
-        validations.push({
-          id: field.id,
-          sessionId: field.sessionId,
-          fieldType: 'schema_field',
-          fieldId: field.schemaFieldId,
-          fieldName: field.fieldName,
-          extractedValue: field.extractedValue,
-          originalExtractedValue: field.originalExtractedValue,
-          confidenceScore: field.confidenceScore,
-          originalConfidenceScore: field.originalConfidenceScore,
-          validationStatus: field.validationStatus,
-          aiReasoning: field.aiReasoning,
-          originalAiReasoning: field.originalAiReasoning,
-          manuallyVerified: field.manuallyVerified,
-          createdAt: field.createdAt,
-          updatedAt: field.updatedAt,
-          collectionName: null,
-          recordIndex: 0
-        });
-      }
-      
-      // Add collection properties
-      for (const item of extractedData.collectionItems) {
-        for (const property of item.properties) {
-          validations.push({
-            id: property.id,
-            sessionId: item.sessionId,
-            fieldType: 'collection_property',
-            fieldId: property.propertyId,
-            fieldName: `${item.collectionName}.${property.propertyName}[${item.recordIndex}]`,
-            extractedValue: property.extractedValue,
-            originalExtractedValue: property.originalExtractedValue,
-            confidenceScore: property.confidenceScore,
-            originalConfidenceScore: property.originalConfidenceScore,
-            validationStatus: property.validationStatus,
-            aiReasoning: property.aiReasoning,
-            originalAiReasoning: property.originalAiReasoning,
-            manuallyVerified: property.manuallyVerified,
-            createdAt: property.createdAt,
-            updatedAt: property.updatedAt,
-            collectionName: item.collectionName,
-            recordIndex: item.recordIndex
-          });
-        }
-      }
-      
-      console.log(`🚀 SEPARATE_DATA: Found ${validations.length} total validations (${extractedData.schemaFields.length} schema fields, ${extractedData.collectionItems.length} collection items)`);
-      
-      if (validations.length > 0) {
-        console.log(`First validation: ${validations[0].fieldName} = ${validations[0].extractedValue}`);
-        console.log(`Collection validations: ${validations.filter(v => v.fieldName.includes('[')).length}`);
-        console.log(`Sample validation data:`, JSON.stringify(validations[0], null, 2));
-        console.log(`All field names:`, validations.map(v => v.fieldName).slice(0, 10));
-      }
-      console.log(`SENDING TO FRONTEND: ${validations.length} validations`);
+      const validations = await storage.getFieldValidations(sessionId);
       res.json(validations);
     } catch (error) {
-      console.error(`GET /api/sessions/${req.params.sessionId}/validations - Error:`, error);
-      res.status(500).json({ message: "Failed to fetch extracted data" });
-    }
-  });
-
-  // CONSOLIDATED Field Validations - fetches from field records directly
-  app.get("/api/sessions/:sessionId/validations-consolidated", async (req, res) => {
-    try {
-      const sessionId = req.params.sessionId;
-      console.log(`🚀 CONSOLIDATED_VALIDATIONS: Fetching consolidated validations for session ${sessionId}`);
-      
-      // Get session to find project
-      const session = await storage.getExtractionSession(sessionId);
-      if (!session) {
-        return res.status(404).json({ message: "Session not found" });
-      }
-      
-      const projectId = session.projectId;
-      
-      // Get schema fields and collections with validation data for this session
-      const [schemaFields, collections] = await Promise.all([
-        storage.getProjectSchemaFields(projectId),
-        storage.getObjectCollections(projectId)
-      ]);
-      
-      const consolidatedValidations = [];
-      
-      // Add schema field validations
-      for (const field of schemaFields) {
-        if (field.sessionId === sessionId && field.extractedValue !== undefined) {
-          consolidatedValidations.push({
-            id: field.id,
-            sessionId: sessionId,
-            fieldType: 'schema_field',
-            fieldId: field.id,
-            fieldName: field.fieldName,
-            extractedValue: field.extractedValue,
-            originalExtractedValue: field.originalExtractedValue,
-            confidenceScore: field.confidenceScore,
-            originalConfidenceScore: field.originalConfidenceScore,
-            validationStatus: field.validationStatus,
-            aiReasoning: field.aiReasoning,
-            originalAiReasoning: field.originalAiReasoning,
-            manuallyVerified: field.manuallyVerified,
-            createdAt: field.createdAt,
-            updatedAt: field.createdAt
-          });
-        }
-      }
-      
-      // Add collection property validations
-      for (const collection of collections) {
-        const collectionProperties = await storage.getCollectionProperties(collection.id);
-        for (const property of collectionProperties) {
-          if (property.sessionId === sessionId && property.extractedValue !== undefined) {
-            consolidatedValidations.push({
-              id: property.id,
-              sessionId: sessionId,
-              fieldType: 'collection_property',
-              fieldId: property.id,
-              fieldName: `${collection.collectionName}.${property.propertyName}[${property.recordIndex}]`,
-              collectionName: collection.collectionName,
-              recordIndex: property.recordIndex,
-              extractedValue: property.extractedValue,
-              originalExtractedValue: property.originalExtractedValue,
-              confidenceScore: property.confidenceScore,
-              originalConfidenceScore: property.originalConfidenceScore,
-              validationStatus: property.validationStatus,
-              aiReasoning: property.aiReasoning,
-              originalAiReasoning: property.originalAiReasoning,
-              manuallyVerified: property.manuallyVerified,
-              createdAt: property.createdAt,
-              updatedAt: property.createdAt
-            });
-          }
-        }
-      }
-      
-      console.log(`🚀 CONSOLIDATED_VALIDATIONS: Found ${consolidatedValidations.length} validations (${consolidatedValidations.filter(v => v.fieldType === 'schema_field').length} schema fields, ${consolidatedValidations.filter(v => v.fieldType === 'collection_property').length} collection properties)`);
-      
-      res.json(consolidatedValidations);
-    } catch (error) {
-      console.error("🚀 CONSOLIDATED_VALIDATIONS: Error fetching consolidated validations:", error);
-      res.status(500).json({ message: "Internal server error" });
+      res.status(500).json({ message: "Failed to fetch field validations" });
     }
   });
 
@@ -1478,7 +1432,7 @@ except Exception as e:
   app.get("/api/sessions/:sessionId/with-validations", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
-      const session = await storage.getExtractionSessionWithValidations(sessionId);
+      const session = await storage.getSessionWithValidations(sessionId);
       if (!session) {
         return res.status(404).json({ message: "Session not found" });
       }
@@ -1581,36 +1535,16 @@ print(json.dumps(results))
             const updatedValidations = validationResults.updated_validations || [];
             
             for (const validation of updatedValidations) {
-              // WORKAROUND: For schema fields, the validation record is stored with [1] suffix
-              // Try both original field name and shifted field name for schema fields
-              let existingValidation = existingValidations.find(v => v.fieldName === validation.field_name);
-              
-              // If not found and it's a schema field (no dots or brackets), try the shifted version
-              if (!existingValidation && !validation.field_name.includes('.') && !validation.field_name.includes('[')) {
-                const shiftedFieldName = `${validation.field_name}[1]`;
-                existingValidation = existingValidations.find(v => v.fieldName === shiftedFieldName);
-                console.log(`BATCH_VALIDATION_DEBUG - Schema field lookup: "${validation.field_name}" not found, trying shifted "${shiftedFieldName}" - ${existingValidation ? 'FOUND' : 'NOT FOUND'}`);
-              }
+              const existingValidation = existingValidations.find(v => v.fieldName === validation.field_name);
               
               if (existingValidation) {
-                // DEBUG: Log what batch validation is trying to update for first items
-                if (existingValidation.fieldName.includes('[0]') || existingValidation.fieldType === 'schema_field') {
-                  console.log(`BATCH_VALIDATION_DEBUG - Updating FIRST item: ${existingValidation.fieldName}`);
-                  console.log(`  - Existing extracted value: ${existingValidation.extractedValue}`);
-                  console.log(`  - Batch validation extracted_value: ${validation.extracted_value}`);
-                  console.log(`  - Will preserve: ${validation.extracted_value !== undefined ? validation.extracted_value : existingValidation.extractedValue}`);
-                }
-                
-                // Update existing validation record - PRESERVE extracted values!
+                // Update existing validation record
                 await storage.updateFieldValidation(existingValidation.id, {
                   confidenceScore: validation.confidence_score,
                   validationStatus: validation.validation_status,
                   aiReasoning: validation.ai_reasoning,
                   originalConfidenceScore: validation.original_confidence_score,
-                  originalAiReasoning: validation.original_ai_reasoning,
-                  // CRITICAL: Preserve the extracted values from batch validation
-                  extractedValue: validation.extracted_value !== undefined ? validation.extracted_value : existingValidation.extractedValue,
-                  originalExtractedValue: validation.original_extracted_value !== undefined ? validation.original_extracted_value : existingValidation.originalExtractedValue
+                  originalAiReasoning: validation.original_ai_reasoning
                 });
               }
             }
@@ -1631,7 +1565,7 @@ print(json.dumps(results))
               error: validationResults.error
             });
           }
-        } catch (parseError: any) {
+        } catch (parseError) {
           console.error(`BATCH_VALIDATION: Failed to parse Python output: ${parseError}`);
           console.error(`BATCH_VALIDATION: Raw output: ${pythonOutput}`);
           res.status(500).json({
@@ -1646,342 +1580,10 @@ print(json.dumps(results))
       python.stdin.write(JSON.stringify(sessionData));
       python.stdin.end();
 
-    } catch (error: any) {
+    } catch (error) {
       console.error("BATCH_VALIDATION: API error:", error);
       res.status(500).json({ 
         message: "Failed to run batch validation", 
-        error: error.message 
-      });
-    }
-  });
-
-  // TEST: Consolidated extraction approach
-  app.post("/api/sessions/:sessionId/test-consolidated", async (req, res) => {
-    try {
-      const sessionId = req.params.sessionId;
-      console.log(`🧪 TEST_CONSOLIDATED: Starting test for session ${sessionId}`);
-      
-      // Get session and project data
-      const session = await storage.getExtractionSession(sessionId);
-      if (!session) {
-        return res.status(404).json({ message: "Session not found" });
-      }
-      
-      const projectId = session.projectId;
-      const [projectSchema, collections] = await Promise.all([
-        storage.getProjectSchemaFields(projectId),
-        storage.getObjectCollections(projectId)
-      ]);
-      
-      // Build project schema structure for Python
-      const collectionsWithProperties = await Promise.all(
-        collections.map(async (collection) => {
-          const properties = await storage.getCollectionProperties(collection.id);
-          return { ...collection, properties };
-        })
-      );
-      
-      const sessionData = {
-        session_id: sessionId,
-        project_schema: {
-          fields: projectSchema,
-          collections: collectionsWithProperties
-        }
-      };
-      
-      // Call consolidated Python extraction
-      const { spawn } = require('child_process');
-      const python = spawn('python3', ['ai_extraction_consolidated.py']);
-      
-      let pythonOutput = '';
-      let pythonError = '';
-      
-      python.stdout.on('data', (data) => {
-        pythonOutput += data.toString();
-      });
-      
-      python.stderr.on('data', (data) => {
-        pythonError += data.toString();
-      });
-      
-      python.on('close', async (code) => {
-        if (code !== 0) {
-          console.error(`TEST_CONSOLIDATED: Python process failed with code ${code}`);
-          console.error(`TEST_CONSOLIDATED: Error output: ${pythonError}`);
-          return res.status(500).json({ 
-            message: "Consolidated extraction test failed", 
-            error: pythonError,
-            code: code
-          });
-        }
-
-        try {
-          const results = JSON.parse(pythonOutput);
-          console.log(`🧪 TEST_CONSOLIDATED: Created ${results.total_records} validation records`);
-          
-          res.json({
-            success: true,
-            session_id: sessionId,
-            total_records: results.total_records,
-            validation_records: results.validation_records,
-            message: "✅ CONSOLIDATED APPROACH WORKING - Ready to implement real extraction flow"
-          });
-        } catch (parseError: any) {
-          console.error(`TEST_CONSOLIDATED: Failed to parse Python output: ${parseError}`);
-          console.error(`TEST_CONSOLIDATED: Raw output: ${pythonOutput}`);
-          res.status(500).json({
-            message: "Failed to parse consolidated extraction results",
-            error: parseError.message,
-            output: pythonOutput
-          });
-        }
-      });
-
-      // Send session data to Python process
-      python.stdin.write(JSON.stringify(sessionData));
-      python.stdin.end();
-
-    } catch (error: any) {
-      console.error("TEST_CONSOLIDATED: API error:", error);
-      res.status(500).json({ 
-        message: "Failed to run consolidated extraction test", 
-        error: error.message 
-      });
-    }
-  });
-
-  // Consolidated AI Extraction endpoint - NEW ARCHITECTURE
-  app.post("/api/sessions/:sessionId/extract-consolidated", authenticateToken, async (req: AuthRequest, res) => {
-    const sessionId = req.params.sessionId;
-    console.log(`🚀 CONSOLIDATED_EXTRACTION: Starting extraction for session ${sessionId}`);
-
-    try {
-      // Get session and project data
-      const session = await storage.getExtractionSession(sessionId);
-      if (!session) {
-        return res.status(404).json({ message: "Session not found" });
-      }
-
-      const projectId = session.projectId;
-      const [project, schemaFields, collections, extractionRules, knowledgeDocuments] = await Promise.all([
-        storage.getProject(projectId),
-        storage.getProjectSchemaFields(projectId),
-        storage.getObjectCollections(projectId),
-        storage.getExtractionRules(projectId),
-        storage.getKnowledgeDocuments(projectId)
-      ]);
-
-      if (!project) {
-        return res.status(404).json({ message: "Project not found" });
-      }
-
-      // Get request body with files data from frontend
-      const requestBody = req.body;
-      console.log(`🚀 CONSOLIDATED_EXTRACTION: Request body keys:`, Object.keys(requestBody || {}));
-      
-      // Extract files data from request
-      const filesData = requestBody?.files || [];
-      console.log(`🚀 CONSOLIDATED_EXTRACTION: Processing ${filesData.length} files`);
-
-      // Build session data for Python extraction
-      const sessionData = {
-        session_id: sessionId,
-        files: filesData.map((file: any) => ({
-          name: file.name,
-          content: file.content,
-          type: file.type,
-          size: file.size
-        })),
-        project_schema: {
-          schema_fields: schemaFields.map(field => ({
-            id: field.id,
-            fieldName: field.fieldName,
-            fieldType: field.fieldType,
-            projectId: field.projectId,
-            description: field.description,
-            autoVerificationConfidence: field.autoVerificationConfidence,
-            orderIndex: field.orderIndex
-          })),
-          collections: collections.map(collection => ({
-            id: collection.id,
-            collectionName: collection.collectionName,
-            properties: collection.properties.map(prop => ({
-              id: prop.id,
-              collectionId: collection.id,
-              propertyName: prop.propertyName,
-              propertyType: prop.propertyType,
-              description: prop.description,
-              autoVerificationConfidence: prop.autoVerificationConfidence,
-              orderIndex: prop.orderIndex
-            }))
-          }))
-        },
-        extraction_rules: extractionRules,
-        knowledge_documents: knowledgeDocuments
-      };
-
-      console.log(`🚀 WORKING_EXTRACTION: Processing ${schemaFields.length} schema fields and ${collections.length} collections`);
-      console.log(`🚀 WORKING_EXTRACTION: Session data files: ${sessionData.files.length}`);
-      console.log(`🚀 WORKING_EXTRACTION: Session data schema fields: ${JSON.stringify(sessionData.project_schema.schema_fields.map(f => f.fieldName))}`);
-      console.log(`🚀 WORKING_EXTRACTION: Session data collections: ${JSON.stringify(sessionData.project_schema.collections.map(c => c.collectionName))}`);
-
-      // Run working multimodal AI extraction
-      const python = spawn('python3', ['ai_extraction_working.py'], {
-        stdio: 'pipe'
-      });
-
-      let pythonOutput = '';
-      let pythonError = '';
-      
-      // Send session data to Python script
-      python.stdin.write(JSON.stringify(sessionData));
-      python.stdin.end();
-
-      python.stdout.on('data', (data: any) => {
-        pythonOutput += data.toString();
-      });
-
-      python.stderr.on('data', (data: any) => {
-        const errorData = data.toString();
-        pythonError += errorData;
-        console.log(`🚀 WORKING_EXTRACTION: Python stderr: ${errorData}`);
-      });
-
-      python.on('close', async (code) => {
-        console.log(`🚀 WORKING_EXTRACTION: Python process completed with code ${code}`);
-        console.log(`🚀 WORKING_EXTRACTION: Python stdout length: ${pythonOutput.length}`);
-        console.log(`🚀 WORKING_EXTRACTION: Python stderr length: ${pythonError.length}`);
-        
-        if (code !== 0) {
-          console.error(`🚀 WORKING_EXTRACTION: Python extraction failed with code ${code}`);
-          console.error(`🚀 WORKING_EXTRACTION: Error: ${pythonError}`);
-          return res.status(500).json({ 
-            message: "Working AI extraction failed", 
-            error: pythonError,
-            code: code
-          });
-        }
-
-        try {
-          console.log(`🚀 WORKING_EXTRACTION: Raw Python output: ${pythonOutput.substring(0, 1000)}...`);
-          const results = JSON.parse(pythonOutput);
-          console.log(`🚀 WORKING_EXTRACTION: AI extracted ${results.total_records} validation records`);
-          console.log(`🚀 WORKING_EXTRACTION: Schema fields: ${results.schema_fields_updated}, Collection properties: ${results.collection_properties_updated}`);
-          
-          // SEPARATE EXTRACTION DATA: Store extraction results in separate tables from schema definitions
-          const validationRecords = results.validation_records;
-          let extractedSchemaFields = 0;
-          let extractedCollectionItems = 0;
-          let extractedCollectionProperties = 0;
-          
-          console.log(`🔍 SEPARATE_EXTRACTION: Processing ${validationRecords.length} validation records from Python`);
-          
-          // Process schema fields - create extraction records, DO NOT modify schema definitions
-          for (const record of validationRecords.filter(r => r.record_type === 'schema_field')) {
-            try {
-              console.log(`🔍 SEPARATE: Creating extracted schema field ${record.fieldName} = ${record.extractedValue}`);
-              
-              await storage.createExtractedSchemaField({
-                sessionId: sessionId,
-                schemaFieldId: record.id,
-                extractedValue: record.extractedValue,
-                originalExtractedValue: record.originalExtractedValue,
-                confidenceScore: record.confidenceScore,
-                originalConfidenceScore: record.originalConfidenceScore,
-                validationStatus: record.validationStatus,
-                aiReasoning: record.aiReasoning,
-                originalAiReasoning: record.originalAiReasoning,
-                manuallyVerified: record.manuallyVerified || false
-              });
-              
-              extractedSchemaFields++;
-            } catch (error) {
-              console.error(`🚨 SEPARATE: Error creating extracted schema field ${record.fieldName}:`, error);
-            }
-          }
-          
-          // Group collection properties by collection and record index
-          const collectionGroups = {};
-          for (const record of validationRecords.filter(r => r.record_type === 'collection_property')) {
-            const key = `${record.collectionId}-${record.recordIndex}`;
-            if (!collectionGroups[key]) {
-              collectionGroups[key] = {
-                collectionId: record.collectionId,
-                recordIndex: record.recordIndex,
-                properties: []
-              };
-            }
-            collectionGroups[key].properties.push(record);
-          }
-          
-          // Create collection items and their properties
-          for (const group of Object.values(collectionGroups)) {
-            try {
-              console.log(`🔍 SEPARATE: Creating collection item ${group.collectionId}[${group.recordIndex}] with ${group.properties.length} properties`);
-              
-              // Create collection item
-              const collectionItem = await storage.createExtractedCollectionItem({
-                sessionId: sessionId,
-                collectionId: group.collectionId,
-                recordIndex: group.recordIndex
-              });
-              
-              extractedCollectionItems++;
-              
-              // Create properties for this item
-              for (const property of group.properties) {
-                await storage.createExtractedCollectionProperty({
-                  collectionItemId: collectionItem.id,
-                  propertyId: property.propertyId,
-                  extractedValue: property.extractedValue,
-                  originalExtractedValue: property.originalExtractedValue,
-                  confidenceScore: property.confidenceScore,
-                  originalConfidenceScore: property.originalConfidenceScore,
-                  validationStatus: property.validationStatus,
-                  aiReasoning: property.aiReasoning,
-                  originalAiReasoning: property.originalAiReasoning,
-                  manuallyVerified: property.manuallyVerified || false
-                });
-                
-                extractedCollectionProperties++;
-              }
-            } catch (error) {
-              console.error(`🚨 SEPARATE: Error creating collection item ${group.collectionId}[${group.recordIndex}]:`, error);
-            }
-          }
-          
-          // Update session status
-          await storage.updateExtractionSession(sessionId, {
-            status: 'completed'
-          });
-          
-          console.log(`🚀 SEPARATE_EXTRACTION: Created ${extractedSchemaFields} extracted schema fields, ${extractedCollectionItems} collection items, ${extractedCollectionProperties} collection properties`);
-          
-          res.json({
-            success: true,
-            session_id: sessionId,
-            total_records: results.total_records,
-            extracted_schema_fields: extractedSchemaFields,
-            extracted_collection_items: extractedCollectionItems,
-            extracted_collection_properties: extractedCollectionProperties,
-            message: "✅ SEPARATE EXTRACTION COMPLETE - Data stored in dedicated extraction tables"
-          });
-          
-        } catch (parseError: any) {
-          console.error(`🚀 CONSOLIDATED_EXTRACTION: Failed to parse results: ${parseError}`);
-          console.error(`🚀 CONSOLIDATED_EXTRACTION: Raw output: ${pythonOutput}`);
-          res.status(500).json({
-            message: "Failed to parse consolidated extraction results",
-            error: parseError.message,
-            output: pythonOutput
-          });
-        }
-      });
-
-    } catch (error: any) {
-      console.error("🚀 CONSOLIDATED_EXTRACTION: API error:", error);
-      res.status(500).json({ 
-        message: "Failed to run consolidated extraction", 
         error: error.message 
       });
     }
@@ -1993,7 +1595,7 @@ print(json.dumps(results))
       console.log(`DEBUG: Recalculating validations for session ${sessionId}`);
       
       // Get session project ID
-      const session = await storage.getExtractionSession(sessionId);
+      const session = await storage.getSession(sessionId);
       if (!session) {
         return res.status(404).json({ message: "Session not found" });
       }

@@ -184,15 +184,6 @@ const ManualInputBadge = () => (
   </span>
 );
 
-const MissingInfoBadge = () => (
-  <span 
-    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200"
-    title="This field is missing or empty"
-  >
-    Missing Info
-  </span>
-);
-
 // Custom validation toggle component for SessionView
 const ValidationToggle = ({ fieldName, validation, onToggle }: { 
   fieldName: string; 
@@ -235,6 +226,7 @@ export default function SessionView() {
   const [showReasoningDialog, setShowReasoningDialog] = useState(false);
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
   const [hasInitializedCollapsed, setHasInitializedCollapsed] = useState(false);
+  const [hasRunAutoValidation, setHasRunAutoValidation] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -262,18 +254,13 @@ export default function SessionView() {
   });
 
   const { data: validations = [] } = useQuery<FieldValidation[]>({
-    queryKey: ['/api/sessions', sessionId, 'validations-consolidated'],
-    queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations-consolidated`),
+    queryKey: ['/api/sessions', sessionId, 'validations'],
+    queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`),
     onSuccess: (data) => {
-      console.log(`🚀 CONSOLIDATED_FRONTEND: Session ${sessionId} - Consolidated validations loaded:`, data.length);
-      console.log(`🚀 CONSOLIDATED_FRONTEND RAW DATA:`, data);
+      console.log(`Session ${sessionId} - Validations loaded:`, data.length);
       if (data.length > 0) {
-        console.log('🚀 Sample consolidated validation:', data[0]);
-        console.log('🚀 All field names:', data.map(v => v.fieldName));
-        console.log('🚀 Schema fields:', data.filter(v => v.fieldType === 'schema_field').length);
-        console.log('🚀 Collection properties:', data.filter(v => v.fieldType === 'collection_property').length);
-      } else {
-        console.log('🚀 CONSOLIDATED_FRONTEND: No consolidated validations received');
+        console.log('Sample validation:', data[0]);
+        console.log('All field names:', data.map(v => v.fieldName));
       }
     }
   });
@@ -387,8 +374,25 @@ export default function SessionView() {
     }
   });
 
-  // Note: Batch validation now runs during the processing phase in NewUpload component
-  // No automatic validation needed on session load
+  // Auto-run batch validation after extraction redirect
+  useEffect(() => {
+    if (session && validations.length > 0 && !hasRunAutoValidation && !batchValidationMutation.isPending) {
+      // Check if this session was recently created (within last 5 minutes) to determine if we just extracted
+      const sessionCreatedAt = new Date(session.createdAt);
+      const now = new Date();
+      const timeDiffMinutes = (now.getTime() - sessionCreatedAt.getTime()) / (1000 * 60);
+      
+      // Only auto-validate for recently created sessions
+      if (timeDiffMinutes <= 5) {
+        console.log('🚀 Auto-running batch validation for new session');
+        setHasRunAutoValidation(true);
+        batchValidationMutation.mutate();
+      } else {
+        // Mark as already processed for older sessions
+        setHasRunAutoValidation(true);
+      }
+    }
+  }, [session, validations, hasRunAutoValidation, batchValidationMutation]);
 
   if (projectLoading || sessionLoading) {
     return (
@@ -438,20 +442,7 @@ export default function SessionView() {
 
   // Get validation for a specific field
   const getValidation = (fieldName: string) => {
-    // WORKAROUND: Try direct match first
-    const directMatch = validations.find(v => v.fieldName === fieldName);
-    if (directMatch) return directMatch;
-    
-    // For schema fields that don't contain brackets or dots, try the shifted version with [1]
-    if (!fieldName.includes('[') && !fieldName.includes('.')) {
-      const shiftedFieldName = `${fieldName}[1]`;
-      const shiftedMatch = validations.find(v => v.fieldName === shiftedFieldName);
-      if (shiftedMatch) return shiftedMatch;
-    }
-    
-    // Log if no validation found for debugging
-    console.log(`No validation found for ${fieldName}, available validations:`, validations.map(v => v.fieldName));
-    return undefined;
+    return validations.find(v => v.fieldName === fieldName);
   };
 
   // Get session status based on field verification
@@ -1085,9 +1076,8 @@ Thank you for your assistance.`;
             // The validation status 'manual' is set when user actually edits a field
             const wasManuallyUpdated = validation.validationStatus === 'manual';
             
-            // Check if AI could not extract any value at all (truly missing)
-            const extractedValue = validation.extractedValue;
-            const isTrulyMissing = extractedValue === null || extractedValue === undefined || extractedValue === "" || extractedValue === "null";
+            // Check if field was extracted (has confidence score > 0)
+            const wasExtracted = validation.confidenceScore > 0;
             
             if (wasManuallyUpdated) {
               return (
@@ -1104,14 +1094,9 @@ Thank you for your assistance.`;
                   )}
                 </div>
               );
-            } else if (isTrulyMissing) {
-              // Only show Missing Info when AI literally found nothing
-              return <MissingInfoBadge />;
-            } else if (validation.confidenceScore === 0) {
-              // Show Not Extracted for technical issues (confidence = 0 but has value)
+            } else if (!wasExtracted) {
               return <NotExtractedBadge />;
             } else {
-              // Show confidence badge for all extracted values regardless of confidence level
               return <ConfidenceBadge confidenceScore={validation.confidenceScore} reasoning={validation.aiReasoning} fieldName={fieldName} getFieldDisplayName={getFieldDisplayName} />;
             }
           })()}
@@ -1369,21 +1354,14 @@ Thank you for your assistance.`;
           const collectionData = extractedData[collection.collectionName];
           
           // Get all validations for this collection
-          const collectionValidations = validations.filter(v => 
-            v.collectionName === collection.collectionName || 
-            (v.fieldName && v.fieldName.startsWith(`${collection.collectionName}.`))
-          );
-          
-          console.log(`🔍 Collection ${collection.collectionName}: Found ${collectionValidations.length} validations`);
+          const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
           
           // Determine how many instances we need to show
-          // WORKAROUND: Filter out dummy validation records at index -1
-          const realValidations = collectionValidations.filter(v => v.recordIndex >= 0);
-          const dataLength = collectionData ? collectionData.length : 0;
-          const validationIndices = realValidations.length > 0 ? realValidations.map(v => v.recordIndex) : [];
-          const maxRecordIndex = Math.max(dataLength, ...validationIndices, 0);
+          const dataLength = collectionData ? collectionData.length - 1 : -1;
+          const validationIndices = collectionValidations.length > 0 ? collectionValidations.map(v => v.recordIndex) : [];
+          const maxRecordIndex = Math.max(dataLength, ...validationIndices, -1);
           
-          if (maxRecordIndex < 1) return null;
+          if (maxRecordIndex < 0) return null;
 
           const isExpanded = expandedCollections.has(collection.collectionName);
 
@@ -1408,7 +1386,7 @@ Thank you for your assistance.`;
                       <div className="flex items-center gap-2">
                         <h3 className="text-lg font-semibold">{collection.collectionName}</h3>
                         <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                          {maxRecordIndex} {maxRecordIndex === 1 ? 'item' : 'items'}
+                          {maxRecordIndex + 1} {maxRecordIndex === 0 ? 'item' : 'items'}
                         </span>
                       </div>
                       <p className="text-sm text-gray-600 mt-1">{collection.description}</p>
@@ -1447,10 +1425,8 @@ Thank you for your assistance.`;
                 </div>
                 {isExpanded && (
                   <div>
-                {Array.from({ length: maxRecordIndex }, (_, arrayIndex) => {
-                  // WORKAROUND: Map display index to validation index (arrayIndex 0 -> validationIndex 1)
-                  const validationIndex = arrayIndex + 1;
-                  const item = collectionData?.[arrayIndex] || {};
+                {Array.from({ length: maxRecordIndex + 1 }, (_, index) => {
+                  const item = collectionData?.[index] || {};
                   
                   // Try to get a meaningful name for this item
                   const getItemDisplayName = (item: any, collection: any, index: number) => {
@@ -1475,10 +1451,10 @@ Thank you for your assistance.`;
                     return `Item ${index + 1}`;
                   };
                   
-                  const itemDisplayName = getItemDisplayName(item, collection, arrayIndex);
+                  const itemDisplayName = getItemDisplayName(item, collection, index);
                   
                   return (
-                    <div key={arrayIndex} className="mb-6 p-4 bg-gray-50 rounded-lg w-full overflow-hidden">
+                    <div key={index} className="mb-6 p-4 bg-gray-50 rounded-lg w-full overflow-hidden">
                       <h4 className="font-medium mb-4">{itemDisplayName}</h4>
                       <div className="space-y-4">
                         {collection.properties
@@ -1499,7 +1475,7 @@ Thank you for your assistance.`;
                             }
                           }
                           
-                          const fieldName = `${collection.collectionName}.${property.propertyName}[${validationIndex}]`;
+                          const fieldName = `${collection.collectionName}.${property.propertyName}[${index}]`;
                           const validation = validations.find(v => v.fieldName === fieldName);
                           
                           // Debug logging for validation matching

@@ -24,7 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCreateExtractionSession } from "@/hooks/useExtractionSessions";
 import { useProcessExtraction } from "@/hooks/useAIExtraction";
 import { useProjectSchemaFields, useObjectCollections } from "@/hooks/useSchema";
-import { useExtractionRules, useKnowledgeDocuments } from "@/hooks/useKnowledge";
+import { useExtractionRules } from "@/hooks/useKnowledge";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -76,7 +76,6 @@ export default function NewUpload({ project }: NewUploadProps) {
   const { data: schemaFields = [] } = useProjectSchemaFields(project.id);
   const { data: collections = [] } = useObjectCollections(project.id);
   const { data: extractionRules = [] } = useExtractionRules(project.id);
-  const { data: knowledgeDocuments = [] } = useKnowledgeDocuments(project.id);
   
 
 
@@ -199,15 +198,10 @@ export default function NewUpload({ project }: NewUploadProps) {
   };
 
   const handleSubmit = async (data: UploadForm) => {
-    console.log(`🚀 CONSOLIDATED_FRONTEND: handleSubmit called with data:`, data);
-    console.log(`🚀 CONSOLIDATED_FRONTEND: selectedFiles.length:`, selectedFiles.length);
-    
     if (selectedFiles.length === 0) {
-      console.log(`🚀 CONSOLIDATED_FRONTEND: No files selected, returning early`);
       return;
     }
 
-    console.log(`🚀 CONSOLIDATED_FRONTEND: Starting processing workflow`);
     setIsProcessing(true);
     setShowProcessingDialog(true);
     setTotalDocuments(selectedFiles.length);
@@ -233,25 +227,19 @@ export default function NewUpload({ project }: NewUploadProps) {
       }
 
       // Prepare file data for AI processing
-      console.log(`🚀 CONSOLIDATED_FRONTEND: Starting file reading for ${selectedFiles.length} files`);
       const filesData = await Promise.all(selectedFiles.map(async (fileData) => {
         try {
-          console.log(`🚀 CONSOLIDATED_FRONTEND: Reading file ${fileData.file.name}`);
           // Read file content as base64
           const base64Content = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = () => {
               if (typeof reader.result === 'string') {
-                console.log(`🚀 CONSOLIDATED_FRONTEND: Successfully read file ${fileData.file.name}`);
                 resolve(reader.result);
               } else {
                 reject(new Error('Failed to read file as data URL'));
               }
             };
-            reader.onerror = (error) => {
-              console.error(`🚀 CONSOLIDATED_FRONTEND: FileReader error for ${fileData.file.name}:`, error);
-              reject(error);
-            };
+            reader.onerror = reject;
             reader.readAsDataURL(fileData.file);
           });
 
@@ -262,11 +250,15 @@ export default function NewUpload({ project }: NewUploadProps) {
             content: base64Content
           };
         } catch (error) {
-          console.error(`🚀 CONSOLIDATED_FRONTEND: Failed to read file ${fileData.file.name}:`, error);
-          throw error; // Don't silently continue with empty content
+          console.error(`Failed to read file ${fileData.file.name}:`, error);
+          return {
+            name: fileData.file.name,
+            size: fileData.file.size,
+            type: fileData.file.type,
+            content: ""
+          };
         }
       }));
-      console.log(`🚀 CONSOLIDATED_FRONTEND: File reading completed for ${filesData.length} files`);
 
       // Step 3: AI Extraction Phase
       setProcessingStep('extracting');
@@ -278,75 +270,29 @@ export default function NewUpload({ project }: NewUploadProps) {
       const projectRules = extractionRules || [];
       
       // Enhance collections with their properties
-      console.log(`🚀 CONSOLIDATED_FRONTEND: Starting collections enhancement for ${collections?.length || 0} collections`);
       const collectionsWithProperties = await Promise.all(
-        (collections || []).map(async (collection: any) => {
+        (collections || []).map(async (collection) => {
           try {
-            console.log(`🚀 CONSOLIDATED_FRONTEND: Fetching properties for collection ${collection.id}`);
             const properties = await apiRequest(`/api/collections/${collection.id}/properties`);
-            console.log(`🚀 CONSOLIDATED_FRONTEND: Successfully fetched ${properties.length} properties for collection ${collection.id}`);
             return { ...collection, properties };
           } catch (error) {
-            console.error(`🚀 CONSOLIDATED_FRONTEND: Failed to fetch properties for collection ${collection.id}:`, error);
-            throw error; // Don't silently continue
+            console.error(`Failed to fetch properties for collection ${collection.id}:`, error);
+            return { ...collection, properties: [] };
           }
         })
       );
-      console.log(`🚀 CONSOLIDATED_FRONTEND: Collections enhancement completed`);
 
-      // Start CONSOLIDATED extraction - NEW ARCHITECTURE
-      console.log(`🚀 CONSOLIDATED_FRONTEND: Starting consolidated extraction for session ${session.id}`);
-      
-      // Build extraction payload
-      const extractionPayload = {
+      // Start extraction with progress simulation
+      const extractionPromise = processExtraction.mutateAsync({
+        sessionId: session.id,
         files: filesData,
-        projectSchema: {
-          fields: projectSchema,
-          collections: collectionsWithProperties
-        },
-        extractionRules: projectRules,
-        knowledgeDocuments: knowledgeDocuments || []
-      };
-      
-      // Check payload size
-      const payloadString = JSON.stringify(extractionPayload);
-      const payloadSizeMB = (payloadString.length / 1024 / 1024).toFixed(2);
-      console.log(`🚀 CONSOLIDATED_FRONTEND: Extraction payload size: ${payloadSizeMB}MB`);
-      console.log(`🚀 CONSOLIDATED_FRONTEND: Files in payload: ${extractionPayload.files.length}`);
-      console.log(`🚀 CONSOLIDATED_FRONTEND: Making request to /api/sessions/${session.id}/extract-consolidated`);
-      
-      // Log first 200 chars of each file content for debugging
-      extractionPayload.files.forEach((file, index) => {
-        console.log(`🚀 CONSOLIDATED_FRONTEND: File ${index + 1} (${file.name}): ${file.content.length} chars, starts with: ${file.content.substring(0, 50)}...`);
-      });
-      
-      const extractionPromise = (async () => {
-        try {
-          console.log(`🚀 CONSOLIDATED_FRONTEND: About to make API request`);
-          const result = await apiRequest(`/api/sessions/${session.id}/extract-consolidated`, {
-            method: 'POST',
-            body: JSON.stringify(extractionPayload),
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          });
-          console.log(`🚀 CONSOLIDATED_FRONTEND: API request successful:`, result);
-          return result;
-        } catch (error: any) {
-          console.error(`🚀 CONSOLIDATED_FRONTEND: API request failed with error:`, error);
-          console.error(`🚀 CONSOLIDATED_FRONTEND: Error details:`, {
-            message: error?.message || 'No message',
-            stack: error?.stack || 'No stack',
-            type: error?.constructor?.name || 'Unknown',
-            status: error?.status || 'No status',
-            statusText: error?.statusText || 'No statusText',
-            response: error?.response || 'No response',
-            toString: error?.toString() || 'Cannot convert to string'
-          });
-          console.error(`🚀 CONSOLIDATED_FRONTEND: Raw error object:`, JSON.stringify(error, Object.getOwnPropertyNames(error)));
-          throw error;
+        project_data: {
+          ...project,
+          schemaFields: projectSchema,
+          collections: collectionsWithProperties,
+          extractionRules: projectRules
         }
-      })();
+      });
 
       // Simulate extraction progress
       const progressInterval = setInterval(() => {
@@ -356,33 +302,20 @@ export default function NewUpload({ project }: NewUploadProps) {
         });
       }, 300);
 
-      // Wait for CONSOLIDATED extraction to complete
+      // Wait for extraction to complete
       const extractionResult = await extractionPromise;
       clearInterval(progressInterval);
       setProcessingProgress(100);
-      
-      console.log(`🚀 CONSOLIDATED_FRONTEND: Extraction completed successfully`);
-      console.log(`🚀 CONSOLIDATED_FRONTEND: Response:`, extractionResult);
 
-      // Step 4: Validation Phase - CONSOLIDATED APPROACH INCLUDES VALIDATION
+      // Step 4: Validation Phase
       setProcessingStep('validating');
       setProcessingProgress(0);
 
-      // CONSOLIDATED APPROACH: Validation data is already created during extraction
-      // No separate batch validation needed - all validation records are created directly in field/collection records
-      const validationProgressInterval = setInterval(() => {
-        setProcessingProgress(prev => Math.min(prev + 20, 100));
-      }, 200);
-
-      // Brief delay to show validation step (data is already processed)
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      clearInterval(validationProgressInterval);
-      setProcessingProgress(100);
-      
-      console.log(`✅ CONSOLIDATED validation completed: ${extractionResult.total_records} validation records created directly in field structure`);
-      console.log('🚀 CONSOLIDATED_FRONTEND: extractionResult:', extractionResult);
-      console.log('🚀 CONSOLIDATED_FRONTEND: session:', session);
+      // Simulate validation progress
+      for (let progress = 0; progress <= 100; progress += 20) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        setProcessingProgress(progress);
+      }
 
       // Step 5: Complete
       setProcessingStep('complete');
@@ -395,7 +328,7 @@ export default function NewUpload({ project }: NewUploadProps) {
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Verify extraction was successful before redirecting
-      if (extractionResult?.success && session?.id) {
+      if (extractionResult && session?.id) {
         toast({
           title: "Processing complete",
           description: `${selectedFiles.length} file(s) processed successfully. Redirecting to review page...`,
@@ -405,14 +338,7 @@ export default function NewUpload({ project }: NewUploadProps) {
         setShowProcessingDialog(false);
         setLocation(`/projects/${project.id}/sessions/${session.id}`);
       } else {
-        console.error('🚀 CONSOLIDATED_FRONTEND: Validation failed', {
-          extractionResult,
-          extractionSuccess: extractionResult?.success,
-          sessionId: session?.id,
-          hasExtraction: !!extractionResult,
-          hasSession: !!session
-        });
-        throw new Error(`Extraction validation failed - extractionResult.success: ${extractionResult?.success}, session.id: ${session?.id}`);
+        throw new Error("Extraction completed but session data is missing");
       }
       
       // Reset form

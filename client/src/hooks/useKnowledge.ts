@@ -8,14 +8,14 @@ import type {
 } from "@shared/schema";
 
 // Knowledge Documents
-export function useKnowledgeDocuments(projectId: string | number) {
+export function useKnowledgeDocuments(projectId: number) {
   return useQuery({
     queryKey: ["/api/projects", projectId, "knowledge"],
     queryFn: () => apiRequest(`/api/projects/${projectId}/knowledge`),
   });
 }
 
-export function useCreateKnowledgeDocument(projectId: string | number) {
+export function useCreateKnowledgeDocument(projectId: number) {
   const queryClient = useQueryClient();
   
   return useMutation({
@@ -63,14 +63,14 @@ export function useDeleteKnowledgeDocument() {
 }
 
 // Extraction Rules
-export function useExtractionRules(projectId: string | number) {
+export function useExtractionRules(projectId: number) {
   return useQuery({
     queryKey: ["/api/projects", projectId, "rules"],
     queryFn: () => apiRequest(`/api/projects/${projectId}/rules`),
   });
 }
 
-export function useCreateExtractionRule(projectId: string | number) {
+export function useCreateExtractionRule(projectId: number) {
   const queryClient = useQueryClient();
   
   return useMutation({

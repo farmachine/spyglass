@@ -6,7 +6,6 @@ import os
 import logging
 import tempfile
 import base64
-import traceback
 from typing import Dict, Any, List
 from dataclasses import dataclass
 
@@ -272,20 +271,15 @@ def calculate_knowledge_based_confidence_fallback(field_name: str, extracted_val
     Fallback rule-based validation when AI is not available.
     """
     if extracted_value is None or extracted_value == "" or extracted_value == "null":
-        return 20, [], "Missing information - field was not found in document"
+        return 0, [], "No value extracted"
     
     # Check for knowledge document conflicts first
     has_conflict, conflicting_sections = check_knowledge_document_conflicts(field_name, extracted_value, knowledge_documents)
     if has_conflict:
-        # Generate intelligent reasoning based on field and value
-        reasoning = generate_human_friendly_reasoning(field_name, extracted_value, [{
-            'name': 'Knowledge Document Conflict',
-            'action': f"Set confidence to 50% due to conflicts found in knowledge documents: {'; '.join(conflicting_sections[:2])}"
-        }])
         return 50, [{
             'name': 'Knowledge Document Conflict',
             'action': f"Set confidence to 50% due to conflicts found in knowledge documents: {'; '.join(conflicting_sections[:2])}"
-        }], reasoning
+        }], "Knowledge document conflict detected"
     
     # Base confidence calculation - use a high default confidence (95%) for field-level validation
     confidence_percentage = 95
@@ -355,11 +349,16 @@ def calculate_knowledge_based_confidence_fallback(field_name: str, extracted_val
     
     display_field_name = get_display_name(field_name)
     
-    # Generate intelligent AI-style reasoning 
+    # Generate AI-style reasoning based on applied rules
     if applied_rules:
-        reasoning = generate_human_friendly_reasoning(field_name, extracted_value, applied_rules)
+        if len(applied_rules) == 1:
+            rule = applied_rules[0]
+            reasoning = f"Our extraction rules indicate that {rule['action'].lower()}. This adjustment reflects policy-based validation requirements for {display_field_name}."
+        else:
+            rule_actions = [rule['action'].lower() for rule in applied_rules]
+            reasoning = f"Multiple extraction rules applied: {'; '.join(rule_actions)}. These adjustments ensure compliance with organizational validation policies for {display_field_name}."
     else:
-        reasoning = f"Extracted during AI processing"
+        reasoning = f"Field validation completed with standard confidence scoring. No specific extraction rules apply to {display_field_name}."
     
     return confidence_percentage, applied_rules, reasoning
 
@@ -919,16 +918,6 @@ def run_post_extraction_batch_validation(session_data: Dict[str, Any]) -> Dict[s
             field_name = validation.get("field_name", "")
             extracted_value = validation.get("extracted_value")
             
-            # DEBUG: Log schema field processing (both [0] and [1] indices)
-            if '[1]' in field_name and not '.' in field_name:  # Schema fields with [1] index
-                logging.info(f"🔍 BATCH_VALIDATION_DEBUG - Schema field with [1]: {field_name}")
-                logging.info(f"   - extracted_value from validation: {extracted_value}")
-                logging.info(f"   - type: {type(extracted_value)}")
-            elif '[0]' in field_name or field_name == 'Number of Parties':
-                logging.info(f"🔍 BATCH_VALIDATION_DEBUG - Index [0] field: {field_name}")
-                logging.info(f"   - extracted_value from validation: {extracted_value}")
-                logging.info(f"   - type: {type(extracted_value)}")
-            
             # Only validate fields that have actual extracted values
             if extracted_value is not None and extracted_value != "" and extracted_value != "null":
                 fields_to_validate.append({
@@ -936,10 +925,6 @@ def run_post_extraction_batch_validation(session_data: Dict[str, Any]) -> Dict[s
                     'extracted_value': extracted_value
                 })
                 validation_lookup[field_name] = validation
-            else:
-                # DEBUG: Log why items are being excluded
-                if '[0]' in field_name or '[1]' in field_name or field_name == 'Number of Parties':
-                    logging.info(f"🚨 BATCH_VALIDATION_DEBUG: EXCLUDING {field_name} because extracted_value is {extracted_value}")
         
         if len(fields_to_validate) > 0:
             logging.info(f"🚀 POST_EXTRACTION_BATCH_VALIDATION: Validating {len(fields_to_validate)} fields with real values")
@@ -1037,7 +1022,6 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
             logging.info(f"  Collection {i}: {collection.get('collectionName', 'Unknown')} with properties type: {type(collection.get('properties', []))}")
     
     # Process schema fields (non-collection fields)
-    # WORKAROUND: Create dummy validation records at index -1 for schema fields too
     if project_schema.get("schema_fields"):
         for field in project_schema["schema_fields"]:
             if not isinstance(field, dict):
@@ -1046,59 +1030,33 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
             field_id = str(field.get("id", "unknown"))
             field_name = field.get("fieldName", "")
             field_type = field.get("fieldType", "TEXT")
-            dummy_field_name = f"{field_name}[-1]"
             
-            # Create dummy validation at index -1 for schema fields
-            if dummy_field_name not in existing_field_names:
-                dummy_validation = FieldValidationResult(
-                    field_id=field_id,
-                    field_name=dummy_field_name,
-                    field_type=field_type,
-                    extracted_value=None,
-                    original_extracted_value=None,
-                    original_confidence_score=0,
-                    original_ai_reasoning="Dummy placeholder record",
-                    validation_status="invalid",
-                    ai_reasoning="Dummy placeholder record",
-                    confidence_score=0,
-                    document_source="System",
-                    document_sections=["Placeholder"],
-                    record_index=-1
-                )
-                comprehensive_validations.append(dummy_validation)
-                logging.info(f"🔧 Created dummy schema field validation at index -1: {dummy_field_name}")
-            
-            # Skip if real validation already exists
-            shifted_field_name = f"{field_name}[1]"
-            if field_name in existing_field_names or shifted_field_name in existing_field_names:
+            # Skip if validation already exists
+            if field_name in existing_field_names:
                 logging.info(f"✅ Schema field validation exists: {field_name}")
                 continue
                 
-            # Create validation record for schema field at index [1] instead of [0]
+            # Create validation record for schema field
             extracted_value = aggregated_data.get(field_name)
             
-            # CREATE INITIAL VALIDATION RECORDS - Distinguish between extracted and missing
-            if extracted_value is not None and extracted_value != "" and extracted_value != "null":
-                # Has extracted value - batch validation will populate confidence/reasoning later
-                confidence = 95  # Initial high confidence for extracted values
-                reasoning = "Extracted during AI processing"
-                status = "unverified"
+            # CREATE INITIAL BLANK VALIDATION RECORDS - Show "No validation data" initially
+            if extracted_value is not None and extracted_value != "":
+                # Create blank validation record - batch validation will populate real data later
+                confidence = 0  # No confidence score initially (0 to avoid null issues)
+                reasoning = "No validation data"  # Clear initial state
+                status = "unverified"  # Always start unverified
                 extracted_value = extracted_value  # Keep extracted value
                 logging.info(f"📝 Creating BLANK schema field validation: {field_name} = '{extracted_value}' - batch validation will populate later")
             else:
-                # No extracted value - mark as missing/invalid  
-                confidence = 20  # Low confidence for missing values to show Missing Info badge
+                confidence = 0
                 status = "invalid"
-                reasoning = "Missing information - field was not found in document"
+                reasoning = "No validation data - no value found"
                 extracted_value = None
-                logging.info(f"📝 Creating MISSING schema field validation: {field_name} = null - missing from document")
-            
-            # WORKAROUND: Use shifted field name with index [1] to avoid index [0] corruption bug
-            shifted_field_name = f"{field_name}[1]"
+                logging.info(f"📝 Creating BLANK schema field validation: {field_name} = null - batch validation will populate later")
             
             validation = FieldValidationResult(
                 field_id=field_id,
-                field_name=shifted_field_name,  # Use shifted name
+                field_name=field_name,
                 field_type=field_type,
                 extracted_value=extracted_value,
                 original_extracted_value=extracted_value,
@@ -1108,8 +1066,7 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
                 ai_reasoning=reasoning,
                 confidence_score=confidence,
                 document_source="Aggregated Data",
-                document_sections=["Multi-document aggregation"],
-                record_index=1  # WORKAROUND: Schema fields use index 1 instead of 0
+                document_sections=["Multi-document aggregation"]
             )
             comprehensive_validations.append(validation)
     
@@ -1128,63 +1085,11 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
             
             # Determine how many items actually exist in the aggregated data
             actual_item_count = len(collection_data) if isinstance(collection_data, list) else 0
-            
-            # For comprehensive validation, we need to create validation records for ALL items that exist
-            # This ensures that every extracted item gets proper validation records
             logging.info(f"🗂️ Processing collection {collection_name}: {actual_item_count} items found in aggregated data")
             
-            # WORKAROUND: Create dummy validation records at index -1 to avoid index[0] corruption bug
-            # First, create dummy placeholder records for each property at index -1
-            properties_data = collection.get("properties", [])
-            if isinstance(properties_data, dict):
-                if all(str(k).isdigit() for k in properties_data.keys()):
-                    properties_list = [properties_data[str(i)] for i in sorted(int(k) for k in properties_data.keys())]
-                    properties_data = properties_list
-                else:
-                    logging.error(f"Cannot convert properties dict with keys: {list(properties_data.keys())}")
-                    continue
-            
-            for prop in properties_data:
-                if not isinstance(prop, dict):
-                    continue
-                    
-                prop_id = str(prop.get("id", "unknown"))
-                prop_name = prop.get("propertyName", "")
-                prop_type = prop.get("propertyType", "TEXT")
-                dummy_field_name = f"{collection_name}.{prop_name}[-1]"
-                
-                # Skip if validation already exists
-                if dummy_field_name in existing_field_names:
-                    continue
-                
-                # Create dummy validation at index -1 to occupy the problematic slot
-                dummy_validation = FieldValidationResult(
-                    field_id=prop_id,
-                    field_name=dummy_field_name,
-                    field_type=prop_type,
-                    extracted_value=None,
-                    original_extracted_value=None,
-                    original_confidence_score=0,
-                    original_ai_reasoning="Dummy placeholder record",
-                    validation_status="invalid",
-                    ai_reasoning="Dummy placeholder record",
-                    confidence_score=0,
-                    document_source="System",
-                    document_sections=["Placeholder"],
-                    collection_name=collection_name,
-                    record_index=-1
-                )
-                comprehensive_validations.append(dummy_validation)
-                logging.info(f"🔧 Created dummy validation at index -1: {dummy_field_name}")
-            
-            # WORKAROUND: Create validation records using index+1 to avoid index[0] corruption bug
-            # This shifts all validation indices by 1, so the first real item becomes [1] instead of [0]
-            for array_index in range(actual_item_count):
-                # Use validation_index = array_index + 1 to avoid the index[0] bug
-                validation_index = array_index + 1
-                record = collection_data[array_index] if array_index < len(collection_data) else {}
-                
-                logging.info(f"🔧 INDEX_SHIFT_WORKAROUND: Collection {collection_name} item {array_index} -> validation index {validation_index}")
+            # Create validation records for each item that exists in the aggregated data
+            for record_index in range(actual_item_count):
+                record = collection_data[record_index] if record_index < len(collection_data) else {}
                 
                 properties_data = collection.get("properties", [])
                 logging.info(f"COMPREHENSIVE VALIDATION - COLLECTION {collection_name} PROPERTIES DEBUG:")
@@ -1210,7 +1115,7 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
                     prop_id = str(prop.get("id", "unknown"))
                     prop_name = prop.get("propertyName", "")
                     prop_type = prop.get("propertyType", "TEXT")
-                    field_name_with_index = f"{collection_name}.{prop_name}[{validation_index}]"
+                    field_name_with_index = f"{collection_name}.{prop_name}[{record_index}]"
                     
                     # Skip if validation already exists for this exact field name with index
                     if field_name_with_index in existing_field_names:
@@ -1237,20 +1142,19 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
                                     extracted_value = value
                                     break
                     
-                    # CREATE INITIAL VALIDATION RECORDS - Distinguish between extracted and missing
+                    # CREATE INITIAL BLANK VALIDATION RECORDS - Show "No validation data" initially
                     if extracted_value is not None and extracted_value != "" and extracted_value != "null":
-                        # Has extracted value - batch validation will populate confidence/reasoning later
-                        confidence = 95  # Initial high confidence for extracted values
-                        reasoning = "Extracted during AI processing"
-                        status = "unverified"
-                        logging.info(f"📝 Creating EXTRACTED collection validation: {field_name_with_index} = '{extracted_value}' - batch validation will populate later")
+                        # Create blank validation record - batch validation will populate real data later
+                        confidence = 0  # No confidence score initially
+                        reasoning = "No validation data"  # Clear initial state
+                        status = "unverified"  # Always start unverified
+                        logging.info(f"📝 Creating BLANK collection validation: {field_name_with_index} = '{extracted_value}' - batch validation will populate later")
                     else:
-                        # No extracted value - mark as missing/invalid
-                        confidence = 20  # Low confidence for missing values to show Missing Info badge
+                        confidence = 0
                         status = "invalid"
-                        reasoning = "Missing information - field was not found in document"
+                        reasoning = "No validation data - no value found"
                         extracted_value = None
-                        logging.info(f"📝 Creating MISSING collection validation: {field_name_with_index} = null - missing from document")
+                        logging.info(f"📝 Creating BLANK collection validation: {field_name_with_index} = null - batch validation will populate later")
                     
                     validation = FieldValidationResult(
                         field_id=prop_id,
@@ -1266,7 +1170,7 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
                         document_source="Aggregated Data",
                         document_sections=["Multi-document aggregation"],
                         collection_name=collection_name,
-                        record_index=validation_index
+                        record_index=record_index
                     )
                     comprehensive_validations.append(validation)
     
@@ -1500,62 +1404,23 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
     # Add aggregated data to results with comprehensive summary
     total_aggregated_items = sum(len(v) if isinstance(v, list) else 1 for v in aggregated_data.values())
     
-    # Create comprehensive validation records for all fields
-    try:
-        logging.info(f"🎯 STARTING comprehensive validation creation for aggregated_data with {len(aggregated_data)} fields")
-        comprehensive_validations = create_comprehensive_validation_records(aggregated_data, project_schema, [])
-        logging.info(f"🎯 FINAL VALIDATION COUNT: {len(comprehensive_validations)} comprehensive validation records created")
-        logging.info(f"🎯 FIELD_VALIDATIONS will be included in aggregated_extraction with {len(comprehensive_validations)} records")
-    except Exception as validation_error:
-        logging.error(f"❌ ERROR during comprehensive validation creation: {validation_error}")
-        logging.error(f"❌ ERROR traceback: {traceback.format_exc()}")
-        comprehensive_validations = []  # Fallback to empty list
-    
-    # Convert FieldValidationResult objects to dictionaries for JSON serialization
-    serialized_validations = []
-    for fv in comprehensive_validations:
-        # Ensure all values are JSON serializable
-        serialized_validations.append({
-            "field_id": str(fv.field_id) if fv.field_id else "unknown",
-            "field_name": str(fv.field_name) if fv.field_name else "",
-            "field_type": str(fv.field_type) if fv.field_type else "TEXT",
-            "extracted_value": fv.extracted_value,
-            "original_extracted_value": fv.original_extracted_value,
-            "original_confidence_score": float(fv.original_confidence_score) if fv.original_confidence_score is not None else 0.0,
-            "original_ai_reasoning": str(fv.original_ai_reasoning) if fv.original_ai_reasoning else "",
-            "validation_status": str(fv.validation_status) if fv.validation_status else "unverified",
-            "ai_reasoning": str(fv.ai_reasoning) if fv.ai_reasoning else "",
-            "confidence_score": float(fv.confidence_score) if fv.confidence_score is not None else 0.0,
-            "document_source": str(fv.document_source) if fv.document_source else "",
-            "document_sections": list(fv.document_sections) if fv.document_sections else [],
-            "collection_name": str(fv.collection_name) if fv.collection_name else None,
-            "record_index": int(fv.record_index) if fv.record_index is not None else 0
-        })
-    
     results["aggregated_extraction"] = {
         "extracted_data": aggregated_data,
-        "field_validations": serialized_validations,  # Include comprehensive validation records
+        "field_validations": [],  # Empty - no validation records during pure extraction phase
         "total_items": total_aggregated_items,
         "aggregation_summary": {
             "total_documents_processed": len([d for d in results["processed_documents"] if d.get("status") == "completed"]),
             "collections_aggregated": len([k for k, v in aggregated_data.items() if isinstance(v, list)]),
             "total_collection_items": sum(len(v) for v in aggregated_data.values() if isinstance(v, list)),
-            "total_field_validations": len(comprehensive_validations)  # Actual validation count
+            "total_field_validations": 0  # No validation records during pure extraction
         }
     }
     
     logging.info(f"✅ Multi-document aggregation complete:")
     logging.info(f"   - {len(aggregated_data)} total fields aggregated")
     logging.info(f"   - {total_aggregated_items} total items")
-    logging.info(f"   - {len(comprehensive_validations)} field validations created")
-    logging.info(f"   - {len(serialized_validations)} serialized validation records")
+    logging.info(f"   - 0 field validations (pure extraction phase)")
     logging.info(f"   - Processed {len(results['processed_documents'])} documents")
-    
-    # CRITICAL DEBUG: Check that field_validations are actually included
-    if results.get("aggregated_extraction", {}).get("field_validations"):
-        logging.info(f"✅ CONFIRMED: aggregated_extraction.field_validations contains {len(results['aggregated_extraction']['field_validations'])} records")
-    else:
-        logging.error(f"❌ ERROR: aggregated_extraction.field_validations is EMPTY or MISSING")
 
     # Calculate summary
     results["summary"]["total_documents"] = len(files)
