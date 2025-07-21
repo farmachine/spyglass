@@ -1698,7 +1698,12 @@ print(json.dumps(results))
       });
       
       python.stderr.on('data', (data) => {
-        console.log('Python stderr:', data.toString());
+        const stderrOutput = data.toString();
+        console.log('BATCH_VALIDATION_DEBUG:', stderrOutput);
+        // Also log individual lines for better visibility
+        stderrOutput.split('\n').forEach(line => {
+          if (line.trim()) console.log('PYTHON_DEBUG:', line.trim());
+        });
       });
       
       await new Promise((resolve, reject) => {
