@@ -20,6 +20,9 @@ Preferred communication style: Simple, everyday language.
 - ✓ Collection items now show edit button next to display names with save/cancel functionality
 - ✓ Fixed React hooks violation by moving useState calls to component level with proper state management
 - ✓ Display names persist in component state and can be edited independently for each collection item
+- ✓ **DISPLAY NAME PERSISTENCE ENHANCED**: Collection display names are now completely independent of validation system
+- ✓ Custom display names persist through validation runs and don't revert to extracted values
+- ✓ Display names are purely UI labels that can be edited freely without affecting data validation
 - ✓ **VALIDATION RECORDS EMPTY VALUE BUG COMPLETELY RESOLVED**: Fixed critical issue where validation records were created with empty `extracted_value` fields
 - ✓ Root cause identified: Database validation records had empty strings while UI displayed actual values from session's `extractedData`
 - ✓ Batch validation correctly assigned 0% confidence to empty values, but UI expected confidence for displayed values

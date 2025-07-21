@@ -1512,7 +1512,8 @@ Thank you for your assistance.`;
                   const itemDisplayName = getItemDisplayName(item, collection, index);
                   const itemKey = `${collection.collectionName}-${index}`;
                   const isEditingDisplayName = editingDisplayNames[itemKey] || false;
-                  const editDisplayName = displayNames[itemKey] || itemDisplayName;
+                  // Use custom display name if set, otherwise fall back to extracted display name
+                  const editDisplayName = displayNames[itemKey] !== undefined ? displayNames[itemKey] : itemDisplayName;
                   
                   return (
                     <div key={index} className="mb-6 p-4 bg-gray-50 rounded-lg w-full overflow-hidden">
@@ -1539,6 +1540,7 @@ Thank you for your assistance.`;
                               size="sm" 
                               variant="outline" 
                               onClick={() => {
+                                // Reset to original display name on cancel
                                 setDisplayNames(prev => ({ ...prev, [itemKey]: itemDisplayName }));
                                 setEditingDisplayNames(prev => ({ ...prev, [itemKey]: false }));
                               }}
@@ -1553,7 +1555,10 @@ Thank you for your assistance.`;
                               size="sm"
                               variant="ghost"
                               onClick={() => {
-                                setDisplayNames(prev => ({ ...prev, [itemKey]: editDisplayName }));
+                                // Initialize with current display name if not already set
+                                if (displayNames[itemKey] === undefined) {
+                                  setDisplayNames(prev => ({ ...prev, [itemKey]: editDisplayName }));
+                                }
                                 setEditingDisplayNames(prev => ({ ...prev, [itemKey]: true }));
                               }}
                               className="h-6 px-2"
