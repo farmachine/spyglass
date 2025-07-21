@@ -1090,11 +1090,18 @@ except Exception as e:
       const projectId = project_data?.projectId || project_data?.id;
       console.log(`STEP 1 EXTRACT: Starting extraction for session ${sessionId}`);
       
+      // Convert frontend file format to Python script expected format
+      const convertedFiles = (files || []).map((file: any) => ({
+        file_name: file.name,
+        file_content: file.content, // This is the data URL from FileReader
+        mime_type: file.type
+      }));
+
       // Prepare data for Python extraction script
       const extractionData = {
         step: "extract",
         session_id: sessionId,
-        files: files || [],
+        files: convertedFiles,
         project_schema: {
           schema_fields: project_data?.schemaFields || [],
           collections: project_data?.collections || []

@@ -116,7 +116,7 @@ EXAMPLE OUTPUT FORMAT:
 
 RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
         
-        # Process all documents and combine their text content
+        # Use Gemini API to process all documents and extract text content
         all_document_text = ""
         model = genai.GenerativeModel('gemini-1.5-flash')
         
@@ -143,32 +143,38 @@ RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
                 all_document_text += f"\n\n=== DOCUMENT: {file_name} ===\n{content_text}"
                 
             else:
-                # For PDFs, try text extraction first
+                # Use Gemini API to extract text from binary files (PDFs, images, etc.)
                 try:
-                    # Decode base64 content to bytes
                     if isinstance(file_content, str) and file_content.startswith('data:'):
-                        base64_content = file_content.split(',', 1)[1]
+                        # This is a data URL from the frontend
+                        mime_part, base64_content = file_content.split(',', 1)
                         binary_content = base64.b64decode(base64_content)
-                    else:
-                        binary_content = file_content
-                    
-                    # Try PyPDF2 text extraction
-                    import PyPDF2
-                    import io
-                    
-                    pdf_reader = PyPDF2.PdfReader(io.BytesIO(binary_content))
-                    pdf_text = ""
-                    for page in pdf_reader.pages:
-                        pdf_text += page.extract_text() + "\n"
-                    
-                    if pdf_text.strip():
-                        all_document_text += f"\n\n=== DOCUMENT: {file_name} ===\n{pdf_text}"
-                        logging.info(f"Successfully extracted text from PDF: {len(pdf_text)} characters")
-                    else:
-                        logging.warning(f"No text extracted from PDF: {file_name}")
                         
+                        # Use Gemini to extract text from the binary file
+                        logging.info(f"Using Gemini API to extract text from {file_name}")
+                        
+                        # Create file part for Gemini
+                        file_part = {
+                            "mime_type": mime_type,
+                            "data": binary_content
+                        }
+                        
+                        # Ask Gemini to extract all text content
+                        text_extraction_response = model.generate_content([
+                            "Extract all text content from this document. Return only the raw text without any formatting or explanations.",
+                            file_part
+                        ])
+                        
+                        if text_extraction_response.text:
+                            extracted_text = text_extraction_response.text.strip()
+                            all_document_text += f"\n\n=== DOCUMENT: {file_name} ===\n{extracted_text}"
+                            logging.info(f"Successfully extracted {len(extracted_text)} characters from {file_name}")
+                        else:
+                            logging.warning(f"No text extracted from {file_name}")
+                    
                 except Exception as e:
-                    logging.error(f"Failed to extract text from PDF {file_name}: {e}")
+                    logging.error(f"Failed to process document {file_name}: {e}")
+                    continue
         
         # Make AI extraction call
         full_prompt = prompt + f"\n\nDOCUMENT CONTENT:\n{all_document_text}"
@@ -179,15 +185,33 @@ RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
         if not response or not response.text:
             return ExtractionResult(success=False, error_message="No response from AI")
         
-        # Parse JSON response
+        # Parse JSON response - handle markdown code blocks
+        response_text = response.text.strip()
+        
+        # Remove markdown code blocks if present
+        if response_text.startswith("```json"):
+            response_text = response_text[7:]  # Remove ```json
+        if response_text.startswith("```"):
+            response_text = response_text[3:]   # Remove ```
+        if response_text.endswith("```"):
+            response_text = response_text[:-3]  # Remove trailing ```
+        
+        response_text = response_text.strip()
+        
         try:
-            extracted_data = json.loads(response.text.strip())
+            # If empty response, create default structure
+            if not response_text:
+                logging.warning("Empty response from AI, creating default structure")
+                extracted_data = {session_name: {}}
+            else:
+                extracted_data = json.loads(response_text)
+                
             logging.info(f"STEP 1: Successfully extracted data with keys: {list(extracted_data.keys())}")
             return ExtractionResult(success=True, extracted_data=extracted_data)
             
         except json.JSONDecodeError as e:
             logging.error(f"Failed to parse AI response as JSON: {e}")
-            logging.error(f"Raw response: {response.text}")
+            logging.error(f"Cleaned response: {response_text}")
             return ExtractionResult(success=False, error_message=f"Invalid JSON response: {e}")
             
     except Exception as e:
