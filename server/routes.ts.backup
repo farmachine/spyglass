@@ -1404,13 +1404,238 @@ except Exception as e:
       if (!result.success) {
         return res.status(400).json({ message: "Invalid validation data", errors: result.error.errors });
       }
+              const fieldValidations = doc.extraction_result?.field_validations || [];
+              console.log(`Processing ${fieldValidations.length} field validations for document: ${doc.file_name}`);
+              validationsToProcess.push(...fieldValidations);
+            }
+          }
+          
+          // Process explicit validations first
+          for (const validation of validationsToProcess) {
+                // Extract record index from field name if present
+                const fieldName = validation.field_name;
+                const recordIndexMatch = fieldName.match(/\[(\d+)\]$/);
+                const recordIndex = recordIndexMatch ? parseInt(recordIndexMatch[1]) : 0;
+                
+                // Extract collection name from field name
+                const isCollectionProperty = fieldName.includes('.');
+                const collectionName = isCollectionProperty ? fieldName.split('.')[0] : null;
+                
+                // Try to find existing validation for this field
+                const existingValidation = existingValidations.find(v => v.fieldName === fieldName);
+                
+                // Normalize extracted value based on field type
+                let normalizedValue = validation.extracted_value;
+                
+                // Get field type for proper value normalization
+                if (validation.field_type === 'DATE') {
+                  // For date fields, convert various invalid values to null
+                  if (!normalizedValue || 
+                      normalizedValue === "null" || 
+                      normalizedValue === "undefined" || 
+                      normalizedValue === "Not found" ||
+                      normalizedValue === "" ||
+                      normalizedValue.toString().toLowerCase().includes("not found") ||
+                      normalizedValue.toString().toLowerCase().includes("not available")) {
+                    normalizedValue = null;
+                  } else {
+                    // Try to parse and validate date format
+                    try {
+                      const date = new Date(normalizedValue);
+                      if (!isNaN(date.getTime())) {
+                        // Format as ISO date string (YYYY-MM-DD)
+                        normalizedValue = date.toISOString().split('T')[0];
+                      } else {
+                        normalizedValue = null;
+                      }
+                    } catch (error) {
+                      normalizedValue = null;
+                    }
+                  }
+                }
+                
+                if (existingValidation) {
+                  // Update existing validation - preserve original values if they don't exist yet
+                  const updateData: any = {
+                    extractedValue: normalizedValue,
+                    validationStatus: validation.validation_status,
+                    aiReasoning: validation.ai_reasoning,
+                    confidenceScore: validation.confidence_score
+                  };
+                  
+                  // If original values don't exist yet, store them (this handles retroactive population)
+                  if (!existingValidation.originalExtractedValue) {
+                    updateData.originalExtractedValue = validation.original_extracted_value || normalizedValue;
+                    updateData.originalConfidenceScore = validation.original_confidence_score || validation.confidence_score;
+                    updateData.originalAiReasoning = validation.original_ai_reasoning || validation.ai_reasoning;
+                  }
+                  
+                  await storage.updateFieldValidation(existingValidation.id, updateData);
+                } else {
+                  // Create new validation if it doesn't exist
+                  await storage.createFieldValidation({
+                    sessionId,
+                    fieldType: isCollectionProperty ? 'collection_property' : 'schema_field',
+                    fieldId: validation.field_id,
+                    fieldName: fieldName,
+                    collectionName,
+                    recordIndex,
+                    extractedValue: normalizedValue,
+                    originalExtractedValue: validation.original_extracted_value || normalizedValue,
+                    originalConfidenceScore: validation.original_confidence_score || validation.confidence_score,
+                    originalAiReasoning: validation.original_ai_reasoning || validation.ai_reasoning,
+                    validationStatus: validation.validation_status,
+                    aiReasoning: validation.ai_reasoning,
+                    manuallyVerified: false,
+                    confidenceScore: validation.confidence_score
+                  });
+                }
+            }
+          
+          console.log(`Processing complete with ${validationsToProcess.length} total validations`);
+          console.log(`Aggregated extraction contains ${result.aggregated_extraction ? Object.keys(result.aggregated_extraction.extracted_data || {}).length : 0} fields`);
+          console.log(`Result status: ${result.status}, has aggregated data: ${!!result.aggregated_extraction}`);
+          
+          // COMPREHENSIVE VALIDATION CREATION: For pure extraction, create validation records for ALL extracted fields
+          // This ensures batch validation has records to process even when Python returns empty field_validations
+          if (result.aggregated_extraction && result.aggregated_extraction.extracted_data) {
+            const extractedData = result.aggregated_extraction.extracted_data;
+            console.log('Creating comprehensive validation records for all extracted fields...');
+            
+            // Create validation records for schema fields
+            if (project_data?.schemaFields) {
+              for (const field of project_data.schemaFields) {
+                const fieldName = field.fieldName;
+                const extractedValue = extractedData[fieldName];
+                
+                // Check if validation already exists
+                const existingValidation = existingValidations.find(v => v.fieldName === fieldName);
+                if (!existingValidation) {
+                  console.log(`Creating validation record for schema field: ${fieldName} = ${extractedValue}`);
+                  await storage.createFieldValidation({
+                    sessionId,
+                    fieldType: 'schema_field',
+                    fieldId: field.id,
+                    fieldName: fieldName,
+                    collectionName: null,
+                    recordIndex: 0,
+                    extractedValue: extractedValue,
+                    originalExtractedValue: extractedValue,
+                    originalConfidenceScore: 95, // Default confidence for extracted data
+                    originalAiReasoning: 'Extracted during AI processing',
+                    validationStatus: 'unverified',
+                    aiReasoning: 'Extracted during AI processing',
+                    manuallyVerified: false,
+                    confidenceScore: 95 // Set proper confidence score so it doesn't show as "Not Extracted"
+                  });
+                }
+              }
+            }
+            
+            // Create validation records for collection properties
+            if (project_data?.collections) {
+              for (const collection of project_data.collections) {
+                const collectionName = collection.collectionName;
+                const collectionData = extractedData[collectionName];
+                
+                if (Array.isArray(collectionData) && collection.properties) {
+                  for (let recordIndex = 0; recordIndex < collectionData.length; recordIndex++) {
+                    const record = collectionData[recordIndex];
+                    
+                    for (const property of collection.properties) {
+                      const fieldName = `${collectionName}.${property.propertyName}[${recordIndex}]`;
+                      const extractedValue = record[property.propertyName];
+                      
+                      // Check if validation already exists
+                      const existingValidation = existingValidations.find(v => v.fieldName === fieldName);
+                      if (!existingValidation) {
+                        console.log(`Creating validation record for collection property: ${fieldName} = ${extractedValue}`);
+                        await storage.createFieldValidation({
+                          sessionId,
+                          fieldType: 'collection_property',
+                          fieldId: property.id,
+                          fieldName: fieldName,
+                          collectionName: collectionName,
+                          recordIndex: recordIndex,
+                          extractedValue: extractedValue,
+                          originalExtractedValue: extractedValue,
+                          originalConfidenceScore: 95, // Default confidence for extracted data
+                          originalAiReasoning: 'Extracted during AI processing',
+                          validationStatus: 'unverified',
+                          aiReasoning: 'Extracted during AI processing',
+                          manuallyVerified: false,
+                          confidenceScore: extractedValue !== null && extractedValue !== undefined ? 95 : 20 // Higher confidence for actual values, lower for null
+                        });
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            
+            console.log('Comprehensive validation record creation complete');
+          }
+          
+          res.json(result);
+        } catch (parseError: any) {
+          console.error('Error parsing Python output:', parseError);
+          res.status(500).json({ 
+            message: "Failed to parse extraction results",
+            error: parseError?.message || "Unknown parse error"
+          });
+        }
+      });
       
-      const updatedValidation = await storage.updateFieldValidation(id, result.data);
-      if (!updatedValidation) {
-        return res.status(404).json({ message: "Validation not found" });
-      }
-      res.json(updatedValidation);
     } catch (error) {
+      console.error("Error processing extraction session:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Field Validations
+  app.get("/api/sessions/:sessionId/validations", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const validations = await storage.getFieldValidations(sessionId);
+      res.json(validations);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch field validations" });
+    }
+  });
+
+  app.post("/api/sessions/:sessionId/validations", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const result = insertFieldValidationSchema.safeParse({
+        ...req.body,
+        sessionId
+      });
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid field validation data", errors: result.error.errors });
+      }
+      
+      const validation = await storage.createFieldValidation(result.data);
+      res.status(201).json(validation);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create field validation" });
+    }
+  });
+
+  app.put("/api/validations/:id", async (req, res) => {
+    try {
+      const id = req.params.id; // UUID string, not integer
+      const result = insertFieldValidationSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid validation data", errors: result.error.errors });
+      }
+      
+      const validation = await storage.updateFieldValidation(id, result.data);
+      if (!validation) {
+        return res.status(404).json({ message: "Field validation not found" });
+      }
+      res.json(validation);
+    } catch (error) {
+      console.error("Error updating field validation:", error);
       res.status(500).json({ message: "Failed to update field validation" });
     }
   });
@@ -1420,35 +1645,19 @@ except Exception as e:
       const id = req.params.id; // UUID string, not integer
       const deleted = await storage.deleteFieldValidation(id);
       if (!deleted) {
-        return res.status(404).json({ message: "Validation not found" });
+        return res.status(404).json({ message: "Field validation not found" });
       }
       res.status(204).send();
     } catch (error) {
+      console.error("Error deleting field validation:", error);
       res.status(500).json({ message: "Failed to delete field validation" });
     }
   });
 
-  // Session Export Routes
-  app.get("/api/sessions/:sessionId/export/xlsx", async (req, res) => {
-    try {
-      const sessionId = req.params.sessionId;
-      const session = await storage.getExtractionSessionWithValidations(sessionId);
-      if (!session) {
-        return res.status(404).json({ message: "Session not found" });
-      }
-
-      // Note: Excel export would be implemented here
-      res.status(501).json({ message: "Excel export not yet implemented" });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to export session data" });
-    }
-  });
-
-  // Session Details
   app.get("/api/sessions/:sessionId/with-validations", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
-      const session = await storage.getExtractionSessionWithValidations(sessionId);
+      const session = await storage.getSessionWithValidations(sessionId);
       if (!session) {
         return res.status(404).json({ message: "Session not found" });
       }
@@ -1550,24 +1759,32 @@ print(json.dumps(results))
             // Update database with new validation data
             const updatedValidations = validationResults.updated_validations || [];
             
-            console.log(`BATCH_VALIDATION: Processing ${updatedValidations.length} updated validations`);
-            
-            // Update database with validation results
             for (const validation of updatedValidations) {
-              await storage.updateFieldValidation(validation.uuid, {
-                validationStatus: validation.validationStatus,
-                confidenceScore: validation.validationConfidence,
-                aiReasoning: validation.AIReasoning
-              });
+              const existingValidation = existingValidations.find(v => v.fieldName === validation.field_name);
+              
+              if (existingValidation) {
+                // Update existing validation record
+                await storage.updateFieldValidation(existingValidation.id, {
+                  confidenceScore: validation.confidence_score,
+                  validationStatus: validation.validation_status,
+                  aiReasoning: validation.ai_reasoning,
+                  originalConfidenceScore: validation.original_confidence_score,
+                  originalAiReasoning: validation.original_ai_reasoning
+                });
+              }
             }
             
-            console.log(`BATCH_VALIDATION: Completed successfully`);
+            console.log(`BATCH_VALIDATION: Successfully updated ${validationResults.fields_processed} field validations`);
+            
             res.json({
               success: true,
-              message: "Batch validation completed",
-              validationsUpdated: updatedValidations.length
+              session_id: sessionId,
+              fields_processed: validationResults.fields_processed,
+              total_validations: validationResults.total_validations,
+              message: `Batch validation complete. Updated ${validationResults.fields_processed} fields.`
             });
           } else {
+            console.error(`BATCH_VALIDATION: Validation failed: ${validationResults.error}`);
             res.status(500).json({
               message: "Batch validation failed",
               error: validationResults.error
@@ -1584,13 +1801,242 @@ print(json.dumps(results))
         }
       });
 
+      // Send session data to Python process
+      python.stdin.write(JSON.stringify(sessionData));
+      python.stdin.end();
+
     } catch (error) {
-      console.error("BATCH_VALIDATION error:", error);
-      res.status(500).json({ message: "Failed to start batch validation process" });
+      console.error("BATCH_VALIDATION: API error:", error);
+      res.status(500).json({ 
+        message: "Failed to run batch validation", 
+        error: error.message 
+      });
     }
   });
 
-  // Create HTTP server and return it
+  app.post("/api/sessions/:sessionId/recalculate-validations", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      console.log(`DEBUG: Recalculating validations for session ${sessionId}`);
+      
+      // Get session project ID
+      const session = await storage.getSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      
+      // Get project schema, rules, and knowledge documents
+      const projectId = session.projectId;
+      const [extractionRules, knowledgeDocuments] = await Promise.all([
+        storage.getExtractionRules(projectId),
+        storage.getKnowledgeDocuments(projectId)
+      ]);
+      
+      // Get all validations for this session
+      const validations = await storage.getFieldValidations(sessionId);
+      console.log(`DEBUG: Found ${validations.length} validations to recalculate`);
+      
+      // Debug: Show what validation data looks like
+      const schemaValidations = validations.filter(v => !v.collectionName);
+      const collectionValidations = validations.filter(v => v.collectionName);
+      console.log(`DEBUG: Schema validations: ${schemaValidations.length}, Collection validations: ${collectionValidations.length}`);
+      
+      if (schemaValidations.length > 0) {
+        console.log('Sample schema validation:', schemaValidations[0]);
+      }
+      if (collectionValidations.length > 0) {
+        console.log('Sample collection validation:', collectionValidations[0]);
+      }
+      
+      // Consolidated batch validation - single AI call for all fields
+      const { spawn } = require('child_process');
+      const python = spawn('python3', ['-c', `
+import sys
+import json
+sys.path.append('.')
+from ai_extraction import calculate_knowledge_based_confidence
+
+# Read input data
+input_data = json.loads(sys.stdin.read())
+validations = input_data['validations']
+extraction_rules = input_data['extraction_rules']
+knowledge_documents = input_data['knowledge_documents']
+
+print(f"BATCH_VALIDATION: Processing {len(validations)} validations", file=sys.stderr)
+
+results = []
+for validation in validations:
+    field_name = validation['fieldName']
+    extracted_value = validation['extractedValue']
+    
+    # Debug: Show what we're processing
+    print(f"BATCH_VALIDATION: Processing {field_name} with value: {repr(extracted_value)} (type: {type(extracted_value)})", file=sys.stderr)
+    
+    # Process ALL validations - assign confidence based on value presence
+    # Handle both string and numeric values properly
+    has_value = (
+        extracted_value is not None and 
+        extracted_value != "" and 
+        extracted_value != "null" and
+        extracted_value != "undefined" and
+        str(extracted_value).strip() != ""
+    )
+    
+    if has_value:
+        # For non-empty values, calculate confidence with rules/knowledge docs
+        confidence, applied_rules = calculate_knowledge_based_confidence(
+            field_name, str(extracted_value), 95, extraction_rules, knowledge_documents
+        )
+        print(f"BATCH_VALIDATION: {field_name} = '{extracted_value}' -> {confidence}% (has value)", file=sys.stderr)
+    else:
+        # Empty/null values get 0% confidence (not 20% to match user preference)
+        confidence = 0
+        applied_rules = []
+        print(f"BATCH_VALIDATION: {field_name} = null/empty -> 0% (no value)", file=sys.stderr)
+    
+    # Always include to ensure all fields have proper confidence scores
+    results.append({
+        'id': validation['id'],
+        'fieldName': field_name,
+        'extractedValue': extracted_value,
+        'oldConfidence': validation['confidenceScore'],
+        'newConfidence': confidence,
+        'appliedRules': applied_rules
+    })
+
+print(f"BATCH_VALIDATION: Returning {len(results)} updates", file=sys.stderr)
+print(json.dumps(results))
+`], { stdio: ['pipe', 'pipe', 'pipe'] });
+      
+      const inputData = {
+        validations: validations,
+        extraction_rules: extractionRules,
+        knowledge_documents: knowledgeDocuments
+      };
+      
+      python.stdin.write(JSON.stringify(inputData));
+      python.stdin.end();
+      
+      let pythonOutput = '';
+      python.stdout.on('data', (data) => {
+        pythonOutput += data.toString();
+      });
+      
+      python.stderr.on('data', (data) => {
+        const stderrOutput = data.toString();
+        console.log('BATCH_VALIDATION_DEBUG:', stderrOutput);
+        // Also log individual lines for better visibility
+        stderrOutput.split('\n').forEach(line => {
+          if (line.trim()) console.log('PYTHON_DEBUG:', line.trim());
+        });
+      });
+      
+      await new Promise((resolve, reject) => {
+        python.on('close', async (code) => {
+          if (code === 0) {
+            try {
+              const results = JSON.parse(pythonOutput);
+              console.log(`DEBUG: Found ${results.length} validations needing updates`);
+              
+              let updatedCount = 0;
+              // Update each validation with new confidence scores
+              for (const result of results) {
+                await storage.updateFieldValidation(result.id, {
+                  confidenceScore: result.newConfidence
+                });
+                updatedCount++;
+                console.log(`BATCH_VALIDATION: Updated ${result.fieldName}: ${result.oldConfidence}% → ${result.newConfidence}%`);
+              }
+              
+              res.json({
+                message: `Recalculated validation scores for ${updatedCount} fields`,
+                updatedValidations: results,
+                totalValidations: validations.length
+              });
+              resolve(results);
+            } catch (error) {
+              console.error('Error parsing Python output:', error);
+              res.status(500).json({ message: "Failed to parse recalculation results" });
+              reject(error);
+            }
+          } else {
+            console.error('Python script failed with code:', code);
+            res.status(500).json({ message: "Failed to recalculate validation scores" });
+            reject(new Error('Python script failed'));
+          }
+        });
+      });
+      
+    } catch (error) {
+      console.error("Recalculate validations error:", error);
+      res.status(500).json({ message: "Failed to recalculate validation scores" });
+    }
+  });
+
+  // Project Publishing Routes
+  app.get("/api/projects/:projectId/publishing", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const projectId = req.params.projectId;
+      
+      // Verify project belongs to user's organization
+      const project = await storage.getProject(projectId, req.user!.organizationId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      const publishedOrganizations = await storage.getProjectPublishedOrganizations(projectId);
+      res.json(publishedOrganizations);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch project publishing" });
+    }
+  });
+
+  app.post("/api/projects/:projectId/publishing", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const projectId = req.params.projectId;
+      
+      // Verify project belongs to user's organization
+      const project = await storage.getProject(projectId, req.user!.organizationId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      const result = insertProjectPublishingSchema.safeParse({
+        ...req.body,
+        projectId
+      });
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid publishing data", errors: result.error.errors });
+      }
+      
+      const publishing = await storage.publishProjectToOrganization(result.data);
+      res.status(201).json(publishing);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to publish project to organization" });
+    }
+  });
+
+  app.delete("/api/projects/:projectId/publishing/:organizationId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const projectId = req.params.projectId;
+      const organizationId = req.params.organizationId;
+      
+      // Verify project belongs to user's organization
+      const project = await storage.getProject(projectId, req.user!.organizationId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      const deleted = await storage.unpublishProjectFromOrganization(projectId, organizationId);
+      if (!deleted) {
+        return res.status(404).json({ message: "Publishing relationship not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to unpublish project from organization" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
-};
+}
