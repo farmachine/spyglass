@@ -271,15 +271,17 @@ def calculate_knowledge_based_confidence_fallback(field_name: str, extracted_val
     Fallback rule-based validation when AI is not available.
     """
     if extracted_value is None or extracted_value == "" or extracted_value == "null":
-        return 0, [], "No value extracted"
+        return 0, [], "This information was not found in the provided document."
     
     # Check for knowledge document conflicts first
     has_conflict, conflicting_sections = check_knowledge_document_conflicts(field_name, extracted_value, knowledge_documents)
     if has_conflict:
+        # Generate detailed reasoning about the conflict
+        reasoning = generate_knowledge_conflict_reasoning(field_name, extracted_value, conflicting_sections)
         return 50, [{
             'name': 'Knowledge Document Conflict',
             'action': f"Set confidence to 50% due to conflicts found in knowledge documents: {'; '.join(conflicting_sections[:2])}"
-        }], "Knowledge document conflict detected"
+        }], reasoning
     
     # Base confidence calculation - use a high default confidence (95%) for field-level validation
     confidence_percentage = 95
@@ -351,16 +353,78 @@ def calculate_knowledge_based_confidence_fallback(field_name: str, extracted_val
     
     # Generate AI-style reasoning based on applied rules
     if applied_rules:
-        if len(applied_rules) == 1:
-            rule = applied_rules[0]
-            reasoning = f"Our extraction rules indicate that {rule['action'].lower()}. This adjustment reflects policy-based validation requirements for {display_field_name}."
-        else:
-            rule_actions = [rule['action'].lower() for rule in applied_rules]
-            reasoning = f"Multiple extraction rules applied: {'; '.join(rule_actions)}. These adjustments ensure compliance with organizational validation policies for {display_field_name}."
+        # Use detailed reasoning for rule conflicts
+        reasoning = generate_rule_conflict_reasoning(field_name, extracted_value, applied_rules)
     else:
         reasoning = f"Field validation completed with standard confidence scoring. No specific extraction rules apply to {display_field_name}."
     
     return confidence_percentage, applied_rules, reasoning
+
+def generate_knowledge_conflict_reasoning(field_name: str, extracted_value: Any, conflicting_sections: List[str]) -> str:
+    """
+    Generate detailed reasoning for knowledge document conflicts.
+    """
+    reasoning = f"We have extracted '{extracted_value}' for {field_name}, however there are compliance considerations that require your attention:\n\n"
+    
+    reasoning += "IDENTIFIED CONCERNS:\n"
+    for section in conflicting_sections[:2]:  # Limit to first 2 conflicts
+        reasoning += f"• {section}\n"
+    
+    reasoning += f"\nTo help us complete the verification process for {field_name}, could you please clarify the following:\n\n"
+    
+    # Generate field-specific clarification questions
+    if 'company' in field_name.lower() or 'name' in field_name.lower():
+        reasoning += "1. Can you confirm the full legal name of this entity as it appears in official documentation?\n"
+        reasoning += "2. What is the primary business relationship with this entity (customer, vendor, partner, etc.)?\n"
+        reasoning += "3. Are there any specific compliance or regulatory considerations we should be aware of for this entity?\n"
+    elif 'country' in field_name.lower() or 'jurisdiction' in field_name.lower():
+        reasoning += "1. Can you confirm the governing jurisdiction for this agreement?\n"
+        reasoning += "2. Are there any cross-border regulatory requirements that apply to this arrangement?\n"
+        reasoning += "3. Should this be subject to any specific regional compliance procedures?\n"
+    elif 'date' in field_name.lower():
+        reasoning += "1. Can you confirm the exact date for this field?\n"
+        reasoning += "2. Is this date subject to any specific notice requirements or conditions?\n"
+        reasoning += "3. Are there any related dates or deadlines we should be tracking?\n"
+    else:
+        reasoning += f"1. Can you confirm the accuracy of '{extracted_value}' for {field_name}?\n"
+        reasoning += "2. Are there any specific requirements or constraints that apply to this field?\n"
+        reasoning += "3. Should any additional verification steps be performed?\n"
+    
+    return reasoning
+
+def generate_rule_conflict_reasoning(field_name: str, extracted_value: Any, applied_rules: List[Dict[str, Any]]) -> str:
+    """
+    Generate detailed reasoning for extraction rule conflicts.
+    """
+    reasoning = f"We have extracted '{extracted_value}' for {field_name}, however our extraction rules have identified concerns that require your attention:\n\n"
+    
+    reasoning += "IDENTIFIED CONCERNS:\n"
+    for rule in applied_rules:
+        rule_name = rule.get('name', 'Extraction Rule')
+        rule_content = rule.get('content', rule.get('action', ''))
+        reasoning += f"• {rule_name}: {rule_content}\n"
+    
+    reasoning += f"\nTo help us complete the verification process for {field_name}, could you please clarify the following:\n\n"
+    
+    # Generate field-specific clarification questions
+    if 'company' in field_name.lower() or 'name' in field_name.lower():
+        reasoning += "1. Can you confirm the full legal name of this entity as it appears in official documentation?\n"
+        reasoning += "2. What is the primary business relationship with this entity (customer, vendor, partner, etc.)?\n"
+        reasoning += "3. Are there any specific compliance or regulatory considerations we should be aware of for this entity?\n"
+    elif 'country' in field_name.lower() or 'jurisdiction' in field_name.lower():
+        reasoning += "1. Can you confirm the governing jurisdiction for this agreement?\n"
+        reasoning += "2. Are there any cross-border regulatory requirements that apply to this arrangement?\n"
+        reasoning += "3. Should this be subject to any specific regional compliance procedures?\n"
+    elif 'date' in field_name.lower():
+        reasoning += "1. Can you confirm the exact date for this field?\n"
+        reasoning += "2. Is this date subject to any specific notice requirements or conditions?\n"
+        reasoning += "3. Are there any related dates or deadlines we should be tracking?\n"
+    else:
+        reasoning += f"1. Can you confirm the accuracy of '{extracted_value}' for {field_name}?\n"
+        reasoning += "2. Are there any specific requirements or constraints that apply to this field?\n"
+        reasoning += "3. Should any additional verification steps be performed?\n"
+    
+    return reasoning
 
 def check_knowledge_document_conflicts(field_name: str, extracted_value: Any, knowledge_documents: List[Dict[str, Any]] = None) -> tuple[bool, List[str]]:
     """

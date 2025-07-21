@@ -124,6 +124,27 @@ const ConfidenceBadge = ({
 
   const confidence = getConfidenceLevel(confidenceScore);
   
+  // Helper function to determine if reasoning should be shown
+  const shouldShowReasoning = (score: number, reasoning?: string) => {
+    // No reasoning for manual entries or if no reasoning provided
+    if (!reasoning) return false;
+    
+    // Show reasoning for fields with > 0% confidence (AI conflicts/issues)
+    return score > 0;
+  };
+  
+  // Helper function to get the appropriate reasoning text
+  const getDisplayReasoning = (score: number, reasoning?: string) => {
+    if (score === 0) {
+      // 0% confidence = generic missing info message
+      return "This information was not found in the provided document. Please provide the correct value for this field.";
+    } else if (score > 0 && reasoning) {
+      // > 0% confidence = AI explanation with conflicts/follow-ups
+      return reasoning;
+    }
+    return reasoning || "";
+  };
+  
   return (
     <div className="flex items-center gap-2">
       <span 
@@ -133,7 +154,7 @@ const ConfidenceBadge = ({
         Confidence: {confidenceScore}%
       </span>
       
-      {reasoning && (
+      {shouldShowReasoning(confidenceScore, reasoning) && (
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -153,11 +174,11 @@ const ConfidenceBadge = ({
         </TooltipProvider>
       )}
       
-      {reasoning && (
+      {shouldShowReasoning(confidenceScore, reasoning) && (
         <AIReasoningModal 
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          reasoning={reasoning}
+          reasoning={getDisplayReasoning(confidenceScore, reasoning)}
           fieldName={fieldName}
           confidenceScore={confidenceScore}
           getFieldDisplayName={getFieldDisplayName}
@@ -1137,7 +1158,9 @@ Thank you for your assistance.`;
             } else {
               // Always show confidence badge - use 0% for null/empty values, otherwise use validation confidence
               const effectiveConfidence = hasValue ? validation.confidenceScore : 0;
-              return <ConfidenceBadge confidenceScore={effectiveConfidence} reasoning={validation.aiReasoning} fieldName={fieldName} getFieldDisplayName={getFieldDisplayName} />;
+              // Only pass reasoning for non-manual entries
+              const displayReasoning = validation.validationStatus === 'manual' ? undefined : validation.aiReasoning;
+              return <ConfidenceBadge confidenceScore={effectiveConfidence} reasoning={displayReasoning} fieldName={fieldName} getFieldDisplayName={getFieldDisplayName} />;
             }
           })()}
         </div>
