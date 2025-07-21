@@ -112,16 +112,14 @@ export const extractionRules = pgTable("extraction_rules", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// EXTRACTED DATA TABLES - separate from schema definitions
-export const extractedSchemaFields = pgTable("extracted_schema_fields", {
+// Field validations - simpler approach storing validation data directly
+export const fieldValidations = pgTable("field_validations", {
   id: uuid("id").defaultRandom().primaryKey(),
   sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
-  schemaFieldId: uuid("schema_field_id").notNull().references(() => projectSchemaFields.id, { onDelete: "cascade" }),
+  fieldName: text("field_name").notNull(), // e.g., "Company Name" or "Parties.Name[0]"
   extractedValue: text("extracted_value"),
-  originalExtractedValue: text("original_extracted_value"),
   confidenceScore: integer("confidence_score").default(0),
-  originalConfidenceScore: integer("original_confidence_score").default(0),
-  validationStatus: text("validation_status").default("pending").$type<"verified" | "unverified" | "pending" | "manual">(),
+  validationStatus: text("validation_status").default("unverified").$type<"verified" | "unverified" | "manual">(),
   aiReasoning: text("ai_reasoning"),
   originalAiReasoning: text("original_ai_reasoning"),
   manuallyVerified: boolean("manually_verified").default(false),
