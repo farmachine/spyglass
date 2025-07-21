@@ -77,15 +77,30 @@ export default function SchemaView() {
 
       <div style={{ marginBottom: '40px' }}>
         {JSON.stringify({
-          schema_fields: schemaData.schema_fields.map(field => ({
-            field_name: field.fieldName,
-            type: field.fieldType,
-            "AI guidance": field.description,
-            "Extraction Rules": schemaData.extraction_rules
+          schema_fields: schemaData.schema_fields.map(field => {
+            // Get rules that specifically target this field
+            const specificRules = schemaData.extraction_rules
               .filter(rule => rule.targetFields?.includes(field.fieldName))
-              .map(rule => rule.ruleContent)
-              .join(' | ') || "No specific rules"
-          }))
+              .map(rule => rule.ruleContent);
+            
+            // Get rules with no target fields (auto-apply to all)
+            const globalRules = schemaData.extraction_rules
+              .filter(rule => !rule.targetFields || rule.targetFields.length === 0)
+              .map(rule => rule.ruleContent);
+            
+            // Combine all applicable rules
+            const allRules = [...specificRules, ...globalRules];
+            
+            return {
+              field_name: field.fieldName,
+              type: field.fieldType,
+              "AI guidance": field.description,
+              "Extraction Rules": allRules.length > 0 ? allRules.join(' | ') : "No rules",
+              "Knowledge Documents Available": schemaData.knowledge_documents.length > 0 ? 
+                `${schemaData.knowledge_documents.length} document(s) with ${schemaData.knowledge_documents.reduce((total, doc) => total + (doc.content?.length || 0), 0)} total characters` : 
+                "No knowledge documents"
+            };
+          })
         }, null, 2)}
       </div>
 
@@ -105,15 +120,30 @@ export default function SchemaView() {
           collections: schemaData.collections.map(collection => ({
             collection_name: collection.collectionName,
             description: collection.description,
-            properties: collection.properties?.map((prop: any) => ({
-              property_name: prop.propertyName,
-              type: prop.propertyType,
-              "AI guidance": prop.description,
-              "Extraction Rules": schemaData.extraction_rules
+            properties: collection.properties?.map((prop: any) => {
+              // Get rules that specifically target this property
+              const specificRules = schemaData.extraction_rules
                 .filter(rule => rule.targetFields?.includes(`${collection.collectionName}.${prop.propertyName}`))
-                .map(rule => rule.ruleContent)
-                .join(' | ') || "No specific rules"
-            })) || []
+                .map(rule => rule.ruleContent);
+              
+              // Get rules with no target fields (auto-apply to all)
+              const globalRules = schemaData.extraction_rules
+                .filter(rule => !rule.targetFields || rule.targetFields.length === 0)
+                .map(rule => rule.ruleContent);
+              
+              // Combine all applicable rules
+              const allRules = [...specificRules, ...globalRules];
+              
+              return {
+                property_name: prop.propertyName,
+                type: prop.propertyType,
+                "AI guidance": prop.description,
+                "Extraction Rules": allRules.length > 0 ? allRules.join(' | ') : "No rules",
+                "Knowledge Documents Available": schemaData.knowledge_documents.length > 0 ? 
+                  `${schemaData.knowledge_documents.length} document(s) with ${schemaData.knowledge_documents.reduce((total, doc) => total + (doc.content?.length || 0), 0)} total characters` : 
+                  "No knowledge documents"
+              };
+            }) || []
           }))
         }, null, 2)}
       </div>
@@ -163,27 +193,57 @@ export default function SchemaView() {
 
       <div style={{ marginBottom: '40px' }}>
         {schemaData.extraction_rules.length > 0 ? (
-          schemaData.extraction_rules.map((rule, index) => (
-            <div key={index} style={{ marginBottom: '15px' }}>
-              <div style={{ fontWeight: 'bold' }}>
-                RULE {index + 1}: {rule.ruleName || `Rule ${index + 1}`}
+          schemaData.extraction_rules.map((rule, index) => {
+            const isGlobalRule = !rule.targetFields || rule.targetFields.length === 0;
+            return (
+              <div key={index} style={{ 
+                marginBottom: '15px',
+                padding: '10px',
+                backgroundColor: isGlobalRule ? '#e8f5e8' : '#f8f9fa',
+                border: `2px solid ${isGlobalRule ? '#28a745' : '#6c757d'}`,
+                borderRadius: '4px'
+              }}>
+                <div style={{ fontWeight: 'bold', color: isGlobalRule ? '#155724' : '#495057' }}>
+                  {isGlobalRule ? '🌐 GLOBAL RULE' : '🎯 TARGETED RULE'} {index + 1}: {rule.ruleName || `Rule ${index + 1}`}
+                </div>
+                <div style={{ marginLeft: '20px', marginTop: '5px' }}>
+                  <strong>Applies to:</strong> {isGlobalRule ? 
+                    'ALL SCHEMA FIELDS AND COLLECTION PROPERTIES (Auto-mapped)' : 
+                    rule.targetFields?.join(', ') || 'Not specified'
+                  }
+                </div>
+                <div style={{ marginLeft: '20px', marginTop: '5px' }}>
+                  <strong>Rule Content:</strong> {rule.ruleContent}
+                </div>
               </div>
-              <div style={{ marginLeft: '20px' }}>
-                Target Fields: {rule.targetFields?.join(', ') || 'Not specified'}
-              </div>
-              <div style={{ marginLeft: '20px' }}>
-                Content: {rule.ruleContent}
-              </div>
-            </div>
-          ))
+            );
+          })
         ) : (
           <div>No extraction rules configured</div>
         )}
       </div>
 
+      {/* Auto-Mapping Summary */}
+      <div style={{ 
+        margin: '40px 0 20px 0', 
+        padding: '15px', 
+        backgroundColor: '#d1ecf1',
+        border: '2px solid #0c5460',
+        fontWeight: 'bold'
+      }}>
+        === AUTO-MAPPING BEHAVIOR ===
+        <div style={{ fontWeight: 'normal', marginTop: '10px' }}>
+          🌐 <strong>Knowledge Documents:</strong> ALL {schemaData.knowledge_documents.length} document(s) are automatically applied to EVERY schema field and collection property
+          <br/>
+          🌐 <strong>Global Rules:</strong> {schemaData.extraction_rules.filter(rule => !rule.targetFields || rule.targetFields.length === 0).length} rule(s) with no target fields are automatically applied to ALL properties
+          <br/>
+          🎯 <strong>Targeted Rules:</strong> {schemaData.extraction_rules.filter(rule => rule.targetFields && rule.targetFields.length > 0).length} rule(s) are applied only to their specific target fields
+        </div>
+      </div>
+
       {/* Summary */}
       <div style={{ 
-        margin: '60px 0 20px 0', 
+        margin: '40px 0 20px 0', 
         padding: '15px', 
         backgroundColor: '#d4edda',
         border: '2px solid #155724',
@@ -192,8 +252,8 @@ export default function SchemaView() {
         === CONFIGURATION SUMMARY ===
         Schema Fields: {schemaData.schema_fields.length}
         Collections: {schemaData.collections.length}
-        Knowledge Documents: {schemaData.knowledge_documents.length}
-        Extraction Rules: {schemaData.extraction_rules.length}
+        Knowledge Documents: {schemaData.knowledge_documents.length} (auto-applied to all)
+        Extraction Rules: {schemaData.extraction_rules.length} ({schemaData.extraction_rules.filter(rule => !rule.targetFields || rule.targetFields.length === 0).length} global + {schemaData.extraction_rules.filter(rule => rule.targetFields && rule.targetFields.length > 0).length} targeted)
         === END CONFIGURATION ===
       </div>
 

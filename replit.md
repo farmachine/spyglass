@@ -19,6 +19,11 @@ Preferred communication style: Simple, everyday language.
 - ✓ Knowledge documents now use same reliable Gemini processing as document extraction pipeline
 - ✓ Fixed SchemaView to use working project-level API endpoint instead of broken session-level endpoint
 - ✓ Updated frontend routing to handle both `/sessions/:sessionId/schema` and `/sessions/:sessionId/schema-view` routes
+- ✓ **AUTO-MAPPING FEATURE IMPLEMENTED**: Knowledge documents and extraction rules with no target properties automatically apply to ALL schema fields
+- ✓ Enhanced SchemaView to clearly show which rules are global (auto-applied) vs targeted to specific fields
+- ✓ Added comprehensive auto-mapping behavior display with visual indicators for global vs targeted rules
+- ✓ Knowledge documents now automatically provide context to every field and collection property in the schema
+- ✓ Global extraction rules (without target fields) are automatically mapped to all schema properties for consistent processing
 - ✓ **DUPLICATE VALIDATION RECORDS BUG COMPLETELY RESOLVED**: Fixed critical frontend logic that was selecting wrong validation records
 - ✓ Root cause identified: Multiple validation records existed for same field, frontend was picking null records instead of records with actual values
 - ✓ Enhanced getValidation function to prioritize validation records with actual extracted values over empty/null records
