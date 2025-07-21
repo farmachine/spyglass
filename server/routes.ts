@@ -1352,6 +1352,29 @@ except Exception as e:
             console.log('Comprehensive validation record creation complete');
           }
           
+          // Ensure batch validation is run and completed before returning
+          try {
+            console.log('Running final batch validation to ensure proper confidence scores');
+            
+            // Call the batch validation endpoint to ensure all confidence scores are properly calculated
+            const batchValidationResponse = await fetch(`http://localhost:${process.env.PORT || 3000}/api/sessions/${sessionId}/batch-validate`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({})
+            });
+            
+            if (batchValidationResponse.ok) {
+              console.log('Batch validation completed successfully before response');
+            } else {
+              console.error('Batch validation failed:', await batchValidationResponse.text());
+            }
+          } catch (batchError) {
+            console.error('Error during final batch validation:', batchError);
+            // Continue with response even if batch validation fails
+          }
+          
           res.json(result);
         } catch (parseError: any) {
           console.error('Error parsing Python output:', parseError);

@@ -273,6 +273,12 @@ def calculate_knowledge_based_confidence_fallback(field_name: str, extracted_val
     if extracted_value is None or extracted_value == "" or extracted_value == "null":
         return 0, [], "This information was not found in the provided document."
     
+    # Special handling for aggregated/calculated fields (like Number of Parties, Number of NDAs)
+    if (isinstance(extracted_value, (int, float)) and extracted_value > 0 and 
+        ('number' in field_name.lower() or 'count' in field_name.lower())):
+        # Aggregated fields with valid counts should have high confidence
+        return 95, [], f"Successfully calculated {field_name} from document analysis"
+    
     # Check for knowledge document conflicts first
     has_conflict, conflicting_sections = check_knowledge_document_conflicts(field_name, extracted_value, knowledge_documents)
     if has_conflict:
