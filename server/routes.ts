@@ -1844,7 +1844,7 @@ print(json.dumps(result))
       console.log(`SAVE VALIDATIONS: Starting for session ${sessionId}, ${validations.length} validations`);
 
       // Get the session to verify it exists
-      const session = await storage.getSession(sessionId);
+      const session = await storage.getExtractionSession(sessionId);
       if (!session) {
         return res.status(404).json({ error: 'Session not found' });
       }
