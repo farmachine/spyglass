@@ -1076,8 +1076,12 @@ Thank you for your assistance.`;
             // The validation status 'manual' is set when user actually edits a field
             const wasManuallyUpdated = validation.validationStatus === 'manual';
             
-            // Check if field was extracted (has confidence score > 0)
-            const wasExtracted = validation.confidenceScore > 0;
+            // Check if field has actual value - if it has a value, it should never show "Not Extracted"
+            const hasValue = validation.extractedValue !== null && 
+                           validation.extractedValue !== undefined && 
+                           validation.extractedValue !== "" && 
+                           validation.extractedValue !== "null" && 
+                           validation.extractedValue !== "undefined";
             
             if (wasManuallyUpdated) {
               return (
@@ -1094,7 +1098,7 @@ Thank you for your assistance.`;
                   )}
                 </div>
               );
-            } else if (!wasExtracted) {
+            } else if (!hasValue) {
               return <NotExtractedBadge />;
             } else {
               return <ConfidenceBadge confidenceScore={validation.confidenceScore} reasoning={validation.aiReasoning} fieldName={fieldName} getFieldDisplayName={getFieldDisplayName} />;
