@@ -1340,6 +1340,9 @@ except Exception as e:
             const schemaFields = await storage.getProjectSchemaFields(projectId);
             const collections = await storage.getObjectCollections(projectId);
             
+            console.log(`DEBUG: Retrieved ${schemaFields?.length || 0} schema fields:`, schemaFields?.map(f => f.name));
+            console.log(`DEBUG: Retrieved ${collections?.length || 0} collections:`, collections?.map(c => c.name));
+            
             // Helper function to map field names to database IDs
             async function mapFieldNameToId(fieldName: string, schemaFields: any[], collections: any[]) {
               // Handle schema fields (e.g., "Number of Parties")
