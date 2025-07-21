@@ -1097,6 +1097,9 @@ except Exception as e:
         mime_type: file.type
       }));
 
+      // Get extraction rules for better AI guidance
+      const extractionRules = projectId ? await storage.getExtractionRules(projectId) : [];
+
       // Prepare data for Python extraction script
       const extractionData = {
         step: "extract",
@@ -1106,10 +1109,11 @@ except Exception as e:
           schema_fields: project_data?.schemaFields || [],
           collections: project_data?.collections || []
         },
+        extraction_rules: extractionRules,
         session_name: project_data?.mainObjectName || "contract"
       };
       
-      console.log(`STEP 1: Extracting from ${files?.length || 0} documents`);
+      console.log(`STEP 1: Extracting from ${files?.length || 0} documents with ${extractionRules.length} extraction rules`);
       
       // Call Python extraction script
       const python = spawn('python3', ['ai_extraction_simplified.py']);
@@ -1273,6 +1277,9 @@ except Exception as e:
       // STEP 1: Call extraction directly (no internal fetch)
       console.log(`STEP 1: Extracting from ${convertedFiles.length} documents`);
       
+      // Get extraction rules for better AI guidance
+      const extractionRules = projectId ? await storage.getExtractionRules(projectId) : [];
+      
       // Prepare data for Python extraction script
       const extractionData = {
         step: "extract",
@@ -1282,6 +1289,7 @@ except Exception as e:
           schema_fields: project_data?.schemaFields || [],
           collections: project_data?.collections || []
         },
+        extraction_rules: extractionRules,
         session_name: project_data?.mainObjectName || "contract"
       };
       

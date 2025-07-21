@@ -29,6 +29,7 @@ class ValidationResult:
 def step1_extract_from_documents(
     documents: List[Dict[str, Any]], 
     project_schema: Dict[str, Any],
+    extraction_rules: List[Dict[str, Any]] = None,
     session_name: str = "contract"
 ) -> ExtractionResult:
     """
@@ -106,21 +107,118 @@ SCHEMA FIELDS TO EXTRACT:"""
                         prop_description = prop.get('description', '')
                         prompt += f"\n  * {prop_name} ({prop_type}): {prop_description or 'Extract this property'}"
         
+        # Generate dynamic JSON example based on actual schema and extraction rules
+        def generate_dynamic_json_example():
+            json_lines = [f'{{"']
+            json_lines.append(f'  "{session_name}": {{')
+            
+            # Add schema fields with descriptions and applicable rules
+            if project_schema.get("schema_fields"):
+                for field in project_schema["schema_fields"]:
+                    field_name = field['fieldName']
+                    field_type = field['fieldType']
+                    field_description = field.get('description', '')
+                    camel_case_name = field_name.replace(' ', '').replace('of', 'Of')
+                    
+                    # Find applicable extraction rules
+                    applicable_rules = []
+                    if extraction_rules:
+                        for rule in extraction_rules:
+                            rule_target = rule.get('targetField', [])
+                            if isinstance(rule_target, list):
+                                if field_name in rule_target or 'All Fields' in rule_target:
+                                    applicable_rules.append(rule.get('ruleContent', ''))
+                            elif field_name == rule_target or rule_target == 'All Fields':
+                                applicable_rules.append(rule.get('ruleContent', ''))
+                    
+                    # Determine output format based on field type
+                    if field_type == 'NUMBER':
+                        if 'parties' in field_name.lower():
+                            output_format = '33'  # Example showing high party count
+                        elif 'nda' in field_name.lower():
+                            output_format = '8'
+                        else:
+                            output_format = '42'
+                    elif field_type == 'DATE':
+                        output_format = '"2024-01-15"'
+                    elif field_type == 'BOOLEAN':
+                        output_format = 'true'
+                    else:  # TEXT
+                        output_format = '"Extracted Text Value"'
+                    
+                    # Build comment with description and rules
+                    comment_parts = []
+                    if field_description:
+                        comment_parts.append(field_description)
+                    if applicable_rules:
+                        comment_parts.extend(applicable_rules)
+                    comment = ' + '.join(comment_parts) if comment_parts else 'Extract this field from documents'
+                    
+                    json_lines.append(f'    "{camel_case_name}": {output_format}, // {comment}')
+            
+            # Add collections with properties and applicable rules
+            if project_schema.get("collections"):
+                for collection in project_schema["collections"]:
+                    collection_name = collection.get('collectionName', collection.get('objectName', ''))
+                    collection_description = collection.get('description', '')
+                    
+                    json_lines.append(f'    "{collection_name}": [ // {collection_description or "Extract array of these objects"}')
+                    json_lines.append('      {')
+                    
+                    properties = collection.get("properties", [])
+                    for i, prop in enumerate(properties):
+                        prop_name = prop.get('propertyName', '')
+                        prop_type = prop.get('propertyType', 'TEXT')
+                        prop_description = prop.get('description', '')
+                        
+                        # Find applicable extraction rules for this property
+                        applicable_rules = []
+                        if extraction_rules:
+                            for rule in extraction_rules:
+                                rule_target = rule.get('targetField', [])
+                                full_prop_name = f"{collection_name}.{prop_name}"
+                                if isinstance(rule_target, list):
+                                    if full_prop_name in rule_target or prop_name in rule_target or 'All Fields' in rule_target:
+                                        applicable_rules.append(rule.get('ruleContent', ''))
+                                elif full_prop_name == rule_target or prop_name == rule_target or rule_target == 'All Fields':
+                                    applicable_rules.append(rule.get('ruleContent', ''))
+                        
+                        # Determine output format based on property type
+                        if prop_type == 'NUMBER':
+                            output_format = '100'
+                        elif prop_type == 'DATE':
+                            output_format = '"2024-01-15"'
+                        elif prop_type == 'BOOLEAN':
+                            output_format = 'true'
+                        else:  # TEXT
+                            output_format = '"Real Extracted Value"'
+                        
+                        # Build comment with description and rules
+                        comment_parts = []
+                        if prop_description:
+                            comment_parts.append(prop_description)
+                        if applicable_rules:
+                            comment_parts.extend(applicable_rules)
+                        comment = ' + '.join(comment_parts) if comment_parts else 'Extract this property'
+                        
+                        comma = ',' if i < len(properties) - 1 else ''
+                        json_lines.append(f'        "{prop_name}": {output_format}{comma} // {comment}')
+                    
+                    json_lines.append('      }')
+                    json_lines.append('    ],')
+            
+            json_lines.append('  }')
+            json_lines.append('}')
+            return '\n'.join(json_lines)
+        
+        dynamic_example = generate_dynamic_json_example()
+        logging.info(f"Generated dynamic JSON example with {len(extraction_rules or [])} extraction rules")
+        logging.info(f"Dynamic example preview (first 500 chars): {dynamic_example[:500]}...")
+        
         prompt += f"""
 
-EXAMPLE OUTPUT FORMAT:
-{{"
-  "{session_name}": {{
-    "numberOfParties": 33,  // Count ALL unique companies/parties across ALL documents
-    "numberOfNDAs": 8,     // Count ALL individual contracts/NDAs in the document set 
-    "Parties": [
-      {{
-        "partyName": "Actual Company Name from Document",
-        "address": "Real Address from Document"
-      }}
-    ]
-  }}
-}}
+DYNAMIC EXAMPLE OUTPUT FORMAT (based on your actual schema configuration):
+{dynamic_example}
 
 CRITICAL PARTY COUNTING: You MUST count parties by scanning through ALL documents and identifying EVERY unique company, organization, subsidiary, or entity that could be a party to any contract. Do not limit yourself to just the parties you extract full details for - count ALL mentions across the entire document set.
 
@@ -356,7 +454,7 @@ def extract_and_validate_chain(
     logging.info("Starting chained extraction and validation process")
     
     # Step 1: Extract
-    extraction_result = step1_extract_from_documents(documents, project_schema, session_name)
+    extraction_result = step1_extract_from_documents(documents, project_schema, extraction_rules, session_name)
     
     if not extraction_result.success:
         return extraction_result, None
@@ -380,9 +478,10 @@ if __name__ == "__main__":
             # STEP 1: Extract from documents
             documents = input_data.get("files", [])
             project_schema = input_data.get("project_schema", {})
+            extraction_rules = input_data.get("extraction_rules", [])
             session_name = input_data.get("session_name", "contract")
             
-            result = step1_extract_from_documents(documents, project_schema, session_name)
+            result = step1_extract_from_documents(documents, project_schema, extraction_rules, session_name)
             
             if result.success:
                 print(json.dumps(result.extracted_data))
