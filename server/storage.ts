@@ -961,24 +961,16 @@ export class MemStorage implements IStorage {
   }
 
   async updateProjectSchemaField(id: string, updateData: Partial<InsertProjectSchemaField>): Promise<ProjectSchemaField | undefined> {
-    // Convert string ID to number for in-memory storage lookup
-    const numericId = parseInt(id);
-    if (isNaN(numericId)) return undefined;
-    
-    const field = this.projectSchemaFields.get(numericId);
+    const field = this.projectSchemaFields.get(id);
     if (!field) return undefined;
 
     const updatedField = { ...field, ...updateData };
-    this.projectSchemaFields.set(numericId, updatedField);
+    this.projectSchemaFields.set(id, updatedField);
     return updatedField;
   }
 
   async deleteProjectSchemaField(id: string): Promise<boolean> {
-    // Convert string ID to number for in-memory storage lookup
-    const numericId = parseInt(id);
-    if (isNaN(numericId)) return false;
-    
-    return this.projectSchemaFields.delete(numericId);
+    return this.projectSchemaFields.delete(id);
   }
 
   // Object Collections
@@ -1013,29 +1005,21 @@ export class MemStorage implements IStorage {
   }
 
   async updateObjectCollection(id: string, updateData: Partial<InsertObjectCollection>): Promise<ObjectCollection | undefined> {
-    // Convert string ID to number for in-memory storage lookup
-    const numericId = parseInt(id);
-    if (isNaN(numericId)) return undefined;
-    
-    const collection = this.objectCollections.get(numericId);
+    const collection = this.objectCollections.get(id);
     if (!collection) return undefined;
 
     const updatedCollection = { ...collection, ...updateData };
-    this.objectCollections.set(numericId, updatedCollection);
+    this.objectCollections.set(id, updatedCollection);
     return updatedCollection;
   }
 
   async deleteObjectCollection(id: string): Promise<boolean> {
-    // Convert string ID to number for in-memory storage lookup
-    const numericId = parseInt(id);
-    if (isNaN(numericId)) return false;
-    
     // Delete related properties first
     const properties = Array.from(this.collectionProperties.values())
-      .filter(prop => prop.collectionId === numericId);
+      .filter(prop => prop.collectionId === id);
     properties.forEach(prop => this.collectionProperties.delete(prop.id));
 
-    return this.objectCollections.delete(numericId);
+    return this.objectCollections.delete(id);
   }
 
   // Collection Properties
@@ -1059,24 +1043,16 @@ export class MemStorage implements IStorage {
   }
 
   async updateCollectionProperty(id: string, updateData: Partial<InsertCollectionProperty>): Promise<CollectionProperty | undefined> {
-    // Convert string ID to number for in-memory storage lookup
-    const numericId = parseInt(id);
-    if (isNaN(numericId)) return undefined;
-    
-    const property = this.collectionProperties.get(numericId);
+    const property = this.collectionProperties.get(id);
     if (!property) return undefined;
 
     const updatedProperty = { ...property, ...updateData };
-    this.collectionProperties.set(numericId, updatedProperty);
+    this.collectionProperties.set(id, updatedProperty);
     return updatedProperty;
   }
 
   async deleteCollectionProperty(id: string): Promise<boolean> {
-    // Convert string ID to number for in-memory storage lookup
-    const numericId = parseInt(id);
-    if (isNaN(numericId)) return false;
-    
-    return this.collectionProperties.delete(numericId);
+    return this.collectionProperties.delete(id);
   }
 
   // Extraction Sessions
@@ -1211,9 +1187,7 @@ export class MemStorage implements IStorage {
   }
 
   async updateFieldValidation(id: string, updateData: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined> {
-    // MemStorage still uses numbers internally, convert for compatibility
-    const numId = parseInt(id);
-    const existingValidation = this.fieldValidations.get(numId);
+    const existingValidation = this.fieldValidations.get(id);
     if (!existingValidation) return undefined;
 
     const updatedValidation = { 
@@ -1221,14 +1195,12 @@ export class MemStorage implements IStorage {
       ...updateData, 
       updatedAt: new Date() 
     };
-    this.fieldValidations.set(numId, updatedValidation);
+    this.fieldValidations.set(id, updatedValidation);
     return updatedValidation;
   }
 
   async deleteFieldValidation(id: string): Promise<boolean> {
-    // MemStorage still uses numbers internally, convert for compatibility
-    const numId = parseInt(id);
-    return this.fieldValidations.delete(numId);
+    return this.fieldValidations.delete(id);
   }
 
   async getSessionWithValidations(sessionId: number): Promise<ExtractionSessionWithValidation | undefined> {

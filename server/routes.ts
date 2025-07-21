@@ -1557,87 +1557,57 @@ print(json.dumps(result))
       const projectId = req.params.projectId;
       console.log('Getting schema data for project:', projectId);
       
-      // Simply return mock data for now to get Step 2 working
-      // We'll connect to real data once the UI flow is established
+      // Get real project data from storage
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Get schema fields and collections
+      const schemaFields = await storage.getProjectSchemaFields(projectId);
+      console.log('Schema fields for project:', projectId, '- Found', schemaFields.length, 'fields');
+      const collections = await storage.getObjectCollections(projectId);
+      const knowledgeDocuments = await storage.getKnowledgeDocuments(projectId);
+      const extractionRules = await storage.getExtractionRules(projectId);
+      
       const responseData = {
         project: {
-          id: projectId,
-          name: "Contract Analysis Project",
-          description: "AI-powered contract data extraction",
-          mainObjectName: "Contract"
+          id: project.id,
+          name: project.name,
+          description: project.description,
+          mainObjectName: project.mainObjectName
         },
-        schema_fields: [
-          {
-            id: "1",
-            fieldName: "Company Name",
-            fieldType: "TEXT",
-            description: "Name of the primary company in the contract",
-            orderIndex: 1
-          },
-          {
-            id: "2",
-            fieldName: "Contract Date",
-            fieldType: "DATE", 
-            description: "Date when the contract was signed",
-            orderIndex: 2
-          },
-          {
-            id: "3",
-            fieldName: "Number of Parties",
-            fieldType: "NUMBER",
-            description: "Total number of parties involved in this contract",
-            orderIndex: 3
-          }
-        ],
-        collections: [
-          {
-            id: "1",
-            collectionName: "Parties",
-            description: "All parties involved in the contract",
-            properties: [
-              {
-                id: "1",
-                propertyName: "Name",
-                propertyType: "TEXT",
-                description: "Name of the party/company"
-              },
-              {
-                id: "2", 
-                propertyName: "Country",
-                propertyType: "TEXT",
-                description: "Country where the party is located"
-              },
-              {
-                id: "3",
-                propertyName: "Address",
-                propertyType: "TEXT", 
-                description: "Full address of the party"
-              }
-            ]
-          }
-        ],
-        knowledge_documents: [
-          {
-            id: "1",
-            displayName: "Contract Review Guidelines",
-            content: "Always verify that all parties are properly identified and that jurisdiction requirements are met. Pay special attention to company names containing 'Inc.' or 'LLC' as these may require additional verification."
-          }
-        ],
-        extraction_rules: [
-          {
-            id: "1",
-            ruleName: "Company Name Validation",
-            ruleContent: "If company name contains 'Inc.' reduce confidence to 50%",
-            targetFields: ["Company Name", "Parties.Name"]
-          },
-          {
-            id: "2", 
-            ruleName: "Party Count Verification",
-            ruleContent: "Manually verify party count if more than 10 parties detected",
-            targetFields: ["Number of Parties"]
-          }
-        ]
+        schema_fields: schemaFields.map(field => ({
+          id: field.id,
+          fieldName: field.fieldName,
+          fieldType: field.fieldType,
+          description: field.description,
+          orderIndex: field.orderIndex
+        })),
+        collections: collections.map(collection => ({
+          id: collection.id,
+          collectionName: collection.collectionName,
+          description: collection.description,
+          properties: collection.properties.map(prop => ({
+            id: prop.id,
+            propertyName: prop.propertyName,
+            propertyType: prop.propertyType,
+            description: prop.description
+          }))
+        })),
+        knowledge_documents: knowledgeDocuments.map(doc => ({
+          id: doc.id,
+          displayName: doc.displayName,
+          content: doc.content || ""
+        })),
+        extraction_rules: extractionRules.map(rule => ({
+          id: rule.id,
+          ruleName: rule.title,
+          ruleContent: rule.ruleText,
+          targetFields: rule.targetFields || []
+        }))
       };
+
 
       res.json(responseData);
     } catch (error) {

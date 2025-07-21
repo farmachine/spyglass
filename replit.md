@@ -11,6 +11,11 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 21, 2025 (Latest Update)**
+- ✓ **CRITICAL UUID REFACTORING COMPLETED**: Fixed fundamental API endpoint that was serving hardcoded mock data with integer IDs
+- ✓ Root cause identified: API endpoint `/api/projects/:projectId/schema-data` was serving hardcoded mock data instead of real storage queries
+- ✓ Systematically removed all `parseInt(id)` calls across all MemStorage methods to ensure proper UUID string handling
+- ✓ Updated API endpoint to use real storage queries and return actual UUID field IDs instead of integers ("1", "2", "3")
+- ✓ Verified API now correctly returns UUID field IDs (e.g., "16b96037-6261-4879-b511-ec052a8042cf") with real user data
 - ✓ **GEMINI PDF EXTRACTION FOR KNOWLEDGE DOCUMENTS IMPLEMENTED**: Replaced PyPDF2 with Gemini API for superior content extraction
 - ✓ Root cause identified: Knowledge document content was empty because PyPDF2 text extraction was failing silently
 - ✓ Enhanced knowledge document upload route to use Gemini API for PDF text extraction with proper error handling
