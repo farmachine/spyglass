@@ -892,14 +892,17 @@ ${error instanceof Error ? error.message : 'Unknown error'}
           </div>
           <pre style={{ 
             whiteSpace: 'pre-wrap',
-            fontSize: '12px',
+            fontSize: '11px',
             backgroundColor: '#ffffff',
             padding: '15px',
             border: '1px solid #c3e6cb',
             borderRadius: '4px',
             overflow: 'auto',
-            maxHeight: '500px',
-            lineHeight: '1.4'
+            maxHeight: '800px',
+            lineHeight: '1.4',
+            fontFamily: 'monospace',
+            wordWrap: 'break-word',
+            wordBreak: 'break-word'
           }}>
             {geminiResponse}
           </pre>

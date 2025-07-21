@@ -32,6 +32,9 @@ Preferred communication style: Simple, everyday language.
 - ✓ Step 3: Second Gemini API call via "START EXTRACTION" button for final JSON extraction results
 - ✓ Proper workflow: Page load → Gemini extracts content → Display full content → Generate schema → AI extraction button → Final results
 - ✓ Enhanced loading states, error handling, and comprehensive debug logging throughout workflow
+- ✓ **GEMINI RESULTS DISPLAY ENHANCED**: Fixed truncation issue with improved scrollable display area
+- ✓ Increased max height to 800px with better word wrapping for complete AI extraction results viewing
+- ✓ Enhanced font styling and line spacing for better readability of JSON extraction outputs
 
 **January 21, 2025**
 - ✓ **SCHEMA VIEW OPTIMIZED FOR GEMINI AI EXTRACTION**: Enhanced SchemaView with concise, targeted instructions for maximum AI accuracy
