@@ -1487,94 +1487,95 @@ print(json.dumps(result))
   // Get schema data for AI processing view (session-based route for compatibility)
   app.get('/api/sessions/:sessionId/schema-data', async (req, res) => {
     try {
-      // For now, just use mock project ID and redirect to project-based endpoint
-      const mockProjectId = "sample-project-id";
+      const sessionId = req.params.sessionId;
+      console.log('Getting schema data for session:', sessionId);
       
-      // Return the same mock data structure
+      // Get the session to find the project ID
+      const session = await storage.getSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: 'Session not found' });
+      }
+      
+      const projectId = session.projectId;
+      console.log('Found project ID for schema data:', projectId);
+      
+      // Get project data
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ error: 'Project not found' });
+      }
+      
+      // Get schema fields, collections, knowledge documents, and extraction rules
+      const [schemaFields, collections, knowledgeDocuments, extractionRules] = await Promise.all([
+        storage.getProjectSchemaFields(projectId),
+        storage.getProjectCollections(projectId),
+        storage.getKnowledgeDocuments(projectId),
+        storage.getExtractionRules(projectId)
+      ]);
+      
+      // Get properties for all collections
+      const collectionsWithProperties = await Promise.all(
+        collections.map(async (collection) => {
+          const properties = await storage.getCollectionProperties(collection.id);
+          return {
+            ...collection,
+            properties: properties || []
+          };
+        })
+      );
+
       const responseData = {
         project: {
-          id: mockProjectId,
-          name: "Contract Analysis Project",
-          description: "AI-powered contract data extraction", 
-          mainObjectName: "Contract"
+          id: project.id,
+          name: project.name,
+          description: project.description,
+          mainObjectName: project.mainObjectName
         },
-        schema_fields: [
-          {
-            id: "1",
-            fieldName: "Company Name", 
-            fieldType: "TEXT",
-            description: "Name of the primary company in the contract",
-            orderIndex: 1
-          },
-          {
-            id: "2",
-            fieldName: "Contract Date",
-            fieldType: "DATE",
-            description: "Date when the contract was signed", 
-            orderIndex: 2
-          },
-          {
-            id: "3",
-            fieldName: "Number of Parties",
-            fieldType: "NUMBER",
-            description: "Total number of parties involved in this contract",
-            orderIndex: 3
-          }
-        ],
-        collections: [
-          {
-            id: "1", 
-            collectionName: "Parties",
-            description: "All parties involved in the contract",
-            properties: [
-              {
-                id: "1",
-                propertyName: "Name",
-                propertyType: "TEXT",
-                description: "Name of the party/company"
-              },
-              {
-                id: "2",
-                propertyName: "Country", 
-                propertyType: "TEXT",
-                description: "Country where the party is located"
-              },
-              {
-                id: "3",
-                propertyName: "Address",
-                propertyType: "TEXT",
-                description: "Full address of the party"
-              }
-            ]
-          }
-        ],
-        knowledge_documents: [
-          {
-            id: "1",
-            displayName: "Contract Review Guidelines",
-            content: "Always verify that all parties are properly identified and that jurisdiction requirements are met. Pay special attention to company names containing 'Inc.' or 'LLC' as these may require additional verification."
-          }
-        ],
-        extraction_rules: [
-          {
-            id: "1", 
-            ruleName: "Company Name Validation",
-            ruleContent: "If company name contains 'Inc.' reduce confidence to 50%",
-            targetFields: ["Company Name", "Parties.Name"]
-          },
-          {
-            id: "2",
-            ruleName: "Party Count Verification", 
-            ruleContent: "Manually verify party count if more than 10 parties detected",
-            targetFields: ["Number of Parties"]
-          }
-        ]
+        schema_fields: schemaFields.map(field => ({
+          id: field.id,
+          fieldName: field.fieldName,
+          fieldType: field.fieldType,
+          description: field.description,
+          orderIndex: field.orderIndex
+        })),
+        collections: collectionsWithProperties.map(collection => ({
+          id: collection.id,
+          collectionName: collection.collectionName,
+          description: collection.description,
+          properties: collection.properties.map((prop: any) => ({
+            id: prop.id,
+            propertyName: prop.propertyName,
+            propertyType: prop.propertyType,
+            description: prop.description,
+            orderIndex: prop.orderIndex
+          }))
+        })),
+        knowledge_documents: knowledgeDocuments.map(doc => ({
+          id: doc.id,
+          displayName: doc.displayName,
+          content: doc.content
+        })),
+        extraction_rules: extractionRules.map(rule => ({
+          id: rule.id,
+          ruleName: rule.ruleName,
+          ruleContent: rule.ruleContent,
+          targetFields: rule.targetFields
+        }))
       };
+
+      console.log('Successfully retrieved real schema data:', {
+        project: project.name,
+        schemaFields: schemaFields.length,
+        collections: collections.length,
+        knowledgeDocs: knowledgeDocuments.length,
+        extractionRules: extractionRules.length,
+        knowledgeDocContentLength: knowledgeDocuments.map(doc => doc.content?.length || 0)
+      });
 
       res.json(responseData);
     } catch (error) {
       console.error('Error getting schema data:', error);
-      res.status(500).json({ error: 'Failed to get schema data', details: error.message });
+      res.status(500).json({ error: 'Failed to get schema data', details: (error as any).message });
     }
   });
 

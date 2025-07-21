@@ -19,8 +19,8 @@ export default function SchemaView() {
   });
 
   const { data: schemaData, isLoading: schemaLoading } = useQuery<SchemaData>({
-    queryKey: [`/api/sessions/${sessionId}/schema-data`],
-    enabled: !!sessionId,
+    queryKey: [`/api/projects/${session?.projectId}/schema-data`],
+    enabled: !!session?.projectId,
   });
 
   if (sessionLoading || schemaLoading) {

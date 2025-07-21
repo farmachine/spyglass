@@ -46,6 +46,11 @@ function Router() {
           <SchemaView />
         </ProtectedRoute>
       </Route>
+      <Route path="/sessions/:sessionId/schema">
+        <ProtectedRoute>
+          <SchemaView />
+        </ProtectedRoute>
+      </Route>
       <Route path="/admin">
         <ProtectedRoute>
           <AdminPanel />
