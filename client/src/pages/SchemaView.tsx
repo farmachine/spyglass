@@ -427,9 +427,16 @@ ${error instanceof Error ? error.message : 'Unknown error'}
         throw new Error('No valid JSON found in extraction results');
       }
 
-      console.log('Extracted JSON text (first 500 chars):', jsonText.substring(0, 500));
-      console.log('Extracted JSON text (last 200 chars):', jsonText.substring(Math.max(0, jsonText.length - 200)));
-      console.log('Full JSON text length:', jsonText.length);
+      console.log('Extracted JSON text length:', jsonText.length);
+      console.log('JSON starts with:', jsonText.substring(0, 100));
+      console.log('JSON ends with:', jsonText.substring(Math.max(0, jsonText.length - 100)));
+      
+      // Check for truncation indicators
+      if (jsonText.includes('[TRUNCATED]') || jsonText.includes('…') || jsonText.endsWith('...')) {
+        console.error('WARNING: JSON appears to be truncated!');
+        setError('Response was truncated. Please try again or contact support.');
+        return;
+      }
       
       // More aggressive JSON cleaning to handle malformed responses
       let cleanedJsonText = jsonText

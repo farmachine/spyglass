@@ -46,7 +46,7 @@ def main():
             model="gemini-2.5-flash",
             contents=prompt,
             config=types.GenerateContentConfig(
-                max_output_tokens=8192,
+                max_output_tokens=10000000,
                 temperature=0.1,
                 response_mime_type="text/plain"
             )
@@ -55,6 +55,11 @@ def main():
         if response and response.text:
             result_text = response.text.strip()
             print(f"DEBUG: Received response from Gemini ({len(result_text)} characters)", file=sys.stderr)
+            print(f"DEBUG: Response ends with: {result_text[-200:]}", file=sys.stderr)
+            
+            # Check if response appears to be truncated
+            if result_text.endswith('…') or '[TRUNCATED]' in result_text:
+                print("WARNING: Response appears to be truncated!", file=sys.stderr)
             
             # Return success response
             result = {
