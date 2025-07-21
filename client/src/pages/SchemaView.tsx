@@ -121,9 +121,13 @@ export default function SchemaView() {
             collection_name: collection.collectionName,
             description: collection.description,
             properties: collection.properties?.map((prop: any) => {
-              // Get rules that specifically target this property
+              // Get rules that specifically target this property (handle both dot and arrow notation)
               const specificRules = schemaData.extraction_rules
-                .filter(rule => rule.targetFields?.includes(`${collection.collectionName}.${prop.propertyName}`))
+                .filter(rule => {
+                  const dotNotation = `${collection.collectionName}.${prop.propertyName}`;
+                  const arrowNotation = `${collection.collectionName} --> ${prop.propertyName}`;
+                  return rule.targetFields?.includes(dotNotation) || rule.targetFields?.includes(arrowNotation);
+                })
                 .map(rule => rule.ruleContent);
               
               // Get rules with no target fields (auto-apply to all)
