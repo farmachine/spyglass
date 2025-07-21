@@ -251,7 +251,7 @@ export default function SchemaView() {
         border: '2px solid #155724',
         fontWeight: 'bold'
       }}>
-        === CONFIGURATION SUMMARY ===
+        === EXTRACTION SUMMARY ===
         Schema Fields: {schemaData.schema_fields.length}
         Collections: {schemaData.collections.length}
         Knowledge Documents: {schemaData.knowledge_documents.length}
@@ -259,13 +259,96 @@ export default function SchemaView() {
         === END CONFIGURATION ===
       </div>
 
+      {/* AI Processing Instructions */}
+      <div style={{ 
+        margin: '60px 0 20px 0', 
+        padding: '20px', 
+        backgroundColor: '#fff3cd',
+        border: '3px solid #856404',
+        fontWeight: 'bold'
+      }}>
+        === AI PROCESSING INSTRUCTIONS ===
+        <div style={{ fontWeight: 'normal', marginTop: '15px', lineHeight: '1.6' }}>
+          <strong>INSTRUCTIONS TO AI:</strong>
+          <br/><br/>
+          1. Process ALL the schema configuration above (PROJECT SCHEMA FIELDS and COLLECTIONS)
+          <br/>
+          2. Review ALL knowledge documents and extraction rules for context and guidance
+          <br/>
+          3. Extract data from the provided documents according to the schema structure
+          <br/>
+          4. Return extracted data in the exact JSON format specified below
+          <br/>
+          5. Include confidence scores (0-100) and reasoning for each extracted field
+          <br/>
+          6. Apply extraction rules and knowledge document guidelines during processing
+          <br/>
+          7. For collections, extract multiple instances as separate array items
+        </div>
+      </div>
+
+      {/* JSON Schema for AI Output */}
+      <div style={{ 
+        margin: '40px 0 20px 0', 
+        padding: '20px', 
+        backgroundColor: '#f8f9fa',
+        border: '3px solid #495057',
+        fontWeight: 'bold'
+      }}>
+        === REQUIRED JSON OUTPUT SCHEMA ===
+        <div style={{ fontWeight: 'normal', marginTop: '15px' }}>
+          <pre style={{ 
+            backgroundColor: '#ffffff',
+            padding: '15px',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            fontSize: '12px',
+            overflow: 'auto'
+          }}>
+{JSON.stringify({
+  "field_validations": [
+    // Schema fields (one per field)
+    ...schemaData.schema_fields.map(field => ({
+      "field_type": "schema_field",
+      "field_id": field.id,
+      "field_name": field.fieldName,
+      "description": `Schema field: ${field.description || 'No description'}`,
+      "extracted_value": "string | null",
+      "confidence_score": "number (0-100)",
+      "ai_reasoning": "string - explanation of extraction and confidence",
+      "document_source": "string - source document name",
+      "validation_status": "valid | invalid | pending",
+      "record_index": 0
+    })),
+    // Collection properties (multiple per property for each collection item)
+    ...schemaData.collections.flatMap(collection => 
+      collection.properties?.map((prop: any) => ({
+        "field_type": "collection_property", 
+        "field_id": prop.id,
+        "field_name": `${collection.collectionName}.${prop.propertyName}`,
+        "collection_name": collection.collectionName,
+        "description": `Collection property: ${prop.description || 'No description'}`,
+        "extracted_value": "string | null",
+        "confidence_score": "number (0-100)",
+        "ai_reasoning": "string - explanation of extraction and confidence",
+        "document_source": "string - source document name", 
+        "validation_status": "valid | invalid | pending",
+        "record_index": "number - 0 for first item, 1 for second item, etc."
+      })) || []
+    )
+  ]
+}, null, 2)}
+          </pre>
+        </div>
+      </div>
+
       {/* Next Step Button */}
       <div style={{ 
         margin: '40px 0', 
         textAlign: 'center',
         padding: '20px',
-        backgroundColor: '#fff3cd',
-        border: '2px solid #856404'
+        backgroundColor: '#d4edda',
+        border: '2px solid #155724'
       }}>
         <div style={{ marginBottom: '10px', fontWeight: 'bold' }}>
           STEP 2 COMPLETE: Schema & Rules Configuration

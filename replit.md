@@ -24,6 +24,12 @@ Preferred communication style: Simple, everyday language.
 - ✓ Added comprehensive auto-mapping behavior display with visual indicators for global vs targeted rules
 - ✓ Knowledge documents now automatically provide context to every field and collection property in the schema
 - ✓ Global extraction rules (without target fields) are automatically mapped to all schema properties for consistent processing
+- ✓ **AI EXTRACTION SCHEMA DEFINED**: Added comprehensive JSON schema matching database field_validation structure
+- ✓ Created detailed AI processing instructions section with step-by-step guidance for extraction workflow
+- ✓ Defined exact JSON output format with field_type, field_id, extracted_value, confidence_score, and ai_reasoning fields
+- ✓ Schema includes both schema_field and collection_property types with proper record indexing for collections
+- ✓ Added descriptions from schema configuration to guide AI understanding of each field's purpose
+- ✓ Renamed "Configuration Summary" to "Extraction Summary" for better clarity
 - ✓ **DUPLICATE VALIDATION RECORDS BUG COMPLETELY RESOLVED**: Fixed critical frontend logic that was selecting wrong validation records
 - ✓ Root cause identified: Multiple validation records existed for same field, frontend was picking null records instead of records with actual values
 - ✓ Enhanced getValidation function to prioritize validation records with actual extracted values over empty/null records
