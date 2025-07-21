@@ -253,7 +253,7 @@ export default function SessionView() {
     queryFn: () => apiRequest(`/api/sessions/${sessionId}`)
   });
 
-  const { data: validations = [] } = useQuery<FieldValidation[]>({
+  const { data: validations = [], isLoading: validationsLoading } = useQuery<FieldValidation[]>({
     queryKey: ['/api/sessions', sessionId, 'validations'],
     queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`),
     onSuccess: (data) => {
@@ -261,6 +261,11 @@ export default function SessionView() {
       if (data.length > 0) {
         console.log('Sample validation:', data[0]);
         console.log('All field names:', data.map(v => v.fieldName));
+        console.log('Validations with extracted values:', data.filter(v => v.extractedValue).map(v => ({
+          fieldName: v.fieldName, 
+          extractedValue: v.extractedValue, 
+          confidenceScore: v.confidenceScore
+        })));
       }
     }
   });
@@ -394,10 +399,17 @@ export default function SessionView() {
     }
   }, [session, validations, hasRunAutoValidation, batchValidationMutation]);
 
-  if (projectLoading || sessionLoading) {
+  if (projectLoading || sessionLoading || validationsLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+          <p className="mt-4 text-gray-600">
+            {projectLoading && "Loading project..."}
+            {sessionLoading && "Loading session..."}
+            {validationsLoading && "Loading validation data..."}
+          </p>
+        </div>
       </div>
     );
   }
@@ -442,7 +454,11 @@ export default function SessionView() {
 
   // Get validation for a specific field
   const getValidation = (fieldName: string) => {
-    return validations.find(v => v.fieldName === fieldName);
+    const validation = validations.find(v => v.fieldName === fieldName);
+    if (!validation) {
+      console.log(`No validation found for ${fieldName}, available validations:`, validations.map(v => v.fieldName));
+    }
+    return validation;
   };
 
   // Get session status based on field verification
@@ -1348,6 +1364,7 @@ Thank you for your assistance.`;
                 if (displayValue === "null" || displayValue === "undefined") {
                   displayValue = null;
                 }
+                console.log(`Rendering field ${field.fieldName} - originalValue:`, originalValue, 'validation:', !!validation, 'displayValue:', displayValue);
                 return renderFieldWithValidation(field.fieldName, displayValue, true);
               }
               return null;

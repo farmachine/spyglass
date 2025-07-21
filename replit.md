@@ -10,6 +10,15 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**January 21, 2025**
+- ✓ **"NOT EXTRACTED" TIMING BUG COMPLETELY RESOLVED**: Fixed critical React Query timing issue where validation data loaded after component render
+- ✓ Root cause identified: Component was rendering before validations query completed, causing initial "Not Extracted" display for all fields
+- ✓ Enhanced loading logic to wait for validationsLoading state before rendering any field data
+- ✓ Added comprehensive debug logging to track validation lookup and field rendering process
+- ✓ Schema fields, collection properties, and extracted values now display correct confidence badges immediately
+- ✓ Eliminated false "Not Extracted" negatives by ensuring validation data is available before field rendering
+- ✓ Loading screen now properly shows "Loading validation data..." during validation fetch process
+
 **January 20, 2025**
 - ✓ **MULTI-STEP LOADING POPUP IMPLEMENTED**: Replaced scattered loading screens with unified processing dialog
 - ✓ New elegant popup shows Upload → Extract → Validate → Complete progress with real-time percentages and status indicators
