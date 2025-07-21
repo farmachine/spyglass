@@ -1280,6 +1280,7 @@ import sys
 import json
 import base64
 from google import genai
+from google.genai import types
 import os
 
 # Read input data
@@ -1298,24 +1299,15 @@ for doc in documents:
         else:
             content = doc['file_content']
         
-        # Decode base64 content
-        file_bytes = base64.b64decode(content)
-        
-        # Use Gemini to extract text
+        # Use Gemini to extract text - correct format for new SDK
         response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=[
-                {
-                    "parts": [
-                        {
-                            "inline_data": {
-                                "mime_type": doc['mime_type'],
-                                "data": content
-                            }
-                        },
-                        "Extract all text from this document. Return only the text content, no analysis or formatting."
-                    ]
-                }
+                types.Part.from_bytes(
+                    data=base64.b64decode(content),
+                    mime_type=doc['mime_type']
+                ),
+                "Extract all text from this document. Return only the text content, no analysis or formatting."
             ]
         )
         
