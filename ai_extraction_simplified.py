@@ -54,14 +54,16 @@ def step1_extract_from_documents(
         
         logging.info(f"STEP 1: Starting extraction for {len(documents)} documents")
         
-        # Build extraction prompt
+        # Build extraction prompt with enhanced field descriptions
         prompt = f"""You are an expert data extraction specialist. Extract data from the provided documents and return a JSON object with the exact structure specified below.
 
 CRITICAL INSTRUCTIONS:
 1. Extract ONLY real data from the documents - NO sample or placeholder data
 2. If data is not found, use null
 3. Return JSON as a single object with the session name as the root key
-4. Count numeric fields by analyzing document content, not by counting extracted items
+4. For counting fields (like "Number of Parties"), count by analyzing the actual document content
+5. PAY SPECIAL ATTENTION to field descriptions - they guide what you should extract
+6. Use the exact field names specified, but output in camelCase format
 
 TARGET JSON STRUCTURE:
 {{"
@@ -73,21 +75,22 @@ TARGET JSON STRUCTURE:
 
 SCHEMA FIELDS TO EXTRACT:"""
         
-        # Add schema fields
+        # Add schema fields with descriptions for AI guidance
         if project_schema.get("schema_fields"):
             for field in project_schema["schema_fields"]:
                 field_name = field['fieldName']
                 field_type = field['fieldType']
                 field_description = field.get('description', '')
-                prompt += f"\n- {field_name} ({field_type}): {field_description}"
+                camel_case_name = field_name.replace(' ', '').replace('of', 'Of')
+                prompt += f"\n- {camel_case_name} ({field_type}): {field_description or 'Extract this field from the documents'}"
         
-        # Add collections
+        # Add collections with descriptions for AI guidance
         if project_schema.get("collections"):
             prompt += "\n\nCOLLECTIONS TO EXTRACT:"
             for collection in project_schema["collections"]:
                 collection_name = collection.get('collectionName', collection.get('objectName', ''))
                 collection_description = collection.get('description', '')
-                prompt += f"\n- {collection_name}: {collection_description}"
+                prompt += f"\n- {collection_name}: {collection_description or 'Extract array of these objects'}"
                 
                 properties = collection.get("properties", [])
                 if properties:
@@ -96,23 +99,25 @@ SCHEMA FIELDS TO EXTRACT:"""
                         prop_name = prop.get('propertyName', '')
                         prop_type = prop.get('propertyType', 'TEXT')
                         prop_description = prop.get('description', '')
-                        prompt += f"\n  * {prop_name} ({prop_type}): {prop_description}"
+                        prompt += f"\n  * {prop_name} ({prop_type}): {prop_description or 'Extract this property'}"
         
         prompt += f"""
 
 EXAMPLE OUTPUT FORMAT:
 {{"
   "{session_name}": {{
-    "numberOfParties": 3,
-    "numberOfNDAs": 2,
-    "parties": [
+    "NumberOfParties": 14,
+    "NumberOfNDAs": 8, 
+    "Parties": [
       {{
-        "partyName": "Company Name",
-        "address": "Full Address"
+        "partyName": "Actual Company Name from Document",
+        "address": "Real Address from Document"
       }}
     ]
   }}
 }}
+
+CRITICAL: Count parties by analyzing ALL entities mentioned in the documents, not just the ones you extract details for. Count NDAs by analyzing how many separate agreements or contracts are referenced.
 
 RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
         

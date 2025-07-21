@@ -1372,20 +1372,7 @@ except Exception as e:
         const camelCaseFieldName = convertToCamelCase(field.fieldName);
         let fieldValue = sessionObject[camelCaseFieldName];
         
-        // Calculate aggregated values for counting fields
-        if (!fieldValue && field.fieldName.toLowerCase().includes('number of parties')) {
-          const partiesCollection = sessionObject['Parties'] || sessionObject['parties'];
-          if (Array.isArray(partiesCollection)) {
-            fieldValue = partiesCollection.length;
-            console.log(`Calculated Number of Parties: ${fieldValue} from ${partiesCollection.length} items`);
-          }
-        }
-        
-        if (!fieldValue && field.fieldName.toLowerCase().includes('number of nda')) {
-          // For this test, assume 1 NDA per session
-          fieldValue = 1;
-          console.log(`Calculated Number of NDAs: ${fieldValue}`);
-        }
+        // Let AI handle ALL calculations - no programmatic logic
         
         console.log(`Creating validation record for schema field: ${field.fieldName} = ${fieldValue} (looking for ${camelCaseFieldName})`);
         
