@@ -96,9 +96,9 @@ export default function SchemaView() {
               type: field.fieldType,
               "AI guidance": field.description,
               "Extraction Rules": allRules.length > 0 ? allRules.join(' | ') : "No rules",
-              "Knowledge Documents Available": schemaData.knowledge_documents.length > 0 ? 
-                `${schemaData.knowledge_documents.length} document(s) with ${schemaData.knowledge_documents.reduce((total, doc) => total + (doc.content?.length || 0), 0)} total characters` : 
-                "No knowledge documents"
+              "Knowledge Documents": schemaData.knowledge_documents.length > 0 ? 
+                schemaData.knowledge_documents.map(doc => doc.displayName).join(', ') : 
+                "None"
             };
           })
         }, null, 2)}
@@ -139,9 +139,9 @@ export default function SchemaView() {
                 type: prop.propertyType,
                 "AI guidance": prop.description,
                 "Extraction Rules": allRules.length > 0 ? allRules.join(' | ') : "No rules",
-                "Knowledge Documents Available": schemaData.knowledge_documents.length > 0 ? 
-                  `${schemaData.knowledge_documents.length} document(s) with ${schemaData.knowledge_documents.reduce((total, doc) => total + (doc.content?.length || 0), 0)} total characters` : 
-                  "No knowledge documents"
+                "Knowledge Documents": schemaData.knowledge_documents.length > 0 ? 
+                  schemaData.knowledge_documents.map(doc => doc.displayName).join(', ') : 
+                  "None"
               };
             }) || []
           }))
@@ -161,20 +161,40 @@ export default function SchemaView() {
 
       <div style={{ marginBottom: '40px' }}>
         {schemaData.knowledge_documents.length > 0 ? (
-          schemaData.knowledge_documents.map((doc, index) => (
-            <div key={index} style={{ marginBottom: '20px' }}>
-              <div style={{ fontWeight: 'bold', marginBottom: '10px' }}>
-                KNOWLEDGE DOCUMENT {index + 1}: {doc.displayName}
+          schemaData.knowledge_documents.map((doc, index) => {
+            // Get all fields that this knowledge document applies to (which is all of them)
+            const allFields = [
+              ...schemaData.schema_fields.map(field => field.fieldName),
+              ...schemaData.collections.flatMap(collection => 
+                collection.properties?.map((prop: any) => `${collection.collectionName}.${prop.propertyName}`) || []
+              )
+            ];
+            
+            return (
+              <div key={index} style={{ marginBottom: '20px' }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '10px' }}>
+                  KNOWLEDGE DOCUMENT {index + 1}: {doc.displayName}
+                </div>
+                <div style={{ 
+                  padding: '10px', 
+                  backgroundColor: '#f5f5f5',
+                  border: '1px solid #ccc',
+                  marginBottom: '10px'
+                }}>
+                  {doc.content || 'No content available'}
+                </div>
+                <div style={{ 
+                  padding: '8px', 
+                  backgroundColor: '#e8f5e8',
+                  border: '1px solid #28a745',
+                  borderRadius: '4px',
+                  fontSize: '14px'
+                }}>
+                  <strong>Applies to fields:</strong> {allFields.join(', ') || 'No fields configured'}
+                </div>
               </div>
-              <div style={{ 
-                padding: '10px', 
-                backgroundColor: '#f5f5f5',
-                border: '1px solid #ccc'
-              }}>
-                {doc.content || 'No content available'}
-              </div>
-            </div>
-          ))
+            );
+          })
         ) : (
           <div>No knowledge documents configured</div>
         )}
@@ -223,24 +243,6 @@ export default function SchemaView() {
         )}
       </div>
 
-      {/* Auto-Mapping Summary */}
-      <div style={{ 
-        margin: '40px 0 20px 0', 
-        padding: '15px', 
-        backgroundColor: '#d1ecf1',
-        border: '2px solid #0c5460',
-        fontWeight: 'bold'
-      }}>
-        === AUTO-MAPPING BEHAVIOR ===
-        <div style={{ fontWeight: 'normal', marginTop: '10px' }}>
-          🌐 <strong>Knowledge Documents:</strong> ALL {schemaData.knowledge_documents.length} document(s) are automatically applied to EVERY schema field and collection property
-          <br/>
-          🌐 <strong>Global Rules:</strong> {schemaData.extraction_rules.filter(rule => !rule.targetFields || rule.targetFields.length === 0).length} rule(s) with no target fields are automatically applied to ALL properties
-          <br/>
-          🎯 <strong>Targeted Rules:</strong> {schemaData.extraction_rules.filter(rule => rule.targetFields && rule.targetFields.length > 0).length} rule(s) are applied only to their specific target fields
-        </div>
-      </div>
-
       {/* Summary */}
       <div style={{ 
         margin: '40px 0 20px 0', 
@@ -252,8 +254,8 @@ export default function SchemaView() {
         === CONFIGURATION SUMMARY ===
         Schema Fields: {schemaData.schema_fields.length}
         Collections: {schemaData.collections.length}
-        Knowledge Documents: {schemaData.knowledge_documents.length} (auto-applied to all)
-        Extraction Rules: {schemaData.extraction_rules.length} ({schemaData.extraction_rules.filter(rule => !rule.targetFields || rule.targetFields.length === 0).length} global + {schemaData.extraction_rules.filter(rule => rule.targetFields && rule.targetFields.length > 0).length} targeted)
+        Knowledge Documents: {schemaData.knowledge_documents.length}
+        Extraction Rules: {schemaData.extraction_rules.length}
         === END CONFIGURATION ===
       </div>
 
