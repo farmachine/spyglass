@@ -1644,18 +1644,30 @@ for validation in validations:
     field_name = validation['fieldName']
     extracted_value = validation['extractedValue']
     
+    # Debug: Show what we're processing
+    print(f"BATCH_VALIDATION: Processing {field_name} with value: {repr(extracted_value)} (type: {type(extracted_value)})", file=sys.stderr)
+    
     # Process ALL validations - assign confidence based on value presence
-    if extracted_value is not None and extracted_value != "" and extracted_value != "null":
+    # Handle both string and numeric values properly
+    has_value = (
+        extracted_value is not None and 
+        extracted_value != "" and 
+        extracted_value != "null" and
+        extracted_value != "undefined" and
+        str(extracted_value).strip() != ""
+    )
+    
+    if has_value:
         # For non-empty values, calculate confidence with rules/knowledge docs
         confidence, applied_rules = calculate_knowledge_based_confidence(
-            field_name, extracted_value, 95, extraction_rules, knowledge_documents
+            field_name, str(extracted_value), 95, extraction_rules, knowledge_documents
         )
-        print(f"BATCH_VALIDATION: {field_name} = '{extracted_value}' -> {confidence}%", file=sys.stderr)
+        print(f"BATCH_VALIDATION: {field_name} = '{extracted_value}' -> {confidence}% (has value)", file=sys.stderr)
     else:
         # Empty/null values get 0% confidence (not 20% to match user preference)
         confidence = 0
         applied_rules = []
-        print(f"BATCH_VALIDATION: {field_name} = null/empty -> 0%", file=sys.stderr)
+        print(f"BATCH_VALIDATION: {field_name} = null/empty -> 0% (no value)", file=sys.stderr)
     
     # Always include to ensure all fields have proper confidence scores
     results.append({
