@@ -384,16 +384,41 @@ ${error instanceof Error ? error.message : 'Unknown error'}
       if (jsonMatch) {
         jsonText = jsonMatch[1].trim();
       } else {
-        // Pattern 2: Look for array starting with [ and ending with ]
-        const arrayMatch = geminiResponse.match(/(\[[\s\S]*\])/);
-        if (arrayMatch) {
-          jsonText = arrayMatch[1].trim();
-        } else {
-          // Pattern 3: Look for object starting with { and ending with }
-          const objectMatch = geminiResponse.match(/(\{[\s\S]*\})/);
-          if (objectMatch) {
-            jsonText = objectMatch[1].trim();
+        // Pattern 2: Look for array starting with [ and ending with ] (balanced brackets)
+        const lines = geminiResponse.split('\n');
+        let arrayStart = -1;
+        let arrayEnd = -1;
+        let bracketCount = 0;
+        
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (line.startsWith('[') && arrayStart === -1) {
+            arrayStart = i;
+            bracketCount = 1;
+            // Count brackets in the same line
+            for (let j = 1; j < line.length; j++) {
+              if (line[j] === '[') bracketCount++;
+              if (line[j] === ']') bracketCount--;
+            }
+            if (bracketCount === 0) {
+              arrayEnd = i;
+              break;
+            }
+          } else if (arrayStart !== -1) {
+            // Count brackets to find the end
+            for (let j = 0; j < line.length; j++) {
+              if (line[j] === '[') bracketCount++;
+              if (line[j] === ']') bracketCount--;
+            }
+            if (bracketCount === 0) {
+              arrayEnd = i;
+              break;
+            }
           }
+        }
+        
+        if (arrayStart !== -1 && arrayEnd !== -1) {
+          jsonText = lines.slice(arrayStart, arrayEnd + 1).join('\n').trim();
         }
       }
 
@@ -402,10 +427,27 @@ ${error instanceof Error ? error.message : 'Unknown error'}
         throw new Error('No valid JSON found in extraction results');
       }
 
-      console.log('Extracted JSON text:', jsonText.substring(0, 500) + '...');
+      console.log('Extracted JSON text (first 500 chars):', jsonText.substring(0, 500));
+      console.log('Extracted JSON text (last 200 chars):', jsonText.substring(Math.max(0, jsonText.length - 200)));
       console.log('Full JSON text length:', jsonText.length);
       
-      const extractedData = JSON.parse(jsonText);
+      // More aggressive JSON cleaning to handle malformed responses
+      let cleanedJsonText = jsonText
+        .replace(/\n\s*\n/g, '\n') // Remove empty lines
+        .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
+        .replace(/\.\.\./g, '') // Remove ellipsis that might truncate strings
+        .trim();
+      
+      // Find the last complete closing bracket
+      let lastClosingBracket = cleanedJsonText.lastIndexOf(']');
+      if (lastClosingBracket > 0) {
+        cleanedJsonText = cleanedJsonText.substring(0, lastClosingBracket + 1);
+      }
+      
+      console.log('Cleaned JSON text length:', cleanedJsonText.length);
+      console.log('Cleaned JSON text (last 100 chars):', cleanedJsonText.substring(Math.max(0, cleanedJsonText.length - 100)));
+      
+      const extractedData = JSON.parse(cleanedJsonText);
       
       // Ensure extractedData is an array
       const validationsArray = Array.isArray(extractedData) ? extractedData : [extractedData];
