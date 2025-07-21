@@ -1340,35 +1340,6 @@ except Exception as e:
             const schemaFields = await storage.getProjectSchemaFields(projectId);
             const collections = await storage.getObjectCollections(projectId);
             
-            for (const validation of fieldValidations || []) {
-              try {
-                // Map field name to proper field ID and type
-                const fieldMapping = await mapFieldNameToId(validation.field_name, schemaFields, collections);
-                
-                if (!fieldMapping) {
-                  console.warn(`Could not map field name: ${validation.field_name}`);
-                  continue;
-                }
-                
-                await storage.createFieldValidation({
-                  sessionId: validation.session_id,
-                  fieldId: fieldMapping.fieldId,
-                  fieldType: fieldMapping.fieldType,
-                  collectionName: fieldMapping.collectionName,
-                  recordIndex: fieldMapping.recordIndex,
-                  extractedValue: validation.extracted_value,
-                  validationStatus: validation.validation_status,
-                  confidenceScore: validation.validation_confidence,
-                  aiReasoning: validation.ai_reasoning,
-                  manualInput: false
-                });
-                
-                console.log(`Created validation for ${validation.field_name} -> ${fieldMapping.fieldType}`);
-              } catch (validationError) {
-                console.error(`Error creating validation record for ${validation.field_name}:`, validationError);
-              }
-            }
-            
             // Helper function to map field names to database IDs
             async function mapFieldNameToId(fieldName: string, schemaFields: any[], collections: any[]) {
               // Handle schema fields (e.g., "Number of Parties")
@@ -1405,6 +1376,35 @@ except Exception as e:
               }
               
               return null;
+            }
+            
+            for (const validation of fieldValidations || []) {
+              try {
+                // Map field name to proper field ID and type
+                const fieldMapping = await mapFieldNameToId(validation.field_name, schemaFields, collections);
+                
+                if (!fieldMapping) {
+                  console.warn(`Could not map field name: ${validation.field_name}`);
+                  continue;
+                }
+                
+                await storage.createFieldValidation({
+                  sessionId: validation.session_id,
+                  fieldId: fieldMapping.fieldId,
+                  fieldType: fieldMapping.fieldType,
+                  collectionName: fieldMapping.collectionName,
+                  recordIndex: fieldMapping.recordIndex,
+                  extractedValue: validation.extracted_value,
+                  validationStatus: validation.validation_status,
+                  confidenceScore: validation.validation_confidence,
+                  aiReasoning: validation.ai_reasoning,
+                  manualInput: false
+                });
+                
+                console.log(`Created validation for ${validation.field_name} -> ${fieldMapping.fieldType}`);
+              } catch (validationError) {
+                console.error(`Error creating validation record for ${validation.field_name}:`, validationError);
+              }
             }
             
             resolve({ fieldValidations, aggregatedExtraction });
