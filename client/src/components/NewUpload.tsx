@@ -218,7 +218,7 @@ export default function NewUpload({ project }: NewUploadProps) {
         status: "in_progress",
       });
 
-      // Step 2: Simulate file upload progress
+      // Step 2: File upload progress
       setProcessingStep('uploading');
       for (let i = 0; i < selectedFiles.length; i++) {
         await new Promise(resolve => setTimeout(resolve, 200));
@@ -226,7 +226,7 @@ export default function NewUpload({ project }: NewUploadProps) {
         setProcessingProgress(((i + 1) / selectedFiles.length) * 100);
       }
 
-      // Prepare file data for AI processing
+      // Prepare file data for text extraction
       const filesData = await Promise.all(selectedFiles.map(async (fileData) => {
         try {
           // Read file content as base64
@@ -260,66 +260,22 @@ export default function NewUpload({ project }: NewUploadProps) {
         }
       }));
 
-      // Step 3: AI Extraction Phase
+      // Step 3: Text Extraction Phase (NEW SIMPLIFIED APPROACH)
       setProcessingStep('extracting');
       setProcessingProgress(0);
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "processing" as const })));
-      
-      // Get project schema and collections for AI processing
-      const projectSchema = schemaFields || [];
-      const projectRules = extractionRules || [];
-      
-      // Enhance collections with their properties
-      const collectionsWithProperties = await Promise.all(
-        (collections || []).map(async (collection) => {
-          try {
-            const properties = await apiRequest(`/api/collections/${collection.id}/properties`);
-            return { ...collection, properties };
-          } catch (error) {
-            console.error(`Failed to fetch properties for collection ${collection.id}:`, error);
-            return { ...collection, properties: [] };
-          }
-        })
-      );
 
-      // Start extraction with progress simulation
-      const extractionPromise = processExtraction.mutateAsync({
-        sessionId: session.id,
-        files: filesData,
-        project_data: {
-          ...project,
-          schemaFields: projectSchema,
-          collections: collectionsWithProperties,
-          extractionRules: projectRules
-        }
+      // Call new text extraction endpoint
+      const textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
+        method: 'POST',
+        body: JSON.stringify({ files: filesData }),
+        headers: { 'Content-Type': 'application/json' }
       });
 
-      // Simulate extraction progress
-      const progressInterval = setInterval(() => {
-        setProcessingProgress(prev => {
-          const newProgress = prev + 10;
-          return Math.min(newProgress, 90);
-        });
-      }, 300);
-
-      // Wait for extraction to complete
-      const extractionResult = await extractionPromise;
-      clearInterval(progressInterval);
       setProcessingProgress(100);
 
-      // Step 4: Validation Phase
-      setProcessingStep('validating');
-      setProcessingProgress(0);
-
-      // Simulate validation progress
-      for (let progress = 0; progress <= 100; progress += 20) {
-        await new Promise(resolve => setTimeout(resolve, 200));
-        setProcessingProgress(progress);
-      }
-
-      // Step 5: Complete
+      // Step 4: Complete
       setProcessingStep('complete');
-      setProcessingProgress(100);
 
       // Mark files as completed
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
@@ -327,31 +283,30 @@ export default function NewUpload({ project }: NewUploadProps) {
       // Show success briefly before redirect
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Verify extraction was successful before redirecting
-      if (extractionResult && session?.id) {
+      if (textExtractionResult && session?.id) {
         toast({
-          title: "Processing complete",
-          description: `${selectedFiles.length} file(s) processed successfully. Redirecting to review page...`,
+          title: "Text extraction complete",
+          description: `${selectedFiles.length} file(s) processed successfully. Viewing extracted text...`,
         });
 
-        // Close dialog and redirect
+        // Close dialog and redirect to text view
         setShowProcessingDialog(false);
-        setLocation(`/projects/${project.id}/sessions/${session.id}`);
+        setLocation(textExtractionResult.redirect || `/sessions/${session.id}/text-view`);
       } else {
-        throw new Error("Extraction completed but session data is missing");
+        throw new Error("Text extraction completed but session data is missing");
       }
       
       // Reset form
       form.reset();
       setSelectedFiles([]);
     } catch (error) {
-      console.error("Failed to start extraction session:", error);
+      console.error("Failed to extract text:", error);
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "error" as const })));
       
       setShowProcessingDialog(false);
       toast({
-        title: "Processing failed",
-        description: "There was an error processing your files. Please try again.",
+        title: "Text extraction failed",
+        description: "There was an error extracting text from your files. Please try again.",
         variant: "destructive",
       });
       

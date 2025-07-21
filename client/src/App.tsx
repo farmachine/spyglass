@@ -9,6 +9,7 @@ import Dashboard from "@/pages/Dashboard";
 import ProjectView from "@/pages/ProjectView";
 import SessionReview from "@/pages/SessionReview";
 import SessionView from "@/pages/SessionView";
+import DocumentTextView from "@/pages/DocumentTextView";
 import AdminPanel from "@/pages/AdminPanel";
 import OrganizationConfig from "@/pages/OrganizationConfig";
 import Login from "@/pages/Login";
@@ -32,6 +33,11 @@ function Router() {
       <Route path="/projects/:projectId/sessions/:sessionId">
         <ProtectedRoute>
           <SessionView />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/sessions/:sessionId/text-view">
+        <ProtectedRoute>
+          <DocumentTextView />
         </ProtectedRoute>
       </Route>
       <Route path="/admin">

@@ -1258,6 +1258,145 @@ except Exception as e:
     }
   });
   
+  // STEP-BY-STEP DEVELOPMENT: Extract document text only
+  app.post("/api/sessions/:sessionId/extract-text", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const { files } = req.body;
+      
+      console.log(`TEXT EXTRACTION: Starting text extraction for session ${sessionId}`);
+      console.log(`Processing ${files?.length || 0} documents`);
+      
+      // Convert frontend file format to Python script expected format
+      const convertedFiles = (files || []).map((file: any) => ({
+        file_name: file.name,
+        file_content: file.content, // This is the data URL from FileReader
+        mime_type: file.type
+      }));
+
+      // Call Python script to extract text only
+      const python = spawn('python3', ['-c', `
+import sys
+import json
+import base64
+from google import genai
+import os
+
+# Read input data
+input_data = json.loads(sys.stdin.read())
+documents = input_data.get('documents', [])
+
+client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+
+extracted_texts = []
+
+for doc in documents:
+    try:
+        # Handle data URL format (data:application/pdf;base64,...)
+        if doc['file_content'].startswith('data:'):
+            content = doc['file_content'].split(',')[1]
+        else:
+            content = doc['file_content']
+        
+        # Decode base64 content
+        file_bytes = base64.b64decode(content)
+        
+        # Use Gemini to extract text
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[
+                {
+                    "parts": [
+                        {
+                            "inline_data": {
+                                "mime_type": doc['mime_type'],
+                                "data": content
+                            }
+                        },
+                        "Extract all text from this document. Return only the text content, no analysis or formatting."
+                    ]
+                }
+            ]
+        )
+        
+        text_content = response.text if response.text else "No text could be extracted"
+        
+        extracted_texts.append({
+            "file_name": doc['file_name'],
+            "text_content": text_content,
+            "word_count": len(text_content.split()) if text_content else 0
+        })
+        
+    except Exception as e:
+        extracted_texts.append({
+            "file_name": doc['file_name'],
+            "text_content": f"Error extracting text: {str(e)}",
+            "word_count": 0
+        })
+
+# Return results
+result = {
+    "success": True,
+    "extracted_texts": extracted_texts,
+    "total_documents": len(documents),
+    "total_word_count": sum(doc.get('word_count', 0) for doc in extracted_texts)
+}
+
+print(json.dumps(result))
+`]);
+      
+      python.stdin.write(JSON.stringify({ documents: convertedFiles }));
+      python.stdin.end();
+      
+      let output = '';
+      let error = '';
+      
+      python.stdout.on('data', (data: any) => {
+        output += data.toString();
+      });
+      
+      python.stderr.on('data', (data: any) => {
+        error += data.toString();
+      });
+      
+      await new Promise((resolve, reject) => {
+        python.on('close', async (code: any) => {
+          if (code !== 0) {
+            console.error('TEXT EXTRACTION error:', error);
+            return reject(new Error(`Text extraction failed: ${error}`));
+          }
+          
+          try {
+            const result = JSON.parse(output);
+            console.log(`TEXT EXTRACTION: Extracted text from ${result.total_documents} documents, ${result.total_word_count} words total`);
+            
+            // Store extracted text data in session
+            await storage.updateExtractionSession(sessionId, {
+              status: "text_extracted",
+              extractedData: JSON.stringify(result)
+            });
+            
+            resolve(result);
+            
+          } catch (parseError) {
+            console.error('TEXT EXTRACTION JSON parse error:', parseError);
+            console.error('Raw output:', output);
+            reject(new Error(`Invalid JSON response: ${parseError}`));
+          }
+        });
+      });
+      
+      res.json({
+        message: "Text extraction completed successfully",
+        redirect: `/sessions/${sessionId}/text-view`
+      });
+      
+    } catch (error) {
+      console.error("TEXT EXTRACTION error:", error);
+      res.status(500).json({ message: "Failed to extract text from documents", error: error.message });
+    }
+  });
+
   // SINGLE-STEP PROCESS: Extract and validate in one AI call (eliminates field mapping confusion)
   app.post("/api/sessions/:sessionId/process", async (req, res) => {
     try {
