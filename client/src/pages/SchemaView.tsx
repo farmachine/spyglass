@@ -33,12 +33,12 @@ export default function SchemaView() {
   } | null>(null);
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
 
-  // Auto-load document content when session is available
+  // Auto-load document content using Gemini API when session is available
   useEffect(() => {
-    const loadDocumentContent = async () => {
-      if (!session || !sessionId) return;
+    const loadDocumentContentWithGemini = async () => {
+      if (!session || !sessionId || !session.projectId) return;
       
-      // Check if we already have extracted text in session
+      // Check if we already have Gemini-extracted content
       if (session.extractedData) {
         try {
           const extractedData = JSON.parse(session.extractedData);
@@ -57,29 +57,32 @@ export default function SchemaView() {
         }
       }
 
-      // If no extracted text, trigger text extraction automatically
+      // If no extracted content, trigger Gemini-based document extraction automatically
       if (session.documents && session.documents.length > 0 && session.status !== 'text_extracted') {
-        console.log('Auto-triggering text extraction for documents...');
+        console.log('Auto-triggering Gemini document content extraction...');
         setIsLoadingDocuments(true);
         
         try {
+          // Use the extract-text endpoint which uses Gemini API for content extraction
           const response = await apiRequest(`/api/sessions/${sessionId}/extract-text`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
           });
           
           if (response.message) {
-            // Reload session to get updated extractedData
-            window.location.reload();
+            // Refresh the session data to get the updated extractedData
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
           }
         } catch (error) {
-          console.error('Auto text extraction failed:', error);
+          console.error('Gemini document extraction failed:', error);
           setIsLoadingDocuments(false);
         }
       }
     };
 
-    loadDocumentContent();
+    loadDocumentContentWithGemini();
   }, [session, sessionId]);
 
   // Function to generate markdown from schema data
@@ -371,6 +374,47 @@ ${error instanceof Error ? error.message : 'Unknown error'}
     }}>
       {/* Header */}
       <div style={{ 
+        margin: '0 0 20px 0', 
+        padding: '15px', 
+        backgroundColor: '#e7f3ff',
+        border: '2px solid #0066cc',
+        fontWeight: 'bold'
+      }}>
+        === STEP 1 COMPLETE: Document Content Extracted ===
+        Session: {session?.sessionName || 'Unnamed Session'}
+        Project: {schemaData.project?.name || 'Unnamed Project'}
+        Main Object: {schemaData.project?.mainObjectName || 'Session'}
+      </div>
+
+      {/* Document Content Display */}
+      {documentContent && (
+        <div style={{ 
+          margin: '0 0 40px 0', 
+          padding: '15px', 
+          backgroundColor: '#fff9c4',
+          border: '2px solid #d69e2e',
+          fontWeight: 'bold'
+        }}>
+          === EXTRACTED DOCUMENT CONTENT ({documentContent.count} DOCUMENTS) ===
+          <div style={{ 
+            marginTop: '10px',
+            padding: '10px',
+            backgroundColor: '#f8f9fa',
+            border: '1px solid #dee2e6',
+            maxHeight: '200px',
+            overflowY: 'auto',
+            fontSize: '12px',
+            fontWeight: 'normal'
+          }}>
+            {documentContent.text.substring(0, 800)}...
+            <div style={{ marginTop: '10px', fontStyle: 'italic', color: '#666' }}>
+              [Showing first 800 characters - Full content will be sent to AI for processing]
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div style={{ 
         margin: '0 0 40px 0', 
         padding: '15px', 
         backgroundColor: '#e7f3ff',
@@ -378,10 +422,6 @@ ${error instanceof Error ? error.message : 'Unknown error'}
         fontWeight: 'bold'
       }}>
         === STEP 2: PROJECT SCHEMA & AI PROCESSING CONFIGURATION ===
-        Session: {session?.sessionName || 'Unnamed Session'}
-        Project: {schemaData.project?.name || 'Unnamed Project'}
-        Main Object: {schemaData.project?.mainObjectName || 'Session'}
-        === SCHEMA FOR AI PROCESSING ===
       </div>
 
 
