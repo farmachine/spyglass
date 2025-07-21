@@ -1389,6 +1389,75 @@ print(json.dumps(result))
     }
   });
 
+  // Get schema data for AI processing view
+  app.get('/api/sessions/:sessionId/schema-data', async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      
+      // Get session to find project
+      const session = await storage.getSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: 'Session not found' });
+      }
+
+      // Get project data
+      const project = await storage.getProject(session.projectId);
+      if (!project) {
+        return res.status(404).json({ error: 'Project not found' });
+      }
+
+      // Get schema fields
+      const schemaFields = await storage.getProjectSchemaFields(session.projectId);
+      
+      // Get collections with properties
+      const collections = await storage.getProjectCollections(session.projectId);
+      
+      // Get knowledge documents
+      const knowledgeDocuments = await storage.getKnowledgeDocuments(session.projectId);
+      
+      // Get extraction rules
+      const extractionRules = await storage.getExtractionRules(session.projectId);
+
+      const responseData = {
+        project: {
+          id: project.id,
+          name: project.name,
+          description: project.description,
+          mainObjectName: project.mainObjectName
+        },
+        schema_fields: schemaFields.map(field => ({
+          id: field.id,
+          fieldName: field.fieldName,
+          fieldType: field.fieldType,
+          description: field.description,
+          orderIndex: field.orderIndex
+        })),
+        collections: collections.map(collection => ({
+          id: collection.id,
+          collectionName: collection.collectionName,
+          description: collection.description,
+          properties: collection.properties || []
+        })),
+        knowledge_documents: knowledgeDocuments.map(doc => ({
+          id: doc.id,
+          displayName: doc.displayName,
+          content: doc.content
+        })),
+        extraction_rules: extractionRules.map(rule => ({
+          id: rule.id,
+          ruleName: rule.ruleName,
+          ruleContent: rule.ruleContent,
+          targetFields: rule.targetFields
+        }))
+      };
+
+      res.json(responseData);
+    } catch (error) {
+      console.error('Error getting schema data:', error);
+      res.status(500).json({ error: 'Failed to get schema data' });
+    }
+  });
+
   // SINGLE-STEP PROCESS: Extract and validate in one AI call (eliminates field mapping confusion)
   app.post("/api/sessions/:sessionId/process", async (req, res) => {
     try {

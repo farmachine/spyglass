@@ -97,6 +97,34 @@ export default function DocumentTextView() {
         Total Words: {extractedData.total_word_count?.toLocaleString()}
         === END SUMMARY ===
       </div>
+
+      {/* Next Step Button */}
+      <div style={{ 
+        margin: '40px 0', 
+        textAlign: 'center',
+        padding: '20px',
+        backgroundColor: '#fff3cd',
+        border: '2px solid #856404'
+      }}>
+        <div style={{ marginBottom: '10px', fontWeight: 'bold' }}>
+          STEP 1 COMPLETE: Text Extraction
+        </div>
+        <button 
+          onClick={() => window.location.href = `/sessions/${sessionId}/schema-view`}
+          style={{
+            padding: '12px 24px',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            backgroundColor: '#007bff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          NEXT: View Schema & Rules for AI Processing
+        </button>
+      </div>
     </div>
   );
 }
