@@ -247,10 +247,23 @@ export default function SchemaView() {
       
       const fullPrompt = generateSchemaMarkdown(schemaData, documentText, documentCount);
       
-      // Debug logging
-      console.log('SCHEMA VIEW DEBUG - Document count:', documentCount);
-      console.log('SCHEMA VIEW DEBUG - Document text length:', documentText.length);
-      console.log('SCHEMA VIEW DEBUG - First 200 chars of document text:', documentText.substring(0, 200));
+      // Enhanced debug logging
+      console.log('SCHEMA VIEW DEBUG - Session data:', {
+        hasExtractedData: !!session?.extractedData,
+        hasExtractedText: !!session?.extractedText,
+        sessionKeys: session ? Object.keys(session) : []
+      });
+      
+      if (session?.extractedData) {
+        console.log('SCHEMA VIEW DEBUG - ExtractedData preview:', session.extractedData.substring(0, 300));
+        console.log('SCHEMA VIEW DEBUG - ExtractedData type:', typeof session.extractedData);
+      }
+      
+      console.log('SCHEMA VIEW DEBUG - Final values:', {
+        documentCount,
+        documentTextLength: documentText.length,
+        documentTextPreview: documentText.substring(0, 200)
+      });
       
       // Make actual API call to Gemini
       const response = await apiRequest(`/api/sessions/${sessionId}/gemini-extraction`, {
@@ -303,6 +316,38 @@ ${error instanceof Error ? error.message : 'Unknown error'}
     );
   }
 
+  // Generate current prompt preview
+  const getCurrentPromptPreview = () => {
+    if (!session?.extractedData && !session?.extractedText) {
+      return "No document content available - please run text extraction first";
+    }
+
+    let documentText = "No document text available";
+    let documentCount = 0;
+    
+    if (session?.extractedData) {
+      try {
+        const extractedData = JSON.parse(session.extractedData);
+        if (extractedData?.documents && Array.isArray(extractedData.documents)) {
+          documentText = extractedData.documents.map((doc: any, index: number) => 
+            `--- DOCUMENT ${index + 1}: ${doc.file_name} ---\n${doc.extracted_text}`
+          ).join('\n\n--- DOCUMENT SEPARATOR ---\n\n');
+          documentCount = extractedData.documents.length;
+        }
+      } catch (parseError) {
+        console.error("Failed to parse session extractedData:", parseError);
+      }
+    }
+    
+    if (documentText === "No document text available" && session?.extractedText) {
+      documentText = session.extractedText;
+      documentCount = session.documents?.length || 0;
+    }
+
+    const prompt = generateSchemaMarkdown(schemaData, documentText, documentCount);
+    return prompt;
+  };
+
   return (
     <div style={{ 
       padding: '20px', 
@@ -326,6 +371,29 @@ ${error instanceof Error ? error.message : 'Unknown error'}
         Project: {schemaData.project?.name || 'Unnamed Project'}
         Main Object: {schemaData.project?.mainObjectName || 'Session'}
         === SCHEMA FOR AI PROCESSING ===
+      </div>
+
+      {/* CURRENT PROMPT PREVIEW */}
+      <div style={{ 
+        margin: '0 0 40px 0', 
+        padding: '15px', 
+        backgroundColor: '#fff3cd',
+        border: '2px solid #856404',
+        fontWeight: 'bold'
+      }}>
+        === CURRENT PROMPT PREVIEW (FIRST 1000 CHARS) ===
+        <div style={{ 
+          marginTop: '10px',
+          padding: '10px',
+          backgroundColor: '#f8f9fa',
+          border: '1px solid #dee2e6',
+          maxHeight: '300px',
+          overflowY: 'auto',
+          fontSize: '12px',
+          fontWeight: 'normal'
+        }}>
+          {getCurrentPromptPreview().substring(0, 1000)}...
+        </div>
       </div>
 
       {/* Project Schema Fields */}
