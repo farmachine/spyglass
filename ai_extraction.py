@@ -950,12 +950,19 @@ def run_post_extraction_batch_validation(session_data: Dict[str, Any]) -> Dict[s
                     updated_validation["original_confidence_score"] = confidence
                     updated_validation["original_ai_reasoning"] = reasoning
                     
-                    # Update validation status based on new confidence
-                    auto_threshold = validation.get("auto_verification_threshold", 80)
-                    if confidence >= auto_threshold:
-                        updated_validation["validation_status"] = "verified"
+                    # PRESERVE MANUAL INPUT STATUS - Only update validation status if not manually entered
+                    current_status = validation.get("validation_status", "")
+                    if current_status == "manual":
+                        # Preserve manual status - don't override with AI confidence-based status
+                        updated_validation["validation_status"] = "manual"
+                        logging.info(f"PRESERVING manual status for field: {field_name}")
                     else:
-                        updated_validation["validation_status"] = "unverified"
+                        # Update validation status based on new confidence for AI-extracted fields
+                        auto_threshold = validation.get("auto_verification_threshold", 80)
+                        if confidence >= auto_threshold:
+                            updated_validation["validation_status"] = "verified"
+                        else:
+                            updated_validation["validation_status"] = "unverified"
                     
                     updated_validations.append(updated_validation)
                     logging.info(f"✅ Updated {field_name}: {confidence}% confidence")

@@ -11,6 +11,15 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 21, 2025**
+- ✓ **MANUAL INPUT STATUS PRESERVATION BUG COMPLETELY RESOLVED**: Fixed critical issue where manually entered fields reverted to AI confidence after brain icon validation
+- ✓ Root cause identified: Python batch validation function was overriding manual input status without checking validation_status === "manual"
+- ✓ Enhanced batch validation logic to preserve manual input status when applying extraction rules via brain icon
+- ✓ Manual input fields now maintain "Manual Input" badge even after running validation rules
+- ✓ Only AI-extracted fields get updated confidence scores and status changes during batch validation
+- ✓ **EDITABLE COLLECTION DISPLAY NAMES IMPLEMENTED**: Added inline editing functionality for collection object display names
+- ✓ Collection items now show edit button next to display names with save/cancel functionality
+- ✓ Fixed React hooks violation by moving useState calls to component level with proper state management
+- ✓ Display names persist in component state and can be edited independently for each collection item
 - ✓ **VALIDATION RECORDS EMPTY VALUE BUG COMPLETELY RESOLVED**: Fixed critical issue where validation records were created with empty `extracted_value` fields
 - ✓ Root cause identified: Database validation records had empty strings while UI displayed actual values from session's `extractedData`
 - ✓ Batch validation correctly assigned 0% confidence to empty values, but UI expected confidence for displayed values

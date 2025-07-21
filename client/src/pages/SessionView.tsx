@@ -227,6 +227,8 @@ export default function SessionView() {
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
   const [hasInitializedCollapsed, setHasInitializedCollapsed] = useState(false);
   const [hasRunAutoValidation, setHasRunAutoValidation] = useState(false);
+  const [editingDisplayNames, setEditingDisplayNames] = useState<Record<string, boolean>>({});
+  const [displayNames, setDisplayNames] = useState<Record<string, string>>({});
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -1473,10 +1475,59 @@ Thank you for your assistance.`;
                   };
                   
                   const itemDisplayName = getItemDisplayName(item, collection, index);
+                  const itemKey = `${collection.collectionName}-${index}`;
+                  const isEditingDisplayName = editingDisplayNames[itemKey] || false;
+                  const editDisplayName = displayNames[itemKey] || itemDisplayName;
                   
                   return (
                     <div key={index} className="mb-6 p-4 bg-gray-50 rounded-lg w-full overflow-hidden">
-                      <h4 className="font-medium mb-4">{itemDisplayName}</h4>
+                      <div className="flex items-center gap-2 mb-4">
+                        {isEditingDisplayName ? (
+                          <div className="flex items-center gap-2 flex-1">
+                            <Input
+                              type="text"
+                              value={editDisplayName}
+                              onChange={(e) => setDisplayNames(prev => ({ ...prev, [itemKey]: e.target.value }))}
+                              className="flex-1"
+                              placeholder="Item display name"
+                            />
+                            <Button 
+                              size="sm" 
+                              onClick={() => {
+                                setEditingDisplayNames(prev => ({ ...prev, [itemKey]: false }));
+                                // Display name is already saved in state
+                              }}
+                            >
+                              Save
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => {
+                                setDisplayNames(prev => ({ ...prev, [itemKey]: itemDisplayName }));
+                                setEditingDisplayNames(prev => ({ ...prev, [itemKey]: false }));
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 flex-1">
+                            <h4 className="font-medium">{editDisplayName}</h4>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setDisplayNames(prev => ({ ...prev, [itemKey]: editDisplayName }));
+                                setEditingDisplayNames(prev => ({ ...prev, [itemKey]: true }));
+                              }}
+                              className="h-6 px-2"
+                            >
+                              <Edit3 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                       <div className="space-y-4">
                         {collection.properties
                           .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
