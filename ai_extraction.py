@@ -1303,16 +1303,32 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
     logging.info(f"Found {len(collection_names)} collections to aggregate: {collection_names}")
     logging.info(f"Processing {len(completed_docs)} completed documents")
     
-    # First, collect all non-collection fields from the first successful document
+    # First, collect and calculate schema fields across all documents
+    schema_field_totals = {}
     for doc in results["processed_documents"]:
         if doc.get("status") == "completed":
             extracted_data = doc["extraction_result"]["extracted_data"]
             for field_name, field_value in extracted_data.items():
                 if field_name not in collection_names and field_value is not None:
-                    # Take the first non-null value for non-collection fields
-                    if field_name not in aggregated_data:
-                        aggregated_data[field_name] = field_value
-            break
+                    # For fields that contain "Number of" in their name, sum across documents
+                    if "Number of" in field_name and isinstance(field_value, (int, str)):
+                        try:
+                            # Convert to integer and add to total
+                            value_as_int = int(field_value)
+                            schema_field_totals[field_name] = schema_field_totals.get(field_name, 0) + value_as_int
+                            logging.info(f"Adding {value_as_int} to {field_name} total (now: {schema_field_totals[field_name]})")
+                        except (ValueError, TypeError):
+                            logging.warning(f"Could not convert {field_name} value '{field_value}' to integer")
+                            # Take first non-null value for non-numeric fields
+                            if field_name not in schema_field_totals:
+                                schema_field_totals[field_name] = field_value
+                    else:
+                        # Take the first non-null value for other non-collection fields
+                        if field_name not in schema_field_totals:
+                            schema_field_totals[field_name] = field_value
+    
+    # Use calculated totals as aggregated data
+    aggregated_data = schema_field_totals
     
     # Then, aggregate all collection data across documents with proper reindexing
     # This logic handles any N number of documents and M number of collections

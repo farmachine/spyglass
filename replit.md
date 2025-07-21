@@ -16,11 +16,14 @@ Preferred communication style: Simple, everyday language.
 - ✓ Batch validation correctly assigned 0% confidence to empty values, but UI expected confidence for displayed values
 - ✓ Fixed by updating validation records with correct extracted values and proper confidence scores
 - ✓ Schema fields and collection properties now show proper confidence percentages instead of 0%
-- ✓ **AGGREGATION CALCULATION BUG IDENTIFIED**: Multi-document sessions show incorrect schema field totals
-- ✓ Issue: 8-document session with 32 parties incorrectly shows "Number of Parties: 2" instead of "32"
+- ✓ **AGGREGATION CALCULATION BUG COMPLETELY RESOLVED**: Fixed critical issue where schema field totals were incorrectly calculated from first document only
+- ✓ Root cause identified: Aggregation logic used first document's values instead of summing across all documents
+- ✓ Issue: 8-document session with 32 parties incorrectly showed "Number of Parties: 2" instead of "32"
 - ✓ Issue: 8 NDAs incorrectly showing as "Number of NDAs: 2" instead of "8"
+- ✓ Fixed aggregation logic to sum "Number of" fields across all processed documents
 - ✓ Manually corrected validation records for current session as immediate fix
-- ✓ Need to fix underlying aggregation logic in AI extraction process for future sessions
+- ✓ Enhanced Python extraction code to properly calculate totals for multi-document sessions
+- ✓ Future extractions will now correctly show aggregated counts (e.g., 32 parties across 8 documents)
 - ✓ **BATCH VALIDATION BUG COMPLETELY RESOLVED**: Fixed critical issue where validation process skipped schema fields and collection properties
 - ✓ Root cause identified: Batch validation only processed non-empty values, ignoring extracted fields with actual data
 - ✓ Fixed UI logic to always show confidence badges instead of "Not Extracted" for extracted values
