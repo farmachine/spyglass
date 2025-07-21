@@ -690,20 +690,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let processedData = { ...result.data };
       
-      // Extract text content from PDFs and store as readable text
+      // Extract text content from PDFs using Gemini API
       if (result.data.fileType === 'pdf' && result.data.content) {
         try {
-          console.log('DEBUG: Processing knowledge document PDF content extraction');
+          console.log('DEBUG: Processing knowledge document PDF content extraction with Gemini');
           
-          // Use Python to extract text from PDF data URL
+          // Use Gemini API for PDF text extraction
           const { spawn } = await import('child_process');
           const python = spawn('python3', ['-c', `
 import sys
 import base64
 import json
 import io
+import os
+from google import genai
+from google.genai import types
 
 try:
+    # Get API key from environment
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        print("GEMINI_API_KEY_MISSING")
+        sys.exit(1)
+    
+    # Initialize Gemini client
+    client = genai.Client(api_key=api_key)
+    
     # Read the data URL from stdin
     data_url = sys.stdin.read().strip()
     
@@ -712,25 +724,27 @@ try:
         base64_content = data_url.split(',', 1)[1]
         pdf_bytes = base64.b64decode(base64_content)
         
-        # Try PyPDF2 for text extraction
-        try:
-            import PyPDF2
-            pdf_reader = PyPDF2.PdfReader(io.BytesIO(pdf_bytes))
-            text_content = ""
-            for page in pdf_reader.pages:
-                text_content += page.extract_text() + "\\n"
-            
-            if text_content.strip():
-                print(text_content.strip())
-            else:
-                print("PDF_EXTRACTION_FAILED")
-        except Exception as pypdf_error:
-            print("PDF_EXTRACTION_FAILED")
+        # Use Gemini to extract text from PDF
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[
+                types.Part.from_bytes(
+                    data=pdf_bytes,
+                    mime_type="application/pdf",
+                ),
+                "Extract all text content from this PDF document. Return only the text content without any formatting or analysis."
+            ],
+        )
+        
+        if response.text and response.text.strip():
+            print(response.text.strip())
+        else:
+            print("GEMINI_EXTRACTION_FAILED")
     else:
         print("INVALID_DATA_URL")
         
 except Exception as e:
-    print("PDF_EXTRACTION_FAILED")
+    print(f"GEMINI_EXTRACTION_ERROR: {str(e)}")
 `], {
             stdio: ['pipe', 'pipe', 'pipe']
           });
@@ -739,22 +753,35 @@ except Exception as e:
           python.stdin.end();
           
           let extractedText = '';
+          let errorOutput = '';
+          
           python.stdout.on('data', (data) => {
             extractedText += data.toString();
           });
           
+          python.stderr.on('data', (data) => {
+            errorOutput += data.toString();
+          });
+          
           await new Promise((resolve, reject) => {
             python.on('close', (code) => {
-              console.log(`DEBUG: Python extraction process completed with code: ${code}`);
+              console.log(`DEBUG: Gemini extraction process completed with code: ${code}`);
               console.log(`DEBUG: Extracted text length: ${extractedText.length}`);
               console.log(`DEBUG: Extracted text preview: ${extractedText.substring(0, 500)}`);
               
-              if (code === 0 && extractedText.trim() && !extractedText.includes('PDF_EXTRACTION_FAILED')) {
+              if (errorOutput) {
+                console.log(`DEBUG: Error output: ${errorOutput}`);
+              }
+              
+              if (code === 0 && extractedText.trim() && 
+                  !extractedText.includes('GEMINI_EXTRACTION_FAILED') && 
+                  !extractedText.includes('GEMINI_API_KEY_MISSING') &&
+                  !extractedText.includes('GEMINI_EXTRACTION_ERROR')) {
                 processedData.content = extractedText.trim();
-                console.log('DEBUG: Knowledge document PDF processing successful, extracted', extractedText.length, 'characters of text');
+                console.log('DEBUG: Knowledge document Gemini processing successful, extracted', extractedText.length, 'characters of text');
                 resolve(extractedText);
               } else {
-                console.log('DEBUG: PDF text extraction failed or returned no content, code:', code);
+                console.log('DEBUG: Gemini text extraction failed or returned no content, code:', code);
                 console.log('DEBUG: Raw extracted text:', JSON.stringify(extractedText));
                 // Leave content empty so user can manually add text
                 processedData.content = "";
@@ -768,8 +795,8 @@ except Exception as e:
               resolve("error");
             });
           });
-        } catch (pdfError) {
-          console.error('PDF processing error:', pdfError);
+        } catch (geminiError) {
+          console.error('Gemini processing error:', geminiError);
           processedData.content = "";
         }
       }
@@ -812,6 +839,141 @@ except Exception as e:
     } catch (error) {
       console.error("Delete knowledge document error:", error);
       res.status(500).json({ message: "Failed to delete knowledge document" });
+    }
+  });
+
+  // Re-process knowledge document with Gemini API
+  app.post("/api/knowledge/:id/reprocess", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = req.params.id;
+      
+      // Get the existing knowledge document
+      const documents = await storage.getKnowledgeDocuments(''); // Get all first
+      const document = documents.find(doc => doc.id === id);
+      
+      if (!document) {
+        return res.status(404).json({ message: "Knowledge document not found" });
+      }
+
+      if (document.fileType !== 'pdf' || !document.content) {
+        return res.status(400).json({ message: "Document must be a PDF with content to reprocess" });
+      }
+
+      console.log('DEBUG: Re-processing knowledge document with Gemini:', document.displayName);
+
+      // Use Gemini API for PDF text extraction
+      const { spawn } = await import('child_process');
+      const python = spawn('python3', ['-c', `
+import sys
+import base64
+import json
+import io
+import os
+from google import genai
+from google.genai import types
+
+try:
+    # Get API key from environment
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        print("GEMINI_API_KEY_MISSING")
+        sys.exit(1)
+    
+    # Initialize Gemini client
+    client = genai.Client(api_key=api_key)
+    
+    # Read the data URL from stdin
+    data_url = sys.stdin.read().strip()
+    
+    # Extract base64 content from data URL
+    if data_url.startswith('data:'):
+        base64_content = data_url.split(',', 1)[1]
+        pdf_bytes = base64.b64decode(base64_content)
+        
+        # Use Gemini to extract text from PDF
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[
+                types.Part.from_bytes(
+                    data=pdf_bytes,
+                    mime_type="application/pdf",
+                ),
+                "Extract all text content from this PDF document. Return only the text content without any formatting or analysis."
+            ],
+        )
+        
+        if response.text and response.text.strip():
+            print(response.text.strip())
+        else:
+            print("GEMINI_EXTRACTION_FAILED")
+    else:
+        print("INVALID_DATA_URL")
+        
+except Exception as e:
+    print(f"GEMINI_EXTRACTION_ERROR: {str(e)}")
+`], {
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+      
+      python.stdin.write(document.content);
+      python.stdin.end();
+      
+      let extractedText = '';
+      let errorOutput = '';
+      
+      python.stdout.on('data', (data) => {
+        extractedText += data.toString();
+      });
+      
+      python.stderr.on('data', (data) => {
+        errorOutput += data.toString();
+      });
+      
+      await new Promise((resolve, reject) => {
+        python.on('close', async (code) => {
+          console.log(`DEBUG: Gemini reprocessing completed with code: ${code}`);
+          console.log(`DEBUG: Extracted text length: ${extractedText.length}`);
+          console.log(`DEBUG: Extracted text preview: ${extractedText.substring(0, 500)}`);
+          
+          if (errorOutput) {
+            console.log(`DEBUG: Error output: ${errorOutput}`);
+          }
+          
+          if (code === 0 && extractedText.trim() && 
+              !extractedText.includes('GEMINI_EXTRACTION_FAILED') && 
+              !extractedText.includes('GEMINI_API_KEY_MISSING') &&
+              !extractedText.includes('GEMINI_EXTRACTION_ERROR')) {
+            
+            // Update the document with extracted content
+            const updatedDocument = await storage.updateKnowledgeDocument(id, {
+              content: extractedText.trim()
+            });
+            
+            console.log('DEBUG: Knowledge document Gemini reprocessing successful, extracted', extractedText.length, 'characters');
+            res.json({
+              success: true,
+              extractedLength: extractedText.length,
+              document: updatedDocument
+            });
+          } else {
+            console.log('DEBUG: Gemini reprocessing failed');
+            res.status(500).json({ 
+              message: "Failed to extract content with Gemini",
+              error: extractedText.trim()
+            });
+          }
+          resolve(true);
+        });
+        
+        python.on('error', (error) => {
+          console.error('DEBUG: Python process error:', error);
+          res.status(500).json({ message: "Process error during reprocessing" });
+          resolve(false);
+        });
+      });
+    } catch (error) {
+      console.error("Reprocess knowledge document error:", error);
+      res.status(500).json({ message: "Failed to reprocess knowledge document" });
     }
   });
 

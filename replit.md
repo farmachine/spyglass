@@ -11,6 +11,14 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 21, 2025 (Latest Update)**
+- ✓ **GEMINI PDF EXTRACTION FOR KNOWLEDGE DOCUMENTS IMPLEMENTED**: Replaced PyPDF2 with Gemini API for superior content extraction
+- ✓ Root cause identified: Knowledge document content was empty because PyPDF2 text extraction was failing silently
+- ✓ Enhanced knowledge document upload route to use Gemini API for PDF text extraction with proper error handling
+- ✓ Added comprehensive debugging and error reporting for Gemini extraction process
+- ✓ Created reprocess endpoint `/api/knowledge/:id/reprocess` to re-extract content from existing documents
+- ✓ Knowledge documents now use same reliable Gemini processing as document extraction pipeline
+- ✓ Fixed SchemaView to use working project-level API endpoint instead of broken session-level endpoint
+- ✓ Updated frontend routing to handle both `/sessions/:sessionId/schema` and `/sessions/:sessionId/schema-view` routes
 - ✓ **DUPLICATE VALIDATION RECORDS BUG COMPLETELY RESOLVED**: Fixed critical frontend logic that was selecting wrong validation records
 - ✓ Root cause identified: Multiple validation records existed for same field, frontend was picking null records instead of records with actual values
 - ✓ Enhanced getValidation function to prioritize validation records with actual extracted values over empty/null records
