@@ -1137,6 +1137,34 @@ ${error instanceof Error ? error.message : 'Unknown error'}
           <div style={{ marginTop: '10px', fontSize: '12px', color: '#6c757d' }}>
             Total validations saved: {savedValidations.length}
           </div>
+          
+          {/* Redirect to Session Review Button */}
+          <div style={{ marginTop: '20px', textAlign: 'center' }}>
+            <button
+              onClick={() => {
+                // Navigate to session review page
+                window.location.href = `/sessions/${sessionId}`;
+              }}
+              style={{
+                backgroundColor: '#28a745',
+                color: 'white',
+                border: 'none',
+                padding: '12px 24px',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+              Review Session Data
+            </button>
+          </div>
         </div>
       )}
     </div>
