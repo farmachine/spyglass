@@ -880,7 +880,8 @@ except Exception as e:
       
       // Filter only active projects
       const activeProjects = projects.filter(project => project.status !== "inactive");
-      console.log(`Dashboard statistics: ${activeProjects.length} active projects out of ${projects.length} total`);
+      const inactiveProjects = projects.filter(project => project.status === "inactive");
+      console.log(`Dashboard statistics: ${activeProjects.length} active projects out of ${projects.length} total (${inactiveProjects.length} inactive projects excluded)`);
       
       let totalSessions = 0;
       let verifiedSessions = 0;
@@ -907,7 +908,7 @@ except Exception as e:
         }
       }
       
-      console.log(`Dashboard statistics: Total ${totalSessions} sessions (${verifiedSessions} verified, ${unverifiedSessions} unverified)`);
+      console.log(`Dashboard statistics: Total ${totalSessions} sessions from ${activeProjects.length} active projects (${verifiedSessions} verified, ${unverifiedSessions} unverified)`);
       
       res.json({
         totalProjects: activeProjects.length,

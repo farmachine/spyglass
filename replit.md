@@ -27,6 +27,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ Fields originally extracted as null/empty by AI don't show rollback button (no original value to revert to)
 - ✓ Fields with actual AI-extracted values show rollback button when manually edited
 - ✓ This is correct behavior: can only revert to AI value if AI originally extracted something
+- ✓ **DASHBOARD STATISTICS FILTERING ENHANCED**: Dashboard total cards now exclude deactivated projects and their sessions
+- ✓ Enhanced logging to show active vs inactive project counts in dashboard statistics
+- ✓ Session counts (total/verified/unverified) only include sessions from active projects
+- ✓ Deactivated projects and their data are completely excluded from dashboard metrics
 - ✓ **VALIDATION RECORDS EMPTY VALUE BUG COMPLETELY RESOLVED**: Fixed critical issue where validation records were created with empty `extracted_value` fields
 - ✓ Root cause identified: Database validation records had empty strings while UI displayed actual values from session's `extractedData`
 - ✓ Batch validation correctly assigned 0% confidence to empty values, but UI expected confidence for displayed values
