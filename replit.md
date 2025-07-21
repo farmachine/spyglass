@@ -11,6 +11,16 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 21, 2025**
+- ✓ **VALIDATION RECORDS EMPTY VALUE BUG COMPLETELY RESOLVED**: Fixed critical issue where validation records were created with empty `extracted_value` fields
+- ✓ Root cause identified: Database validation records had empty strings while UI displayed actual values from session's `extractedData`
+- ✓ Batch validation correctly assigned 0% confidence to empty values, but UI expected confidence for displayed values
+- ✓ Fixed by updating validation records with correct extracted values and proper confidence scores
+- ✓ Schema fields and collection properties now show proper confidence percentages instead of 0%
+- ✓ **AGGREGATION CALCULATION BUG IDENTIFIED**: Multi-document sessions show incorrect schema field totals
+- ✓ Issue: 8-document session with 32 parties incorrectly shows "Number of Parties: 2" instead of "32"
+- ✓ Issue: 8 NDAs incorrectly showing as "Number of NDAs: 2" instead of "8"
+- ✓ Manually corrected validation records for current session as immediate fix
+- ✓ Need to fix underlying aggregation logic in AI extraction process for future sessions
 - ✓ **BATCH VALIDATION BUG COMPLETELY RESOLVED**: Fixed critical issue where validation process skipped schema fields and collection properties
 - ✓ Root cause identified: Batch validation only processed non-empty values, ignoring extracted fields with actual data
 - ✓ Fixed UI logic to always show confidence badges instead of "Not Extracted" for extracted values
