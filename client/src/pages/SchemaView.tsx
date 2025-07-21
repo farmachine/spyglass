@@ -376,23 +376,51 @@ ${error instanceof Error ? error.message : 'Unknown error'}
 
     setIsSavingToDatabase(true);
     try {
-      // Extract JSON from geminiResponse
-      const jsonMatch = geminiResponse.match(/```json\n([\s\S]*?)\n```/);
-      if (!jsonMatch) {
+      // Extract JSON from geminiResponse - try multiple extraction patterns
+      let jsonText = null;
+      
+      // Pattern 1: Look for ```json blocks
+      let jsonMatch = geminiResponse.match(/```json\s*\n([\s\S]*?)\n```/);
+      if (jsonMatch) {
+        jsonText = jsonMatch[1].trim();
+      } else {
+        // Pattern 2: Look for array starting with [ and ending with ]
+        const arrayMatch = geminiResponse.match(/(\[[\s\S]*\])/);
+        if (arrayMatch) {
+          jsonText = arrayMatch[1].trim();
+        } else {
+          // Pattern 3: Look for object starting with { and ending with }
+          const objectMatch = geminiResponse.match(/(\{[\s\S]*\})/);
+          if (objectMatch) {
+            jsonText = objectMatch[1].trim();
+          }
+        }
+      }
+
+      if (!jsonText) {
+        console.error('Failed to extract JSON. Response preview:', geminiResponse.substring(0, 1000));
         throw new Error('No valid JSON found in extraction results');
       }
 
-      const extractedData = JSON.parse(jsonMatch[1]);
+      console.log('Extracted JSON text:', jsonText.substring(0, 500) + '...');
+      console.log('Full JSON text length:', jsonText.length);
+      
+      const extractedData = JSON.parse(jsonText);
+      
+      // Ensure extractedData is an array
+      const validationsArray = Array.isArray(extractedData) ? extractedData : [extractedData];
+      
+      console.log('Parsed validations:', validationsArray.length, 'items');
       
       // Save to database
       const response = await apiRequest(`/api/sessions/${sessionId}/save-validations`, {
         method: 'POST',
-        body: JSON.stringify({ validations: extractedData }),
+        body: JSON.stringify({ validations: validationsArray }),
         headers: { 'Content-Type': 'application/json' }
       });
 
       if (response.success) {
-        setSavedValidations(extractedData);
+        setSavedValidations(validationsArray);
         console.log('Validation results saved successfully:', response);
       } else {
         throw new Error(response.error || 'Failed to save validation results');
