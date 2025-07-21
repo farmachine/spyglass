@@ -74,6 +74,17 @@ export default function SchemaView() {
       }}>
         === PROJECT SCHEMA FIELDS ===
       </div>
+      
+      <div style={{ 
+        margin: '10px 0 20px 0', 
+        padding: '12px', 
+        backgroundColor: '#e3f2fd',
+        border: '1px solid #1976d2',
+        borderRadius: '4px',
+        fontSize: '14px'
+      }}>
+        <strong>INSTRUCTION:</strong> Extract these fields from the entire document set. Use extraction rules to adjust confidence scores. Reference knowledge documents for validation and conflict detection.
+      </div>
 
       <div style={{ marginBottom: '40px' }}>
         {JSON.stringify({
@@ -113,6 +124,17 @@ export default function SchemaView() {
         fontWeight: 'bold'
       }}>
         === COLLECTIONS (ARRAYS OF OBJECTS) ===
+      </div>
+      
+      <div style={{ 
+        margin: '10px 0 20px 0', 
+        padding: '12px', 
+        backgroundColor: '#e8f5e8',
+        border: '1px solid #388e3c',
+        borderRadius: '4px',
+        fontSize: '14px'
+      }}>
+        <strong>INSTRUCTION:</strong> Extract arrays of objects matching these collection structures. Apply extraction rules to individual properties and use knowledge documents to validate each extracted object. Count ALL instances across documents accurately.
       </div>
 
       <div style={{ marginBottom: '40px' }}>
@@ -161,6 +183,17 @@ export default function SchemaView() {
         fontWeight: 'bold'
       }}>
         === KNOWLEDGE DOCUMENTS ===
+      </div>
+      
+      <div style={{ 
+        margin: '10px 0 20px 0', 
+        padding: '12px', 
+        backgroundColor: '#fff3e0',
+        border: '1px solid #f57c00',
+        borderRadius: '4px',
+        fontSize: '14px'
+      }}>
+        <strong>INSTRUCTION:</strong> Use these documents as reference material for validation and conflict detection. When extracted values conflict with knowledge document requirements, reduce confidence scores and explain the conflict in ai_reasoning.
       </div>
 
       <div style={{ marginBottom: '40px' }}>
@@ -213,6 +246,17 @@ export default function SchemaView() {
         fontWeight: 'bold'
       }}>
         === EXTRACTION RULES ===
+      </div>
+      
+      <div style={{ 
+        margin: '10px 0 20px 0', 
+        padding: '12px', 
+        backgroundColor: '#fce4ec',
+        border: '1px solid #c2185b',
+        borderRadius: '4px',
+        fontSize: '14px'
+      }}>
+        <strong>INSTRUCTION:</strong> Apply these rules to modify confidence scores for matching values. Global rules apply to all fields, targeted rules apply to specific properties. Rule-based adjustments should be reflected in confidence_score and explained in ai_reasoning.
       </div>
 
       <div style={{ marginBottom: '40px' }}>
@@ -273,21 +317,34 @@ export default function SchemaView() {
       }}>
         === AI PROCESSING INSTRUCTIONS ===
         <div style={{ fontWeight: 'normal', marginTop: '15px', lineHeight: '1.6' }}>
-          <strong>INSTRUCTIONS TO AI:</strong>
+          <strong>CORE EXTRACTION PROCESS:</strong>
+          <br/>
+          1. Extract data according to schema structure above
+          <br/>
+          2. Count ALL instances across ALL documents accurately
+          <br/>
+          3. Apply extraction rules to modify confidence scores as specified
+          <br/>
+          4. Use knowledge documents for validation and conflict detection
           <br/><br/>
-          1. Process ALL the schema configuration above (PROJECT SCHEMA FIELDS and COLLECTIONS)
+          
+          <strong>CONFIDENCE SCORING (confidence_score 0-100):</strong>
           <br/>
-          2. Review ALL knowledge documents and extraction rules for context and guidance
+          • Base: High confidence (85-95) for clear extractions
           <br/>
-          3. Extract data from the provided documents according to the schema structure
+          • Apply extraction rule adjustments per rule content
           <br/>
-          4. Return extracted data in the exact JSON format specified below
+          • Reduce confidence for knowledge document conflicts
           <br/>
-          5. Include confidence scores (0-100) and reasoning for each extracted field
+          • Let content and rules determine final percentage
+          <br/><br/>
+          
+          <strong>AI REASONING (ai_reasoning):</strong>
           <br/>
-          6. Apply extraction rules and knowledge document guidelines during processing
-          <br/>
-          7. For collections, extract multiple instances as separate array items
+          Give reasoning for the score. If knowledge documents and/or extraction rules had influence, please reference which ones in a human-friendly way. Please also include follow up questions that the user can ask the information provider for clarification on the data value.
+          <br/><br/>
+          
+          <strong>OUTPUT:</strong> JSON format below with confidence_score and ai_reasoning for each field.
         </div>
       </div>
 

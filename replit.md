@@ -11,6 +11,13 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 21, 2025 (Latest Update)**
+- ✓ **SCHEMA VIEW OPTIMIZED FOR GEMINI AI EXTRACTION**: Enhanced SchemaView with concise, targeted instructions for maximum AI accuracy
+- ✓ Added color-coded instruction blocks between each section to guide AI processing workflow
+- ✓ Enhanced confidence scoring guidance: base confidence (85-95), apply extraction rules, reduce for knowledge conflicts
+- ✓ Added specific ai_reasoning instructions: reference knowledge documents/rules in human-friendly way, include follow-up questions
+- ✓ Fixed extraction rule mapping to handle both arrow notation (`Parties --> Name`) and dot notation (`Parties.Name`) formats
+- ✓ "Inc." rule now properly appears in schema for extraction under "Parties --> Name" field instead of "No rules"
+- ✓ Start Extraction button correctly redirects to extracted document page for 2-page testing workflow
 - ✓ **CRITICAL UUID REFACTORING COMPLETED**: Fixed fundamental API endpoint that was serving hardcoded mock data with integer IDs
 - ✓ Root cause identified: API endpoint `/api/projects/:projectId/schema-data` was serving hardcoded mock data instead of real storage queries
 - ✓ Systematically removed all `parseInt(id)` calls across all MemStorage methods to ensure proper UUID string handling
