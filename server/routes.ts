@@ -1835,6 +1835,61 @@ print(json.dumps(result))
     }
   });
 
+  // Save validation results to field_validations database
+  app.post("/api/sessions/:sessionId/save-validations", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const { validations } = req.body;
+
+      console.log(`SAVE VALIDATIONS: Starting for session ${sessionId}, ${validations.length} validations`);
+
+      // Get the session to verify it exists
+      const session = await storage.getSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: 'Session not found' });
+      }
+
+      // Save each validation to the database
+      const savedValidations = [];
+      for (const validation of validations) {
+        try {
+          const savedValidation = await storage.createFieldValidation({
+            sessionId: sessionId,
+            fieldId: validation.field_id,
+            fieldType: validation.field_type,
+            extractedValue: validation.extracted_value,
+            confidenceScore: validation.confidence_score,
+            validationStatus: validation.validation_status === 'pending' ? 'unverified' : validation.validation_status,
+            aiReasoning: validation.ai_reasoning,
+            documentSource: validation.document_source || 'Unknown',
+            recordIndex: validation.record_index || 0
+          });
+          savedValidations.push(savedValidation);
+          console.log(`SAVE VALIDATIONS: Saved field ${validation.field_name}`);
+        } catch (error) {
+          console.error(`SAVE VALIDATIONS: Failed to save field ${validation.field_name}:`, error);
+        }
+      }
+
+      console.log(`SAVE VALIDATIONS: Successfully saved ${savedValidations.length} validations`);
+
+      res.json({
+        success: true,
+        message: `Successfully saved ${savedValidations.length} field validations`,
+        savedCount: savedValidations.length,
+        validations: savedValidations
+      });
+
+    } catch (error) {
+      console.error("SAVE VALIDATIONS error:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to save validation results', 
+        details: error.message 
+      });
+    }
+  });
+
   // SINGLE-STEP PROCESS: Extract and validate in one AI call (eliminates field mapping confusion)
   app.post("/api/sessions/:sessionId/process", async (req, res) => {
     try {

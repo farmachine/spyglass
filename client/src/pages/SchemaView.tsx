@@ -311,6 +311,8 @@ export default function SchemaView() {
   // State for storing Gemini response
   const [geminiResponse, setGeminiResponse] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSavingToDatabase, setIsSavingToDatabase] = useState(false);
+  const [savedValidations, setSavedValidations] = useState<any[] | null>(null);
 
   // Function to call Gemini directly using consolidated document content
   const handleGeminiExtraction = async () => {
@@ -362,6 +364,44 @@ ${error instanceof Error ? error.message : 'Unknown error'}
 === END ERROR ===`);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  // Function to save extraction results to database
+  const handleSaveToDatabase = async () => {
+    if (!geminiResponse) {
+      alert('No extraction results to save. Please run extraction first.');
+      return;
+    }
+
+    setIsSavingToDatabase(true);
+    try {
+      // Extract JSON from geminiResponse
+      const jsonMatch = geminiResponse.match(/```json\n([\s\S]*?)\n```/);
+      if (!jsonMatch) {
+        throw new Error('No valid JSON found in extraction results');
+      }
+
+      const extractedData = JSON.parse(jsonMatch[1]);
+      
+      // Save to database
+      const response = await apiRequest(`/api/sessions/${sessionId}/save-validations`, {
+        method: 'POST',
+        body: JSON.stringify({ validations: extractedData }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (response.success) {
+        setSavedValidations(extractedData);
+        console.log('Validation results saved successfully:', response);
+      } else {
+        throw new Error(response.error || 'Failed to save validation results');
+      }
+    } catch (error) {
+      console.error('Save to database failed:', error);
+      alert(`Failed to save to database: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsSavingToDatabase(false);
     }
   };
 
@@ -906,6 +946,109 @@ ${error instanceof Error ? error.message : 'Unknown error'}
           }}>
             {geminiResponse}
           </pre>
+          
+          {/* Save to Database Button */}
+          <div style={{ marginTop: '20px', textAlign: 'center' }}>
+            <button
+              onClick={handleSaveToDatabase}
+              disabled={isSavingToDatabase}
+              style={{
+                backgroundColor: isSavingToDatabase ? '#6c757d' : '#007bff',
+                color: 'white',
+                border: 'none',
+                padding: '12px 24px',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                borderRadius: '4px',
+                cursor: isSavingToDatabase ? 'not-allowed' : 'pointer',
+                opacity: isSavingToDatabase ? 0.7 : 1
+              }}
+            >
+              {isSavingToDatabase ? 'SAVING TO DATABASE...' : 'SAVE TO DATABASE'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Display Saved Validations Table */}
+      {savedValidations && (
+        <div style={{ 
+          margin: '40px 0',
+          padding: '20px',
+          backgroundColor: '#e7f3ff',
+          border: '3px solid #0066cc',
+          borderRadius: '8px'
+        }}>
+          <div style={{ 
+            fontWeight: 'bold', 
+            fontSize: '18px',
+            marginBottom: '15px',
+            color: '#0066cc'
+          }}>
+            💾 STEP 4 COMPLETE: Saved Field Validations
+          </div>
+          <div style={{ 
+            backgroundColor: '#ffffff',
+            border: '1px solid #dee2e6',
+            borderRadius: '4px',
+            overflow: 'auto',
+            maxHeight: '600px'
+          }}>
+            <table style={{ 
+              width: '100%',
+              borderCollapse: 'collapse',
+              fontSize: '12px'
+            }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
+                  <th style={{ padding: '10px', textAlign: 'left', borderRight: '1px solid #dee2e6' }}>Field Type</th>
+                  <th style={{ padding: '10px', textAlign: 'left', borderRight: '1px solid #dee2e6' }}>Field Name</th>
+                  <th style={{ padding: '10px', textAlign: 'left', borderRight: '1px solid #dee2e6' }}>Extracted Value</th>
+                  <th style={{ padding: '10px', textAlign: 'left', borderRight: '1px solid #dee2e6' }}>Confidence</th>
+                  <th style={{ padding: '10px', textAlign: 'left', borderRight: '1px solid #dee2e6' }}>Status</th>
+                  <th style={{ padding: '10px', textAlign: 'left' }}>Document Source</th>
+                </tr>
+              </thead>
+              <tbody>
+                {savedValidations.map((validation, index) => (
+                  <tr key={index} style={{ borderBottom: '1px solid #dee2e6' }}>
+                    <td style={{ padding: '8px', borderRight: '1px solid #dee2e6', fontFamily: 'monospace' }}>
+                      {validation.field_type}
+                    </td>
+                    <td style={{ padding: '8px', borderRight: '1px solid #dee2e6', fontWeight: 'bold' }}>
+                      {validation.field_name}
+                    </td>
+                    <td style={{ padding: '8px', borderRight: '1px solid #dee2e6' }}>
+                      {validation.extracted_value || 'null'}
+                    </td>
+                    <td style={{ padding: '8px', borderRight: '1px solid #dee2e6', textAlign: 'center' }}>
+                      <span style={{
+                        backgroundColor: validation.confidence_score >= 80 ? '#d4edda' : 
+                                       validation.confidence_score >= 50 ? '#fff3cd' : '#f8d7da',
+                        color: validation.confidence_score >= 80 ? '#155724' : 
+                               validation.confidence_score >= 50 ? '#856404' : '#721c24',
+                        padding: '2px 6px',
+                        borderRadius: '3px',
+                        fontSize: '11px',
+                        fontWeight: 'bold'
+                      }}>
+                        {validation.confidence_score}%
+                      </span>
+                    </td>
+                    <td style={{ padding: '8px', borderRight: '1px solid #dee2e6' }}>
+                      {validation.validation_status}
+                    </td>
+                    <td style={{ padding: '8px', fontSize: '11px', color: '#6c757d' }}>
+                      {validation.document_source}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ marginTop: '10px', fontSize: '12px', color: '#6c757d' }}>
+            Total validations saved: {savedValidations.length}
+          </div>
         </div>
       )}
     </div>
