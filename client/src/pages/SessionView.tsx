@@ -473,11 +473,43 @@ export default function SessionView() {
 
   // Get validation for a specific field
   const getValidation = (fieldName: string) => {
-    const validation = validations.find(v => v.fieldName === fieldName);
-    if (!validation) {
+    // Filter all validations for this field name
+    const fieldValidations = validations.filter(v => v.fieldName === fieldName);
+    
+    if (fieldValidations.length === 0) {
       console.log(`No validation found for ${fieldName}, available validations:`, validations.map(v => v.fieldName));
+      return undefined;
     }
-    return validation;
+    
+    // If there are multiple validation records, prioritize by:
+    // 1. Records with actual extracted values (not null/empty)
+    // 2. Most recent records (by createdAt)
+    if (fieldValidations.length > 1) {
+      console.log(`Multiple validations found for ${fieldName}:`, fieldValidations.map(v => ({ id: v.id, extractedValue: v.extractedValue, createdAt: v.createdAt })));
+      
+      // First priority: records with actual extracted values
+      const validationsWithValues = fieldValidations.filter(v => 
+        v.extractedValue !== null && 
+        v.extractedValue !== undefined && 
+        v.extractedValue !== "" && 
+        v.extractedValue !== "null" && 
+        v.extractedValue !== "undefined"
+      );
+      
+      if (validationsWithValues.length > 0) {
+        // Sort by createdAt descending (most recent first) and return the first one
+        const bestValidation = validationsWithValues.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+        console.log(`Selected validation with value for ${fieldName}:`, bestValidation.extractedValue);
+        return bestValidation;
+      }
+      
+      // Fallback: most recent record even if no value
+      const mostRecent = fieldValidations.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+      console.log(`Selected most recent validation for ${fieldName}:`, mostRecent.extractedValue);
+      return mostRecent;
+    }
+    
+    return fieldValidations[0];
   };
 
   // Get session status based on field verification
