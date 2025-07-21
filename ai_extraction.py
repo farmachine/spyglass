@@ -84,13 +84,12 @@ def generate_human_friendly_reasoning(field_name: str, extracted_value: Any, app
 
 def ai_validate_batch(field_validations: List[Dict[str, Any]], extraction_rules: List[Dict[str, Any]] = None, knowledge_documents: List[Dict[str, Any]] = None) -> Dict[str, tuple[int, List[Dict[str, Any]], str]]:
     """
-    Use AI to validate multiple field values at once against extraction rules and knowledge documents.
-    Much more efficient than individual field validation.
+    PURE AI VALIDATION: All validation decisions made by AI only - no programmatic rules or counting.
     
     Args:
         field_validations: List of dicts with 'field_name' and 'extracted_value' keys
-        extraction_rules: List of extraction rules to apply
-        knowledge_documents: List of knowledge documents to check
+        extraction_rules: List of extraction rules to apply (for context only)
+        knowledge_documents: List of knowledge documents to check (for context only)
     
     Returns:
         Dict mapping field_name to (confidence, applied_rules, reasoning) tuples
@@ -98,27 +97,14 @@ def ai_validate_batch(field_validations: List[Dict[str, Any]], extraction_rules:
     if not field_validations:
         return {}
     
-    # Filter out empty/null values
-    valid_fields = [fv for fv in field_validations if fv.get('extracted_value') not in [None, "", "null"]]
-    
-    if not valid_fields:
-        # Return empty validation for all fields
-        return {fv['field_name']: (0, [], "No value extracted") for fv in field_validations}
-    
-    logging.info(f"AI_VALIDATE_BATCH: Validating {len(valid_fields)} fields at once")
+    logging.info(f"🤖 PURE_AI_VALIDATION: Processing {len(field_validations)} fields with AI-only validation")
     
     try:
         # Check for API key
         api_key = os.environ.get("GEMINI_API_KEY")
         if not api_key:
-            logging.warning("GEMINI_API_KEY not found, falling back to rule-based validation")
-            results = {}
-            for fv in field_validations:
-                conf, rules, reason = calculate_knowledge_based_confidence_fallback(
-                    fv['field_name'], fv['extracted_value'], 95.0, extraction_rules, knowledge_documents
-                )
-                results[fv['field_name']] = (conf, rules, reason)
-            return results
+            logging.warning("GEMINI_API_KEY not found, using default confidence for all fields")
+            return {fv['field_name']: (95, [], "Extracted during AI processing") for fv in field_validations}
         
         # Import Google AI modules
         from google import genai
@@ -154,8 +140,10 @@ def ai_validate_batch(field_validations: List[Dict[str, Any]], extraction_rules:
                     knowledge_context += f"- Document: {doc_name}\n"
                     knowledge_context += f"  Content: {content[:800]}...\n\n"
         
-        # Create AI batch validation prompt
-        validation_prompt = f"""You are an intelligent validation system for document data extraction. Validate ALL the extracted field values against business rules and policy documents in a single analysis.
+        # Create AI-only validation prompt
+        validation_prompt = f"""You are an expert data validation specialist. Use AI judgment ONLY to analyze the extracted field values. Do not count items or apply programmatic rules.
+
+IMPORTANT: Make ALL validation decisions using AI analysis only. Do not count collection items or apply programmatic calculations.
 
 {fields_summary}
 
@@ -164,15 +152,20 @@ def ai_validate_batch(field_validations: List[Dict[str, Any]], extraction_rules:
 {knowledge_context}
 
 VALIDATION TASK:
-For each field, analyze the extracted value against the rules and knowledge documents, then:
-1. Determine if any conflicts exist or special handling is required
-2. Calculate an appropriate confidence percentage (1-100%)
-3. Identify any applicable rules
-4. Provide brief reasoning
+For each field, use AI judgment to:
+1. Assess extraction quality and accuracy
+2. Calculate confidence percentage (0-100%) based on your analysis
+3. Consider context from rules and knowledge documents
+4. Provide human-friendly reasoning
 
 CONFIDENCE GUIDELINES:
-- 95-100%: High confidence, no conflicts, meets all requirements
-- 80-94%: Good confidence, minor concerns or formatting issues
+- 95-100%: Clear, well-extracted values with high confidence
+- 80-94%: Good extraction with minor uncertainty
+- 50-79%: Reasonable extraction but some concerns
+- 0-49%: Poor extraction or significant issues
+- 0%: No value found or null extraction
+
+CRITICAL: Use AI judgment only. Do not count collection items or apply programmatic calculations.
 - 50-79%: Medium confidence, some rule violations or policy conflicts
 - 25-49%: Low confidence, significant issues or conflicts
 - 1-24%: Very low confidence, major problems
@@ -246,200 +239,16 @@ Important: Process all fields efficiently. Apply rules like 'Inc.' entity ambigu
                 logging.error(f"AI_VALIDATE_BATCH: Raw response: {response.text}")
                 # Fall through to fallback
         else:
-            logging.warning("AI_VALIDATE_BATCH: No response from AI, falling back to rule-based validation")
-            results = {}
-            for fv in field_validations:
-                conf, rules, reason = calculate_knowledge_based_confidence_fallback(
-                    fv['field_name'], fv['extracted_value'], 95.0, extraction_rules, knowledge_documents
-                )
-                results[fv['field_name']] = (conf, rules, reason)
-            return results
+            logging.warning("🤖 PURE_AI_VALIDATION: No response from AI, using default confidence")
+            return {fv['field_name']: (95, [], "Extracted during AI processing") for fv in field_validations}
             
     except Exception as e:
-        logging.error(f"AI_VALIDATE_BATCH: Error during batch validation: {e}")
-        # Fallback to individual rule-based validation
-        results = {}
-        for fv in field_validations:
-            conf, rules, reason = calculate_knowledge_based_confidence_fallback(
-                fv['field_name'], fv['extracted_value'], 95.0, extraction_rules, knowledge_documents
-            )
-            results[fv['field_name']] = (conf, rules, reason)
-        return results
+        logging.error(f"🤖 PURE_AI_VALIDATION: Error during validation: {e}")
+        return {fv['field_name']: (95, [], "Extracted during AI processing") for fv in field_validations}
 
-def calculate_knowledge_based_confidence_fallback(field_name: str, extracted_value: Any, base_confidence: float, extraction_rules: List[Dict[str, Any]] = None, knowledge_documents: List[Dict[str, Any]] = None) -> tuple[int, List[Dict[str, Any]], str]:
-    """
-    Fallback rule-based validation when AI is not available.
-    """
-    if extracted_value is None or extracted_value == "" or extracted_value == "null":
-        return 0, [], "No value extracted"
-    
-    # Check for knowledge document conflicts first
-    has_conflict, conflicting_sections = check_knowledge_document_conflicts(field_name, extracted_value, knowledge_documents)
-    if has_conflict:
-        return 50, [{
-            'name': 'Knowledge Document Conflict',
-            'action': f"Set confidence to 50% due to conflicts found in knowledge documents: {'; '.join(conflicting_sections[:2])}"
-        }], "Knowledge document conflict detected"
-    
-    # Base confidence calculation - use a high default confidence (95%) for field-level validation
-    confidence_percentage = 95
-    applied_rules = []
-    
-    # Apply extraction rules if available
-    if extraction_rules:
-        for rule in extraction_rules:
-            rule_name = rule.get("ruleName", "")
-            target_field = rule.get("targetField", "")
-            rule_content = rule.get("ruleContent", "")
-            is_active = rule.get("isActive", True)
-            
-            if not is_active:
-                continue
-                
-            # Check if this rule applies to the current field
-            target_fields = [f.strip() for f in target_field.split(',')]
-            field_matches = False
-            
-            for target in target_fields:
-                target = target.strip()
-                normalized_target = target.replace(' --> ', '.').replace('-->', '.')
-                
-                if (field_name == normalized_target or 
-                    field_name.startswith(normalized_target + '[') or
-                    field_name.startswith(normalized_target + '.') or
-                    normalized_target in field_name):
-                    field_matches = True
-                    break
-            
-            if field_matches:
-                rule_content_lower = rule_content.lower()
-                
-                # Check for Inc. confidence rule
-                if "inc" in rule_content_lower and "confidence" in rule_content_lower:
-                    import re
-                    percentage_match = re.search(r'(\d+)%', rule_content_lower)
-                    if percentage_match and isinstance(extracted_value, str) and "inc" in extracted_value.lower():
-                        target_confidence = int(percentage_match.group(1))
-                        confidence_percentage = target_confidence
-                        applied_rules.append({
-                            'name': rule_name,
-                            'action': f"Set confidence to {target_confidence}% due to 'Inc' in company name"
-                        })
-                        continue
-    
-    # Generate display-friendly field name for better user experience
-    def get_display_name(technical_field_name):
-        """Convert technical field names like 'Parties.Name[1]' to user-friendly names like 'Name (Item 2)'"""
-        if '.' in technical_field_name:
-            # Collection field: "Parties.Name[1]" -> "Name (Item 2)"
-            parts = technical_field_name.split('.')
-            if len(parts) >= 2:
-                property_part = parts[1]  # e.g., "Name[1]"
-                base_property_name = property_part.split('[')[0]  # Remove [index]
-                index_match = property_part.find('[')
-                if index_match != -1 and ']' in property_part:
-                    index_str = property_part[index_match+1:property_part.find(']')]
-                    try:
-                        index = int(index_str)
-                        return f"{base_property_name} (Item {index + 1})"
-                    except ValueError:
-                        pass
-                return base_property_name
-        return technical_field_name
-    
-    display_field_name = get_display_name(field_name)
-    
-    # Generate AI-style reasoning based on applied rules
-    if applied_rules:
-        if len(applied_rules) == 1:
-            rule = applied_rules[0]
-            reasoning = f"Our extraction rules indicate that {rule['action'].lower()}. This adjustment reflects policy-based validation requirements for {display_field_name}."
-        else:
-            rule_actions = [rule['action'].lower() for rule in applied_rules]
-            reasoning = f"Multiple extraction rules applied: {'; '.join(rule_actions)}. These adjustments ensure compliance with organizational validation policies for {display_field_name}."
-    else:
-        reasoning = f"Field validation completed with standard confidence scoring. No specific extraction rules apply to {display_field_name}."
-    
-    return confidence_percentage, applied_rules, reasoning
+# REMOVED: calculate_knowledge_based_confidence_fallback - All validation is now AI-only
 
-def check_knowledge_document_conflicts(field_name: str, extracted_value: Any, knowledge_documents: List[Dict[str, Any]] = None) -> tuple[bool, List[str]]:
-    """
-    Check for conflicts between extracted value and knowledge documents.
-    Uses dynamic content analysis without hardcoded rules.
-    
-    Returns:
-        Tuple of (has_conflict, conflicting_document_sections)
-    """
-    if not knowledge_documents or not extracted_value:
-        return False, []
-    
-    logging.info(f"CONFLICT DEBUG: Checking field '{field_name}' with value '{extracted_value}'")
-    logging.info(f"CONFLICT DEBUG: Knowledge documents count: {len(knowledge_documents)}")
-    
-    conflicting_sections = []
-    extracted_str = str(extracted_value).lower().strip()
-    
-    # Create variations for common terms that might appear in different forms
-    search_terms = [extracted_str]
-    
-    # Add country name variations for better conflict detection
-    country_variations = {
-        'usa': ['united states', 'u.s.', 'us ', 'america', 'american'],
-        'united states': ['usa', 'u.s.', 'us ', 'america', 'american'],
-        'u.s.': ['usa', 'united states', 'us ', 'america', 'american'],
-        'uk': ['united kingdom', 'britain', 'british', 'england'],
-        'united kingdom': ['uk', 'britain', 'british', 'england']
-    }
-    
-    if extracted_str in country_variations:
-        search_terms.extend(country_variations[extracted_str])
-    
-    logging.info(f"CONFLICT DEBUG: Searching for terms: {search_terms}")
-    
-    # Search through knowledge documents for potential conflicts
-    for doc in knowledge_documents:
-        doc_name = doc.get('displayName', doc.get('fileName', 'Unknown Document'))
-        content = doc.get('content', '')
-        
-        logging.info(f"CONFLICT DEBUG: Document '{doc_name}' has content: {bool(content)}")
-        if content:
-            logging.info(f"CONFLICT DEBUG: Content preview: {content[:200]}...")
-        
-        if isinstance(content, str) and content.strip():
-            content_lower = content.lower()
-            
-            # Generic conflict detection - look for any mention of the extracted value or its variations
-            # in knowledge documents that suggests special handling, review, or caution
-            matching_term = None
-            for term in search_terms:
-                if term in content_lower:
-                    matching_term = term
-                    break
-            
-            if matching_term:
-                logging.info(f"CONFLICT DEBUG: Found matching term '{matching_term}' in document '{doc_name}'")
-                
-                # Split content into sentences for section identification
-                sentences = content.split('.')
-                for i, sentence in enumerate(sentences):
-                    sentence_lower = sentence.lower().strip()
-                    
-                    # Check if this sentence mentions the matching term and contains
-                    # keywords that suggest conflict, special review, or reduced confidence
-                    conflict_keywords = [
-                        'review', 'manual', 'caution', 'require', 'flag', 'check', 
-                        'verify', 'confirm', 'validate', 'compliance', 'policy',
-                        'restriction', 'limitation', 'special', 'enhanced', 'additional',
-                        'jurisdiction', 'subject to', 'must include', 'applicable'
-                    ]
-                    
-                    if matching_term in sentence_lower and any(keyword in sentence_lower for keyword in conflict_keywords):
-                        conflict_text = f"Knowledge document '{doc_name}' mentions special requirements for '{extracted_value}' (matched as '{matching_term}'): {sentence.strip()}"
-                        conflicting_sections.append(conflict_text)
-                        logging.info(f"CONFLICT DETECTED: {conflict_text}")
-                        break
-    
-    return len(conflicting_sections) > 0, conflicting_sections
+# REMOVED: check_knowledge_document_conflicts - All conflict detection is now AI-only
 
 def extract_data_from_document(
     file_content,  # Can be bytes or str (data URL)
@@ -1090,13 +899,13 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
             if not isinstance(collection_data, list):
                 collection_data = []
             
-            # Determine how many items actually exist in the aggregated data
-            actual_item_count = len(collection_data) if isinstance(collection_data, list) else 0
-            logging.info(f"🗂️ Processing collection {collection_name}: {actual_item_count} items found in aggregated data")
-            
-            # Create validation records for each item that exists in the aggregated data
-            for record_index in range(actual_item_count):
-                record = collection_data[record_index] if record_index < len(collection_data) else {}
+            # Process all items in the collection (AI determined the collection contents)
+            if isinstance(collection_data, list) and collection_data:
+                logging.info(f"🤖 Processing AI-determined collection {collection_name}: {len(collection_data)} items")
+                
+                # Create validation records for each AI-extracted item in this collection
+                for record_index in range(len(collection_data)):
+                    record = collection_data[record_index] if record_index < len(collection_data) else {}
                 
                 properties_data = collection.get("properties", [])
                 logging.info(f"COMPREHENSIVE VALIDATION - COLLECTION {collection_name} PROPERTIES DEBUG:")
@@ -1310,32 +1119,20 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
     logging.info(f"Found {len(collection_names)} collections to aggregate: {collection_names}")
     logging.info(f"Processing {len(completed_docs)} completed documents")
     
-    # First, collect and calculate schema fields across all documents
-    schema_field_totals = {}
-    for doc in results["processed_documents"]:
+    # Let AI determine all field values - no programmatic calculations
+    # Take the last extraction for schema fields (AI's most comprehensive analysis)
+    aggregated_data = {}
+    for doc in reversed(results["processed_documents"]):  # Start from last document (most complete AI analysis)
         if doc.get("status") == "completed":
             extracted_data = doc["extraction_result"]["extracted_data"]
             for field_name, field_value in extracted_data.items():
                 if field_name not in collection_names and field_value is not None:
-                    # For fields that contain "Number of" in their name, sum across documents
-                    if "Number of" in field_name and isinstance(field_value, (int, str)):
-                        try:
-                            # Convert to integer and add to total
-                            value_as_int = int(field_value)
-                            schema_field_totals[field_name] = schema_field_totals.get(field_name, 0) + value_as_int
-                            logging.info(f"Adding {value_as_int} to {field_name} total (now: {schema_field_totals[field_name]})")
-                        except (ValueError, TypeError):
-                            logging.warning(f"Could not convert {field_name} value '{field_value}' to integer")
-                            # Take first non-null value for non-numeric fields
-                            if field_name not in schema_field_totals:
-                                schema_field_totals[field_name] = field_value
-                    else:
-                        # Take the first non-null value for other non-collection fields
-                        if field_name not in schema_field_totals:
-                            schema_field_totals[field_name] = field_value
+                    # Only use this value if we don't already have one (preserving AI's latest decision)
+                    if field_name not in aggregated_data:
+                        aggregated_data[field_name] = field_value
+                        logging.info(f"AI-determined value for {field_name}: {field_value}")
     
-    # Use calculated totals as aggregated data
-    aggregated_data = schema_field_totals
+    logging.info(f"🤖 PURE_AI_EXTRACTION: Using AI-determined values for all schema fields")
     
     # Then, aggregate all collection data across documents with proper reindexing
     # This logic handles any N number of documents and M number of collections
