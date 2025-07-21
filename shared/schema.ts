@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, uuid, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -170,7 +170,6 @@ export const insertExtractionSessionSchema = createInsertSchema(extractionSessio
   id: true,
   createdAt: true,
   updatedAt: true,
-  extractedData: true,
 });
 
 export const insertKnowledgeDocumentSchema = createInsertSchema(knowledgeDocuments).omit({

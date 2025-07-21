@@ -7,10 +7,11 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Dashboard from "@/pages/Dashboard";
 import ProjectView from "@/pages/ProjectView";
-import SessionReview from "@/pages/SessionReview";
+// import SessionReview from "@/pages/SessionReview";
 import SessionView from "@/pages/SessionView";
 import DocumentTextView from "@/pages/DocumentTextView";
 import SchemaView from "@/pages/SchemaView";
+import GeminiResults from "@/pages/GeminiResults";
 import AdminPanel from "@/pages/AdminPanel";
 import OrganizationConfig from "@/pages/OrganizationConfig";
 import Login from "@/pages/Login";
@@ -49,6 +50,11 @@ function Router() {
       <Route path="/sessions/:sessionId/schema">
         <ProtectedRoute>
           <SchemaView />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/sessions/:sessionId/gemini-results">
+        <ProtectedRoute>
+          <GeminiResults />
         </ProtectedRoute>
       </Route>
       <Route path="/admin">

@@ -1,5 +1,6 @@
-import { useParams } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useParams, useLocation } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 interface SchemaData {
   project: any;
@@ -12,6 +13,7 @@ interface SchemaData {
 export default function SchemaView() {
   const params = useParams();
   const sessionId = params.sessionId;
+  const [, setLocation] = useLocation();
 
   const { data: session, isLoading: sessionLoading } = useQuery<any>({
     queryKey: [`/api/sessions/${sessionId}`],
@@ -22,6 +24,228 @@ export default function SchemaView() {
     queryKey: [`/api/projects/${session?.projectId}/schema-data`],
     enabled: !!session?.projectId,
   });
+
+  // Function to generate markdown from schema data
+  const generateSchemaMarkdown = (data: SchemaData) => {
+    let markdown = `# SCHEMA FOR AI PROCESSING\n\n`;
+    markdown += `Project: ${data.project?.name || 'Unknown'}\n`;
+    markdown += `Description: ${data.project?.description || 'No description'}\n`;
+    markdown += `Main Object: ${data.project?.mainObjectName || 'Session'}\n\n`;
+    
+    // Project Schema Fields
+    markdown += `## PROJECT SCHEMA FIELDS\n\n`;
+    markdown += `**INSTRUCTION:** Extract these fields from the entire document set. Use extraction rules to adjust confidence scores. Reference knowledge documents for validation and conflict detection.\n\n`;
+    
+    const schemaFieldsData = {
+      schema_fields: data.schema_fields.map(field => {
+        const specificRules = data.extraction_rules
+          .filter(rule => rule.targetFields?.includes(field.fieldName))
+          .map(rule => rule.ruleContent);
+        const globalRules = data.extraction_rules
+          .filter(rule => !rule.targetFields || rule.targetFields.length === 0)
+          .map(rule => rule.ruleContent);
+        const allRules = [...specificRules, ...globalRules];
+        
+        return {
+          field_name: field.fieldName,
+          type: field.fieldType,
+          "AI guidance": field.description,
+          "Extraction Rules": allRules.length > 0 ? allRules.join(' | ') : "No rules",
+          "Knowledge Documents": data.knowledge_documents.length > 0 ? 
+            data.knowledge_documents.map(doc => doc.displayName).join(', ') : 
+            "None"
+        };
+      })
+    };
+    
+    markdown += `\`\`\`json\n${JSON.stringify(schemaFieldsData, null, 2)}\n\`\`\`\n\n`;
+    
+    // Collections
+    markdown += `## COLLECTIONS (ARRAYS OF OBJECTS)\n\n`;
+    markdown += `**INSTRUCTION:** Extract arrays of objects matching these collection structures. Apply extraction rules to individual properties and use knowledge documents to validate each extracted object. Count ALL instances across documents accurately.\n\n`;
+    
+    const collectionsData = {
+      collections: data.collections.map(collection => ({
+        collection_name: collection.collectionName,
+        description: collection.description,
+        properties: collection.properties?.map((prop: any) => {
+          const dotNotation = `${collection.collectionName}.${prop.propertyName}`;
+          const arrowNotation = `${collection.collectionName} --> ${prop.propertyName}`;
+          const specificRules = data.extraction_rules
+            .filter(rule => {
+              return rule.targetFields?.includes(dotNotation) || rule.targetFields?.includes(arrowNotation);
+            })
+            .map(rule => rule.ruleContent);
+          const globalRules = data.extraction_rules
+            .filter(rule => !rule.targetFields || rule.targetFields.length === 0)
+            .map(rule => rule.ruleContent);
+          const allRules = [...specificRules, ...globalRules];
+          
+          return {
+            property_name: prop.propertyName,
+            type: prop.propertyType,
+            "AI guidance": prop.description,
+            "Extraction Rules": allRules.length > 0 ? allRules.join(' | ') : "No rules",
+            "Knowledge Documents": data.knowledge_documents.length > 0 ? 
+              data.knowledge_documents.map(doc => doc.displayName).join(', ') : 
+              "None"
+          };
+        }) || []
+      }))
+    };
+    
+    markdown += `\`\`\`json\n${JSON.stringify(collectionsData, null, 2)}\n\`\`\`\n\n`;
+    
+    // Knowledge Documents
+    markdown += `## KNOWLEDGE DOCUMENTS\n\n`;
+    markdown += `**INSTRUCTION:** Use these documents as reference material for validation and conflict detection. When extracted values conflict with knowledge document requirements, reduce confidence scores and explain the conflict in ai_reasoning.\n\n`;
+    
+    if (data.knowledge_documents.length > 0) {
+      data.knowledge_documents.forEach((doc, index) => {
+        const allFields = [
+          ...data.schema_fields.map(field => field.fieldName),
+          ...data.collections.flatMap(collection => 
+            collection.properties?.map((prop: any) => `${collection.collectionName}.${prop.propertyName}`) || []
+          )
+        ];
+        
+        markdown += `### KNOWLEDGE DOCUMENT ${index + 1}: ${doc.displayName}\n\n`;
+        markdown += `${doc.content || 'No content available'}\n\n`;
+        markdown += `**Applies to fields:** ${allFields.join(', ') || 'No fields configured'}\n\n`;
+      });
+    } else {
+      markdown += `No knowledge documents configured\n\n`;
+    }
+    
+    // Extraction Rules
+    markdown += `## EXTRACTION RULES\n\n`;
+    markdown += `**INSTRUCTION:** Apply these rules to modify confidence scores for matching values. Global rules apply to all fields, targeted rules apply to specific properties. Rule-based adjustments should be reflected in confidence_score and explained in ai_reasoning.\n\n`;
+    
+    if (data.extraction_rules.length > 0) {
+      data.extraction_rules.forEach((rule, index) => {
+        const isGlobalRule = !rule.targetFields || rule.targetFields.length === 0;
+        markdown += `### ${isGlobalRule ? 'GLOBAL RULE' : 'TARGETED RULE'} ${index + 1}: ${rule.ruleName || `Rule ${index + 1}`}\n\n`;
+        markdown += `**Applies to:** ${isGlobalRule ? 
+          'ALL SCHEMA FIELDS AND COLLECTION PROPERTIES (Auto-mapped)' : 
+          rule.targetFields?.join(', ') || 'Not specified'
+        }\n\n`;
+        markdown += `**Rule Content:** ${rule.ruleContent}\n\n`;
+      });
+    } else {
+      markdown += `No extraction rules configured\n\n`;
+    }
+    
+    // Summary
+    markdown += `## EXTRACTION SUMMARY\n\n`;
+    markdown += `Schema Fields: ${data.schema_fields.length}\n`;
+    markdown += `Collections: ${data.collections.length}\n`;
+    markdown += `Knowledge Documents: ${data.knowledge_documents.length}\n`;
+    markdown += `Extraction Rules: ${data.extraction_rules.length}\n\n`;
+    
+    // AI Processing Instructions
+    markdown += `## AI PROCESSING INSTRUCTIONS\n\n`;
+    markdown += `### CORE EXTRACTION PROCESS:\n`;
+    markdown += `1. Extract data according to schema structure above\n`;
+    markdown += `2. Count ALL instances across ALL documents accurately\n`;
+    markdown += `3. Apply extraction rules to modify confidence scores as specified\n`;
+    markdown += `4. Use knowledge documents for validation and conflict detection\n\n`;
+    
+    markdown += `### CONFIDENCE SCORING (confidence_score 0-100):\n`;
+    markdown += `- Base: High confidence (85-95) for clear extractions\n`;
+    markdown += `- Apply extraction rule adjustments per rule content\n`;
+    markdown += `- Reduce confidence for knowledge document conflicts\n`;
+    markdown += `- Let content and rules determine final percentage\n\n`;
+    
+    markdown += `### AI REASONING (ai_reasoning):\n`;
+    markdown += `Give reasoning for the score. If knowledge documents and/or extraction rules had influence, please reference which ones in a human-friendly way. Please also include follow up questions that the user can ask the information provider for clarification on the data value.\n\n`;
+    
+    markdown += `### OUTPUT:\n`;
+    markdown += `JSON format below with confidence_score and ai_reasoning for each field.\n\n`;
+    
+    // JSON Schema
+    markdown += `## REQUIRED JSON OUTPUT SCHEMA\n\n`;
+    
+    const outputSchema = {
+      "field_validations": [
+        // Schema fields
+        ...data.schema_fields.map(field => ({
+          "field_type": "schema_field",
+          "field_id": field.id,
+          "field_name": field.fieldName,
+          "description": field.description || 'No description',
+          "extracted_value": null,
+          "confidence_score": 95,
+          "ai_reasoning": "See AI REASONING (ai_reasoning) in AI PROCESSING INSTRUCTIONS",
+          "document_source": "document_name.pdf",
+          "validation_status": "pending",
+          "record_index": 0
+        })),
+        // Collection properties
+        ...data.collections.flatMap(collection => 
+          collection.properties?.map((prop: any) => ({
+            "field_type": "collection_property",
+            "field_id": prop.id,
+            "field_name": `${collection.collectionName}.${prop.propertyName}`,
+            "collection_name": collection.collectionName,
+            "description": prop.description || 'No description',
+            "extracted_value": null,
+            "confidence_score": 95,
+            "ai_reasoning": "See AI REASONING (ai_reasoning) in AI PROCESSING INSTRUCTIONS",
+            "document_source": "document_name.pdf",
+            "validation_status": "pending",
+            "record_index": 0
+          })) || []
+        )
+      ]
+    };
+    
+    markdown += `\`\`\`json\n${JSON.stringify(outputSchema, null, 2)}\n\`\`\`\n\n`;
+    
+    return markdown;
+  };
+
+  // State for storing Gemini response
+  const [geminiResponse, setGeminiResponse] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Function to call Gemini directly
+  const handleGeminiExtraction = async () => {
+    setIsProcessing(true);
+    try {
+      const schemaMarkdown = generateSchemaMarkdown(schemaData);
+      
+      // For now, simulate the Gemini call with the complete prompt
+      const documentText = "Document text content will be processed here";
+      const fullPrompt = `${schemaMarkdown}\n\n## DOCUMENTS TO PROCESS\n\n${documentText}\n\nPlease extract the data according to the schema above and return the JSON response in the exact format specified.`;
+      
+      // Simulate processing delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const simulatedResponse = `=== GEMINI AI RAW RESPONSE ===
+
+PROMPT SENT TO GEMINI:
+${fullPrompt}
+
+=== GEMINI RESPONSE ===
+
+This is where the actual Gemini API response would appear with the extracted JSON data according to the schema specification above.
+
+The response would include:
+- All schema fields with extracted values
+- All collection properties with confidence scores
+- AI reasoning for each field
+- Document source references
+
+Next step: Implement actual Gemini API call here.`;
+
+      setGeminiResponse(simulatedResponse);
+    } catch (error) {
+      console.error('Gemini extraction failed:', error);
+      setGeminiResponse(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   if (sessionLoading || schemaLoading) {
     return (
@@ -391,7 +615,7 @@ export default function SchemaView() {
         "description": prop.description || 'No description', // ACTUAL DESCRIPTION
         "extracted_value": null, // AI FILLS: extracted value for this instance
         "confidence_score": 95, // AI FILLS: 0-100 confidence  
-        "ai_reasoning": "AI explains extraction for this property",
+        "ai_reasoning": "See AI REASONING (ai_reasoning) in AI PROCESSING INSTRUCTIONS",
         "document_source": "document_name.pdf", // AI FILLS: source file
         "validation_status": "pending", // AI SETS: valid/invalid/pending
         "record_index": 0 // AI INCREMENTS: 0, 1, 2... for multiple instances
@@ -431,21 +655,55 @@ export default function SchemaView() {
           BACK: View Text
         </button>
         <button 
-          onClick={() => window.location.href = `/sessions/${sessionId}/extracted-document`}
+          onClick={handleGeminiExtraction}
+          disabled={isProcessing}
           style={{
             padding: '12px 24px',
             fontSize: '16px',
             fontWeight: 'bold',
-            backgroundColor: '#28a745',
+            backgroundColor: isProcessing ? '#6c757d' : '#28a745',
             color: 'white',
             border: 'none',
             borderRadius: '4px',
-            cursor: 'pointer'
+            cursor: isProcessing ? 'not-allowed' : 'pointer'
           }}
         >
-          START EXTRACTION
+          {isProcessing ? 'PROCESSING...' : 'START EXTRACTION'}
         </button>
       </div>
+
+      {/* Display Gemini Response */}
+      {geminiResponse && (
+        <div style={{ 
+          margin: '40px 0',
+          padding: '20px',
+          backgroundColor: '#d4edda',
+          border: '3px solid #155724',
+          borderRadius: '8px'
+        }}>
+          <div style={{ 
+            fontWeight: 'bold', 
+            fontSize: '18px',
+            marginBottom: '15px',
+            color: '#155724'
+          }}>
+            ✅ STEP 3 COMPLETE: AI Extraction Results
+          </div>
+          <pre style={{ 
+            whiteSpace: 'pre-wrap',
+            fontSize: '12px',
+            backgroundColor: '#ffffff',
+            padding: '15px',
+            border: '1px solid #c3e6cb',
+            borderRadius: '4px',
+            overflow: 'auto',
+            maxHeight: '500px',
+            lineHeight: '1.4'
+          }}>
+            {geminiResponse}
+          </pre>
+        </div>
+      )}
     </div>
   );
 }
