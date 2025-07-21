@@ -21,6 +21,7 @@ import { apiRequest } from "@/lib/queryClient";
 import ExtractlyLogo from "@/components/ExtractlyLogo";
 import ValidationIcon from "@/components/ValidationIcon";
 import UserProfile from "@/components/UserProfile";
+import ValidationProcessingDialog from "@/components/ValidationProcessingDialog";
 
 import type { 
   ExtractionSession, 
@@ -229,6 +230,9 @@ export default function SessionView() {
   const [hasRunAutoValidation, setHasRunAutoValidation] = useState(false);
   const [editingDisplayNames, setEditingDisplayNames] = useState<Record<string, boolean>>({});
   const [displayNames, setDisplayNames] = useState<Record<string, string>>({});
+  const [showValidationDialog, setShowValidationDialog] = useState(false);
+  const [validationStep, setValidationStep] = useState<'validating' | 'complete'>('validating');
+  const [validationProgress, setValidationProgress] = useState(0);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -364,15 +368,28 @@ export default function SessionView() {
       });
     },
     onSuccess: async (result) => {
+      // Complete validation progress and show completion briefly
+      setValidationProgress(100);
+      setValidationStep('complete');
+      
       // Invalidate and refetch validation queries to update UI
       await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
       await queryClient.invalidateQueries({ queryKey: ['/api/validations/project', projectId] });
       
-      // Silent success - no popup or toast since validation was handled in processing dialog
+      // Hide dialog after showing completion for 1 second
+      setTimeout(() => {
+        setShowValidationDialog(false);
+        setValidationProgress(0);
+        setValidationStep('validating');
+      }, 1000);
+      
       console.log(`✅ Batch validation completed: ${result.fields_processed} fields processed`);
     },
     onError: (error: any) => {
       console.error('Batch validation failed:', error);
+      setShowValidationDialog(false);
+      setValidationProgress(0);
+      setValidationStep('validating');
       toast({
         title: "Validation processing error",
         description: "Some validation rules may not have been applied correctly.",
@@ -1336,7 +1353,25 @@ Thank you for your assistance.`;
                   <Download className="h-4 w-4" />
                 </Button>
                 <Button
-                  onClick={() => batchValidationMutation.mutate()}
+                  onClick={() => {
+                    // Show validation dialog for manual brain icon clicks
+                    setShowValidationDialog(true);
+                    setValidationProgress(20);
+                    setValidationStep('validating');
+                    
+                    // Simulate progress while processing
+                    const progressInterval = setInterval(() => {
+                      setValidationProgress(prev => {
+                        if (prev >= 80) {
+                          clearInterval(progressInterval);
+                          return 80; // Stop at 80% until completion
+                        }
+                        return prev + 10;
+                      });
+                    }, 200);
+                    
+                    batchValidationMutation.mutate();
+                  }}
                   variant="outline"
                   size="sm"
                   className="px-3 py-2"
@@ -1634,7 +1669,12 @@ Thank you for your assistance.`;
         </DialogContent>
       </Dialog>
 
-
+      {/* Validation Processing Dialog */}
+      <ValidationProcessingDialog
+        open={showValidationDialog}
+        processingStep={validationStep}
+        processingProgress={validationProgress}
+      />
     </div>
   );
 }
