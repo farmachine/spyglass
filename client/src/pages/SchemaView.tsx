@@ -226,30 +226,36 @@ export default function SchemaView() {
       
       const fullPrompt = generateSchemaMarkdown(schemaData, documentText, documentCount);
       
-      // Simulate processing delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Make actual API call to Gemini
+      const response = await apiRequest(`/api/sessions/${sessionId}/gemini-extraction`, {
+        method: 'POST',
+        body: JSON.stringify({ 
+          prompt: fullPrompt,
+          projectId: session.projectId 
+        }),
+        headers: { 'Content-Type': 'application/json' }
+      });
       
-      const simulatedResponse = `=== GEMINI AI RAW RESPONSE ===
+      if (response.success) {
+        setGeminiResponse(`=== GEMINI AI EXTRACTION RESULTS ===
 
-PROMPT SENT TO GEMINI:
-${fullPrompt}
+${response.extractedData || response.result || 'No response data received'}
 
-=== GEMINI RESPONSE ===
+=== END RESULTS ===`);
+      } else {
+        setGeminiResponse(`=== GEMINI API ERROR ===
 
-This is where the actual Gemini API response would appear with the extracted JSON data according to the schema specification above.
+${response.error || 'Unknown error occurred'}
 
-The response would include:
-- All schema fields with extracted values
-- All collection properties with confidence scores
-- AI reasoning for each field
-- Document source references
-
-Next step: Implement actual Gemini API call here.`;
-
-      setGeminiResponse(simulatedResponse);
+=== END ERROR ===`);
+      }
     } catch (error) {
       console.error('Gemini extraction failed:', error);
-      setGeminiResponse(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setGeminiResponse(`=== API CALL ERROR ===
+
+${error instanceof Error ? error.message : 'Unknown error'}
+
+=== END ERROR ===`);
     } finally {
       setIsProcessing(false);
     }

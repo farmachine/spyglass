@@ -1551,6 +1551,76 @@ print(json.dumps(result))
     }
   });
 
+  // Gemini AI extraction endpoint
+  app.post("/api/sessions/:sessionId/gemini-extraction", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const { prompt, projectId } = req.body;
+      
+      console.log(`GEMINI EXTRACTION: Starting for session ${sessionId}`);
+      
+      // Call the existing Python script for AI extraction
+      const { spawn } = await import('child_process');
+      let output = '';
+      let error = '';
+      
+      const python = spawn('python3', ['ai_extraction_single_step.py'], {
+        cwd: process.cwd()
+      });
+
+      // Send the prompt data to Python
+      const pythonInput = JSON.stringify({
+        prompt: prompt,
+        projectId: projectId,
+        sessionId: sessionId
+      });
+      
+      python.stdin.write(pythonInput);
+      python.stdin.end();
+
+      python.stdout.on('data', (data: any) => {
+        output += data.toString();
+      });
+
+      python.stderr.on('data', (data: any) => {
+        error += data.toString();
+      });
+
+      await new Promise((resolve, reject) => {
+        python.on('close', async (code: any) => {
+          if (code !== 0) {
+            console.error('GEMINI EXTRACTION error:', error);
+            return reject(new Error(`Gemini extraction failed: ${error}`));
+          }
+          
+          try {
+            const result = JSON.parse(output);
+            console.log('GEMINI EXTRACTION result:', result.success ? 'Success' : 'Failed');
+            
+            res.json({
+              success: result.success,
+              extractedData: result.extractedData || result.result,
+              error: result.error
+            });
+            
+            resolve(result);
+          } catch (parseError) {
+            console.error('GEMINI EXTRACTION JSON parse error:', parseError);
+            console.error('Raw output:', output);
+            reject(new Error(`Invalid JSON response: ${parseError}`));
+          }
+        });
+      });
+      
+    } catch (error) {
+      console.error("GEMINI EXTRACTION error:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message || "Failed to process Gemini extraction" 
+      });
+    }
+  });
+
   // Get project schema data for AI processing view
   app.get('/api/projects/:projectId/schema-data', async (req, res) => {
     try {
