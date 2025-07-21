@@ -41,7 +41,19 @@ export default function SchemaView() {
       // Check if we already have Gemini-extracted content
       if (session.extractedData) {
         try {
-          const extractedData = JSON.parse(session.extractedData);
+          console.log('DEBUG: session.extractedData exists, parsing...', session.extractedData);
+          
+          // Handle both string and object formats
+          let extractedData;
+          if (typeof session.extractedData === 'string') {
+            extractedData = JSON.parse(session.extractedData);
+          } else {
+            extractedData = session.extractedData;
+          }
+          
+          console.log('DEBUG: parsed extractedData:', extractedData);
+          
+          // Check multiple possible formats for document content
           if (extractedData?.documents && Array.isArray(extractedData.documents)) {
             const text = extractedData.documents.map((doc: any, index: number) => 
               `--- DOCUMENT ${index + 1}: ${doc.file_name} ---\n${doc.extracted_text}`
@@ -50,8 +62,20 @@ export default function SchemaView() {
               text,
               count: extractedData.documents.length
             });
+            console.log('DEBUG: document content set from .documents array');
             return;
           }
+          
+          // Check if it's just the text content directly
+          if (typeof extractedData === 'string' && extractedData.length > 0) {
+            setDocumentContent({
+              text: extractedData,
+              count: session.documents?.length || 1
+            });
+            console.log('DEBUG: document content set from direct string');
+            return;
+          }
+          
         } catch (parseError) {
           console.error("Failed to parse existing session extractedData:", parseError);
         }
