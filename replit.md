@@ -23,6 +23,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ **DISPLAY NAME PERSISTENCE ENHANCED**: Collection display names are now completely independent of validation system
 - ✓ Custom display names persist through validation runs and don't revert to extracted values
 - ✓ Display names are purely UI labels that can be edited freely without affecting data validation
+- ✓ **ROLLBACK BUTTON BEHAVIOR CLARIFIED**: Rollback functionality working correctly - only shows when fields have original AI values
+- ✓ Fields originally extracted as null/empty by AI don't show rollback button (no original value to revert to)
+- ✓ Fields with actual AI-extracted values show rollback button when manually edited
+- ✓ This is correct behavior: can only revert to AI value if AI originally extracted something
 - ✓ **VALIDATION RECORDS EMPTY VALUE BUG COMPLETELY RESOLVED**: Fixed critical issue where validation records were created with empty `extracted_value` fields
 - ✓ Root cause identified: Database validation records had empty strings while UI displayed actual values from session's `extractedData`
 - ✓ Batch validation correctly assigned 0% confidence to empty values, but UI expected confidence for displayed values

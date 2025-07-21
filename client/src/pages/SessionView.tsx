@@ -851,7 +851,6 @@ Thank you for your assistance.`;
 
   const handleRevertToAI = async (fieldName: string) => {
     const validation = getValidation(fieldName);
-    console.log(`Attempting to revert ${fieldName}:`, validation);
     
     if (validation && validation.originalExtractedValue !== undefined && validation.originalExtractedValue !== null) {
       try {
@@ -878,11 +877,6 @@ Thank you for your assistance.`;
           variant: "destructive"
         });
       }
-    } else {
-      console.log(`Cannot revert ${fieldName}: no original value available`, {
-        hasValidation: !!validation,
-        originalValue: validation?.originalExtractedValue
-      });
     }
   };
 
@@ -1126,14 +1120,6 @@ Thank you for your assistance.`;
                            validation.extractedValue !== "undefined";
             
             if (wasManuallyUpdated) {
-              // Debug logging for rollback button visibility
-              console.log(`Field ${fieldName}:`, {
-                hasOriginalValue: !!validation.originalExtractedValue,
-                originalValue: validation.originalExtractedValue,
-                currentValue: validation.extractedValue,
-                validationStatus: validation.validationStatus
-              });
-              
               return (
                 <div className="flex items-center gap-2">
                   <ManualInputBadge />
