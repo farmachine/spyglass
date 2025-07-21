@@ -27,8 +27,15 @@ export default function SchemaView() {
   });
 
   // Function to generate markdown from schema data
-  const generateSchemaMarkdown = (data: SchemaData) => {
-    let markdown = `# SCHEMA FOR AI PROCESSING\n\n`;
+  const generateSchemaMarkdown = (data: SchemaData, documentText: string, documentCount: number) => {
+    let markdown = `# AI EXTRACTION TASK\n\n`;
+    markdown += `You are an expert data extraction AI. Your task is to analyze the documents below and extract structured data according to the schema provided.\n\n`;
+    markdown += `## DOCUMENTS TO PROCESS\n\n`;
+    markdown += `Number of documents: ${documentCount}\n`;
+    markdown += `Document separator: "--- DOCUMENT SEPARATOR ---"\n\n`;
+    markdown += `${documentText}\n\n`;
+    markdown += `--- END OF DOCUMENTS ---\n\n\n`;
+    markdown += `# EXTRACTION SCHEMA\n\n`;
     markdown += `Project: ${data.project?.name || 'Unknown'}\n`;
     markdown += `Description: ${data.project?.description || 'No description'}\n`;
     markdown += `Main Object: ${data.project?.mainObjectName || 'Session'}\n\n`;
@@ -213,11 +220,11 @@ export default function SchemaView() {
   const handleGeminiExtraction = async () => {
     setIsProcessing(true);
     try {
-      const schemaMarkdown = generateSchemaMarkdown(schemaData);
-      
       // Get the actual document text from the session
       const documentText = session?.extractedText || "No document text available";
-      const fullPrompt = `${schemaMarkdown}\n\n## DOCUMENTS TO PROCESS\n\n${documentText}\n\nPlease extract the data according to the schema above and return the JSON response in the exact format specified.`;
+      const documentCount = session?.documents?.length || 0;
+      
+      const fullPrompt = generateSchemaMarkdown(schemaData, documentText, documentCount);
       
       // Simulate processing delay
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -628,6 +635,39 @@ Next step: Implement actual Gemini API call here.`;
         </div>
       </div>
 
+      {/* Complete Generated Prompt Display */}
+      {session?.extractedText && schemaData && (
+        <div style={{ 
+          margin: '40px 0',
+          padding: '20px',
+          backgroundColor: '#e7f3ff',
+          border: '3px solid #0066cc',
+          borderRadius: '8px'
+        }}>
+          <div style={{ 
+            fontWeight: 'bold', 
+            fontSize: '18px',
+            marginBottom: '15px',
+            color: '#0066cc'
+          }}>
+            📄 COMPLETE PROMPT TO BE SENT TO AI
+          </div>
+          <pre style={{ 
+            whiteSpace: 'pre-wrap',
+            fontSize: '11px',
+            backgroundColor: '#ffffff',
+            padding: '15px',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            overflow: 'auto',
+            maxHeight: '400px',
+            lineHeight: '1.4'
+          }}>
+            {generateSchemaMarkdown(schemaData, session.extractedText, session.documents?.length || 0)}
+          </pre>
+        </div>
+      )}
+
       {/* Next Step Button */}
       <div style={{ 
         margin: '40px 0', 
@@ -637,24 +677,8 @@ Next step: Implement actual Gemini API call here.`;
         border: '2px solid #155724'
       }}>
         <div style={{ marginBottom: '10px', fontWeight: 'bold' }}>
-          STEP 2 COMPLETE: Schema & Rules Configuration
+          STEP 2 COMPLETE: Schema & Prompt Generated
         </div>
-        <button 
-          onClick={() => window.location.href = `/sessions/${sessionId}/text-view`}
-          style={{
-            padding: '12px 24px',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            backgroundColor: '#6c757d',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            marginRight: '10px'
-          }}
-        >
-          BACK: View Text
-        </button>
         <button 
           onClick={handleGeminiExtraction}
           disabled={isProcessing}

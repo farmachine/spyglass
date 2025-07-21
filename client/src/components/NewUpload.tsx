@@ -286,7 +286,7 @@ export default function NewUpload({ project }: NewUploadProps) {
       if (textExtractionResult && session?.id) {
         toast({
           title: "Text extraction complete",
-          description: `${selectedFiles.length} file(s) processed successfully. Viewing extracted text...`,
+          description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
         });
 
         // Close dialog and redirect to text view

@@ -11,12 +11,14 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 21, 2025 (Latest Update)**
-- ✓ **SINGLE-PROCESS EXTRACTION FLOW COMPLETED**: Simplified extraction to avoid database storage complexity while maintaining strict sequential workflow
+- ✓ **STREAMLINED WORKFLOW COMPLETED**: Direct navigation from text extraction to schema view as requested
+- ✓ Document text now integrated at top of schema prompt with contextual instructions explaining task and document separators
+- ✓ Updated server redirect to skip text view page and go directly to schema view after text extraction
+- ✓ Schema generation function now embeds document text with proper context: task description, document count, and separators
+- ✓ Complete generated prompt visible on schema page showing document text at very top before schema definitions
+- ✓ Updated success message to reflect direct navigation to schema generation
 - ✓ Fixed React useState import error preventing SchemaView component from loading
-- ✓ Updated handleGeminiExtraction function to use actual session.extractedText instead of placeholder content
-- ✓ Gemini response now displays directly on schema page without separate navigation or database storage
-- ✓ All processing happens in single function: generate schema → build prompt with real document text → display simulated AI response
-- ✓ Maintained sequential workflow as requested: Step 1 (extract text) → Step 2 (schema view) → Step 3 (AI extraction results)
+- ✓ Maintained strict sequential workflow: Step 1 (extract text) → Step 2 (schema/prompt with embedded text) → Step 3 (AI extraction results)
 
 **January 21, 2025**
 - ✓ **SCHEMA VIEW OPTIMIZED FOR GEMINI AI EXTRACTION**: Enhanced SchemaView with concise, targeted instructions for maximum AI accuracy

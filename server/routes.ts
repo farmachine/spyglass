@@ -1542,7 +1542,7 @@ print(json.dumps(result))
       
       res.json({
         message: "Text extraction completed successfully",
-        redirect: `/sessions/${sessionId}/text-view`
+        redirect: `/sessions/${sessionId}/schema-view`
       });
       
     } catch (error) {
