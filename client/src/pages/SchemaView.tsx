@@ -1142,8 +1142,9 @@ ${error instanceof Error ? error.message : 'Unknown error'}
           <div style={{ marginTop: '20px', textAlign: 'center' }}>
             <button
               onClick={() => {
-                // Navigate to session review page
-                window.location.href = `/sessions/${sessionId}`;
+                // Navigate to session review page with correct route structure
+                const projectId = new URLSearchParams(window.location.search).get('projectId') || schemaData?.project?.id;
+                window.location.href = `/projects/${projectId}/sessions/${sessionId}`;
               }}
               style={{
                 backgroundColor: '#28a745',
