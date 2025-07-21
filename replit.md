@@ -10,6 +10,17 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**January 21, 2025 (Latest Update)**
+- ✓ **CHAINED PROCESSING BUG COMPLETELY RESOLVED**: Fixed critical issue where internal fetch calls returned HTML instead of JSON
+- ✓ Root cause identified: Chained process was using internal fetch() calls to API endpoints, causing routing issues
+- ✓ Replaced problematic fetch-based approach with direct Python script execution in chained process
+- ✓ Fixed data structure mismatch: frontend {name, content, type} → Python {file_name, file_content, mime_type}
+- ✓ **GEMINI API PDF PROCESSING IMPLEMENTED**: Completely replaced PyPDF2 local processing with Gemini API for all file processing
+- ✓ Enhanced Python script to use Gemini API for text extraction from PDFs, images, and all binary file types
+- ✓ Added proper JSON parsing with markdown code block handling for AI responses
+- ✓ Fixed JSON response parsing to handle empty responses and markdown formatting
+- ✓ System now processes all file types through Gemini API, eliminating local PDF processing dependencies
+
 **January 21, 2025**
 - ✓ **PURE AI-ONLY EXTRACTION AND VALIDATION COMPLETELY IMPLEMENTED**: Removed all programmatic counting and validation logic
 - ✓ Root cause eliminated: System was programmatically counting collection items for "Number of Parties", "Number of NDAs" fields instead of using AI judgment

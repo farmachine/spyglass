@@ -1263,42 +1263,85 @@ except Exception as e:
       
       console.log(`CHAINED PROCESS: Starting extract+validate for session ${sessionId}`);
       
-      // STEP 1: Extract
-      const extractResponse = await fetch(`${req.protocol}://${req.get('host')}/api/sessions/${sessionId}/extract`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ files, project_data })
+      // Convert frontend file format to Python script expected format
+      const convertedFiles = (files || []).map((file: any) => ({
+        file_name: file.name,
+        file_content: file.content, // This is the data URL from FileReader
+        mime_type: file.type
+      }));
+
+      // STEP 1: Call extraction directly (no internal fetch)
+      console.log(`STEP 1: Extracting from ${convertedFiles.length} documents`);
+      
+      // Prepare data for Python extraction script
+      const extractionData = {
+        step: "extract",
+        session_id: sessionId,
+        files: convertedFiles,
+        project_schema: {
+          schema_fields: project_data?.schemaFields || [],
+          collections: project_data?.collections || []
+        },
+        session_name: project_data?.mainObjectName || "contract"
+      };
+      
+      // Call Python extraction script directly
+      const python = spawn('python3', ['ai_extraction_simplified.py']);
+      
+      python.stdin.write(JSON.stringify(extractionData));
+      python.stdin.end();
+      
+      let output = '';
+      let error = '';
+      
+      python.stdout.on('data', (data: any) => {
+        output += data.toString();
       });
       
-      if (!extractResponse.ok) {
-        const errorData = await extractResponse.json();
-        return res.status(extractResponse.status).json(errorData);
-      }
-      
-      // STEP 2: Validate  
-      const validateResponse = await fetch(`${req.protocol}://${req.get('host')}/api/sessions/${sessionId}/validate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId })
+      python.stderr.on('data', (data: any) => {
+        error += data.toString();
       });
       
-      if (!validateResponse.ok) {
-        const errorData = await validateResponse.json();
-        return res.status(validateResponse.status).json(errorData);
-      }
+      await new Promise((resolve, reject) => {
+        python.on('close', async (code: any) => {
+          if (code !== 0) {
+            console.error('CHAINED PROCESS extraction error:', error);
+            return reject(new Error(`AI extraction failed: ${error}`));
+          }
+          
+          try {
+            const extractedData = JSON.parse(output);
+            console.log('CHAINED PROCESS extracted data:', JSON.stringify(extractedData, null, 2));
+            
+            // Store extracted data in session
+            await storage.updateExtractionSession(sessionId, {
+              status: "extracted",
+              extractedData: JSON.stringify(extractedData)
+            });
+            
+            // Create field validation records from extracted data
+            await createFieldValidationRecords(sessionId, extractedData, project_data);
+            
+            resolve(extractedData);
+            
+          } catch (parseError) {
+            console.error('CHAINED PROCESS JSON parse error:', parseError);
+            console.error('Raw output:', output);
+            reject(new Error(`Invalid JSON response: ${parseError}`));
+          }
+        });
+      });
       
-      const extractResult = await extractResponse.json();
-      const validateResult = await validateResponse.json();
+      // STEP 2: Validation is already done via createFieldValidationRecords above
+      console.log(`CHAINED PROCESS: Completed extract+validate for session ${sessionId}`);
       
       res.json({
-        message: "CHAINED PROCESS: Extract and validate completed",
-        extraction: extractResult,
-        validation: validateResult
+        message: "CHAINED PROCESS: Extract and validate completed successfully"
       });
       
     } catch (error) {
       console.error("CHAINED PROCESS error:", error);
-      res.status(500).json({ message: "Failed to complete extraction and validation" });
+      res.status(500).json({ message: "Failed to complete extraction and validation", error: error.message });
     }
   });
   
