@@ -1853,10 +1853,33 @@ print(json.dumps(result))
       const savedValidations = [];
       for (const validation of validations) {
         try {
+          // For collection properties, we need to set the correct fieldName with index
+          let fieldName = validation.field_name;
+          let collectionName = null;
+          
+          // If it's a collection property, ensure proper indexed field name
+          if (validation.field_type === 'collection_property') {
+            const recordIndex = validation.record_index || 0;
+            
+            // Check if the field name already has an index
+            if (!fieldName.includes('[')) {
+              // Add the index if missing (e.g., "Parties.Name" -> "Parties.Name[0]")
+              fieldName = `${fieldName}[${recordIndex}]`;
+            }
+            
+            // Extract collection name from field name
+            const collectionMatch = fieldName.match(/^(.+)\./);
+            if (collectionMatch) {
+              collectionName = collectionMatch[1];
+            }
+          }
+          
           const savedValidation = await storage.createFieldValidation({
             sessionId: sessionId,
             fieldId: validation.field_id,
             fieldType: validation.field_type,
+            fieldName: fieldName, // Use the properly indexed field name
+            collectionName: collectionName,
             extractedValue: validation.extracted_value,
             confidenceScore: validation.confidence_score,
             validationStatus: validation.validation_status === 'pending' ? 'unverified' : validation.validation_status,
@@ -1865,7 +1888,7 @@ print(json.dumps(result))
             recordIndex: validation.record_index || 0
           });
           savedValidations.push(savedValidation);
-          console.log(`SAVE VALIDATIONS: Saved field ${validation.field_name}`);
+          console.log(`SAVE VALIDATIONS: Saved field ${fieldName} (original: ${validation.field_name})`);
         } catch (error) {
           console.error(`SAVE VALIDATIONS: Failed to save field ${validation.field_name}:`, error);
         }
