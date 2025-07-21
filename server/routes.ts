@@ -1611,6 +1611,18 @@ print(json.dumps(results))
       const validations = await storage.getFieldValidations(sessionId);
       console.log(`DEBUG: Found ${validations.length} validations to recalculate`);
       
+      // Debug: Show what validation data looks like
+      const schemaValidations = validations.filter(v => !v.collectionName);
+      const collectionValidations = validations.filter(v => v.collectionName);
+      console.log(`DEBUG: Schema validations: ${schemaValidations.length}, Collection validations: ${collectionValidations.length}`);
+      
+      if (schemaValidations.length > 0) {
+        console.log('Sample schema validation:', schemaValidations[0]);
+      }
+      if (collectionValidations.length > 0) {
+        console.log('Sample collection validation:', collectionValidations[0]);
+      }
+      
       // Import Python calculation function
       const { spawn } = require('child_process');
       const python = spawn('python3', ['-c', `
@@ -1630,21 +1642,27 @@ for validation in validations:
     field_name = validation['fieldName']
     extracted_value = validation['extractedValue']
     
-    if extracted_value is not None and extracted_value != "":
+    # Process ALL validations, including those with null/empty values
+    # Empty/null values should have low confidence (20%), non-empty should be recalculated
+    if extracted_value is not None and extracted_value != "" and extracted_value != "null":
         confidence, applied_rules = calculate_knowledge_based_confidence(
             field_name, extracted_value, 95, extraction_rules, knowledge_documents
         )
-        
-        # Only include if confidence changed
-        if confidence != validation['confidenceScore']:
-            results.append({
-                'id': validation['id'],
-                'fieldName': field_name,
-                'extractedValue': extracted_value,
-                'oldConfidence': validation['confidenceScore'],
-                'newConfidence': confidence,
-                'appliedRules': applied_rules
-            })
+    else:
+        # Empty or null values get low confidence
+        confidence = 20
+        applied_rules = []
+    
+    # Include if confidence changed or if we need to set proper confidence for extracted values
+    if confidence != validation['confidenceScore']:
+        results.append({
+            'id': validation['id'],
+            'fieldName': field_name,
+            'extractedValue': extracted_value,
+            'oldConfidence': validation['confidenceScore'],
+            'newConfidence': confidence,
+            'appliedRules': applied_rules
+        })
 
 print(json.dumps(results))
 `], { stdio: ['pipe', 'pipe', 'pipe'] });
