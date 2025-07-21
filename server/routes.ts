@@ -1258,14 +1258,14 @@ except Exception as e:
     }
   });
   
-  // CHAINED PROCESS: Extract and validate together (for new sessions)
+  // SINGLE-STEP PROCESS: Extract and validate in one AI call (eliminates field mapping confusion)
   app.post("/api/sessions/:sessionId/process", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
       const { files, project_data } = req.body;
       const projectId = project_data?.projectId || project_data?.id;
       
-      console.log(`CHAINED PROCESS: Starting extract+validate for session ${sessionId}`);
+      console.log(`SINGLE-STEP PROCESS: Starting extract+validate for session ${sessionId}`);
       
       // Convert frontend file format to Python script expected format
       const convertedFiles = (files || []).map((file: any) => ({
@@ -1274,27 +1274,26 @@ except Exception as e:
         mime_type: file.type
       }));
 
-      // STEP 1: Call extraction directly (no internal fetch)
-      console.log(`STEP 1: Extracting from ${convertedFiles.length} documents`);
+      console.log(`SINGLE-STEP: Processing ${convertedFiles.length} documents with integrated extraction and validation`);
       
-      // Get extraction rules for better AI guidance
+      // Get extraction rules and knowledge documents for comprehensive AI guidance
       const extractionRules = projectId ? await storage.getExtractionRules(projectId) : [];
+      const knowledgeDocuments = projectId ? await storage.getKnowledgeDocuments(projectId) : [];
       
-      // Prepare data for Python extraction script
+      // Prepare data for Python single-step extraction script
       const extractionData = {
-        step: "extract",
-        session_id: sessionId,
-        files: convertedFiles,
+        documents: convertedFiles,
         project_schema: {
           schema_fields: project_data?.schemaFields || [],
           collections: project_data?.collections || []
         },
         extraction_rules: extractionRules,
-        session_name: project_data?.mainObjectName || "contract"
+        knowledge_documents: knowledgeDocuments,
+        session_id: sessionId
       };
       
-      // Call Python extraction script directly
-      const python = spawn('python3', ['ai_extraction_simplified.py']);
+      // Call Python single-step extraction script
+      const python = spawn('python3', ['ai_extraction_single_step.py']);
       
       python.stdin.write(JSON.stringify(extractionData));
       python.stdin.end();
@@ -1313,38 +1312,58 @@ except Exception as e:
       await new Promise((resolve, reject) => {
         python.on('close', async (code: any) => {
           if (code !== 0) {
-            console.error('CHAINED PROCESS extraction error:', error);
-            return reject(new Error(`AI extraction failed: ${error}`));
+            console.error('SINGLE-STEP PROCESS error:', error);
+            return reject(new Error(`AI single-step extraction failed: ${error}`));
           }
           
           try {
-            const extractedData = JSON.parse(output);
-            console.log('CHAINED PROCESS extracted data:', JSON.stringify(extractedData, null, 2));
+            const result = JSON.parse(output);
+            console.log('SINGLE-STEP PROCESS result:', JSON.stringify(result, null, 2));
             
-            // Store extracted data in session
+            if (!result.success) {
+              return reject(new Error(result.error || 'Single-step extraction failed'));
+            }
+            
+            const { fieldValidations, aggregatedExtraction } = result;
+            
+            // Store aggregated extraction data in session
             await storage.updateExtractionSession(sessionId, {
               status: "extracted",
-              extractedData: JSON.stringify(extractedData)
+              extractedData: JSON.stringify(aggregatedExtraction)
             });
             
-            // Create field validation records from extracted data
-            await createFieldValidationRecords(sessionId, extractedData, project_data);
+            // Create field validation records directly from AI results
+            console.log(`SINGLE-STEP: Creating ${fieldValidations?.length || 0} field validation records`);
+            for (const validation of fieldValidations || []) {
+              try {
+                await storage.createFieldValidation({
+                  sessionId: validation.session_id,
+                  fieldName: validation.field_name,
+                  fieldType: validation.field_type,
+                  extractedValue: validation.extracted_value,
+                  validationStatus: validation.validation_status,
+                  confidenceScore: validation.validation_confidence,
+                  aiReasoning: validation.ai_reasoning
+                });
+              } catch (validationError) {
+                console.error(`Error creating validation record for ${validation.field_name}:`, validationError);
+              }
+            }
             
-            resolve(extractedData);
+            resolve({ fieldValidations, aggregatedExtraction });
             
           } catch (parseError) {
-            console.error('CHAINED PROCESS JSON parse error:', parseError);
+            console.error('SINGLE-STEP PROCESS JSON parse error:', parseError);
             console.error('Raw output:', output);
             reject(new Error(`Invalid JSON response: ${parseError}`));
           }
         });
       });
       
-      // STEP 2: Validation is already done via createFieldValidationRecords above
-      console.log(`CHAINED PROCESS: Completed extract+validate for session ${sessionId}`);
+      console.log(`SINGLE-STEP PROCESS: Completed extract+validate for session ${sessionId}`);
       
       res.json({
-        message: "CHAINED PROCESS: Extract and validate completed successfully"
+        message: "SINGLE-STEP PROCESS: Extract and validate completed successfully"
       });
       
     } catch (error) {
