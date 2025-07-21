@@ -384,41 +384,41 @@ ${error instanceof Error ? error.message : 'Unknown error'}
       if (jsonMatch) {
         jsonText = jsonMatch[1].trim();
       } else {
-        // Pattern 2: Look for array starting with [ and ending with ] (balanced brackets)
+        // Pattern 2: Look for object starting with { and ending with } (balanced braces)
         const lines = geminiResponse.split('\n');
-        let arrayStart = -1;
-        let arrayEnd = -1;
-        let bracketCount = 0;
+        let objectStart = -1;
+        let objectEnd = -1;
+        let braceCount = 0;
         
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i].trim();
-          if (line.startsWith('[') && arrayStart === -1) {
-            arrayStart = i;
-            bracketCount = 1;
-            // Count brackets in the same line
+          if (line.startsWith('{') && objectStart === -1) {
+            objectStart = i;
+            braceCount = 1;
+            // Count braces in the same line
             for (let j = 1; j < line.length; j++) {
-              if (line[j] === '[') bracketCount++;
-              if (line[j] === ']') bracketCount--;
+              if (line[j] === '{') braceCount++;
+              if (line[j] === '}') braceCount--;
             }
-            if (bracketCount === 0) {
-              arrayEnd = i;
+            if (braceCount === 0) {
+              objectEnd = i;
               break;
             }
-          } else if (arrayStart !== -1) {
-            // Count brackets to find the end
+          } else if (objectStart !== -1) {
+            // Count braces to find the end
             for (let j = 0; j < line.length; j++) {
-              if (line[j] === '[') bracketCount++;
-              if (line[j] === ']') bracketCount--;
+              if (line[j] === '{') braceCount++;
+              if (line[j] === '}') braceCount--;
             }
-            if (bracketCount === 0) {
-              arrayEnd = i;
+            if (braceCount === 0) {
+              objectEnd = i;
               break;
             }
           }
         }
         
-        if (arrayStart !== -1 && arrayEnd !== -1) {
-          jsonText = lines.slice(arrayStart, arrayEnd + 1).join('\n').trim();
+        if (objectStart !== -1 && objectEnd !== -1) {
+          jsonText = lines.slice(objectStart, objectEnd + 1).join('\n').trim();
         }
       }
 
@@ -436,18 +436,29 @@ ${error instanceof Error ? error.message : 'Unknown error'}
         .replace(/\n\s*\n/g, '\n') // Remove empty lines
         .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
         .replace(/\.\.\./g, '') // Remove ellipsis that might truncate strings
+        .replace(/…\[TRUNCATED\]/g, '') // Remove truncation markers
         .trim();
       
-      // Find the last complete closing bracket
-      let lastClosingBracket = cleanedJsonText.lastIndexOf(']');
-      if (lastClosingBracket > 0) {
-        cleanedJsonText = cleanedJsonText.substring(0, lastClosingBracket + 1);
+      // Find the last complete closing brace for objects
+      let lastClosingBrace = cleanedJsonText.lastIndexOf('}');
+      if (lastClosingBrace > 0) {
+        cleanedJsonText = cleanedJsonText.substring(0, lastClosingBrace + 1);
       }
       
       console.log('Cleaned JSON text length:', cleanedJsonText.length);
       console.log('Cleaned JSON text (last 100 chars):', cleanedJsonText.substring(Math.max(0, cleanedJsonText.length - 100)));
       
-      const extractedData = JSON.parse(cleanedJsonText);
+      const parsedJson = JSON.parse(cleanedJsonText);
+      
+      // Extract the field_validations array from the response
+      let extractedData;
+      if (parsedJson.field_validations && Array.isArray(parsedJson.field_validations)) {
+        extractedData = parsedJson.field_validations;
+      } else if (Array.isArray(parsedJson)) {
+        extractedData = parsedJson;
+      } else {
+        throw new Error('Invalid JSON structure - expected field_validations array or direct array');
+      }
       
       // Ensure extractedData is an array
       const validationsArray = Array.isArray(extractedData) ? extractedData : [extractedData];
