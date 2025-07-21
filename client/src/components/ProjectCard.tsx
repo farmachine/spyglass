@@ -193,7 +193,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
 
   return (
     <>
-      <Card className={`bg-white text-black border border-gray-200 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-blue-300 hover:-translate-y-1 cursor-pointer group relative overflow-hidden h-[200px] flex flex-col ${
+      <Card className={`bg-white text-black border border-gray-200 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-blue-300 hover:-translate-y-1 cursor-pointer group relative overflow-hidden h-[200px] flex flex-col shadow-[0_4px_8px_-2px_rgba(59,130,246,0.15),2px_0_6px_-1px_rgba(59,130,246,0.1)] ${
         project.status === "inactive" ? "opacity-60" : ""
       }`}>
         <CardHeader className="pt-4 pb-2 flex-shrink-0">
@@ -319,7 +319,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
                     <Badge 
                       key={org.id} 
                       variant="secondary" 
-                      className={`text-xs font-normal px-1.5 py-0 ${
+                      className={`text-xs font-normal px-1.5 py-0 border ${
                         org.type === 'primary' 
                           ? 'bg-gray-200 text-black border-gray-300' 
                           : 'bg-green-100 text-green-700 border-green-200'
