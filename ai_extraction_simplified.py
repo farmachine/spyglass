@@ -116,9 +116,9 @@ EXAMPLE OUTPUT FORMAT:
 
 RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
         
-        # Use Gemini API to process all documents and extract text content
-        all_document_text = ""
+        # Use Gemini API to process all documents in single call (performance optimization)
         model = genai.GenerativeModel('gemini-1.5-flash')
+        file_parts = []
         
         for doc in documents:
             file_content = doc['file_content']
@@ -159,28 +159,26 @@ RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
                             "data": binary_content
                         }
                         
-                        # Ask Gemini to extract all text content
-                        text_extraction_response = model.generate_content([
-                            "Extract all text content from this document. Return only the raw text without any formatting or explanations.",
-                            file_part
-                        ])
-                        
-                        if text_extraction_response.text:
-                            extracted_text = text_extraction_response.text.strip()
-                            all_document_text += f"\n\n=== DOCUMENT: {file_name} ===\n{extracted_text}"
-                            logging.info(f"Successfully extracted {len(extracted_text)} characters from {file_name}")
-                        else:
-                            logging.warning(f"No text extracted from {file_name}")
+                        # Store file part for single AI call (performance optimization)
+                        file_parts.append({
+                            "name": file_name,
+                            "part": file_part
+                        })
                     
                 except Exception as e:
                     logging.error(f"Failed to process document {file_name}: {e}")
                     continue
         
-        # Make AI extraction call
-        full_prompt = prompt + f"\n\nDOCUMENT CONTENT:\n{all_document_text}"
-        
-        logging.info(f"Making AI extraction call with {len(full_prompt)} character prompt")
-        response = model.generate_content(full_prompt)
+        # Make single AI extraction call with all documents (major performance improvement)
+        if file_parts:
+            logging.info(f"Making single AI extraction call with {len(file_parts)} documents")
+            content_parts = [prompt]
+            for fp in file_parts:
+                content_parts.append(fp["part"])
+            response = model.generate_content(content_parts)
+        else:
+            logging.info(f"Making AI extraction call without documents")
+            response = model.generate_content(prompt)
         
         if not response or not response.text:
             return ExtractionResult(success=False, error_message="No response from AI")

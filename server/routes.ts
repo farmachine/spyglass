@@ -1409,10 +1409,37 @@ except Exception as e:
             const item = collectionData[index];
             
             for (const property of collection.properties || []) {
-              // Try different property name variations
-              const camelCaseProperty = convertToCamelCase(property.propertyName);
-              const propertyValue = item[property.propertyName] || item[camelCaseProperty] || item[property.propertyName.toLowerCase()];
+              // Try different property name variations to match AI extraction
+              let propertyValue = item[property.propertyName]; // Try exact match first
+              
+              if (propertyValue === undefined) {
+                // Try camelCase version
+                const camelCaseProperty = convertToCamelCase(property.propertyName);
+                propertyValue = item[camelCaseProperty];
+              }
+              
+              if (propertyValue === undefined) {
+                // Try lowercase version
+                propertyValue = item[property.propertyName.toLowerCase()];
+              }
+              
+              if (propertyValue === undefined) {
+                // Try common AI field name mappings
+                const commonMappings = {
+                  'Name': 'partyName',
+                  'Address': 'address',
+                  'Company Name': 'companyName',
+                  'Party Name': 'partyName'
+                };
+                
+                if (commonMappings[property.propertyName]) {
+                  propertyValue = item[commonMappings[property.propertyName]];
+                }
+              }
+              
               const fieldName = `${collectionName}.${property.propertyName}[${index}]`;
+              
+              console.log(`Mapping ${property.propertyName} for item ${index}: found value "${propertyValue}" (searched in:`, Object.keys(item), ')');
               
               await storage.createFieldValidation({
                 sessionId,
