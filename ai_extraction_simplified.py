@@ -59,44 +59,68 @@ def step1_extract_from_documents(
         prompt = f"""You are an expert data extraction specialist. Extract data from the provided documents and return a JSON object with the exact structure specified below.
 
 CRITICAL INSTRUCTIONS:
-1. Extract ONLY real data from the documents - NO sample or placeholder data
-2. If data is not found, use null
-3. Return JSON as a single object with the session name as the root key
-4. **COUNTING FIELDS ARE CRITICAL**: For counting fields (like "Number of Parties", "Number of NDAs"), you MUST:
-   - Scan through ALL documents thoroughly  
-   - Count EVERY unique company/organization/party mentioned across ALL documents
-   - Include subsidiaries, parent companies, and any entity that could be a party
-   - Do NOT miss any parties - be comprehensive and thorough
-5. PAY SPECIAL ATTENTION to field descriptions - they guide what you should extract
-6. Use the exact field names specified, but output in camelCase format
-7. **DOCUMENT SET ANALYSIS**: You are analyzing a SET of {len(documents)} documents - make sure to extract data from ALL of them
+1. PROCESS ALL {len(documents)} DOCUMENTS: {[doc.get('file_name', 'Unknown') for doc in documents]}
+2. FOLLOW SCHEMA FIELD DESCRIPTIONS PRECISELY - Each description is your extraction instruction
+3. APPLY EXTRACTION RULES - Rules modify extraction behavior, formatting, and validation
+4. For NUMBER fields: Count ALL instances across ALL {len(documents)} documents as described
+5. For NDA counting: Count individual contracts/agreements, NOT just parties
+6. For collections: Extract EVERY instance mentioned across ALL documents
+7. Return JSON with real extracted values only
+8. If extraction rules specify formatting, apply that formatting to extracted values
 
-TARGET JSON STRUCTURE:
-{{"
-  "{session_name}": {{
-    // Schema fields go here as properties
-    // Collections go here as arrays of objects
-  }}
-}}
+DOCUMENT SET ANALYSIS: You are processing {len(documents)} documents simultaneously. Extract comprehensively from the entire set.
 
-SCHEMA FIELDS TO EXTRACT:"""
+SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
         
-        # Add schema fields with descriptions for AI guidance
+        # Add schema fields with descriptions for AI guidance  
         if project_schema.get("schema_fields"):
             for field in project_schema["schema_fields"]:
                 field_name = field['fieldName']
                 field_type = field['fieldType']
                 field_description = field.get('description', '')
                 camel_case_name = field_name.replace(' ', '').replace('of', 'Of')
-                prompt += f"\n- {camel_case_name} ({field_type}): {field_description or 'Extract this field from the documents'}"
+                
+                # Find applicable extraction rules for this field
+                applicable_rules = []
+                if extraction_rules:
+                    for rule in extraction_rules:
+                        rule_target = rule.get('targetField', [])
+                        if isinstance(rule_target, list):
+                            if field_name in rule_target or 'All Fields' in rule_target:
+                                applicable_rules.append(f"RULE: {rule.get('ruleContent', '')}")
+                        elif field_name == rule_target or rule_target == 'All Fields':
+                            applicable_rules.append(f"RULE: {rule.get('ruleContent', '')}")
+                
+                # Combine description with rules
+                full_instruction = field_description or 'Extract this field from the documents'
+                if applicable_rules:
+                    full_instruction += " | " + " | ".join(applicable_rules)
+                
+                prompt += f"\n- **{camel_case_name}** ({field_type}): {full_instruction}"
         
         # Add collections with descriptions for AI guidance
         if project_schema.get("collections"):
-            prompt += "\n\nCOLLECTIONS TO EXTRACT:"
+            prompt += "\n\nCOLLECTIONS TO EXTRACT (extract ALL instances across ALL documents):"
             for collection in project_schema["collections"]:
                 collection_name = collection.get('collectionName', collection.get('objectName', ''))
                 collection_description = collection.get('description', '')
-                prompt += f"\n- {collection_name}: {collection_description or 'Extract array of these objects'}"
+                
+                # Find applicable extraction rules for this collection
+                applicable_rules = []
+                if extraction_rules:
+                    for rule in extraction_rules:
+                        rule_target = rule.get('targetField', [])
+                        if isinstance(rule_target, list):
+                            if collection_name in rule_target or 'All Fields' in rule_target:
+                                applicable_rules.append(f"RULE: {rule.get('ruleContent', '')}")
+                        elif collection_name == rule_target or rule_target == 'All Fields':
+                            applicable_rules.append(f"RULE: {rule.get('ruleContent', '')}")
+                
+                full_instruction = collection_description or 'Extract array of these objects'
+                if applicable_rules:
+                    full_instruction += " | " + " | ".join(applicable_rules)
+                
+                prompt += f"\n- **{collection_name}**: {full_instruction}"
                 
                 properties = collection.get("properties", [])
                 if properties:
@@ -105,7 +129,24 @@ SCHEMA FIELDS TO EXTRACT:"""
                         prop_name = prop.get('propertyName', '')
                         prop_type = prop.get('propertyType', 'TEXT')
                         prop_description = prop.get('description', '')
-                        prompt += f"\n  * {prop_name} ({prop_type}): {prop_description or 'Extract this property'}"
+                        
+                        # Find applicable extraction rules for this property
+                        prop_rules = []
+                        if extraction_rules:
+                            for rule in extraction_rules:
+                                rule_target = rule.get('targetField', [])
+                                full_prop_name = f"{collection_name}.{prop_name}"
+                                if isinstance(rule_target, list):
+                                    if full_prop_name in rule_target or prop_name in rule_target or 'All Fields' in rule_target:
+                                        prop_rules.append(f"RULE: {rule.get('ruleContent', '')}")
+                                elif full_prop_name == rule_target or prop_name == rule_target or rule_target == 'All Fields':
+                                    prop_rules.append(f"RULE: {rule.get('ruleContent', '')}")
+                        
+                        prop_instruction = prop_description or 'Extract this property'
+                        if prop_rules:
+                            prop_instruction += " | " + " | ".join(prop_rules)
+                            
+                        prompt += f"\n  * **{prop_name}** ({prop_type}): {prop_instruction}"
         
         # Generate dynamic JSON example based on actual schema and extraction rules
         def generate_dynamic_json_example():
@@ -220,7 +261,13 @@ SCHEMA FIELDS TO EXTRACT:"""
 DYNAMIC EXAMPLE OUTPUT FORMAT (based on your actual schema configuration):
 {dynamic_example}
 
-CRITICAL PARTY COUNTING: You MUST count parties by scanning through ALL documents and identifying EVERY unique company, organization, subsidiary, or entity that could be a party to any contract. Do not limit yourself to just the parties you extract full details for - count ALL mentions across the entire document set.
+CRITICAL COUNTING INSTRUCTIONS:
+- **PARTY COUNTING**: Scan ALL {len(documents)} documents and count EVERY unique company, organization, subsidiary, or entity. Include parties mentioned but not fully detailed.
+- **NDA COUNTING**: Count individual contracts/agreements/NDAs, not parties. If you see 8 separate contracts, return 8.
+- **COMPREHENSIVE SCAN**: Process every document in this {len(documents)}-document set. Do not miss any documents.
+- **FOLLOW DESCRIPTIONS**: Schema field descriptions are mandatory instructions for what to count and extract.
+
+DOCUMENT VERIFICATION: Confirm you processed all {len(documents)} documents: {[doc.get('file_name', 'Unknown') for doc in documents]}
 
 RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
         
@@ -353,17 +400,60 @@ def step2_validate_field_records(
         
         logging.info(f"STEP 2: Starting validation for {len(field_validations)} field records")
         
-        # Build validation prompt
-        prompt = """You are an expert data validation specialist. Review the provided field validation records and return updated validation scores and reasoning.
+        # Build validation prompt with enhanced rule-based confidence adjustment
+        prompt = f"""You are an expert data validation specialist. Review field validation records and apply extraction rules for confidence adjustment and formatting.
 
 CRITICAL INSTRUCTIONS:
-1. Use AI judgment to assess confidence levels (0.0 to 1.0)
-2. Consider extraction rules and knowledge documents as context
-3. Return JSON with fieldValidations array using the EXACT UUIDs provided
-4. Set validationStatus to "valid", "warning", or "invalid"
-5. Provide clear AIReasoning for each field
+1. APPLY EXTRACTION RULES: Use rules to adjust confidence levels and format values
+2. RULE-BASED CONFIDENCE: If rule specifies confidence (e.g., "27%", "50%"), apply that percentage
+3. KNOWLEDGE CONFLICTS: Lower confidence when values conflict with knowledge documents
+4. FORMAT TRANSFORMATION: If rules specify formatting, transform the extracted value accordingly
+5. Return JSON with fieldValidations array using EXACT UUIDs provided
+6. Provide clear AIReasoning explaining confidence adjustments and rule applications
 
-FIELD VALIDATION RECORDS TO REVIEW:"""
+FIELD VALIDATION RECORDS TO PROCESS ({len(field_validations)} records):"""
+        
+        # Generate dynamic validation example based on actual fields and rules
+        def generate_validation_example():
+            if not field_validations:
+                return ""
+            
+            sample = field_validations[0]
+            uuid = sample.get('uuid', sample.get('id', 'uuid-example'))
+            field_name = sample.get('field_name', sample.get('fieldName', 'fieldName'))
+            field_value = sample.get('extracted_value', sample.get('fieldValue', 'extractedValue'))
+            field_type = sample.get('field_type', sample.get('fieldType', 'TEXT'))
+            
+            # Find applicable rules for this field
+            confidence = "0.95"
+            reasoning = "High confidence extraction"
+            
+            if extraction_rules:
+                for rule in extraction_rules:
+                    rule_content = rule.get('ruleContent', '')
+                    if any(keyword in rule_content.lower() for keyword in ['27%', '50%', 'confidence']):
+                        confidence = "0.27"
+                        reasoning = f"Confidence adjusted by rule: {rule_content[:100]}..."
+                        break
+            
+            return f"""
+EXAMPLE OUTPUT:
+{{
+  "fieldValidations": [
+    {{
+      "uuid": "{uuid}",
+      "fieldName": "{field_name}",
+      "fieldType": "{field_type}",
+      "fieldValue": "{field_value}",
+      "collectionID": null,
+      "validationStatus": "valid",
+      "validationConfidence": {confidence},
+      "AIReasoning": "{reasoning}"
+    }}
+  ]
+}}"""
+
+        prompt += generate_validation_example()
         
         # Add field validation records
         for fv in field_validations:
@@ -372,19 +462,23 @@ FIELD VALIDATION RECORDS TO REVIEW:"""
             field_value = fv.get('extracted_value', fv.get('fieldValue'))
             field_type = fv.get('field_type', fv.get('fieldType', 'string'))
             
-            prompt += f"\n- UUID: {uuid}"
-            prompt += f"\n  Field: {field_name} ({field_type})"
-            prompt += f"\n  Value: {field_value}"
+            prompt += f"\n- UUID: {uuid} | Field: {field_name} ({field_type}) | Value: {field_value}"
         
-        # Add extraction rules context
+        # Add extraction rules with confidence instructions
         if extraction_rules:
-            prompt += "\n\nEXTRACTION RULES FOR CONTEXT:"
+            prompt += "\n\nEXTRACTION RULES TO APPLY:"
             for rule in extraction_rules:
                 rule_name = rule.get('ruleName', 'Unknown Rule')
                 rule_content = rule.get('ruleContent', '')
                 target_field = rule.get('targetField', '')
                 if rule.get('isActive', True):
-                    prompt += f"\n- {rule_name}: {rule_content} (applies to: {target_field})"
+                    prompt += f"\n- **{rule_name}**: {rule_content} (applies to: {target_field})"
+                    # Extract confidence percentage from rule content
+                    import re
+                    confidence_match = re.search(r'(\d{1,2})%', rule_content)
+                    if confidence_match:
+                        confidence_pct = confidence_match.group(1)
+                        prompt += f" [CONFIDENCE: 0.{confidence_pct.zfill(2)}]"
         
         # Add knowledge documents context
         if knowledge_documents:
@@ -397,21 +491,23 @@ FIELD VALIDATION RECORDS TO REVIEW:"""
         
         prompt += """
 
-REQUIRED OUTPUT FORMAT (return ONLY this JSON):
+REQUIRED OUTPUT FORMAT (apply extraction rules to confidence and reasoning):
 {
   "fieldValidations": [
     {
       "uuid": "exact-uuid-from-input",
       "fieldName": "fieldName",
       "fieldType": "fieldType", 
-      "fieldValue": "actualValue",
+      "fieldValue": "transformed-value-if-rule-specifies-formatting",
       "collectionID": "collectionId-or-null",
       "validationStatus": "valid|warning|invalid",
-      "validationConfidence": 0.95,
-      "AIReasoning": "Clear explanation of confidence level"
+      "validationConfidence": 0.27,  // Use rule-specified confidence (e.g. 27% = 0.27)
+      "AIReasoning": "Applied [RuleName]: confidence reduced to 27% due to rule specification"
     }
   ]
-}"""
+}
+
+RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
         
         # Make AI validation call
         model = genai.GenerativeModel('gemini-1.5-flash')
