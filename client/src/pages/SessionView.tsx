@@ -1425,7 +1425,7 @@ Thank you for your assistance.`;
             {/* Project Schema Fields */}
             {project.schemaFields.map((field) => {
               const originalValue = extractedData[field.fieldName];
-              const validation = validations.find(v => v.fieldName === field.fieldName);
+              const validation = getValidation(field.fieldName);
               
               // Show field if it has a value OR if there's a validation for it
               if (originalValue !== undefined || validation) {
@@ -1621,7 +1621,7 @@ Thank you for your assistance.`;
                           }
                           
                           const fieldName = `${collection.collectionName}.${property.propertyName}[${index}]`;
-                          const validation = validations.find(v => v.fieldName === fieldName);
+                          const validation = getValidation(fieldName);
                           
                           // Debug logging for validation matching
                           if (!validation && originalValue !== undefined && originalValue !== null) {
