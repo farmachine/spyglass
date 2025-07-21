@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -214,8 +215,8 @@ export default function SchemaView() {
     try {
       const schemaMarkdown = generateSchemaMarkdown(schemaData);
       
-      // For now, simulate the Gemini call with the complete prompt
-      const documentText = "Document text content will be processed here";
+      // Get the actual document text from the session
+      const documentText = session?.extractedText || "No document text available";
       const fullPrompt = `${schemaMarkdown}\n\n## DOCUMENTS TO PROCESS\n\n${documentText}\n\nPlease extract the data according to the schema above and return the JSON response in the exact format specified.`;
       
       // Simulate processing delay
