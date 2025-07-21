@@ -53,7 +53,20 @@ export default function SchemaView() {
           
           console.log('DEBUG: parsed extractedData:', extractedData);
           
-          // Check multiple possible formats for document content
+          // Check for the actual format: { success: true, extracted_texts: [...] }
+          if (extractedData?.success && extractedData?.extracted_texts && Array.isArray(extractedData.extracted_texts)) {
+            const text = extractedData.extracted_texts.map((doc: any, index: number) => 
+              `--- DOCUMENT ${index + 1}: ${doc.file_name} ---\n${doc.text_content}`
+            ).join('\n\n--- DOCUMENT SEPARATOR ---\n\n');
+            setDocumentContent({
+              text,
+              count: extractedData.extracted_texts.length
+            });
+            console.log('DEBUG: document content set from .extracted_texts array');
+            return;
+          }
+          
+          // Check multiple possible formats for document content (legacy support)
           if (extractedData?.documents && Array.isArray(extractedData.documents)) {
             const text = extractedData.documents.map((doc: any, index: number) => 
               `--- DOCUMENT ${index + 1}: ${doc.file_name} ---\n${doc.extracted_text}`

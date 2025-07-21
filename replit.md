@@ -24,13 +24,14 @@ Preferred communication style: Simple, everyday language.
 - ✓ Updated success message to reflect direct navigation to schema generation
 - ✓ Fixed React useState import error preventing SchemaView component from loading
 - ✓ Maintained strict sequential workflow: Step 1 (extract text) → Step 2 (schema/prompt with embedded text) → Step 3 (AI extraction results with real Gemini)
-- ✓ **FINAL CONSOLIDATED WORKFLOW IMPLEMENTED**: Complete single-page workflow with proper Gemini API integration
+- ✓ **FINAL CONSOLIDATED WORKFLOW IMPLEMENTED**: Complete single-page workflow with proper Gemini API integration and full document display
 - ✓ Step 1: Automatic Gemini-based document content extraction when SchemaView loads (uses /extract-text endpoint)
-- ✓ Document content displayed prominently at top of schema page with preview of first 800 characters
+- ✓ Document content displayed prominently at top of schema page with full text content like knowledge documents
+- ✓ Fixed document content parsing to handle correct API format: `{ success: true, extracted_texts: [{ file_name, text_content }] }`
 - ✓ Step 2: Schema and prompt generation with extracted document content included
 - ✓ Step 3: Second Gemini API call via "START EXTRACTION" button for final JSON extraction results
-- ✓ Proper workflow: Page load → Gemini extracts content → Display content → Generate schema → AI extraction button → Final results
-- ✓ Enhanced loading states and error handling throughout the consolidated workflow
+- ✓ Proper workflow: Page load → Gemini extracts content → Display full content → Generate schema → AI extraction button → Final results
+- ✓ Enhanced loading states, error handling, and comprehensive debug logging throughout workflow
 
 **January 21, 2025**
 - ✓ **SCHEMA VIEW OPTIMIZED FOR GEMINI AI EXTRACTION**: Enhanced SchemaView with concise, targeted instructions for maximum AI accuracy
