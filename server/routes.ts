@@ -1338,7 +1338,7 @@ except Exception as e:
             // Get project schema to map field names to IDs
             const project = await storage.getProject(projectId);
             const schemaFields = await storage.getProjectSchemaFields(projectId);
-            const collections = await storage.getProjectCollections(projectId);
+            const collections = await storage.getObjectCollections(projectId);
             
             for (const validation of fieldValidations || []) {
               try {
@@ -1372,7 +1372,7 @@ except Exception as e:
             // Helper function to map field names to database IDs
             async function mapFieldNameToId(fieldName: string, schemaFields: any[], collections: any[]) {
               // Handle schema fields (e.g., "Number of Parties")
-              const schemaField = schemaFields.find(f => f.fieldName === fieldName);
+              const schemaField = schemaFields.find(f => f.name === fieldName);
               if (schemaField) {
                 return {
                   fieldId: schemaField.id,
@@ -1388,10 +1388,10 @@ except Exception as e:
                 const [, collectionName, propertyName, indexStr] = collectionMatch;
                 const recordIndex = parseInt(indexStr);
                 
-                const collection = collections.find(c => c.collectionName === collectionName);
+                const collection = collections.find(c => c.name === collectionName);
                 if (collection) {
                   const properties = await storage.getCollectionProperties(collection.id);
-                  const property = properties.find(p => p.propertyName === propertyName);
+                  const property = properties.find(p => p.name === propertyName);
                   
                   if (property) {
                     return {
