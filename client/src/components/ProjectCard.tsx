@@ -193,9 +193,11 @@ export default function ProjectCard({ project }: ProjectCardProps) {
 
   return (
     <>
-      <Card className={`bg-white text-black border border-gray-200 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-blue-300 hover:-translate-y-1 cursor-pointer group relative overflow-hidden h-[200px] flex flex-col shadow-[0_4px_8px_-2px_rgba(59,130,246,0.15),2px_0_6px_-1px_rgba(59,130,246,0.1)] ${
+      <Card className={`bg-white text-black border border-gray-200 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-blue-300 hover:-translate-y-1 cursor-pointer group relative overflow-hidden h-[200px] flex flex-col ${
         project.status === "inactive" ? "opacity-60" : ""
-      }`}>
+      }`} style={{
+        boxShadow: '0 4px 8px -2px rgba(59, 130, 246, 0.15), 2px 0 6px -1px rgba(59, 130, 246, 0.1)'
+      }}>
         <CardHeader className="pt-4 pb-2 flex-shrink-0">
           <div className="flex items-start justify-between">
             <div className="flex-1 flex flex-col" onClick={() => setLocation(`/projects/${project.id}`)}>
