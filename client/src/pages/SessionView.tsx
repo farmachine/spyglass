@@ -1114,10 +1114,10 @@ Thank you for your assistance.`;
                   )}
                 </div>
               );
-            } else if (!hasValue) {
-              return <NotExtractedBadge />;
             } else {
-              return <ConfidenceBadge confidenceScore={validation.confidenceScore} reasoning={validation.aiReasoning} fieldName={fieldName} getFieldDisplayName={getFieldDisplayName} />;
+              // Always show confidence badge - use 0% for null/empty values, otherwise use validation confidence
+              const effectiveConfidence = hasValue ? validation.confidenceScore : 0;
+              return <ConfidenceBadge confidenceScore={effectiveConfidence} reasoning={validation.aiReasoning} fieldName={fieldName} getFieldDisplayName={getFieldDisplayName} />;
             }
           })()}
         </div>

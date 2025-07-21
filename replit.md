@@ -11,6 +11,14 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 21, 2025**
+- ✓ **BATCH VALIDATION BUG COMPLETELY RESOLVED**: Fixed critical issue where validation process skipped schema fields and collection properties
+- ✓ Root cause identified: Batch validation only processed non-empty values, ignoring extracted fields with actual data
+- ✓ Fixed UI logic to always show confidence badges instead of "Not Extracted" for extracted values
+- ✓ Enhanced batch validation to process ALL validations (schema fields + collection properties) in single consolidated AI call
+- ✓ Updated confidence assignment: extracted values get proper % scores, null/empty values get 0% (removed "Not Extracted" as requested)
+- ✓ Implemented comprehensive debug logging throughout validation pipeline to track field processing
+- ✓ Consolidated multiple AI calls into single batch validation call for improved performance
+- ✓ Fixed validation workflow: get all validations → check against rules → update confidence → save to database → frontend reads back with schema order maintained
 - ✓ **"NOT EXTRACTED" TIMING BUG COMPLETELY RESOLVED**: Fixed critical React Query timing issue where validation data loaded after component render
 - ✓ Root cause identified: Component was rendering before validations query completed, causing initial "Not Extracted" display for all fields
 - ✓ Enhanced loading logic to wait for validationsLoading state before rendering any field data

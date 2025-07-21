@@ -1623,7 +1623,7 @@ print(json.dumps(results))
         console.log('Sample collection validation:', collectionValidations[0]);
       }
       
-      // Import Python calculation function
+      // Consolidated batch validation - single AI call for all fields
       const { spawn } = require('child_process');
       const python = spawn('python3', ['-c', `
 import sys
@@ -1637,33 +1637,37 @@ validations = input_data['validations']
 extraction_rules = input_data['extraction_rules']
 knowledge_documents = input_data['knowledge_documents']
 
+print(f"BATCH_VALIDATION: Processing {len(validations)} validations", file=sys.stderr)
+
 results = []
 for validation in validations:
     field_name = validation['fieldName']
     extracted_value = validation['extractedValue']
     
-    # Process ALL validations, including those with null/empty values
-    # Empty/null values should have low confidence (20%), non-empty should be recalculated
+    # Process ALL validations - assign confidence based on value presence
     if extracted_value is not None and extracted_value != "" and extracted_value != "null":
+        # For non-empty values, calculate confidence with rules/knowledge docs
         confidence, applied_rules = calculate_knowledge_based_confidence(
             field_name, extracted_value, 95, extraction_rules, knowledge_documents
         )
+        print(f"BATCH_VALIDATION: {field_name} = '{extracted_value}' -> {confidence}%", file=sys.stderr)
     else:
-        # Empty or null values get low confidence
-        confidence = 20
+        # Empty/null values get 0% confidence (not 20% to match user preference)
+        confidence = 0
         applied_rules = []
+        print(f"BATCH_VALIDATION: {field_name} = null/empty -> 0%", file=sys.stderr)
     
-    # Include if confidence changed or if we need to set proper confidence for extracted values
-    if confidence != validation['confidenceScore']:
-        results.append({
-            'id': validation['id'],
-            'fieldName': field_name,
-            'extractedValue': extracted_value,
-            'oldConfidence': validation['confidenceScore'],
-            'newConfidence': confidence,
-            'appliedRules': applied_rules
-        })
+    # Always include to ensure all fields have proper confidence scores
+    results.append({
+        'id': validation['id'],
+        'fieldName': field_name,
+        'extractedValue': extracted_value,
+        'oldConfidence': validation['confidenceScore'],
+        'newConfidence': confidence,
+        'appliedRules': applied_rules
+    })
 
+print(f"BATCH_VALIDATION: Returning {len(results)} updates", file=sys.stderr)
 print(json.dumps(results))
 `], { stdio: ['pipe', 'pipe', 'pipe'] });
       
@@ -1699,7 +1703,7 @@ print(json.dumps(results))
                   confidenceScore: result.newConfidence
                 });
                 updatedCount++;
-                console.log(`Updated ${result.fieldName}: ${result.oldConfidence}% → ${result.newConfidence}%`);
+                console.log(`BATCH_VALIDATION: Updated ${result.fieldName}: ${result.oldConfidence}% → ${result.newConfidence}%`);
               }
               
               res.json({
