@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -25,6 +25,62 @@ export default function SchemaView() {
     queryKey: [`/api/projects/${session?.projectId}/schema-data`],
     enabled: !!session?.projectId,
   });
+
+  // State for document content
+  const [documentContent, setDocumentContent] = useState<{
+    text: string;
+    count: number;
+  } | null>(null);
+  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
+
+  // Auto-load document content when session is available
+  useEffect(() => {
+    const loadDocumentContent = async () => {
+      if (!session || !sessionId) return;
+      
+      // Check if we already have extracted text in session
+      if (session.extractedData) {
+        try {
+          const extractedData = JSON.parse(session.extractedData);
+          if (extractedData?.documents && Array.isArray(extractedData.documents)) {
+            const text = extractedData.documents.map((doc: any, index: number) => 
+              `--- DOCUMENT ${index + 1}: ${doc.file_name} ---\n${doc.extracted_text}`
+            ).join('\n\n--- DOCUMENT SEPARATOR ---\n\n');
+            setDocumentContent({
+              text,
+              count: extractedData.documents.length
+            });
+            return;
+          }
+        } catch (parseError) {
+          console.error("Failed to parse existing session extractedData:", parseError);
+        }
+      }
+
+      // If no extracted text, trigger text extraction automatically
+      if (session.documents && session.documents.length > 0 && session.status !== 'text_extracted') {
+        console.log('Auto-triggering text extraction for documents...');
+        setIsLoadingDocuments(true);
+        
+        try {
+          const response = await apiRequest(`/api/sessions/${sessionId}/extract-text`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          
+          if (response.message) {
+            // Reload session to get updated extractedData
+            window.location.reload();
+          }
+        } catch (error) {
+          console.error('Auto text extraction failed:', error);
+          setIsLoadingDocuments(false);
+        }
+      }
+    };
+
+    loadDocumentContent();
+  }, [session, sessionId]);
 
   // Function to generate markdown from schema data
   const generateSchemaMarkdown = (data: SchemaData, documentText: string, documentCount: number) => {
@@ -216,53 +272,22 @@ export default function SchemaView() {
   const [geminiResponse, setGeminiResponse] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Function to call Gemini directly
+  // Function to call Gemini directly using consolidated document content
   const handleGeminiExtraction = async () => {
+    if (!documentContent) {
+      setGeminiResponse("=== ERROR ===\n\nNo document content available. Please wait for document extraction to complete.\n\n=== END ERROR ===");
+      return;
+    }
+    
     setIsProcessing(true);
     try {
-      // Parse extracted data from session if it's JSON string
-      let extractedData = null;
-      let documentText = "No document text available";
-      let documentCount = 0;
-      
-      if (session?.extractedData) {
-        try {
-          extractedData = JSON.parse(session.extractedData);
-          if (extractedData?.documents && Array.isArray(extractedData.documents)) {
-            documentText = extractedData.documents.map((doc: any, index: number) => 
-              `--- DOCUMENT ${index + 1}: ${doc.file_name} ---\n${doc.extracted_text}`
-            ).join('\n\n--- DOCUMENT SEPARATOR ---\n\n');
-            documentCount = extractedData.documents.length;
-          }
-        } catch (parseError) {
-          console.error("Failed to parse session extractedData:", parseError);
-        }
-      }
-      
-      // Fallback to session extractedText if available
-      if (documentText === "No document text available" && session?.extractedText) {
-        documentText = session.extractedText;
-        documentCount = session.documents?.length || 0;
-      }
-      
-      const fullPrompt = generateSchemaMarkdown(schemaData, documentText, documentCount);
+      const fullPrompt = generateSchemaMarkdown(schemaData, documentContent.text, documentContent.count);
       
       // Enhanced debug logging
-      console.log('SCHEMA VIEW DEBUG - Session data:', {
-        hasExtractedData: !!session?.extractedData,
-        hasExtractedText: !!session?.extractedText,
-        sessionKeys: session ? Object.keys(session) : []
-      });
-      
-      if (session?.extractedData) {
-        console.log('SCHEMA VIEW DEBUG - ExtractedData preview:', session.extractedData.substring(0, 300));
-        console.log('SCHEMA VIEW DEBUG - ExtractedData type:', typeof session.extractedData);
-      }
-      
-      console.log('SCHEMA VIEW DEBUG - Final values:', {
-        documentCount,
-        documentTextLength: documentText.length,
-        documentTextPreview: documentText.substring(0, 200)
+      console.log('SCHEMA VIEW DEBUG - Consolidated document content:', {
+        documentCount: documentContent.count,
+        documentTextLength: documentContent.text.length,
+        documentTextPreview: documentContent.text.substring(0, 300)
       });
       
       // Make actual API call to Gemini
@@ -316,37 +341,23 @@ ${error instanceof Error ? error.message : 'Unknown error'}
     );
   }
 
-  // Generate current prompt preview
-  const getCurrentPromptPreview = () => {
-    if (!session?.extractedData && !session?.extractedText) {
-      return "No document content available - please run text extraction first";
-    }
+  if (isLoadingDocuments) {
+    return (
+      <div style={{ 
+        padding: '20px', 
+        fontFamily: 'monospace',
+        backgroundColor: '#fff3cd',
+        border: '2px solid #856404',
+        margin: '20px'
+      }}>
+        <h2>🔄 AUTO-LOADING DOCUMENT CONTENT...</h2>
+        <p>Automatically extracting text from uploaded documents...</p>
+        <p>This may take a few moments for large documents.</p>
+      </div>
+    );
+  }
 
-    let documentText = "No document text available";
-    let documentCount = 0;
-    
-    if (session?.extractedData) {
-      try {
-        const extractedData = JSON.parse(session.extractedData);
-        if (extractedData?.documents && Array.isArray(extractedData.documents)) {
-          documentText = extractedData.documents.map((doc: any, index: number) => 
-            `--- DOCUMENT ${index + 1}: ${doc.file_name} ---\n${doc.extracted_text}`
-          ).join('\n\n--- DOCUMENT SEPARATOR ---\n\n');
-          documentCount = extractedData.documents.length;
-        }
-      } catch (parseError) {
-        console.error("Failed to parse session extractedData:", parseError);
-      }
-    }
-    
-    if (documentText === "No document text available" && session?.extractedText) {
-      documentText = session.extractedText;
-      documentCount = session.documents?.length || 0;
-    }
 
-    const prompt = generateSchemaMarkdown(schemaData, documentText, documentCount);
-    return prompt;
-  };
 
   return (
     <div style={{ 
@@ -373,28 +384,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
         === SCHEMA FOR AI PROCESSING ===
       </div>
 
-      {/* CURRENT PROMPT PREVIEW */}
-      <div style={{ 
-        margin: '0 0 40px 0', 
-        padding: '15px', 
-        backgroundColor: '#fff3cd',
-        border: '2px solid #856404',
-        fontWeight: 'bold'
-      }}>
-        === CURRENT PROMPT PREVIEW (FIRST 1000 CHARS) ===
-        <div style={{ 
-          marginTop: '10px',
-          padding: '10px',
-          backgroundColor: '#f8f9fa',
-          border: '1px solid #dee2e6',
-          maxHeight: '300px',
-          overflowY: 'auto',
-          fontSize: '12px',
-          fontWeight: 'normal'
-        }}>
-          {getCurrentPromptPreview().substring(0, 1000)}...
-        </div>
-      </div>
+
 
       {/* Project Schema Fields */}
       <div style={{ 
