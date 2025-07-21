@@ -46,7 +46,7 @@ def main():
             model="gemini-2.5-flash",
             contents=prompt,
             config=types.GenerateContentConfig(
-                max_output_tokens=4096,
+                max_output_tokens=8192,
                 temperature=0.1,
                 response_mime_type="text/plain"
             )
