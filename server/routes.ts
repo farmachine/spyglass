@@ -1345,16 +1345,34 @@ except Exception as e:
     }
   });
   
+  // Helper function to convert field names to camelCase for AI extraction matching
+  function convertToCamelCase(fieldName: string): string {
+    return fieldName
+      .split(' ')
+      .map((word, index) => {
+        if (index === 0) {
+          return word.toLowerCase();
+        }
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      })
+      .join('');
+  }
+
   // Helper function to create field validation records from extracted data
   async function createFieldValidationRecords(sessionId: string, extractedData: any, project_data: any) {
     const sessionObject = Object.values(extractedData)[0] as any; // Get the main object (e.g., "contract")
     
     console.log(`Creating field validation records for session ${sessionId}`);
+    console.log(`Session object keys:`, Object.keys(sessionObject));
     
     // Create records for schema fields
     if (project_data?.schemaFields) {
       for (const field of project_data.schemaFields) {
-        const fieldValue = sessionObject[field.fieldName];
+        // Convert field name to match what AI extracted (camelCase)
+        const camelCaseFieldName = convertToCamelCase(field.fieldName);
+        const fieldValue = sessionObject[camelCaseFieldName];
+        
+        console.log(`Creating validation record for schema field: ${field.fieldName} = ${fieldValue} (looking for ${camelCaseFieldName})`);
         
         await storage.createFieldValidation({
           sessionId,
@@ -1363,8 +1381,8 @@ except Exception as e:
           fieldName: field.fieldName,
           collectionName: null,
           recordIndex: 0,
-          extractedValue: fieldValue,
-          originalExtractedValue: fieldValue,
+          extractedValue: fieldValue !== undefined ? fieldValue : null,
+          originalExtractedValue: fieldValue !== undefined ? fieldValue : null,
           originalConfidenceScore: 95,
           originalAiReasoning: "Extracted during AI processing",
           validationStatus: "unverified",
@@ -1381,14 +1399,19 @@ except Exception as e:
     if (project_data?.collections) {
       for (const collection of project_data.collections) {
         const collectionName = collection.collectionName || collection.objectName;
-        const collectionData = sessionObject[collectionName];
+        // Try both original name and lowercase version
+        let collectionData = sessionObject[collectionName] || sessionObject[collectionName.toLowerCase()];
+        
+        console.log(`Looking for collection ${collectionName}, found:`, Array.isArray(collectionData) ? `${collectionData.length} items` : 'not found');
         
         if (Array.isArray(collectionData)) {
           for (let index = 0; index < collectionData.length; index++) {
             const item = collectionData[index];
             
             for (const property of collection.properties || []) {
-              const propertyValue = item[property.propertyName];
+              // Try different property name variations
+              const camelCaseProperty = convertToCamelCase(property.propertyName);
+              const propertyValue = item[property.propertyName] || item[camelCaseProperty] || item[property.propertyName.toLowerCase()];
               const fieldName = `${collectionName}.${property.propertyName}[${index}]`;
               
               await storage.createFieldValidation({
@@ -1398,8 +1421,8 @@ except Exception as e:
                 fieldName,
                 collectionName,
                 recordIndex: index,
-                extractedValue: propertyValue,
-                originalExtractedValue: propertyValue,
+                extractedValue: propertyValue !== undefined ? propertyValue : null,
+                originalExtractedValue: propertyValue !== undefined ? propertyValue : null,
                 originalConfidenceScore: 95,
                 originalAiReasoning: "Extracted during AI processing",
                 validationStatus: "unverified",
