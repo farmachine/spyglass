@@ -124,29 +124,17 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
-  private organizations: Map<number, Organization>;
-  private users: Map<number, User>;
-  private projects: Map<number, Project>;
-  private projectSchemaFields: Map<number, ProjectSchemaField>;
-  private objectCollections: Map<number, ObjectCollection>;
-  private collectionProperties: Map<number, CollectionProperty>;
-  private extractionSessions: Map<number, ExtractionSession>;
-  private knowledgeDocuments: Map<number, KnowledgeDocument>;
-  private extractionRules: Map<number, ExtractionRule>;
-  private fieldValidations: Map<number, FieldValidation>;
-  private projectPublishing: Map<number, ProjectPublishing>;
-  
-  private currentOrganizationId: number;
-  private currentUserId: number;
-  private currentProjectId: number;
-  private currentFieldId: number;
-  private currentCollectionId: number;
-  private currentPropertyId: number;
-  private currentSessionId: number;
-  private currentDocumentId: number;
-  private currentRuleId: number;
-  private currentValidationId: number;
-  private currentPublishingId: number;
+  private organizations: Map<string, Organization>;
+  private users: Map<string, User>;
+  private projects: Map<string, Project>;
+  private projectSchemaFields: Map<string, ProjectSchemaField>;
+  private objectCollections: Map<string, ObjectCollection>;
+  private collectionProperties: Map<string, CollectionProperty>;
+  private extractionSessions: Map<string, ExtractionSession>;
+  private knowledgeDocuments: Map<string, KnowledgeDocument>;
+  private extractionRules: Map<string, ExtractionRule>;
+  private fieldValidations: Map<string, FieldValidation>;
+  private projectPublishing: Map<string, ProjectPublishing>;
 
   constructor() {
     this.organizations = new Map();
@@ -161,66 +149,58 @@ export class MemStorage implements IStorage {
     this.fieldValidations = new Map();
     this.projectPublishing = new Map();
     
-    this.currentOrganizationId = 1;
-    this.currentUserId = 1;
-    this.currentProjectId = 1;
-    this.currentFieldId = 1;
-    this.currentCollectionId = 1;
-    this.currentPropertyId = 1;
-    this.currentSessionId = 1;
-    this.currentDocumentId = 1;
-    this.currentRuleId = 1;
-    this.currentValidationId = 1;
-    this.currentPublishingId = 1;
-    
     // Initialize with sample data for development
     this.initializeSampleData();
   }
+
+  private generateUUID(): string {
+    return crypto.randomUUID();
+  }
   
   private initializeSampleData() {
-    // Create sample organization
+    // Use deterministic UUIDs for sample data so they're consistent across restarts
+    // and match between MemStorage and PostgreSQL
+    const orgId = "550e8400-e29b-41d4-a716-446655440000"; // Fixed UUID for sample org
     const org: Organization = {
-      id: 1,
+      id: orgId,
       name: "ACME Corporation", 
       description: "Sample organization for testing",
       createdAt: new Date()
     };
-    this.organizations.set(1, org);
+    this.organizations.set(orgId, org);
 
-    // Create sample admin user (password: "password")
+    // Create sample admin user (password: "password") with deterministic UUID
+    const userId = "550e8400-e29b-41d4-a716-446655440001"; // Fixed UUID for sample user
     const adminUser: User = {
-      id: 1,
+      id: userId,
       email: "admin@acme.com",
       passwordHash: "$2b$10$3okWosohJ1kYB2mvuz1ieuZTTrUIbDcEv3O2D/sWc01cyvlhqN88C",
       name: "Admin User",
-      organizationId: 1,
+      organizationId: orgId,
       role: "admin",
       isActive: true,
       createdAt: new Date()
     };
-    this.users.set(1, adminUser);
+    this.users.set(userId, adminUser);
 
-    this.currentOrganizationId = 2;
-    this.currentUserId = 2;
-
-    // Create a sample project
+    // Create a sample project with deterministic UUID
+    const projectId = "550e8400-e29b-41d4-a716-446655440002"; // Fixed UUID for sample project
     const project = {
-      id: 1,
+      id: projectId,
       name: "Sample Invoice Processing",
       description: "Extract data from invoices and receipts",
-      organizationId: 1, // Link to organization
+      organizationId: orgId, // Link to organization
       mainObjectName: "Invoice",
       isInitialSetupComplete: true,
       createdAt: new Date(),
     };
-    this.projects.set(1, project);
-    this.currentProjectId = 2;
+    this.projects.set(projectId, project);
     
-    // Add sample schema fields
+    // Add sample schema fields with deterministic UUIDs
     const schemaFields = [
       {
-        id: 1,
-        projectId: 1,
+        id: "550e8400-e29b-41d4-a716-446655440010", // Fixed UUID for Total Amount field
+        projectId: projectId,
         fieldName: "Total Amount",
         fieldType: "NUMBER" as const,
         description: "The total amount of the invoice",
@@ -229,8 +209,8 @@ export class MemStorage implements IStorage {
         createdAt: new Date(Date.now() - 86400000 * 3), // 3 days ago
       },
       {
-        id: 2,
-        projectId: 1,
+        id: "550e8400-e29b-41d4-a716-446655440011", // Fixed UUID for Invoice Date field
+        projectId: projectId,
         fieldName: "Invoice Date",
         fieldType: "DATE" as const,
         description: "The date when the invoice was issued",
@@ -239,8 +219,8 @@ export class MemStorage implements IStorage {
         createdAt: new Date(Date.now() - 86400000 * 2), // 2 days ago
       },
       {
-        id: 3,
-        projectId: 1,
+        id: "550e8400-e29b-41d4-a716-446655440012", // Fixed UUID for Vendor Name field
+        projectId: projectId,
         fieldName: "Vendor Name",
         fieldType: "TEXT" as const,
         description: "The name of the vendor or supplier",
@@ -251,25 +231,24 @@ export class MemStorage implements IStorage {
     ];
     
     schemaFields.forEach(field => this.projectSchemaFields.set(field.id, field));
-    this.currentFieldId = 4;
     
-    // Add sample collection
+    // Add sample collection with deterministic UUID
+    const collectionId = "550e8400-e29b-41d4-a716-446655440020"; // Fixed UUID for Line Items collection
     const collection = {
-      id: 1,
-      projectId: 1,
+      id: collectionId,
+      projectId: projectId,
       collectionName: "Line Items",
       description: "Individual items listed on the invoice",
       orderIndex: 1,
       createdAt: new Date(),
     };
-    this.objectCollections.set(1, collection);
-    this.currentCollectionId = 2;
+    this.objectCollections.set(collectionId, collection);
     
-    // Add sample collection properties
+    // Add sample collection properties with deterministic UUIDs
     const properties = [
       {
-        id: 1,
-        collectionId: 1,
+        id: "550e8400-e29b-41d4-a716-446655440030", // Fixed UUID for Description property
+        collectionId: collectionId,
         propertyName: "Description",
         propertyType: "TEXT" as const,
         description: "Description of the item",
@@ -278,8 +257,8 @@ export class MemStorage implements IStorage {
         createdAt: new Date(Date.now() - 86400000 * 3), // 3 days ago
       },
       {
-        id: 2,
-        collectionId: 1,
+        id: "550e8400-e29b-41d4-a716-446655440031", // Fixed UUID for Quantity property
+        collectionId: collectionId,
         propertyName: "Quantity",
         propertyType: "NUMBER" as const,
         description: "Number of items",
@@ -288,8 +267,8 @@ export class MemStorage implements IStorage {
         createdAt: new Date(Date.now() - 86400000 * 2), // 2 days ago
       },
       {
-        id: 3,
-        collectionId: 1,
+        id: "550e8400-e29b-41d4-a716-446655440032", // Fixed UUID for Unit Price property
+        collectionId: collectionId,
         propertyName: "Unit Price",
         propertyType: "NUMBER" as const,
         description: "Price per unit",
@@ -300,12 +279,12 @@ export class MemStorage implements IStorage {
     ];
     
     properties.forEach(prop => this.collectionProperties.set(prop.id, prop));
-    this.currentPropertyId = 4;
     
-    // Add sample extraction session
+    // Add sample extraction session with deterministic UUID
+    const sessionId = "550e8400-e29b-41d4-a716-446655440040"; // Fixed UUID for sample session
     const session = {
-      id: 1,
-      projectId: 1,
+      id: sessionId,
+      projectId: projectId,
       sessionName: "Invoice Batch 001",
       description: "Processing monthly invoices",
       documentCount: 3,
@@ -335,17 +314,16 @@ export class MemStorage implements IStorage {
       createdAt: new Date(Date.now() - 86400000), // 1 day ago
       updatedAt: new Date(Date.now() - 86400000),
     };
-    this.extractionSessions.set(1, session);
-    this.currentSessionId = 2;
+    this.extractionSessions.set(sessionId, session);
     
-    // Add sample field validations for existing session
+    // Add sample field validations for existing session with deterministic UUIDs
     const validations: FieldValidation[] = [
       // Project Schema Fields
       {
-        id: 1,
-        sessionId: 1,
+        id: "550e8400-e29b-41d4-a716-446655440050", // Fixed UUID for Total Amount validation
+        sessionId: sessionId,
         fieldType: "schema_field" as const,
-        fieldId: 1,
+        fieldId: "550e8400-e29b-41d4-a716-446655440010", // Reference to Total Amount field
         fieldName: "Total Amount",
         collectionName: null,
         recordIndex: 0,
@@ -356,10 +334,10 @@ export class MemStorage implements IStorage {
         confidenceScore: 95
       },
       {
-        id: 2,
-        sessionId: 1,
+        id: "550e8400-e29b-41d4-a716-446655440051", // Fixed UUID for Invoice Date validation
+        sessionId: sessionId,
         fieldType: "schema_field" as const,
-        fieldId: 2,
+        fieldId: "550e8400-e29b-41d4-a716-446655440011", // Reference to Invoice Date field
         fieldName: "Invoice Date",
         collectionName: null,
         recordIndex: 0,
@@ -370,10 +348,10 @@ export class MemStorage implements IStorage {
         confidenceScore: 98
       },
       {
-        id: 3,
-        sessionId: 1,
+        id: "550e8400-e29b-41d4-a716-446655440052", // Fixed UUID for Vendor Name validation
+        sessionId: sessionId,
         fieldType: "schema_field" as const,
-        fieldId: 3,
+        fieldId: "550e8400-e29b-41d4-a716-446655440012", // Reference to Vendor Name field
         fieldName: "Vendor Name",
         collectionName: null,
         recordIndex: 0,
@@ -385,10 +363,10 @@ export class MemStorage implements IStorage {
       },
       // Line Items Collection - First Item
       {
-        id: 4,
-        sessionId: 1,
+        id: "550e8400-e29b-41d4-a716-446655440060", // Fixed UUID for Description validation
+        sessionId: sessionId,
         fieldType: "collection_property" as const,
-        fieldId: 1,
+        fieldId: "550e8400-e29b-41d4-a716-446655440030", // Reference to Description property
         fieldName: "Line Items.Description[0]",
         collectionName: "Line Items",
         recordIndex: 0,
@@ -399,10 +377,10 @@ export class MemStorage implements IStorage {
         confidenceScore: 90
       },
       {
-        id: 5,
-        sessionId: 1,
+        id: "550e8400-e29b-41d4-a716-446655440061", // Fixed UUID for Quantity validation
+        sessionId: sessionId,
         fieldType: "collection_property" as const,
-        fieldId: 2,
+        fieldId: "550e8400-e29b-41d4-a716-446655440031", // Reference to Quantity property
         fieldName: "Line Items.Quantity[0]",
         collectionName: "Line Items",
         recordIndex: 0,
@@ -413,10 +391,10 @@ export class MemStorage implements IStorage {
         confidenceScore: 88
       },
       {
-        id: 6,
-        sessionId: 1,
+        id: "550e8400-e29b-41d4-a716-446655440062", // Fixed UUID for Unit Price validation
+        sessionId: sessionId,
         fieldType: "collection_property" as const,
-        fieldId: 3,
+        fieldId: "550e8400-e29b-41d4-a716-446655440032", // Reference to Unit Price property
         fieldName: "Line Items.Unit Price[0]",
         collectionName: "Line Items",
         recordIndex: 0,
@@ -732,12 +710,13 @@ export class MemStorage implements IStorage {
   }
 
   async createProject(insertProject: InsertProject): Promise<Project> {
+    const id = this.generateUUID();
     const project: Project = {
-      id: this.currentProjectId++,
+      id,
       ...insertProject,
       createdAt: new Date(),
     };
-    this.projects.set(project.id, project);
+    this.projects.set(id, project);
     return project;
   }
 
@@ -871,7 +850,7 @@ export class MemStorage implements IStorage {
   }
 
   async createProjectSchemaField(insertField: InsertProjectSchemaField): Promise<ProjectSchemaField> {
-    const id = this.currentFieldId++;
+    const id = this.generateUUID();
     const field: ProjectSchemaField = {
       ...insertField,
       id,
@@ -923,7 +902,7 @@ export class MemStorage implements IStorage {
   }
 
   async createObjectCollection(insertCollection: InsertObjectCollection): Promise<ObjectCollection> {
-    const id = this.currentCollectionId++;
+    const id = this.generateUUID();
     const collection: ObjectCollection = {
       ...insertCollection,
       id,
@@ -969,7 +948,7 @@ export class MemStorage implements IStorage {
   }
 
   async createCollectionProperty(insertProperty: InsertCollectionProperty): Promise<CollectionProperty> {
-    const id = this.currentPropertyId++;
+    const id = this.generateUUID();
     const property: CollectionProperty = {
       ...insertProperty,
       id,
@@ -1014,7 +993,7 @@ export class MemStorage implements IStorage {
   }
 
   async createExtractionSession(insertSession: InsertExtractionSession): Promise<ExtractionSession> {
-    const id = this.currentSessionId++;
+    const id = this.generateUUID();
     const session: ExtractionSession = {
       ...insertSession,
       id,
@@ -1122,7 +1101,7 @@ export class MemStorage implements IStorage {
   }
 
   async createFieldValidation(insertValidation: InsertFieldValidation): Promise<FieldValidation> {
-    const id = this.currentValidationId++;
+    const id = this.generateUUID();
     const validation: FieldValidation = {
       ...insertValidation,
       id,
