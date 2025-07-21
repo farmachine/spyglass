@@ -398,18 +398,27 @@ ${error instanceof Error ? error.message : 'Unknown error'}
           === EXTRACTED DOCUMENT CONTENT ({documentContent.count} DOCUMENTS) ===
           <div style={{ 
             marginTop: '10px',
-            padding: '10px',
+            padding: '15px',
             backgroundColor: '#f8f9fa',
             border: '1px solid #dee2e6',
-            maxHeight: '200px',
+            maxHeight: '400px',
             overflowY: 'auto',
+            fontSize: '11px',
+            fontWeight: 'normal',
+            fontFamily: 'monospace',
+            lineHeight: '1.4',
+            whiteSpace: 'pre-wrap'
+          }}>
+            {documentContent.text}
+          </div>
+          <div style={{ 
+            marginTop: '10px', 
             fontSize: '12px',
+            fontStyle: 'italic', 
+            color: '#666',
             fontWeight: 'normal'
           }}>
-            {documentContent.text.substring(0, 800)}...
-            <div style={{ marginTop: '10px', fontStyle: 'italic', color: '#666' }}>
-              [Showing first 800 characters - Full content will be sent to AI for processing]
-            </div>
+            Total characters: {documentContent.text.length} | Documents: {documentContent.count}
           </div>
         </div>
       )}
