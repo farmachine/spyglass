@@ -24,6 +24,14 @@ def main():
         print(f"DEBUG: Starting Gemini extraction for session {session_id}", file=sys.stderr)
         print(f"DEBUG: Prompt length: {len(prompt)} characters", file=sys.stderr)
         
+        # Check if documents are in the prompt
+        if "DOCUMENTS TO PROCESS" in prompt:
+            doc_section = prompt.split("DOCUMENTS TO PROCESS")[1].split("--- END OF DOCUMENTS ---")[0] if "--- END OF DOCUMENTS ---" in prompt else "Not found"
+            print(f"DEBUG: Document section found, length: {len(doc_section)}", file=sys.stderr)
+            print(f"DEBUG: First 300 chars of document section: {doc_section[:300]}", file=sys.stderr)
+        else:
+            print("DEBUG: No 'DOCUMENTS TO PROCESS' section found in prompt", file=sys.stderr)
+        
         # Initialize Gemini client
         api_key = os.environ.get("GEMINI_API_KEY")
         if not api_key:

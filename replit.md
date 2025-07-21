@@ -24,6 +24,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ Updated success message to reflect direct navigation to schema generation
 - ✓ Fixed React useState import error preventing SchemaView component from loading
 - ✓ Maintained strict sequential workflow: Step 1 (extract text) → Step 2 (schema/prompt with embedded text) → Step 3 (AI extraction results with real Gemini)
+- ✓ **DOCUMENT CONTENT INTEGRATION ENHANCED**: Fixed document text parsing to properly include extracted document content in Gemini prompts
+- ✓ Added comprehensive document parsing from session.extractedData JSON structure with proper document separators
+- ✓ Enhanced debugging to track document content inclusion with character counts and preview text
+- ✓ Document text now properly formatted with individual document headers and separators for AI processing
 
 **January 21, 2025**
 - ✓ **SCHEMA VIEW OPTIMIZED FOR GEMINI AI EXTRACTION**: Enhanced SchemaView with concise, targeted instructions for maximum AI accuracy

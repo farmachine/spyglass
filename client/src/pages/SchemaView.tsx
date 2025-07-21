@@ -220,11 +220,37 @@ export default function SchemaView() {
   const handleGeminiExtraction = async () => {
     setIsProcessing(true);
     try {
-      // Get the actual document text from the session
-      const documentText = session?.extractedText || "No document text available";
-      const documentCount = session?.documents?.length || 0;
+      // Parse extracted data from session if it's JSON string
+      let extractedData = null;
+      let documentText = "No document text available";
+      let documentCount = 0;
+      
+      if (session?.extractedData) {
+        try {
+          extractedData = JSON.parse(session.extractedData);
+          if (extractedData?.documents && Array.isArray(extractedData.documents)) {
+            documentText = extractedData.documents.map((doc: any, index: number) => 
+              `--- DOCUMENT ${index + 1}: ${doc.file_name} ---\n${doc.extracted_text}`
+            ).join('\n\n--- DOCUMENT SEPARATOR ---\n\n');
+            documentCount = extractedData.documents.length;
+          }
+        } catch (parseError) {
+          console.error("Failed to parse session extractedData:", parseError);
+        }
+      }
+      
+      // Fallback to session extractedText if available
+      if (documentText === "No document text available" && session?.extractedText) {
+        documentText = session.extractedText;
+        documentCount = session.documents?.length || 0;
+      }
       
       const fullPrompt = generateSchemaMarkdown(schemaData, documentText, documentCount);
+      
+      // Debug logging
+      console.log('SCHEMA VIEW DEBUG - Document count:', documentCount);
+      console.log('SCHEMA VIEW DEBUG - Document text length:', documentText.length);
+      console.log('SCHEMA VIEW DEBUG - First 200 chars of document text:', documentText.substring(0, 200));
       
       // Make actual API call to Gemini
       const response = await apiRequest(`/api/sessions/${sessionId}/gemini-extraction`, {
