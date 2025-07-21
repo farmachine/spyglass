@@ -1565,10 +1565,15 @@ print(json.dumps(result))
       
       // Get schema fields and collections
       const schemaFields = await storage.getProjectSchemaFields(projectId);
-      console.log('Schema fields for project:', projectId, '- Found', schemaFields.length, 'fields');
       const collections = await storage.getObjectCollections(projectId);
       const knowledgeDocuments = await storage.getKnowledgeDocuments(projectId);
       const extractionRules = await storage.getExtractionRules(projectId);
+      
+      console.log('Schema fields for project:', projectId, '- Found', schemaFields.length, 'fields');
+      console.log('DEBUG - Extraction rules found:', extractionRules.length);
+      extractionRules.forEach((rule, index) => {
+        console.log(`DEBUG - Rule ${index}:`, { id: rule.id, ruleName: rule.ruleName, ruleContent: rule.ruleContent?.substring(0, 50) + '...' });
+      });
       
       const responseData = {
         project: {
@@ -1602,9 +1607,9 @@ print(json.dumps(result))
         })),
         extraction_rules: extractionRules.map(rule => ({
           id: rule.id,
-          ruleName: rule.title,
-          ruleContent: rule.ruleText,
-          targetFields: rule.targetFields || []
+          ruleName: rule.ruleName,
+          ruleContent: rule.ruleContent,
+          targetFields: rule.targetField ? [rule.targetField] : []
         }))
       };
 

@@ -592,6 +592,19 @@ export class MemStorage implements IStorage {
     
     validations.forEach(validation => this.fieldValidations.set(validation.id, validation));
     this.currentValidationId = 13;
+    
+    // Add extraction rule for contract project with deterministic UUID
+    const contractExtractionRuleId = "19f92612-0c5c-4463-a746-d7ef82781b1a"; // Fixed UUID for Inc. rule
+    const contractExtractionRule = {
+      id: contractExtractionRuleId,
+      projectId: contractProjectId,
+      ruleName: "Inc. Company Detection Rule",
+      targetField: null, // Global rule applies to all fields
+      ruleContent: "If a company name ends with 'Inc.', reduce the confidence score to 27% as these names may require additional verification.",
+      isActive: true,
+      createdAt: new Date(),
+    };
+    this.extractionRules.set(contractExtractionRuleId, contractExtractionRule);
   }
 
   // Organizations
