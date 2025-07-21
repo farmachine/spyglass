@@ -370,7 +370,7 @@ export default function SchemaView() {
           BACK: View Text
         </button>
         <button 
-          onClick={() => alert('Step 3: AI Extraction coming next!')}
+          onClick={() => handleStartExtraction()}
           style={{
             padding: '12px 24px',
             fontSize: '16px',
@@ -382,7 +382,7 @@ export default function SchemaView() {
             cursor: 'pointer'
           }}
         >
-          NEXT: AI Data Extraction (Coming Soon)
+          START EXTRACTION
         </button>
       </div>
     </div>

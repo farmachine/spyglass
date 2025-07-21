@@ -2234,6 +2234,160 @@ print(json.dumps(results))
     }
   });
 
+  // AI Extraction Endpoint
+  app.post("/api/sessions/:sessionId/extract", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      console.log(`AI_EXTRACTION: Starting extraction for session ${sessionId}`);
+      
+      // Get session and project data
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      const projectId = session.projectId;
+      
+      // Get project schema data for AI processing
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      const schemaFields = await storage.getProjectSchemaFields(projectId);
+      const collections = await storage.getObjectCollections(projectId);
+      const knowledgeDocuments = await storage.getKnowledgeDocuments(projectId);
+      const extractionRules = await storage.getExtractionRules(projectId);
+
+      // Get collection properties for each collection
+      const collectionsWithProperties = await Promise.all(
+        collections.map(async (collection) => {
+          const properties = await storage.getCollectionProperties(collection.id);
+          return { ...collection, properties };
+        })
+      );
+
+      // Prepare data for Python extraction script
+      const extractionData = {
+        session_id: sessionId,
+        project_id: projectId,
+        schema_fields: schemaFields,
+        collections: collectionsWithProperties,
+        knowledge_documents: knowledgeDocuments,
+        extraction_rules: extractionRules,
+        session_data: {
+          files: JSON.parse(session.fileMetadata || '[]'),
+          documents: session.documents || []
+        }
+      };
+
+      console.log(`AI_EXTRACTION: Processing ${schemaFields.length} schema fields and ${collectionsWithProperties.length} collections`);
+
+      // Call Python AI extraction script
+      const { spawn } = await import('child_process');
+      let pythonOutput = '';
+      let pythonError = '';
+
+      const python = spawn('python3', ['-c', `
+import sys
+import json
+sys.path.append('.')
+from ai_extraction import run_full_document_extraction
+
+# Read input data
+input_data = json.loads(sys.stdin.read())
+
+# Run AI extraction
+result = run_full_document_extraction(input_data)
+
+# Output result
+print(json.dumps(result))
+`]);
+
+      python.stdin.write(JSON.stringify(extractionData));
+      python.stdin.end();
+
+      python.stdout.on('data', (data) => {
+        pythonOutput += data.toString();
+      });
+
+      python.stderr.on('data', (data) => {
+        pythonError += data.toString();
+      });
+      
+      python.on('close', async (code) => {
+        if (code !== 0) {
+          console.error(`AI_EXTRACTION: Python process failed with code ${code}`);
+          console.error(`AI_EXTRACTION: Error output: ${pythonError}`);
+          return res.status(500).json({ 
+            message: "AI extraction failed", 
+            error: pythonError,
+            code: code
+          });
+        }
+
+        try {
+          const extractionResults = JSON.parse(pythonOutput);
+          
+          if (extractionResults.success) {
+            console.log(`AI_EXTRACTION: Successfully processed ${extractionResults.total_fields_processed || 0} fields`);
+            
+            // Update session status to completed
+            await storage.updateExtractionSession(sessionId, {
+              status: 'completed',
+              extractedData: JSON.stringify(extractionResults.extracted_data || {}),
+              documentCount: extractionResults.document_count || 0
+            });
+
+            // Create field validations from results
+            if (extractionResults.field_validations) {
+              for (const validation of extractionResults.field_validations) {
+                await storage.createFieldValidation({
+                  sessionId: sessionId,
+                  fieldType: validation.field_type || 'schema_field',
+                  fieldId: validation.field_id,
+                  fieldName: validation.field_name,
+                  collectionName: validation.collection_name || null,
+                  recordIndex: validation.record_index || 0,
+                  extractedValue: validation.extracted_value,
+                  validationStatus: validation.validation_status || 'pending',
+                  aiReasoning: validation.ai_reasoning || '',
+                  manuallyVerified: false,
+                  confidenceScore: validation.confidence_score || 0
+                });
+              }
+            }
+            
+            res.json({
+              success: true,
+              message: "AI extraction completed successfully",
+              extraction_results: extractionResults,
+              session_id: sessionId
+            });
+          } else {
+            console.log('AI_EXTRACTION: Extraction failed:', extractionResults.error);
+            res.status(500).json({ 
+              message: "AI extraction failed",
+              error: extractionResults.error
+            });
+          }
+        } catch (parseError) {
+          console.error(`AI_EXTRACTION: Failed to parse Python output: ${parseError}`);
+          console.error(`AI_EXTRACTION: Raw output: ${pythonOutput}`);
+          res.status(500).json({
+            message: "Failed to parse extraction results",
+            error: parseError.message,
+            output: pythonOutput
+          });
+        }
+      });
+
+    } catch (error) {
+      console.error("AI_EXTRACTION error:", error);
+      res.status(500).json({ message: "Failed to start AI extraction process" });
+    }
+  });
+
   // Create HTTP server and return it
   const httpServer = createServer(app);
   return httpServer;
