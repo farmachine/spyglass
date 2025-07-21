@@ -135,16 +135,26 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
                         if extraction_rules:
                             for rule in extraction_rules:
                                 rule_target = rule.get('targetField', [])
+                                # Handle arrow notation (e.g., "Parties --> Name")
+                                arrow_notation = f"{collection_name} --> {prop_name}"
                                 full_prop_name = f"{collection_name}.{prop_name}"
+                                
                                 if isinstance(rule_target, list):
-                                    if full_prop_name in rule_target or prop_name in rule_target or 'All Fields' in rule_target:
+                                    if (arrow_notation in rule_target or 
+                                        full_prop_name in rule_target or 
+                                        prop_name in rule_target or 
+                                        'All Fields' in rule_target):
                                         prop_rules.append(f"RULE: {rule.get('ruleContent', '')}")
-                                elif full_prop_name == rule_target or prop_name == rule_target or rule_target == 'All Fields':
+                                elif (arrow_notation == rule_target or 
+                                      full_prop_name == rule_target or 
+                                      prop_name == rule_target or 
+                                      rule_target == 'All Fields'):
                                     prop_rules.append(f"RULE: {rule.get('ruleContent', '')}")
                         
                         prop_instruction = prop_description or 'Extract this property'
                         if prop_rules:
                             prop_instruction += " | " + " | ".join(prop_rules)
+                            logging.info(f"RULE MATCH: {collection_name} --> {prop_name} matched rules: {[rule.get('ruleName') for rule in extraction_rules if arrow_notation in str(rule.get('targetField', []))]}")
                             
                         prompt += f"\n  * **{prop_name}** ({prop_type}): {prop_instruction}"
         
@@ -472,13 +482,20 @@ EXAMPLE OUTPUT:
                 rule_content = rule.get('ruleContent', '')
                 target_field = rule.get('targetField', '')
                 if rule.get('isActive', True):
-                    prompt += f"\n- **{rule_name}**: {rule_content} (applies to: {target_field})"
+                    prompt += f"\n- **{rule_name}**: {rule_content}"
+                    
+                    # Show which fields this rule applies to
+                    if isinstance(target_field, list):
+                        prompt += f" (applies to: {', '.join(target_field)})"
+                    else:
+                        prompt += f" (applies to: {target_field})"
+                    
                     # Extract confidence percentage from rule content
                     import re
                     confidence_match = re.search(r'(\d{1,2})%', rule_content)
                     if confidence_match:
                         confidence_pct = confidence_match.group(1)
-                        prompt += f" [CONFIDENCE: 0.{confidence_pct.zfill(2)}]"
+                        prompt += f" [SET CONFIDENCE: 0.{confidence_pct.zfill(2)}]"
         
         # Add knowledge documents context
         if knowledge_documents:
