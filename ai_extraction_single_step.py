@@ -59,10 +59,10 @@ class SingleStepExtractor:
             if not api_key:
                 return ExtractionResult(success=False, error_message="GEMINI_API_KEY not found")
             
-            # Import Gemini
-            import google.generativeai as genai
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            # Import Gemini with proper configuration
+            from google import genai
+            client = genai.Client(api_key=api_key)
+            model = client.models
             
             self.logger.info(f"Starting single-step extraction for {len(documents)} documents")
             
@@ -77,8 +77,9 @@ class SingleStepExtractor:
             # Step 3: Get AI extraction with field validations
             self.logger.info("Sending comprehensive extraction request to AI...")
             response = model.generate_content(
-                extraction_prompt,
-                generation_config=genai.types.GenerationConfig(
+                model="gemini-2.5-flash",
+                contents=extraction_prompt,
+                config=genai.types.GenerateContentConfig(
                     max_output_tokens=8192,  # Increased for larger responses
                     temperature=0.1
                 )
@@ -138,7 +139,18 @@ class SingleStepExtractor:
                         
                         # Extract text using Gemini
                         extract_prompt = f"Extract all text content from this document. Return only the extracted text, no explanations."
-                        response = model.generate_content([extract_prompt, file_part])
+                        
+                        # Create file part for new Gemini API
+                        from google.genai import types
+                        file_part = types.Part.from_bytes(
+                            data=binary_content,
+                            mime_type=mime_type
+                        )
+                        
+                        response = model.generate_content(
+                            model="gemini-2.5-flash",
+                            contents=[extract_prompt, file_part]
+                        )
                         
                         if response and response.text:
                             extracted_text = response.text.strip()
