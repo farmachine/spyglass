@@ -307,33 +307,33 @@ export default function SchemaView() {
           }}>
 {JSON.stringify({
   "field_validations": [
-    // Schema fields (one per field)
+    // Schema fields (one per field) - ACTUAL PROJECT DATA
     ...schemaData.schema_fields.map(field => ({
       "field_type": "schema_field",
-      "field_id": field.id,
-      "field_name": field.fieldName,
-      "description": `Schema field: ${field.description || 'No description'}`,
-      "extracted_value": "string | null",
-      "confidence_score": "number (0-100)",
-      "ai_reasoning": "string - explanation of extraction and confidence",
-      "document_source": "string - source document name",
-      "validation_status": "valid | invalid | pending",
-      "record_index": 0
+      "field_id": field.id, // ACTUAL ID: e.g. "abc123-def456-ghi789"
+      "field_name": field.fieldName, // ACTUAL NAME: e.g. "Contract Title"
+      "description": field.description || 'No description', // ACTUAL DESCRIPTION
+      "extracted_value": null, // AI FILLS: extracted text value
+      "confidence_score": 95, // AI FILLS: 0-100 confidence
+      "ai_reasoning": "AI explains extraction process here", 
+      "document_source": "document_name.pdf", // AI FILLS: source file
+      "validation_status": "pending", // AI SETS: valid/invalid/pending
+      "record_index": 0 // Always 0 for schema fields
     })),
-    // Collection properties (multiple per property for each collection item)
+    // Collection properties (multiple instances) - ACTUAL PROJECT DATA  
     ...schemaData.collections.flatMap(collection => 
       collection.properties?.map((prop: any) => ({
         "field_type": "collection_property", 
-        "field_id": prop.id,
-        "field_name": `${collection.collectionName}.${prop.propertyName}`,
-        "collection_name": collection.collectionName,
-        "description": `Collection property: ${prop.description || 'No description'}`,
-        "extracted_value": "string | null",
-        "confidence_score": "number (0-100)",
-        "ai_reasoning": "string - explanation of extraction and confidence",
-        "document_source": "string - source document name", 
-        "validation_status": "valid | invalid | pending",
-        "record_index": "number - 0 for first item, 1 for second item, etc."
+        "field_id": prop.id, // ACTUAL ID: e.g. "xyz789-abc123-def456"
+        "field_name": `${collection.collectionName}.${prop.propertyName}`, // e.g. "Parties.Name"
+        "collection_name": collection.collectionName, // ACTUAL: e.g. "Parties"
+        "description": prop.description || 'No description', // ACTUAL DESCRIPTION
+        "extracted_value": null, // AI FILLS: extracted value for this instance
+        "confidence_score": 95, // AI FILLS: 0-100 confidence  
+        "ai_reasoning": "AI explains extraction for this property",
+        "document_source": "document_name.pdf", // AI FILLS: source file
+        "validation_status": "pending", // AI SETS: valid/invalid/pending
+        "record_index": 0 // AI INCREMENTS: 0, 1, 2... for multiple instances
       })) || []
     )
   ]
