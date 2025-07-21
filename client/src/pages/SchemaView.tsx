@@ -370,7 +370,7 @@ export default function SchemaView() {
           BACK: View Text
         </button>
         <button 
-          onClick={() => handleStartExtraction()}
+          onClick={() => window.location.href = `/sessions/${sessionId}/extracted-document`}
           style={{
             padding: '12px 24px',
             fontSize: '16px',
