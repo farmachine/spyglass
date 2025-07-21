@@ -316,6 +316,104 @@ export class MemStorage implements IStorage {
     };
     this.extractionSessions.set(sessionId, session);
     
+    // ===== ADD SECOND PROJECT FOR SCHEMA VIEW =====
+    // Create the specific project that SchemaView is looking for
+    const contractProjectId = "8781f847-0c0a-4c90-a62e-f29fee82f30f"; // Fixed UUID from SchemaView
+    const contractProject = {
+      id: contractProjectId,
+      name: "Contract Data Extraction",
+      description: "AI-powered extraction of legal contract data",
+      organizationId: orgId,
+      mainObjectName: "Contract",
+      isInitialSetupComplete: true,
+      createdAt: new Date(),
+    };
+    this.projects.set(contractProjectId, contractProject);
+    
+    // Add schema fields with deterministic UUIDs that match SchemaView expectations
+    const contractSchemaFields = [
+      {
+        id: "550e8400-e29b-41d4-a716-446655440100", // Company Name field UUID
+        projectId: contractProjectId,
+        fieldName: "Company Name",
+        fieldType: "TEXT" as const,
+        description: "Name of the primary company in the contract",
+        autoVerificationConfidence: 80,
+        orderIndex: 1,
+        createdAt: new Date(Date.now() - 86400000 * 3),
+      },
+      {
+        id: "550e8400-e29b-41d4-a716-446655440101", // Contract Date field UUID
+        projectId: contractProjectId,
+        fieldName: "Contract Date",
+        fieldType: "DATE" as const,
+        description: "Date when the contract was signed",
+        autoVerificationConfidence: 80,
+        orderIndex: 2,
+        createdAt: new Date(Date.now() - 86400000 * 2),
+      },
+      {
+        id: "550e8400-e29b-41d4-a716-446655440102", // Number of Parties field UUID
+        projectId: contractProjectId,
+        fieldName: "Number of Parties",
+        fieldType: "NUMBER" as const,
+        description: "Total number of parties involved in this contract",
+        autoVerificationConfidence: 80,
+        orderIndex: 3,
+        createdAt: new Date(Date.now() - 86400000 * 1),
+      },
+    ];
+    
+    contractSchemaFields.forEach(field => this.projectSchemaFields.set(field.id, field));
+    
+    // Add Parties collection with deterministic UUID
+    const partiesCollectionId = "550e8400-e29b-41d4-a716-446655440110"; // Parties collection UUID
+    const partiesCollection = {
+      id: partiesCollectionId,
+      projectId: contractProjectId,
+      collectionName: "Parties",
+      description: "Parties involved in the contract",
+      orderIndex: 1,
+      createdAt: new Date(),
+    };
+    this.objectCollections.set(partiesCollectionId, partiesCollection);
+    
+    // Add Parties collection properties with deterministic UUIDs
+    const partiesProperties = [
+      {
+        id: "550e8400-e29b-41d4-a716-446655440120", // Name property UUID
+        collectionId: partiesCollectionId,
+        propertyName: "Name",
+        propertyType: "TEXT" as const,
+        description: "Name of the party/company",
+        autoVerificationConfidence: 80,
+        orderIndex: 1,
+        createdAt: new Date(Date.now() - 86400000 * 3),
+      },
+      {
+        id: "550e8400-e29b-41d4-a716-446655440121", // Country property UUID
+        collectionId: partiesCollectionId,
+        propertyName: "Country",
+        propertyType: "TEXT" as const,
+        description: "Country where the party is located",
+        autoVerificationConfidence: 80,
+        orderIndex: 2,
+        createdAt: new Date(Date.now() - 86400000 * 2),
+      },
+      {
+        id: "550e8400-e29b-41d4-a716-446655440122", // Address property UUID
+        collectionId: partiesCollectionId,
+        propertyName: "Address",
+        propertyType: "TEXT" as const,
+        description: "Full address of the party",
+        autoVerificationConfidence: 80,
+        orderIndex: 3,
+        createdAt: new Date(Date.now() - 86400000 * 1),
+      },
+    ];
+    
+    partiesProperties.forEach(prop => this.collectionProperties.set(prop.id, prop));
+    
     // Add sample field validations for existing session with deterministic UUIDs
     const validations: FieldValidation[] = [
       // Project Schema Fields
