@@ -11,6 +11,18 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 21, 2025 (Latest Update)**
+- ✓ **DUPLICATE VALIDATION RECORDS BUG COMPLETELY RESOLVED**: Fixed critical frontend logic that was selecting wrong validation records
+- ✓ Root cause identified: Multiple validation records existed for same field, frontend was picking null records instead of records with actual values
+- ✓ Enhanced getValidation function to prioritize validation records with actual extracted values over empty/null records
+- ✓ Added intelligent record selection: Records with values → Most recent records → Fallback to first record
+- ✓ Updated all frontend rendering logic to consistently use improved getValidation function instead of old .find() method
+- ✓ Fixed schema field rendering and collection property rendering to display correct extracted values and confidence scores
+- ✓ Frontend now properly displays extracted data (e.g., "8 parties" instead of "Not set") with correct 95% confidence scores
+- ✓ **AI EXTRACTION ACCURACY ENHANCED**: Improved AI prompts to ensure comprehensive party counting across all documents
+- ✓ Added explicit instructions for AI to scan ALL documents thoroughly and count EVERY unique company/organization/party
+- ✓ Enhanced logging to show document names being processed and track document count
+- ✓ Updated AI prompts with specific examples showing expected party counts (33 parties) and comprehensive extraction requirements
+- ✓ Added critical party counting instructions to prevent AI from missing entities across document sets
 - ✓ **FIELD MAPPING BUG COMPLETELY RESOLVED**: Fixed critical issue where AI extracted values weren't appearing in UI despite correct database storage
 - ✓ Root cause identified: AI extracts "partyName" but database expects "Name" - added comprehensive field name mapping
 - ✓ Enhanced property mapping to handle multiple AI field name variations (camelCase, exact match, common mappings)

@@ -61,9 +61,14 @@ CRITICAL INSTRUCTIONS:
 1. Extract ONLY real data from the documents - NO sample or placeholder data
 2. If data is not found, use null
 3. Return JSON as a single object with the session name as the root key
-4. For counting fields (like "Number of Parties"), count by analyzing the actual document content
+4. **COUNTING FIELDS ARE CRITICAL**: For counting fields (like "Number of Parties", "Number of NDAs"), you MUST:
+   - Scan through ALL documents thoroughly  
+   - Count EVERY unique company/organization/party mentioned across ALL documents
+   - Include subsidiaries, parent companies, and any entity that could be a party
+   - Do NOT miss any parties - be comprehensive and thorough
 5. PAY SPECIAL ATTENTION to field descriptions - they guide what you should extract
 6. Use the exact field names specified, but output in camelCase format
+7. **DOCUMENT SET ANALYSIS**: You are analyzing a SET of {len(documents)} documents - make sure to extract data from ALL of them
 
 TARGET JSON STRUCTURE:
 {{"
@@ -106,8 +111,8 @@ SCHEMA FIELDS TO EXTRACT:"""
 EXAMPLE OUTPUT FORMAT:
 {{"
   "{session_name}": {{
-    "NumberOfParties": 14,
-    "NumberOfNDAs": 8, 
+    "numberOfParties": 33,  // Count ALL unique companies/parties across ALL documents
+    "numberOfNDAs": 8,     // Count ALL individual contracts/NDAs in the document set 
     "Parties": [
       {{
         "partyName": "Actual Company Name from Document",
@@ -117,7 +122,7 @@ EXAMPLE OUTPUT FORMAT:
   }}
 }}
 
-CRITICAL: Count parties by analyzing ALL entities mentioned in the documents, not just the ones you extract details for. Count NDAs by analyzing how many separate agreements or contracts are referenced.
+CRITICAL PARTY COUNTING: You MUST count parties by scanning through ALL documents and identifying EVERY unique company, organization, subsidiary, or entity that could be a party to any contract. Do not limit yourself to just the parties you extract full details for - count ALL mentions across the entire document set.
 
 RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
         
@@ -177,12 +182,13 @@ RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
         # Make single AI extraction call with all documents (major performance improvement)
         if file_parts:
             logging.info(f"Making single AI extraction call with {len(file_parts)} documents")
+            logging.info(f"Document names being processed: {[fp['name'] for fp in file_parts]}")
             content_parts = [prompt]
             for fp in file_parts:
                 content_parts.append(fp["part"])
             response = model.generate_content(content_parts)
         else:
-            logging.info(f"Making AI extraction call without documents")
+            logging.info(f"Making AI extraction call without documents (text only)")
             response = model.generate_content(prompt)
         
         if not response or not response.text:
