@@ -28,7 +28,6 @@ import { useExtractionRules } from "@/hooks/useKnowledge";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { useAuth } from "@/contexts/AuthContext";
 import type { ProjectWithDetails } from "@shared/schema";
 
 const uploadFormSchema = z.object({
@@ -72,7 +71,6 @@ export default function NewUpload({ project }: NewUploadProps) {
   const createExtractionSession = useCreateExtractionSession(project.id);
   const processExtraction = useProcessExtraction();
   const { toast } = useToast();
-  const { user } = useAuth();
   
   // Fetch schema data for validation
   const { data: schemaFields = [] } = useProjectSchemaFields(project.id);
@@ -199,260 +197,6 @@ export default function NewUpload({ project }: NewUploadProps) {
     }
   };
 
-  // Helper function to generate schema markdown (same as SchemaView)
-  const generateSchemaMarkdown = (schemaData: any, documentText: string, documentCount: number) => {
-    let markdown = `# AI DATA EXTRACTION TASK\n\n`;
-    
-    // Document content at the top
-    markdown += `## DOCUMENTS TO PROCESS\n\n`;
-    markdown += `**INSTRUCTION:** Extract data from the following ${documentCount} document(s) according to the schema structure below.\n\n`;
-    markdown += `${documentText}\n\n`;
-    markdown += `--- END OF DOCUMENTS ---\n\n`;
-    
-    // Schema fields
-    markdown += `## SCHEMA FIELDS\n\n`;
-    if (schemaData.schema_fields && schemaData.schema_fields.length > 0) {
-      const fieldsData = {
-        schema_fields: schemaData.schema_fields.map((field: any) => ({
-          field_name: field.fieldName,
-          type: field.fieldType,
-          "AI guidance": field.description,
-          "Extraction Rules": "No rules",
-          "Knowledge Documents": schemaData.knowledge_documents?.length > 0 ? 
-            schemaData.knowledge_documents.map((doc: any) => doc.displayName).join(', ') : 
-            "None"
-        }))
-      };
-      markdown += `\`\`\`json\n${JSON.stringify(fieldsData, null, 2)}\n\`\`\`\n\n`;
-    }
-    
-    // Collections
-    markdown += `## OBJECT COLLECTIONS\n\n`;
-    if (schemaData.collections && schemaData.collections.length > 0) {
-      const collectionsData = {
-        collections: schemaData.collections.map((collection: any) => ({
-          collection_name: collection.collectionName,
-          properties: collection.properties?.map((prop: any) => ({
-            property_name: prop.propertyName,
-            type: prop.propertyType,
-            "AI guidance": prop.description,
-            "Extraction Rules": "No rules",
-            "Knowledge Documents": schemaData.knowledge_documents?.length > 0 ? 
-              schemaData.knowledge_documents.map((doc: any) => doc.displayName).join(', ') : 
-              "None"
-          })) || []
-        }))
-      };
-      markdown += `\`\`\`json\n${JSON.stringify(collectionsData, null, 2)}\n\`\`\`\n\n`;
-    }
-    
-    // Knowledge Documents
-    markdown += `## KNOWLEDGE DOCUMENTS\n\n`;
-    markdown += `**INSTRUCTION:** Use these documents as reference material for validation and conflict detection.\n\n`;
-    if (schemaData.knowledge_documents && schemaData.knowledge_documents.length > 0) {
-      schemaData.knowledge_documents.forEach((doc: any, index: number) => {
-        markdown += `### KNOWLEDGE DOCUMENT ${index + 1}: ${doc.displayName}\n\n`;
-        markdown += `${doc.content || 'No content available'}\n\n`;
-      });
-    } else {
-      markdown += `No knowledge documents configured\n\n`;
-    }
-    
-    // Extraction Rules
-    markdown += `## EXTRACTION RULES\n\n`;
-    markdown += `**INSTRUCTION:** Apply these rules to modify confidence scores for matching values.\n\n`;
-    if (schemaData.extraction_rules && schemaData.extraction_rules.length > 0) {
-      schemaData.extraction_rules.forEach((rule: any, index: number) => {
-        const isGlobalRule = !rule.targetFields || rule.targetFields.length === 0;
-        markdown += `### ${isGlobalRule ? 'GLOBAL RULE' : 'TARGETED RULE'} ${index + 1}: ${rule.ruleName || `Rule ${index + 1}`}\n\n`;
-        markdown += `**Applies to:** ${isGlobalRule ? 
-          'ALL SCHEMA FIELDS AND COLLECTION PROPERTIES (Auto-mapped)' : 
-          rule.targetFields?.join(', ') || 'Not specified'
-        }\n\n`;
-        markdown += `**Rule Content:** ${rule.ruleContent}\n\n`;
-      });
-    } else {
-      markdown += `No extraction rules configured\n\n`;
-    }
-    
-    // AI Processing Instructions
-    markdown += `## AI PROCESSING INSTRUCTIONS\n\n`;
-    markdown += `### CORE EXTRACTION PROCESS:\n`;
-    markdown += `1. Extract data according to schema structure above\n`;
-    markdown += `2. Count ALL instances across ALL documents accurately\n`;
-    markdown += `3. Apply extraction rules to modify confidence scores as specified\n`;
-    markdown += `4. Use knowledge documents for validation and conflict detection\n\n`;
-    
-    markdown += `### CONFIDENCE SCORING (confidence_score 0-100):\n`;
-    markdown += `- Base: High confidence (85-95) for clear extractions\n`;
-    markdown += `- Apply extraction rule adjustments per rule content\n`;
-    markdown += `- Reduce confidence for knowledge document conflicts\n\n`;
-    
-    markdown += `### AI REASONING (ai_reasoning):\n`;
-    markdown += `Give reasoning for the score. Reference which knowledge documents and/or extraction rules influenced the decision.\n\n`;
-    
-    // JSON Schema
-    markdown += `## REQUIRED JSON OUTPUT SCHEMA\n\n`;
-    const outputSchema = {
-      "field_validations": [
-        // Schema fields
-        ...(schemaData.schema_fields || []).map((field: any) => ({
-          "field_type": "schema_field",
-          "field_id": field.id,
-          "field_name": field.fieldName,
-          "description": field.description || 'No description',
-          "extracted_value": null,
-          "confidence_score": 95,
-          "ai_reasoning": "Provide reasoning here",
-          "document_source": "document_name.pdf",
-          "validation_status": "pending",
-          "record_index": 0
-        })),
-        // Collection properties
-        ...(schemaData.collections || []).flatMap((collection: any) => 
-          (collection.properties || []).map((prop: any) => ({
-            "field_type": "collection_property",
-            "field_id": prop.id,
-            "field_name": `${collection.collectionName}.${prop.propertyName}`,
-            "collection_name": collection.collectionName,
-            "description": prop.description || 'No description',
-            "extracted_value": null,
-            "confidence_score": 95,
-            "ai_reasoning": "Provide reasoning here",
-            "document_source": "document_name.pdf",
-            "validation_status": "pending",
-            "record_index": 0
-          }))
-        )
-      ]
-    };
-    
-    markdown += `\`\`\`json\n${JSON.stringify(outputSchema, null, 2)}\n\`\`\`\n\n`;
-    
-    return markdown;
-  };
-
-  // Single-click extraction: Exact same workflow as SchemaView debugging page
-  const handleSingleClickExtraction = async (data: UploadForm) => {
-    if (selectedFiles.length === 0) {
-      return;
-    }
-
-    setIsProcessing(true);
-    setShowProcessingDialog(true);
-    setTotalDocuments(selectedFiles.length);
-    setProcessedDocuments(0);
-    setProcessingStep('uploading');
-    setProcessingProgress(0);
-
-    try {
-      // Step 1: Create extraction session
-      setProcessingStep('uploading');
-      setProcessingProgress(10);
-      
-      const session = await createExtractionSession.mutateAsync({
-        sessionName: data.sessionName,
-        description: data.description || null,
-        documentCount: selectedFiles.length,
-        status: "in_progress",
-      });
-
-      // Step 2: Convert files to base64 and call extract-text API (same as debug workflow)
-      setProcessingProgress(25);
-      const filesData = await Promise.all(selectedFiles.map(async (fileData) => {
-        try {
-          // Read file content as base64
-          const base64Content = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-              if (typeof reader.result === 'string') {
-                resolve(reader.result);
-              } else {
-                reject(new Error('Failed to read file as data URL'));
-              }
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(fileData.file);
-          });
-
-          return {
-            name: fileData.file.name,
-            size: fileData.file.size,
-            type: fileData.file.type,
-            content: base64Content
-          };
-        } catch (error) {
-          console.error(`Failed to read file ${fileData.file.name}:`, error);
-          return {
-            name: fileData.file.name,
-            size: fileData.file.size,
-            type: fileData.file.type,
-            content: ""
-          };
-        }
-      }));
-
-      // Step 3: Extract text content using same API as debug workflow
-      setProcessingStep('extracting');
-      setProcessingProgress(40);
-
-      console.log("SINGLE-CLICK DEBUG: Starting text extraction for session:", session.id);
-      console.log("SINGLE-CLICK DEBUG: Files data length:", filesData.length);
-
-      const textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
-        method: 'POST',
-        body: JSON.stringify({ files: filesData }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      console.log("SINGLE-CLICK DEBUG: Text extraction result:", textExtractionResult);
-
-      if (!textExtractionResult.message || textExtractionResult.message.includes("failed")) {
-        throw new Error(`Text extraction failed: ${textExtractionResult.error || 'API returned no success message'}`);
-      }
-
-      // Step 4: Redirect to SchemaView with auto-trigger flags
-      // The SchemaView will handle the rest of the process automatically
-      setProcessingStep('complete');
-      setProcessingProgress(100);
-      
-      toast({
-        title: "Text extraction completed",
-        description: "Starting automatic AI extraction...",
-      });
-      
-      // Brief delay for user feedback
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Close dialog and redirect to SchemaView with auto-trigger
-      setShowProcessingDialog(false);
-      setLocation(`/sessions/${session.id}/schema-view?autorun=true`);
-      
-      // Reset form
-      form.reset();
-      setSelectedFiles([]);
-    } catch (error) {
-      console.error("Failed to complete extraction:", error);
-      console.error("Error details:", {
-        name: error?.name,
-        message: error?.message,
-        stack: error?.stack
-      });
-      
-      setSelectedFiles(prev => prev.map(f => ({ ...f, status: "error" as const })));
-      
-      setShowProcessingDialog(false);
-      toast({
-        title: "Extraction failed",
-        description: `Error: ${error?.message || 'Unknown error occurred'}. Please try again.`,
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  // Debug mode: Original 2-step process for joshfarm@gmail.com
   const handleSubmit = async (data: UploadForm) => {
     if (selectedFiles.length === 0) {
       return;
@@ -765,10 +509,8 @@ export default function NewUpload({ project }: NewUploadProps) {
                     </div>
                   </div>
 
-                  {/* Single-click extraction button */}
                   <Button 
-                    type="button"
-                    onClick={() => form.handleSubmit(handleSingleClickExtraction)()}
+                    type="submit" 
                     disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
                     className="w-full"
                   >
@@ -784,29 +526,6 @@ export default function NewUpload({ project }: NewUploadProps) {
                       </>
                     )}
                   </Button>
-
-                  {/* Debug button - only visible to joshfarm@gmail.com */}
-                  {user?.email === 'joshfarm@gmail.com' && (
-                    <Button 
-                      type="button"
-                      onClick={() => form.handleSubmit(handleSubmit)()}
-                      disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
-                      className="w-full mt-2"
-                      variant="outline"
-                    >
-                      {isProcessing ? (
-                        <>
-                          <div className="animate-spin h-4 w-4 border-2 border-gray-600 border-t-transparent rounded-full mr-2" />
-                          Processing...
-                        </>
-                      ) : (
-                        <>
-                          <Play className="h-4 w-4 mr-2" />
-                          Run with debugging page
-                        </>
-                      )}
-                    </Button>
-                  )}
                 </form>
               </Form>
             </div>

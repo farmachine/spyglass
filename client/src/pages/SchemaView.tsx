@@ -261,10 +261,7 @@ export default function SchemaView() {
     markdown += `- Let content and rules determine final percentage\n\n`;
     
     markdown += `### AI REASONING (ai_reasoning):\n`;
-    markdown += `Format as two sections:\n`;
-    markdown += `**Explanation of the issue:** How you identified/counted the value, including any rule or knowledge document impacts\n`;
-    markdown += `**Clarification questions:** 1-2 specific questions to verify accuracy\n\n`;
-    markdown += `Example: "**Explanation of the issue:** Identified 17 unique company names across all documents by scanning party definitions and signature blocks. The 'Inc.' extraction rule reduced confidence to 27% for companies with this suffix. **Clarification questions:** Can you verify the legal entity names are correctly formatted? Are there any additional parties mentioned in amendments?"\n\n`;
+    markdown += `Give reasoning for the score. If knowledge documents and/or extraction rules had influence, please reference which ones in a human-friendly way. Please also include follow up questions that the user can ask the information provider for clarification on the data value.\n\n`;
     
     markdown += `### OUTPUT:\n`;
     markdown += `JSON format below with confidence_score and ai_reasoning for each field.\n\n`;
@@ -282,7 +279,7 @@ export default function SchemaView() {
           "description": field.description || 'No description',
           "extracted_value": null,
           "confidence_score": 95,
-          "ai_reasoning": "**Explanation of the issue:** Extracted from document analysis with clear text identification. **Clarification questions:** Can you verify the accuracy and completeness of this information?",
+          "ai_reasoning": "See AI REASONING (ai_reasoning) in AI PROCESSING INSTRUCTIONS",
           "document_source": "document_name.pdf",
           "validation_status": "pending",
           "record_index": 0
@@ -297,7 +294,7 @@ export default function SchemaView() {
             "description": prop.description || 'No description',
             "extracted_value": null,
             "confidence_score": 95,
-            "ai_reasoning": "**Explanation of the issue:** Extracted from document analysis with clear text identification. **Clarification questions:** Can you verify the accuracy and completeness of this information?",
+            "ai_reasoning": "See AI REASONING (ai_reasoning) in AI PROCESSING INSTRUCTIONS",
             "document_source": "document_name.pdf",
             "validation_status": "pending",
             "record_index": 0
@@ -316,17 +313,6 @@ export default function SchemaView() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSavingToDatabase, setIsSavingToDatabase] = useState(false);
   const [savedValidations, setSavedValidations] = useState<any[] | null>(null);
-
-  // Auto-trigger logic for single-click extraction
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const shouldAutoRun = urlParams.get('autorun') === 'true';
-    
-    if (shouldAutoRun && documentContent && schemaData && !geminiResponse && !isProcessing) {
-      console.log('AUTO-TRIGGER: Starting automatic Gemini extraction for single-click workflow');
-      handleGeminiExtraction();
-    }
-  }, [documentContent, schemaData, geminiResponse, isProcessing]);
 
   // Function to call Gemini directly using consolidated document content
   const handleGeminiExtraction = async () => {
@@ -357,21 +343,11 @@ export default function SchemaView() {
       });
       
       if (response.success) {
-        const responseText = `=== GEMINI AI EXTRACTION RESULTS ===
+        setGeminiResponse(`=== GEMINI AI EXTRACTION RESULTS ===
 
 ${response.extractedData || response.result || 'No response data received'}
 
-=== END RESULTS ===`;
-        
-        setGeminiResponse(responseText);
-        
-        // Auto-trigger save for single-click workflow
-        const urlParams = new URLSearchParams(window.location.search);
-        const shouldAutoRun = urlParams.get('autorun') === 'true';
-        if (shouldAutoRun) {
-          console.log('AUTO-TRIGGER: Automatically saving to database for single-click workflow');
-          setTimeout(() => handleAutoSaveToDatabase(responseText), 1000); // Use direct response
-        }
+=== END RESULTS ===`);
       } else {
         setGeminiResponse(`=== GEMINI API ERROR ===
 
@@ -388,117 +364,6 @@ ${error instanceof Error ? error.message : 'Unknown error'}
 === END ERROR ===`);
     } finally {
       setIsProcessing(false);
-    }
-  };
-
-  // Auto-save function for single-click workflow (bypasses state dependency)
-  const handleAutoSaveToDatabase = async (responseText: string) => {
-    console.log('AUTO-SAVE: Starting with response text length:', responseText.length);
-    
-    setIsSavingToDatabase(true);
-    try {
-      // Extract JSON from responseText directly - same logic as handleSaveToDatabase
-      let jsonText = null;
-      
-      // Pattern 1: Look for ```json blocks
-      let jsonMatch = responseText.match(/```json\s*\n([\s\S]*?)\n```/);
-      if (jsonMatch) {
-        jsonText = jsonMatch[1].trim();
-      } else {
-        // Pattern 2: Look for object starting with { and ending with } (balanced braces)
-        const lines = responseText.split('\n');
-        let objectStart = -1;
-        let objectEnd = -1;
-        let braceCount = 0;
-        
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i].trim();
-          if (line.startsWith('{') && objectStart === -1) {
-            objectStart = i;
-            braceCount = 1;
-            for (let j = 1; j < line.length; j++) {
-              if (line[j] === '{') braceCount++;
-              if (line[j] === '}') braceCount--;
-            }
-            if (braceCount === 0) {
-              objectEnd = i;
-              break;
-            }
-          } else if (objectStart !== -1) {
-            for (let j = 0; j < line.length; j++) {
-              if (line[j] === '{') braceCount++;
-              if (line[j] === '}') braceCount--;
-            }
-            if (braceCount === 0) {
-              objectEnd = i;
-              break;
-            }
-          }
-        }
-        
-        if (objectStart !== -1 && objectEnd !== -1) {
-          jsonText = lines.slice(objectStart, objectEnd + 1).join('\n').trim();
-        }
-      }
-
-      if (!jsonText) {
-        console.error('AUTO-SAVE: Failed to extract JSON. Response preview:', responseText.substring(0, 1000));
-        throw new Error('No valid JSON found in extraction results');
-      }
-
-      // Clean and parse JSON (same logic as manual save)
-      let cleanedJsonText = jsonText
-        .replace(/\n\s*\n/g, '\n')
-        .replace(/,(\s*[}\]])/g, '$1')
-        .replace(/\.\.\./g, '')
-        .replace(/…\[TRUNCATED\]/g, '')
-        .trim();
-      
-      let lastClosingBrace = cleanedJsonText.lastIndexOf('}');
-      if (lastClosingBrace > 0) {
-        cleanedJsonText = cleanedJsonText.substring(0, lastClosingBrace + 1);
-      }
-      
-      const parsedJson = JSON.parse(cleanedJsonText);
-      
-      // Extract field_validations array
-      let extractedData;
-      if (parsedJson.field_validations && Array.isArray(parsedJson.field_validations)) {
-        extractedData = parsedJson.field_validations;
-      } else if (Array.isArray(parsedJson)) {
-        extractedData = parsedJson;
-      } else {
-        throw new Error('Invalid JSON structure - expected field_validations array or direct array');
-      }
-      
-      const validationsArray = Array.isArray(extractedData) ? extractedData : [extractedData];
-      console.log('AUTO-SAVE: Parsed validations:', validationsArray.length, 'items');
-      
-      // Save to database
-      const response = await apiRequest(`/api/sessions/${sessionId}/save-validations`, {
-        method: 'POST',
-        body: JSON.stringify({ validations: validationsArray }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      if (response.success) {
-        setSavedValidations(validationsArray);
-        console.log('AUTO-SAVE: Validation results saved successfully:', response);
-        console.log('AUTO-SAVE: Automatically redirecting to session review');
-        const redirectUrl = `/projects/${session.projectId}/sessions/${sessionId}`;
-        console.log('AUTO-SAVE: Redirecting to:', redirectUrl);
-        setTimeout(() => {
-          console.log('AUTO-SAVE: Executing redirect now...');
-          setLocation(redirectUrl);
-        }, 1500); // Shorter delay for faster redirect
-      } else {
-        throw new Error(response.error || 'Failed to save validation results');
-      }
-    } catch (error) {
-      console.error('AUTO-SAVE: Save to database failed:', error);
-      alert(`Auto-save failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setIsSavingToDatabase(false);
     }
   };
 
@@ -617,19 +482,6 @@ ${error instanceof Error ? error.message : 'Unknown error'}
       if (response.success) {
         setSavedValidations(validationsArray);
         console.log('Validation results saved successfully:', response);
-        
-        // Check if this is auto-triggered (single-click workflow)
-        const urlParams = new URLSearchParams(window.location.search);
-        const shouldAutoRun = urlParams.get('autorun') === 'true';
-        
-        if (shouldAutoRun) {
-          console.log('AUTO-TRIGGER: Automatically redirecting to session review for single-click workflow');
-          setTimeout(() => {
-            setLocation(`/sessions/${sessionId}`);
-          }, 2000); // Brief delay to show completion
-        } else {
-          alert(`Successfully saved ${validationsArray.length} field validations to database.`);
-        }
       } else {
         throw new Error(response.error || 'Failed to save validation results');
       }

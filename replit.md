@@ -10,28 +10,7 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**January 22, 2025 (Latest Update)**
-- ✓ **WORKFLOW CONSOLIDATION COMPLETELY IMPLEMENTED**: Single-click and debugging extraction now use the exact same process for perfect debuggability
-- ✓ Removed duplicate AI extraction logic from NewUpload component to prevent divergent workflows
-- ✓ Single-click extraction now redirects to SchemaView with autorun=true parameter for automatic execution
-- ✓ SchemaView detects autorun parameter and automatically triggers: document loading → Gemini extraction → JSON parsing → database save → session review redirect
-- ✓ Eliminated code duplication: both workflows use identical SchemaView functions (handleGeminiExtraction, handleAutoSaveToDatabase)
-- ✓ Fixed race condition in auto-save functionality by creating handleAutoSaveToDatabase function that works directly with response data
-- ✓ Single-click workflow now automatically completes entire process: text extraction → schema view → AI extraction → database save → session review redirect
-- ✓ Fixed auto-redirect URL format to use correct route: `/projects/{projectId}/sessions/{sessionId}` instead of `/sessions/{sessionId}`
-- ✓ Complete automated workflow now working end-to-end: single-click extraction automatically redirects to session review page after processing
-- ✓ Optimized redirect timing to 1.5 seconds for faster user experience while maintaining visibility of processing completion
-- ✓ **WORKFLOW CONSOLIDATION SUCCESSFULLY COMPLETED**: Single-click and debugging processes now identical for perfect debuggability
-- ✓ **PROGRAMMED RULE INTERFERENCE COMPLETELY ELIMINATED**: Disabled automatic batch validation that was overriding pure AI reasoning with programmed templates
-- ✓ Root cause identified: Auto-batch validation in SessionView was calling old ai_extraction.py functions that applied programmed confidence adjustments and reasoning templates
-- ✓ Single-click extraction now uses ONLY pure AI processing without any post-processing rule interference
-- ✓ AI reasoning will now be generated directly by Gemini using the two-section format instead of programmed "TARGETED RULE" templates
-- ✓ **BRAIN ICON REMOVAL COMPLETED**: Removed batch validation button (brain icon) from SessionView review page per user request
-- ✓ Cleaned up unused Brain import and navigation references to prevent errors
-- ✓ **AI REASONING FORMAT FINALIZED**: Updated prompt to enforce exact two-section structure: "Explanation of the issue" + "Clarification questions"
-- ✓ Enhanced AI reasoning instructions with clear formatting requirements and concrete examples
-
-**January 21, 2025 (Previous Update)**
+**January 21, 2025 (Latest Update)**
 - ✓ **COLLECTION PROPERTY DISPLAY BUG COMPLETELY RESOLVED**: Fixed critical field name mismatch preventing collection items from displaying extracted values
 - ✓ Root cause identified: AI extraction saved field names without indexes ("Parties.Name") but SessionView expected indexed names ("Parties.Name[0]")
 - ✓ Enhanced save validations API endpoint to automatically convert collection property field names to proper indexed format
