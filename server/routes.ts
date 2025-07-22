@@ -1621,6 +1621,114 @@ print(json.dumps(result))
     }
   });
 
+  // AUTOMATED EXTRACTION ENDPOINT - Combines all steps automatically
+  app.post("/api/sessions/:sessionId/automated-extraction", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const { debugMode } = req.body;
+      
+      console.log(`AUTOMATED EXTRACTION: Starting for session ${sessionId} with debugMode: ${debugMode}`);
+      
+      // Get session to find project data
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      
+      // Get project data including schema
+      const project = await storage.getProject(session.projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Get schema fields and collections
+      const schemaFields = await storage.getProjectSchemaFields(session.projectId);
+      const collections = await storage.getObjectCollections(session.projectId);
+      const extractionRules = await storage.getExtractionRules(session.projectId);
+      const knowledgeDocuments = await storage.getKnowledgeDocuments(session.projectId);
+      
+      // Get extracted text from session
+      const extractedTextData = session.extractedData ? JSON.parse(session.extractedData) : null;
+      if (!extractedTextData || !extractedTextData.extracted_texts) {
+        return res.status(400).json({ message: "No extracted text data found. Please run text extraction first." });
+      }
+      
+      // Prepare data for Python extraction script
+      const automatedExtractionData = {
+        session_id: sessionId,
+        project_id: session.projectId,
+        documents: extractedTextData.extracted_texts,
+        schema_fields: schemaFields,
+        collections: collections,
+        extraction_rules: extractionRules,
+        knowledge_documents: knowledgeDocuments,
+        project_name: project.mainObjectName || "Contract"
+      };
+      
+      console.log(`AUTOMATED EXTRACTION: Processing ${extractedTextData.extracted_texts.length} documents with ${schemaFields.length} fields and ${collections.length} collections`);
+      
+      // Call Python script for automated processing
+      const { spawn } = await import('child_process');
+      const python = spawn('python3', ['ai_extraction_single_step.py'], {
+        cwd: process.cwd()
+      });
+      
+      python.stdin.write(JSON.stringify(automatedExtractionData));
+      python.stdin.end();
+      
+      let output = '';
+      let error = '';
+      
+      python.stdout.on('data', (data: any) => {
+        output += data.toString();
+      });
+      
+      python.stderr.on('data', (data: any) => {
+        error += data.toString();
+      });
+      
+      await new Promise((resolve, reject) => {
+        python.on('close', async (code: any) => {
+          if (code !== 0) {
+            console.error('AUTOMATED EXTRACTION error:', error);
+            return reject(new Error(`Automated extraction failed: ${error}`));
+          }
+          
+          try {
+            const result = JSON.parse(output);
+            console.log('AUTOMATED EXTRACTION completed successfully');
+            
+            // Update session with final results
+            await storage.updateExtractionSession(sessionId, {
+              status: "completed",
+              extractedData: JSON.stringify(result)
+            });
+            
+            resolve(result);
+            
+          } catch (parseError) {
+            console.error('AUTOMATED EXTRACTION JSON parse error:', parseError);
+            console.error('Raw output:', output);
+            reject(new Error(`Invalid JSON response: ${parseError}`));
+          }
+        });
+      });
+      
+      res.json({
+        success: true,
+        message: "Automated extraction completed successfully",
+        sessionId: sessionId
+      });
+      
+    } catch (error) {
+      console.error("AUTOMATED EXTRACTION error:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message || "Failed to complete automated extraction" 
+      });
+    }
+  });
+
   // Get project schema data for AI processing view
   app.get('/api/projects/:projectId/schema-data', async (req, res) => {
     try {

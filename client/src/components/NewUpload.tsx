@@ -2,7 +2,7 @@ import React, { useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Upload, X, FileText, AlertCircle, Play, CheckCircle, Clock } from "lucide-react";
+import { Upload, X, FileText, AlertCircle, Play, CheckCircle, Clock, Bug } from "lucide-react";
 import { WaveIcon, DropletIcon, FlowIcon, StreamIcon } from "@/components/SeaIcons";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -66,6 +66,7 @@ export default function NewUpload({ project }: NewUploadProps) {
   const [processingProgress, setProcessingProgress] = useState(0);
   const [processedDocuments, setProcessedDocuments] = useState(0);
   const [totalDocuments, setTotalDocuments] = useState(0);
+  const [debugMode, setDebugMode] = useState(false);
   const [, setLocation] = useLocation();
   
   const createExtractionSession = useCreateExtractionSession(project.id);
@@ -260,12 +261,12 @@ export default function NewUpload({ project }: NewUploadProps) {
         }
       }));
 
-      // Step 3: Text Extraction Phase (NEW SIMPLIFIED APPROACH)
+      // Step 3: Text Extraction Phase
       setProcessingStep('extracting');
       setProcessingProgress(0);
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "processing" as const })));
 
-      // Call new text extraction endpoint
+      // Call text extraction endpoint
       const textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
         method: 'POST',
         body: JSON.stringify({ files: filesData }),
@@ -274,26 +275,54 @@ export default function NewUpload({ project }: NewUploadProps) {
 
       setProcessingProgress(100);
 
-      // Step 4: Complete
-      setProcessingStep('complete');
+      if (debugMode) {
+        // DEBUG MODE: Show success and redirect to schema view for manual steps
+        setProcessingStep('complete');
+        setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
+        
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        if (textExtractionResult && session?.id) {
+          toast({
+            title: "Text extraction complete",
+            description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
+          });
 
-      // Mark files as completed
-      setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
+          setShowProcessingDialog(false);
+          setLocation(textExtractionResult.redirect || `/sessions/${session.id}/schema-view`);
+        } else {
+          throw new Error("Text extraction completed but session data is missing");
+        }
+      } else {
+        // AUTOMATED MODE: Continue with full extraction process
+        setProcessingStep('validating');
+        setProcessingProgress(0);
 
-      // Show success briefly before redirect
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      if (textExtractionResult && session?.id) {
-        toast({
-          title: "Text extraction complete",
-          description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
+        // Run automated extraction process
+        const automatedResult = await apiRequest(`/api/sessions/${session.id}/automated-extraction`, {
+          method: 'POST',
+          body: JSON.stringify({ debugMode: false }),
+          headers: { 'Content-Type': 'application/json' }
         });
 
-        // Close dialog and redirect to text view
-        setShowProcessingDialog(false);
-        setLocation(textExtractionResult.redirect || `/sessions/${session.id}/text-view`);
-      } else {
-        throw new Error("Text extraction completed but session data is missing");
+        setProcessingProgress(100);
+        setProcessingStep('complete');
+        setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
+
+        // Show success briefly before redirect
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        if (automatedResult && session?.id) {
+          toast({
+            title: "Extraction complete",
+            description: `${selectedFiles.length} file(s) processed successfully. Going to results...`,
+          });
+
+          setShowProcessingDialog(false);
+          setLocation(`/projects/${project.id}/sessions/${session.id}`);
+        } else {
+          throw new Error("Automated extraction completed but session data is missing");
+        }
       }
       
       // Reset form
@@ -509,23 +538,46 @@ export default function NewUpload({ project }: NewUploadProps) {
                     </div>
                   </div>
 
-                  <Button 
-                    type="submit" 
-                    disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
-                    className="w-full"
-                  >
-                    {isProcessing ? (
-                      <>
-                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <FlowIcon className="h-4 w-4 mr-2" />
-                        Start Extraction
-                      </>
-                    )}
-                  </Button>
+                  <div className="space-y-3">
+                    <Button 
+                      type="submit" 
+                      disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
+                      className="w-full"
+                      onClick={() => setDebugMode(false)}
+                    >
+                      {isProcessing && !debugMode ? (
+                        <>
+                          <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <FlowIcon className="h-4 w-4 mr-2" />
+                          Start Extraction
+                        </>
+                      )}
+                    </Button>
+                    
+                    <Button 
+                      type="submit"
+                      variant="secondary"
+                      disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
+                      className="w-full"
+                      onClick={() => setDebugMode(true)}
+                    >
+                      {isProcessing && debugMode ? (
+                        <>
+                          <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                          Debugging...
+                        </>
+                      ) : (
+                        <>
+                          <Bug className="h-4 w-4 mr-2" />
+                          Debug Extraction
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </form>
               </Form>
             </div>

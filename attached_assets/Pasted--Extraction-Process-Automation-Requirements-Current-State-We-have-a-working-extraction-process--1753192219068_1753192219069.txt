@@ -1,0 +1,95 @@
+# Extraction Process Automation Requirements
+
+## Current State
+We have a working extraction process with manual debug steps that works perfectly. The process flow is:
+1. Document extraction using Gemini
+2. Create prompt with schemas 
+3. Send prompt to AI and get response
+4. Parse JSON response
+5. Save to database
+
+Currently, users see a debug/test page between each step and manually click buttons to proceed.
+
+## Required Changes
+
+### Add Debug Mode Toggle
+Add a parameter/flag to control the extraction flow:
+- `debug_mode = true` → Current behavior (show debug page, manual triggers)
+- `debug_mode = false` → New automated behavior (background processing)
+
+### New Upload Page Button Layout
+On the "New Upload" page, there should be an additional debug button under the current "Start Extraction" button:
+
+**"Debug Extraction"** (new button)
+- Sets `debug_mode = true`
+- Triggers debug flow with manual steps
+- Secondary button styling
+- Positioned directly below the existing "Start Extraction" button
+
+The existing "Start Extraction" button should:
+- Set `debug_mode = false`
+- Trigger automated end-user flow
+- Keep primary button styling
+
+### Automated Flow (debug_mode = false)
+When user clicks "Start Extraction":
+1. Show loading screen/dialog immediately (NO intermediary pages)
+2. Run ALL extraction steps automatically in sequence in the background (same exact process, no changes)
+3. Once complete → **Direct redirect to session review/results page**
+4. **CRITICAL**: User should NEVER see the debug/test page or any other intermediary pages
+5. **Flow must be**: Upload Page → Loading Dialog → Results Page (2 pages + loading dialog, no more)
+
+### Debug Flow (debug_mode = true) 
+When user clicks "Debug Extraction":
+- Keep current behavior exactly as is
+- Show debug page with step-by-step manual triggers
+- This is for debugging purposes only
+
+### Debug Flow (debug_mode = true) 
+When user clicks "Debug Extraction":
+- Keep current behavior exactly as is
+- Show debug page with step-by-step manual triggers
+- This is for debugging purposes only
+
+## Implementation Approach
+
+### Step Condition Logic
+After each extraction step completes, add a condition:
+
+```javascript
+// After each step completion
+if (debug_mode === false) {
+    // Automatically trigger next step
+    triggerNextStep();
+} else {
+    // Show debug page and wait for manual button click
+    showDebugPageAndWait();
+}
+```
+
+### Flow Control
+- Same backend process for both modes
+- Same API endpoints and functions
+- Only difference: UI flow and step triggering
+- Debug page remains unchanged for future debugging
+
+## Critical Requirements
+1. **DO NOT change the extraction process logic** - it works perfectly
+2. **Keep exact same step sequence** - document extraction → prompt creation → AI call → JSON parsing → database save
+3. **Preserve debug functionality** - we need it for troubleshooting
+4. **Only automate the manual triggers** - replace button clicks with automatic progression
+
+## User Experience
+- **End users**: Click "Start Extraction" → Loading → Results (no debug page)
+- **Debug mode**: Click "Debug Extraction" → Debug page → Manual step-by-step (current behavior)
+
+## UI Layout Example
+```
+[Document Upload Area]
+
+[Start Extraction] ← Primary button (automated flow)
+[Debug Extraction] ← Secondary button (debug flow)
+```
+
+## Implementation Note
+This should be a simple conditional wrapper around the existing working process, not a rewrite of the extraction logic.
