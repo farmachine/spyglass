@@ -63,14 +63,14 @@ export function useDeleteKnowledgeDocument() {
 }
 
 // Extraction Rules
-export function useExtractionRules(projectId: number) {
+export function useExtractionRules(projectId: string) {
   return useQuery({
     queryKey: ["/api/projects", projectId, "rules"],
     queryFn: () => apiRequest(`/api/projects/${projectId}/rules`),
   });
 }
 
-export function useCreateExtractionRule(projectId: number) {
+export function useCreateExtractionRule(projectId: string) {
   const queryClient = useQueryClient();
   
   return useMutation({

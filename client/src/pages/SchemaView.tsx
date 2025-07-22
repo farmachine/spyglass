@@ -15,6 +15,23 @@ export default function SchemaView() {
   const params = useParams();
   const sessionId = params.sessionId;
   const [, setLocation] = useLocation();
+  
+  // Check for debug mode parameter
+  const urlParams = new URLSearchParams(window.location.search);
+  const debugMode = urlParams.get('debug') === 'true';
+
+  // State declarations
+  const [documentContent, setDocumentContent] = useState<{
+    text: string;
+    count: number;
+  } | null>(null);
+  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
+  const [geminiResponse, setGeminiResponse] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isSavingToDatabase, setIsSavingToDatabase] = useState(false);
+  const [savedValidations, setSavedValidations] = useState<any[] | null>(null);
+  const [autoExtractionComplete, setAutoExtractionComplete] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const { data: session, isLoading: sessionLoading } = useQuery<any>({
     queryKey: [`/api/sessions/${sessionId}`],
@@ -25,13 +42,6 @@ export default function SchemaView() {
     queryKey: [`/api/projects/${session?.projectId}/schema-data`],
     enabled: !!session?.projectId,
   });
-
-  // State for document content
-  const [documentContent, setDocumentContent] = useState<{
-    text: string;
-    count: number;
-  } | null>(null);
-  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
 
   // Auto-load document content using Gemini API when session is available
   useEffect(() => {
@@ -121,6 +131,38 @@ export default function SchemaView() {
 
     loadDocumentContentWithGemini();
   }, [session, sessionId]);
+
+  // Auto-trigger extraction in non-debug mode when document content is ready
+  useEffect(() => {
+    const runAutomatedExtraction = async () => {
+      if (!debugMode && documentContent && schemaData && !autoExtractionComplete && !isProcessing) {
+        console.log('Auto-triggering extraction in automated mode...');
+        setAutoExtractionComplete(true);
+        
+        try {
+          // Step 1: Run AI extraction
+          await handleGeminiExtraction();
+          
+          // Step 2: Auto-save to database after extraction
+          setTimeout(async () => {
+            await handleSaveToDatabase();
+            
+            // Step 3: Redirect to session view after processing
+            setTimeout(() => {
+              setLocation(`/sessions/${sessionId}/review`);
+            }, 2000);
+          }, 2000);
+        } catch (error) {
+          console.error('Automated extraction failed:', error);
+          setAutoExtractionComplete(false);
+        }
+      }
+    };
+
+    if (documentContent && schemaData) {
+      runAutomatedExtraction();
+    }
+  }, [documentContent, schemaData, debugMode, autoExtractionComplete, isProcessing]);
 
   // Function to generate markdown from schema data
   const generateSchemaMarkdown = (data: SchemaData, documentText: string, documentCount: number) => {
@@ -308,11 +350,7 @@ export default function SchemaView() {
     return markdown;
   };
 
-  // State for storing Gemini response
-  const [geminiResponse, setGeminiResponse] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isSavingToDatabase, setIsSavingToDatabase] = useState(false);
-  const [savedValidations, setSavedValidations] = useState<any[] | null>(null);
+
 
   // Function to call Gemini directly using consolidated document content
   const handleGeminiExtraction = async () => {
@@ -323,7 +361,7 @@ export default function SchemaView() {
     
     setIsProcessing(true);
     try {
-      const fullPrompt = generateSchemaMarkdown(schemaData, documentContent.text, documentContent.count);
+      const fullPrompt = generateSchemaMarkdown(schemaData!, documentContent.text, documentContent.count);
       
       // Enhanced debug logging
       console.log('SCHEMA VIEW DEBUG - Consolidated document content:', {
@@ -521,6 +559,62 @@ ${error instanceof Error ? error.message : 'Unknown error'}
         <h2>🔄 AUTO-LOADING DOCUMENT CONTENT...</h2>
         <p>Automatically extracting text from uploaded documents...</p>
         <p>This may take a few moments for large documents.</p>
+        {!debugMode && <p><strong>Automated Mode:</strong> AI extraction will start automatically after loading.</p>}
+      </div>
+    );
+  }
+
+  // Show automated processing UI in non-debug mode
+  if (!debugMode && (isProcessing || autoExtractionComplete)) {
+    return (
+      <div style={{ 
+        padding: '20px', 
+        fontFamily: 'monospace',
+        textAlign: 'center',
+        fontSize: '16px'
+      }}>
+        <div style={{ 
+          padding: '30px', 
+          backgroundColor: '#e7f3ff',
+          border: '3px solid #0066cc',
+          borderRadius: '10px',
+          maxWidth: '600px',
+          margin: '50px auto'
+        }}>
+          <h2 style={{ color: '#0066cc', marginBottom: '20px' }}>
+            🤖 AUTOMATED AI EXTRACTION IN PROGRESS
+          </h2>
+          <div style={{ marginBottom: '20px' }}>
+            {isProcessing ? (
+              <div>
+                <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px' }}>
+                  Processing {documentContent?.count || 0} documents...
+                </div>
+                <div style={{ fontSize: '14px', color: '#666' }}>
+                  Running AI extraction and validation automatically
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', color: '#28a745' }}>
+                  ✅ Extraction Complete!
+                </div>
+                <div style={{ fontSize: '14px', color: '#666' }}>
+                  Redirecting to review page...
+                </div>
+              </div>
+            )}
+          </div>
+          <div style={{ 
+            fontSize: '12px', 
+            color: '#888',
+            borderTop: '1px solid #ccc',
+            paddingTop: '15px',
+            marginTop: '15px'
+          }}>
+            This is automated mode. For step-by-step debugging, use "Debug Extraction" when uploading documents.
+          </div>
+        </div>
       </div>
     );
   }
@@ -541,14 +635,17 @@ ${error instanceof Error ? error.message : 'Unknown error'}
       <div style={{ 
         margin: '0 0 20px 0', 
         padding: '15px', 
-        backgroundColor: '#e7f3ff',
-        border: '2px solid #0066cc',
+        backgroundColor: debugMode ? '#fff3cd' : '#e7f3ff',
+        border: `2px solid ${debugMode ? '#856404' : '#0066cc'}`,
         fontWeight: 'bold'
       }}>
-        === STEP 1 COMPLETE: Document Content Extracted ===
+        === {debugMode ? '🔧 DEBUG MODE' : '🤖 AUTOMATED MODE'} - STEP 1 COMPLETE: Document Content Extracted ===
         Session: {session?.sessionName || 'Unnamed Session'}
         Project: {schemaData.project?.name || 'Unnamed Project'}
         Main Object: {schemaData.project?.mainObjectName || 'Session'}
+        {debugMode && <div style={{ marginTop: '5px', fontSize: '12px', fontWeight: 'normal' }}>
+          Debug mode allows step-by-step manual control of the extraction process for troubleshooting.
+        </div>}
       </div>
 
       {/* Document Content Display */}

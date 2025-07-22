@@ -2,7 +2,7 @@ import React, { useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Upload, X, FileText, AlertCircle, Play, CheckCircle, Clock } from "lucide-react";
+import { Upload, X, FileText, AlertCircle, Play, CheckCircle, Clock, Bug } from "lucide-react";
 import { WaveIcon, DropletIcon, FlowIcon, StreamIcon } from "@/components/SeaIcons";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -197,7 +197,7 @@ export default function NewUpload({ project }: NewUploadProps) {
     }
   };
 
-  const handleSubmit = async (data: UploadForm) => {
+  const handleSubmit = async (data: UploadForm, debugMode = false) => {
     if (selectedFiles.length === 0) {
       return;
     }
@@ -289,9 +289,12 @@ export default function NewUpload({ project }: NewUploadProps) {
           description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
         });
 
-        // Close dialog and redirect to text view
+        // Close dialog and redirect with debug mode parameter
         setShowProcessingDialog(false);
-        setLocation(textExtractionResult.redirect || `/sessions/${session.id}/text-view`);
+        const redirectUrl = debugMode 
+          ? `/sessions/${session.id}/schema?debug=true`
+          : textExtractionResult.redirect || `/sessions/${session.id}/text-view`;
+        setLocation(redirectUrl);
       } else {
         throw new Error("Text extraction completed but session data is missing");
       }
@@ -431,7 +434,7 @@ export default function NewUpload({ project }: NewUploadProps) {
             {/* Session Configuration */}
             <div>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                <form onSubmit={form.handleSubmit((data) => handleSubmit(data, false))} className="space-y-4">
                   <FormField
                     control={form.control}
                     name="sessionName"
@@ -509,23 +512,45 @@ export default function NewUpload({ project }: NewUploadProps) {
                     </div>
                   </div>
 
-                  <Button 
-                    type="submit" 
-                    disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
-                    className="w-full"
-                  >
-                    {isProcessing ? (
-                      <>
-                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <FlowIcon className="h-4 w-4 mr-2" />
-                        Start Extraction
-                      </>
-                    )}
-                  </Button>
+                  <div className="space-y-3">
+                    <Button 
+                      type="submit" 
+                      disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
+                      className="w-full"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const formData = form.getValues();
+                        handleSubmit(formData, false); // Automated flow
+                      }}
+                    >
+                      {isProcessing ? (
+                        <>
+                          <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <FlowIcon className="h-4 w-4 mr-2" />
+                          Start Extraction
+                        </>
+                      )}
+                    </Button>
+                    
+                    <Button 
+                      type="button"
+                      variant="outline"
+                      disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
+                      className="w-full"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const formData = form.getValues();
+                        handleSubmit(formData, true); // Debug flow
+                      }}
+                    >
+                      <Bug className="h-4 w-4 mr-2" />
+                      Debug Extraction
+                    </Button>
+                  </div>
                 </form>
               </Form>
             </div>

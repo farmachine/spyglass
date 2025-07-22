@@ -10,7 +10,7 @@ import type {
 } from "@shared/schema";
 
 // Schema Fields
-export function useProjectSchemaFields(projectId: number) {
+export function useProjectSchemaFields(projectId: string) {
   return useQuery({
     queryKey: ["/api/projects", projectId, "schema"],
     queryFn: () => apiRequest(`/api/projects/${projectId}/schema`),
@@ -18,7 +18,7 @@ export function useProjectSchemaFields(projectId: number) {
   });
 }
 
-export function useCreateSchemaField(projectId: number) {
+export function useCreateSchemaField(projectId: string) {
   const queryClient = useQueryClient();
   
   return useMutation({
@@ -71,7 +71,7 @@ export function useDeleteSchemaField() {
 }
 
 // Object Collections
-export function useObjectCollections(projectId: number) {
+export function useObjectCollections(projectId: string) {
   return useQuery({
     queryKey: ["/api/projects", projectId, "collections"],
     queryFn: () => apiRequest(`/api/projects/${projectId}/collections`),
@@ -157,7 +157,7 @@ export function useAllProjectProperties(projectId: number) {
       for (const collection of collections) {
         try {
           const properties = await apiRequest(`/api/collections/${collection.id}/properties`);
-          allProperties.push(...properties.map(prop => ({
+          allProperties.push(...properties.map((prop: any) => ({
             ...prop,
             collectionName: collection.collectionName,
           })));
