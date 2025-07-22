@@ -261,11 +261,10 @@ export default function SchemaView() {
     markdown += `- Let content and rules determine final percentage\n\n`;
     
     markdown += `### AI REASONING (ai_reasoning):\n`;
-    markdown += `Generate human-friendly explanations for each extraction. Include:\n`;
-    markdown += `- How you identified/counted the value in the documents\n`;
-    markdown += `- If knowledge documents or extraction rules influenced the confidence score\n`;
-    markdown += `- 1-2 follow-up questions the user could ask to verify accuracy\n`;
-    markdown += `Example: "Identified 17 unique company names across all documents by scanning party definitions and signature blocks. The 'Inc.' extraction rule reduced confidence to 27% for companies with this suffix. Follow-up: Can you verify the legal entity names are correctly formatted?"\n\n`;
+    markdown += `Format as two sections:\n`;
+    markdown += `**Explanation of the issue:** How you identified/counted the value, including any rule or knowledge document impacts\n`;
+    markdown += `**Clarification questions:** 1-2 specific questions to verify accuracy\n\n`;
+    markdown += `Example: "**Explanation of the issue:** Identified 17 unique company names across all documents by scanning party definitions and signature blocks. The 'Inc.' extraction rule reduced confidence to 27% for companies with this suffix. **Clarification questions:** Can you verify the legal entity names are correctly formatted? Are there any additional parties mentioned in amendments?"\n\n`;
     
     markdown += `### OUTPUT:\n`;
     markdown += `JSON format below with confidence_score and ai_reasoning for each field.\n\n`;
@@ -283,7 +282,7 @@ export default function SchemaView() {
           "description": field.description || 'No description',
           "extracted_value": null,
           "confidence_score": 95,
-          "ai_reasoning": "Extracted from document analysis. High confidence due to clear text identification. Follow-up: Can you verify the accuracy and completeness of this information?",
+          "ai_reasoning": "**Explanation of the issue:** Extracted from document analysis with clear text identification. **Clarification questions:** Can you verify the accuracy and completeness of this information?",
           "document_source": "document_name.pdf",
           "validation_status": "pending",
           "record_index": 0
@@ -298,7 +297,7 @@ export default function SchemaView() {
             "description": prop.description || 'No description',
             "extracted_value": null,
             "confidence_score": 95,
-            "ai_reasoning": "Extracted from document analysis. High confidence due to clear text identification. Follow-up: Can you verify the accuracy and completeness of this information?",
+            "ai_reasoning": "**Explanation of the issue:** Extracted from document analysis with clear text identification. **Clarification questions:** Can you verify the accuracy and completeness of this information?",
             "document_source": "document_name.pdf",
             "validation_status": "pending",
             "record_index": 0
