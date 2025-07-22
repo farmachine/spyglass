@@ -281,20 +281,24 @@ DOCUMENT VERIFICATION: Confirm you processed all {len(documents)} documents: {[d
 
 RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
         
-        # Use Gemini API to process all documents in single call (performance optimization)
+        # STEP 1: ENHANCED DOCUMENT CONTENT EXTRACTION
+        # Process documents in two phases: content extraction, then data extraction
+        logging.info(f"=== STEP 1: DOCUMENT CONTENT EXTRACTION ===")
+        logging.info(f"Processing {len(documents)} documents for content extraction")
+        
         model = genai.GenerativeModel('gemini-1.5-flash')
-        file_parts = []
+        extracted_content_text = ""
         
         for doc in documents:
             file_content = doc['file_content']
             file_name = doc['file_name']
             mime_type = doc['mime_type']
             
-            logging.info(f"Processing document: {file_name} ({mime_type})")
+            logging.info(f"STEP 1: Processing document: {file_name} ({mime_type})")
             
-            # Extract text from document
+            # Handle different document types
             if mime_type.startswith("text/"):
-                # Handle text content
+                # Handle plain text content
                 if isinstance(file_content, str):
                     if file_content.startswith('data:'):
                         base64_content = file_content.split(',', 1)[1]
@@ -305,46 +309,106 @@ RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
                 else:
                     content_text = file_content.decode('utf-8', errors='ignore')
                 
-                all_document_text += f"\n\n=== DOCUMENT: {file_name} ===\n{content_text}"
+                extracted_content_text += f"\n\n=== DOCUMENT: {file_name} ===\n{content_text}"
+                logging.info(f"STEP 1: Extracted {len(content_text)} characters from text file {file_name}")
                 
             else:
-                # Use Gemini API to extract text from binary files (PDFs, images, etc.)
+                # Use Gemini API for binary document content extraction (PDF, Word, Excel)
                 try:
                     if isinstance(file_content, str) and file_content.startswith('data:'):
-                        # This is a data URL from the frontend
+                        # Decode data URL
                         mime_part, base64_content = file_content.split(',', 1)
                         binary_content = base64.b64decode(base64_content)
                         
-                        # Use Gemini to extract text from the binary file
-                        logging.info(f"Using Gemini API to extract text from {file_name}")
+                        # Create specialized extraction prompts based on document type
+                        if ('excel' in mime_type or 
+                            'spreadsheet' in mime_type or 
+                            'vnd.ms-excel' in mime_type or 
+                            'vnd.openxmlformats-officedocument.spreadsheetml' in mime_type or
+                            file_name.lower().endswith(('.xlsx', '.xls'))):
+                            # Excel file - extract all sheets and tabular data
+                            extraction_prompt = f"""Extract ALL content from this Excel file ({file_name}).
+
+INSTRUCTIONS:
+- Extract content from ALL worksheets/sheets in the workbook
+- For each sheet, include the sheet name as a header
+- Preserve table structure where possible using clear formatting
+- Include all text, numbers, formulas results, and data
+- If there are multiple sheets, clearly separate them with sheet names
+- Format the output as readable structured text that preserves the original data organization
+
+RETURN: Complete text content from all sheets in this Excel file."""
+
+                        elif 'pdf' in mime_type or file_name.lower().endswith('.pdf'):
+                            # PDF file - extract all text content
+                            extraction_prompt = f"""Extract ALL text content from this PDF document ({file_name}).
+
+INSTRUCTIONS:
+- Extract all readable text from every page
+- Preserve document structure and formatting where possible
+- Include headers, body text, tables, lists, and any other textual content
+- Maintain logical flow and organization of information
+
+RETURN: Complete text content from this PDF document."""
+
+                        elif ('word' in mime_type or 
+                              'vnd.openxmlformats-officedocument.wordprocessingml' in mime_type or
+                              'application/msword' in mime_type or
+                              file_name.lower().endswith(('.docx', '.doc'))):
+                            # Word document - extract all content
+                            extraction_prompt = f"""Extract ALL content from this Word document ({file_name}).
+
+INSTRUCTIONS:
+- Extract all text content including body text, headers, footers, tables
+- Preserve document structure and formatting where possible
+- Include any embedded text, comments, or annotations
+- Maintain logical organization of the content
+
+RETURN: Complete text content from this Word document."""
+
+                        else:
+                            # Generic binary file extraction
+                            extraction_prompt = f"""Extract all readable text content from this document ({file_name}).
+
+INSTRUCTIONS:
+- Extract all visible text and data
+- Preserve structure and organization where possible
+- Include tables, lists, and formatted content
+
+RETURN: Complete readable content from this document."""
                         
-                        # Create file part for Gemini
-                        file_part = {
-                            "mime_type": mime_type,
-                            "data": binary_content
-                        }
+                        # Make content extraction API call
+                        logging.info(f"STEP 1: Using Gemini API for content extraction from {file_name}")
+                        content_response = model.generate_content([
+                            {
+                                "mime_type": mime_type,
+                                "data": binary_content
+                            },
+                            extraction_prompt
+                        ])
                         
-                        # Store file part for single AI call (performance optimization)
-                        file_parts.append({
-                            "name": file_name,
-                            "part": file_part
-                        })
+                        if content_response and content_response.text:
+                            document_content = content_response.text.strip()
+                            extracted_content_text += f"\n\n=== DOCUMENT: {file_name} ===\n{document_content}"
+                            logging.info(f"STEP 1: Successfully extracted {len(document_content)} characters from {file_name}")
+                        else:
+                            logging.warning(f"STEP 1: No content extracted from {file_name}")
+                            extracted_content_text += f"\n\n=== DOCUMENT: {file_name} ===\n[Content extraction failed]"
                     
                 except Exception as e:
-                    logging.error(f"Failed to process document {file_name}: {e}")
+                    logging.error(f"STEP 1: Failed to extract content from document {file_name}: {e}")
+                    extracted_content_text += f"\n\n=== DOCUMENT: {file_name} ===\n[Content extraction error: {e}]"
                     continue
         
-        # Make single AI extraction call with all documents (major performance improvement)
-        if file_parts:
-            logging.info(f"Making single AI extraction call with {len(file_parts)} documents")
-            logging.info(f"Document names being processed: {[fp['name'] for fp in file_parts]}")
-            content_parts = [prompt]
-            for fp in file_parts:
-                content_parts.append(fp["part"])
-            response = model.generate_content(content_parts)
-        else:
-            logging.info(f"Making AI extraction call without documents (text only)")
-            response = model.generate_content(prompt)
+        logging.info(f"STEP 1 COMPLETE: Extracted total of {len(extracted_content_text)} characters from all documents")
+        
+        # Now proceed with data extraction using the extracted content
+        final_prompt = prompt + f"\n\nEXTRACTED DOCUMENT CONTENT:\n{extracted_content_text}"
+        
+        # STEP 2: DATA EXTRACTION FROM CONTENT
+        logging.info(f"=== STEP 2: DATA EXTRACTION ===")
+        logging.info(f"Making data extraction call with {len(extracted_content_text)} characters of extracted content")
+        response = model.generate_content(final_prompt)
         
         if not response or not response.text:
             return ExtractionResult(success=False, error_message="No response from AI")
