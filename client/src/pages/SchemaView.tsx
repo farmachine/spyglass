@@ -513,10 +513,10 @@ ${error instanceof Error ? error.message : 'Unknown error'}
           if (saveResponse.success) {
             console.log('AUTOMATED MODE: Database save completed successfully');
             
-            // Wait a moment then redirect to review page
+            // Wait a moment then redirect to session review page
             setTimeout(() => {
-              console.log('AUTOMATED MODE: Redirecting to review page...');
-              setLocation(`/sessions/${sessionId}/review`);
+              console.log('AUTOMATED MODE: Redirecting to session review page...');
+              setLocation(`/projects/${session.projectId}/sessions/${sessionId}`);
             }, 2000);
           } else {
             throw new Error(saveResponse.error || 'Failed to save validation results');
