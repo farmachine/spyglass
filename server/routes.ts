@@ -1698,11 +1698,31 @@ print(json.dumps(result))
             const result = JSON.parse(output);
             console.log('AUTOMATED EXTRACTION completed successfully');
             
-            // Update session with final results
-            await storage.updateExtractionSession(sessionId, {
-              status: "completed",
-              extractedData: JSON.stringify(result)
-            });
+            // Check if result contains proper extraction data
+            if (result.extractedData && typeof result.extractedData === 'object') {
+              console.log('AUTOMATED EXTRACTION: Creating field validation records from extracted data');
+              
+              // Create field validation records from extracted data
+              await createFieldValidationRecords(sessionId, result.extractedData, {
+                projectId: session.projectId,
+                schemaFields: schemaFields,
+                collections: collections,
+                mainObjectName: project.mainObjectName
+              });
+              
+              // Update session with final results
+              await storage.updateExtractionSession(sessionId, {
+                status: "completed",
+                extractedData: JSON.stringify(result.extractedData)
+              });
+            } else {
+              console.log('AUTOMATED EXTRACTION: No valid extraction data found in result');
+              
+              // Update session status but keep existing data
+              await storage.updateExtractionSession(sessionId, {
+                status: "completed"
+              });
+            }
             
             resolve(result);
             
