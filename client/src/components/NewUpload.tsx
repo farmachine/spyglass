@@ -396,21 +396,29 @@ export default function NewUpload({ project }: NewUploadProps) {
       setProcessingStep('extracting');
       setProcessingProgress(40);
 
+      console.log("SINGLE-CLICK DEBUG: Starting text extraction for session:", session.id);
+      console.log("SINGLE-CLICK DEBUG: Files data length:", filesData.length);
+
       const textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
         method: 'POST',
         body: JSON.stringify({ files: filesData }),
         headers: { 'Content-Type': 'application/json' }
       });
 
+      console.log("SINGLE-CLICK DEBUG: Text extraction result:", textExtractionResult);
+
       if (!textExtractionResult.success) {
-        throw new Error("Text extraction failed");
+        throw new Error(`Text extraction failed: ${textExtractionResult.error || 'Unknown error'}`);
       }
 
       // Step 4: Get session with extracted content
+      console.log("SINGLE-CLICK DEBUG: Getting updated session data");
       const updatedSession = await apiRequest(`/api/sessions/${session.id}`);
+      console.log("SINGLE-CLICK DEBUG: Updated session:", updatedSession);
       
       // Parse document content (same logic as SchemaView)
       let documentContent = null;
+      console.log("SINGLE-CLICK DEBUG: Parsing extracted data...");
       if (updatedSession.extractedData) {
         try {
           let extractedData;
@@ -420,6 +428,8 @@ export default function NewUpload({ project }: NewUploadProps) {
             extractedData = updatedSession.extractedData;
           }
           
+          console.log("SINGLE-CLICK DEBUG: Parsed extractedData:", extractedData);
+          
           if (extractedData?.success && extractedData?.extracted_texts && Array.isArray(extractedData.extracted_texts)) {
             const text = extractedData.extracted_texts.map((doc: any, index: number) => 
               `--- DOCUMENT ${index + 1}: ${doc.file_name} ---\n${doc.text_content}`
@@ -428,24 +438,32 @@ export default function NewUpload({ project }: NewUploadProps) {
               text,
               count: extractedData.extracted_texts.length
             };
+            console.log("SINGLE-CLICK DEBUG: Document content created, count:", documentContent.count);
           }
         } catch (parseError) {
-          console.error("Failed to parse extracted data:", parseError);
+          console.error("SINGLE-CLICK DEBUG: Failed to parse extracted data:", parseError);
+          throw new Error(`Failed to parse extracted data: ${parseError.message}`);
         }
       }
 
       if (!documentContent) {
-        throw new Error("No document content extracted");
+        console.error("SINGLE-CLICK DEBUG: No document content found");
+        throw new Error("No document content extracted - check text extraction step");
       }
 
       // Step 5: Get schema data for prompt generation
       setProcessingProgress(50);
+      console.log("SINGLE-CLICK DEBUG: Getting schema data for project:", session.projectId);
       const schemaData = await apiRequest(`/api/projects/${session.projectId}/schema-data`);
+      console.log("SINGLE-CLICK DEBUG: Schema data:", schemaData);
 
       // Step 6: Generate prompt and call Gemini (same as SchemaView)
       setProcessingProgress(60);
+      console.log("SINGLE-CLICK DEBUG: Generating schema markdown...");
       const fullPrompt = generateSchemaMarkdown(schemaData, documentContent.text, documentContent.count);
+      console.log("SINGLE-CLICK DEBUG: Prompt length:", fullPrompt.length);
       
+      console.log("SINGLE-CLICK DEBUG: Calling Gemini extraction...");
       const geminiResponse = await apiRequest(`/api/sessions/${session.id}/gemini-extraction`, {
         method: 'POST',
         body: JSON.stringify({ 
@@ -455,8 +473,10 @@ export default function NewUpload({ project }: NewUploadProps) {
         headers: { 'Content-Type': 'application/json' }
       });
 
+      console.log("SINGLE-CLICK DEBUG: Gemini response:", geminiResponse);
+
       if (!geminiResponse.success) {
-        throw new Error(geminiResponse.error || "Gemini extraction failed");
+        throw new Error(`Gemini extraction failed: ${geminiResponse.error || 'Unknown error'}`);
       }
 
       // Step 7: Parse JSON and save to database (same logic as SchemaView)
@@ -571,12 +591,18 @@ export default function NewUpload({ project }: NewUploadProps) {
       setSelectedFiles([]);
     } catch (error) {
       console.error("Failed to complete extraction:", error);
+      console.error("Error details:", {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack
+      });
+      
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "error" as const })));
       
       setShowProcessingDialog(false);
       toast({
         title: "Extraction failed",
-        description: "There was an error processing your files. Please try again.",
+        description: `Error: ${error?.message || 'Unknown error occurred'}. Please try again.`,
         variant: "destructive",
       });
     } finally {
