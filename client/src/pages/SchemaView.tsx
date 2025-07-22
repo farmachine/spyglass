@@ -313,9 +313,50 @@ export default function SchemaView() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSavingToDatabase, setIsSavingToDatabase] = useState(false);
   const [savedValidations, setSavedValidations] = useState<any[] | null>(null);
+  
+  // State for dual extraction modes
+  const [isUserMode, setIsUserMode] = useState(false);
+  const [userModeStep, setUserModeStep] = useState(0); // 0: idle, 1: extraction, 2: saving, 3: complete
 
-  // Function to call Gemini directly using consolidated document content
+  // User mode: Automated flow function
+  const handleUserModeExtraction = async () => {
+    if (!documentContent) {
+      alert("No document content available. Please wait for document extraction to complete.");
+      return;
+    }
+    
+    setIsUserMode(true);
+    setUserModeStep(1);
+    
+    try {
+      // Step 1: Run Gemini extraction automatically
+      await performGeminiExtraction();
+      
+      // Step 2: Auto-save to database
+      setUserModeStep(2);
+      await performDatabaseSave();
+      
+      // Step 3: Redirect to session view
+      setUserModeStep(3);
+      setTimeout(() => {
+        setLocation(`/projects/${session.projectId}/sessions/${sessionId}`);
+      }, 1000);
+      
+    } catch (error) {
+      console.error('User mode extraction failed:', error);
+      alert(`Extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setIsUserMode(false);
+      setUserModeStep(0);
+    }
+  };
+
+  // Debug mode: Manual step-by-step (existing functionality)
   const handleGeminiExtraction = async () => {
+    await performGeminiExtraction();
+  };
+
+  // Core Gemini extraction function (shared by both modes)
+  const performGeminiExtraction = async () => {
     if (!documentContent) {
       setGeminiResponse("=== ERROR ===\n\nNo document content available. Please wait for document extraction to complete.\n\n=== END ERROR ===");
       return;
@@ -348,35 +389,60 @@ export default function SchemaView() {
 ${response.extractedData || response.result || 'No response data received'}
 
 === END RESULTS ===`);
+        
+        // In user mode, automatically continue to database save
+        if (isUserMode) {
+          return response; // Return response for user mode to continue
+        }
       } else {
-        setGeminiResponse(`=== GEMINI API ERROR ===
+        const errorMessage = `=== GEMINI API ERROR ===
 
 ${response.error || 'Unknown error occurred'}
 
-=== END ERROR ===`);
+=== END ERROR ===`;
+        setGeminiResponse(errorMessage);
+        throw new Error(response.error || 'Gemini API error');
       }
     } catch (error) {
       console.error('Gemini extraction failed:', error);
-      setGeminiResponse(`=== API CALL ERROR ===
+      const errorMessage = `=== API CALL ERROR ===
 
 ${error instanceof Error ? error.message : 'Unknown error'}
 
-=== END ERROR ===`);
+=== END ERROR ===`;
+      setGeminiResponse(errorMessage);
+      throw error;
     } finally {
       setIsProcessing(false);
     }
   };
 
-  // Function to save extraction results to database
+  // Core database save function (shared by both modes)
+  const performDatabaseSave = async () => {
+    if (!geminiResponse) {
+      throw new Error('No extraction results to save. Please run extraction first.');
+    }
+    
+    setIsSavingToDatabase(true);
+    try {
+      await processDatabaseSave();
+    } finally {
+      setIsSavingToDatabase(false);
+    }
+  };
+
+  // Debug mode: Manual database save (existing functionality)
   const handleSaveToDatabase = async () => {
     if (!geminiResponse) {
       alert('No extraction results to save. Please run extraction first.');
       return;
     }
+    await performDatabaseSave();
+  };
 
-    setIsSavingToDatabase(true);
-    try {
-      // Extract JSON from geminiResponse - try multiple extraction patterns
+  // Core database save processing
+  const processDatabaseSave = async () => {
+    // Extract JSON from geminiResponse - try multiple extraction patterns
       let jsonText = null;
       
       // Pattern 1: Look for ```json blocks
@@ -485,12 +551,6 @@ ${error instanceof Error ? error.message : 'Unknown error'}
       } else {
         throw new Error(response.error || 'Failed to save validation results');
       }
-    } catch (error) {
-      console.error('Save to database failed:', error);
-      alert(`Failed to save to database: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setIsSavingToDatabase(false);
-    }
   };
 
   if (sessionLoading || schemaLoading) {
@@ -972,7 +1032,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
         </div>
       )}
 
-      {/* Next Step Button */}
+      {/* Dual Mode Buttons */}
       <div style={{ 
         margin: '40px 0', 
         textAlign: 'center',
@@ -980,29 +1040,96 @@ ${error instanceof Error ? error.message : 'Unknown error'}
         backgroundColor: '#d4edda',
         border: '2px solid #155724'
       }}>
-        <div style={{ marginBottom: '10px', fontWeight: 'bold' }}>
+        <div style={{ marginBottom: '15px', fontWeight: 'bold' }}>
           STEP 2 COMPLETE: Schema & Prompt Generated
         </div>
-        <button 
-          onClick={handleGeminiExtraction}
-          disabled={isProcessing}
-          style={{
-            padding: '12px 24px',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            backgroundColor: isProcessing ? '#6c757d' : '#28a745',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: isProcessing ? 'not-allowed' : 'pointer'
-          }}
-        >
-          {isProcessing ? 'PROCESSING...' : 'START EXTRACTION'}
-        </button>
+        
+        {/* User Mode - Automated Extraction */}
+        {isUserMode ? (
+          <div style={{ 
+            padding: '15px',
+            backgroundColor: '#fff3cd',
+            border: '2px solid #856404',
+            borderRadius: '8px',
+            marginBottom: '15px'
+          }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '10px' }}>
+              🚀 USER MODE - AUTOMATED PROCESSING
+            </div>
+            <div style={{ fontSize: '14px', marginBottom: '10px' }}>
+              {userModeStep === 1 && "Step 1/3: Running AI extraction..."}
+              {userModeStep === 2 && "Step 2/3: Saving to database..."}
+              {userModeStep === 3 && "Step 3/3: Redirecting to results..."}
+            </div>
+            <div style={{ 
+              width: '100%', 
+              height: '20px', 
+              backgroundColor: '#e0e0e0', 
+              borderRadius: '10px',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                width: `${(userModeStep / 3) * 100}%`,
+                height: '100%',
+                backgroundColor: '#28a745',
+                transition: 'width 0.3s ease'
+              }}></div>
+            </div>
+          </div>
+        ) : (
+          <button 
+            onClick={handleUserModeExtraction}
+            disabled={isProcessing || isSavingToDatabase}
+            style={{
+              padding: '15px 30px',
+              fontSize: '18px',
+              fontWeight: 'bold',
+              backgroundColor: (isProcessing || isSavingToDatabase) ? '#6c757d' : '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: (isProcessing || isSavingToDatabase) ? 'not-allowed' : 'pointer',
+              marginBottom: '15px',
+              display: 'block',
+              width: '100%'
+            }}
+          >
+            🚀 START EXTRACTION (User Mode)
+          </button>
+        )}
+        
+        {/* Debug Mode Button */}
+        {!isUserMode && (
+          <button 
+            onClick={handleGeminiExtraction}
+            disabled={isProcessing || isSavingToDatabase}
+            style={{
+              padding: '10px 20px',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              backgroundColor: (isProcessing || isSavingToDatabase) ? '#6c757d' : '#6c757d',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: (isProcessing || isSavingToDatabase) ? 'not-allowed' : 'pointer'
+            }}
+          >
+            🔧 {isProcessing ? 'PROCESSING...' : 'DEBUG MODE (Step-by-Step)'}
+          </button>
+        )}
+        
+        <div style={{ 
+          fontSize: '12px', 
+          color: '#666', 
+          marginTop: '10px',
+          fontStyle: 'italic'
+        }}>
+          User Mode: Automatic processing from start to results | Debug Mode: Manual step-by-step review
+        </div>
       </div>
 
-      {/* Display Gemini Response */}
-      {geminiResponse && (
+      {/* Display Gemini Response (Debug Mode Only) */}
+      {geminiResponse && !isUserMode && (
         <div style={{ 
           margin: '40px 0',
           padding: '20px',
@@ -1058,8 +1185,8 @@ ${error instanceof Error ? error.message : 'Unknown error'}
         </div>
       )}
 
-      {/* Display Saved Validations Table */}
-      {savedValidations && (
+      {/* Display Saved Validations Table (Debug Mode Only) */}
+      {savedValidations && !isUserMode && (
         <div style={{ 
           margin: '40px 0',
           padding: '20px',
