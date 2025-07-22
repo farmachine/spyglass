@@ -1942,8 +1942,8 @@ print(json.dumps(result))
         return res.status(404).json({ error: 'Project not found' });
       }
       
-      const schemaFields = await storage.getSchemaFields(session.projectId);
-      const collections = await storage.getCollections(session.projectId);
+      const schemaFields = await storage.getProjectSchemaFields(session.projectId);
+      const collections = await storage.getObjectCollections(session.projectId);
       const knowledgeDocuments = await storage.getKnowledgeDocuments(session.projectId);
       const extractionRules = await storage.getExtractionRules(session.projectId);
       
@@ -1984,10 +1984,10 @@ print(json.dumps(result))
           schemaMarkdown += `- Description: ${collection.description}\n`;
           schemaMarkdown += `- ID: ${collection.id}\n`;
           
-          const properties = await storage.getCollectionProperties(collection.id);
-          if (properties.length > 0) {
+          // Collections already include properties from getObjectCollections
+          if (collection.properties && collection.properties.length > 0) {
             schemaMarkdown += `- Properties:\n`;
-            properties.forEach(prop => {
+            collection.properties.forEach(prop => {
               schemaMarkdown += `  - **${prop.propertyName}** (${prop.propertyType}): ${prop.description} [ID: ${prop.id}]\n`;
             });
           }
