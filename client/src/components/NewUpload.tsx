@@ -312,6 +312,9 @@ export default function NewUpload({ project }: NewUploadProps) {
         console.log("AUTOMATED: Starting Gemini extraction with schema markdown length:", schemaResponse.schemaMarkdown?.length);
         
         // Use correct parameter names for the gemini-extraction endpoint
+        console.log("AUTOMATED: Making Gemini API call to:", `/api/sessions/${session.id}/gemini-extraction`);
+        console.log("AUTOMATED: With projectId:", project.id);
+        
         const geminiResult = await apiRequest(`/api/sessions/${session.id}/gemini-extraction`, {
           method: 'POST',
           body: JSON.stringify({ 
@@ -321,8 +324,20 @@ export default function NewUpload({ project }: NewUploadProps) {
           headers: { 'Content-Type': 'application/json' }
         });
         
-        if (!geminiResult || !geminiResult.success || !geminiResult.extractedData) {
-          throw new Error(`Gemini extraction failed: ${geminiResult?.error || 'No data returned'}`);
+        console.log("AUTOMATED: Raw Gemini result:", geminiResult);
+        console.log("AUTOMATED: Gemini success status:", geminiResult?.success);
+        console.log("AUTOMATED: Gemini error:", geminiResult?.error);
+        
+        if (!geminiResult) {
+          throw new Error('Gemini extraction returned no response');
+        }
+        
+        if (!geminiResult.success) {
+          throw new Error(`Gemini extraction failed: ${geminiResult.error || 'API returned success=false'}`);
+        }
+        
+        if (!geminiResult.extractedData) {
+          throw new Error('Gemini extraction succeeded but returned no extracted data');
         }
 
         console.log("AUTOMATED: Gemini result received:", geminiResult);
