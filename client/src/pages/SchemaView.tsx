@@ -15,23 +15,6 @@ export default function SchemaView() {
   const params = useParams();
   const sessionId = params.sessionId;
   const [, setLocation] = useLocation();
-  
-  // Check for debug mode parameter
-  const urlParams = new URLSearchParams(window.location.search);
-  const debugMode = urlParams.get('debug') === 'true';
-
-  // State declarations
-  const [documentContent, setDocumentContent] = useState<{
-    text: string;
-    count: number;
-  } | null>(null);
-  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
-  const [geminiResponse, setGeminiResponse] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isSavingToDatabase, setIsSavingToDatabase] = useState(false);
-  const [savedValidations, setSavedValidations] = useState<any[] | null>(null);
-  const [autoExtractionComplete, setAutoExtractionComplete] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const { data: session, isLoading: sessionLoading } = useQuery<any>({
     queryKey: [`/api/sessions/${sessionId}`],
@@ -42,6 +25,13 @@ export default function SchemaView() {
     queryKey: [`/api/projects/${session?.projectId}/schema-data`],
     enabled: !!session?.projectId,
   });
+
+  // State for document content
+  const [documentContent, setDocumentContent] = useState<{
+    text: string;
+    count: number;
+  } | null>(null);
+  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
 
   // Auto-load document content using Gemini API when session is available
   useEffect(() => {
@@ -131,8 +121,6 @@ export default function SchemaView() {
 
     loadDocumentContentWithGemini();
   }, [session, sessionId]);
-
-  // Don't auto-trigger extraction - wait for user to click "Start Extraction" button
 
   // Function to generate markdown from schema data
   const generateSchemaMarkdown = (data: SchemaData, documentText: string, documentCount: number) => {
@@ -320,9 +308,13 @@ export default function SchemaView() {
     return markdown;
   };
 
+  // State for storing Gemini response
+  const [geminiResponse, setGeminiResponse] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isSavingToDatabase, setIsSavingToDatabase] = useState(false);
+  const [savedValidations, setSavedValidations] = useState<any[] | null>(null);
 
-
-  // Function to call Gemini directly using consolidated document content (for debug mode)
+  // Function to call Gemini directly using consolidated document content
   const handleGeminiExtraction = async () => {
     if (!documentContent) {
       setGeminiResponse("=== ERROR ===\n\nNo document content available. Please wait for document extraction to complete.\n\n=== END ERROR ===");
@@ -331,7 +323,7 @@ export default function SchemaView() {
     
     setIsProcessing(true);
     try {
-      const fullPrompt = generateSchemaMarkdown(schemaData!, documentContent.text, documentContent.count);
+      const fullPrompt = generateSchemaMarkdown(schemaData, documentContent.text, documentContent.count);
       
       // Enhanced debug logging
       console.log('SCHEMA VIEW DEBUG - Consolidated document content:', {
@@ -371,147 +363,6 @@ ${error instanceof Error ? error.message : 'Unknown error'}
 
 === END ERROR ===`);
     } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  // Function for automated mode - handles complete flow including save and redirect
-  const handleGeminiExtractionAutomated = async () => {
-    if (!documentContent) {
-      console.error('No document content available for automated extraction');
-      return;
-    }
-    
-    setIsProcessing(true);
-    try {
-      const fullPrompt = generateSchemaMarkdown(schemaData!, documentContent.text, documentContent.count);
-      
-      console.log('AUTOMATED MODE: Starting AI extraction...');
-      
-      // Make actual API call to Gemini
-      const response = await apiRequest(`/api/sessions/${sessionId}/gemini-extraction`, {
-        method: 'POST',
-        body: JSON.stringify({ 
-          prompt: fullPrompt,
-          projectId: session.projectId 
-        }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      if (response.success) {
-        const extractedData = response.extractedData || response.result || 'No response data received';
-        console.log('AUTOMATED MODE: AI extraction completed successfully');
-        
-        // Auto-save to database
-        try {
-          console.log('AUTOMATED MODE: Starting database save...');
-          
-          // Extract JSON from the response
-          let jsonText = null;
-          
-          // Pattern 1: Look for ```json blocks
-          let jsonMatch = extractedData.match(/```json\s*\n([\s\S]*?)\n```/);
-          if (jsonMatch) {
-            jsonText = jsonMatch[1].trim();
-          } else {
-            // Pattern 2: Look for object starting with { and ending with } (balanced braces)
-            const lines = extractedData.split('\n');
-            let objectStart = -1;
-            let objectEnd = -1;
-            let braceCount = 0;
-            
-            for (let i = 0; i < lines.length; i++) {
-              const line = lines[i].trim();
-              if (line.startsWith('{') && objectStart === -1) {
-                objectStart = i;
-                braceCount = 1;
-                // Count braces in the same line
-                for (let j = 1; j < line.length; j++) {
-                  if (line[j] === '{') braceCount++;
-                  if (line[j] === '}') braceCount--;
-                }
-                if (braceCount === 0) {
-                  objectEnd = i;
-                  break;
-                }
-              } else if (objectStart !== -1) {
-                // Count braces to find the end
-                for (let j = 0; j < line.length; j++) {
-                  if (line[j] === '{') braceCount++;
-                  if (line[j] === '}') braceCount--;
-                }
-                if (braceCount === 0) {
-                  objectEnd = i;
-                  break;
-                }
-              }
-            }
-            
-            if (objectStart !== -1 && objectEnd !== -1) {
-              jsonText = lines.slice(objectStart, objectEnd + 1).join('\n').trim();
-            }
-          }
-
-          if (!jsonText) {
-            throw new Error('No valid JSON found in extraction results');
-          }
-
-          // Clean and parse JSON
-          let cleanedJsonText = jsonText
-            .replace(/\n\s*\n/g, '\n')
-            .replace(/,(\s*[}\]])/g, '$1')
-            .replace(/\.\.\./g, '')
-            .replace(/…\[TRUNCATED\]/g, '')
-            .trim();
-          
-          let lastClosingBrace = cleanedJsonText.lastIndexOf('}');
-          if (lastClosingBrace > 0) {
-            cleanedJsonText = cleanedJsonText.substring(0, lastClosingBrace + 1);
-          }
-          
-          const parsedJson = JSON.parse(cleanedJsonText);
-          
-          // Extract the field_validations array
-          let validationsArray;
-          if (parsedJson.field_validations && Array.isArray(parsedJson.field_validations)) {
-            validationsArray = parsedJson.field_validations;
-          } else if (Array.isArray(parsedJson)) {
-            validationsArray = parsedJson;
-          } else {
-            throw new Error('Invalid JSON structure - expected field_validations array');
-          }
-          
-          console.log('AUTOMATED MODE: Parsed validations:', validationsArray.length, 'items');
-          
-          // Save to database
-          const saveResponse = await apiRequest(`/api/sessions/${sessionId}/save-validations`, {
-            method: 'POST',
-            body: JSON.stringify({ validations: validationsArray }),
-            headers: { 'Content-Type': 'application/json' }
-          });
-
-          if (saveResponse.success) {
-            console.log('AUTOMATED MODE: Database save completed successfully');
-            
-            // Clear processing state first
-            setIsProcessing(false);
-            
-            // Immediate redirect to session review page
-            console.log('AUTOMATED MODE: Redirecting to session review page...');
-            setLocation(`/projects/${session.projectId}/sessions/${sessionId}`);
-          } else {
-            throw new Error(saveResponse.error || 'Failed to save validation results');
-          }
-        } catch (saveError) {
-          console.error('AUTOMATED MODE: Database save failed:', saveError);
-          throw saveError;
-        }
-      } else {
-        throw new Error(response.error || 'AI extraction failed');
-      }
-    } catch (error) {
-      console.error('AUTOMATED MODE: Complete flow failed:', error);
-      setAutoExtractionComplete(false);
       setIsProcessing(false);
     }
   };
@@ -670,12 +521,9 @@ ${error instanceof Error ? error.message : 'Unknown error'}
         <h2>🔄 AUTO-LOADING DOCUMENT CONTENT...</h2>
         <p>Automatically extracting text from uploaded documents...</p>
         <p>This may take a few moments for large documents.</p>
-        {!debugMode && <p><strong>Automated Mode:</strong> AI extraction will start automatically after loading.</p>}
       </div>
     );
   }
-
-  // In automated mode, don't redirect to separate page - stay on current page with loading state
 
 
 
@@ -693,17 +541,14 @@ ${error instanceof Error ? error.message : 'Unknown error'}
       <div style={{ 
         margin: '0 0 20px 0', 
         padding: '15px', 
-        backgroundColor: debugMode ? '#fff3cd' : '#e7f3ff',
-        border: `2px solid ${debugMode ? '#856404' : '#0066cc'}`,
+        backgroundColor: '#e7f3ff',
+        border: '2px solid #0066cc',
         fontWeight: 'bold'
       }}>
-        === {debugMode ? '🔧 DEBUG MODE' : '🤖 AUTOMATED MODE'} - STEP 1 COMPLETE: Document Content Extracted ===
+        === STEP 1 COMPLETE: Document Content Extracted ===
         Session: {session?.sessionName || 'Unnamed Session'}
         Project: {schemaData.project?.name || 'Unnamed Project'}
         Main Object: {schemaData.project?.mainObjectName || 'Session'}
-        {debugMode && <div style={{ marginTop: '5px', fontSize: '12px', fontWeight: 'normal' }}>
-          Debug mode allows step-by-step manual control of the extraction process for troubleshooting.
-        </div>}
       </div>
 
       {/* Document Content Display */}
@@ -1139,7 +984,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
           STEP 2 COMPLETE: Schema & Prompt Generated
         </div>
         <button 
-          onClick={debugMode ? handleGeminiExtraction : handleGeminiExtractionAutomated}
+          onClick={handleGeminiExtraction}
           disabled={isProcessing}
           style={{
             padding: '12px 24px',
