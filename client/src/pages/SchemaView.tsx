@@ -261,7 +261,11 @@ export default function SchemaView() {
     markdown += `- Let content and rules determine final percentage\n\n`;
     
     markdown += `### AI REASONING (ai_reasoning):\n`;
-    markdown += `Give reasoning for the score. If knowledge documents and/or extraction rules had influence, please reference which ones in a human-friendly way. Please also include follow up questions that the user can ask the information provider for clarification on the data value.\n\n`;
+    markdown += `Generate human-friendly explanations for each extraction. Include:\n`;
+    markdown += `- How you identified/counted the value in the documents\n`;
+    markdown += `- If knowledge documents or extraction rules influenced the confidence score\n`;
+    markdown += `- 1-2 follow-up questions the user could ask to verify accuracy\n`;
+    markdown += `Example: "Identified 17 unique company names across all documents by scanning party definitions and signature blocks. The 'Inc.' extraction rule reduced confidence to 27% for companies with this suffix. Follow-up: Can you verify the legal entity names are correctly formatted?"\n\n`;
     
     markdown += `### OUTPUT:\n`;
     markdown += `JSON format below with confidence_score and ai_reasoning for each field.\n\n`;
@@ -279,7 +283,7 @@ export default function SchemaView() {
           "description": field.description || 'No description',
           "extracted_value": null,
           "confidence_score": 95,
-          "ai_reasoning": "See AI REASONING (ai_reasoning) in AI PROCESSING INSTRUCTIONS",
+          "ai_reasoning": "Extracted from document analysis. High confidence due to clear text identification. Follow-up: Can you verify the accuracy and completeness of this information?",
           "document_source": "document_name.pdf",
           "validation_status": "pending",
           "record_index": 0
@@ -294,7 +298,7 @@ export default function SchemaView() {
             "description": prop.description || 'No description',
             "extracted_value": null,
             "confidence_score": 95,
-            "ai_reasoning": "See AI REASONING (ai_reasoning) in AI PROCESSING INSTRUCTIONS",
+            "ai_reasoning": "Extracted from document analysis. High confidence due to clear text identification. Follow-up: Can you verify the accuracy and completeness of this information?",
             "document_source": "document_name.pdf",
             "validation_status": "pending",
             "record_index": 0

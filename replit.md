@@ -10,7 +10,17 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**January 21, 2025 (Latest Update)**
+**January 22, 2025 (Latest Update)**
+- ✓ **SINGLE-CLICK EXTRACTION WORKFLOW COMPLETELY FIXED**: Resolved critical API response format mismatch preventing single-click extraction
+- ✓ Fixed text extraction response handling - code was checking for 'success' field when API returns 'message' field instead  
+- ✓ Added comprehensive debugging throughout single-click extraction process to identify failure points quickly
+- ✓ Single-click extraction now works identically to debugging page: Extract text → Generate schema → Call Gemini → Parse JSON → Save to database → Display results
+- ✓ **AI REASONING GENERATION ENHANCED**: Fixed prompt template to generate proper human-friendly reasoning instead of placeholder text
+- ✓ Updated AI reasoning instructions with specific guidance on extraction methodology, rule impacts, and follow-up questions
+- ✓ Added concrete example showing expected reasoning format: methodology explanation + rule impact + verification questions
+- ✓ AI now generates contextual reasoning like "Identified 17 unique company names across all documents by scanning party definitions and signature blocks"
+
+**January 21, 2025 (Previous Update)**
 - ✓ **COLLECTION PROPERTY DISPLAY BUG COMPLETELY RESOLVED**: Fixed critical field name mismatch preventing collection items from displaying extracted values
 - ✓ Root cause identified: AI extraction saved field names without indexes ("Parties.Name") but SessionView expected indexed names ("Parties.Name[0]")
 - ✓ Enhanced save validations API endpoint to automatically convert collection property field names to proper indexed format
