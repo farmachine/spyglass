@@ -37,6 +37,10 @@ def main():
             
             prompt = f"{schema_markdown}\n\n## DOCUMENTS TO PROCESS\n{documents_text}\n--- END OF DOCUMENTS ---\n\nPlease extract the data according to the schema above and return the JSON response in the exact format specified."
             project_id = ''
+            
+            print(f"DEBUG: Built prompt from files format, documents_text length: {len(documents_text)}", file=sys.stderr)
+            print(f"DEBUG: Schema markdown length: {len(schema_markdown)}", file=sys.stderr)
+            print(f"DEBUG: Schema markdown preview: {schema_markdown[:500]}...", file=sys.stderr)
         
         print(f"DEBUG: Starting Gemini extraction for session {session_id}", file=sys.stderr)
         print(f"DEBUG: Prompt length: {len(prompt)} characters", file=sys.stderr)
@@ -100,6 +104,7 @@ def main():
                     
                     print(f"DEBUG: Attempting to parse JSON: {json_text[:300]}...", file=sys.stderr)
                     parsed_json = json.loads(json_text)
+                    print(f"DEBUG: Successfully parsed JSON with keys: {parsed_json.keys() if isinstance(parsed_json, dict) else 'Not a dict'}", file=sys.stderr)
                     
                     # Return parsed JSON structure 
                     result = {
