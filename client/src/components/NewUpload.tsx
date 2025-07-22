@@ -361,12 +361,53 @@ export default function NewUpload({ project }: NewUploadProps) {
             markdown += `\`\`\`json\n${JSON.stringify(collectionsData, null, 2)}\n\`\`\`\n\n`;
           }
           
-          // Add AI processing instructions
+          // Add AI processing instructions with exact JSON format
           markdown += `## AI PROCESSING INSTRUCTIONS\n\n`;
-          markdown += `1. **Extract Real Data Only**: Do NOT generate sample or placeholder data\n`;
-          markdown += `2. **Follow Schema Exactly**: Return JSON matching the exact structure above\n`;
-          markdown += `3. **Confidence Scoring**: Base confidence (85-95) for clear extractions\n`;
-          markdown += `4. **Missing Data**: Use null for missing values, do not invent data\n\n`;
+          markdown += `**CRITICAL: Return data in this exact JSON format:**\n\n`;
+          markdown += `\`\`\`json\n`;
+          markdown += `{\n`;
+          markdown += `  "field_validations": [\n`;
+          
+          // Add examples for schema fields
+          if (data.schema_fields?.length > 0) {
+            data.schema_fields.forEach((field: any, index: number) => {
+              markdown += `    {\n`;
+              markdown += `      "field_name": "${field.fieldName}",\n`;
+              markdown += `      "field_type": "${field.fieldType}",\n`;
+              markdown += `      "extracted_value": "EXTRACT_FROM_DOCUMENT",\n`;
+              markdown += `      "validation_confidence": 0.95,\n`;
+              markdown += `      "ai_reasoning": "Found in document section X",\n`;
+              markdown += `      "validation_status": "valid"\n`;
+              markdown += `    }${index < data.schema_fields.length - 1 || data.collections?.length > 0 ? ',' : ''}\n`;
+            });
+          }
+          
+          // Add examples for collections
+          if (data.collections?.length > 0) {
+            data.collections.forEach((collection: any) => {
+              collection.properties?.forEach((prop: any, propIndex: number) => {
+                markdown += `    {\n`;
+                markdown += `      "field_name": "${collection.collectionName}.${prop.propertyName}[0]",\n`;
+                markdown += `      "field_type": "${prop.propertyType}",\n`;
+                markdown += `      "extracted_value": "EXTRACT_FROM_DOCUMENT",\n`;
+                markdown += `      "validation_confidence": 0.95,\n`;
+                markdown += `      "ai_reasoning": "Found in document section X",\n`;
+                markdown += `      "validation_status": "valid"\n`;
+                markdown += `    }${propIndex < (collection.properties?.length - 1) ? ',' : ''}\n`;
+              });
+            });
+          }
+          
+          markdown += `  ]\n`;
+          markdown += `}\n`;
+          markdown += `\`\`\`\n\n`;
+          
+          markdown += `**EXTRACTION RULES:**\n`;
+          markdown += `1. Extract ONLY real data from documents - no samples/placeholders\n`;
+          markdown += `2. Use field names exactly as shown above\n`;
+          markdown += `3. Set validation_confidence: 0.95 for clear extractions, lower for uncertain\n`;
+          markdown += `4. Use null for missing values, not empty strings\n`;
+          markdown += `5. For collections: use [0], [1], [2] etc. for multiple items\n\n`;
           
           return markdown;
         };
