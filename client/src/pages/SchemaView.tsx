@@ -485,10 +485,11 @@ ${error instanceof Error ? error.message : 'Unknown error'}
         setSavedValidations(validationsArray);
         console.log('AUTO-SAVE: Validation results saved successfully:', response);
         console.log('AUTO-SAVE: Automatically redirecting to session review');
-        console.log('AUTO-SAVE: Redirecting to:', `/sessions/${sessionId}`);
+        const redirectUrl = `/projects/${session.projectId}/sessions/${sessionId}`;
+        console.log('AUTO-SAVE: Redirecting to:', redirectUrl);
         setTimeout(() => {
           console.log('AUTO-SAVE: Executing redirect now...');
-          setLocation(`/sessions/${sessionId}`);
+          setLocation(redirectUrl);
         }, 3000); // Longer delay to ensure user sees completion
       } else {
         throw new Error(response.error || 'Failed to save validation results');
