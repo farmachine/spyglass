@@ -513,11 +513,12 @@ ${error instanceof Error ? error.message : 'Unknown error'}
           if (saveResponse.success) {
             console.log('AUTOMATED MODE: Database save completed successfully');
             
-            // Wait a moment then redirect to session review page
-            setTimeout(() => {
-              console.log('AUTOMATED MODE: Redirecting to session review page...');
-              setLocation(`/projects/${session.projectId}/sessions/${sessionId}`);
-            }, 2000);
+            // Clear processing state first
+            setIsProcessing(false);
+            
+            // Immediate redirect to session review page
+            console.log('AUTOMATED MODE: Redirecting to session review page...');
+            setLocation(`/projects/${session.projectId}/sessions/${sessionId}`);
           } else {
             throw new Error(saveResponse.error || 'Failed to save validation results');
           }
@@ -531,7 +532,6 @@ ${error instanceof Error ? error.message : 'Unknown error'}
     } catch (error) {
       console.error('AUTOMATED MODE: Complete flow failed:', error);
       setAutoExtractionComplete(false);
-    } finally {
       setIsProcessing(false);
     }
   };
