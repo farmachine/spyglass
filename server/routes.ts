@@ -1436,7 +1436,7 @@ except Exception as e:
         mime_type: file.type
       }));
 
-      // Call Python script to extract text only
+      // Call enhanced Python script with Excel support
       const python = spawn('python3', ['-c', `
 import sys
 import json
@@ -1461,22 +1461,83 @@ for doc in documents:
         else:
             content = doc['file_content']
         
-        # Use Gemini to extract text - correct format for new SDK
+        file_name = doc['file_name']
+        mime_type = doc['mime_type']
+        binary_content = base64.b64decode(content)
+        
+        # Create specialized extraction prompts based on document type
+        if ('excel' in mime_type or 
+            'spreadsheet' in mime_type or 
+            'vnd.ms-excel' in mime_type or 
+            'vnd.openxmlformats-officedocument.spreadsheetml' in mime_type or
+            file_name.lower().endswith(('.xlsx', '.xls'))):
+            # Excel file - extract all sheets and tabular data
+            extraction_prompt = f"""Extract ALL content from this Excel file ({file_name}).
+
+INSTRUCTIONS:
+- Extract content from ALL worksheets/sheets in the workbook
+- For each sheet, include the sheet name as a header
+- Preserve table structure where possible using clear formatting
+- Include all text, numbers, formulas results, and data
+- If there are multiple sheets, clearly separate them with sheet names
+- Format the output as readable structured text that preserves the original data organization
+
+RETURN: Complete text content from all sheets in this Excel file."""
+
+        elif 'pdf' in mime_type or file_name.lower().endswith('.pdf'):
+            # PDF file - extract all text content
+            extraction_prompt = f"""Extract ALL text content from this PDF document ({file_name}).
+
+INSTRUCTIONS:
+- Extract all readable text from every page
+- Preserve document structure and formatting where possible
+- Include headers, body text, tables, lists, and any other textual content
+- Maintain logical flow and organization of information
+
+RETURN: Complete text content from this PDF document."""
+
+        elif ('word' in mime_type or 
+              'vnd.openxmlformats-officedocument.wordprocessingml' in mime_type or
+              'application/msword' in mime_type or
+              file_name.lower().endswith(('.docx', '.doc'))):
+            # Word document - extract all content
+            extraction_prompt = f"""Extract ALL content from this Word document ({file_name}).
+
+INSTRUCTIONS:
+- Extract all text content including body text, headers, footers, tables
+- Preserve document structure and formatting where possible
+- Include any embedded text, comments, or annotations
+- Maintain logical organization of the content
+
+RETURN: Complete text content from this Word document."""
+
+        else:
+            # Generic document extraction
+            extraction_prompt = f"""Extract all readable text content from this document ({file_name}).
+
+INSTRUCTIONS:
+- Extract all visible text and data
+- Preserve structure and organization where possible
+- Include tables, lists, and formatted content
+
+RETURN: Complete readable content from this document."""
+        
+        # Use Gemini to extract text with specialized prompts
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-1.5-flash",
             contents=[
                 types.Part.from_bytes(
-                    data=base64.b64decode(content),
-                    mime_type=doc['mime_type']
+                    data=binary_content,
+                    mime_type=mime_type
                 ),
-                "Extract all text from this document. Return only the text content, no analysis or formatting."
+                extraction_prompt
             ]
         )
         
         text_content = response.text if response.text else "No text could be extracted"
         
         extracted_texts.append({
-            "file_name": doc['file_name'],
+            "file_name": file_name,
             "text_content": text_content,
             "word_count": len(text_content.split()) if text_content else 0
         })
