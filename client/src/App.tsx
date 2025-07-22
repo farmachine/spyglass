@@ -57,6 +57,11 @@ function Router() {
           <GeminiResults />
         </ProtectedRoute>
       </Route>
+      <Route path="/sessions/:sessionId">
+        <ProtectedRoute>
+          <SessionView />
+        </ProtectedRoute>
+      </Route>
       <Route path="/admin">
         <ProtectedRoute>
           <AdminPanel />
