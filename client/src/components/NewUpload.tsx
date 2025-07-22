@@ -291,13 +291,24 @@ export default function NewUpload({ project }: NewUploadProps) {
         setProcessingStep('validating');
         
         // Get schema markdown for AI processing
+        console.log("AUTOMATED: Fetching schema data for project:", session.project_id);
         const schemaResponse = await apiRequest(`/api/projects/${session.project_id}/schema-data`);
+        console.log("AUTOMATED: Schema response received:", schemaResponse);
         
+        if (!schemaResponse || !schemaResponse.schemaMarkdown) {
+          throw new Error('Schema data is missing or invalid');
+        }
+        
+        console.log("AUTOMATED: Starting Gemini extraction with schema markdown length:", schemaResponse.schemaMarkdown?.length);
         const geminiResult = await apiRequest(`/api/sessions/${session.id}/gemini-extraction`, {
           method: 'POST',
           body: JSON.stringify({ schemaMarkdown: schemaResponse.schemaMarkdown }),
           headers: { 'Content-Type': 'application/json' }
         });
+        
+        if (!geminiResult || !geminiResult.extractedData) {
+          throw new Error('Gemini extraction failed or returned no data');
+        }
 
         console.log("AUTOMATED: Gemini result received:", geminiResult);
         console.log("AUTOMATED: Gemini extractedData type:", typeof geminiResult.extractedData);
@@ -306,11 +317,13 @@ export default function NewUpload({ project }: NewUploadProps) {
         setProcessingProgress(66);
 
         // Step 5: Save to Database (background process)
-        await apiRequest(`/api/sessions/${session.id}/save-validations`, {
+        console.log("AUTOMATED: Saving validations to database...");
+        const saveResult = await apiRequest(`/api/sessions/${session.id}/save-validations`, {
           method: 'POST',
           body: JSON.stringify({ extractedData: geminiResult.extractedData }),
           headers: { 'Content-Type': 'application/json' }
         });
+        console.log("AUTOMATED: Save result:", saveResult);
 
         setProcessingProgress(100);
 
