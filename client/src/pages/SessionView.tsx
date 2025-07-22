@@ -221,7 +221,7 @@ const ValidationToggle = ({ fieldName, validation, onToggle }: {
 };
 
 export default function SessionView() {
-  const { projectId, sessionId } = useParams();
+  const { sessionId } = useParams(); // Remove projectId from params - we'll get it from session data
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [showReasoningDialog, setShowReasoningDialog] = useState(false);
@@ -249,14 +249,20 @@ export default function SessionView() {
     });
   };
 
-  const { data: project, isLoading: projectLoading } = useQuery<ProjectWithDetails>({
-    queryKey: ['/api/projects', projectId],
-    queryFn: () => apiRequest(`/api/projects/${projectId}`)
-  });
-
+  // First get the session to obtain the projectId
   const { data: session, isLoading: sessionLoading } = useQuery<ExtractionSession>({
     queryKey: ['/api/sessions', sessionId],
     queryFn: () => apiRequest(`/api/sessions/${sessionId}`)
+  });
+
+  // Extract projectId from session data
+  const projectId = session?.projectId;
+
+  // Then get the project using projectId from session data
+  const { data: project, isLoading: projectLoading } = useQuery<ProjectWithDetails>({
+    queryKey: ['/api/projects', projectId],
+    queryFn: () => apiRequest(`/api/projects/${projectId}`),
+    enabled: !!projectId // Only run this query when we have a projectId
   });
 
   const { data: validations = [], isLoading: validationsLoading } = useQuery<FieldValidation[]>({
