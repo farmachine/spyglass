@@ -411,180 +411,22 @@ export default function NewUpload({ project }: NewUploadProps) {
         throw new Error(`Text extraction failed: ${textExtractionResult.error || 'API returned no success message'}`);
       }
 
-      // Step 4: Get session with extracted content
-      console.log("SINGLE-CLICK DEBUG: Getting updated session data");
-      const updatedSession = await apiRequest(`/api/sessions/${session.id}`);
-      console.log("SINGLE-CLICK DEBUG: Updated session:", updatedSession);
-      
-      // Parse document content (same logic as SchemaView)
-      let documentContent = null;
-      console.log("SINGLE-CLICK DEBUG: Parsing extracted data...");
-      if (updatedSession.extractedData) {
-        try {
-          let extractedData;
-          if (typeof updatedSession.extractedData === 'string') {
-            extractedData = JSON.parse(updatedSession.extractedData);
-          } else {
-            extractedData = updatedSession.extractedData;
-          }
-          
-          console.log("SINGLE-CLICK DEBUG: Parsed extractedData:", extractedData);
-          
-          if (extractedData?.success && extractedData?.extracted_texts && Array.isArray(extractedData.extracted_texts)) {
-            const text = extractedData.extracted_texts.map((doc: any, index: number) => 
-              `--- DOCUMENT ${index + 1}: ${doc.file_name} ---\n${doc.text_content}`
-            ).join('\n\n--- DOCUMENT SEPARATOR ---\n\n');
-            documentContent = {
-              text,
-              count: extractedData.extracted_texts.length
-            };
-            console.log("SINGLE-CLICK DEBUG: Document content created, count:", documentContent.count);
-          }
-        } catch (parseError) {
-          console.error("SINGLE-CLICK DEBUG: Failed to parse extracted data:", parseError);
-          throw new Error(`Failed to parse extracted data: ${parseError.message}`);
-        }
-      }
-
-      if (!documentContent) {
-        console.error("SINGLE-CLICK DEBUG: No document content found");
-        throw new Error("No document content extracted - check text extraction step");
-      }
-
-      // Step 5: Get schema data for prompt generation
-      setProcessingProgress(50);
-      console.log("SINGLE-CLICK DEBUG: Getting schema data for project:", session.projectId);
-      const schemaData = await apiRequest(`/api/projects/${session.projectId}/schema-data`);
-      console.log("SINGLE-CLICK DEBUG: Schema data:", schemaData);
-
-      // Step 6: Generate prompt and call Gemini (same as SchemaView)
-      setProcessingProgress(60);
-      console.log("SINGLE-CLICK DEBUG: Generating schema markdown...");
-      const fullPrompt = generateSchemaMarkdown(schemaData, documentContent.text, documentContent.count);
-      console.log("SINGLE-CLICK DEBUG: Prompt length:", fullPrompt.length);
-      
-      console.log("SINGLE-CLICK DEBUG: Calling Gemini extraction...");
-      const geminiResponse = await apiRequest(`/api/sessions/${session.id}/gemini-extraction`, {
-        method: 'POST',
-        body: JSON.stringify({ 
-          prompt: fullPrompt,
-          projectId: session.projectId 
-        }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      console.log("SINGLE-CLICK DEBUG: Gemini response:", geminiResponse);
-
-      if (!geminiResponse.success) {
-        throw new Error(`Gemini extraction failed: ${geminiResponse.error || 'Unknown error'}`);
-      }
-
-      // Step 7: Parse JSON and save to database (same logic as SchemaView)
-      setProcessingStep('validating');
-      setProcessingProgress(75);
-
-      const responseText = geminiResponse.extractedData || geminiResponse.result || '';
-      
-      // Extract JSON from response
-      let jsonText = null;
-      let jsonMatch = responseText.match(/```json\s*\n([\s\S]*?)\n```/);
-      if (jsonMatch) {
-        jsonText = jsonMatch[1].trim();
-      } else {
-        // Look for object starting with { and ending with }
-        const lines = responseText.split('\n');
-        let objectStart = -1;
-        let objectEnd = -1;
-        let braceCount = 0;
-        
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i].trim();
-          if (line.startsWith('{') && objectStart === -1) {
-            objectStart = i;
-            braceCount = 1;
-            for (let j = 1; j < line.length; j++) {
-              if (line[j] === '{') braceCount++;
-              if (line[j] === '}') braceCount--;
-            }
-            if (braceCount === 0) {
-              objectEnd = i;
-              break;
-            }
-          } else if (objectStart !== -1) {
-            for (let j = 0; j < line.length; j++) {
-              if (line[j] === '{') braceCount++;
-              if (line[j] === '}') braceCount--;
-            }
-            if (braceCount === 0) {
-              objectEnd = i;
-              break;
-            }
-          }
-        }
-        
-        if (objectStart !== -1 && objectEnd !== -1) {
-          jsonText = lines.slice(objectStart, objectEnd + 1).join('\n').trim();
-        }
-      }
-
-      if (!jsonText) {
-        throw new Error('No valid JSON found in extraction results');
-      }
-
-      // Clean and parse JSON
-      let cleanedJsonText = jsonText
-        .replace(/\n\s*\n/g, '\n')
-        .replace(/,(\s*[}\]])/g, '$1')
-        .replace(/\.\.\./g, '')
-        .replace(/…\[TRUNCATED\]/g, '')
-        .trim();
-      
-      let lastClosingBrace = cleanedJsonText.lastIndexOf('}');
-      if (lastClosingBrace > 0) {
-        cleanedJsonText = cleanedJsonText.substring(0, lastClosingBrace + 1);
-      }
-      
-      const parsedJson = JSON.parse(cleanedJsonText);
-      
-      // Extract field_validations array
-      let extractedValidations;
-      if (parsedJson.field_validations && Array.isArray(parsedJson.field_validations)) {
-        extractedValidations = parsedJson.field_validations;
-      } else if (Array.isArray(parsedJson)) {
-        extractedValidations = parsedJson;
-      } else {
-        throw new Error('Invalid JSON structure - expected field_validations array');
-      }
-      
-      const validationsArray = Array.isArray(extractedValidations) ? extractedValidations : [extractedValidations];
-      
-      // Step 8: Save to database
-      setProcessingProgress(85);
-      const saveResponse = await apiRequest(`/api/sessions/${session.id}/save-validations`, {
-        method: 'POST',
-        body: JSON.stringify({ validations: validationsArray }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      if (!saveResponse.success) {
-        throw new Error(saveResponse.error || 'Failed to save validation results');
-      }
-
-      // Step 9: Complete and redirect
+      // Step 4: Redirect to SchemaView with auto-trigger flags
+      // The SchemaView will handle the rest of the process automatically
       setProcessingStep('complete');
       setProcessingProgress(100);
       
       toast({
-        title: "Extraction completed successfully",
-        description: "Redirecting to review page...",
+        title: "Text extraction completed",
+        description: "Starting automatic AI extraction...",
       });
       
       // Brief delay for user feedback
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Close dialog and redirect to session review
+      // Close dialog and redirect to SchemaView with auto-trigger
       setShowProcessingDialog(false);
-      setLocation(`/projects/${project.id}/sessions/${session.id}`);
+      setLocation(`/sessions/${session.id}/schema-view?autorun=true`);
       
       // Reset form
       form.reset();

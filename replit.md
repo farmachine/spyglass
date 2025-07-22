@@ -11,22 +11,19 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **January 22, 2025 (Latest Update)**
-- ✓ **SINGLE-CLICK EXTRACTION WORKFLOW COMPLETELY FIXED**: Resolved critical API response format mismatch preventing single-click extraction
-- ✓ Fixed text extraction response handling - code was checking for 'success' field when API returns 'message' field instead  
-- ✓ Added comprehensive debugging throughout single-click extraction process to identify failure points quickly
-- ✓ Single-click extraction now works identically to debugging page: Extract text → Generate schema → Call Gemini → Parse JSON → Save to database → Display results
-- ✓ **AI REASONING GENERATION ENHANCED**: Fixed prompt template to generate proper human-friendly reasoning instead of placeholder text
-- ✓ Updated AI reasoning instructions with specific guidance on extraction methodology, rule impacts, and follow-up questions
-- ✓ Added concrete example showing expected reasoning format: methodology explanation + rule impact + verification questions
-- ✓ AI now generates contextual reasoning like "Identified 17 unique company names across all documents by scanning party definitions and signature blocks"
-- ✓ **BRAIN ICON REMOVAL COMPLETED**: Removed batch validation button (brain icon) from SessionView review page per user request
-- ✓ Cleaned up unused Brain import and navigation references to prevent errors
-- ✓ **AI REASONING FORMAT FINALIZED**: Updated prompt to enforce exact two-section structure: "Explanation of the issue" + "Clarification questions"
-- ✓ Enhanced AI reasoning instructions with clear formatting requirements and concrete examples
+- ✓ **WORKFLOW CONSOLIDATION COMPLETELY IMPLEMENTED**: Single-click and debugging extraction now use the exact same process for perfect debuggability
+- ✓ Removed duplicate AI extraction logic from NewUpload component to prevent divergent workflows
+- ✓ Single-click extraction now redirects to SchemaView with autorun=true parameter for automatic execution
+- ✓ SchemaView detects autorun parameter and automatically triggers: document loading → Gemini extraction → JSON parsing → database save → session review redirect
+- ✓ Eliminated code duplication: both workflows use identical SchemaView functions (handleGeminiExtraction, handleSaveToDatabase)
 - ✓ **PROGRAMMED RULE INTERFERENCE COMPLETELY ELIMINATED**: Disabled automatic batch validation that was overriding pure AI reasoning with programmed templates
 - ✓ Root cause identified: Auto-batch validation in SessionView was calling old ai_extraction.py functions that applied programmed confidence adjustments and reasoning templates
 - ✓ Single-click extraction now uses ONLY pure AI processing without any post-processing rule interference
 - ✓ AI reasoning will now be generated directly by Gemini using the two-section format instead of programmed "TARGETED RULE" templates
+- ✓ **BRAIN ICON REMOVAL COMPLETED**: Removed batch validation button (brain icon) from SessionView review page per user request
+- ✓ Cleaned up unused Brain import and navigation references to prevent errors
+- ✓ **AI REASONING FORMAT FINALIZED**: Updated prompt to enforce exact two-section structure: "Explanation of the issue" + "Clarification questions"
+- ✓ Enhanced AI reasoning instructions with clear formatting requirements and concrete examples
 
 **January 21, 2025 (Previous Update)**
 - ✓ **COLLECTION PROPERTY DISPLAY BUG COMPLETELY RESOLVED**: Fixed critical field name mismatch preventing collection items from displaying extracted values

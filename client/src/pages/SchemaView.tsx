@@ -317,6 +317,17 @@ export default function SchemaView() {
   const [isSavingToDatabase, setIsSavingToDatabase] = useState(false);
   const [savedValidations, setSavedValidations] = useState<any[] | null>(null);
 
+  // Auto-trigger logic for single-click extraction
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const shouldAutoRun = urlParams.get('autorun') === 'true';
+    
+    if (shouldAutoRun && documentContent && schemaData && !geminiResponse && !isProcessing) {
+      console.log('AUTO-TRIGGER: Starting automatic Gemini extraction for single-click workflow');
+      handleGeminiExtraction();
+    }
+  }, [documentContent, schemaData, geminiResponse, isProcessing]);
+
   // Function to call Gemini directly using consolidated document content
   const handleGeminiExtraction = async () => {
     if (!documentContent) {
@@ -351,6 +362,14 @@ export default function SchemaView() {
 ${response.extractedData || response.result || 'No response data received'}
 
 === END RESULTS ===`);
+        
+        // Auto-trigger save for single-click workflow
+        const urlParams = new URLSearchParams(window.location.search);
+        const shouldAutoRun = urlParams.get('autorun') === 'true';
+        if (shouldAutoRun) {
+          console.log('AUTO-TRIGGER: Automatically saving to database for single-click workflow');
+          setTimeout(() => handleSaveToDatabase(), 2000); // Small delay to show results
+        }
       } else {
         setGeminiResponse(`=== GEMINI API ERROR ===
 
@@ -485,6 +504,19 @@ ${error instanceof Error ? error.message : 'Unknown error'}
       if (response.success) {
         setSavedValidations(validationsArray);
         console.log('Validation results saved successfully:', response);
+        
+        // Check if this is auto-triggered (single-click workflow)
+        const urlParams = new URLSearchParams(window.location.search);
+        const shouldAutoRun = urlParams.get('autorun') === 'true';
+        
+        if (shouldAutoRun) {
+          console.log('AUTO-TRIGGER: Automatically redirecting to session review for single-click workflow');
+          setTimeout(() => {
+            setLocation(`/sessions/${sessionId}`);
+          }, 2000); // Brief delay to show completion
+        } else {
+          alert(`Successfully saved ${validationsArray.length} field validations to database.`);
+        }
       } else {
         throw new Error(response.error || 'Failed to save validation results');
       }
