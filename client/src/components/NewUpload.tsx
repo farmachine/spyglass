@@ -66,7 +66,6 @@ export default function NewUpload({ project }: NewUploadProps) {
   const [processingProgress, setProcessingProgress] = useState(0);
   const [processedDocuments, setProcessedDocuments] = useState(0);
   const [totalDocuments, setTotalDocuments] = useState(0);
-  const [extractionMode, setExtractionMode] = useState<'user' | 'debug'>('user');
   const [, setLocation] = useLocation();
   
   const createExtractionSession = useCreateExtractionSession(project.id);
@@ -198,52 +197,6 @@ export default function NewUpload({ project }: NewUploadProps) {
     }
   };
 
-  // User Mode: Complete automated processing
-  const handleUserModeProcessing = async (sessionId: string) => {
-    try {
-      // Step 3: AI Extraction
-      setProcessingStep('extracting');
-      setProcessingProgress(0);
-
-      // Call Gemini extraction endpoint
-      const extractionResponse = await apiRequest(`/api/sessions/${sessionId}/gemini-extraction`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      setProcessingProgress(66);
-
-      // Step 4: Database Save
-      setProcessingStep('validating');
-
-      // Call save validations endpoint
-      await apiRequest(`/api/sessions/${sessionId}/save-validations`, {
-        method: 'POST',
-        body: JSON.stringify({ extractionResults: extractionResponse }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      setProcessingProgress(100);
-      setProcessingStep('complete');
-
-      // Show success briefly before redirect
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      toast({
-        title: "Extraction complete",
-        description: `${selectedFiles.length} file(s) processed successfully. Redirecting to results...`,
-      });
-
-      // Close dialog and redirect to session results
-      setShowProcessingDialog(false);
-      setLocation(`/sessions/${sessionId}`);
-
-    } catch (error) {
-      console.error("User mode processing failed:", error);
-      throw error; // Re-throw to be handled by main try-catch
-    }
-  };
-
   const handleSubmit = async (data: UploadForm) => {
     if (selectedFiles.length === 0) {
       return;
@@ -331,20 +284,14 @@ export default function NewUpload({ project }: NewUploadProps) {
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       if (textExtractionResult && session?.id) {
-        if (extractionMode === 'user') {
-          // User Mode: Continue with automated processing
-          await handleUserModeProcessing(session.id);
-        } else {
-          // Debug Mode: Go to schema generation (existing workflow)
-          toast({
-            title: "Text extraction complete",
-            description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
-          });
+        toast({
+          title: "Text extraction complete",
+          description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
+        });
 
-          // Close dialog and redirect to text view
-          setShowProcessingDialog(false);
-          setLocation(textExtractionResult.redirect || `/sessions/${session.id}/text-view`);
-        }
+        // Close dialog and redirect to text view
+        setShowProcessingDialog(false);
+        setLocation(textExtractionResult.redirect || `/sessions/${session.id}/text-view`);
       } else {
         throw new Error("Text extraction completed but session data is missing");
       }
@@ -562,50 +509,23 @@ export default function NewUpload({ project }: NewUploadProps) {
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <Button 
-                      type="submit" 
-                      disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3"
-                      onClick={() => setExtractionMode('user')}
-                    >
-                      {isProcessing && extractionMode === 'user' ? (
-                        <>
-                          <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                          Processing...
-                        </>
-                      ) : (
-                        <>
-                          <FlowIcon className="h-4 w-4 mr-2" />
-                          START EXTRACTION (User Mode)
-                        </>
-                      )}
-                    </Button>
-
-                    <Button 
-                      type="submit"
-                      variant="outline"
-                      disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
-                      className="w-full border-gray-300 text-gray-700 hover:bg-gray-50"
-                      onClick={() => setExtractionMode('debug')}
-                    >
-                      {isProcessing && extractionMode === 'debug' ? (
-                        <>
-                          <div className="animate-spin h-4 w-4 border-2 border-gray-600 border-t-transparent rounded-full mr-2" />
-                          Processing...
-                        </>
-                      ) : (
-                        <>
-                          <Play className="h-4 w-4 mr-2" />
-                          DEBUG MODE (Step-by-Step)
-                        </>
-                      )}
-                    </Button>
-
-                    <div className="text-center text-xs text-gray-500 pt-2">
-                      <p>User Mode: Automatic processing from start to results | Debug Mode: Manual step-by-step review</p>
-                    </div>
-                  </div>
+                  <Button 
+                    type="submit" 
+                    disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
+                    className="w-full"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <FlowIcon className="h-4 w-4 mr-2" />
+                        Start Extraction
+                      </>
+                    )}
+                  </Button>
                 </form>
               </Form>
             </div>
