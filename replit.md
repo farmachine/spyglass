@@ -23,6 +23,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ Cleaned up unused Brain import and navigation references to prevent errors
 - ✓ **AI REASONING FORMAT FINALIZED**: Updated prompt to enforce exact two-section structure: "Explanation of the issue" + "Clarification questions"
 - ✓ Enhanced AI reasoning instructions with clear formatting requirements and concrete examples
+- ✓ **PROGRAMMED RULE INTERFERENCE COMPLETELY ELIMINATED**: Disabled automatic batch validation that was overriding pure AI reasoning with programmed templates
+- ✓ Root cause identified: Auto-batch validation in SessionView was calling old ai_extraction.py functions that applied programmed confidence adjustments and reasoning templates
+- ✓ Single-click extraction now uses ONLY pure AI processing without any post-processing rule interference
+- ✓ AI reasoning will now be generated directly by Gemini using the two-section format instead of programmed "TARGETED RULE" templates
 
 **January 21, 2025 (Previous Update)**
 - ✓ **COLLECTION PROPERTY DISPLAY BUG COMPLETELY RESOLVED**: Fixed critical field name mismatch preventing collection items from displaying extracted values

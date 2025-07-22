@@ -398,25 +398,16 @@ export default function SessionView() {
     }
   });
 
-  // Auto-run batch validation after extraction redirect
+  // DISABLED: Auto-batch validation that applies programmed rules
+  // The single-click extraction workflow should be pure AI without post-processing rules
   useEffect(() => {
-    if (session && validations.length > 0 && !hasRunAutoValidation && !batchValidationMutation.isPending) {
-      // Check if this session was recently created (within last 5 minutes) to determine if we just extracted
-      const sessionCreatedAt = new Date(session.createdAt);
-      const now = new Date();
-      const timeDiffMinutes = (now.getTime() - sessionCreatedAt.getTime()) / (1000 * 60);
-      
-      // Only auto-validate for recently created sessions
-      if (timeDiffMinutes <= 5) {
-        console.log('🚀 Auto-running batch validation for new session');
-        setHasRunAutoValidation(true);
-        batchValidationMutation.mutate();
-      } else {
-        // Mark as already processed for older sessions
-        setHasRunAutoValidation(true);
-      }
+    if (session && validations.length > 0 && !hasRunAutoValidation) {
+      // Mark as processed but don't run programmed validation rules
+      // This preserves pure AI reasoning and confidence scores from single-click extraction
+      console.log('✨ Pure AI extraction complete - skipping programmed rule validation');
+      setHasRunAutoValidation(true);
     }
-  }, [session, validations, hasRunAutoValidation, batchValidationMutation]);
+  }, [session, validations, hasRunAutoValidation]);
 
   if (projectLoading || sessionLoading || validationsLoading) {
     return (
