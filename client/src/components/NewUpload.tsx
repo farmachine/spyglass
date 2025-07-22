@@ -280,16 +280,56 @@ export default function NewUpload({ project }: NewUploadProps) {
         // Continue with full automated workflow - keep user on loading dialog
         console.log("AUTOMATED: Starting Gemini extraction for session:", session.id);
         
-        // Step 4: AI Extraction Phase
+        // Step 4: AI Extraction Phase - use the real AI extraction process
         setProcessingStep('extracting');
         setProcessingProgress(20);
         
-        // Call Gemini extraction API
+        // First, get the project schema data to build proper extraction prompt
+        const schemaData = await apiRequest(`/api/projects/${project.id}/schema-data`);
+        console.log("AUTOMATED: Retrieved schema data for extraction");
+        setProcessingProgress(30);
+        
+        // Get session data to access extracted document text
+        const sessionData = await apiRequest(`/api/sessions/${session.id}`);
+        const extractedTexts = sessionData.extractedData ? JSON.parse(sessionData.extractedData).extracted_texts : [];
+        console.log("AUTOMATED: Retrieved document texts for extraction");
+        setProcessingProgress(40);
+        
+        // Build extraction prompt using SchemaView logic 
+        const documentContent = extractedTexts
+          .map((doc: any) => `### ${doc.file_name}\n\n${doc.text_content}`)
+          .join('\n\n--- END OF DOCUMENT ---\n\n');
+        
+        const fullPrompt = `Please extract data from the documents according to the schema below and return a JSON response.
+
+## SCHEMA FIELDS
+
+${schemaData.schemaFields?.map((field: any) => 
+          `**${field.name}** (${field.fieldType}): ${field.description || 'No description provided'}`
+        ).join('\n') || 'No schema fields defined'}
+
+## COLLECTIONS
+
+${schemaData.collections?.map((collection: any) => 
+          `**${collection.name}** (Collection):\n${collection.properties?.map((prop: any) => 
+            `  - ${prop.name} (${prop.fieldType}): ${prop.description || 'No description provided'}`
+          ).join('\n') || '  No properties defined'}`
+        ).join('\n\n') || 'No collections defined'}
+
+## DOCUMENTS TO PROCESS
+
+${documentContent}
+
+--- END OF DOCUMENTS ---
+
+Return a JSON object with field_validations array containing extracted data.`;
+        
+        // Call Gemini extraction with proper prompt
         const geminiResult = await apiRequest(`/api/sessions/${session.id}/gemini-extraction`, {
           method: 'POST',
           body: JSON.stringify({
             projectId: project.id,
-            prompt: "Auto-generated extraction from uploaded documents"
+            prompt: fullPrompt
           }),
           headers: { 'Content-Type': 'application/json' }
         });
@@ -297,13 +337,13 @@ export default function NewUpload({ project }: NewUploadProps) {
         console.log("AUTOMATED: Gemini extraction completed:", geminiResult);
         setProcessingProgress(60);
         
-        // Step 5: Save to database
+        // Step 5: Save to database - pass the raw response text to save-validations
         setProcessingStep('validating');
         console.log("AUTOMATED: Starting database save");
         
         const saveResult = await apiRequest(`/api/sessions/${session.id}/save-validations`, {
           method: 'POST',
-          body: JSON.stringify({ extractedData: geminiResult }),
+          body: JSON.stringify({ extractedData: geminiResult.extractedData || geminiResult.success }),
           headers: { 'Content-Type': 'application/json' }
         });
         
