@@ -314,7 +314,7 @@ export default function SchemaView() {
   const [isSavingToDatabase, setIsSavingToDatabase] = useState(false);
   const [savedValidations, setSavedValidations] = useState<any[] | null>(null);
 
-  // Function to call Gemini directly using consolidated document content and automatically save
+  // Function to call Gemini directly using consolidated document content
   const handleGeminiExtraction = async () => {
     if (!documentContent) {
       setGeminiResponse("=== ERROR ===\n\nNo document content available. Please wait for document extraction to complete.\n\n=== END ERROR ===");
@@ -322,12 +322,10 @@ export default function SchemaView() {
     }
     
     setIsProcessing(true);
-    
     try {
-      // Step 1: Generate prompt and call Gemini API
       const fullPrompt = generateSchemaMarkdown(schemaData, documentContent.text, documentContent.count);
       
-      console.log('AUTOMATIC EXTRACTION: Starting Gemini API call...');
+      // Enhanced debug logging
       console.log('SCHEMA VIEW DEBUG - Consolidated document content:', {
         documentCount: documentContent.count,
         documentTextLength: documentContent.text.length,
@@ -344,32 +342,21 @@ export default function SchemaView() {
         headers: { 'Content-Type': 'application/json' }
       });
       
-      if (!response.success) {
-        const errorMessage = `=== GEMINI API ERROR ===
+      if (response.success) {
+        setGeminiResponse(`=== GEMINI AI EXTRACTION RESULTS ===
+
+${response.extractedData || response.result || 'No response data received'}
+
+=== END RESULTS ===`);
+      } else {
+        setGeminiResponse(`=== GEMINI API ERROR ===
 
 ${response.error || 'Unknown error occurred'}
 
-=== END ERROR ===`;
-        setGeminiResponse(errorMessage);
-        return;
+=== END ERROR ===`);
       }
-
-      // Step 2: Display results and automatically save to database
-      const extractionResults = response.extractedData || response.result || 'No response data received';
-      setGeminiResponse(`=== GEMINI AI EXTRACTION RESULTS ===
-
-${extractionResults}
-
-=== END RESULTS ===`);
-      
-      console.log('AUTOMATIC EXTRACTION: Gemini extraction complete, starting database save...');
-      setIsSavingToDatabase(true);
-      
-      // Automatically save to database
-      await saveExtractionToDatabase(extractionResults);
-      
     } catch (error) {
-      console.error('Automatic extraction failed:', error);
+      console.error('Gemini extraction failed:', error);
       setGeminiResponse(`=== API CALL ERROR ===
 
 ${error instanceof Error ? error.message : 'Unknown error'}
@@ -380,19 +367,25 @@ ${error instanceof Error ? error.message : 'Unknown error'}
     }
   };
 
-  // Separate function for saving extraction results to database
-  const saveExtractionToDatabase = async (extractionResults: string) => {
+  // Function to save extraction results to database
+  const handleSaveToDatabase = async () => {
+    if (!geminiResponse) {
+      alert('No extraction results to save. Please run extraction first.');
+      return;
+    }
+
+    setIsSavingToDatabase(true);
     try {
-      // Extract JSON from extractionResults - try multiple extraction patterns
+      // Extract JSON from geminiResponse - try multiple extraction patterns
       let jsonText = null;
       
       // Pattern 1: Look for ```json blocks
-      let jsonMatch = extractionResults.match(/```json\s*\n([\s\S]*?)\n```/);
+      let jsonMatch = geminiResponse.match(/```json\s*\n([\s\S]*?)\n```/);
       if (jsonMatch) {
         jsonText = jsonMatch[1].trim();
       } else {
         // Pattern 2: Look for object starting with { and ending with } (balanced braces)
-        const lines = extractionResults.split('\n');
+        const lines = geminiResponse.split('\n');
         let objectStart = -1;
         let objectEnd = -1;
         let braceCount = 0;
@@ -430,7 +423,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
       }
 
       if (!jsonText) {
-        console.error('Failed to extract JSON. Response preview:', extractionResults.substring(0, 1000));
+        console.error('Failed to extract JSON. Response preview:', geminiResponse.substring(0, 1000));
         throw new Error('No valid JSON found in extraction results');
       }
 
@@ -441,7 +434,8 @@ ${error instanceof Error ? error.message : 'Unknown error'}
       // Check for truncation indicators
       if (jsonText.includes('[TRUNCATED]') || jsonText.includes('…') || jsonText.endsWith('...')) {
         console.error('WARNING: JSON appears to be truncated!');
-        throw new Error('Response was truncated. Please try again or contact support.');
+        setError('Response was truncated. Please try again or contact support.');
+        return;
       }
       
       // More aggressive JSON cleaning to handle malformed responses
@@ -476,36 +470,28 @@ ${error instanceof Error ? error.message : 'Unknown error'}
       // Ensure extractedData is an array
       const validationsArray = Array.isArray(extractedData) ? extractedData : [extractedData];
       
-      console.log('AUTOMATIC EXTRACTION: Saving', validationsArray.length, 'validations to database...');
+      console.log('Parsed validations:', validationsArray.length, 'items');
       
       // Save to database
-      const saveResponse = await apiRequest(`/api/sessions/${sessionId}/save-validations`, {
+      const response = await apiRequest(`/api/sessions/${sessionId}/save-validations`, {
         method: 'POST',
         body: JSON.stringify({ validations: validationsArray }),
         headers: { 'Content-Type': 'application/json' }
       });
 
-      if (saveResponse.success) {
+      if (response.success) {
         setSavedValidations(validationsArray);
-        console.log('AUTOMATIC EXTRACTION: Validation results saved successfully:', saveResponse);
-        
-        // Wait for database save to complete, then redirect to session view
-        console.log('AUTOMATIC EXTRACTION: Redirecting to session view...');
-        setLocation(`/sessions/${sessionId}`);
-        
+        console.log('Validation results saved successfully:', response);
       } else {
-        throw new Error(saveResponse.error || 'Failed to save validation results');
+        throw new Error(response.error || 'Failed to save validation results');
       }
-      
     } catch (error) {
-      console.error('Database save failed during automatic extraction:', error);
-      throw new Error(`Failed to save to database: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Save to database failed:', error);
+      alert(`Failed to save to database: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsSavingToDatabase(false);
     }
   };
-
-
 
   if (sessionLoading || schemaLoading) {
     return (
@@ -999,34 +985,20 @@ ${error instanceof Error ? error.message : 'Unknown error'}
         </div>
         <button 
           onClick={handleGeminiExtraction}
-          disabled={isProcessing || isSavingToDatabase}
+          disabled={isProcessing}
           style={{
             padding: '12px 24px',
             fontSize: '16px',
             fontWeight: 'bold',
-            backgroundColor: (isProcessing || isSavingToDatabase) ? '#6c757d' : '#28a745',
+            backgroundColor: isProcessing ? '#6c757d' : '#28a745',
             color: 'white',
             border: 'none',
             borderRadius: '4px',
-            cursor: (isProcessing || isSavingToDatabase) ? 'not-allowed' : 'pointer'
+            cursor: isProcessing ? 'not-allowed' : 'pointer'
           }}
         >
-          {isProcessing ? 'RUNNING AI EXTRACTION...' : 
-           isSavingToDatabase ? 'SAVING VALIDATIONS...' : 
-           'START EXTRACTION (AUTOMATIC)'}
+          {isProcessing ? 'PROCESSING...' : 'START EXTRACTION'}
         </button>
-        {(isProcessing || isSavingToDatabase) && (
-          <div style={{ 
-            marginTop: '10px', 
-            fontSize: '14px', 
-            color: '#6c757d',
-            fontStyle: 'italic'
-          }}>
-            {isProcessing ? 'Step 1: Processing documents with Gemini AI...' :
-             isSavingToDatabase ? 'Step 2: Saving field validations to database...' :
-             ''}
-          </div>
-        )}
       </div>
 
       {/* Display Gemini Response */}
@@ -1063,19 +1035,25 @@ ${error instanceof Error ? error.message : 'Unknown error'}
             {geminiResponse}
           </pre>
           
-          {/* Status message for automatic processing */}
+          {/* Save to Database Button */}
           <div style={{ marginTop: '20px', textAlign: 'center' }}>
-            <div style={{
-              padding: '10px',
-              backgroundColor: '#e7f3ff',
-              border: '1px solid #0066cc',
-              borderRadius: '4px',
-              fontSize: '14px',
-              fontWeight: 'bold',
-              color: '#0066cc'
-            }}>
-              ✅ Extraction Complete - Data automatically saved to database
-            </div>
+            <button
+              onClick={handleSaveToDatabase}
+              disabled={isSavingToDatabase}
+              style={{
+                backgroundColor: isSavingToDatabase ? '#6c757d' : '#007bff',
+                color: 'white',
+                border: 'none',
+                padding: '12px 24px',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                borderRadius: '4px',
+                cursor: isSavingToDatabase ? 'not-allowed' : 'pointer',
+                opacity: isSavingToDatabase ? 0.7 : 1
+              }}
+            >
+              {isSavingToDatabase ? 'SAVING TO DATABASE...' : 'SAVE TO DATABASE'}
+            </button>
           </div>
         </div>
       )}
@@ -1095,7 +1073,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
             marginBottom: '15px',
             color: '#0066cc'
           }}>
-            💾 STEP 3 COMPLETE: Field Validations Saved - Redirecting to Session View...
+            💾 STEP 4 COMPLETE: Saved Field Validations
           </div>
           <div style={{ 
             backgroundColor: '#ffffff',
