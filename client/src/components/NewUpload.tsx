@@ -28,6 +28,7 @@ import { useExtractionRules } from "@/hooks/useKnowledge";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/contexts/AuthContext";
 import type { ProjectWithDetails } from "@shared/schema";
 
 const uploadFormSchema = z.object({
@@ -71,6 +72,7 @@ export default function NewUpload({ project }: NewUploadProps) {
   const createExtractionSession = useCreateExtractionSession(project.id);
   const processExtraction = useProcessExtraction();
   const { toast } = useToast();
+  const { user } = useAuth();
   
   // Fetch schema data for validation
   const { data: schemaFields = [] } = useProjectSchemaFields(project.id);
@@ -197,6 +199,115 @@ export default function NewUpload({ project }: NewUploadProps) {
     }
   };
 
+  // Single-click extraction: Complete process in background
+  const handleSingleClickExtraction = async (data: UploadForm) => {
+    if (selectedFiles.length === 0) {
+      return;
+    }
+
+    setIsProcessing(true);
+    setShowProcessingDialog(true);
+    setTotalDocuments(selectedFiles.length);
+    setProcessedDocuments(0);
+    setProcessingStep('uploading');
+    setProcessingProgress(0);
+
+    try {
+      // Step 1: Create extraction session
+      setProcessingStep('uploading');
+      setProcessingProgress(10);
+      
+      const session = await createExtractionSession.mutateAsync({
+        sessionName: data.sessionName,
+        description: data.description || null,
+        documentCount: selectedFiles.length,
+        status: "in_progress",
+      });
+
+      // Step 2: Convert files to base64 for AI processing
+      setProcessingProgress(25);
+      const filesForExtraction = await Promise.all(
+        selectedFiles.map(async (uploadedFile) => {
+          const reader = new FileReader();
+          return new Promise((resolve) => {
+            reader.onload = () => resolve({
+              name: uploadedFile.file.name,
+              content: reader.result as string, // Base64 data URL
+              type: uploadedFile.file.type,
+            });
+            reader.readAsDataURL(uploadedFile.file);
+          });
+        })
+      );
+
+      // Step 3: AI Extraction with validation
+      setProcessingStep('extracting');
+      setProcessingProgress(50);
+
+      // Prepare project data for AI extraction
+      const projectData = {
+        projectId: project.id,
+        schemaFields: schemaFields,
+        collections: collections.map(collection => ({
+          ...collection,
+          properties: collection.properties || []
+        }))
+      };
+
+      // Call single-step AI extraction API
+      const extractionResult = await apiRequest(`/api/sessions/${session.id}/process`, {
+        method: "POST",
+        body: JSON.stringify({ 
+          files: filesForExtraction,
+          project_data: projectData
+        }),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (extractionResult.success) {
+        setProcessingStep('validating');
+        setProcessingProgress(75);
+        
+        // Small delay to show validation step
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        setProcessingStep('complete');
+        setProcessingProgress(100);
+        
+        toast({
+          title: "Extraction completed successfully",
+          description: "Redirecting to review page...",
+        });
+        
+        // Brief delay for user feedback
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Close dialog and redirect to session review
+        setShowProcessingDialog(false);
+        setLocation(`/projects/${project.id}/sessions/${session.id}`);
+      } else {
+        throw new Error(extractionResult.error || "AI extraction failed");
+      }
+      
+      // Reset form
+      form.reset();
+      setSelectedFiles([]);
+    } catch (error) {
+      console.error("Failed to complete extraction:", error);
+      setSelectedFiles(prev => prev.map(f => ({ ...f, status: "error" as const })));
+      
+      setShowProcessingDialog(false);
+      toast({
+        title: "Extraction failed",
+        description: "There was an error processing your files. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Debug mode: Original 2-step process for joshfarm@gmail.com
   const handleSubmit = async (data: UploadForm) => {
     if (selectedFiles.length === 0) {
       return;
@@ -509,8 +620,10 @@ export default function NewUpload({ project }: NewUploadProps) {
                     </div>
                   </div>
 
+                  {/* Single-click extraction button */}
                   <Button 
-                    type="submit" 
+                    type="button"
+                    onClick={() => form.handleSubmit(handleSingleClickExtraction)()}
                     disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
                     className="w-full"
                   >
@@ -526,6 +639,29 @@ export default function NewUpload({ project }: NewUploadProps) {
                       </>
                     )}
                   </Button>
+
+                  {/* Debug button - only visible to joshfarm@gmail.com */}
+                  {user?.email === 'joshfarm@gmail.com' && (
+                    <Button 
+                      type="button"
+                      onClick={() => form.handleSubmit(handleSubmit)()}
+                      disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
+                      className="w-full mt-2"
+                      variant="outline"
+                    >
+                      {isProcessing ? (
+                        <>
+                          <div className="animate-spin h-4 w-4 border-2 border-gray-600 border-t-transparent rounded-full mr-2" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-4 w-4 mr-2" />
+                          Run with debugging page
+                        </>
+                      )}
+                    </Button>
+                  )}
                 </form>
               </Form>
             </div>
