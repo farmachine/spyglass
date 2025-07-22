@@ -296,9 +296,9 @@ export default function NewUpload({ project }: NewUploadProps) {
         // Close dialog and redirect to schema view with mode parameter
         setShowProcessingDialog(false);
         const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
-        const urlWithMode = `${redirectUrl}?mode=${extractionMode}`;
+        const urlWithMode = `${redirectUrl}?mode=${mode}`;
         console.log('DEBUG: Redirecting with URL:', urlWithMode);
-        console.log('DEBUG: extractionMode state at redirect time:', extractionMode);
+        console.log('DEBUG: mode parameter at redirect time:', mode);
         setLocation(urlWithMode);
       } else {
         throw new Error("Text extraction completed but session data is missing");
