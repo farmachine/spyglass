@@ -364,7 +364,7 @@ export default function SchemaView() {
     
     setIsProcessing(true);
     try {
-      const fullPrompt = generateSchemaMarkdown(schemaData, documentContent.text, documentContent.count);
+      const fullPrompt = generateSchemaMarkdown(schemaData!, documentContent.text, documentContent.count);
       
       // Enhanced debug logging
       console.log('SCHEMA VIEW DEBUG - Consolidated document content:', {
@@ -384,9 +384,10 @@ export default function SchemaView() {
       });
       
       if (response.success) {
+        const extractedData = response.extractedData || response.result || 'No response data received';
         setGeminiResponse(`=== GEMINI AI EXTRACTION RESULTS ===
 
-${response.extractedData || response.result || 'No response data received'}
+${extractedData}
 
 === END RESULTS ===`);
         
@@ -442,16 +443,20 @@ ${error instanceof Error ? error.message : 'Unknown error'}
 
   // Core database save processing
   const processDatabaseSave = async () => {
+    if (!geminiResponse) {
+      throw new Error('No extraction results available for database save');
+    }
+    
     // Extract JSON from geminiResponse - try multiple extraction patterns
-      let jsonText = null;
+    let jsonText = null;
       
-      // Pattern 1: Look for ```json blocks
-      let jsonMatch = geminiResponse.match(/```json\s*\n([\s\S]*?)\n```/);
-      if (jsonMatch) {
-        jsonText = jsonMatch[1].trim();
-      } else {
-        // Pattern 2: Look for object starting with { and ending with } (balanced braces)
-        const lines = geminiResponse.split('\n');
+    // Pattern 1: Look for ```json blocks
+    let jsonMatch = geminiResponse.match(/```json\s*\n([\s\S]*?)\n```/);
+    if (jsonMatch) {
+      jsonText = jsonMatch[1].trim();
+    } else {
+      // Pattern 2: Look for object starting with { and ending with } (balanced braces)
+      const lines = geminiResponse.split('\n');
         let objectStart = -1;
         let objectEnd = -1;
         let braceCount = 0;
@@ -500,8 +505,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
       // Check for truncation indicators
       if (jsonText.includes('[TRUNCATED]') || jsonText.includes('…') || jsonText.endsWith('...')) {
         console.error('WARNING: JSON appears to be truncated!');
-        setError('Response was truncated. Please try again or contact support.');
-        return;
+        throw new Error('Response was truncated. Please try again or contact support.');
       }
       
       // More aggressive JSON cleaning to handle malformed responses
