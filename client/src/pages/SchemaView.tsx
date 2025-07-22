@@ -40,6 +40,12 @@ export default function SchemaView() {
     count: number;
   } | null>(null);
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
+  
+  // State for storing Gemini response and processing status
+  const [geminiResponse, setGeminiResponse] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isSavingToDatabase, setIsSavingToDatabase] = useState(false);
+  const [savedValidations, setSavedValidations] = useState<any[] | null>(null);
 
   // Auto-load document content using Gemini API when session is available
   useEffect(() => {
@@ -460,11 +466,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
     return markdown;
   };
 
-  // State for storing Gemini response
-  const [geminiResponse, setGeminiResponse] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isSavingToDatabase, setIsSavingToDatabase] = useState(false);
-  const [savedValidations, setSavedValidations] = useState<any[] | null>(null);
+
 
   // Function to call Gemini directly using consolidated document content
   const handleGeminiExtraction = async () => {
