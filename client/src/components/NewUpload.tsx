@@ -262,43 +262,81 @@ export default function NewUpload({ project }: NewUploadProps) {
         }
       }));
 
-      // Step 3: Text Extraction Phase (NEW SIMPLIFIED APPROACH)
+      // Step 3: Text Extraction Phase
       setProcessingStep('extracting');
       setProcessingProgress(0);
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "processing" as const })));
 
-      // Call new text extraction endpoint
+      // Call text extraction endpoint
       const textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
         method: 'POST',
         body: JSON.stringify({ files: filesData }),
         headers: { 'Content-Type': 'application/json' }
       });
 
-      setProcessingProgress(100);
+      setProcessingProgress(50);
 
-      // Step 4: Complete
-      setProcessingStep('complete');
-
-      // Mark files as completed
-      setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
-
-      // Show success briefly before redirect
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      if (textExtractionResult && session?.id) {
-        toast({
-          title: "Text extraction complete",
-          description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
+      if (mode === 'automated') {
+        // AUTOMATED MODE: Continue with AI extraction and database save
+        setProcessingStep('validating');
+        
+        // Step 4: AI Extraction (same logic as SchemaView)
+        const geminiExtractionResult = await apiRequest(`/api/sessions/${session.id}/gemini-extraction`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
         });
 
-        // Close dialog and redirect to schema view with mode parameter
-        setShowProcessingDialog(false);
-        const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
-        const urlWithMode = `${redirectUrl}?mode=${mode}`;
+        setProcessingProgress(75);
 
-        setLocation(urlWithMode);
+        // Step 5: Save to Database (same logic as SchemaView)
+        await apiRequest(`/api/sessions/${session.id}/save-validations`, {
+          method: 'POST',
+          body: JSON.stringify({ 
+            extractedData: geminiExtractionResult.extractedData 
+          }),
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        setProcessingProgress(100);
+        setProcessingStep('complete');
+        setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
+
+        // Show success briefly before redirect
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        toast({
+          title: "Extraction completed successfully",
+          description: `${selectedFiles.length} file(s) processed and data extracted. Redirecting to results...`,
+        });
+
+        // Close dialog and redirect directly to session results
+        setShowProcessingDialog(false);
+        setLocation(`/sessions/${session.id}`);
+
       } else {
-        throw new Error("Text extraction completed but session data is missing");
+        // DEBUG MODE: Redirect to schema view for manual steps
+        setProcessingProgress(100);
+        setProcessingStep('complete');
+        setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
+
+        // Show success briefly before redirect
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        if (textExtractionResult && session?.id) {
+          toast({
+            title: "Text extraction complete",
+            description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
+          });
+
+          // Close dialog and redirect to schema view with debug mode parameter
+          setShowProcessingDialog(false);
+          const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
+          const urlWithMode = `${redirectUrl}?mode=${mode}`;
+
+          setLocation(urlWithMode);
+        } else {
+          throw new Error("Text extraction completed but session data is missing");
+        }
       }
       
       // Reset form
