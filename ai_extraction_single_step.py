@@ -17,30 +17,9 @@ def main():
         input_data = sys.stdin.read()
         data = json.loads(input_data)
         
-        # Handle both old format (prompt) and new format (files + schema_markdown)
-        if 'prompt' in data:
-            prompt = data.get('prompt', '')
-            project_id = data.get('projectId', '')
-            session_id = data.get('sessionId', '')
-        else:
-            # New format from server
-            session_id = data.get('session_id', '')
-            files = data.get('files', [])
-            schema_markdown = data.get('schema_markdown', '')
-            
-            # Build prompt from files and schema
-            documents_text = ""
-            for i, file_data in enumerate(files):
-                documents_text += f"\n=== DOCUMENT {i+1}: {file_data['file_name']} ===\n"
-                documents_text += file_data['file_content']
-                documents_text += "\n=== END OF DOCUMENT ===\n"
-            
-            prompt = f"{schema_markdown}\n\n## DOCUMENTS TO PROCESS\n{documents_text}\n--- END OF DOCUMENTS ---\n\nPlease extract the data according to the schema above and return the JSON response in the exact format specified."
-            project_id = ''
-            
-            print(f"DEBUG: Built prompt from files format, documents_text length: {len(documents_text)}", file=sys.stderr)
-            print(f"DEBUG: Schema markdown length: {len(schema_markdown)}", file=sys.stderr)
-            print(f"DEBUG: Schema markdown preview: {schema_markdown[:500]}...", file=sys.stderr)
+        prompt = data.get('prompt', '')
+        project_id = data.get('projectId', '')
+        session_id = data.get('sessionId', '')
         
         print(f"DEBUG: Starting Gemini extraction for session {session_id}", file=sys.stderr)
         print(f"DEBUG: Prompt length: {len(prompt)} characters", file=sys.stderr)
@@ -76,58 +55,19 @@ def main():
         if response and response.text:
             result_text = response.text.strip()
             print(f"DEBUG: Received response from Gemini ({len(result_text)} characters)", file=sys.stderr)
-            print(f"DEBUG: Response starts with: {result_text[:200]}", file=sys.stderr)
             print(f"DEBUG: Response ends with: {result_text[-200:]}", file=sys.stderr)
             
             # Check if response appears to be truncated
             if result_text.endswith('…') or '[TRUNCATED]' in result_text:
                 print("WARNING: Response appears to be truncated!", file=sys.stderr)
             
-            # Try to parse JSON from Gemini response
-            try:
-                # Look for JSON content in the response
-                if '{' in result_text and '}' in result_text:
-                    # Extract JSON from markdown code blocks if present
-                    if '```json' in result_text:
-                        json_start = result_text.find('```json') + 7
-                        json_end = result_text.find('```', json_start)
-                        json_text = result_text[json_start:json_end].strip()
-                    elif '```' in result_text:
-                        json_start = result_text.find('```') + 3
-                        json_end = result_text.find('```', json_start)
-                        json_text = result_text[json_start:json_end].strip()
-                    else:
-                        # Try to find JSON boundaries
-                        first_brace = result_text.find('{')
-                        last_brace = result_text.rfind('}')
-                        json_text = result_text[first_brace:last_brace+1]
-                    
-                    print(f"DEBUG: Attempting to parse JSON: {json_text[:300]}...", file=sys.stderr)
-                    parsed_json = json.loads(json_text)
-                    print(f"DEBUG: Successfully parsed JSON with keys: {parsed_json.keys() if isinstance(parsed_json, dict) else 'Not a dict'}", file=sys.stderr)
-                    
-                    # Return parsed JSON structure 
-                    result = {
-                        "success": True,
-                        "field_validations": parsed_json.get("field_validations", []),
-                        "sessionId": session_id
-                    }
-                else:
-                    print("DEBUG: No JSON structure found in response, returning as text", file=sys.stderr)
-                    # Fallback: return as raw text
-                    result = {
-                        "success": True,
-                        "extractedData": result_text,
-                        "sessionId": session_id
-                    }
-            except json.JSONDecodeError as e:
-                print(f"DEBUG: JSON parse error: {e}", file=sys.stderr)
-                # Fallback: return as raw text
-                result = {
-                    "success": True,
-                    "extractedData": result_text,
-                    "sessionId": session_id
-                }
+            # Return success response
+            result = {
+                "success": True,
+                "extractedData": result_text,
+                "sessionId": session_id,
+                "projectId": project_id
+            }
         else:
             result = {
                 "success": False,

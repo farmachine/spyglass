@@ -262,284 +262,43 @@ export default function NewUpload({ project }: NewUploadProps) {
         }
       }));
 
-      if (mode === 'automated') {
-        try {
-          // AUTOMATED MODE: Run complete workflow in background
-          // Step 3: Text Extraction Phase
-          setProcessingStep('extracting');
-          setProcessingProgress(0);
-          setSelectedFiles(prev => prev.map(f => ({ ...f, status: "processing" as const })));
+      // Step 3: Text Extraction Phase (NEW SIMPLIFIED APPROACH)
+      setProcessingStep('extracting');
+      setProcessingProgress(0);
+      setSelectedFiles(prev => prev.map(f => ({ ...f, status: "processing" as const })));
 
-          console.log("AUTOMATED: Starting text extraction for session:", session.id);
-          console.log("AUTOMATED: Files data prepared:", filesData.length, "files");
-          
-          const textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
-            method: 'POST',
-            body: JSON.stringify({ files: filesData }),
-            headers: { 'Content-Type': 'application/json' }
-          });
-          
-          console.log("AUTOMATED: Text extraction result:", textExtractionResult);
-          
-          if (!textExtractionResult) {
-            throw new Error('Text extraction returned no response');
-          }
-          
-          // Check for explicit success field or message indicating success
-          const isSuccess = textExtractionResult.success === true || 
-                           textExtractionResult.message?.includes('successfully') || 
-                           textExtractionResult.message?.includes('completed');
-          
-          if (!isSuccess) {
-            console.log("AUTOMATED: Text extraction failed, result:", textExtractionResult);
-            throw new Error(`Text extraction failed: ${textExtractionResult.error || textExtractionResult.message || 'Unknown error'}`);
-          }
+      // Call new text extraction endpoint
+      const textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
+        method: 'POST',
+        body: JSON.stringify({ files: filesData }),
+        headers: { 'Content-Type': 'application/json' }
+      });
 
-        setProcessingProgress(33);
+      setProcessingProgress(100);
 
-        // Step 4: AI Extraction (background process)
-        setProcessingStep('validating');
-        
-        // Get schema markdown for AI processing
-        console.log("AUTOMATED: Fetching schema data for project:", project.id);
-        const schemaResponse = await apiRequest(`/api/projects/${project.id}/schema-data`);
-        console.log("AUTOMATED: Schema response received:", schemaResponse);
-        
-        if (!schemaResponse || !schemaResponse.schema_fields || !schemaResponse.collections) {
-          throw new Error('Schema data is missing required fields');
-        }
-        
-        // Generate schema markdown from the response data (similar to SchemaView.tsx)
-        const generateSchemaMarkdown = (data: any, documentText = '', documentCount = 1) => {
-          let markdown = `# AI EXTRACTION TASK\n\n`;
-          markdown += `You are an expert data extraction AI. Your task is to analyze the documents below and extract structured data according to the schema provided.\n\n`;
-          
-          if (documentText) {
-            markdown += `## DOCUMENTS TO PROCESS\n\n`;
-            markdown += `Number of documents: ${documentCount}\n`;
-            markdown += `Document separator: "--- DOCUMENT SEPARATOR ---"\n\n`;
-            markdown += `${documentText}\n\n`;
-            markdown += `--- END OF DOCUMENTS ---\n\n\n`;
-          }
-          
-          markdown += `# EXTRACTION SCHEMA\n\n`;
-          markdown += `Project: ${data.project?.name || 'Unknown'}\n`;
-          markdown += `Description: ${data.project?.description || 'No description'}\n`;
-          markdown += `Main Object: ${data.project?.mainObjectName || 'Session'}\n\n`;
-          
-          // Project Schema Fields
-          if (data.schema_fields?.length > 0) {
-            markdown += `## PROJECT SCHEMA FIELDS\n\n`;
-            const schemaFieldsData = {
-              schema_fields: data.schema_fields.map((field: any) => ({
-                field_name: field.fieldName,
-                type: field.fieldType,
-                "AI guidance": field.description,
-                "Extraction Rules": "Apply extraction rules",
-                "Knowledge Documents": data.knowledge_documents?.length > 0 ? 
-                  data.knowledge_documents.map((doc: any) => doc.displayName).join(', ') : 
-                  "None"
-              }))
-            };
-            markdown += `\`\`\`json\n${JSON.stringify(schemaFieldsData, null, 2)}\n\`\`\`\n\n`;
-          }
-          
-          // Collections
-          if (data.collections?.length > 0) {
-            markdown += `## COLLECTIONS (ARRAYS OF OBJECTS)\n\n`;
-            const collectionsData = {
-              collections: data.collections.map((collection: any) => ({
-                collection_name: collection.collectionName,
-                description: collection.description,
-                properties: collection.properties?.map((prop: any) => ({
-                  property_name: prop.propertyName,
-                  type: prop.propertyType,
-                  description: prop.description
-                }))
-              }))
-            };
-            markdown += `\`\`\`json\n${JSON.stringify(collectionsData, null, 2)}\n\`\`\`\n\n`;
-          }
-          
-          // Add AI processing instructions with exact JSON format
-          markdown += `## AI PROCESSING INSTRUCTIONS\n\n`;
-          markdown += `**CRITICAL: Return data in this exact JSON format:**\n\n`;
-          markdown += `\`\`\`json\n`;
-          markdown += `{\n`;
-          markdown += `  "field_validations": [\n`;
-          
-          // Add examples for schema fields
-          if (data.schema_fields?.length > 0) {
-            data.schema_fields.forEach((field: any, index: number) => {
-              markdown += `    {\n`;
-              markdown += `      "field_name": "${field.fieldName}",\n`;
-              markdown += `      "field_type": "${field.fieldType}",\n`;
-              markdown += `      "extracted_value": "EXTRACT_FROM_DOCUMENT",\n`;
-              markdown += `      "validation_confidence": 0.95,\n`;
-              markdown += `      "ai_reasoning": "Found in document section X",\n`;
-              markdown += `      "validation_status": "valid"\n`;
-              markdown += `    }${index < data.schema_fields.length - 1 || data.collections?.length > 0 ? ',' : ''}\n`;
-            });
-          }
-          
-          // Add examples for collections
-          if (data.collections?.length > 0) {
-            data.collections.forEach((collection: any) => {
-              collection.properties?.forEach((prop: any, propIndex: number) => {
-                markdown += `    {\n`;
-                markdown += `      "field_name": "${collection.collectionName}.${prop.propertyName}[0]",\n`;
-                markdown += `      "field_type": "${prop.propertyType}",\n`;
-                markdown += `      "extracted_value": "EXTRACT_FROM_DOCUMENT",\n`;
-                markdown += `      "validation_confidence": 0.95,\n`;
-                markdown += `      "ai_reasoning": "Found in document section X",\n`;
-                markdown += `      "validation_status": "valid"\n`;
-                markdown += `    }${propIndex < (collection.properties?.length - 1) ? ',' : ''}\n`;
-              });
-            });
-          }
-          
-          markdown += `  ]\n`;
-          markdown += `}\n`;
-          markdown += `\`\`\`\n\n`;
-          
-          markdown += `**EXTRACTION RULES:**\n`;
-          markdown += `1. Extract ONLY real data from documents - no samples/placeholders\n`;
-          markdown += `2. Use field names exactly as shown above\n`;
-          markdown += `3. Set validation_confidence: 0.95 for clear extractions, lower for uncertain\n`;
-          markdown += `4. Use null for missing values, not empty strings\n`;
-          markdown += `5. For collections: use [0], [1], [2] etc. for multiple items\n\n`;
-          
-          return markdown;
-        };
-        
-        // We need to pass the actual document content to the AI for extraction
-        // The gemini-extraction endpoint expects files and schema_markdown format
-        const geminiPayload = {
-          session_id: session.id,
-          files: filesData.map(file => ({
-            file_name: file.name,
-            file_content: file.content,
-            mime_type: file.type
-          })),
-          schema_markdown: generateSchemaMarkdown(schemaResponse, '', filesData.length),
-          projectId: project.id
-        };
-        
-        console.log("AUTOMATED: Generated schema markdown, length:", geminiPayload.schema_markdown.length);
-        console.log("AUTOMATED: Making Gemini API call with files:", filesData.length);
-        
-        const geminiResult = await apiRequest(`/api/sessions/${session.id}/gemini-extraction`, {
-          method: 'POST',
-          body: JSON.stringify(geminiPayload),
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
-        console.log("AUTOMATED: Raw Gemini result:", geminiResult);
-        console.log("AUTOMATED: Gemini success status:", geminiResult?.success);
-        console.log("AUTOMATED: Gemini error:", geminiResult?.error);
-        
-        if (!geminiResult) {
-          throw new Error('Gemini extraction returned no response');
-        }
-        
-        if (!geminiResult.success) {
-          throw new Error(`Gemini extraction failed: ${geminiResult.error || 'API returned success=false'}`);
-        }
-        
-        if (!geminiResult.extractedData) {
-          throw new Error('Gemini extraction succeeded but returned no extracted data');
-        }
+      // Step 4: Complete
+      setProcessingStep('complete');
 
-        console.log("AUTOMATED: Gemini result received:", geminiResult);
-        console.log("AUTOMATED: Gemini extractedData type:", typeof geminiResult.extractedData);
-        console.log("AUTOMATED: Gemini extractedData preview:", JSON.stringify(geminiResult.extractedData).substring(0, 200));
+      // Mark files as completed
+      setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
 
-        setProcessingProgress(66);
+      // Show success briefly before redirect
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // Step 5: Save to Database (background process)
-        console.log("AUTOMATED: Starting database save");
-        const saveResult = await apiRequest(`/api/sessions/${session.id}/save-validations`, {
-          method: 'POST',
-          body: JSON.stringify({ extractedData: geminiResult.extractedData }),
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
-        if (!saveResult || !saveResult.success) {
-          throw new Error(`Database save failed: ${saveResult?.error || 'Save operation failed'}`);
-        }
-        
-        console.log("AUTOMATED: Database save completed successfully:", saveResult);
-
-        setProcessingProgress(100);
-
-        // Step 6: Complete - redirect to session view
-        setProcessingStep('complete');
-        setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
-
-        console.log("AUTOMATED: Workflow completed successfully, preparing redirect");
-        
-        // Show completion state briefly before redirect
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
+      if (textExtractionResult && session?.id) {
         toast({
-          title: "Automated extraction complete",
-          description: `${selectedFiles.length} file(s) processed successfully. Redirecting to session review...`,
+          title: "Text extraction complete",
+          description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
         });
 
-        // Close dialog and redirect directly to session view
+        // Close dialog and redirect to schema view with mode parameter
         setShowProcessingDialog(false);
-        setLocation(`/sessions/${session.id}`);
-        
-        } catch (error) {
-          console.error("AUTOMATED: Workflow failed:", error);
-          setSelectedFiles(prev => prev.map(f => ({ ...f, status: "error" as const })));
-          
-          setShowProcessingDialog(false);
-          
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-          toast({
-            title: "Automated extraction failed",
-            description: `Error: ${errorMessage}. Please try debug mode or contact support.`,
-            variant: "destructive",
-          });
-        }
+        const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
+        const urlWithMode = `${redirectUrl}?mode=${mode}`;
+
+        setLocation(urlWithMode);
       } else {
-        // DEBUG MODE: Keep existing behavior (redirect to schema view)
-        // Step 3: Text Extraction Phase
-        setProcessingStep('extracting');
-        setProcessingProgress(0);
-        setSelectedFiles(prev => prev.map(f => ({ ...f, status: "processing" as const })));
-
-        const textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
-          method: 'POST',
-          body: JSON.stringify({ files: filesData }),
-          headers: { 'Content-Type': 'application/json' }
-        });
-
-        setProcessingProgress(100);
-
-        // Step 4: Complete
-        setProcessingStep('complete');
-        setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
-
-        // Show success briefly before redirect
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        if (textExtractionResult && session?.id) {
-          toast({
-            title: "Text extraction complete",
-            description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
-          });
-
-          // Close dialog and redirect to schema view with mode parameter
-          setShowProcessingDialog(false);
-          const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
-          const urlWithMode = `${redirectUrl}?mode=${mode}`;
-
-          setLocation(urlWithMode);
-        } else {
-          throw new Error("Text extraction completed but session data is missing");
-        }
+        throw new Error("Text extraction completed but session data is missing");
       }
       
       // Reset form
@@ -813,18 +572,16 @@ export default function NewUpload({ project }: NewUploadProps) {
                 </span>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {processingStep === 'uploading' && 'Uploading Documents'}
-                {processingStep === 'extracting' && 'Extracting Text Content'}
-                {processingStep === 'validating' && extractionMode === 'automated' && 'AI Processing & Database Save'}
-                {processingStep === 'validating' && extractionMode === 'debug' && 'Validation & Rules'}
+                {processingStep === 'uploading' && 'Processing Documents'}
+                {processingStep === 'extracting' && 'AI Data Extraction'}
+                {processingStep === 'validating' && 'Validation & Rules'}
                 {processingStep === 'complete' && 'Processing Complete'}
               </h3>
               <p className="text-sm text-gray-600">
                 {processingStep === 'uploading' && `Uploading ${processedDocuments} of ${totalDocuments} documents...`}
-                {processingStep === 'extracting' && 'Analyzing documents and extracting text content...'}
-                {processingStep === 'validating' && extractionMode === 'automated' && 'Running AI extraction and saving to database...'}
-                {processingStep === 'validating' && extractionMode === 'debug' && 'Applying extraction rules and validation logic...'}
-                {processingStep === 'complete' && (extractionMode === 'automated' ? 'All documents processed! Redirecting to session review...' : 'All documents processed successfully!')}
+                {processingStep === 'extracting' && 'Analyzing documents and extracting data using AI...'}
+                {processingStep === 'validating' && 'Applying extraction rules and validation logic...'}
+                {processingStep === 'complete' && 'All documents processed successfully!'}
               </p>
             </div>
 
@@ -841,7 +598,7 @@ export default function NewUpload({ project }: NewUploadProps) {
               </div>
             </div>
 
-            <div className="flex items-center justify-center space-x-3 text-xs text-gray-500">
+            <div className="flex items-center space-x-4 text-xs text-gray-500">
               <div className={`flex items-center ${processingStep !== 'uploading' ? 'text-green-600' : ''}`}>
                 {processingStep === 'uploading' ? (
                   <div className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full mr-1" />
@@ -850,47 +607,25 @@ export default function NewUpload({ project }: NewUploadProps) {
                 )}
                 Upload
               </div>
-              <div className={`flex items-center ${processingStep === 'extracting' ? 'text-blue-600' : (processingStep === 'validating' || processingStep === 'complete') ? 'text-green-600' : 'text-gray-400'}`}>
+              <div className={`flex items-center ${processingStep === 'extracting' ? 'text-blue-600' : processingStep === 'validating' || processingStep === 'complete' ? 'text-green-600' : 'text-gray-400'}`}>
                 {processingStep === 'extracting' ? (
                   <div className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full mr-1" />
-                ) : (processingStep === 'validating' || processingStep === 'complete') ? (
+                ) : processingStep === 'validating' || processingStep === 'complete' ? (
                   <CheckCircle className="h-3 w-3 mr-1" />
                 ) : (
                   <Clock className="h-3 w-3 mr-1" />
                 )}
                 Extract
               </div>
-              {extractionMode === 'automated' && (
-                <div className={`flex items-center ${processingStep === 'validating' ? 'text-blue-600' : processingStep === 'complete' ? 'text-green-600' : 'text-gray-400'}`}>
-                  {processingStep === 'validating' ? (
-                    <div className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full mr-1" />
-                  ) : processingStep === 'complete' ? (
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                  ) : (
-                    <Clock className="h-3 w-3 mr-1" />
-                  )}
-                  AI & Save
-                </div>
-              )}
-              {extractionMode === 'debug' && (
-                <div className={`flex items-center ${processingStep === 'validating' ? 'text-blue-600' : processingStep === 'complete' ? 'text-green-600' : 'text-gray-400'}`}>
-                  {processingStep === 'validating' ? (
-                    <div className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full mr-1" />
-                  ) : processingStep === 'complete' ? (
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                  ) : (
-                    <Clock className="h-3 w-3 mr-1" />
-                  )}
-                  Validate
-                </div>
-              )}
-              <div className={`flex items-center ${processingStep === 'complete' ? 'text-green-600' : 'text-gray-400'}`}>
-                {processingStep === 'complete' ? (
+              <div className={`flex items-center ${processingStep === 'validating' ? 'text-blue-600' : processingStep === 'complete' ? 'text-green-600' : 'text-gray-400'}`}>
+                {processingStep === 'validating' ? (
+                  <div className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full mr-1" />
+                ) : processingStep === 'complete' ? (
                   <CheckCircle className="h-3 w-3 mr-1" />
                 ) : (
                   <Clock className="h-3 w-3 mr-1" />
                 )}
-                Complete
+                Validate
               </div>
             </div>
 
