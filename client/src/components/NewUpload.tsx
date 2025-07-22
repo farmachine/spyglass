@@ -199,7 +199,140 @@ export default function NewUpload({ project }: NewUploadProps) {
     }
   };
 
-  // Single-click extraction: Complete process in background
+  // Helper function to generate schema markdown (same as SchemaView)
+  const generateSchemaMarkdown = (schemaData: any, documentText: string, documentCount: number) => {
+    let markdown = `# AI DATA EXTRACTION TASK\n\n`;
+    
+    // Document content at the top
+    markdown += `## DOCUMENTS TO PROCESS\n\n`;
+    markdown += `**INSTRUCTION:** Extract data from the following ${documentCount} document(s) according to the schema structure below.\n\n`;
+    markdown += `${documentText}\n\n`;
+    markdown += `--- END OF DOCUMENTS ---\n\n`;
+    
+    // Schema fields
+    markdown += `## SCHEMA FIELDS\n\n`;
+    if (schemaData.schema_fields && schemaData.schema_fields.length > 0) {
+      const fieldsData = {
+        schema_fields: schemaData.schema_fields.map((field: any) => ({
+          field_name: field.fieldName,
+          type: field.fieldType,
+          "AI guidance": field.description,
+          "Extraction Rules": "No rules",
+          "Knowledge Documents": schemaData.knowledge_documents?.length > 0 ? 
+            schemaData.knowledge_documents.map((doc: any) => doc.displayName).join(', ') : 
+            "None"
+        }))
+      };
+      markdown += `\`\`\`json\n${JSON.stringify(fieldsData, null, 2)}\n\`\`\`\n\n`;
+    }
+    
+    // Collections
+    markdown += `## OBJECT COLLECTIONS\n\n`;
+    if (schemaData.collections && schemaData.collections.length > 0) {
+      const collectionsData = {
+        collections: schemaData.collections.map((collection: any) => ({
+          collection_name: collection.collectionName,
+          properties: collection.properties?.map((prop: any) => ({
+            property_name: prop.propertyName,
+            type: prop.propertyType,
+            "AI guidance": prop.description,
+            "Extraction Rules": "No rules",
+            "Knowledge Documents": schemaData.knowledge_documents?.length > 0 ? 
+              schemaData.knowledge_documents.map((doc: any) => doc.displayName).join(', ') : 
+              "None"
+          })) || []
+        }))
+      };
+      markdown += `\`\`\`json\n${JSON.stringify(collectionsData, null, 2)}\n\`\`\`\n\n`;
+    }
+    
+    // Knowledge Documents
+    markdown += `## KNOWLEDGE DOCUMENTS\n\n`;
+    markdown += `**INSTRUCTION:** Use these documents as reference material for validation and conflict detection.\n\n`;
+    if (schemaData.knowledge_documents && schemaData.knowledge_documents.length > 0) {
+      schemaData.knowledge_documents.forEach((doc: any, index: number) => {
+        markdown += `### KNOWLEDGE DOCUMENT ${index + 1}: ${doc.displayName}\n\n`;
+        markdown += `${doc.content || 'No content available'}\n\n`;
+      });
+    } else {
+      markdown += `No knowledge documents configured\n\n`;
+    }
+    
+    // Extraction Rules
+    markdown += `## EXTRACTION RULES\n\n`;
+    markdown += `**INSTRUCTION:** Apply these rules to modify confidence scores for matching values.\n\n`;
+    if (schemaData.extraction_rules && schemaData.extraction_rules.length > 0) {
+      schemaData.extraction_rules.forEach((rule: any, index: number) => {
+        const isGlobalRule = !rule.targetFields || rule.targetFields.length === 0;
+        markdown += `### ${isGlobalRule ? 'GLOBAL RULE' : 'TARGETED RULE'} ${index + 1}: ${rule.ruleName || `Rule ${index + 1}`}\n\n`;
+        markdown += `**Applies to:** ${isGlobalRule ? 
+          'ALL SCHEMA FIELDS AND COLLECTION PROPERTIES (Auto-mapped)' : 
+          rule.targetFields?.join(', ') || 'Not specified'
+        }\n\n`;
+        markdown += `**Rule Content:** ${rule.ruleContent}\n\n`;
+      });
+    } else {
+      markdown += `No extraction rules configured\n\n`;
+    }
+    
+    // AI Processing Instructions
+    markdown += `## AI PROCESSING INSTRUCTIONS\n\n`;
+    markdown += `### CORE EXTRACTION PROCESS:\n`;
+    markdown += `1. Extract data according to schema structure above\n`;
+    markdown += `2. Count ALL instances across ALL documents accurately\n`;
+    markdown += `3. Apply extraction rules to modify confidence scores as specified\n`;
+    markdown += `4. Use knowledge documents for validation and conflict detection\n\n`;
+    
+    markdown += `### CONFIDENCE SCORING (confidence_score 0-100):\n`;
+    markdown += `- Base: High confidence (85-95) for clear extractions\n`;
+    markdown += `- Apply extraction rule adjustments per rule content\n`;
+    markdown += `- Reduce confidence for knowledge document conflicts\n\n`;
+    
+    markdown += `### AI REASONING (ai_reasoning):\n`;
+    markdown += `Give reasoning for the score. Reference which knowledge documents and/or extraction rules influenced the decision.\n\n`;
+    
+    // JSON Schema
+    markdown += `## REQUIRED JSON OUTPUT SCHEMA\n\n`;
+    const outputSchema = {
+      "field_validations": [
+        // Schema fields
+        ...(schemaData.schema_fields || []).map((field: any) => ({
+          "field_type": "schema_field",
+          "field_id": field.id,
+          "field_name": field.fieldName,
+          "description": field.description || 'No description',
+          "extracted_value": null,
+          "confidence_score": 95,
+          "ai_reasoning": "Provide reasoning here",
+          "document_source": "document_name.pdf",
+          "validation_status": "pending",
+          "record_index": 0
+        })),
+        // Collection properties
+        ...(schemaData.collections || []).flatMap((collection: any) => 
+          (collection.properties || []).map((prop: any) => ({
+            "field_type": "collection_property",
+            "field_id": prop.id,
+            "field_name": `${collection.collectionName}.${prop.propertyName}`,
+            "collection_name": collection.collectionName,
+            "description": prop.description || 'No description',
+            "extracted_value": null,
+            "confidence_score": 95,
+            "ai_reasoning": "Provide reasoning here",
+            "document_source": "document_name.pdf",
+            "validation_status": "pending",
+            "record_index": 0
+          }))
+        )
+      ]
+    };
+    
+    markdown += `\`\`\`json\n${JSON.stringify(outputSchema, null, 2)}\n\`\`\`\n\n`;
+    
+    return markdown;
+  };
+
+  // Single-click extraction: Exact same workflow as SchemaView debugging page
   const handleSingleClickExtraction = async (data: UploadForm) => {
     if (selectedFiles.length === 0) {
       return;
@@ -224,70 +357,214 @@ export default function NewUpload({ project }: NewUploadProps) {
         status: "in_progress",
       });
 
-      // Step 2: Convert files to base64 for AI processing
+      // Step 2: Convert files to base64 and call extract-text API (same as debug workflow)
       setProcessingProgress(25);
-      const filesForExtraction = await Promise.all(
-        selectedFiles.map(async (uploadedFile) => {
-          const reader = new FileReader();
-          return new Promise((resolve) => {
-            reader.onload = () => resolve({
-              name: uploadedFile.file.name,
-              content: reader.result as string, // Base64 data URL
-              type: uploadedFile.file.type,
-            });
-            reader.readAsDataURL(uploadedFile.file);
+      const filesData = await Promise.all(selectedFiles.map(async (fileData) => {
+        try {
+          // Read file content as base64
+          const base64Content = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              if (typeof reader.result === 'string') {
+                resolve(reader.result);
+              } else {
+                reject(new Error('Failed to read file as data URL'));
+              }
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(fileData.file);
           });
-        })
-      );
 
-      // Step 3: AI Extraction with validation
+          return {
+            name: fileData.file.name,
+            size: fileData.file.size,
+            type: fileData.file.type,
+            content: base64Content
+          };
+        } catch (error) {
+          console.error(`Failed to read file ${fileData.file.name}:`, error);
+          return {
+            name: fileData.file.name,
+            size: fileData.file.size,
+            type: fileData.file.type,
+            content: ""
+          };
+        }
+      }));
+
+      // Step 3: Extract text content using same API as debug workflow
       setProcessingStep('extracting');
-      setProcessingProgress(50);
+      setProcessingProgress(40);
 
-      // Prepare project data for AI extraction
-      const projectData = {
-        projectId: project.id,
-        schemaFields: schemaFields,
-        collections: collections.map(collection => ({
-          ...collection,
-          properties: collection.properties || []
-        }))
-      };
-
-      // Call single-step AI extraction API
-      const extractionResult = await apiRequest(`/api/sessions/${session.id}/process`, {
-        method: "POST",
-        body: JSON.stringify({ 
-          files: filesForExtraction,
-          project_data: projectData
-        }),
-        headers: { "Content-Type": "application/json" },
+      const textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
+        method: 'POST',
+        body: JSON.stringify({ files: filesData }),
+        headers: { 'Content-Type': 'application/json' }
       });
 
-      if (extractionResult.success) {
-        setProcessingStep('validating');
-        setProcessingProgress(75);
-        
-        // Small delay to show validation step
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        setProcessingStep('complete');
-        setProcessingProgress(100);
-        
-        toast({
-          title: "Extraction completed successfully",
-          description: "Redirecting to review page...",
-        });
-        
-        // Brief delay for user feedback
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Close dialog and redirect to session review
-        setShowProcessingDialog(false);
-        setLocation(`/projects/${project.id}/sessions/${session.id}`);
-      } else {
-        throw new Error(extractionResult.error || "AI extraction failed");
+      if (!textExtractionResult.success) {
+        throw new Error("Text extraction failed");
       }
+
+      // Step 4: Get session with extracted content
+      const updatedSession = await apiRequest(`/api/sessions/${session.id}`);
+      
+      // Parse document content (same logic as SchemaView)
+      let documentContent = null;
+      if (updatedSession.extractedData) {
+        try {
+          let extractedData;
+          if (typeof updatedSession.extractedData === 'string') {
+            extractedData = JSON.parse(updatedSession.extractedData);
+          } else {
+            extractedData = updatedSession.extractedData;
+          }
+          
+          if (extractedData?.success && extractedData?.extracted_texts && Array.isArray(extractedData.extracted_texts)) {
+            const text = extractedData.extracted_texts.map((doc: any, index: number) => 
+              `--- DOCUMENT ${index + 1}: ${doc.file_name} ---\n${doc.text_content}`
+            ).join('\n\n--- DOCUMENT SEPARATOR ---\n\n');
+            documentContent = {
+              text,
+              count: extractedData.extracted_texts.length
+            };
+          }
+        } catch (parseError) {
+          console.error("Failed to parse extracted data:", parseError);
+        }
+      }
+
+      if (!documentContent) {
+        throw new Error("No document content extracted");
+      }
+
+      // Step 5: Get schema data for prompt generation
+      setProcessingProgress(50);
+      const schemaData = await apiRequest(`/api/projects/${session.projectId}/schema-data`);
+
+      // Step 6: Generate prompt and call Gemini (same as SchemaView)
+      setProcessingProgress(60);
+      const fullPrompt = generateSchemaMarkdown(schemaData, documentContent.text, documentContent.count);
+      
+      const geminiResponse = await apiRequest(`/api/sessions/${session.id}/gemini-extraction`, {
+        method: 'POST',
+        body: JSON.stringify({ 
+          prompt: fullPrompt,
+          projectId: session.projectId 
+        }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!geminiResponse.success) {
+        throw new Error(geminiResponse.error || "Gemini extraction failed");
+      }
+
+      // Step 7: Parse JSON and save to database (same logic as SchemaView)
+      setProcessingStep('validating');
+      setProcessingProgress(75);
+
+      const responseText = geminiResponse.extractedData || geminiResponse.result || '';
+      
+      // Extract JSON from response
+      let jsonText = null;
+      let jsonMatch = responseText.match(/```json\s*\n([\s\S]*?)\n```/);
+      if (jsonMatch) {
+        jsonText = jsonMatch[1].trim();
+      } else {
+        // Look for object starting with { and ending with }
+        const lines = responseText.split('\n');
+        let objectStart = -1;
+        let objectEnd = -1;
+        let braceCount = 0;
+        
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (line.startsWith('{') && objectStart === -1) {
+            objectStart = i;
+            braceCount = 1;
+            for (let j = 1; j < line.length; j++) {
+              if (line[j] === '{') braceCount++;
+              if (line[j] === '}') braceCount--;
+            }
+            if (braceCount === 0) {
+              objectEnd = i;
+              break;
+            }
+          } else if (objectStart !== -1) {
+            for (let j = 0; j < line.length; j++) {
+              if (line[j] === '{') braceCount++;
+              if (line[j] === '}') braceCount--;
+            }
+            if (braceCount === 0) {
+              objectEnd = i;
+              break;
+            }
+          }
+        }
+        
+        if (objectStart !== -1 && objectEnd !== -1) {
+          jsonText = lines.slice(objectStart, objectEnd + 1).join('\n').trim();
+        }
+      }
+
+      if (!jsonText) {
+        throw new Error('No valid JSON found in extraction results');
+      }
+
+      // Clean and parse JSON
+      let cleanedJsonText = jsonText
+        .replace(/\n\s*\n/g, '\n')
+        .replace(/,(\s*[}\]])/g, '$1')
+        .replace(/\.\.\./g, '')
+        .replace(/…\[TRUNCATED\]/g, '')
+        .trim();
+      
+      let lastClosingBrace = cleanedJsonText.lastIndexOf('}');
+      if (lastClosingBrace > 0) {
+        cleanedJsonText = cleanedJsonText.substring(0, lastClosingBrace + 1);
+      }
+      
+      const parsedJson = JSON.parse(cleanedJsonText);
+      
+      // Extract field_validations array
+      let extractedValidations;
+      if (parsedJson.field_validations && Array.isArray(parsedJson.field_validations)) {
+        extractedValidations = parsedJson.field_validations;
+      } else if (Array.isArray(parsedJson)) {
+        extractedValidations = parsedJson;
+      } else {
+        throw new Error('Invalid JSON structure - expected field_validations array');
+      }
+      
+      const validationsArray = Array.isArray(extractedValidations) ? extractedValidations : [extractedValidations];
+      
+      // Step 8: Save to database
+      setProcessingProgress(85);
+      const saveResponse = await apiRequest(`/api/sessions/${session.id}/save-validations`, {
+        method: 'POST',
+        body: JSON.stringify({ validations: validationsArray }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!saveResponse.success) {
+        throw new Error(saveResponse.error || 'Failed to save validation results');
+      }
+
+      // Step 9: Complete and redirect
+      setProcessingStep('complete');
+      setProcessingProgress(100);
+      
+      toast({
+        title: "Extraction completed successfully",
+        description: "Redirecting to review page...",
+      });
+      
+      // Brief delay for user feedback
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Close dialog and redirect to session review
+      setShowProcessingDialog(false);
+      setLocation(`/projects/${project.id}/sessions/${session.id}`);
       
       // Reset form
       form.reset();
