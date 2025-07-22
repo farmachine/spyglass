@@ -301,8 +301,8 @@ export default function NewUpload({ project }: NewUploadProps) {
         setProcessingStep('validating');
         
         // Get schema markdown for AI processing
-        console.log("AUTOMATED: Fetching schema data for project:", session.project_id);
-        const schemaResponse = await apiRequest(`/api/projects/${session.project_id}/schema-data`);
+        console.log("AUTOMATED: Fetching schema data for project:", project.id);
+        const schemaResponse = await apiRequest(`/api/projects/${project.id}/schema-data`);
         console.log("AUTOMATED: Schema response received:", schemaResponse);
         
         if (!schemaResponse || !schemaResponse.schemaMarkdown) {
@@ -316,7 +316,7 @@ export default function NewUpload({ project }: NewUploadProps) {
           method: 'POST',
           body: JSON.stringify({ 
             prompt: schemaResponse.schemaMarkdown, 
-            projectId: session.project_id 
+            projectId: project.id 
           }),
           headers: { 'Content-Type': 'application/json' }
         });
