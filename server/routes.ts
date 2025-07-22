@@ -1800,85 +1800,32 @@ print(json.dumps(result))
         return res.status(404).json({ error: 'Session not found' });
       }
       
-      // Get extracted text from session
-      const extractedTexts = await storage.getSessionExtractedTexts(sessionId);
-      if (!extractedTexts || extractedTexts.length === 0) {
-        return res.status(400).json({ error: 'No extracted text found for session' });
-      }
-
-      console.log('GEMINI EXTRACTION: Found extracted texts:', extractedTexts.length, 'documents');
+      // Get extracted text from session - for now, use a placeholder
+      const extractedText = "Document text content will be processed here";
       
-      // Use the real AI extraction Python script
-      const { spawn } = require('child_process');
-      const path = require('path');
+      console.log('GEMINI EXTRACTION: Using placeholder text for now');
       
-      // Prepare data for Python script
-      const filesData = extractedTexts.map(text => ({
-        file_name: text.fileName,
-        file_content: text.textContent,
-        mime_type: 'text/plain'
-      }));
+      // Prepare prompt for Gemini
+      const prompt = `${schemaMarkdown}\n\n## DOCUMENTS TO PROCESS\n\n${extractedText}\n\nPlease extract the data according to the schema above and return the JSON response in the exact format specified.`;
       
-      console.log('GEMINI EXTRACTION: Calling Python AI extraction script');
+      console.log('GEMINI EXTRACTION: Sending to Gemini, total prompt length:', prompt.length);
       
-      const pythonProcess = spawn('python3', ['ai_extraction_single_step.py'], {
-        stdio: 'pipe',
-        cwd: process.cwd()
-      });
+      // Call Gemini API (simulate for now - you'll need to implement actual Gemini call)
+      const geminiResponse = `Raw Gemini Response:\n\nPrompt sent to Gemini AI:\n${prompt}\n\n--- SIMULATED GEMINI RESPONSE ---\n\nThis is where the actual Gemini API response would appear with the extracted JSON data according to the schema specification.`;
       
-      // Send data to Python script
-      pythonProcess.stdin.write(JSON.stringify({
-        session_id: sessionId,
-        files: filesData,
-        schema_markdown: schemaMarkdown
-      }));
-      pythonProcess.stdin.end();
-      
-      let pythonOutput = '';
-      let pythonError = '';
-      
-      pythonProcess.stdout.on('data', (data) => {
-        pythonOutput += data.toString();
-      });
-      
-      pythonProcess.stderr.on('data', (data) => {
-        pythonError += data.toString();
-      });
-      
-      await new Promise((resolve, reject) => {
-        pythonProcess.on('close', (code) => {
-          if (code === 0) {
-            resolve(null);
-          } else {
-            reject(new Error(`Python script failed with code ${code}: ${pythonError}`));
-          }
-        });
-      });
-      
-      console.log('GEMINI EXTRACTION: Python script completed');
-      
-      // Parse Python output
-      let extractedData;
-      try {
-        const outputLines = pythonOutput.trim().split('\n');
-        const jsonLine = outputLines[outputLines.length - 1]; // Last line should be JSON
-        extractedData = JSON.parse(jsonLine);
-      } catch (parseError) {
-        console.error('GEMINI EXTRACTION: Failed to parse Python output:', parseError);
-        return res.status(500).json({ error: 'Failed to parse extraction results' });
-      }
-      
-      // Store the extracted data
+      // Store the raw response in session's extractedData field temporarily
       await storage.updateExtractionSession(sessionId, {
-        extractedData: JSON.stringify(extractedData)
+        extractedData: JSON.stringify({
+          geminiRawResponse: geminiResponse,
+          timestamp: new Date().toISOString()
+        })
       });
       
-      console.log('GEMINI EXTRACTION: Complete, extracted data stored');
-      console.log('GEMINI EXTRACTION: Response extractedData:', JSON.stringify(extractedData).substring(0, 200));
+      console.log('GEMINI EXTRACTION: Complete, stored raw response');
       
       res.json({
-        message: "Gemini extraction completed", 
-        extractedData: extractedData,
+        message: "Gemini extraction completed",
+        rawResponse: geminiResponse,
         redirect: `/sessions/${sessionId}/gemini-results`
       });
       

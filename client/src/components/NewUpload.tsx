@@ -262,135 +262,43 @@ export default function NewUpload({ project }: NewUploadProps) {
         }
       }));
 
-      if (mode === 'automated') {
-        try {
-          // AUTOMATED MODE: Run complete workflow in background
-          // Step 3: Text Extraction Phase
-          setProcessingStep('extracting');
-          setProcessingProgress(0);
-          setSelectedFiles(prev => prev.map(f => ({ ...f, status: "processing" as const })));
+      // Step 3: Text Extraction Phase (NEW SIMPLIFIED APPROACH)
+      setProcessingStep('extracting');
+      setProcessingProgress(0);
+      setSelectedFiles(prev => prev.map(f => ({ ...f, status: "processing" as const })));
 
-          console.log("AUTOMATED: Starting text extraction for session:", session.id);
-          console.log("AUTOMATED: Files data prepared:", filesData.length, "files");
-          
-          const textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
-            method: 'POST',
-            body: JSON.stringify({ files: filesData }),
-            headers: { 'Content-Type': 'application/json' }
-          });
-          
-          console.log("AUTOMATED: Text extraction result:", textExtractionResult);
-          
-          if (!textExtractionResult || !textExtractionResult.success) {
-            throw new Error('Text extraction failed');
-          }
+      // Call new text extraction endpoint
+      const textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
+        method: 'POST',
+        body: JSON.stringify({ files: filesData }),
+        headers: { 'Content-Type': 'application/json' }
+      });
 
-        setProcessingProgress(33);
+      setProcessingProgress(100);
 
-        // Step 4: AI Extraction (background process)
-        setProcessingStep('validating');
-        
-        // Get schema markdown for AI processing
-        console.log("AUTOMATED: Fetching schema data for project:", session.project_id);
-        const schemaResponse = await apiRequest(`/api/projects/${session.project_id}/schema-data`);
-        console.log("AUTOMATED: Schema response received:", schemaResponse);
-        
-        if (!schemaResponse || !schemaResponse.schemaMarkdown) {
-          throw new Error('Schema data is missing or invalid');
-        }
-        
-        console.log("AUTOMATED: Starting Gemini extraction with schema markdown length:", schemaResponse.schemaMarkdown?.length);
-        const geminiResult = await apiRequest(`/api/sessions/${session.id}/gemini-extraction`, {
-          method: 'POST',
-          body: JSON.stringify({ schemaMarkdown: schemaResponse.schemaMarkdown }),
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
-        if (!geminiResult || !geminiResult.extractedData) {
-          throw new Error('Gemini extraction failed or returned no data');
-        }
+      // Step 4: Complete
+      setProcessingStep('complete');
 
-        console.log("AUTOMATED: Gemini result received:", geminiResult);
-        console.log("AUTOMATED: Gemini extractedData type:", typeof geminiResult.extractedData);
-        console.log("AUTOMATED: Gemini extractedData preview:", JSON.stringify(geminiResult.extractedData).substring(0, 200));
+      // Mark files as completed
+      setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
 
-        setProcessingProgress(66);
+      // Show success briefly before redirect
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // Step 5: Save to Database (background process)
-        console.log("AUTOMATED: Saving validations to database...");
-        const saveResult = await apiRequest(`/api/sessions/${session.id}/save-validations`, {
-          method: 'POST',
-          body: JSON.stringify({ extractedData: geminiResult.extractedData }),
-          headers: { 'Content-Type': 'application/json' }
-        });
-        console.log("AUTOMATED: Save result:", saveResult);
-
-        setProcessingProgress(100);
-
-        // Step 6: Complete - redirect to session view
-        setProcessingStep('complete');
-        setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
-
-        // Show success briefly before redirect
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
+      if (textExtractionResult && session?.id) {
         toast({
-          title: "Automated extraction complete",
-          description: `${selectedFiles.length} file(s) processed successfully. Redirecting to session review...`,
+          title: "Text extraction complete",
+          description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
         });
 
-        // Close dialog and redirect directly to session view
+        // Close dialog and redirect to schema view with mode parameter
         setShowProcessingDialog(false);
-        setLocation(`/sessions/${session.id}`);
-        
-        } catch (error) {
-          console.error("AUTOMATED: Workflow failed:", error);
-          setSelectedFiles(prev => prev.map(f => ({ ...f, status: "error" as const })));
-          
-          setShowProcessingDialog(false);
-          toast({
-            title: "Automated extraction failed",
-            description: "There was an error processing your files. Please try debug mode or contact support.",
-            variant: "destructive",
-          });
-        }
+        const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
+        const urlWithMode = `${redirectUrl}?mode=${mode}`;
+
+        setLocation(urlWithMode);
       } else {
-        // DEBUG MODE: Keep existing behavior (redirect to schema view)
-        // Step 3: Text Extraction Phase
-        setProcessingStep('extracting');
-        setProcessingProgress(0);
-        setSelectedFiles(prev => prev.map(f => ({ ...f, status: "processing" as const })));
-
-        const textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
-          method: 'POST',
-          body: JSON.stringify({ files: filesData }),
-          headers: { 'Content-Type': 'application/json' }
-        });
-
-        setProcessingProgress(100);
-
-        // Step 4: Complete
-        setProcessingStep('complete');
-        setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
-
-        // Show success briefly before redirect
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        if (textExtractionResult && session?.id) {
-          toast({
-            title: "Text extraction complete",
-            description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
-          });
-
-          // Close dialog and redirect to schema view with mode parameter
-          setShowProcessingDialog(false);
-          const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
-          const urlWithMode = `${redirectUrl}?mode=${mode}`;
-
-          setLocation(urlWithMode);
-        } else {
-          throw new Error("Text extraction completed but session data is missing");
-        }
+        throw new Error("Text extraction completed but session data is missing");
       }
       
       // Reset form
@@ -664,18 +572,16 @@ export default function NewUpload({ project }: NewUploadProps) {
                 </span>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {processingStep === 'uploading' && 'Uploading Documents'}
-                {processingStep === 'extracting' && 'Extracting Text Content'}
-                {processingStep === 'validating' && extractionMode === 'automated' && 'AI Processing & Database Save'}
-                {processingStep === 'validating' && extractionMode === 'debug' && 'Validation & Rules'}
+                {processingStep === 'uploading' && 'Processing Documents'}
+                {processingStep === 'extracting' && 'AI Data Extraction'}
+                {processingStep === 'validating' && 'Validation & Rules'}
                 {processingStep === 'complete' && 'Processing Complete'}
               </h3>
               <p className="text-sm text-gray-600">
                 {processingStep === 'uploading' && `Uploading ${processedDocuments} of ${totalDocuments} documents...`}
-                {processingStep === 'extracting' && 'Analyzing documents and extracting text content...'}
-                {processingStep === 'validating' && extractionMode === 'automated' && 'Running AI extraction and saving to database...'}
-                {processingStep === 'validating' && extractionMode === 'debug' && 'Applying extraction rules and validation logic...'}
-                {processingStep === 'complete' && (extractionMode === 'automated' ? 'All documents processed! Redirecting to session review...' : 'All documents processed successfully!')}
+                {processingStep === 'extracting' && 'Analyzing documents and extracting data using AI...'}
+                {processingStep === 'validating' && 'Applying extraction rules and validation logic...'}
+                {processingStep === 'complete' && 'All documents processed successfully!'}
               </p>
             </div>
 
@@ -692,7 +598,7 @@ export default function NewUpload({ project }: NewUploadProps) {
               </div>
             </div>
 
-            <div className="flex items-center justify-center space-x-3 text-xs text-gray-500">
+            <div className="flex items-center space-x-4 text-xs text-gray-500">
               <div className={`flex items-center ${processingStep !== 'uploading' ? 'text-green-600' : ''}`}>
                 {processingStep === 'uploading' ? (
                   <div className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full mr-1" />
@@ -701,47 +607,25 @@ export default function NewUpload({ project }: NewUploadProps) {
                 )}
                 Upload
               </div>
-              <div className={`flex items-center ${processingStep === 'extracting' ? 'text-blue-600' : (processingStep === 'validating' || processingStep === 'complete') ? 'text-green-600' : 'text-gray-400'}`}>
+              <div className={`flex items-center ${processingStep === 'extracting' ? 'text-blue-600' : processingStep === 'validating' || processingStep === 'complete' ? 'text-green-600' : 'text-gray-400'}`}>
                 {processingStep === 'extracting' ? (
                   <div className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full mr-1" />
-                ) : (processingStep === 'validating' || processingStep === 'complete') ? (
+                ) : processingStep === 'validating' || processingStep === 'complete' ? (
                   <CheckCircle className="h-3 w-3 mr-1" />
                 ) : (
                   <Clock className="h-3 w-3 mr-1" />
                 )}
                 Extract
               </div>
-              {extractionMode === 'automated' && (
-                <div className={`flex items-center ${processingStep === 'validating' ? 'text-blue-600' : processingStep === 'complete' ? 'text-green-600' : 'text-gray-400'}`}>
-                  {processingStep === 'validating' ? (
-                    <div className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full mr-1" />
-                  ) : processingStep === 'complete' ? (
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                  ) : (
-                    <Clock className="h-3 w-3 mr-1" />
-                  )}
-                  AI & Save
-                </div>
-              )}
-              {extractionMode === 'debug' && (
-                <div className={`flex items-center ${processingStep === 'validating' ? 'text-blue-600' : processingStep === 'complete' ? 'text-green-600' : 'text-gray-400'}`}>
-                  {processingStep === 'validating' ? (
-                    <div className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full mr-1" />
-                  ) : processingStep === 'complete' ? (
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                  ) : (
-                    <Clock className="h-3 w-3 mr-1" />
-                  )}
-                  Validate
-                </div>
-              )}
-              <div className={`flex items-center ${processingStep === 'complete' ? 'text-green-600' : 'text-gray-400'}`}>
-                {processingStep === 'complete' ? (
+              <div className={`flex items-center ${processingStep === 'validating' ? 'text-blue-600' : processingStep === 'complete' ? 'text-green-600' : 'text-gray-400'}`}>
+                {processingStep === 'validating' ? (
+                  <div className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full mr-1" />
+                ) : processingStep === 'complete' ? (
                   <CheckCircle className="h-3 w-3 mr-1" />
                 ) : (
                   <Clock className="h-3 w-3 mr-1" />
                 )}
-                Complete
+                Validate
               </div>
             </div>
 
