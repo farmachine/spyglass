@@ -1839,9 +1839,112 @@ print(json.dumps(result))
   app.post("/api/sessions/:sessionId/save-validations", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
-      const { validations } = req.body;
+      const { validations, extractionResults } = req.body;
 
-      console.log(`SAVE VALIDATIONS: Starting for session ${sessionId}, ${validations.length} validations`);
+      // Handle different input formats
+      if (extractionResults) {
+        // User mode: extractionResults contains Gemini response, need to process and save
+        console.log(`SAVE VALIDATIONS: User mode processing for session ${sessionId}`);
+        
+        // Get the rawResponse from extractionResults
+        const geminiResponse = extractionResults.rawResponse;
+        if (!geminiResponse) {
+          return res.status(400).json({ error: 'No Gemini response found in extraction results' });
+        }
+
+        // Process Gemini response using same logic as SchemaView
+        console.log('Processing Gemini response for user mode...');
+        
+        // Extract JSON from geminiResponse using same patterns as SchemaView
+        let jsonText = null;
+        
+        // Pattern 1: Look for ```json blocks
+        let jsonMatch = geminiResponse.match(/```json\s*\n([\s\S]*?)\n```/);
+        if (jsonMatch) {
+          jsonText = jsonMatch[1].trim();
+        } else {
+          // Pattern 2: Look for object starting with { and ending with } (balanced braces)
+          const lines = geminiResponse.split('\n');
+          let startLine = -1;
+          let braceCount = 0;
+          let inObject = false;
+          
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            
+            if (line.startsWith('{') && !inObject) {
+              startLine = i;
+              inObject = true;
+              braceCount = 1;
+              
+              // Count braces in the first line
+              for (let j = 1; j < line.length; j++) {
+                if (line[j] === '{') braceCount++;
+                else if (line[j] === '}') braceCount--;
+              }
+              
+              if (braceCount === 0) {
+                jsonText = line;
+                break;
+              }
+            } else if (inObject) {
+              // Count braces in subsequent lines
+              for (const char of line) {
+                if (char === '{') braceCount++;
+                else if (char === '}') braceCount--;
+              }
+              
+              if (braceCount === 0) {
+                jsonText = lines.slice(startLine, i + 1).join('\n');
+                break;
+              }
+            }
+          }
+        }
+
+        if (!jsonText) {
+          console.error('Failed to extract JSON from Gemini response');
+          return res.status(400).json({ error: 'No valid JSON found in extraction results' });
+        }
+
+        // Clean and parse JSON using same logic as SchemaView
+        let cleanedJsonText = jsonText
+          .replace(/\n\s*\n/g, '\n') // Remove empty lines
+          .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
+          .replace(/\.\.\./g, '') // Remove ellipsis
+          .replace(/…\[TRUNCATED\]/g, '') // Remove truncation markers
+          .trim();
+        
+        // Find the last complete closing brace
+        let lastClosingBrace = cleanedJsonText.lastIndexOf('}');
+        if (lastClosingBrace > 0) {
+          cleanedJsonText = cleanedJsonText.substring(0, lastClosingBrace + 1);
+        }
+        
+        const parsedJson = JSON.parse(cleanedJsonText);
+        
+        // Extract field_validations array
+        let extractedData;
+        if (parsedJson.field_validations && Array.isArray(parsedJson.field_validations)) {
+          extractedData = parsedJson.field_validations;
+        } else if (Array.isArray(parsedJson)) {
+          extractedData = parsedJson;
+        } else {
+          return res.status(400).json({ error: 'Invalid JSON structure - expected field_validations array' });
+        }
+        
+        const validationsArray = Array.isArray(extractedData) ? extractedData : [extractedData];
+        console.log(`User mode: Processing ${validationsArray.length} validations`);
+        
+        // Continue with saving validations using the existing logic below
+        const validations = validationsArray;
+      } else {
+        // Debug mode: validations array provided directly
+        if (!validations || !Array.isArray(validations)) {
+          return res.status(400).json({ error: 'Validations array is required for debug mode' });
+        }
+        console.log(`SAVE VALIDATIONS: Debug mode for session ${sessionId}, ${validations.length} validations`);
+      }
 
       // Get the session to verify it exists
       const session = await storage.getExtractionSession(sessionId);
