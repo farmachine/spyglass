@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, FileText } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, FileText } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import * as XLSX from 'xlsx';
 import { Link } from "wouter";
@@ -1209,7 +1209,7 @@ Thank you for your assistance.`;
     { id: "upload", label: `New ${project?.mainObjectName || "Session"}`, icon: Upload, href: `/projects/${projectId}?tab=upload` },
     { id: "data", label: `All ${project?.mainObjectName || "Session"}s`, icon: Database, href: `/projects/${projectId}?tab=all-data` },
     ...(canAccessConfigTabs ? [
-      { id: "knowledge", label: "Knowledge/Rules", icon: Brain, href: `/projects/${projectId}?tab=knowledge` },
+      { id: "knowledge", label: "Knowledge/Rules", icon: FileText, href: `/projects/${projectId}?tab=knowledge` },
       { id: "define", label: "Define Data", icon: Settings, href: `/projects/${projectId}?tab=define` },
     ] : []),
     ...(canAccessPublishing ? [
@@ -1384,37 +1384,6 @@ Thank you for your assistance.`;
                   className="px-3 py-2"
                 >
                   <Download className="h-4 w-4" />
-                </Button>
-                <Button
-                  onClick={() => {
-                    // Show validation dialog for manual brain icon clicks
-                    setShowValidationDialog(true);
-                    setValidationProgress(20);
-                    setValidationStep('validating');
-                    
-                    // Simulate progress while processing
-                    const progressInterval = setInterval(() => {
-                      setValidationProgress(prev => {
-                        if (prev >= 80) {
-                          clearInterval(progressInterval);
-                          return 80; // Stop at 80% until completion
-                        }
-                        return prev + 10;
-                      });
-                    }, 200);
-                    
-                    batchValidationMutation.mutate();
-                  }}
-                  variant="outline"
-                  size="sm"
-                  className="px-3 py-2"
-                  disabled={batchValidationMutation.isPending}
-                >
-                  {batchValidationMutation.isPending ? (
-                    <RotateCcw className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Brain className="h-4 w-4" />
-                  )}
                 </Button>
               </div>
             </div>

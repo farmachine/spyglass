@@ -19,6 +19,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ Updated AI reasoning instructions with specific guidance on extraction methodology, rule impacts, and follow-up questions
 - ✓ Added concrete example showing expected reasoning format: methodology explanation + rule impact + verification questions
 - ✓ AI now generates contextual reasoning like "Identified 17 unique company names across all documents by scanning party definitions and signature blocks"
+- ✓ **BRAIN ICON REMOVAL COMPLETED**: Removed batch validation button (brain icon) from SessionView review page per user request
+- ✓ Cleaned up unused Brain import and navigation references to prevent errors
+- ✓ **AI REASONING FORMAT FINALIZED**: Updated prompt to enforce exact two-section structure: "Explanation of the issue" + "Clarification questions"
+- ✓ Enhanced AI reasoning instructions with clear formatting requirements and concrete examples
 
 **January 21, 2025 (Previous Update)**
 - ✓ **COLLECTION PROPERTY DISPLAY BUG COMPLETELY RESOLVED**: Fixed critical field name mismatch preventing collection items from displaying extracted values
