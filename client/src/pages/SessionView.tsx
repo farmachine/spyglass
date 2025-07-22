@@ -1391,37 +1391,6 @@ Thank you for your assistance.`;
                 >
                   <Download className="h-4 w-4" />
                 </Button>
-                <Button
-                  onClick={() => {
-                    // Show validation dialog for manual brain icon clicks
-                    setShowValidationDialog(true);
-                    setValidationProgress(20);
-                    setValidationStep('validating');
-                    
-                    // Simulate progress while processing
-                    const progressInterval = setInterval(() => {
-                      setValidationProgress(prev => {
-                        if (prev >= 80) {
-                          clearInterval(progressInterval);
-                          return 80; // Stop at 80% until completion
-                        }
-                        return prev + 10;
-                      });
-                    }, 200);
-                    
-                    batchValidationMutation.mutate();
-                  }}
-                  variant="outline"
-                  size="sm"
-                  className="px-3 py-2"
-                  disabled={batchValidationMutation.isPending}
-                >
-                  {batchValidationMutation.isPending ? (
-                    <RotateCcw className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Brain className="h-4 w-4" />
-                  )}
-                </Button>
               </div>
             </div>
 
