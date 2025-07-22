@@ -15,6 +15,10 @@ export default function SchemaView() {
   const params = useParams();
   const sessionId = params.sessionId;
   const [, setLocation] = useLocation();
+  
+  // Get mode from URL parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  const extractionMode = urlParams.get('mode') as 'automated' | 'debug' | null;
 
   const { data: session, isLoading: sessionLoading } = useQuery<any>({
     queryKey: [`/api/sessions/${sessionId}`],
@@ -537,7 +541,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
       maxWidth: '100%',
       wordWrap: 'break-word'
     }}>
-      {/* Header */}
+      {/* Header with Mode Display */}
       <div style={{ 
         margin: '0 0 20px 0', 
         padding: '15px', 
@@ -545,6 +549,21 @@ ${error instanceof Error ? error.message : 'Unknown error'}
         border: '2px solid #0066cc',
         fontWeight: 'bold'
       }}>
+        {extractionMode && (
+          <div style={{ 
+            marginBottom: '10px', 
+            padding: '8px 12px', 
+            backgroundColor: extractionMode === 'debug' ? '#f8d7da' : '#d1ecf1',
+            border: `2px solid ${extractionMode === 'debug' ? '#dc3545' : '#0c63e4'}`,
+            borderRadius: '4px',
+            color: extractionMode === 'debug' ? '#721c24' : '#0c63e4',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            textAlign: 'center'
+          }}>
+            {extractionMode === 'automated' ? '🤖 AUTOMATED MODE' : '🔧 DEBUG MODE'}
+          </div>
+        )}
         === STEP 1 COMPLETE: Document Content Extracted ===
         Session: {session?.sessionName || 'Unnamed Session'}
         Project: {schemaData.project?.name || 'Unnamed Project'}
@@ -595,6 +614,21 @@ ${error instanceof Error ? error.message : 'Unknown error'}
         border: '2px solid #0066cc',
         fontWeight: 'bold'
       }}>
+        {extractionMode && (
+          <div style={{ 
+            marginBottom: '10px', 
+            padding: '8px 12px', 
+            backgroundColor: extractionMode === 'debug' ? '#f8d7da' : '#d1ecf1',
+            border: `2px solid ${extractionMode === 'debug' ? '#dc3545' : '#0c63e4'}`,
+            borderRadius: '4px',
+            color: extractionMode === 'debug' ? '#721c24' : '#0c63e4',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            textAlign: 'center'
+          }}>
+            {extractionMode === 'automated' ? '🤖 AUTOMATED MODE' : '🔧 DEBUG MODE'}
+          </div>
+        )}
         === STEP 2: PROJECT SCHEMA & AI PROCESSING CONFIGURATION ===
       </div>
 
@@ -980,6 +1014,21 @@ ${error instanceof Error ? error.message : 'Unknown error'}
         backgroundColor: '#d4edda',
         border: '2px solid #155724'
       }}>
+        {extractionMode && (
+          <div style={{ 
+            marginBottom: '10px', 
+            padding: '8px 12px', 
+            backgroundColor: extractionMode === 'debug' ? '#f8d7da' : '#d1ecf1',
+            border: `2px solid ${extractionMode === 'debug' ? '#dc3545' : '#0c63e4'}`,
+            borderRadius: '4px',
+            color: extractionMode === 'debug' ? '#721c24' : '#0c63e4',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            textAlign: 'center'
+          }}>
+            {extractionMode === 'automated' ? '🤖 AUTOMATED MODE' : '🔧 DEBUG MODE'}
+          </div>
+        )}
         <div style={{ marginBottom: '10px', fontWeight: 'bold' }}>
           STEP 2 COMPLETE: Schema & Prompt Generated
         </div>
@@ -1010,6 +1059,21 @@ ${error instanceof Error ? error.message : 'Unknown error'}
           border: '3px solid #155724',
           borderRadius: '8px'
         }}>
+          {extractionMode && (
+            <div style={{ 
+              marginBottom: '10px', 
+              padding: '8px 12px', 
+              backgroundColor: extractionMode === 'debug' ? '#f8d7da' : '#d1ecf1',
+              border: `2px solid ${extractionMode === 'debug' ? '#dc3545' : '#0c63e4'}`,
+              borderRadius: '4px',
+              color: extractionMode === 'debug' ? '#721c24' : '#0c63e4',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              textAlign: 'center'
+            }}>
+              {extractionMode === 'automated' ? '🤖 AUTOMATED MODE' : '🔧 DEBUG MODE'}
+            </div>
+          )}
           <div style={{ 
             fontWeight: 'bold', 
             fontSize: '18px',
@@ -1067,6 +1131,21 @@ ${error instanceof Error ? error.message : 'Unknown error'}
           border: '3px solid #0066cc',
           borderRadius: '8px'
         }}>
+          {extractionMode && (
+            <div style={{ 
+              marginBottom: '10px', 
+              padding: '8px 12px', 
+              backgroundColor: extractionMode === 'debug' ? '#f8d7da' : '#d1ecf1',
+              border: `2px solid ${extractionMode === 'debug' ? '#dc3545' : '#0c63e4'}`,
+              borderRadius: '4px',
+              color: extractionMode === 'debug' ? '#721c24' : '#0c63e4',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              textAlign: 'center'
+            }}>
+              {extractionMode === 'automated' ? '🤖 AUTOMATED MODE' : '🔧 DEBUG MODE'}
+            </div>
+          )}
           <div style={{ 
             fontWeight: 'bold', 
             fontSize: '18px',

@@ -291,9 +291,11 @@ export default function NewUpload({ project }: NewUploadProps) {
           description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
         });
 
-        // Close dialog and redirect to text view
+        // Close dialog and redirect to schema view with mode parameter
         setShowProcessingDialog(false);
-        setLocation(textExtractionResult.redirect || `/sessions/${session.id}/text-view`);
+        const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
+        const urlWithMode = `${redirectUrl}?mode=${extractionMode}`;
+        setLocation(urlWithMode);
       } else {
         throw new Error("Text extraction completed but session data is missing");
       }
