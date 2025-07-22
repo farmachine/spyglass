@@ -24,6 +24,9 @@ Preferred communication style: Simple, everyday language.
 - ✓ Enhanced Python script to handle server data format: {session_id, files, schema_markdown} and build proper extraction prompts
 - ✓ Added intelligent JSON parsing in Python script to extract structured data from Gemini responses (handles markdown code blocks)
 - ✓ Fixed JSON parsing error by ensuring proper field_validations array structure returned to database save endpoint
+- ✓ **CRITICAL AUTOMATED WORKFLOW BUG FIXED**: Resolved missing schema markdown parameter in automated Gemini extraction calls
+- ✓ Enhanced automated workflow to properly fetch and pass schema markdown to Gemini extraction endpoint
+- ✓ Fixed data flow issue where Python script received incomplete data due to missing schema context
 - ✓ Real Gemini API integration confirmed working with actual document content extraction and database storage
 - ✓ **JSON TRUNCATION ISSUE COMPLETELY RESOLVED**: Fixed critical issue preventing complete AI extraction responses
 - ✓ Increased Gemini API max_output_tokens from 30,000 to 10 million tokens to eliminate response truncation

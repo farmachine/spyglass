@@ -1874,9 +1874,10 @@ print(json.dumps(result))
       });
       
       console.log('GEMINI EXTRACTION: Complete, extracted data stored');
+      console.log('GEMINI EXTRACTION: Response extractedData:', JSON.stringify(extractedData).substring(0, 200));
       
       res.json({
-        message: "Gemini extraction completed",
+        message: "Gemini extraction completed", 
         extractedData: extractedData,
         redirect: `/sessions/${sessionId}/gemini-results`
       });

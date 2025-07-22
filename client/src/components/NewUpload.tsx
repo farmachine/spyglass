@@ -280,10 +280,18 @@ export default function NewUpload({ project }: NewUploadProps) {
         // Step 4: AI Extraction (background process)
         setProcessingStep('validating');
         
+        // Get schema markdown for AI processing
+        const schemaResponse = await apiRequest(`/api/projects/${projectId}/schema-data`);
+        
         const geminiResult = await apiRequest(`/api/sessions/${session.id}/gemini-extraction`, {
           method: 'POST',
+          body: JSON.stringify({ schemaMarkdown: schemaResponse.schemaMarkdown }),
           headers: { 'Content-Type': 'application/json' }
         });
+
+        console.log("AUTOMATED: Gemini result received:", geminiResult);
+        console.log("AUTOMATED: Gemini extractedData type:", typeof geminiResult.extractedData);
+        console.log("AUTOMATED: Gemini extractedData preview:", JSON.stringify(geminiResult.extractedData).substring(0, 200));
 
         setProcessingProgress(66);
 
