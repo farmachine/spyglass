@@ -371,19 +371,25 @@ export default function NewUpload({ project }: NewUploadProps) {
           return markdown;
         };
         
-        const schemaMarkdown = generateSchemaMarkdown(schemaResponse);
-        console.log("AUTOMATED: Generated schema markdown, length:", schemaMarkdown.length);
+        // We need to pass the actual document content to the AI for extraction
+        // The gemini-extraction endpoint expects files and schema_markdown format
+        const geminiPayload = {
+          session_id: session.id,
+          files: filesData.map(file => ({
+            file_name: file.name,
+            file_content: file.content,
+            mime_type: file.type
+          })),
+          schema_markdown: generateSchemaMarkdown(schemaResponse, '', filesData.length),
+          projectId: project.id
+        };
         
-        // Use correct parameter names for the gemini-extraction endpoint
-        console.log("AUTOMATED: Making Gemini API call to:", `/api/sessions/${session.id}/gemini-extraction`);
-        console.log("AUTOMATED: With projectId:", project.id);
+        console.log("AUTOMATED: Generated schema markdown, length:", geminiPayload.schema_markdown.length);
+        console.log("AUTOMATED: Making Gemini API call with files:", filesData.length);
         
         const geminiResult = await apiRequest(`/api/sessions/${session.id}/gemini-extraction`, {
           method: 'POST',
-          body: JSON.stringify({ 
-            prompt: schemaMarkdown, 
-            projectId: project.id 
-          }),
+          body: JSON.stringify(geminiPayload),
           headers: { 'Content-Type': 'application/json' }
         });
         

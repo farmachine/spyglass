@@ -1555,7 +1555,7 @@ print(json.dumps(result))
   app.post("/api/sessions/:sessionId/gemini-extraction", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
-      const { prompt, projectId } = req.body;
+      const { prompt, projectId, session_id, files, schema_markdown } = req.body;
       
       console.log(`GEMINI EXTRACTION: Starting for session ${sessionId}`);
       
@@ -1568,11 +1568,15 @@ print(json.dumps(result))
         cwd: process.cwd()
       });
 
-      // Send the prompt data to Python
+      // Send the appropriate data structure to Python script
       const pythonInput = JSON.stringify({
+        // Support both old format (prompt) and new format (files + schema_markdown)
         prompt: prompt,
         projectId: projectId,
-        sessionId: sessionId
+        sessionId: sessionId,
+        session_id: session_id,
+        files: files,
+        schema_markdown: schema_markdown
       });
       
       python.stdin.write(pythonInput);
@@ -1597,11 +1601,24 @@ print(json.dumps(result))
             const result = JSON.parse(output);
             console.log('GEMINI EXTRACTION result:', result.success ? 'Success' : 'Failed');
             
-            res.json({
+            // Handle different response formats from Python script
+            const responseData: any = {
               success: result.success,
-              extractedData: result.extractedData || result.field_validations || result.result,
               error: result.error
-            });
+            };
+            
+            // Check if Python script returned field_validations
+            if (result.field_validations) {
+              responseData.extractedData = {
+                field_validations: result.field_validations
+              };
+            } else if (result.extractedData) {
+              responseData.extractedData = result.extractedData;
+            } else if (result.result) {
+              responseData.extractedData = result.result;
+            }
+            
+            res.json(responseData);
             
             resolve(result);
           } catch (parseError) {
