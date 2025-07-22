@@ -130,6 +130,150 @@ export default function SchemaView() {
     loadDocumentContentWithGemini();
   }, [session, sessionId]);
 
+  // Auto-trigger extraction when in automated mode and schema is ready
+  useEffect(() => {
+    const autoTriggerExtraction = async () => {
+      if (extractionMode === 'automated' && schemaData && documentContent && !isProcessing && !geminiResponse) {
+        console.log('AUTO-TRIGGER: Starting automatic Gemini extraction in automated mode');
+        
+        if (!documentContent) {
+          setGeminiResponse("=== ERROR ===\n\nNo document content available. Please wait for document extraction to complete.\n\n=== END ERROR ===");
+          return;
+        }
+        
+        setIsProcessing(true);
+        try {
+          const fullPrompt = generateSchemaMarkdown(schemaData, documentContent.text, documentContent.count);
+          
+          console.log('AUTO-TRIGGER: Generated extraction prompt with document content');
+          
+          // Make actual API call to Gemini
+          const response = await apiRequest(`/api/sessions/${sessionId}/gemini-extraction`, {
+            method: 'POST',
+            body: JSON.stringify({ 
+              prompt: fullPrompt,
+              projectId: session.projectId 
+            }),
+            headers: { 'Content-Type': 'application/json' }
+          });
+          
+          if (response.success) {
+            setGeminiResponse(`=== GEMINI AI EXTRACTION RESULTS ===
+
+${response.extractedData || response.result || 'No response data received'}
+
+=== END RESULTS ===`);
+            console.log('AUTO-TRIGGER: Gemini extraction completed successfully');
+          } else {
+            setGeminiResponse(`=== GEMINI API ERROR ===
+
+${response.error || 'Unknown error occurred'}
+
+=== END ERROR ===`);
+          }
+        } catch (error) {
+          console.error('AUTO-TRIGGER: Gemini extraction failed:', error);
+          setGeminiResponse(`=== API CALL ERROR ===
+
+${error instanceof Error ? error.message : 'Unknown error'}
+
+=== END ERROR ===`);
+        } finally {
+          setIsProcessing(false);
+        }
+      }
+    };
+
+    autoTriggerExtraction();
+  }, [extractionMode, schemaData, documentContent, isProcessing, geminiResponse, sessionId, session?.projectId]);
+
+  // Auto-trigger database save when in automated mode and extraction is complete
+  useEffect(() => {
+    const autoTriggerSave = async () => {
+      if (extractionMode === 'automated' && geminiResponse && !isSavingToDatabase && !savedValidations && !isProcessing) {
+        console.log('AUTO-TRIGGER: Starting automatic database save in automated mode');
+        
+        setIsSavingToDatabase(true);
+        try {
+          // Extract JSON from geminiResponse
+          let jsonText = null;
+          
+          // Pattern 1: Look for ```json blocks
+          let jsonMatch = geminiResponse.match(/```json\s*\n([\s\S]*?)\n```/);
+          if (jsonMatch) {
+            jsonText = jsonMatch[1].trim();
+          } else {
+            // Pattern 2: Look for object starting with { and ending with }
+            const lines = geminiResponse.split('\n');
+            let objectStart = -1;
+            let objectEnd = -1;
+            let braceCount = 0;
+            
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i].trim();
+              if (line.startsWith('{') && objectStart === -1) {
+                objectStart = i;
+                braceCount = 1;
+                for (let j = 1; j < line.length; j++) {
+                  if (line[j] === '{') braceCount++;
+                  if (line[j] === '}') braceCount--;
+                }
+                if (braceCount === 0) {
+                  objectEnd = i;
+                  break;
+                }
+              } else if (objectStart !== -1) {
+                for (let j = 0; j < line.length; j++) {
+                  if (line[j] === '{') braceCount++;
+                  if (line[j] === '}') braceCount--;
+                }
+                if (braceCount === 0) {
+                  objectEnd = i;
+                  break;
+                }
+              }
+            }
+            
+            if (objectStart !== -1 && objectEnd !== -1) {
+              jsonText = lines.slice(objectStart, objectEnd + 1).join('\n');
+            }
+          }
+
+          if (jsonText) {
+            console.log('AUTO-TRIGGER: Extracted JSON text, sending to database');
+            
+            const response = await apiRequest(`/api/sessions/${sessionId}/save-validations`, {
+              method: 'POST',
+              body: JSON.stringify({ extractedData: jsonText }),
+              headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (response.success) {
+              setSavedValidations(response.validations || []);
+              console.log('AUTO-TRIGGER: Database save completed successfully');
+              
+              // In automated mode, automatically redirect to session view
+              console.log('AUTO-TRIGGER: Redirecting to session review in automated mode');
+              setTimeout(() => {
+                setLocation(`/sessions/${sessionId}`);
+              }, 2000); // Give user 2 seconds to see completion message
+            } else {
+              console.error('AUTO-TRIGGER: Database save failed:', response.message);
+            }
+          } else {
+            console.error('AUTO-TRIGGER: Could not extract JSON from Gemini response');
+          }
+        } catch (error) {
+          console.error('AUTO-TRIGGER: Database save failed:', error);
+        } finally {
+          setIsSavingToDatabase(false);
+        }
+      }
+    };
+
+    autoTriggerSave();
+  }, [extractionMode, geminiResponse, isSavingToDatabase, savedValidations, isProcessing, sessionId]);
+
   // Function to generate markdown from schema data
   const generateSchemaMarkdown = (data: SchemaData, documentText: string, documentCount: number) => {
     let markdown = `# AI EXTRACTION TASK\n\n`;
