@@ -526,6 +526,22 @@ export default function NewUpload({ project }: NewUploadProps) {
                       </>
                     )}
                   </Button>
+
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
+                    className="w-full bg-white hover:bg-gray-50 text-gray-700 border-gray-300 mt-2"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      // TODO: Implement debug mode handler
+                      console.log('Debug mode extraction requested');
+                      form.handleSubmit(handleSubmit)(e);
+                    }}
+                  >
+                    Run in debug mode
+                  </Button>
                 </form>
               </Form>
             </div>
