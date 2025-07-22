@@ -263,17 +263,27 @@ export default function NewUpload({ project }: NewUploadProps) {
       }));
 
       if (mode === 'automated') {
-        // AUTOMATED MODE: Run complete workflow in background
-        // Step 3: Text Extraction Phase
-        setProcessingStep('extracting');
-        setProcessingProgress(0);
-        setSelectedFiles(prev => prev.map(f => ({ ...f, status: "processing" as const })));
+        try {
+          // AUTOMATED MODE: Run complete workflow in background
+          // Step 3: Text Extraction Phase
+          setProcessingStep('extracting');
+          setProcessingProgress(0);
+          setSelectedFiles(prev => prev.map(f => ({ ...f, status: "processing" as const })));
 
-        const textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
-          method: 'POST',
-          body: JSON.stringify({ files: filesData }),
-          headers: { 'Content-Type': 'application/json' }
-        });
+          console.log("AUTOMATED: Starting text extraction for session:", session.id);
+          console.log("AUTOMATED: Files data prepared:", filesData.length, "files");
+          
+          const textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
+            method: 'POST',
+            body: JSON.stringify({ files: filesData }),
+            headers: { 'Content-Type': 'application/json' }
+          });
+          
+          console.log("AUTOMATED: Text extraction result:", textExtractionResult);
+          
+          if (!textExtractionResult || !textExtractionResult.success) {
+            throw new Error('Text extraction failed');
+          }
 
         setProcessingProgress(33);
 
@@ -281,7 +291,7 @@ export default function NewUpload({ project }: NewUploadProps) {
         setProcessingStep('validating');
         
         // Get schema markdown for AI processing
-        const schemaResponse = await apiRequest(`/api/projects/${projectId}/schema-data`);
+        const schemaResponse = await apiRequest(`/api/projects/${session.project_id}/schema-data`);
         
         const geminiResult = await apiRequest(`/api/sessions/${session.id}/gemini-extraction`, {
           method: 'POST',
@@ -319,7 +329,18 @@ export default function NewUpload({ project }: NewUploadProps) {
         // Close dialog and redirect directly to session view
         setShowProcessingDialog(false);
         setLocation(`/sessions/${session.id}`);
-
+        
+        } catch (error) {
+          console.error("AUTOMATED: Workflow failed:", error);
+          setSelectedFiles(prev => prev.map(f => ({ ...f, status: "error" as const })));
+          
+          setShowProcessingDialog(false);
+          toast({
+            title: "Automated extraction failed",
+            description: "There was an error processing your files. Please try debug mode or contact support.",
+            variant: "destructive",
+          });
+        }
       } else {
         // DEBUG MODE: Keep existing behavior (redirect to schema view)
         // Step 3: Text Extraction Phase
