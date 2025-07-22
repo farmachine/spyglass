@@ -1599,7 +1599,7 @@ print(json.dumps(result))
             
             res.json({
               success: result.success,
-              extractedData: result.extractedData || result.result,
+              extractedData: result.extractedData || result.field_validations || result.result,
               error: result.error
             });
             
