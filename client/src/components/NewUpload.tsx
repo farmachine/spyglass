@@ -281,8 +281,18 @@ export default function NewUpload({ project }: NewUploadProps) {
           
           console.log("AUTOMATED: Text extraction result:", textExtractionResult);
           
-          if (!textExtractionResult || !textExtractionResult.success) {
-            throw new Error('Text extraction failed');
+          if (!textExtractionResult) {
+            throw new Error('Text extraction returned no response');
+          }
+          
+          // Check for explicit success field or message indicating success
+          const isSuccess = textExtractionResult.success === true || 
+                           textExtractionResult.message?.includes('successfully') || 
+                           textExtractionResult.message?.includes('completed');
+          
+          if (!isSuccess) {
+            console.log("AUTOMATED: Text extraction failed, result:", textExtractionResult);
+            throw new Error(`Text extraction failed: ${textExtractionResult.error || textExtractionResult.message || 'Unknown error'}`);
           }
 
         setProcessingProgress(33);
@@ -300,14 +310,19 @@ export default function NewUpload({ project }: NewUploadProps) {
         }
         
         console.log("AUTOMATED: Starting Gemini extraction with schema markdown length:", schemaResponse.schemaMarkdown?.length);
+        
+        // Use correct parameter names for the gemini-extraction endpoint
         const geminiResult = await apiRequest(`/api/sessions/${session.id}/gemini-extraction`, {
           method: 'POST',
-          body: JSON.stringify({ schemaMarkdown: schemaResponse.schemaMarkdown }),
+          body: JSON.stringify({ 
+            prompt: schemaResponse.schemaMarkdown, 
+            projectId: session.project_id 
+          }),
           headers: { 'Content-Type': 'application/json' }
         });
         
-        if (!geminiResult || !geminiResult.extractedData) {
-          throw new Error('Gemini extraction failed or returned no data');
+        if (!geminiResult || !geminiResult.success || !geminiResult.extractedData) {
+          throw new Error(`Gemini extraction failed: ${geminiResult?.error || 'No data returned'}`);
         }
 
         console.log("AUTOMATED: Gemini result received:", geminiResult);
@@ -317,13 +332,18 @@ export default function NewUpload({ project }: NewUploadProps) {
         setProcessingProgress(66);
 
         // Step 5: Save to Database (background process)
-        console.log("AUTOMATED: Saving validations to database...");
+        console.log("AUTOMATED: Starting database save");
         const saveResult = await apiRequest(`/api/sessions/${session.id}/save-validations`, {
           method: 'POST',
           body: JSON.stringify({ extractedData: geminiResult.extractedData }),
           headers: { 'Content-Type': 'application/json' }
         });
-        console.log("AUTOMATED: Save result:", saveResult);
+        
+        if (!saveResult || !saveResult.success) {
+          throw new Error(`Database save failed: ${saveResult?.error || 'Save operation failed'}`);
+        }
+        
+        console.log("AUTOMATED: Database save completed successfully:", saveResult);
 
         setProcessingProgress(100);
 
@@ -331,8 +351,10 @@ export default function NewUpload({ project }: NewUploadProps) {
         setProcessingStep('complete');
         setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
 
-        // Show success briefly before redirect
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log("AUTOMATED: Workflow completed successfully, preparing redirect");
+        
+        // Show completion state briefly before redirect
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
         toast({
           title: "Automated extraction complete",
@@ -348,9 +370,11 @@ export default function NewUpload({ project }: NewUploadProps) {
           setSelectedFiles(prev => prev.map(f => ({ ...f, status: "error" as const })));
           
           setShowProcessingDialog(false);
+          
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
           toast({
             title: "Automated extraction failed",
-            description: "There was an error processing your files. Please try debug mode or contact support.",
+            description: `Error: ${errorMessage}. Please try debug mode or contact support.`,
             variant: "destructive",
           });
         }
