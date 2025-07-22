@@ -132,27 +132,7 @@ export default function SchemaView() {
     loadDocumentContentWithGemini();
   }, [session, sessionId]);
 
-  // Auto-trigger extraction in non-debug mode when document content is ready
-  useEffect(() => {
-    const runAutomatedExtraction = async () => {
-      if (!debugMode && documentContent && schemaData && !autoExtractionComplete && !isProcessing) {
-        console.log('Auto-triggering extraction in automated mode...');
-        setAutoExtractionComplete(true);
-        
-        try {
-          // Step 1: Run AI extraction and wait for it to complete
-          await handleGeminiExtractionAutomated();
-        } catch (error) {
-          console.error('Automated extraction failed:', error);
-          setAutoExtractionComplete(false);
-        }
-      }
-    };
-
-    if (documentContent && schemaData) {
-      runAutomatedExtraction();
-    }
-  }, [documentContent, schemaData, debugMode, autoExtractionComplete, isProcessing]);
+  // Don't auto-trigger extraction - wait for user to click "Start Extraction" button
 
   // Function to generate markdown from schema data
   const generateSchemaMarkdown = (data: SchemaData, documentText: string, documentCount: number) => {
@@ -695,60 +675,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
     );
   }
 
-  // Show automated processing UI in non-debug mode
-  if (!debugMode && (isProcessing || autoExtractionComplete)) {
-    return (
-      <div style={{ 
-        padding: '20px', 
-        fontFamily: 'monospace',
-        textAlign: 'center',
-        fontSize: '16px'
-      }}>
-        <div style={{ 
-          padding: '30px', 
-          backgroundColor: '#e7f3ff',
-          border: '3px solid #0066cc',
-          borderRadius: '10px',
-          maxWidth: '600px',
-          margin: '50px auto'
-        }}>
-          <h2 style={{ color: '#0066cc', marginBottom: '20px' }}>
-            🤖 AUTOMATED AI EXTRACTION IN PROGRESS
-          </h2>
-          <div style={{ marginBottom: '20px' }}>
-            {isProcessing ? (
-              <div>
-                <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px' }}>
-                  Processing {documentContent?.count || 0} documents...
-                </div>
-                <div style={{ fontSize: '14px', color: '#666' }}>
-                  Running AI extraction and validation automatically
-                </div>
-              </div>
-            ) : (
-              <div>
-                <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', color: '#28a745' }}>
-                  ✅ Extraction Complete!
-                </div>
-                <div style={{ fontSize: '14px', color: '#666' }}>
-                  Redirecting to review page...
-                </div>
-              </div>
-            )}
-          </div>
-          <div style={{ 
-            fontSize: '12px', 
-            color: '#888',
-            borderTop: '1px solid #ccc',
-            paddingTop: '15px',
-            marginTop: '15px'
-          }}>
-            This is automated mode. For step-by-step debugging, use "Debug Extraction" when uploading documents.
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // In automated mode, don't redirect to separate page - stay on current page with loading state
 
 
 
@@ -1212,7 +1139,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
           STEP 2 COMPLETE: Schema & Prompt Generated
         </div>
         <button 
-          onClick={handleGeminiExtraction}
+          onClick={debugMode ? handleGeminiExtraction : handleGeminiExtractionAutomated}
           disabled={isProcessing}
           style={{
             padding: '12px 24px',
