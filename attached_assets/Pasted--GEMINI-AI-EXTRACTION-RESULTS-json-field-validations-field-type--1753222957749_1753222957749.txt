@@ -1,0 +1,86 @@
+=== GEMINI AI EXTRACTION RESULTS ===
+
+```json
+{
+  "field_validations": [
+    {
+      "field_type": "schema_field",
+      "field_id": "16b96037-6261-4879-b511-ec052a8042cf",
+      "field_name": "Number of Parties",
+      "description": "The number of parties across all the contracts. Please make sure you look for all companies mentioned across all the documents",
+      "extracted_value": 2,
+      "confidence_score": 95,
+      "ai_reasoning": "The document clearly identifies two distinct parties: '3M Company' and 'Cogent, Inc.' in both the original Non-Disclosure Agreement and the subsequent Amendment. The 'Contract Review Playbook' emphasizes 'Party Identification' as an essential contract element, which supports the clear identification of parties.",
+      "document_source": "3M Company - NDA.pdf",
+      "validation_status": "validated",
+      "record_index": 0
+    },
+    {
+      "field_type": "schema_field",
+      "field_id": "78fbb562-5821-4464-827d-d5af3879368a",
+      "field_name": "Number of NDAs",
+      "description": "The number of contracts in the document set. please make you you count what appears to be individual documents",
+      "extracted_value": 1,
+      "confidence_score": 95,
+      "ai_reasoning": "The document contains one 'NON-DISCLOSURE AGREEMENT' and one 'AMENDMENT NO. 1 TO NON-DISCLOSURE AGREEMENT'. The amendment explicitly states it 'amends the Non-Disclosure Agreement', indicating it modifies the original contract rather than being a separate, new NDA. Therefore, there is one core NDA document. The 'Contract Review Playbook' discusses 'Contract Classification', which aligns with identifying the primary contract type.",
+      "document_source": "3M Company - NDA.pdf",
+      "validation_status": "validated",
+      "record_index": 0
+    },
+    {
+      "field_type": "collection_property",
+      "field_id": "10c8fbea-b2fa-4171-bd0f-42bf71b8b455",
+      "field_name": "Parties.Name",
+      "collection_name": "Parties",
+      "description": "Name of the party",
+      "extracted_value": "3M Company",
+      "confidence_score": 95,
+      "ai_reasoning": "The party name '3M Company' is clearly stated as 'Interested Party' or 'Receiving Party' in the document. The 'Contract Review Playbook' lists 'Legal entity names' under 'Party Identification' as an essential contract element.",
+      "document_source": "3M Company - NDA.pdf",
+      "validation_status": "validated",
+      "record_index": 0
+    },
+    {
+      "field_type": "collection_property",
+      "field_id": "1292427d-ad20-410d-8b8b-85ed36153e77",
+      "field_name": "Parties.Address",
+      "collection_name": "Parties",
+      "description": "Address of the party",
+      "extracted_value": null,
+      "confidence_score": 70,
+      "ai_reasoning": "The document does not explicitly state the address for '3M Company'. The 'Contract Review Playbook' mentions 'Legal entity names and addresses' as an essential contract element, indicating that an address should ideally be present. Its absence leads to a null extraction and a reduced confidence score. Follow-up question: Can the address for 3M Company be provided?",
+      "document_source": "3M Company - NDA.pdf",
+      "validation_status": "pending",
+      "record_index": 0
+    },
+    {
+      "field_type": "collection_property",
+      "field_id": "10c8fbea-b2fa-4171-bd0f-42bf71b8b455",
+      "field_name": "Parties.Name",
+      "collection_name": "Parties",
+      "description": "Name of the party",
+      "extracted_value": "Cogent, Inc.",
+      "confidence_score": 12,
+      "ai_reasoning": "The party name 'Cogent, Inc.' is clearly stated as 'Company' or 'Disclosing Party' in the document. However, per 'TARGETED RULE 1: Inc.', parties with names containing 'Inc' must have their confidence rating set to 12%. The 'Contract Review Playbook' lists 'Legal entity names' under 'Party Identification' as an essential contract element.",
+      "document_source": "3M Company - NDA.pdf",
+      "validation_status": "validated",
+      "record_index": 1
+    },
+    {
+      "field_type": "collection_property",
+      "field_id": "1292427d-ad20-410d-8b8b-85ed36153e77",
+      "field_name": "Parties.Address",
+      "collection_name": "Parties",
+      "description": "Address of the party",
+      "extracted_value": null,
+      "confidence_score": 70,
+      "ai_reasoning": "The document does not explicitly state the address for 'Cogent, Inc.'. The 'Contract Review Playbook' mentions 'Legal entity names and addresses' as an essential contract element, indicating that an address should ideally be present. Its absence leads to a null extraction and a reduced confidence score. Follow-up question: Can the address for Cogent, Inc. be provided?",
+      "document_source": "3M Company - NDA.pdf",
+      "validation_status": "pending",
+      "record_index": 1
+    }
+  ]
+}
+```
+
+=== END RESULTS ===

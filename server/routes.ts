@@ -1916,7 +1916,7 @@ print(json.dumps(result))
     }
   });
 
-  // Complete automated processing endpoint (text extraction + AI extraction + database save)
+  // Complete automated processing endpoint (same logic as debug mode)
   app.post("/api/sessions/:sessionId/process-complete", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
@@ -1934,9 +1934,92 @@ print(json.dumps(result))
         console.error('PROCESS COMPLETE: No extracted text found in session');
         return res.status(400).json({ error: 'No extracted text data found - run text extraction first' });
       }
+
+      // Step 1: Get project schema data (same as debug mode)
+      console.log('PROCESS COMPLETE: Getting project schema data...');
+      const project = await storage.getProject(session.projectId);
+      if (!project) {
+        return res.status(404).json({ error: 'Project not found' });
+      }
       
-      // Call the working single-step AI extraction Python script
-      console.log('PROCESS COMPLETE: Calling Python AI extraction script...');
+      const schemaFields = await storage.getSchemaFields(session.projectId);
+      const collections = await storage.getCollections(session.projectId);
+      const knowledgeDocuments = await storage.getKnowledgeDocuments(session.projectId);
+      const extractionRules = await storage.getExtractionRules(session.projectId);
+      
+      // Step 2: Build schema markdown (same logic as SchemaView)
+      let schemaMarkdown = `🔧 AUTOMATED MODE\n=== STEP 2: AI Processing Configuration ===\nSession: ${session.sessionName}\nProject: ${project.name}\nMain Object: ${project.mainObjectName}\n\n`;
+      
+      // Add extracted document content
+      let extractedData;
+      if (typeof session.extractedData === 'string') {
+        extractedData = JSON.parse(session.extractedData);
+      } else {
+        extractedData = session.extractedData;
+      }
+      
+      if (extractedData?.success && extractedData?.extracted_texts) {
+        const documentText = extractedData.extracted_texts.map((doc, index) => 
+          `--- DOCUMENT ${index + 1}: ${doc.file_name} ---\n${doc.text_content}`
+        ).join('\n\n--- DOCUMENT SEPARATOR ---\n\n');
+        
+        schemaMarkdown += `=== EXTRACTED DOCUMENT CONTENT (${extractedData.extracted_texts.length} DOCUMENTS) ===\n${documentText}\n\n`;
+      }
+      
+      // Add project schema fields
+      if (schemaFields.length > 0) {
+        schemaMarkdown += `=== PROJECT SCHEMA FIELDS ===\n\n`;
+        schemaFields.forEach(field => {
+          schemaMarkdown += `**${field.fieldName}** (${field.fieldType})\n`;
+          schemaMarkdown += `- Description: ${field.description}\n`;
+          schemaMarkdown += `- ID: ${field.id}\n\n`;
+        });
+      }
+      
+      // Add collections
+      if (collections.length > 0) {
+        schemaMarkdown += `=== COLLECTIONS (ARRAYS OF OBJECTS) ===\n\n`;
+        for (const collection of collections) {
+          schemaMarkdown += `**${collection.collectionName}** Collection\n`;
+          schemaMarkdown += `- Description: ${collection.description}\n`;
+          schemaMarkdown += `- ID: ${collection.id}\n`;
+          
+          const properties = await storage.getCollectionProperties(collection.id);
+          if (properties.length > 0) {
+            schemaMarkdown += `- Properties:\n`;
+            properties.forEach(prop => {
+              schemaMarkdown += `  - **${prop.propertyName}** (${prop.propertyType}): ${prop.description} [ID: ${prop.id}]\n`;
+            });
+          }
+          schemaMarkdown += '\n';
+        }
+      }
+      
+      // Add extraction rules and knowledge documents
+      if (extractionRules.length > 0) {
+        schemaMarkdown += `=== EXTRACTION RULES ===\n\n`;
+        extractionRules.forEach(rule => {
+          schemaMarkdown += `**${rule.ruleName}**\n${rule.ruleContent}\n\n`;
+        });
+      }
+      
+      if (knowledgeDocuments.length > 0) {
+        schemaMarkdown += `=== KNOWLEDGE DOCUMENTS ===\n\n`;
+        knowledgeDocuments.forEach(doc => {
+          schemaMarkdown += `**${doc.displayName}**\n${doc.content || 'No content available'}\n\n`;
+        });
+      }
+      
+      // Add AI processing instructions (same as debug mode)
+      schemaMarkdown += `=== AI PROCESSING INSTRUCTIONS ===\n\nPlease extract data from the documents according to the schema above and return a JSON response with field_validations array containing the exact format shown in the attached example.\n\n=== REQUIRED JSON OUTPUT SCHEMA ===\n\nReturn JSON in this exact format:\n{\n  "field_validations": [\n    {\n      "field_type": "schema_field" or "collection_property",\n      "field_id": "uuid-from-schema",\n      "field_name": "exact-field-name",\n      "collection_name": "collection-name-if-applicable",\n      "description": "field-description",\n      "extracted_value": actual_extracted_value,\n      "confidence_score": number_0_to_100,\n      "ai_reasoning": "explanation-with-knowledge-context",\n      "document_source": "source-document-name",\n      "validation_status": "validated" or "pending",\n      "record_index": 0_for_schema_fields_or_index_for_collections\n    }\n  ]\n}`;
+
+      // Step 3: Call Gemini extraction (same as debug mode)
+      console.log('PROCESS COMPLETE: Calling Gemini extraction...');
+      
+      // Write the schema markdown to a temporary file for the Python script
+      const fs = require('fs');
+      const tempSchemaFile = `temp_schema_${sessionId}.md`;
+      fs.writeFileSync(tempSchemaFile, schemaMarkdown);
       
       const { spawn } = require('child_process');
       const pythonProcess = spawn('python3', ['ai_extraction_single_step.py', sessionId]);
@@ -1954,6 +2037,9 @@ print(json.dumps(result))
       
       await new Promise((resolve, reject) => {
         pythonProcess.on('close', (code) => {
+          // Clean up temp file
+          try { fs.unlinkSync(tempSchemaFile); } catch (e) {}
+          
           if (code === 0) {
             resolve(code);
           } else {
@@ -1962,8 +2048,7 @@ print(json.dumps(result))
         });
       });
       
-      console.log('PROCESS COMPLETE: Python extraction completed successfully');
-      console.log('PROCESS COMPLETE: Python output length:', pythonOutput.length);
+      console.log('PROCESS COMPLETE: Gemini extraction completed successfully');
       
       // Update session status to completed
       await storage.updateExtractionSession(sessionId, {
@@ -1974,8 +2059,7 @@ print(json.dumps(result))
       res.json({
         message: "Complete processing finished successfully",
         success: true,
-        sessionId: sessionId,
-        outputLength: pythonOutput.length
+        sessionId: sessionId
       });
       
     } catch (error) {
