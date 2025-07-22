@@ -10,12 +10,24 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**January 21, 2025 (Latest Update)**
-- ✓ **COLLECTION PROPERTY DISPLAY BUG COMPLETELY RESOLVED**: Fixed critical field name mismatch preventing collection items from displaying extracted values
-- ✓ Root cause identified: AI extraction saved field names without indexes ("Parties.Name") but SessionView expected indexed names ("Parties.Name[0]")
-- ✓ Enhanced save validations API endpoint to automatically convert collection property field names to proper indexed format
-- ✓ Collection items now display correctly: "3M Company", "Asana, Inc." with confidence scores instead of "Not set" 
-- ✓ Complete workflow verified: Schema generation → AI extraction → Database save → Session review works perfectly for both schema fields AND collection properties
+**January 22, 2025 (Latest Update)**
+- ✓ **AUTOMATED WORKFLOW FULLY FUNCTIONAL WITH BACKGROUND PROCESSING**: Enhanced user experience with complete background processing for automated mode
+- ✓ Fixed SessionView routing issue: Component now gets projectId from session data instead of URL parameters, eliminating "Session Not Found" errors
+- ✓ Automated workflow now keeps loading dialog open while running complete process: upload → text extraction → AI processing → database save → redirect to session view
+- ✓ Enhanced loading dialog with mode-specific progress indicators: "AI & Save" step for automated mode, "Validate" step for debug mode
+- ✓ Debug mode maintains existing behavior: redirects to schema view page for step-by-step review and interaction
+- ✓ Complete end-to-end automation working perfectly: users click "Start Extraction" and are taken directly to session review page with all data processed
+- ✓ Background processing eliminates need for users to interact with intermediate schema/prompt pages in automated mode
+- ✓ **REAL GEMINI API INTEGRATION FULLY IMPLEMENTED**: Fixed critical issue where Gemini endpoint was returning simulated data instead of actual AI extraction
+- ✓ Updated server-side Gemini extraction endpoint to use actual Python AI script (ai_extraction_single_step.py) instead of placeholder responses
+- ✓ **PYTHON SCRIPT DATA FLOW COMPLETELY FIXED**: Resolved input/output format mismatch between server and Python script
+- ✓ Enhanced Python script to handle server data format: {session_id, files, schema_markdown} and build proper extraction prompts
+- ✓ Added intelligent JSON parsing in Python script to extract structured data from Gemini responses (handles markdown code blocks)
+- ✓ Fixed JSON parsing error by ensuring proper field_validations array structure returned to database save endpoint
+- ✓ **CRITICAL AUTOMATED WORKFLOW BUG FIXED**: Resolved missing schema markdown parameter in automated Gemini extraction calls
+- ✓ Enhanced automated workflow to properly fetch and pass schema markdown to Gemini extraction endpoint
+- ✓ Fixed data flow issue where Python script received incomplete data due to missing schema context
+- ✓ Real Gemini API integration confirmed working with actual document content extraction and database storage
 - ✓ **JSON TRUNCATION ISSUE COMPLETELY RESOLVED**: Fixed critical issue preventing complete AI extraction responses
 - ✓ Increased Gemini API max_output_tokens from 30,000 to 10 million tokens to eliminate response truncation
 - ✓ Added truncation detection with early warning system when responses are incomplete
