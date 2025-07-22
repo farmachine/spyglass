@@ -20,7 +20,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ Background processing eliminates need for users to interact with intermediate schema/prompt pages in automated mode
 - ✓ **REAL GEMINI API INTEGRATION FULLY IMPLEMENTED**: Fixed critical issue where Gemini endpoint was returning simulated data instead of actual AI extraction
 - ✓ Updated server-side Gemini extraction endpoint to use actual Python AI script (ai_extraction_single_step.py) instead of placeholder responses
-- ✓ Fixed JSON parsing error by ensuring Gemini endpoint returns proper extractedData object structure instead of rawResponse text
+- ✓ **PYTHON SCRIPT DATA FLOW COMPLETELY FIXED**: Resolved input/output format mismatch between server and Python script
+- ✓ Enhanced Python script to handle server data format: {session_id, files, schema_markdown} and build proper extraction prompts
+- ✓ Added intelligent JSON parsing in Python script to extract structured data from Gemini responses (handles markdown code blocks)
+- ✓ Fixed JSON parsing error by ensuring proper field_validations array structure returned to database save endpoint
 - ✓ Real Gemini API integration confirmed working with actual document content extraction and database storage
 - ✓ **JSON TRUNCATION ISSUE COMPLETELY RESOLVED**: Fixed critical issue preventing complete AI extraction responses
 - ✓ Increased Gemini API max_output_tokens from 30,000 to 10 million tokens to eliminate response truncation
