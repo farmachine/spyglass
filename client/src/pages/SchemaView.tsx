@@ -357,18 +357,20 @@ export default function SchemaView() {
       });
       
       if (response.success) {
-        setGeminiResponse(`=== GEMINI AI EXTRACTION RESULTS ===
+        const responseText = `=== GEMINI AI EXTRACTION RESULTS ===
 
 ${response.extractedData || response.result || 'No response data received'}
 
-=== END RESULTS ===`);
+=== END RESULTS ===`;
+        
+        setGeminiResponse(responseText);
         
         // Auto-trigger save for single-click workflow
         const urlParams = new URLSearchParams(window.location.search);
         const shouldAutoRun = urlParams.get('autorun') === 'true';
         if (shouldAutoRun) {
           console.log('AUTO-TRIGGER: Automatically saving to database for single-click workflow');
-          setTimeout(() => handleSaveToDatabase(), 2000); // Small delay to show results
+          setTimeout(() => handleAutoSaveToDatabase(responseText), 1000); // Use direct response
         }
       } else {
         setGeminiResponse(`=== GEMINI API ERROR ===
@@ -386,6 +388,114 @@ ${error instanceof Error ? error.message : 'Unknown error'}
 === END ERROR ===`);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  // Auto-save function for single-click workflow (bypasses state dependency)
+  const handleAutoSaveToDatabase = async (responseText: string) => {
+    console.log('AUTO-SAVE: Starting with response text length:', responseText.length);
+    
+    setIsSavingToDatabase(true);
+    try {
+      // Extract JSON from responseText directly - same logic as handleSaveToDatabase
+      let jsonText = null;
+      
+      // Pattern 1: Look for ```json blocks
+      let jsonMatch = responseText.match(/```json\s*\n([\s\S]*?)\n```/);
+      if (jsonMatch) {
+        jsonText = jsonMatch[1].trim();
+      } else {
+        // Pattern 2: Look for object starting with { and ending with } (balanced braces)
+        const lines = responseText.split('\n');
+        let objectStart = -1;
+        let objectEnd = -1;
+        let braceCount = 0;
+        
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (line.startsWith('{') && objectStart === -1) {
+            objectStart = i;
+            braceCount = 1;
+            for (let j = 1; j < line.length; j++) {
+              if (line[j] === '{') braceCount++;
+              if (line[j] === '}') braceCount--;
+            }
+            if (braceCount === 0) {
+              objectEnd = i;
+              break;
+            }
+          } else if (objectStart !== -1) {
+            for (let j = 0; j < line.length; j++) {
+              if (line[j] === '{') braceCount++;
+              if (line[j] === '}') braceCount--;
+            }
+            if (braceCount === 0) {
+              objectEnd = i;
+              break;
+            }
+          }
+        }
+        
+        if (objectStart !== -1 && objectEnd !== -1) {
+          jsonText = lines.slice(objectStart, objectEnd + 1).join('\n').trim();
+        }
+      }
+
+      if (!jsonText) {
+        console.error('AUTO-SAVE: Failed to extract JSON. Response preview:', responseText.substring(0, 1000));
+        throw new Error('No valid JSON found in extraction results');
+      }
+
+      // Clean and parse JSON (same logic as manual save)
+      let cleanedJsonText = jsonText
+        .replace(/\n\s*\n/g, '\n')
+        .replace(/,(\s*[}\]])/g, '$1')
+        .replace(/\.\.\./g, '')
+        .replace(/…\[TRUNCATED\]/g, '')
+        .trim();
+      
+      let lastClosingBrace = cleanedJsonText.lastIndexOf('}');
+      if (lastClosingBrace > 0) {
+        cleanedJsonText = cleanedJsonText.substring(0, lastClosingBrace + 1);
+      }
+      
+      const parsedJson = JSON.parse(cleanedJsonText);
+      
+      // Extract field_validations array
+      let extractedData;
+      if (parsedJson.field_validations && Array.isArray(parsedJson.field_validations)) {
+        extractedData = parsedJson.field_validations;
+      } else if (Array.isArray(parsedJson)) {
+        extractedData = parsedJson;
+      } else {
+        throw new Error('Invalid JSON structure - expected field_validations array or direct array');
+      }
+      
+      const validationsArray = Array.isArray(extractedData) ? extractedData : [extractedData];
+      console.log('AUTO-SAVE: Parsed validations:', validationsArray.length, 'items');
+      
+      // Save to database
+      const response = await apiRequest(`/api/sessions/${sessionId}/save-validations`, {
+        method: 'POST',
+        body: JSON.stringify({ validations: validationsArray }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (response.success) {
+        setSavedValidations(validationsArray);
+        console.log('AUTO-SAVE: Validation results saved successfully:', response);
+        console.log('AUTO-SAVE: Automatically redirecting to session review');
+        setTimeout(() => {
+          setLocation(`/sessions/${sessionId}`);
+        }, 1000); // Brief delay to show completion
+      } else {
+        throw new Error(response.error || 'Failed to save validation results');
+      }
+    } catch (error) {
+      console.error('AUTO-SAVE: Save to database failed:', error);
+      alert(`Auto-save failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsSavingToDatabase(false);
     }
   };
 

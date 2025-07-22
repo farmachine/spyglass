@@ -15,7 +15,9 @@ Preferred communication style: Simple, everyday language.
 - ✓ Removed duplicate AI extraction logic from NewUpload component to prevent divergent workflows
 - ✓ Single-click extraction now redirects to SchemaView with autorun=true parameter for automatic execution
 - ✓ SchemaView detects autorun parameter and automatically triggers: document loading → Gemini extraction → JSON parsing → database save → session review redirect
-- ✓ Eliminated code duplication: both workflows use identical SchemaView functions (handleGeminiExtraction, handleSaveToDatabase)
+- ✓ Eliminated code duplication: both workflows use identical SchemaView functions (handleGeminiExtraction, handleAutoSaveToDatabase)
+- ✓ Fixed race condition in auto-save functionality by creating handleAutoSaveToDatabase function that works directly with response data
+- ✓ Single-click workflow now automatically completes entire process: text extraction → schema view → AI extraction → database save → session review redirect
 - ✓ **PROGRAMMED RULE INTERFERENCE COMPLETELY ELIMINATED**: Disabled automatic batch validation that was overriding pure AI reasoning with programmed templates
 - ✓ Root cause identified: Auto-batch validation in SessionView was calling old ai_extraction.py functions that applied programmed confidence adjustments and reasoning templates
 - ✓ Single-click extraction now uses ONLY pure AI processing without any post-processing rule interference
