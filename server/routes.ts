@@ -1471,18 +1471,38 @@ for doc in documents:
             'vnd.ms-excel' in mime_type or 
             'vnd.openxmlformats-officedocument.spreadsheetml' in mime_type or
             file_name.lower().endswith(('.xlsx', '.xls'))):
-            # Excel file - extract all sheets and tabular data
-            extraction_prompt = f"""Extract ALL content from this Excel file ({file_name}).
-
-INSTRUCTIONS:
-- Extract content from ALL worksheets/sheets in the workbook
-- For each sheet, include the sheet name as a header
-- Preserve table structure where possible using clear formatting
-- Include all text, numbers, formulas results, and data
-- If there are multiple sheets, clearly separate them with sheet names
-- Format the output as readable structured text that preserves the original data organization
-
-RETURN: Complete text content from all sheets in this Excel file."""
+            # Excel files are not supported by Gemini API - use CSV conversion approach
+            try:
+                import pandas as pd
+                import io
+                
+                # Read Excel file using pandas
+                excel_data = pd.read_excel(io.BytesIO(binary_content), sheet_name=None)
+                
+                extracted_content = f"Excel file content from {file_name}:\\n\\n"
+                
+                for sheet_name, df in excel_data.items():
+                    extracted_content += f"=== SHEET: {sheet_name} ===\\n"
+                    extracted_content += df.to_string(index=False, na_rep='')
+                    extracted_content += "\\n\\n"
+                
+                text_content = extracted_content
+                
+                extracted_texts.append({
+                    "file_name": file_name,
+                    "text_content": text_content,
+                    "word_count": len(text_content.split()) if text_content else 0
+                })
+                continue
+                
+            except Exception as pandas_error:
+                # If pandas fails, return error message
+                extracted_texts.append({
+                    "file_name": file_name,
+                    "text_content": f"Error processing Excel file: {str(pandas_error)}. Excel files require special processing that is currently not available.",
+                    "word_count": 0
+                })
+                continue
 
         elif 'pdf' in mime_type or file_name.lower().endswith('.pdf'):
             # PDF file - extract all text content
