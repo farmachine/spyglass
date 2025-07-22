@@ -276,29 +276,88 @@ export default function NewUpload({ project }: NewUploadProps) {
 
       setProcessingProgress(100);
 
-      // Step 4: Complete
-      setProcessingStep('complete');
-
-      // Mark files as completed
-      setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
-
-      // Show success briefly before redirect
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      if (textExtractionResult && session?.id) {
-        toast({
-          title: "Text extraction complete",
-          description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
+      if (mode === 'automated') {
+        // Continue with full automated workflow - keep user on loading dialog
+        console.log("AUTOMATED: Starting Gemini extraction for session:", session.id);
+        
+        // Step 4: AI Extraction Phase
+        setProcessingStep('extracting');
+        setProcessingProgress(20);
+        
+        // Call Gemini extraction API
+        const geminiResult = await apiRequest(`/api/sessions/${session.id}/gemini-extraction`, {
+          method: 'POST',
+          body: JSON.stringify({
+            projectId: project.id,
+            prompt: "Auto-generated extraction from uploaded documents"
+          }),
+          headers: { 'Content-Type': 'application/json' }
         });
+        
+        console.log("AUTOMATED: Gemini extraction completed:", geminiResult);
+        setProcessingProgress(60);
+        
+        // Step 5: Save to database
+        setProcessingStep('validating');
+        console.log("AUTOMATED: Starting database save");
+        
+        const saveResult = await apiRequest(`/api/sessions/${session.id}/save-validations`, {
+          method: 'POST',
+          body: JSON.stringify({ extractedData: geminiResult }),
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        console.log("AUTOMATED: Database save completed:", saveResult);
+        setProcessingProgress(90);
+        
+        // Step 6: Complete
+        setProcessingStep('complete');
+        setProcessingProgress(100);
 
-        // Close dialog and redirect to schema view with mode parameter
+        // Mark files as completed
+        setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
+
+        // Show success briefly before redirect
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Close dialog and redirect directly to session results
         setShowProcessingDialog(false);
-        const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
-        const urlWithMode = `${redirectUrl}?mode=${mode}`;
-
-        setLocation(urlWithMode);
+        
+        toast({
+          title: "Processing complete",
+          description: `Successfully processed ${selectedFiles.length} file(s) and saved data to database.`,
+        });
+        
+        // Redirect directly to session results page
+        console.log("AUTOMATED: Redirecting to session results");
+        setLocation(`/sessions/${session.id}`);
+        
       } else {
-        throw new Error("Text extraction completed but session data is missing");
+        // Debug mode - redirect to schema view for manual processing
+        
+        // Step 4: Complete
+        setProcessingStep('complete');
+
+        // Mark files as completed
+        setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
+
+        // Show success briefly before redirect
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        if (textExtractionResult && session?.id) {
+          toast({
+            title: "Text extraction complete",
+            description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
+          });
+
+          // Close dialog and redirect to schema view with mode parameter
+          setShowProcessingDialog(false);
+          const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
+          const urlWithMode = `${redirectUrl}?mode=${mode}`;
+          setLocation(urlWithMode);
+        } else {
+          throw new Error("Text extraction completed but session data is missing");
+        }
       }
       
       // Reset form
@@ -573,15 +632,15 @@ export default function NewUpload({ project }: NewUploadProps) {
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 {processingStep === 'uploading' && 'Processing Documents'}
-                {processingStep === 'extracting' && 'AI Data Extraction'}
-                {processingStep === 'validating' && 'Validation & Rules'}
+                {processingStep === 'extracting' && (extractionMode === 'automated' ? 'AI Data Extraction' : 'AI Data Extraction')}
+                {processingStep === 'validating' && (extractionMode === 'automated' ? 'Saving to Database' : 'Validation & Rules')}
                 {processingStep === 'complete' && 'Processing Complete'}
               </h3>
               <p className="text-sm text-gray-600">
                 {processingStep === 'uploading' && `Uploading ${processedDocuments} of ${totalDocuments} documents...`}
-                {processingStep === 'extracting' && 'Analyzing documents and extracting data using AI...'}
-                {processingStep === 'validating' && 'Applying extraction rules and validation logic...'}
-                {processingStep === 'complete' && 'All documents processed successfully!'}
+                {processingStep === 'extracting' && (extractionMode === 'automated' ? 'AI extraction and data processing...' : 'Analyzing documents and extracting data using AI...')}
+                {processingStep === 'validating' && (extractionMode === 'automated' ? 'Saving extracted data to database...' : 'Applying extraction rules and validation logic...')}
+                {processingStep === 'complete' && (extractionMode === 'automated' ? 'Processing complete! Redirecting to results...' : 'All documents processed successfully!')}
               </p>
             </div>
 
