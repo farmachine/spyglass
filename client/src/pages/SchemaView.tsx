@@ -490,7 +490,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
         setTimeout(() => {
           console.log('AUTO-SAVE: Executing redirect now...');
           setLocation(redirectUrl);
-        }, 3000); // Longer delay to ensure user sees completion
+        }, 1500); // Shorter delay for faster redirect
       } else {
         throw new Error(response.error || 'Failed to save validation results');
       }

@@ -20,6 +20,8 @@ Preferred communication style: Simple, everyday language.
 - ✓ Single-click workflow now automatically completes entire process: text extraction → schema view → AI extraction → database save → session review redirect
 - ✓ Fixed auto-redirect URL format to use correct route: `/projects/{projectId}/sessions/{sessionId}` instead of `/sessions/{sessionId}`
 - ✓ Complete automated workflow now working end-to-end: single-click extraction automatically redirects to session review page after processing
+- ✓ Optimized redirect timing to 1.5 seconds for faster user experience while maintaining visibility of processing completion
+- ✓ **WORKFLOW CONSOLIDATION SUCCESSFULLY COMPLETED**: Single-click and debugging processes now identical for perfect debuggability
 - ✓ **PROGRAMMED RULE INTERFERENCE COMPLETELY ELIMINATED**: Disabled automatic batch validation that was overriding pure AI reasoning with programmed templates
 - ✓ Root cause identified: Auto-batch validation in SessionView was calling old ai_extraction.py functions that applied programmed confidence adjustments and reasoning templates
 - ✓ Single-click extraction now uses ONLY pure AI processing without any post-processing rule interference
