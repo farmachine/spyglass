@@ -19,6 +19,10 @@ export default function SchemaView() {
   // Get mode from URL parameters
   const urlParams = new URLSearchParams(window.location.search);
   const extractionMode = urlParams.get('mode') as 'automated' | 'debug' | null;
+  
+  // Debug logging to check mode value
+  console.log('DEBUG: URL search params:', window.location.search);
+  console.log('DEBUG: extractionMode from URL:', extractionMode);
 
   const { data: session, isLoading: sessionLoading } = useQuery<any>({
     queryKey: [`/api/sessions/${sessionId}`],

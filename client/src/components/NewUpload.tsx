@@ -203,7 +203,9 @@ export default function NewUpload({ project }: NewUploadProps) {
       return;
     }
 
+    console.log('DEBUG: handleSubmit called with mode:', mode);
     setExtractionMode(mode);
+    console.log('DEBUG: extractionMode state set to:', mode);
     setIsProcessing(true);
     setShowProcessingDialog(true);
     setTotalDocuments(selectedFiles.length);
@@ -295,6 +297,8 @@ export default function NewUpload({ project }: NewUploadProps) {
         setShowProcessingDialog(false);
         const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
         const urlWithMode = `${redirectUrl}?mode=${extractionMode}`;
+        console.log('DEBUG: Redirecting with URL:', urlWithMode);
+        console.log('DEBUG: extractionMode state at redirect time:', extractionMode);
         setLocation(urlWithMode);
       } else {
         throw new Error("Text extraction completed but session data is missing");
