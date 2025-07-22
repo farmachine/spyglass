@@ -407,8 +407,8 @@ export default function NewUpload({ project }: NewUploadProps) {
 
       console.log("SINGLE-CLICK DEBUG: Text extraction result:", textExtractionResult);
 
-      if (!textExtractionResult.success) {
-        throw new Error(`Text extraction failed: ${textExtractionResult.error || 'Unknown error'}`);
+      if (!textExtractionResult.message || textExtractionResult.message.includes("failed")) {
+        throw new Error(`Text extraction failed: ${textExtractionResult.error || 'API returned no success message'}`);
       }
 
       // Step 4: Get session with extracted content
