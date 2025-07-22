@@ -66,6 +66,7 @@ export default function NewUpload({ project }: NewUploadProps) {
   const [processingProgress, setProcessingProgress] = useState(0);
   const [processedDocuments, setProcessedDocuments] = useState(0);
   const [totalDocuments, setTotalDocuments] = useState(0);
+  const [extractionMode, setExtractionMode] = useState<'automated' | 'debug'>('automated');
   const [, setLocation] = useLocation();
   
   const createExtractionSession = useCreateExtractionSession(project.id);
@@ -197,11 +198,12 @@ export default function NewUpload({ project }: NewUploadProps) {
     }
   };
 
-  const handleSubmit = async (data: UploadForm) => {
+  const handleSubmit = async (data: UploadForm, mode: 'automated' | 'debug' = 'automated') => {
     if (selectedFiles.length === 0) {
       return;
     }
 
+    setExtractionMode(mode);
     setIsProcessing(true);
     setShowProcessingDialog(true);
     setTotalDocuments(selectedFiles.length);
@@ -513,6 +515,7 @@ export default function NewUpload({ project }: NewUploadProps) {
                     type="submit" 
                     disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
                     className="w-full"
+                    onClick={form.handleSubmit((data) => handleSubmit(data, 'automated'))}
                   >
                     {isProcessing ? (
                       <>
@@ -533,7 +536,7 @@ export default function NewUpload({ project }: NewUploadProps) {
                     size="sm"
                     disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
                     className="w-full bg-white hover:bg-gray-50 text-gray-700 border-gray-300 mt-2"
-                    onClick={form.handleSubmit(handleSubmit)}
+                    onClick={form.handleSubmit((data) => handleSubmit(data, 'debug'))}
                   >
                     Run in debug mode
                   </Button>
@@ -560,6 +563,11 @@ export default function NewUpload({ project }: NewUploadProps) {
             </div>
 
             <div className="text-center mb-6">
+              <div className="mb-2">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mb-2">
+                  {extractionMode === 'automated' ? 'Automated Mode' : 'Debug Mode'}
+                </span>
+              </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 {processingStep === 'uploading' && 'Processing Documents'}
                 {processingStep === 'extracting' && 'AI Data Extraction'}
