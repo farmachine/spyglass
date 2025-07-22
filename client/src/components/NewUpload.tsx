@@ -284,17 +284,60 @@ export default function NewUpload({ project }: NewUploadProps) {
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       if (textExtractionResult && session?.id) {
-        toast({
-          title: "Text extraction complete",
-          description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
-        });
+        if (debugMode) {
+          // Debug mode: go to schema page for step-by-step processing
+          toast({
+            title: "Text extraction complete",
+            description: `${selectedFiles.length} file(s) processed successfully. Going to debug mode...`,
+          });
+          setShowProcessingDialog(false);
+          setLocation(`/sessions/${session.id}/schema?debug=true`);
+        } else {
+          // Automated mode: run complete AI extraction flow and redirect to results
+          setProcessingStep('validating');
+          setProcessingProgress(0);
+          
+          try {
+            // Call the single-step processing endpoint for full automation
+            const automatedResult = await apiRequest(`/api/sessions/${session.id}/process`, {
+              method: 'POST',
+              body: JSON.stringify({ 
+                files: filesData,
+                project_data: {
+                  projectId: projectId,
+                  schemaFields: schemaFields || [],
+                  collections: collections || []
+                }
+              }),
+              headers: { 'Content-Type': 'application/json' }
+            });
 
-        // Close dialog and redirect with debug mode parameter
-        setShowProcessingDialog(false);
-        const redirectUrl = debugMode 
-          ? `/sessions/${session.id}/schema?debug=true`
-          : textExtractionResult.redirect || `/sessions/${session.id}/text-view`;
-        setLocation(redirectUrl);
+            setProcessingProgress(100);
+            
+            if (automatedResult.success) {
+              toast({
+                title: "AI extraction complete",
+                description: `Successfully processed ${selectedFiles.length} file(s) and extracted field data. Redirecting to results...`,
+              });
+              
+              // Close dialog and redirect to session review
+              setShowProcessingDialog(false);
+              setLocation(`/projects/${projectId}/sessions/${session.id}`);
+            } else {
+              throw new Error(automatedResult.error || 'Automated extraction failed');
+            }
+          } catch (automatedError) {
+            console.error('Automated extraction failed:', automatedError);
+            // Fall back to manual processing if automated fails
+            toast({
+              title: "Automated extraction failed",
+              description: "Falling back to manual processing mode...",
+              variant: "destructive",
+            });
+            setShowProcessingDialog(false);
+            setLocation(`/sessions/${session.id}/schema?debug=true`);
+          }
+        }
       } else {
         throw new Error("Text extraction completed but session data is missing");
       }
