@@ -277,23 +277,12 @@ export default function NewUpload({ project }: NewUploadProps) {
       setProcessingProgress(50);
 
       if (mode === 'automated') {
-        // AUTOMATED MODE: Continue with AI extraction and database save
+        // AUTOMATED MODE: Use the single-step extraction that works correctly
         setProcessingStep('validating');
         
-        // Step 4: AI Extraction (same logic as SchemaView)
-        const geminiExtractionResult = await apiRequest(`/api/sessions/${session.id}/gemini-extraction`, {
+        // Step 4: Call the working single-step extraction endpoint
+        const extractionResult = await apiRequest(`/api/sessions/${session.id}/process-complete`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
-
-        setProcessingProgress(75);
-
-        // Step 5: Save to Database (same logic as SchemaView)
-        await apiRequest(`/api/sessions/${session.id}/save-validations`, {
-          method: 'POST',
-          body: JSON.stringify({ 
-            extractedData: geminiExtractionResult.extractedData 
-          }),
           headers: { 'Content-Type': 'application/json' }
         });
 

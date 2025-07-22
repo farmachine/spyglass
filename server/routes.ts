@@ -1916,6 +1916,77 @@ print(json.dumps(result))
     }
   });
 
+  // Complete automated processing endpoint (text extraction + AI extraction + database save)
+  app.post("/api/sessions/:sessionId/process-complete", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      
+      console.log(`PROCESS COMPLETE: Starting complete automation for session ${sessionId}`);
+      
+      // Get session to verify it exists and has extracted text
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: 'Session not found' });
+      }
+      
+      // Check if we have extracted text data
+      if (!session.extractedData) {
+        console.error('PROCESS COMPLETE: No extracted text found in session');
+        return res.status(400).json({ error: 'No extracted text data found - run text extraction first' });
+      }
+      
+      // Call the working single-step AI extraction Python script
+      console.log('PROCESS COMPLETE: Calling Python AI extraction script...');
+      
+      const { spawn } = require('child_process');
+      const pythonProcess = spawn('python3', ['ai_extraction_single_step.py', sessionId]);
+      
+      let pythonOutput = '';
+      let pythonError = '';
+      
+      pythonProcess.stdout.on('data', (data) => {
+        pythonOutput += data.toString();
+      });
+      
+      pythonProcess.stderr.on('data', (data) => {
+        pythonError += data.toString();
+      });
+      
+      await new Promise((resolve, reject) => {
+        pythonProcess.on('close', (code) => {
+          if (code === 0) {
+            resolve(code);
+          } else {
+            reject(new Error(`Python process exited with code ${code}: ${pythonError}`));
+          }
+        });
+      });
+      
+      console.log('PROCESS COMPLETE: Python extraction completed successfully');
+      console.log('PROCESS COMPLETE: Python output length:', pythonOutput.length);
+      
+      // Update session status to completed
+      await storage.updateExtractionSession(sessionId, {
+        status: 'completed',
+        completedAt: new Date().toISOString()
+      });
+      
+      res.json({
+        message: "Complete processing finished successfully",
+        success: true,
+        sessionId: sessionId,
+        outputLength: pythonOutput.length
+      });
+      
+    } catch (error) {
+      console.error("PROCESS COMPLETE error:", error);
+      res.status(500).json({ 
+        message: "Failed to complete automated processing", 
+        error: error.message 
+      });
+    }
+  });
+
   // Save validation results to field_validations database
   app.post("/api/sessions/:sessionId/save-validations", async (req, res) => {
     try {
