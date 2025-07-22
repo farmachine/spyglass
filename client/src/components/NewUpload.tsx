@@ -305,11 +305,74 @@ export default function NewUpload({ project }: NewUploadProps) {
         const schemaResponse = await apiRequest(`/api/projects/${project.id}/schema-data`);
         console.log("AUTOMATED: Schema response received:", schemaResponse);
         
-        if (!schemaResponse || !schemaResponse.schemaMarkdown) {
-          throw new Error('Schema data is missing or invalid');
+        if (!schemaResponse || !schemaResponse.schema_fields || !schemaResponse.collections) {
+          throw new Error('Schema data is missing required fields');
         }
         
-        console.log("AUTOMATED: Starting Gemini extraction with schema markdown length:", schemaResponse.schemaMarkdown?.length);
+        // Generate schema markdown from the response data (similar to SchemaView.tsx)
+        const generateSchemaMarkdown = (data: any, documentText = '', documentCount = 1) => {
+          let markdown = `# AI EXTRACTION TASK\n\n`;
+          markdown += `You are an expert data extraction AI. Your task is to analyze the documents below and extract structured data according to the schema provided.\n\n`;
+          
+          if (documentText) {
+            markdown += `## DOCUMENTS TO PROCESS\n\n`;
+            markdown += `Number of documents: ${documentCount}\n`;
+            markdown += `Document separator: "--- DOCUMENT SEPARATOR ---"\n\n`;
+            markdown += `${documentText}\n\n`;
+            markdown += `--- END OF DOCUMENTS ---\n\n\n`;
+          }
+          
+          markdown += `# EXTRACTION SCHEMA\n\n`;
+          markdown += `Project: ${data.project?.name || 'Unknown'}\n`;
+          markdown += `Description: ${data.project?.description || 'No description'}\n`;
+          markdown += `Main Object: ${data.project?.mainObjectName || 'Session'}\n\n`;
+          
+          // Project Schema Fields
+          if (data.schema_fields?.length > 0) {
+            markdown += `## PROJECT SCHEMA FIELDS\n\n`;
+            const schemaFieldsData = {
+              schema_fields: data.schema_fields.map((field: any) => ({
+                field_name: field.fieldName,
+                type: field.fieldType,
+                "AI guidance": field.description,
+                "Extraction Rules": "Apply extraction rules",
+                "Knowledge Documents": data.knowledge_documents?.length > 0 ? 
+                  data.knowledge_documents.map((doc: any) => doc.displayName).join(', ') : 
+                  "None"
+              }))
+            };
+            markdown += `\`\`\`json\n${JSON.stringify(schemaFieldsData, null, 2)}\n\`\`\`\n\n`;
+          }
+          
+          // Collections
+          if (data.collections?.length > 0) {
+            markdown += `## COLLECTIONS (ARRAYS OF OBJECTS)\n\n`;
+            const collectionsData = {
+              collections: data.collections.map((collection: any) => ({
+                collection_name: collection.collectionName,
+                description: collection.description,
+                properties: collection.properties?.map((prop: any) => ({
+                  property_name: prop.propertyName,
+                  type: prop.propertyType,
+                  description: prop.description
+                }))
+              }))
+            };
+            markdown += `\`\`\`json\n${JSON.stringify(collectionsData, null, 2)}\n\`\`\`\n\n`;
+          }
+          
+          // Add AI processing instructions
+          markdown += `## AI PROCESSING INSTRUCTIONS\n\n`;
+          markdown += `1. **Extract Real Data Only**: Do NOT generate sample or placeholder data\n`;
+          markdown += `2. **Follow Schema Exactly**: Return JSON matching the exact structure above\n`;
+          markdown += `3. **Confidence Scoring**: Base confidence (85-95) for clear extractions\n`;
+          markdown += `4. **Missing Data**: Use null for missing values, do not invent data\n\n`;
+          
+          return markdown;
+        };
+        
+        const schemaMarkdown = generateSchemaMarkdown(schemaResponse);
+        console.log("AUTOMATED: Generated schema markdown, length:", schemaMarkdown.length);
         
         // Use correct parameter names for the gemini-extraction endpoint
         console.log("AUTOMATED: Making Gemini API call to:", `/api/sessions/${session.id}/gemini-extraction`);
@@ -318,7 +381,7 @@ export default function NewUpload({ project }: NewUploadProps) {
         const geminiResult = await apiRequest(`/api/sessions/${session.id}/gemini-extraction`, {
           method: 'POST',
           body: JSON.stringify({ 
-            prompt: schemaResponse.schemaMarkdown, 
+            prompt: schemaMarkdown, 
             projectId: project.id 
           }),
           headers: { 'Content-Type': 'application/json' }
