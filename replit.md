@@ -10,18 +10,7 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**January 22, 2025 (Latest Update)**
-- ✓ **EXTRACTION PROCESS AUTOMATION FEATURE COMPLETED**: Successfully implemented debug mode toggle with dual workflow options
-- ✓ Two extraction buttons: Primary "Start Extraction" (automated workflow) and secondary "Debug Extraction" (manual step-by-step)
-- ✓ Automated extraction endpoint `/api/sessions/:sessionId/automated-extraction` combines all processing steps automatically
-- ✓ Conditional flow logic: debugMode=false triggers automated workflow, debugMode=true triggers existing manual workflow
-- ✓ Enhanced user experience: Automated mode shows loading then redirects directly to results, debug mode goes to schema view for manual steps
-- ✓ **AUTOMATED WORKFLOW VERIFIED**: Successfully tested end-to-end automated extraction with proper document processing and results display
-- ✓ Automated flow processes text extraction → AI extraction → validation → database save → results view seamlessly
-- ✓ Debug flow maintains existing manual workflow: text extraction → schema view → manual AI extraction → results
-- ✓ Both workflows properly handle loading states, error handling, and user feedback throughout processing
-
-**January 21, 2025**
+**January 21, 2025 (Latest Update)**
 - ✓ **COLLECTION PROPERTY DISPLAY BUG COMPLETELY RESOLVED**: Fixed critical field name mismatch preventing collection items from displaying extracted values
 - ✓ Root cause identified: AI extraction saved field names without indexes ("Parties.Name") but SessionView expected indexed names ("Parties.Name[0]")
 - ✓ Enhanced save validations API endpoint to automatically convert collection property field names to proper indexed format
