@@ -1839,9 +1839,39 @@ print(json.dumps(result))
   app.post("/api/sessions/:sessionId/save-validations", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
-      const { validations } = req.body;
+      const { extractedData, validations } = req.body;
 
-      console.log(`SAVE VALIDATIONS: Starting for session ${sessionId}, ${validations.length} validations`);
+      console.log(`SAVE VALIDATIONS: Request body keys:`, Object.keys(req.body));
+      console.log(`SAVE VALIDATIONS: extractedData type:`, typeof extractedData);
+      console.log(`SAVE VALIDATIONS: validations type:`, typeof validations);
+
+      // Handle both formats: direct validations array or extractedData JSON string
+      let parsedValidations = null;
+      
+      if (validations && Array.isArray(validations)) {
+        parsedValidations = validations;
+        console.log(`SAVE VALIDATIONS: Using direct validations array, ${validations.length} items`);
+      } else if (extractedData) {
+        try {
+          // Parse the extracted data JSON string
+          const jsonData = typeof extractedData === 'string' ? JSON.parse(extractedData) : extractedData;
+          if (jsonData.field_validations && Array.isArray(jsonData.field_validations)) {
+            parsedValidations = jsonData.field_validations;
+            console.log(`SAVE VALIDATIONS: Parsed from extractedData, ${parsedValidations.length} field_validations`);
+          } else {
+            console.error('SAVE VALIDATIONS: extractedData does not contain field_validations array');
+            return res.status(400).json({ error: 'Invalid data format: missing field_validations array' });
+          }
+        } catch (parseError) {
+          console.error('SAVE VALIDATIONS: JSON parse error:', parseError);
+          return res.status(400).json({ error: 'Invalid JSON in extractedData' });
+        }
+      } else {
+        console.error('SAVE VALIDATIONS: No validations or extractedData provided');
+        return res.status(400).json({ error: 'No validation data provided' });
+      }
+
+      console.log(`SAVE VALIDATIONS: Starting for session ${sessionId}, ${parsedValidations.length} validations`);
 
       // Get the session to verify it exists
       const session = await storage.getExtractionSession(sessionId);
@@ -1851,7 +1881,7 @@ print(json.dumps(result))
 
       // Save each validation to the database
       const savedValidations = [];
-      for (const validation of validations) {
+      for (const validation of parsedValidations) {
         try {
           // For collection properties, we need to set the correct fieldName with index
           let fieldName = validation.field_name;
