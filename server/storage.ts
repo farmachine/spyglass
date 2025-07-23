@@ -71,7 +71,7 @@ export interface IStorage {
   createProject(project: InsertProject): Promise<Project>;
   updateProject(id: string, project: Partial<InsertProject>, organizationId?: string): Promise<Project | undefined>;
   deleteProject(id: string, organizationId?: string): Promise<boolean>;
-  duplicateProject(id: string, newName: string, organizationId?: string): Promise<Project | undefined>;
+  duplicateProject(id: string, newName: string, userId: string, organizationId?: string): Promise<Project | undefined>;
 
   // Project Schema Fields
   getProjectSchemaFields(projectId: string): Promise<ProjectSchemaField[]>;
@@ -858,7 +858,7 @@ export class MemStorage implements IStorage {
     return this.projects.delete(id);
   }
 
-  async duplicateProject(id: string, newName: string, organizationId?: string): Promise<Project | undefined> {
+  async duplicateProject(id: string, newName: string, userId: string, organizationId?: string): Promise<Project | undefined> {
     const originalProject = this.projects.get(id);
     if (!originalProject) return undefined;
     
@@ -1751,7 +1751,7 @@ class PostgreSQLStorage implements IStorage {
     return result.rowCount > 0;
   }
 
-  async duplicateProject(id: string, newName: string, organizationId?: string): Promise<Project | undefined> {
+  async duplicateProject(id: string, newName: string, userId: string, organizationId?: string): Promise<Project | undefined> {
     // First, get the original project
     const originalProject = await this.getProject(id, organizationId);
     if (!originalProject) return undefined;
@@ -1767,6 +1767,7 @@ class PostgreSQLStorage implements IStorage {
       description: originalProject.description,
       mainObjectName: originalProject.mainObjectName,
       organizationId: originalProject.organizationId,
+      createdBy: userId, // Add the missing createdBy field
       isInitialSetupComplete: originalProject.isInitialSetupComplete,
     };
 
