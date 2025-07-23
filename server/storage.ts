@@ -1545,7 +1545,8 @@ class PostgreSQLStorage implements IStorage {
           })
           .from(projects)
           .leftJoin(users, eq(projects.createdBy, users.id))
-          .leftJoin(organizations, eq(users.organizationId, organizations.id));
+          .leftJoin(organizations, eq(users.organizationId, organizations.id))
+          .orderBy(sql`${projects.createdAt} DESC`);
       } else if (organization?.type === 'primary' && userRole === 'user') {
         // For regular users in primary organizations, only show published projects
         projectsList = await this.db
@@ -1566,7 +1567,8 @@ class PostgreSQLStorage implements IStorage {
           .innerJoin(projectPublishing, eq(projectPublishing.projectId, projects.id))
           .leftJoin(users, eq(projects.createdBy, users.id))
           .leftJoin(organizations, eq(users.organizationId, organizations.id))
-          .where(eq(projectPublishing.organizationId, organizationId));
+          .where(eq(projectPublishing.organizationId, organizationId))
+          .orderBy(sql`${projects.createdAt} DESC`);
       } else {
         // For admins or users in non-primary organizations: owned OR published projects
         const result = await this.db
@@ -1592,7 +1594,8 @@ class PostgreSQLStorage implements IStorage {
               eq(projects.organizationId, organizationId),
               eq(projectPublishing.organizationId, organizationId)
             )
-          );
+          )
+          .orderBy(sql`${projects.createdAt} DESC`);
         
         // Remove duplicates that might occur from the join
         projectsList = result.reduce((acc, project) => {
@@ -1619,7 +1622,8 @@ class PostgreSQLStorage implements IStorage {
         })
         .from(projects)
         .leftJoin(users, eq(projects.createdBy, users.id))
-        .leftJoin(organizations, eq(users.organizationId, organizations.id));
+        .leftJoin(organizations, eq(users.organizationId, organizations.id))
+        .orderBy(sql`${projects.createdAt} DESC`);
     }
 
     // For each project, get published organizations
