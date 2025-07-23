@@ -1108,6 +1108,119 @@ except Exception as e:
     }
   });
 
+  // Direct Excel export endpoint - bypass frontend filtering
+  app.get('/api/sessions/:sessionId/direct-excel-data', async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      console.log(`Direct Excel export for session: ${sessionId}`);
+      
+      // Get session info
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: 'Session not found' });
+      }
+
+      // Get project info
+      const project = await storage.getProject(session.projectId);
+      if (!project) {
+        return res.status(404).json({ error: 'Project not found' });
+      }
+
+      // Get ALL field validations directly from database
+      const allValidations = await storage.getFieldValidations(sessionId);
+      console.log(`Found ${allValidations.length} total validations for session ${sessionId}`);
+      
+      // Log all validations for debugging
+      allValidations.forEach((validation, index) => {
+        console.log(`${index}: ${validation.fieldName} [${validation.recordIndex}] = "${validation.extractedValue}" (${validation.fieldType})`);
+      });
+
+      // Separate schema fields and collection properties
+      const schemaValidations = allValidations.filter(v => v.fieldType === 'schema_field');
+      const collectionValidations = allValidations.filter(v => v.fieldType === 'collection_property');
+      
+      console.log(`Schema validations: ${schemaValidations.length}`);
+      console.log(`Collection validations: ${collectionValidations.length}`);
+
+      // Build Excel data structure
+      const excelData: any = {
+        projectName: project.name,
+        mainObjectName: project.mainObjectName || 'Main Object',
+        mainObject: schemaValidations.map(v => ({
+          property: v.fieldName || 'Unknown',
+          value: v.extractedValue || ''
+        })),
+        collections: {}
+      };
+
+      // Group collection validations by collection name
+      const collectionGroups = collectionValidations.reduce((acc, validation) => {
+        const collectionName = validation.collectionName || 'Unknown Collection';
+        if (!acc[collectionName]) acc[collectionName] = [];
+        acc[collectionName].push(validation);
+        return acc;
+      }, {} as Record<string, any[]>);
+
+      // Process each collection
+      Object.entries(collectionGroups).forEach(([collectionName, validations]: [string, any[]]) => {
+        console.log(`Processing collection ${collectionName} with ${validations.length} validations`);
+        
+        // Get unique property names
+        const propertyNames = Array.from(new Set(validations.map(v => {
+          const fieldName = v.fieldName || '';
+          const match = fieldName.match(/\.([^.\[]+)/);
+          return match ? match[1] : fieldName;
+        }))).filter(name => name).sort();
+
+        console.log(`Properties for ${collectionName}:`, propertyNames);
+
+        // Group by record index
+        const recordMap = new Map();
+        validations.forEach(validation => {
+          const recordIndex = validation.recordIndex ?? 0;
+          const fieldName = validation.fieldName || '';
+          const extractedValue = validation.extractedValue || '';
+          
+          const match = fieldName.match(/\.([^.\[]+)/);
+          const propertyName = match ? match[1] : fieldName;
+          
+          if (!recordMap.has(recordIndex)) {
+            recordMap.set(recordIndex, {});
+          }
+          
+          recordMap.get(recordIndex)[propertyName] = extractedValue;
+          console.log(`Set record[${recordIndex}][${propertyName}] = "${extractedValue}"`);
+        });
+
+        // Convert to array format - ensure ALL records including index 0
+        const records = Array.from(recordMap.entries())
+          .sort(([a], [b]) => a - b)
+          .map(([index, record]) => {
+            console.log(`Record ${index}:`, record);
+            return propertyNames.map(prop => record[prop] || '');
+          });
+
+        excelData.collections[collectionName] = {
+          headers: propertyNames,
+          records: records
+        };
+        
+        console.log(`Collection ${collectionName} final data:`, {
+          headers: propertyNames,
+          recordCount: records.length,
+          records: records
+        });
+      });
+
+      console.log('Final Excel data structure ready for export');
+      res.json(excelData);
+      
+    } catch (error) {
+      console.error('Error in direct Excel export:', error);
+      res.status(500).json({ error: 'Failed to export Excel data' });
+    }
+  });
+
   app.put("/api/sessions/:id", async (req, res) => {
     try {
       const id = req.params.id;

@@ -113,117 +113,55 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
     }
   }, [session?.fieldValidations]);
 
-  const handleExportToExcel = () => {
+  const handleExportToExcel = async () => {
     try {
-      if (!session?.fieldValidations) {
+      if (!session?.id) {
+        console.error('No session ID available for export');
         return;
       }
 
-      // First, let's see ALL the validation data we have
-      console.log('=== ALL FIELD VALIDATIONS ===');
-      session.fieldValidations.forEach((validation, index) => {
-        console.log(`${index}: ${validation.fieldName} [${validation.recordIndex}] = "${validation.extractedValue}" (${validation.fieldType})`);
+      console.log('Starting DIRECT database Excel export for session:', session.id);
+
+      // Use the new direct API endpoint that bypasses frontend filtering
+      const response = await fetch(`/api/sessions/${session.id}/direct-excel-data`);
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.statusText}`);
+      }
+
+      const excelData = await response.json();
+      console.log('Received Excel data from server:', excelData);
+
+      // Create Excel workbook using server data
+      const workbook = XLSX.utils.book_new();
+
+      // First, create main object sheet using server data
+      const mainObjectSheetData = [
+        ['Property', 'Value'],
+        ...excelData.mainObject.map((item: any) => [item.property, item.value])
+      ];
+      
+      const mainObjectSheet = XLSX.utils.aoa_to_sheet(mainObjectSheetData);
+      XLSX.utils.book_append_sheet(workbook, mainObjectSheet, excelData.mainObjectName);
+
+      // Create collection sheets using server data
+      Object.entries(excelData.collections).forEach(([collectionName, collectionData]: [string, any]) => {
+        console.log(`Creating Excel sheet for ${collectionName}:`, collectionData);
+        
+        // Build worksheet data with headers and records
+        const worksheetData = [
+          collectionData.headers,
+          ...collectionData.records
+        ];
+        
+        console.log(`Worksheet data for ${collectionName}:`, worksheetData);
+        
+        const collectionSheet = XLSX.utils.aoa_to_sheet(worksheetData);
+        XLSX.utils.book_append_sheet(workbook, collectionSheet, collectionName);
       });
 
-      // Specifically check Parties data
-      const partiesValidations = session.fieldValidations.filter(v => 
-        v.fieldType === 'collection_property' && 
-        v.collectionName === 'Parties'
-      );
-      console.log('=== PARTIES VALIDATIONS ===');
-      partiesValidations.forEach((validation, index) => {
-        console.log(`${index}: Field: ${validation.fieldName}, Record: ${validation.recordIndex}, Value: "${validation.extractedValue}"`);
-      });
-    console.log('Available validations:', session.fieldValidations.length);
-    console.log('All field validations:', session.fieldValidations.map(v => ({
-      fieldName: v.fieldName,
-      fieldType: v.fieldType,
-      extractedValue: v.extractedValue,
-      recordIndex: v.recordIndex
-    })));
-
-    const workbook = XLSX.utils.book_new();
-    
-    // Separate schema fields and collection properties
-    const schemaFieldValidations = session.fieldValidations.filter(v => v.fieldType === 'schema_field');
-    const collectionValidations = session.fieldValidations.filter(v => v.fieldType === 'collection_property');
-    
-    // Group collection validations by collection name
-    const collectionGroups = collectionValidations.reduce((acc, validation) => {
-      const collectionName = validation.collectionName || 'Unknown Collection';
-      if (!acc[collectionName]) acc[collectionName] = [];
-      acc[collectionName].push(validation);
-      return acc;
-    }, {} as Record<string, FieldValidationWithName[]>);
-    
-    // Sheet 1: Main Object Info (Schema Fields)
-    const mainObjectData = schemaFieldValidations.map(validation => [
-      validation.fieldName || 'Unknown Field',
-      validation.extractedValue || ''
-    ]);
-    
-    const mainObjectSheet = XLSX.utils.aoa_to_sheet([
-      ['Property Name', 'Property Value'],
-      ...mainObjectData
-    ]);
-    
-    XLSX.utils.book_append_sheet(workbook, mainObjectSheet, project?.mainObjectName || 'Main Object');
-
-    // Sheets 2+: Collection Data
-    Object.entries(collectionGroups).forEach(([collectionName, collectionValidations]) => {
-      // Get all unique property names
-      const propertyNames = Array.from(new Set(collectionValidations.map(v => {
-        const fieldName = (v as FieldValidationWithName).fieldName || '';
-        const propertyMatch = fieldName.match(/\.([^.\[]+)/);
-        return propertyMatch ? propertyMatch[1] : fieldName;
-      }))).filter(name => name).sort();
-
-      // Create a simple structure: just collect all records without relying on indexes
-      const records: Record<string, string>[] = [];
-      
-      // Group by unique record patterns (ignore indexes entirely)
-      const recordMap = new Map<string, Record<string, string>>();
-      
-      collectionValidations.forEach(validation => {
-        const fieldName = (validation as FieldValidationWithName).fieldName || '';
-        const extractedValue = validation.extractedValue || '';
-        
-        // Extract property name
-        const propertyMatch = fieldName.match(/\.([^.\[]+)/);
-        const propertyName = propertyMatch ? propertyMatch[1] : fieldName;
-        
-        // Create a unique key based on the actual record index or fallback
-        const recordKey = `record_${validation.recordIndex ?? 0}`;
-        
-        if (!recordMap.has(recordKey)) {
-          recordMap.set(recordKey, {});
-        }
-        
-        const record = recordMap.get(recordKey)!;
-        record[propertyName] = extractedValue;
-      });
-
-      // Convert Map to array - this ensures we get ALL records
-      const allRecords = Array.from(recordMap.values());
-      
-      // Create headers
-      const headers = propertyNames;
-      
-      // Create data rows for Excel
-      const dataRows = allRecords.map(record => 
-        propertyNames.map(propertyName => record[propertyName] || '')
-      );
-
-      // Create worksheet
-      const worksheetData = [headers, ...dataRows];
-      const collectionSheet = XLSX.utils.aoa_to_sheet(worksheetData);
-
-      XLSX.utils.book_append_sheet(workbook, collectionSheet, collectionName);
-    });
-
-    // Generate filename with session name and timestamp
-    const timestamp = new Date().toISOString().split('T')[0];
-    const filename = `${session.sessionName.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.xlsx`;
+      // Generate filename with session name and timestamp
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `${session.sessionName.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.xlsx`;
 
     console.log('Exporting Excel file:', filename);
     
