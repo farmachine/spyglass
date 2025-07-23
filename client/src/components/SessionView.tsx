@@ -24,7 +24,7 @@ interface SessionViewProps {
 }
 
 export default function SessionView({ sessionId, project }: SessionViewProps) {
-  const [editingField, setEditingField] = useState<number | null>(null);
+  const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
@@ -39,7 +39,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
   });
 
   const updateValidationMutation = useMutation({
-    mutationFn: async (params: { id: number; data: Partial<FieldValidation> }) => {
+    mutationFn: async (params: { id: string; data: Partial<FieldValidation> }) => {
       return apiRequest(`/api/validations/${params.id}`, {
         method: 'PUT',
         body: JSON.stringify(params.data)
@@ -115,11 +115,14 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
   const handleExportToExcel = () => {
     if (!session) return;
 
+    console.log('Starting Excel export for session:', session.sessionName);
+    console.log('Available validations:', validations.length);
+
     const workbook = XLSX.utils.book_new();
     
     // Sheet 1: Main Object Info (Schema Fields)
     const mainObjectData = schemaFieldValidations.map(validation => [
-      validation.fieldName,
+      validation.fieldName || 'Unknown Field',
       validation.extractedValue || ''
     ]);
     
@@ -128,45 +131,56 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
       ...mainObjectData
     ]);
     
-    XLSX.utils.book_append_sheet(workbook, mainObjectSheet, project.mainObjectName || 'Main Object');
+    XLSX.utils.book_append_sheet(workbook, mainObjectSheet, project?.mainObjectName || 'Main Object');
 
     // Sheets 2+: Collection Data
     Object.entries(collectionGroups).forEach(([collectionName, collectionValidations]) => {
+      console.log(`Processing collection: ${collectionName} with ${collectionValidations.length} validations`);
+      
       // Group validations by record index to create rows
       const recordGroups: Record<number, FieldValidation[]> = {};
       
       collectionValidations.forEach(validation => {
-        const recordIndex = validation.recordIndex || 0;
+        const recordIndex = validation.recordIndex ?? 0;
         if (!recordGroups[recordIndex]) recordGroups[recordIndex] = [];
         recordGroups[recordIndex].push(validation);
       });
 
-      // Get unique property names for columns
-      const propertyNames = [...new Set(collectionValidations.map(v => 
-        v.fieldName.split('.')[1]?.replace(/\[\d+\]$/, '') || v.fieldName
-      ))].sort();
+      // Get unique property names for columns - fix the property extraction
+      const propertyNames = [...new Set(collectionValidations.map(v => {
+        const fieldName = v.fieldName || '';
+        // Extract property name from patterns like "Parties.Name[0]" or "Parties.Name"
+        const propertyMatch = fieldName.match(/\.([^.\[]+)/);
+        return propertyMatch ? propertyMatch[1] : fieldName;
+      }))].filter(name => name).sort();
+
+      console.log(`Collection ${collectionName} properties:`, propertyNames);
+      console.log(`Record groups:`, Object.keys(recordGroups));
 
       // Create header row
       const headers = propertyNames;
       
-      // Create data rows
-      const dataRows = Object.keys(recordGroups)
-        .sort((a, b) => parseInt(a) - parseInt(b))
-        .map(recordIndex => {
-          const recordValidations = recordGroups[parseInt(recordIndex)];
-          return propertyNames.map(propertyName => {
-            const validation = recordValidations.find(v => 
-              v.fieldName.includes(`.${propertyName}`)
-            );
-            return validation?.extractedValue || '';
+      // Create data rows - ensure we start from index 0
+      const sortedRecordIndexes = Object.keys(recordGroups)
+        .map(key => parseInt(key))
+        .sort((a, b) => a - b);
+        
+      const dataRows = sortedRecordIndexes.map(recordIndex => {
+        const recordValidations = recordGroups[recordIndex];
+        return propertyNames.map(propertyName => {
+          const validation = recordValidations.find(v => {
+            const fieldName = v.fieldName || '';
+            return fieldName.includes(`.${propertyName}`);
           });
+          return validation?.extractedValue || '';
         });
+      });
 
-      // Create worksheet
-      const collectionSheet = XLSX.utils.aoa_to_sheet([
-        headers,
-        ...dataRows
-      ]);
+      console.log(`Collection ${collectionName} data rows:`, dataRows.length);
+
+      // Create worksheet - make sure we include all data rows
+      const worksheetData = [headers, ...dataRows];
+      const collectionSheet = XLSX.utils.aoa_to_sheet(worksheetData);
 
       XLSX.utils.book_append_sheet(workbook, collectionSheet, collectionName);
     });
@@ -175,6 +189,8 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
     const timestamp = new Date().toISOString().split('T')[0];
     const filename = `${session.sessionName.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.xlsx`;
 
+    console.log('Exporting Excel file:', filename);
+    
     // Export the file
     XLSX.writeFile(workbook, filename);
   };
@@ -283,7 +299,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
                       onManualEdit={() => handleManualEdit(validation)}
                     />
                     <div>
-                      <Label className="font-medium">{validation.fieldName}</Label>
+                      <Label className="font-medium">{validation.fieldName || 'Unknown Field'}</Label>
                       <p className="text-sm text-gray-600">{validation.fieldType}</p>
                     </div>
                   </div>
@@ -388,9 +404,9 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
                           onManualEdit={() => handleManualEdit(validation)}
                         />
                         <div>
-                          <Label className="font-medium">{validation.fieldName}</Label>
+                          <Label className="font-medium">{validation.fieldName || 'Unknown Field'}</Label>
                           <p className="text-sm text-gray-600">
-                            {validation.fieldType} • Record {validation.recordIndex + 1}
+                            {validation.fieldType} • Record {(validation.recordIndex ?? 0) + 1}
                           </p>
                         </div>
                       </div>
