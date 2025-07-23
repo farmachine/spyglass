@@ -656,88 +656,63 @@ Thank you for your assistance.`;
     return report;
   };
 
-  const handleExportToExcel = () => {
-    if (!session) return;
-
-    const workbook = XLSX.utils.book_new();
-    
-    // Separate schema fields and collection validations
-    const schemaFieldValidations = validations.filter(v => !v.fieldName.includes('.'));
-    const collectionValidations = validations.filter(v => v.fieldName.includes('.'));
-    
-    // Group collection validations by collection name
-    const collectionGroups: Record<string, FieldValidation[]> = {};
-    collectionValidations.forEach(validation => {
-      const collectionName = validation.fieldName.split('.')[0];
-      if (!collectionGroups[collectionName]) {
-        collectionGroups[collectionName] = [];
+  const handleExportToExcel = async () => {
+    try {
+      if (!session?.id) {
+        console.error('No session ID available for export');
+        return;
       }
-      collectionGroups[collectionName].push(validation);
-    });
-    
-    // Sheet 1: Main Object Info (Schema Fields)
-    const mainObjectData = schemaFieldValidations.map(validation => [
-      validation.fieldName,
-      validation.extractedValue || ''
-    ]);
-    
-    const mainObjectSheet = XLSX.utils.aoa_to_sheet([
-      ['Property Name', 'Property Value'],
-      ...mainObjectData
-    ]);
-    
-    XLSX.utils.book_append_sheet(workbook, mainObjectSheet, project.mainObjectName || 'Main Object');
 
-    // Sheets 2+: Collection Data
-    Object.entries(collectionGroups).forEach(([collectionName, collectionValidations]) => {
-      // Group validations by record index to create rows
-      const recordGroups: Record<number, FieldValidation[]> = {};
+      console.log('Starting DIRECT database Excel export for session:', session.id);
+
+      // Use the new direct API endpoint that bypasses frontend filtering
+      const response = await fetch(`/api/sessions/${session.id}/direct-excel-data`);
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.statusText}`);
+      }
+
+      const excelData = await response.json();
+      console.log('Received Excel data from server:', excelData);
+
+      // Create Excel workbook using server data
+      const workbook = XLSX.utils.book_new();
+
+      // First, create main object sheet using server data
+      const mainObjectSheetData = [
+        ['Property', 'Value'],
+        ...excelData.mainObject.map((item: any) => [item.property, item.value])
+      ];
       
-      collectionValidations.forEach(validation => {
-        const recordIndex = validation.recordIndex || 0;
-        if (!recordGroups[recordIndex]) recordGroups[recordIndex] = [];
-        recordGroups[recordIndex].push(validation);
+      const mainObjectSheet = XLSX.utils.aoa_to_sheet(mainObjectSheetData);
+      XLSX.utils.book_append_sheet(workbook, mainObjectSheet, excelData.mainObjectName);
+
+      // Create collection sheets using server data
+      Object.entries(excelData.collections).forEach(([collectionName, collectionData]: [string, any]) => {
+        console.log(`Creating Excel sheet for ${collectionName}:`, collectionData);
+        
+        // Build worksheet data with headers and records
+        const worksheetData = [
+          collectionData.headers,
+          ...collectionData.records
+        ];
+        
+        console.log(`Worksheet data for ${collectionName}:`, worksheetData);
+        
+        const collectionSheet = XLSX.utils.aoa_to_sheet(worksheetData);
+        XLSX.utils.book_append_sheet(workbook, collectionSheet, collectionName);
       });
 
-      // Get property names in the same order as displayed in the UI
-      const collection = project.collections.find(c => c.collectionName === collectionName);
-      const propertyNames = collection ? 
-        collection.properties.map(p => p.propertyName) :
-        [...new Set(collectionValidations.map(v => 
-          v.fieldName.split('.')[1]?.replace(/\[\d+\]$/, '') || v.fieldName
-        ))].sort();
+      // Generate filename with session name and timestamp
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `${session.sessionName.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.xlsx`;
 
-      // Create header row
-      const headers = propertyNames;
+      console.log('Exporting Excel file:', filename);
       
-      // Create data rows
-      const dataRows = Object.keys(recordGroups)
-        .sort((a, b) => parseInt(a) - parseInt(b))
-        .map(recordIndex => {
-          const recordValidations = recordGroups[parseInt(recordIndex)];
-          return propertyNames.map(propertyName => {
-            const validation = recordValidations.find(v => 
-              v.fieldName.includes(`.${propertyName}`)
-            );
-            return validation?.extractedValue || '';
-          });
-        });
-
-      // Create worksheet
-      const collectionSheet = XLSX.utils.aoa_to_sheet([
-        headers,
-        ...dataRows
-      ]);
-
-      XLSX.utils.book_append_sheet(workbook, collectionSheet, collectionName);
-    });
-
-    // Generate filename with session name and timestamp
-    const timestamp = new Date().toISOString().split('T')[0];
-    const filename = `${session.sessionName.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.xlsx`;
-
-    // Export the file
-    XLSX.writeFile(workbook, filename);
+      // Export the file
+      XLSX.writeFile(workbook, filename);
+    } catch (error) {
+      console.error('Excel export failed:', error);
+    }
   };
 
   const handleEdit = (fieldName: string, currentValue: any) => {
