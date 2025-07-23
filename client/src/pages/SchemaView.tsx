@@ -418,17 +418,22 @@ ${error instanceof Error ? error.message : 'Unknown error'}
     markdown += `- Base: High confidence (85-95) for clear extractions\n`;
     markdown += `- Apply extraction rule adjustments per rule content\n`;
     markdown += `- Reduce confidence for knowledge document conflicts\n`;
+    markdown += `- IMPORTANT: Set confidence_score to 0 for missing, empty, or "Not set" values\n`;
     markdown += `- Let content and rules determine final percentage\n\n`;
     
     markdown += `### AI REASONING (ai_reasoning):\n`;
     markdown += `Give reasoning for the score. If knowledge documents and/or extraction rules had influence, please reference which ones in a human-friendly way. Please also include follow up questions that the user can ask the information provider for clarification on the data value.\n\n`;
     
     markdown += `### VALIDATION STATUS (validation_status):\n`;
-    markdown += `Set validation_status based on confidence score vs Auto Verification threshold:\n`;
-    markdown += `- "verified": confidence_score >= Auto Verification percentage\n`;
-    markdown += `- "unverified": confidence_score < Auto Verification percentage\n`;
-    markdown += `Example: If Auto Verification is 80% and confidence_score is 85, set validation_status to "verified"\n`;
-    markdown += `Example: If Auto Verification is 50% and confidence_score is 27, set validation_status to "unverified"\n\n`;
+    markdown += `CRITICAL: Set validation_status based on confidence score vs Auto Verification threshold:\n`;
+    markdown += `- "verified": confidence_score >= Auto Verification percentage AND confidence_score > 0\n`;
+    markdown += `- "unverified": confidence_score < Auto Verification percentage OR confidence_score = 0\n`;
+    markdown += `IMPORTANT: 0% confidence MUST ALWAYS be "unverified" regardless of threshold\n`;
+    markdown += `Examples:\n`;
+    markdown += `- Auto Verification 80%, confidence_score 85 → "verified"\n`;
+    markdown += `- Auto Verification 50%, confidence_score 27 → "unverified"\n`;
+    markdown += `- Auto Verification 0%, confidence_score 0 → "unverified"\n`;
+    markdown += `- Any field with 0% confidence → "unverified"\n\n`;
     
     markdown += `### OUTPUT:\n`;
     markdown += `JSON format below with confidence_score, ai_reasoning, and validation_status for each field.\n\n`;

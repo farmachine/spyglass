@@ -18,6 +18,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ Enhanced JSON output schema to show specific auto-verification thresholds for each field (default 80%)
 - ✓ Updated validation status logic with clear examples: 85% confidence vs 80% threshold = "verified", 27% confidence vs 50% threshold = "unverified"
 - ✓ Complete workflow now supports customizable auto-verification per field/collection property with AI-driven status assignment
+- ✓ **ZERO CONFIDENCE AUTO-VERIFICATION BUG FIXED**: Enhanced AI instructions to ensure 0% confidence fields are always marked as "unverified"
+- ✓ Added explicit validation logic: 0% confidence MUST ALWAYS be "unverified" regardless of auto-verification threshold
+- ✓ Updated confidence scoring instructions to set 0% for missing, empty, or "Not set" values
+- ✓ Enhanced validation status examples to show proper handling of zero confidence scenarios
 - ✓ **WORD DOCUMENT EXTRACTION FIXED**: Resolved Gemini API limitation for Word document MIME types
 - ✓ Root cause identified: Gemini API only supports PDF files natively, rejects Word MIME type `application/vnd.openxmlformats-officedocument.wordprocessingml.document`
 - ✓ Implemented python-docx library fallback for Word document text extraction
