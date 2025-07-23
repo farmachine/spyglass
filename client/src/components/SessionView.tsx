@@ -114,16 +114,10 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
   }, [session?.fieldValidations]);
 
   const handleExportToExcel = () => {
-    alert('Excel export function starting!'); // This will definitely show
-    console.log('===== EXCEL EXPORT BUTTON CLICKED =====');
     try {
       if (!session?.fieldValidations) {
-        console.log('No field validations found, aborting export');
-        alert('No field validations found!');
         return;
       }
-
-      console.log('Starting Excel export for session:', session.sessionName);
     console.log('Available validations:', session.fieldValidations.length);
     console.log('All field validations:', session.fieldValidations.map(v => ({
       fieldName: v.fieldName,
@@ -161,26 +155,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
 
     // Sheets 2+: Collection Data
     Object.entries(collectionGroups).forEach(([collectionName, collectionValidations]) => {
-      console.log(`Processing collection: ${collectionName} with ${collectionValidations.length} validations`);
-      
-      // Group validations by record index to create rows
-      const recordGroups: Record<number, FieldValidationWithName[]> = {};
-      
-      collectionValidations.forEach(validation => {
-        const recordIndex = validation.recordIndex ?? 0;
-        if (!recordGroups[recordIndex]) recordGroups[recordIndex] = [];
-        recordGroups[recordIndex].push(validation);
-      });
-      
-      console.log(`Raw record groups before sorting:`, recordGroups);
-      console.log(`Record group keys:`, Object.keys(recordGroups));
-      console.log(`All validations with record indexes:`, collectionValidations.map(v => ({
-        fieldName: v.fieldName,
-        recordIndex: v.recordIndex,
-        extractedValue: v.extractedValue
-      })));
-
-      // Get unique property names for columns - fix the property extraction
+      // Get all unique property names first
       const propertyNames = Array.from(new Set(collectionValidations.map(v => {
         const fieldName = (v as FieldValidationWithName).fieldName || '';
         // Extract property name from patterns like "Parties.Name[0]" or "Parties.Name"
@@ -188,41 +163,42 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
         return propertyMatch ? propertyMatch[1] : fieldName;
       }))).filter(name => name).sort();
 
-      console.log(`Collection ${collectionName} properties:`, propertyNames);
-      console.log(`Record groups:`, Object.keys(recordGroups));
-      console.log(`Property names for headers:`, propertyNames);
-
-      // Create header row
-      const headers = propertyNames;
+      // Group validations by record index
+      const recordsByIndex = new Map<number, Record<string, string>>();
       
-      // Create data rows - ensure we start from index 0
-      const sortedRecordIndexes = Object.keys(recordGroups)
-        .map(key => parseInt(key))
-        .sort((a, b) => a - b);
-      
-      console.log(`Original record indexes:`, sortedRecordIndexes);
-      
-      // Map data rows continuously from 0, regardless of original record indexes
-      const dataRows = sortedRecordIndexes.map(recordIndex => {
-        const recordValidations = recordGroups[recordIndex];
-        const row = propertyNames.map(propertyName => {
-          const validation = recordValidations.find(v => {
-            const fieldName = v.fieldName || '';
-            return fieldName.includes(`.${propertyName}`);
-          });
-          return validation?.extractedValue || '';
-        });
-        console.log(`Record index ${recordIndex} -> row:`, row);
-        return row;
+      collectionValidations.forEach(validation => {
+        const recordIndex = validation.recordIndex ?? 0;
+        const fieldName = (validation as FieldValidationWithName).fieldName || '';
+        const extractedValue = validation.extractedValue || '';
+        
+        // Extract property name 
+        const propertyMatch = fieldName.match(/\.([^.\[]+)/);
+        const propertyName = propertyMatch ? propertyMatch[1] : fieldName;
+        
+        if (!recordsByIndex.has(recordIndex)) {
+          recordsByIndex.set(recordIndex, {});
+        }
+        
+        const record = recordsByIndex.get(recordIndex)!;
+        record[propertyName] = extractedValue;
       });
 
-      console.log(`Collection ${collectionName} data rows:`, dataRows.length);
-      console.log(`Headers to be written:`, headers);
-      console.log(`First few data rows:`, dataRows.slice(0, 3));
+      // Convert to array of arrays for Excel - ensure we include ALL records including index 0
+      const headers = propertyNames;
+      const dataRows: string[][] = [];
+      
+      // Get all record indexes and sort them
+      const allIndexes = Array.from(recordsByIndex.keys()).sort((a, b) => a - b);
+      
+      // Create a row for each record index
+      allIndexes.forEach(recordIndex => {
+        const record = recordsByIndex.get(recordIndex)!;
+        const row = propertyNames.map(propertyName => record[propertyName] || '');
+        dataRows.push(row);
+      });
 
-      // Create worksheet - make sure we include all data rows
+      // Create worksheet with headers and all data rows
       const worksheetData = [headers, ...dataRows];
-      console.log(`Complete worksheet data:`, worksheetData.slice(0, 4)); // Show headers + first 3 rows
       const collectionSheet = XLSX.utils.aoa_to_sheet(worksheetData);
 
       XLSX.utils.book_append_sheet(workbook, collectionSheet, collectionName);
