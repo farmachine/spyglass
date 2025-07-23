@@ -115,12 +115,13 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
 
   const handleExportToExcel = () => {
     console.log('Excel export button clicked!');
-    if (!session?.fieldValidations) {
-      console.log('No field validations found, aborting export');
-      return;
-    }
+    try {
+      if (!session?.fieldValidations) {
+        console.log('No field validations found, aborting export');
+        return;
+      }
 
-    console.log('Starting Excel export for session:', session.sessionName);
+      console.log('Starting Excel export for session:', session.sessionName);
     console.log('Available validations:', session.fieldValidations.length);
     console.log('All field validations:', session.fieldValidations.map(v => ({
       fieldName: v.fieldName,
@@ -233,6 +234,9 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
     
     // Export the file
     XLSX.writeFile(workbook, filename);
+    } catch (error) {
+      console.error('Excel export failed:', error);
+    }
   };
 
   if (isLoading) {
