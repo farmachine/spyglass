@@ -114,7 +114,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
   }, [session?.fieldValidations]);
 
   const handleExportToExcel = () => {
-    console.log('Excel export button clicked!');
+    console.log('===== EXCEL EXPORT BUTTON CLICKED =====');
     try {
       if (!session?.fieldValidations) {
         console.log('No field validations found, aborting export');
@@ -179,12 +179,12 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
       })));
 
       // Get unique property names for columns - fix the property extraction
-      const propertyNames = [...new Set(collectionValidations.map(v => {
-        const fieldName = v.fieldName || '';
+      const propertyNames = Array.from(new Set(collectionValidations.map(v => {
+        const fieldName = (v as FieldValidationWithName).fieldName || '';
         // Extract property name from patterns like "Parties.Name[0]" or "Parties.Name"
         const propertyMatch = fieldName.match(/\.([^.\[]+)/);
         return propertyMatch ? propertyMatch[1] : fieldName;
-      }))].filter(name => name).sort();
+      }))).filter(name => name).sort();
 
       console.log(`Collection ${collectionName} properties:`, propertyNames);
       console.log(`Record groups:`, Object.keys(recordGroups));
@@ -448,7 +448,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
                           onManualEdit={() => handleManualEdit(validation)}
                         />
                         <div>
-                          <Label className="font-medium">{validation.fieldName || 'Unknown Field'}</Label>
+                          <Label className="font-medium">{(validation as FieldValidationWithName).fieldName || 'Unknown Field'}</Label>
                           <p className="text-sm text-gray-600">
                             {validation.fieldType} • Record {(validation.recordIndex ?? 0) + 1}
                           </p>
