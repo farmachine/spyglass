@@ -118,6 +118,22 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
       if (!session?.fieldValidations) {
         return;
       }
+
+      // First, let's see ALL the validation data we have
+      console.log('=== ALL FIELD VALIDATIONS ===');
+      session.fieldValidations.forEach((validation, index) => {
+        console.log(`${index}: ${validation.fieldName} [${validation.recordIndex}] = "${validation.extractedValue}" (${validation.fieldType})`);
+      });
+
+      // Specifically check Parties data
+      const partiesValidations = session.fieldValidations.filter(v => 
+        v.fieldType === 'collection_property' && 
+        v.collectionName === 'Parties'
+      );
+      console.log('=== PARTIES VALIDATIONS ===');
+      partiesValidations.forEach((validation, index) => {
+        console.log(`${index}: Field: ${validation.fieldName}, Record: ${validation.recordIndex}, Value: "${validation.extractedValue}"`);
+      });
     console.log('Available validations:', session.fieldValidations.length);
     console.log('All field validations:', session.fieldValidations.map(v => ({
       fieldName: v.fieldName,
