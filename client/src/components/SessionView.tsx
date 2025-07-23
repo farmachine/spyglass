@@ -118,6 +118,12 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
 
     console.log('Starting Excel export for session:', session.sessionName);
     console.log('Available validations:', session.fieldValidations.length);
+    console.log('All field validations:', session.fieldValidations.map(v => ({
+      fieldName: v.fieldName,
+      fieldType: v.fieldType,
+      extractedValue: v.extractedValue,
+      recordIndex: v.recordIndex
+    })));
 
     const workbook = XLSX.utils.book_new();
     
