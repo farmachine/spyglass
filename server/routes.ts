@@ -1142,11 +1142,23 @@ except Exception as e:
       console.log(`Schema validations: ${schemaValidations.length}`);
       console.log(`Collection validations: ${collectionValidations.length}`);
 
+      // Deduplicate schema validations - prioritize records with actual values
+      const schemaFieldMap = new Map();
+      schemaValidations.forEach(validation => {
+        const fieldName = validation.fieldName;
+        const existing = schemaFieldMap.get(fieldName);
+        
+        // Prioritize validation with actual extracted value over null/empty
+        if (!existing || (!existing.extractedValue && validation.extractedValue)) {
+          schemaFieldMap.set(fieldName, validation);
+        }
+      });
+
       // Build Excel data structure
       const excelData: any = {
         projectName: project.name,
         mainObjectName: project.mainObjectName || 'Main Object',
-        mainObject: schemaValidations.map(v => ({
+        mainObject: Array.from(schemaFieldMap.values()).map(v => ({
           property: v.fieldName || 'Unknown',
           value: v.extractedValue || ''
         })),
