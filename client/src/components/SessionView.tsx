@@ -114,7 +114,11 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
   }, [session?.fieldValidations]);
 
   const handleExportToExcel = () => {
-    if (!session?.fieldValidations) return;
+    console.log('Excel export button clicked!');
+    if (!session?.fieldValidations) {
+      console.log('No field validations found, aborting export');
+      return;
+    }
 
     console.log('Starting Excel export for session:', session.sessionName);
     console.log('Available validations:', session.fieldValidations.length);
