@@ -169,6 +169,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
 
       console.log(`Collection ${collectionName} properties:`, propertyNames);
       console.log(`Record groups:`, Object.keys(recordGroups));
+      console.log(`Property names for headers:`, propertyNames);
 
       // Create header row
       const headers = propertyNames;
@@ -190,9 +191,12 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
       });
 
       console.log(`Collection ${collectionName} data rows:`, dataRows.length);
+      console.log(`Headers to be written:`, headers);
+      console.log(`First few data rows:`, dataRows.slice(0, 3));
 
       // Create worksheet - make sure we include all data rows
       const worksheetData = [headers, ...dataRows];
+      console.log(`Complete worksheet data:`, worksheetData.slice(0, 4)); // Show headers + first 3 rows
       const collectionSheet = XLSX.utils.aoa_to_sheet(worksheetData);
 
       XLSX.utils.book_append_sheet(workbook, collectionSheet, collectionName);
