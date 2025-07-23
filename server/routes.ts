@@ -2763,6 +2763,60 @@ print(json.dumps(result))
     }
   });
 
+  // Project Publishing Routes
+  
+  // Get project published organizations
+  app.get("/api/projects/:projectId/publishing", async (req, res) => {
+    try {
+      const projectId = req.params.projectId;
+      const publishedOrganizations = await storage.getProjectPublishedOrganizations(projectId);
+      res.json(publishedOrganizations);
+    } catch (error) {
+      console.error("Error getting project published organizations:", error);
+      res.status(500).json({ message: "Failed to get published organizations" });
+    }
+  });
+
+  // Publish project to organization
+  app.post("/api/projects/:projectId/publishing", async (req, res) => {
+    try {
+      const projectId = req.params.projectId;
+      const { organizationId } = req.body;
+      
+      if (!organizationId) {
+        return res.status(400).json({ message: "Organization ID is required" });
+      }
+
+      const publishing = await storage.publishProjectToOrganization({
+        projectId,
+        organizationId
+      });
+      
+      res.json(publishing);
+    } catch (error) {
+      console.error("Error publishing project to organization:", error);
+      res.status(500).json({ message: "Failed to publish project" });
+    }
+  });
+
+  // Unpublish project from organization
+  app.delete("/api/projects/:projectId/publishing/:organizationId", async (req, res) => {
+    try {
+      const { projectId, organizationId } = req.params;
+      
+      const success = await storage.unpublishProjectFromOrganization(projectId, organizationId);
+      
+      if (success) {
+        res.json({ message: "Project unpublished successfully" });
+      } else {
+        res.status(404).json({ message: "Publishing relationship not found" });
+      }
+    } catch (error) {
+      console.error("Error unpublishing project:", error);
+      res.status(500).json({ message: "Failed to unpublish project" });
+    }
+  });
+
   // Create HTTP server and return it
   const httpServer = createServer(app);
   return httpServer;
