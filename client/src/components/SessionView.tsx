@@ -170,6 +170,12 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
       });
       
       console.log(`Raw record groups before sorting:`, recordGroups);
+      console.log(`Record group keys:`, Object.keys(recordGroups));
+      console.log(`All validations with record indexes:`, collectionValidations.map(v => ({
+        fieldName: v.fieldName,
+        recordIndex: v.recordIndex,
+        extractedValue: v.extractedValue
+      })));
 
       // Get unique property names for columns - fix the property extraction
       const propertyNames = [...new Set(collectionValidations.map(v => {
