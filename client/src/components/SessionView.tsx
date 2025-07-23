@@ -114,10 +114,12 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
   }, [session?.fieldValidations]);
 
   const handleExportToExcel = () => {
+    alert('Excel export function starting!'); // This will definitely show
     console.log('===== EXCEL EXPORT BUTTON CLICKED =====');
     try {
       if (!session?.fieldValidations) {
         console.log('No field validations found, aborting export');
+        alert('No field validations found!');
         return;
       }
 
