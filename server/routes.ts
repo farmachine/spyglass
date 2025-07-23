@@ -1542,19 +1542,86 @@ INSTRUCTIONS:
 
 RETURN: Complete readable content from this document."""
         
-        # Use Gemini to extract text with specialized prompts
-        response = client.models.generate_content(
-            model="gemini-1.5-flash",
-            contents=[
-                types.Part.from_bytes(
-                    data=binary_content,
-                    mime_type=mime_type
-                ),
-                extraction_prompt
-            ]
-        )
+        # Handle different file types based on Gemini API support
+        if 'pdf' in mime_type or file_name.lower().endswith('.pdf'):
+            # PDF files are fully supported by Gemini API
+            response = client.models.generate_content(
+                model="gemini-1.5-flash",
+                contents=[
+                    types.Part.from_bytes(
+                        data=binary_content,
+                        mime_type=mime_type
+                    ),
+                    extraction_prompt
+                ]
+            )
+            text_content = response.text if response.text else "No text could be extracted"
         
-        text_content = response.text if response.text else "No text could be extracted"
+        elif ('word' in mime_type or 
+              'vnd.openxmlformats-officedocument.wordprocessingml' in mime_type or
+              'application/msword' in mime_type or
+              file_name.lower().endswith(('.docx', '.doc'))):
+            # Word document - use python-docx library fallback
+            try:
+                import io
+                from docx import Document
+                
+                # Create document from binary content
+                doc_stream = io.BytesIO(binary_content)
+                doc = Document(doc_stream)
+                
+                # Extract all text content
+                text_content_parts = []
+                for paragraph in doc.paragraphs:
+                    if paragraph.text.strip():
+                        text_content_parts.append(paragraph.text.strip())
+                
+                # Extract text from tables
+                for table in doc.tables:
+                    for row in table.rows:
+                        row_text = []
+                        for cell in row.cells:
+                            if cell.text.strip():
+                                row_text.append(cell.text.strip())
+                        if row_text:
+                            text_content_parts.append(" | ".join(row_text))
+                
+                text_content = "\\n".join(text_content_parts)
+                
+            except Exception as word_error:
+                text_content = f"Error extracting Word document: {str(word_error)}"
+        
+        elif ('excel' in mime_type or 
+              'spreadsheet' in mime_type or 
+              'vnd.ms-excel' in mime_type or 
+              'vnd.openxmlformats-officedocument.spreadsheetml' in mime_type or
+              file_name.lower().endswith(('.xlsx', '.xls'))):
+            # Excel file - use pandas/openpyxl libraries
+            try:
+                import io
+                import pandas as pd
+                
+                # Create Excel stream from binary content
+                excel_stream = io.BytesIO(binary_content)
+                
+                # Read all sheets
+                all_sheets = pd.read_excel(excel_stream, sheet_name=None, engine='openpyxl' if file_name.lower().endswith('.xlsx') else 'xlrd')
+                
+                text_content_parts = []
+                for sheet_name, df in all_sheets.items():
+                    text_content_parts.append(f"=== SHEET: {sheet_name} ===")
+                    # Convert dataframe to string representation
+                    sheet_text = df.to_string(index=False, na_rep='')
+                    text_content_parts.append(sheet_text)
+                
+                text_content = "\\n\\n".join(text_content_parts)
+                
+            except Exception as excel_error:
+                text_content = f"Error extracting Excel document: {str(excel_error)}"
+        
+        else:
+            # Unsupported format
+            text_content = f"Unsupported file format: {mime_type}. Only PDF, Word, and Excel files are supported."
         
         extracted_texts.append({
             "file_name": file_name,
