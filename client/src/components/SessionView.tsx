@@ -155,49 +155,50 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
 
     // Sheets 2+: Collection Data
     Object.entries(collectionGroups).forEach(([collectionName, collectionValidations]) => {
-      // Get all unique property names first
+      // Get all unique property names
       const propertyNames = Array.from(new Set(collectionValidations.map(v => {
         const fieldName = (v as FieldValidationWithName).fieldName || '';
-        // Extract property name from patterns like "Parties.Name[0]" or "Parties.Name"
         const propertyMatch = fieldName.match(/\.([^.\[]+)/);
         return propertyMatch ? propertyMatch[1] : fieldName;
       }))).filter(name => name).sort();
 
-      // Group validations by record index
-      const recordsByIndex = new Map<number, Record<string, string>>();
+      // Create a simple structure: just collect all records without relying on indexes
+      const records: Record<string, string>[] = [];
+      
+      // Group by unique record patterns (ignore indexes entirely)
+      const recordMap = new Map<string, Record<string, string>>();
       
       collectionValidations.forEach(validation => {
-        const recordIndex = validation.recordIndex ?? 0;
         const fieldName = (validation as FieldValidationWithName).fieldName || '';
         const extractedValue = validation.extractedValue || '';
         
-        // Extract property name 
+        // Extract property name
         const propertyMatch = fieldName.match(/\.([^.\[]+)/);
         const propertyName = propertyMatch ? propertyMatch[1] : fieldName;
         
-        if (!recordsByIndex.has(recordIndex)) {
-          recordsByIndex.set(recordIndex, {});
+        // Create a unique key based on the actual record index or fallback
+        const recordKey = `record_${validation.recordIndex ?? 0}`;
+        
+        if (!recordMap.has(recordKey)) {
+          recordMap.set(recordKey, {});
         }
         
-        const record = recordsByIndex.get(recordIndex)!;
+        const record = recordMap.get(recordKey)!;
         record[propertyName] = extractedValue;
       });
 
-      // Convert to array of arrays for Excel - ensure we include ALL records including index 0
+      // Convert Map to array - this ensures we get ALL records
+      const allRecords = Array.from(recordMap.values());
+      
+      // Create headers
       const headers = propertyNames;
-      const dataRows: string[][] = [];
       
-      // Get all record indexes and sort them
-      const allIndexes = Array.from(recordsByIndex.keys()).sort((a, b) => a - b);
-      
-      // Create a row for each record index
-      allIndexes.forEach(recordIndex => {
-        const record = recordsByIndex.get(recordIndex)!;
-        const row = propertyNames.map(propertyName => record[propertyName] || '');
-        dataRows.push(row);
-      });
+      // Create data rows for Excel
+      const dataRows = allRecords.map(record => 
+        propertyNames.map(propertyName => record[propertyName] || '')
+      );
 
-      // Create worksheet with headers and all data rows
+      // Create worksheet
       const worksheetData = [headers, ...dataRows];
       const collectionSheet = XLSX.utils.aoa_to_sheet(worksheetData);
 
