@@ -11,6 +11,13 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **July 23, 2025 (Latest Update)**
+- ✓ **AUTO-VERIFICATION CONFIDENCE FEATURE IMPLEMENTED**: Enhanced schema prompt with auto-verification thresholds for automated validation status assignment
+- ✓ Added auto_verification_confidence field display to both PROJECT SCHEMA FIELDS and COLLECTIONS prompt sections
+- ✓ AI now receives explicit instructions to set validation_status to "verified" when confidence_score >= auto-verification threshold
+- ✓ AI now receives explicit instructions to set validation_status to "unverified" when confidence_score < auto-verification threshold
+- ✓ Enhanced JSON output schema to show specific auto-verification thresholds for each field (default 80%)
+- ✓ Updated validation status logic with clear examples: 85% confidence vs 80% threshold = "verified", 27% confidence vs 50% threshold = "unverified"
+- ✓ Complete workflow now supports customizable auto-verification per field/collection property with AI-driven status assignment
 - ✓ **WORD DOCUMENT EXTRACTION FIXED**: Resolved Gemini API limitation for Word document MIME types
 - ✓ Root cause identified: Gemini API only supports PDF files natively, rejects Word MIME type `application/vnd.openxmlformats-officedocument.wordprocessingml.document`
 - ✓ Implemented python-docx library fallback for Word document text extraction

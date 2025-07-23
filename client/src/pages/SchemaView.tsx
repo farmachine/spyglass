@@ -315,7 +315,8 @@ ${error instanceof Error ? error.message : 'Unknown error'}
           "Extraction Rules": allRules.length > 0 ? allRules.join(' | ') : "No rules",
           "Knowledge Documents": data.knowledge_documents.length > 0 ? 
             data.knowledge_documents.map(doc => doc.displayName).join(', ') : 
-            "None"
+            "None",
+          "Auto Verification": `${field.autoVerificationConfidence || 80}%`
         };
       })
     };
@@ -350,7 +351,8 @@ ${error instanceof Error ? error.message : 'Unknown error'}
             "Extraction Rules": allRules.length > 0 ? allRules.join(' | ') : "No rules",
             "Knowledge Documents": data.knowledge_documents.length > 0 ? 
               data.knowledge_documents.map(doc => doc.displayName).join(', ') : 
-              "None"
+              "None",
+            "Auto Verification": `${prop.autoVerificationConfidence || 80}%`
           };
         }) || []
       }))
@@ -421,8 +423,15 @@ ${error instanceof Error ? error.message : 'Unknown error'}
     markdown += `### AI REASONING (ai_reasoning):\n`;
     markdown += `Give reasoning for the score. If knowledge documents and/or extraction rules had influence, please reference which ones in a human-friendly way. Please also include follow up questions that the user can ask the information provider for clarification on the data value.\n\n`;
     
+    markdown += `### VALIDATION STATUS (validation_status):\n`;
+    markdown += `Set validation_status based on confidence score vs Auto Verification threshold:\n`;
+    markdown += `- "verified": confidence_score >= Auto Verification percentage\n`;
+    markdown += `- "unverified": confidence_score < Auto Verification percentage\n`;
+    markdown += `Example: If Auto Verification is 80% and confidence_score is 85, set validation_status to "verified"\n`;
+    markdown += `Example: If Auto Verification is 50% and confidence_score is 27, set validation_status to "unverified"\n\n`;
+    
     markdown += `### OUTPUT:\n`;
-    markdown += `JSON format below with confidence_score and ai_reasoning for each field.\n\n`;
+    markdown += `JSON format below with confidence_score, ai_reasoning, and validation_status for each field.\n\n`;
     
     // JSON Schema
     markdown += `## REQUIRED JSON OUTPUT SCHEMA\n\n`;
@@ -439,7 +448,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
           "confidence_score": 95,
           "ai_reasoning": "See AI REASONING (ai_reasoning) in AI PROCESSING INSTRUCTIONS",
           "document_source": "document_name.pdf",
-          "validation_status": "pending",
+          "validation_status": `Set based on confidence_score vs ${field.autoVerificationConfidence || 80}% threshold`,
           "record_index": 0
         })),
         // Collection properties
@@ -454,7 +463,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
             "confidence_score": 95,
             "ai_reasoning": "See AI REASONING (ai_reasoning) in AI PROCESSING INSTRUCTIONS",
             "document_source": "document_name.pdf",
-            "validation_status": "pending",
+            "validation_status": `Set based on confidence_score vs ${prop.autoVerificationConfidence || 80}% threshold`,
             "record_index": 0
           })) || []
         )
