@@ -10,7 +10,19 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**July 22, 2025 (Latest Update)**
+**July 23, 2025 (Latest Update)**
+- ✓ **WORD DOCUMENT EXTRACTION FIXED**: Resolved Gemini API limitation for Word document MIME types
+- ✓ Root cause identified: Gemini API only supports PDF files natively, rejects Word MIME type `application/vnd.openxmlformats-officedocument.wordprocessingml.document`
+- ✓ Implemented python-docx library fallback for Word document text extraction
+- ✓ Word files now processed using python-docx to extract paragraphs, tables, and formatted content
+- ✓ Enhanced multi-format processing: PDF (Gemini API) + Word (python-docx) + Excel (pandas/openpyxl)
+- ✓ Complete document type support: .pdf, .docx, .doc, .xlsx, .xls files all extract properly
+- ✓ Maintains existing Excel processing using pandas + openpyxl libraries for spreadsheet data
+- ✓ Updated extraction logic with proper error handling for each document type
+- ✓ Mixed file uploads (Word + PDF + Excel) now work correctly with appropriate extraction methods
+- ✓ Installed python-docx dependency for comprehensive Word document processing
+
+**July 22, 2025**
 - ✓ **EXCEL FILE EXTRACTION WORKAROUND IMPLEMENTED**: Resolved Gemini API limitation that doesn't support Excel MIME types
 - ✓ Root cause identified: Gemini API rejects Excel files with "Unsupported MIME type" error for application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
 - ✓ Implemented pandas-based Excel processing solution as workaround to Gemini API limitations

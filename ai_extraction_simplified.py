@@ -377,23 +377,106 @@ INSTRUCTIONS:
 
 RETURN: Complete readable content from this document."""
                         
-                        # Make content extraction API call
-                        logging.info(f"STEP 1: Using Gemini API for content extraction from {file_name}")
-                        content_response = model.generate_content([
-                            {
-                                "mime_type": mime_type,
-                                "data": binary_content
-                            },
-                            extraction_prompt
-                        ])
+                        # Handle file types based on Gemini API support
+                        logging.info(f"STEP 1: Processing {file_name} with MIME type {mime_type}")
                         
-                        if content_response and content_response.text:
-                            document_content = content_response.text.strip()
-                            extracted_content_text += f"\n\n=== DOCUMENT: {file_name} ===\n{document_content}"
-                            logging.info(f"STEP 1: Successfully extracted {len(document_content)} characters from {file_name}")
+                        # Check if this is a supported file type for Gemini API
+                        if 'pdf' in mime_type or file_name.lower().endswith('.pdf'):
+                            # PDF files are fully supported by Gemini API
+                            logging.info(f"STEP 1: Using Gemini API for PDF extraction from {file_name}")
+                            content_response = model.generate_content([
+                                {
+                                    "mime_type": mime_type,
+                                    "data": binary_content
+                                },
+                                extraction_prompt
+                            ])
+                        elif ('word' in mime_type or 
+                              'vnd.openxmlformats-officedocument.wordprocessingml' in mime_type or
+                              'application/msword' in mime_type or
+                              file_name.lower().endswith(('.docx', '.doc'))):
+                            # Word document - use python-docx library
+                            logging.info(f"STEP 1: Using python-docx library for Word extraction from {file_name}")
+                            try:
+                                import io
+                                from docx import Document
+                                
+                                # Create document from binary content
+                                doc_stream = io.BytesIO(binary_content)
+                                doc = Document(doc_stream)
+                                
+                                # Extract all text content
+                                text_content = []
+                                for paragraph in doc.paragraphs:
+                                    if paragraph.text.strip():
+                                        text_content.append(paragraph.text.strip())
+                                
+                                # Extract text from tables
+                                for table in doc.tables:
+                                    for row in table.rows:
+                                        row_text = []
+                                        for cell in row.cells:
+                                            if cell.text.strip():
+                                                row_text.append(cell.text.strip())
+                                        if row_text:
+                                            text_content.append(" | ".join(row_text))
+                                
+                                document_content = "\n".join(text_content)
+                                logging.info(f"STEP 1: Successfully extracted {len(document_content)} characters from Word document {file_name}")
+                                
+                            except Exception as e:
+                                logging.error(f"STEP 1: Failed to extract content from Word document {file_name}: {e}")
+                                document_content = f"[ERROR EXTRACTING WORD DOCUMENT: {file_name}]\nError: {str(e)}"
+                        
+                        elif ('excel' in mime_type or 
+                              'spreadsheet' in mime_type or 
+                              'vnd.ms-excel' in mime_type or 
+                              'vnd.openxmlformats-officedocument.spreadsheetml' in mime_type or
+                              file_name.lower().endswith(('.xlsx', '.xls'))):
+                            # Excel file - use openpyxl/xlrd libraries
+                            logging.info(f"STEP 1: Using openpyxl/xlrd libraries for Excel extraction from {file_name}")
+                            try:
+                                import io
+                                import pandas as pd
+                                
+                                # Create Excel stream from binary content
+                                excel_stream = io.BytesIO(binary_content)
+                                
+                                # Read all sheets
+                                all_sheets = pd.read_excel(excel_stream, sheet_name=None, engine='openpyxl' if file_name.lower().endswith('.xlsx') else 'xlrd')
+                                
+                                text_content = []
+                                for sheet_name, df in all_sheets.items():
+                                    text_content.append(f"=== SHEET: {sheet_name} ===")
+                                    
+                                    # Convert dataframe to string representation
+                                    sheet_text = df.to_string(index=False, na_rep='')
+                                    text_content.append(sheet_text)
+                                
+                                document_content = "\n\n".join(text_content)
+                                logging.info(f"STEP 1: Successfully extracted {len(document_content)} characters from Excel document {file_name}")
+                                
+                            except Exception as e:
+                                logging.error(f"STEP 1: Failed to extract content from Excel document {file_name}: {e}")
+                                document_content = f"[ERROR EXTRACTING EXCEL DOCUMENT: {file_name}]\nError: {str(e)}"
+                        
                         else:
-                            logging.warning(f"STEP 1: No content extracted from {file_name}")
-                            extracted_content_text += f"\n\n=== DOCUMENT: {file_name} ===\n[Content extraction failed]"
+                            # Other unsupported formats
+                            logging.warning(f"STEP 1: Unsupported file format {file_name} ({mime_type})")
+                            document_content = f"[UNSUPPORTED FILE FORMAT: {file_name}]\nFile type {mime_type} is not supported for content extraction."
+                        
+                        # Handle PDF response or use extracted content from libraries
+                        if 'pdf' in mime_type or file_name.lower().endswith('.pdf'):
+                            # Handle PDF response from Gemini API
+                            if content_response and content_response.text:
+                                document_content = content_response.text.strip()
+                                logging.info(f"STEP 1: Successfully extracted {len(document_content)} characters from PDF {file_name}")
+                            else:
+                                logging.warning(f"STEP 1: No content extracted from PDF {file_name}")
+                                document_content = "[Content extraction failed]"
+                        
+                        # Add extracted content to final text
+                        extracted_content_text += f"\n\n=== DOCUMENT: {file_name} ===\n{document_content}"
                     
                 except Exception as e:
                     logging.error(f"STEP 1: Failed to extract content from document {file_name}: {e}")
