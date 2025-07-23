@@ -262,70 +262,43 @@ export default function NewUpload({ project }: NewUploadProps) {
         }
       }));
 
-      // Step 3: Text Extraction Phase
+      // Step 3: Text Extraction Phase (NEW SIMPLIFIED APPROACH)
       setProcessingStep('extracting');
       setProcessingProgress(0);
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "processing" as const })));
 
-      // Call text extraction endpoint
+      // Call new text extraction endpoint
       const textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
         method: 'POST',
         body: JSON.stringify({ files: filesData }),
         headers: { 'Content-Type': 'application/json' }
       });
 
-      setProcessingProgress(50);
+      setProcessingProgress(100);
 
-      if (mode === 'automated') {
-        // AUTOMATED MODE: Use the single-step extraction that works correctly
-        setProcessingStep('validating');
-        
-        // Step 4: Call the working single-step extraction endpoint
-        const extractionResult = await apiRequest(`/api/sessions/${session.id}/process-complete`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
+      // Step 4: Complete
+      setProcessingStep('complete');
 
-        setProcessingProgress(100);
-        setProcessingStep('complete');
-        setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
+      // Mark files as completed
+      setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
 
-        // Show success briefly before redirect
-        await new Promise(resolve => setTimeout(resolve, 1500));
+      // Show success briefly before redirect
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
+      if (textExtractionResult && session?.id) {
         toast({
-          title: "Extraction completed successfully",
-          description: `${selectedFiles.length} file(s) processed and data extracted. Redirecting to results...`,
+          title: "Text extraction complete",
+          description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
         });
 
-        // Close dialog and redirect directly to session results
+        // Close dialog and redirect to schema view with mode parameter
         setShowProcessingDialog(false);
-        setLocation(`/sessions/${session.id}`);
+        const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
+        const urlWithMode = `${redirectUrl}?mode=${mode}`;
 
+        setLocation(urlWithMode);
       } else {
-        // DEBUG MODE: Redirect to schema view for manual steps
-        setProcessingProgress(100);
-        setProcessingStep('complete');
-        setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
-
-        // Show success briefly before redirect
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        if (textExtractionResult && session?.id) {
-          toast({
-            title: "Text extraction complete",
-            description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
-          });
-
-          // Close dialog and redirect to schema view with debug mode parameter
-          setShowProcessingDialog(false);
-          const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
-          const urlWithMode = `${redirectUrl}?mode=${mode}`;
-
-          setLocation(urlWithMode);
-        } else {
-          throw new Error("Text extraction completed but session data is missing");
-        }
+        throw new Error("Text extraction completed but session data is missing");
       }
       
       // Reset form

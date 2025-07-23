@@ -22,12 +22,6 @@ Preferred communication style: Simple, everyday language.
 - ✓ Frontend validation maintains Excel file acceptance (.xlsx, .xls) with proper error handling
 - ✓ Installed required Python dependencies: pandas, openpyxl, xlrd for comprehensive Excel processing
 - ✓ System now extracts content from ALL worksheets in Excel workbooks with sheet names as headers
-- ✓ **AUTOMATED BACKGROUND PROCESSING IMPLEMENTED**: "Start Extraction" button now runs complete end-to-end processing in background
-- ✓ Dual-mode extraction system: "Start Extraction" (automated) vs "Run in debug mode" (manual step-by-step)
-- ✓ Automated mode workflow: Text extraction → AI data extraction → Database save → Direct redirect to results page
-- ✓ Debug mode maintains original manual workflow: Text extraction → Schema view → Manual button clicks → Results
-- ✓ Enhanced processing dialog shows real-time progress for both modes with appropriate step labels
-- ✓ Automated processing uses identical logic as debug mode, only differs in user interaction requirements
 
 **January 21, 2025**
 - ✓ **COLLECTION PROPERTY DISPLAY BUG COMPLETELY RESOLVED**: Fixed critical field name mismatch preventing collection items from displaying extracted values
