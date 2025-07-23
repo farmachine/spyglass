@@ -217,6 +217,9 @@ export type InsertKnowledgeDocument = z.infer<typeof insertKnowledgeDocumentSche
 export type ExtractionRule = typeof extractionRules.$inferSelect;
 export type InsertExtractionRule = z.infer<typeof insertExtractionRuleSchema>;
 export type FieldValidation = typeof fieldValidations.$inferSelect;
+export type FieldValidationWithName = FieldValidation & {
+  fieldName: string; // Added by backend through JOIN operations
+};
 export type InsertFieldValidation = z.infer<typeof insertFieldValidationSchema>;
 export type ProjectPublishing = typeof projectPublishing.$inferSelect;
 export type InsertProjectPublishing = z.infer<typeof insertProjectPublishingSchema>;
@@ -254,6 +257,10 @@ export type ProjectWithDetails = Project & {
   extractionRules: ExtractionRule[];
 };
 
+export type ExtractionSessionWithValidation = ExtractionSession & {
+  fieldValidations: FieldValidationWithName[];
+};
+
 // Login/Register validation schemas
 export const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -285,10 +292,7 @@ export const changePasswordSchema = z.object({
   path: ["confirmPassword"],
 });
 
-// Enhanced extraction session with validation data
-export type ExtractionSessionWithValidation = ExtractionSession & {
-  fieldValidations: FieldValidation[];
-};
+// Enhanced extraction session with validation data (removed duplicate)
 
 // Enhanced field types with validation
 export type ValidatedField = {

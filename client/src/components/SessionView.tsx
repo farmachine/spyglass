@@ -13,13 +13,14 @@ import { apiRequest } from "@/lib/queryClient";
 import * as XLSX from 'xlsx';
 import type { 
   ExtractionSessionWithValidation, 
-  FieldValidation, 
+  FieldValidation,
+  FieldValidationWithName,
   ProjectWithDetails,
   ValidationStatus 
 } from "@shared/schema";
 
 interface SessionViewProps {
-  sessionId: number;
+  sessionId: string;
   project: ProjectWithDetails;
 }
 
@@ -97,7 +98,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
         if (!acc[collectionName]) acc[collectionName] = [];
         acc[collectionName].push(validation);
         return acc;
-      }, {} as Record<string, FieldValidation[]>);
+      }, {} as Record<string, FieldValidationWithName[]>);
       
       const initialExpanded = new Set<string>();
       
@@ -113,12 +114,24 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
   }, [session?.fieldValidations]);
 
   const handleExportToExcel = () => {
-    if (!session) return;
+    if (!session?.fieldValidations) return;
 
     console.log('Starting Excel export for session:', session.sessionName);
-    console.log('Available validations:', validations.length);
+    console.log('Available validations:', session.fieldValidations.length);
 
     const workbook = XLSX.utils.book_new();
+    
+    // Separate schema fields and collection properties
+    const schemaFieldValidations = session.fieldValidations.filter(v => v.fieldType === 'schema_field');
+    const collectionValidations = session.fieldValidations.filter(v => v.fieldType === 'collection_property');
+    
+    // Group collection validations by collection name
+    const collectionGroups = collectionValidations.reduce((acc, validation) => {
+      const collectionName = validation.collectionName || 'Unknown Collection';
+      if (!acc[collectionName]) acc[collectionName] = [];
+      acc[collectionName].push(validation);
+      return acc;
+    }, {} as Record<string, FieldValidationWithName[]>);
     
     // Sheet 1: Main Object Info (Schema Fields)
     const mainObjectData = schemaFieldValidations.map(validation => [
@@ -138,7 +151,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
       console.log(`Processing collection: ${collectionName} with ${collectionValidations.length} validations`);
       
       // Group validations by record index to create rows
-      const recordGroups: Record<number, FieldValidation[]> = {};
+      const recordGroups: Record<number, FieldValidationWithName[]> = {};
       
       collectionValidations.forEach(validation => {
         const recordIndex = validation.recordIndex ?? 0;
@@ -295,7 +308,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
                     <ValidationIcon
                       status={validation.validationStatus as ValidationStatus}
                       reasoning={validation.aiReasoning}
-                      confidenceScore={validation.confidenceScore}
+                      confidenceScore={validation.confidenceScore ?? 0}
                       onManualEdit={() => handleManualEdit(validation)}
                     />
                     <div>
@@ -400,7 +413,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
                         <ValidationIcon
                           status={validation.validationStatus as ValidationStatus}
                           reasoning={validation.aiReasoning}
-                          confidenceScore={validation.confidenceScore}
+                          confidenceScore={validation.confidenceScore ?? 0}
                           onManualEdit={() => handleManualEdit(validation)}
                         />
                         <div>
