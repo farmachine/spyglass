@@ -1120,8 +1120,8 @@ except Exception as e:
         return res.status(404).json({ error: 'Session not found' });
       }
 
-      // Get project info
-      const project = await storage.getProject(session.projectId);
+      // Get project info with collections details
+      const project = await storage.getProjectWithDetails(session.projectId);
       if (!project) {
         return res.status(404).json({ error: 'Project not found' });
       }
@@ -1165,12 +1165,17 @@ except Exception as e:
       Object.entries(collectionGroups).forEach(([collectionName, validations]: [string, any[]]) => {
         console.log(`Processing collection ${collectionName} with ${validations.length} validations`);
         
-        // Get unique property names
-        const propertyNames = Array.from(new Set(validations.map(v => {
-          const fieldName = v.fieldName || '';
-          const match = fieldName.match(/\.([^.\[]+)/);
-          return match ? match[1] : fieldName;
-        }))).filter(name => name).sort();
+        // Get property names in schema order instead of alphabetical order
+        const collection = project.collections.find(c => c.collectionName === collectionName);
+        const propertyNames = collection ? 
+          collection.properties
+            .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+            .map(p => p.propertyName) :
+          Array.from(new Set(validations.map(v => {
+            const fieldName = v.fieldName || '';
+            const match = fieldName.match(/\.([^.\[]+)/);
+            return match ? match[1] : fieldName;
+          }))).filter(name => name).sort();
 
         console.log(`Properties for ${collectionName}:`, propertyNames);
 
