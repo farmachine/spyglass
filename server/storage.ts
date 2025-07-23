@@ -71,6 +71,7 @@ export interface IStorage {
   createProject(project: InsertProject): Promise<Project>;
   updateProject(id: string, project: Partial<InsertProject>, organizationId?: string): Promise<Project | undefined>;
   deleteProject(id: string, organizationId?: string): Promise<boolean>;
+  duplicateProject(id: string, newName: string, organizationId?: string): Promise<Project | undefined>;
 
   // Project Schema Fields
   getProjectSchemaFields(projectId: string): Promise<ProjectSchemaField[]>;
@@ -857,7 +858,7 @@ export class MemStorage implements IStorage {
     return this.projects.delete(id);
   }
 
-  async duplicateProject(id: number, newName: string, organizationId?: number): Promise<Project | undefined> {
+  async duplicateProject(id: string, newName: string, organizationId?: string): Promise<Project | undefined> {
     const originalProject = this.projects.get(id);
     if (!originalProject) return undefined;
     
@@ -951,6 +952,29 @@ export class MemStorage implements IStorage {
     // as these are typically instance-specific data
     
     return duplicatedProject;
+  }
+
+  // Project Publishing methods (MemStorage stubs)
+  async getProjectPublishing(projectId: string): Promise<ProjectPublishing[]> {
+    return [];
+  }
+
+  async getProjectPublishedOrganizations(projectId: string): Promise<Organization[]> {
+    return [];
+  }
+
+  async publishProjectToOrganization(publishing: InsertProjectPublishing): Promise<ProjectPublishing> {
+    const id = this.generateUUID();
+    const projectPublishing: ProjectPublishing = {
+      ...publishing,
+      id,
+      createdAt: new Date(),
+    };
+    return projectPublishing;
+  }
+
+  async unpublishProjectFromOrganization(projectId: string, organizationId: string): Promise<boolean> {
+    return true;
   }
 
   // Project Schema Fields
@@ -1225,6 +1249,27 @@ export class MemStorage implements IStorage {
       ...session,
       fieldValidations
     };
+  }
+
+  async getSession(sessionId: string): Promise<ExtractionSession | undefined> {
+    // Convert string ID to number for in-memory storage lookup
+    const numericId = parseInt(sessionId);
+    if (isNaN(numericId)) return undefined;
+    
+    return this.extractionSessions.get(numericId);
+  }
+
+  async getProjectCollections(projectId: string): Promise<ObjectCollection[]> {
+    return Array.from(this.objectCollections.values())
+      .filter(collection => collection.projectId === projectId)
+      .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+  }
+
+  async getExtractionSessionWithValidations(sessionId: string): Promise<ExtractionSessionWithValidation | undefined> {
+    const numericId = parseInt(sessionId);
+    if (isNaN(numericId)) return undefined;
+    
+    return this.getSessionWithValidations(numericId);
   }
 }
 
