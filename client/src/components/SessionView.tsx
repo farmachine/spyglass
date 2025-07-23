@@ -158,6 +158,8 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
         if (!recordGroups[recordIndex]) recordGroups[recordIndex] = [];
         recordGroups[recordIndex].push(validation);
       });
+      
+      console.log(`Raw record groups before sorting:`, recordGroups);
 
       // Get unique property names for columns - fix the property extraction
       const propertyNames = [...new Set(collectionValidations.map(v => {
@@ -178,16 +180,21 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
       const sortedRecordIndexes = Object.keys(recordGroups)
         .map(key => parseInt(key))
         .sort((a, b) => a - b);
-        
+      
+      console.log(`Original record indexes:`, sortedRecordIndexes);
+      
+      // Map data rows continuously from 0, regardless of original record indexes
       const dataRows = sortedRecordIndexes.map(recordIndex => {
         const recordValidations = recordGroups[recordIndex];
-        return propertyNames.map(propertyName => {
+        const row = propertyNames.map(propertyName => {
           const validation = recordValidations.find(v => {
             const fieldName = v.fieldName || '';
             return fieldName.includes(`.${propertyName}`);
           });
           return validation?.extractedValue || '';
         });
+        console.log(`Record index ${recordIndex} -> row:`, row);
+        return row;
       });
 
       console.log(`Collection ${collectionName} data rows:`, dataRows.length);
