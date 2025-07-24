@@ -1928,7 +1928,7 @@ class PostgreSQLStorage implements IStorage {
     const result = await this.db
       .delete(projectSchemaFields)
       .where(eq(projectSchemaFields.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Object Collections

@@ -614,6 +614,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Schema field reordering
+  app.post("/api/schema-fields/reorder", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { stepId, fields } = req.body;
+      
+      if (!stepId || !Array.isArray(fields)) {
+        return res.status(400).json({ error: "Missing stepId or fields array" });
+      }
+
+      // Update the orderIndex for each field
+      for (const field of fields) {
+        await storage.updateProjectSchemaField(field.id, { 
+          orderIndex: field.orderIndex 
+        });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error reordering fields:", error);
+      res.status(500).json({ error: "Failed to reorder fields" });
+    }
+  });
+
+  // Collection reordering
+  app.post("/api/collections/reorder", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { stepId, collections } = req.body;
+      
+      if (!stepId || !Array.isArray(collections)) {
+        return res.status(400).json({ error: "Missing stepId or collections array" });
+      }
+
+      // Update the orderIndex for each collection
+      for (const collection of collections) {
+        await storage.updateObjectCollection(collection.id, { 
+          orderIndex: collection.orderIndex 
+        });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error reordering collections:", error);
+      res.status(500).json({ error: "Failed to reorder collections" });
+    }
+  });
+
   // Collection Properties
   app.get("/api/collections/:collectionId/properties", authenticateToken, async (req: AuthRequest, res) => {
     try {

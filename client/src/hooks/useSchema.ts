@@ -225,3 +225,34 @@ export function useDeleteProperty() {
     },
   });
 }
+
+// Field and Collection reordering mutations
+export function useReorderFields() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ stepId, fields }: { stepId: string; fields: { id: string; orderIndex: number }[] }) =>
+      apiRequest(`/api/schema-fields/reorder`, {
+        method: "POST",
+        body: JSON.stringify({ stepId, fields }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+    },
+  });
+}
+
+export function useReorderCollections() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ stepId, collections }: { stepId: string; collections: { id: string; orderIndex: number }[] }) =>
+      apiRequest(`/api/collections/reorder`, {
+        method: "POST",
+        body: JSON.stringify({ stepId, collections }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+    },
+  });
+}

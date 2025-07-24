@@ -19,7 +19,9 @@ import {
   useUpdateCollection,
   useDeleteCollection,
   useUpdateProperty,
-  useDeleteProperty
+  useDeleteProperty,
+  useReorderFields,
+  useReorderCollections
 } from "@/hooks/useSchema";
 import { useUpdateProject } from "@/hooks/useProjects";
 import { useExtractionSteps, useCreateExtractionStep, useDeleteExtractionStep } from "@/hooks/useExtractionSteps";
@@ -93,6 +95,11 @@ export default function DefineData({ project }: DefineDataProps) {
   // Step mutations
   const createExtractionStep = useCreateExtractionStep();
   const deleteExtractionStep = useDeleteExtractionStep();
+  
+  // Project mutation
+  const updateProjectMutation = useUpdateProject();
+  const reorderFieldsMutation = useReorderFields();
+  const reorderCollectionsMutation = useReorderCollections();
 
   // Handle step creation
   const handleCreateStep = async (stepData: any) => {
@@ -441,6 +448,59 @@ export default function DefineData({ project }: DefineDataProps) {
     }
   };
 
+  // Reordering handlers for fields and collections within steps
+  const handleReorderFields = async (stepId: string, sourceIndex: number, destinationIndex: number) => {
+    try {
+      const stepFields = safeSchemaFields.filter(field => field.stepId === stepId);
+      const reorderedFields = [...stepFields];
+      
+      // Move the field from source to destination
+      const [removed] = reorderedFields.splice(sourceIndex, 1);
+      reorderedFields.splice(destinationIndex, 0, removed);
+      
+      // Update order indices
+      const updatedFields = reorderedFields.map((field, index) => ({
+        id: field.id,
+        orderIndex: index
+      }));
+      
+      await reorderFieldsMutation.mutateAsync({ stepId, fields: updatedFields });
+    } catch (error) {
+      console.error("Error reordering fields:", error);
+      toast({
+        title: "Error",
+        description: "Failed to reorder fields. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleReorderCollections = async (stepId: string, sourceIndex: number, destinationIndex: number) => {
+    try {
+      const stepCollections = safeCollections.filter(collection => collection.stepId === stepId);
+      const reorderedCollections = [...stepCollections];
+      
+      // Move the collection from source to destination
+      const [removed] = reorderedCollections.splice(sourceIndex, 1);
+      reorderedCollections.splice(destinationIndex, 0, removed);
+      
+      // Update order indices
+      const updatedCollections = reorderedCollections.map((collection, index) => ({
+        id: collection.id,
+        orderIndex: index
+      }));
+      
+      await reorderCollectionsMutation.mutateAsync({ stepId, collections: updatedCollections });
+    } catch (error) {
+      console.error("Error reordering collections:", error);
+      toast({
+        title: "Error",
+        description: "Failed to reorder collections. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Main object name handlers
   const handleMainObjectNameSave = async () => {
     try {
@@ -605,6 +665,7 @@ export default function DefineData({ project }: DefineDataProps) {
               <Card className="bg-white border-l-4 border-l-blue-500 border-t border-r border-b border-gray-200 shadow-sm">
                 <StepBlock 
                   step={step}
+                  projectId={project.id.toString()}
                   onEdit={(step) => setStepDialog({ open: true, step })}
                   onDelete={(step) => setDeleteDialog({ 
                     open: true, 
@@ -646,6 +707,8 @@ export default function DefineData({ project }: DefineDataProps) {
                     id: property.id, 
                     name: property.propertyName 
                   })}
+                  onReorderFields={handleReorderFields}
+                  onReorderCollections={handleReorderCollections}
                 />
               </Card>
               
