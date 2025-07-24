@@ -22,10 +22,10 @@ interface CollectionCardProps {
   collection: ObjectCollection;
   fieldTypeColors: Record<string, string>;
   onEditCollection: (collection: ObjectCollection) => void;
-  onDeleteCollection: (id: number, name: string) => void;
-  onAddProperty: (collectionId: number, collectionName: string) => void;
+  onDeleteCollection: (id: string, name: string) => void;
+  onAddProperty: (collectionId: string, collectionName: string) => void;
   onEditProperty: (property: CollectionProperty) => void;
-  onDeleteProperty: (id: number, name: string) => void;
+  onDeleteProperty: (id: string, name: string) => void;
   dragHandleProps?: any;
 }
 

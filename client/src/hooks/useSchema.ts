@@ -71,7 +71,7 @@ export function useDeleteSchemaField() {
 }
 
 // Object Collections
-export function useObjectCollections(projectId: number) {
+export function useObjectCollections(projectId: string) {
   return useQuery({
     queryKey: ["/api/projects", projectId, "collections"],
     queryFn: () => apiRequest(`/api/projects/${projectId}/collections`),
@@ -79,7 +79,7 @@ export function useObjectCollections(projectId: number) {
   });
 }
 
-export function useCreateCollection(projectId: number) {
+export function useCreateCollection(projectId: string) {
   const queryClient = useQueryClient();
   
   return useMutation({
@@ -99,7 +99,7 @@ export function useUpdateCollection() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, collection, projectId }: { id: number; collection: Partial<InsertObjectCollection>; projectId?: number }) =>
+    mutationFn: ({ id, collection, projectId }: { id: string; collection: Partial<InsertObjectCollection>; projectId?: string }) =>
       apiRequest(`/api/collections/${id}`, {
         method: "PUT",
         body: JSON.stringify(collection),
@@ -121,7 +121,7 @@ export function useDeleteCollection() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (id: number) => apiRequest(`/api/collections/${id}`, {
+    mutationFn: (id: string) => apiRequest(`/api/collections/${id}`, {
       method: "DELETE",
     }),
     onSuccess: () => {
@@ -136,7 +136,7 @@ export function useDeleteCollection() {
 }
 
 // Collection Properties
-export function useCollectionProperties(collectionId: number) {
+export function useCollectionProperties(collectionId: string) {
   return useQuery({
     queryKey: ["/api/collections", collectionId, "properties"],
     queryFn: () => apiRequest(`/api/collections/${collectionId}/properties`),
@@ -145,7 +145,7 @@ export function useCollectionProperties(collectionId: number) {
 }
 
 // Get all properties for all collections in a project (for target fields)
-export function useAllProjectProperties(projectId: number) {
+export function useAllProjectProperties(projectId: string) {
   return useQuery({
     queryKey: ["/api/projects", projectId, "all-properties"],
     queryFn: async () => {
@@ -157,7 +157,7 @@ export function useAllProjectProperties(projectId: number) {
       for (const collection of collections) {
         try {
           const properties = await apiRequest(`/api/collections/${collection.id}/properties`);
-          allProperties.push(...properties.map(prop => ({
+          allProperties.push(...properties.map((prop: any) => ({
             ...prop,
             collectionName: collection.collectionName,
           })));
@@ -172,7 +172,7 @@ export function useAllProjectProperties(projectId: number) {
   });
 }
 
-export function useCreateProperty(collectionId: number) {
+export function useCreateProperty(collectionId: string) {
   const queryClient = useQueryClient();
   
   return useMutation({
