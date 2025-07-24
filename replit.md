@@ -11,6 +11,9 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **July 24, 2025 (Latest Update)**
+- ✓ **TERMINOLOGY UPDATE: STEP TO STAGE**: Changed overall extraction phases from "STEP" to "STAGE" with proper step numbering
+- ✓ Updated SchemaView headers: "STAGE 1 COMPLETE: Document Content Extracted" and "STAGE 2: PROJECT SCHEMA & AI PROCESSING CONFIGURATION (X STEPS)"
+- ✓ Added "STEP 1 OF 2" header above PROJECT SCHEMA FIELDS section for multi-step workflows
 - ✓ **STEP-BASED UI ARCHITECTURE FULLY IMPLEMENTED**: Complete frontend restructure to match step-based database hierarchy
 - ✓ Converted DefineData component to display step-based containers instead of global field/collection lists
 - ✓ Enhanced StepBlock component to render fields and collections within individual step containers

@@ -784,7 +784,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
             {extractionMode === 'automated' ? '🤖 AUTOMATED MODE' : '🔧 DEBUG MODE'}
           </div>
         )}
-        === STEP 1 COMPLETE: Document Content Extracted ===
+        === STAGE 1 COMPLETE: Document Content Extracted ===
         Session: {session?.sessionName || 'Unnamed Session'}
         Project: {schemaData.project?.name || 'Unnamed Project'}
         Main Object: {schemaData.project?.mainObjectName || 'Session'}
@@ -849,10 +849,25 @@ ${error instanceof Error ? error.message : 'Unknown error'}
             {extractionMode === 'automated' ? '🤖 AUTOMATED MODE' : '🔧 DEBUG MODE'}
           </div>
         )}
-        === STEP 2: PROJECT SCHEMA & AI PROCESSING CONFIGURATION ===
+        === STAGE 2: PROJECT SCHEMA & AI PROCESSING CONFIGURATION ({extractionSteps?.length || 1} STEPS) ===
       </div>
 
 
+
+      {/* Step Header */}
+      {extractionSteps && extractionSteps.length > 1 && (
+        <div style={{ 
+          margin: '20px 0 10px 0', 
+          padding: '8px 15px', 
+          backgroundColor: '#fff3cd',
+          border: '2px solid #856404',
+          fontWeight: 'bold',
+          textAlign: 'center',
+          fontSize: '16px'
+        }}>
+          STEP {currentStepIndex + 1} OF {extractionSteps.length}
+        </div>
+      )}
 
       {/* Project Schema Fields */}
       <div style={{ 
