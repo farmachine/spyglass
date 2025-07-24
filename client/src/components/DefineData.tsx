@@ -27,8 +27,7 @@ import CollectionDialog from "@/components/CollectionDialog";
 import PropertyDialog from "@/components/PropertyDialog";
 import DeleteDialog from "@/components/DeleteDialog";
 import CollectionCard from "@/components/CollectionCard";
-import { ExtractionStepsManager } from "@/components/ExtractionStepsManager";
-import { Switch } from "@/components/ui/switch";
+import StepDialog from "@/components/StepDialog";
 import type {
   ProjectWithDetails,
   ProjectSchemaField,
@@ -47,14 +46,8 @@ export default function DefineData({ project }: DefineDataProps) {
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type?: string; id?: number; name?: string }>({ open: false });
   const [mainObjectName, setMainObjectName] = useState(project.mainObjectName || "Session");
   const [isEditingMainObjectName, setIsEditingMainObjectName] = useState(false);
-  const [isMultiStepMode, setIsMultiStepMode] = useState(project.isMultiStep || false);
-
-  // Handle multi-step mode toggle
-  const handleMultiStepToggle = (checked: boolean) => {
-    console.log('Multi-step toggle clicked:', checked);
-    setIsMultiStepMode(checked);
-    // TODO: Persist this to project settings if needed
-  };
+  // State for managing extraction steps
+  const [stepDialog, setStepDialog] = useState<{ open: boolean; step?: any | null }>({ open: false });
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -90,6 +83,15 @@ export default function DefineData({ project }: DefineDataProps) {
   // Property mutations  
   const updateProperty = useUpdateProperty();
   const deleteProperty = useDeleteProperty();
+
+  // Handle step creation (placeholder for now)
+  const handleCreateStep = (stepData: any) => {
+    console.log('Creating step:', stepData);
+    toast({
+      title: "Step created",
+      description: `Step "${stepData.name}" has been added to your extraction workflow.`,
+    });
+  };
   
   // Project mutations
   const updateProject = useUpdateProject();
@@ -511,41 +513,7 @@ export default function DefineData({ project }: DefineDataProps) {
         </CardContent>
       </Card>
 
-      {/* Extraction Mode Toggle Card */}
-      <Card className="mb-4">
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <Label className="text-sm font-medium mb-2 block">
-                Extraction Processing Mode
-              </Label>
-              <p className="text-sm text-gray-600">
-                {isMultiStepMode 
-                  ? "Multi-step extraction allows complex reasoning where later steps can reference previous results using {{StepName.FieldName}} syntax"
-                  : "Single-step extraction processes all fields and collections in one AI analysis pass"
-                }
-              </p>
-            </div>
-            <div className="flex items-center space-x-3">
-              <span className={`text-sm ${!isMultiStepMode ? 'font-medium text-blue-600' : 'text-gray-500'}`}>
-                Single-step
-              </span>
-              <Switch
-                checked={isMultiStepMode}
-                onCheckedChange={handleMultiStepToggle}
-              />
-              <span className={`text-sm ${isMultiStepMode ? 'font-medium text-blue-600' : 'text-gray-500'}`}>
-                Multi-step
-              </span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {isMultiStepMode ? (
-        <ExtractionStepsManager projectId={project.id} />
-      ) : (
-        <>
+      {/* Unified Data Structure Card - now supports steps inline */}
           {/* Unified Data Structure Card */}
           <Card>
         <CardContent className="pt-6">
@@ -698,11 +666,18 @@ export default function DefineData({ project }: DefineDataProps) {
               <Plus className="h-4 w-4 mr-2" />
               Add List
             </Button>
+            
+            <Button 
+              variant="outline"
+              onClick={() => setStepDialog({ open: true, step: null })}
+              className="w-full border-orange-200 text-orange-700 hover:bg-orange-50"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Step
+            </Button>
           </div>
         </CardContent>
       </Card>
-        </>
-      )}
 
       {/* Dialogs */}
       <SchemaFieldDialog
@@ -734,6 +709,13 @@ export default function DefineData({ project }: DefineDataProps) {
         description={`Are you sure you want to delete "${deleteDialog.name}"? This action cannot be undone.`}
         onClose={() => setDeleteDialog({ open: false })}
         onConfirm={handleDelete}
+      />
+
+      <StepDialog
+        open={stepDialog.open}
+        onOpenChange={(open) => setStepDialog({ open, step: null })}
+        onSave={handleCreateStep}
+        step={stepDialog.step}
       />
     </div>
   );
