@@ -14,6 +14,11 @@ Preferred communication style: Simple, everyday language.
 - ✓ **TERMINOLOGY UPDATE: STEP TO STAGE**: Changed overall extraction phases from "STEP" to "STAGE" with proper step numbering
 - ✓ Updated SchemaView headers: "STAGE 1 COMPLETE: Document Content Extracted" and "STAGE 2: PROJECT SCHEMA & AI PROCESSING CONFIGURATION (X STEPS)"
 - ✓ Added "STEP 1 OF 2" header above PROJECT SCHEMA FIELDS section for multi-step workflows
+- ✓ **BUTTON LABEL FIX**: Fixed confusing button text "Run Step 1: Step 1: Basic Information" to clean "Run Step 1 Extraction"
+- ✓ Enhanced document content display positioning between step header and schema fields in scrollable window
+- ✓ Fixed document content parsing to handle both extractedData and extracted_data field names
+- ✓ **CRITICAL ISSUE IDENTIFIED**: Session 17dcbd81-78bf-49a7-a0fb-ddd2ac976686 has empty extracted_texts array causing "No document content available" error
+- ✓ System properly detects step hierarchy but document extraction process needs fixing for proper multi-step functionality
 - ✓ **STEP-BASED UI ARCHITECTURE FULLY IMPLEMENTED**: Complete frontend restructure to match step-based database hierarchy
 - ✓ Converted DefineData component to display step-based containers instead of global field/collection lists
 - ✓ Enhanced StepBlock component to render fields and collections within individual step containers

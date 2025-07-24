@@ -117,7 +117,7 @@ export default function SchemaView() {
       }
 
       // If no extracted content, trigger Gemini-based document extraction automatically
-      if (session.documents && session.documents.length > 0 && session.status !== 'text_extracted') {
+      if (session.documents && session.documents.length > 0 && (!session.extractedData && !session.extracted_data) || session.status !== 'text_extracted') {
         console.log('Auto-triggering Gemini document content extraction...');
         setIsLoadingDocuments(true);
         
@@ -1342,9 +1342,11 @@ ${error instanceof Error ? error.message : 'Unknown error'}
         >
           {isProcessing ? 'PROCESSING...' : 
             (extractionSteps && extractionSteps.length > 1) 
-              ? (currentStepIndex < extractionSteps.length - 1)
-                ? `Run Step ${currentStepIndex + 1}: ${extractionSteps[currentStepIndex]?.stepName || `Step ${currentStepIndex + 1}`}`
-                : 'SAVE TO DATABASE'
+              ? (currentStepIndex === 0)
+                ? 'Run Step 1 Extraction'
+                : (currentStepIndex < extractionSteps.length - 1)
+                  ? `Run Step ${currentStepIndex + 1}: ${extractionSteps[currentStepIndex]?.stepName || `Step ${currentStepIndex + 1}`}`
+                  : 'SAVE TO DATABASE'
               : 'START EXTRACTION'
           }
         </button>
