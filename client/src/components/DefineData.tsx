@@ -47,7 +47,14 @@ export default function DefineData({ project }: DefineDataProps) {
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type?: string; id?: number; name?: string }>({ open: false });
   const [mainObjectName, setMainObjectName] = useState(project.mainObjectName || "Session");
   const [isEditingMainObjectName, setIsEditingMainObjectName] = useState(false);
-  const [isMultiStepMode, setIsMultiStepMode] = useState(false);
+  const [isMultiStepMode, setIsMultiStepMode] = useState(project.isMultiStep || false);
+
+  // Handle multi-step mode toggle
+  const handleMultiStepToggle = (checked: boolean) => {
+    console.log('Multi-step toggle clicked:', checked);
+    setIsMultiStepMode(checked);
+    // TODO: Persist this to project settings if needed
+  };
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -525,7 +532,7 @@ export default function DefineData({ project }: DefineDataProps) {
               </span>
               <Switch
                 checked={isMultiStepMode}
-                onCheckedChange={setIsMultiStepMode}
+                onCheckedChange={handleMultiStepToggle}
               />
               <span className={`text-sm ${isMultiStepMode ? 'font-medium text-blue-600' : 'text-gray-500'}`}>
                 Multi-step
