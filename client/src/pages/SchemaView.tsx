@@ -290,10 +290,23 @@ ${error instanceof Error ? error.message : 'Unknown error'}
 
   // Function to generate markdown from schema data
   const generateSchemaMarkdown = (data: SchemaData, documentText: string, documentCount: number, stepIndex: number = 0, previousResults: any[] = []) => {
-    // Filter schema data by current step
-    const currentStepId = extractionSteps?.[stepIndex]?.id;
-    const currentStepFields = data.schema_fields.filter(field => field.stepId === currentStepId);
-    const currentStepCollections = data.collections.filter(collection => collection.stepId === currentStepId);
+    // Filter schema data by current step with fallback logic
+    let currentStepFields, currentStepCollections;
+    
+    if (!extractionSteps || extractionSteps.length === 0) {
+      // No extraction steps, use all fields and collections
+      currentStepFields = data.schema_fields;
+      currentStepCollections = data.collections;
+    } else {
+      // Filter by current step ID
+      const currentStepId = extractionSteps?.[stepIndex]?.id;
+      const stepFields = data.schema_fields.filter(field => field.stepId === currentStepId);
+      const stepCollections = data.collections.filter(collection => collection.stepId === currentStepId);
+      
+      // Use step-filtered data if available, otherwise fallback to all data
+      currentStepFields = stepFields.length > 0 ? stepFields : data.schema_fields;
+      currentStepCollections = stepCollections.length > 0 ? stepCollections : data.collections;
+    }
     
     let markdown = `# AI EXTRACTION TASK - STEP ${stepIndex + 1}\n\n`;
     markdown += `You are an expert data extraction AI. Your task is to analyze the documents below and extract structured data according to the schema provided.\n\n`;
@@ -869,42 +882,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
         </div>
       )}
 
-      {/* Document Content Display for Multi-Step */}
-      {extractionSteps && extractionSteps.length > 1 && documentContent && (
-        <div style={{ 
-          margin: '10px 0 30px 0', 
-          padding: '15px', 
-          backgroundColor: '#fff9c4',
-          border: '2px solid #d69e2e',
-          fontWeight: 'bold'
-        }}>
-          === EXTRACTED DOCUMENT CONTENT ({documentContent.count} DOCUMENTS) ===
-          <div style={{ 
-            marginTop: '10px',
-            padding: '15px',
-            backgroundColor: '#f8f9fa',
-            border: '1px solid #dee2e6',
-            maxHeight: '400px',
-            overflowY: 'auto',
-            fontSize: '11px',
-            fontWeight: 'normal',
-            fontFamily: 'monospace',
-            lineHeight: '1.4',
-            whiteSpace: 'pre-wrap'
-          }}>
-            {documentContent.text}
-          </div>
-          <div style={{ 
-            marginTop: '10px', 
-            fontSize: '12px',
-            fontStyle: 'italic', 
-            color: '#666',
-            fontWeight: 'normal'
-          }}>
-            Total characters: {documentContent.text.length} | Documents: {documentContent.count}
-          </div>
-        </div>
-      )}
+
 
       {/* Project Schema Fields */}
       <div style={{ 
@@ -930,10 +908,21 @@ ${error instanceof Error ? error.message : 'Unknown error'}
 
       <div style={{ marginBottom: '40px' }}>
         {JSON.stringify({
-          schema_fields: (extractionSteps && extractionSteps.length > 0 ? 
-            schemaData.schema_fields.filter(field => field.stepId === extractionSteps[currentStepIndex]?.id) :
-            schemaData.schema_fields
-          ).map(field => {
+          schema_fields: (() => {
+            // If no extraction steps exist, show all fields
+            if (!extractionSteps || extractionSteps.length === 0) {
+              return schemaData.schema_fields;
+            }
+            
+            // Get current step ID
+            const currentStepId = extractionSteps[currentStepIndex]?.id;
+            
+            // Filter fields by current step ID
+            const stepFields = schemaData.schema_fields.filter(field => field.stepId === currentStepId);
+            
+            // If no fields found for current step, show all fields (fallback)
+            return stepFields.length > 0 ? stepFields : schemaData.schema_fields;
+          })().map(field => {
             // Get rules that specifically target this field
             const specificRules = schemaData.extraction_rules
               .filter(rule => rule.targetFields?.includes(field.fieldName))
@@ -984,10 +973,21 @@ ${error instanceof Error ? error.message : 'Unknown error'}
 
       <div style={{ marginBottom: '40px' }}>
         {JSON.stringify({
-          collections: (extractionSteps && extractionSteps.length > 0 ? 
-            schemaData.collections.filter(collection => collection.stepId === extractionSteps[currentStepIndex]?.id) :
-            schemaData.collections
-          ).map(collection => ({
+          collections: (() => {
+            // If no extraction steps exist, show all collections
+            if (!extractionSteps || extractionSteps.length === 0) {
+              return schemaData.collections;
+            }
+            
+            // Get current step ID
+            const currentStepId = extractionSteps[currentStepIndex]?.id;
+            
+            // Filter collections by current step ID
+            const stepCollections = schemaData.collections.filter(collection => collection.stepId === currentStepId);
+            
+            // If no collections found for current step, show all collections (fallback)
+            return stepCollections.length > 0 ? stepCollections : schemaData.collections;
+          })().map(collection => ({
             collection_name: collection.collectionName,
             description: collection.description,
             properties: collection.properties?.map((prop: any) => {

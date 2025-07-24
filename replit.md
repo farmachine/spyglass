@@ -17,6 +17,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ **BUTTON LABEL FIX**: Fixed confusing button text "Run Step 1: Step 1: Basic Information" to clean "Run Step 1 Extraction"
 - ✓ Enhanced document content display positioning between step header and schema fields in scrollable window
 - ✓ Fixed document content parsing to handle both extractedData and extracted_data field names
+- ✓ **DUPLICATE CONTENT DISPLAY REMOVED**: Removed duplicate document content display below STEP header as requested
+- ✓ **EMPTY SCHEMA FIELDS BUG FIXED**: Fixed critical issue where schema fields appeared empty due to incorrect step filtering
+- ✓ Enhanced schema field filtering with proper fallback logic: show step fields if available, otherwise show all fields
+- ✓ Applied same fallback logic to collections display and generateSchemaMarkdown function
 - ✓ **CRITICAL ISSUE IDENTIFIED**: Session 17dcbd81-78bf-49a7-a0fb-ddd2ac976686 has empty extracted_texts array causing "No document content available" error
 - ✓ System properly detects step hierarchy but document extraction process needs fixing for proper multi-step functionality
 - ✓ **STEP-BASED UI ARCHITECTURE FULLY IMPLEMENTED**: Complete frontend restructure to match step-based database hierarchy
