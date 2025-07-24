@@ -37,12 +37,12 @@ export default function StepBlock({
 }: StepBlockProps) {
   
   // Get fields and collections for this specific step
-  const { data: allFields = [] } = useProjectSchemaFields(step.projectId);
-  const { data: allCollections = [] } = useObjectCollections(step.projectId);
+  const { data: allFields = [] } = useProjectSchemaFields(parseInt(step.projectId));
+  const { data: allCollections = [] } = useObjectCollections(parseInt(step.projectId));
   
   // Filter fields and collections by stepId
-  const stepFields = allFields.filter(field => field.stepId === step.id);
-  const stepCollections = allCollections.filter(collection => collection.stepId === step.id);
+  const stepFields = allFields.filter((field: any) => field.stepId === step.id);
+  const stepCollections = allCollections.filter((collection: any) => collection.stepId === step.id);
   
   // Sort by orderIndex
   const sortedFields = [...stepFields].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
@@ -65,7 +65,7 @@ export default function StepBlock({
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-              {step.stepOrder}
+              {step.orderIndex || 1}
             </div>
             <div>
               <CardTitle className="text-lg font-semibold text-gray-900">{step.stepName}</CardTitle>
@@ -190,10 +190,17 @@ export default function StepBlock({
                 <CollectionCard
                   key={collection.id}
                   collection={collection}
-                  onEdit={onEditCollection}
-                  onDelete={onDeleteCollection}
-                  onEditProperty={onEditProperty}
-                  onDeleteProperty={onDeleteProperty}
+                  fieldTypeColors={{
+                    TEXT: "bg-green-100 text-green-800",
+                    NUMBER: "bg-cyan-100 text-cyan-800", 
+                    DATE: "bg-purple-100 text-purple-800",
+                    BOOLEAN: "bg-orange-100 text-orange-800",
+                  }}
+                  onEditCollection={(coll) => onEditCollection && onEditCollection(coll)}
+                  onDeleteCollection={(id, name) => onDeleteCollection && onDeleteCollection(collection)}
+                  onAddProperty={() => {}} // This should be handled by the parent
+                  onEditProperty={(prop) => onEditProperty && onEditProperty(prop, collection.id, collection.collectionName)}
+                  onDeleteProperty={(id, name) => onDeleteProperty && onDeleteProperty({ id, propertyName: name })}
                 />
               ))}
             </div>
