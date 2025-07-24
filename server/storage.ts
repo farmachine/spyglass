@@ -79,8 +79,8 @@ export interface IStorage {
   // Project Schema Fields
   getProjectSchemaFields(projectId: string): Promise<ProjectSchemaField[]>;
   createProjectSchemaField(field: InsertProjectSchemaField): Promise<ProjectSchemaField>;
-  updateProjectSchemaField(id: number, field: Partial<InsertProjectSchemaField>): Promise<ProjectSchemaField | undefined>;
-  deleteProjectSchemaField(id: number): Promise<boolean>;
+  updateProjectSchemaField(id: string, field: Partial<InsertProjectSchemaField>): Promise<ProjectSchemaField | undefined>;
+  deleteProjectSchemaField(id: string): Promise<boolean>;
 
   // Object Collections
   getObjectCollections(projectId: string): Promise<(ObjectCollection & { properties: CollectionProperty[] })[]>;

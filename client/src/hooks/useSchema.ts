@@ -38,7 +38,7 @@ export function useUpdateSchemaField() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, field, projectId }: { id: number; field: Partial<InsertProjectSchemaField>; projectId?: number }) =>
+    mutationFn: ({ id, field, projectId }: { id: string; field: Partial<InsertProjectSchemaField>; projectId?: string | number }) =>
       apiRequest(`/api/schema-fields/${id}`, {
         method: "PUT",
         body: JSON.stringify(field),
@@ -60,7 +60,7 @@ export function useDeleteSchemaField() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (id: number) => apiRequest(`/api/schema-fields/${id}`, {
+    mutationFn: (id: string) => apiRequest(`/api/schema-fields/${id}`, {
       method: "DELETE",
     }),
     onSuccess: (_, id) => {

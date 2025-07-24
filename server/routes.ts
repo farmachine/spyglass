@@ -508,6 +508,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(field);
     } catch (error) {
+      console.error("Failed to update schema field:", error);
       res.status(500).json({ message: "Failed to update schema field" });
     }
   });
@@ -521,6 +522,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.status(204).send();
     } catch (error) {
+      console.error("Failed to delete schema field:", error);
       res.status(500).json({ message: "Failed to delete schema field" });
     }
   });
