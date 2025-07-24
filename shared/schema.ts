@@ -50,9 +50,10 @@ export const extractionSteps = pgTable("extraction_steps", {
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   stepName: text("step_name").notNull(),
   stepDescription: text("step_description"),
-  stepNumber: integer("step_number").notNull(), // 1, 2, 3, etc.
   orderIndex: integer("order_index").default(0),
+  isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const projectSchemaFields = pgTable("project_schema_fields", {

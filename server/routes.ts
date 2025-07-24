@@ -17,7 +17,8 @@ import {
   registerUserSchema,
   resetPasswordSchema,
   changePasswordApiSchema,
-  insertProjectPublishingSchema
+  insertProjectPublishingSchema,
+  insertExtractionStepSchema
 } from "@shared/schema";
 import { authenticateToken, requireAdmin, generateToken, comparePassword, hashPassword, type AuthRequest } from "./auth";
 
@@ -1041,23 +1042,29 @@ except Exception as e:
       const steps = await storage.getExtractionSteps(projectId);
       res.json(steps);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch extraction steps" });
+      console.error("Failed to fetch extraction steps:", error);
+      res.status(500).json({ message: "Failed to fetch extraction steps", error: error.message });
     }
   });
 
   app.post("/api/projects/:projectId/steps", async (req, res) => {
     try {
       const projectId = req.params.projectId;
-      const stepData = { 
-        ...req.body, 
-        projectId,
-        stepName: req.body.name, // Map 'name' to 'stepName'
-        stepDescription: req.body.description // Map 'description' to 'stepDescription'
-      };
-      const step = await storage.createExtractionStep(stepData);
+      console.log("Creating extraction step with data:", req.body);
+      
+      const result = insertExtractionStepSchema.safeParse({ ...req.body, projectId });
+      if (!result.success) {
+        console.error("Validation errors:", result.error.errors);
+        return res.status(400).json({ message: "Invalid extraction step data", errors: result.error.errors });
+      }
+      
+      console.log("Validated step data:", result.data);
+      const step = await storage.createExtractionStep(result.data);
+      console.log("Created step:", step);
       res.status(201).json(step);
     } catch (error) {
-      res.status(500).json({ message: "Failed to create extraction step" });
+      console.error("Failed to create extraction step:", error);
+      res.status(500).json({ message: "Failed to create extraction step", error: error.message });
     }
   });
 
