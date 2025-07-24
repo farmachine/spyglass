@@ -80,8 +80,11 @@ export const extractionSteps = pgTable("extraction_steps", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   stepName: text("step_name").notNull(),
+  stepType: text("step_type").notNull().default("extract"), // extract, transform, validate
   description: text("description"),
   orderIndex: integer("order_index").default(0),
+  isConditional: boolean("is_conditional").default(false),
+  conditionLogic: text("condition_logic"), // Logic for conditional steps
   color: text("color").default("blue"), // UI color for visual distinction
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -318,6 +321,17 @@ export type StepCollectionProperty = typeof stepCollectionProperties.$inferSelec
 export type InsertStepCollectionProperty = z.infer<typeof insertStepCollectionPropertySchema>;
 export type StepReference = typeof stepReferences.$inferSelect;
 export type InsertStepReference = z.infer<typeof insertStepReferenceSchema>;
+
+// Enhanced extraction step with related data
+export type ExtractionStepWithDetails = ExtractionStep & {
+  schemaFields: StepSchemaField[];
+  collections: (StepCollection & {
+    properties: StepCollectionProperty[];
+  })[];
+  references: (StepReference & {
+    fromFieldName?: string;
+  })[];
+};
 
 // Validation status types
 export type ValidationStatus = 'valid' | 'invalid' | 'pending' | 'manual';

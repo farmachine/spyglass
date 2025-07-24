@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Upload, Database, Brain, Settings, FolderOpen, Home as HomeIcon, FileText, Edit3, Check, X, AlertTriangle, CheckCircle } from "lucide-react";
+import { ArrowLeft, Upload, Database, Brain, Settings, FolderOpen, Home as HomeIcon, FileText, Edit3, Check, X, AlertTriangle, CheckCircle, GitBranch } from "lucide-react";
 import { WaveIcon, FlowIcon, StreamIcon, TideIcon, ShipIcon, DropletIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,12 +13,14 @@ import { useLocation } from "wouter";
 import { useProject } from "@/hooks/useProjects";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
-import type { FieldValidation } from "@/types/api";
+import type { FieldValidation } from "@shared/schema";
+
 import NewUpload from "./NewUpload";
 import AllData from "./AllData";
 import KnowledgeRules from "./KnowledgeRules";
 import DefineData from "./DefineData";
 import Publishing from "./Publishing";
+import WorkflowBuilder from "../pages/WorkflowBuilder";
 import UserProfile from "./UserProfile";
 import Breadcrumb from "./Breadcrumb";
 import ExtractlyLogo from "./ExtractlyLogo";
@@ -28,7 +30,7 @@ interface ProjectLayoutProps {
   projectId: string;
 }
 
-type ActiveTab = "upload" | "data" | "knowledge" | "define" | "publishing";
+type ActiveTab = "upload" | "data" | "knowledge" | "define" | "publishing" | "workflows";
 
 export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const [, setLocation] = useLocation();
@@ -300,6 +302,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
     ...(canAccessConfigTabs ? [
       { id: "knowledge" as const, label: "Knowledge/Rules", icon: TideIcon, disabled: showWelcomeFlow },
       { id: "define" as const, label: "Define Data", icon: StreamIcon, disabled: false }, // Define Data always enabled
+      { id: "workflows" as const, label: "Multi-Step Workflows", icon: GitBranch, disabled: showWelcomeFlow },
     ] : []),
     ...(canAccessPublishing ? [
       { id: "publishing" as const, label: "Publishing", icon: ShipIcon, disabled: showWelcomeFlow },
@@ -316,6 +319,8 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
         return <KnowledgeRules project={project} />;
       case "define":
         return <DefineData project={project} />;
+      case "workflows":
+        return <WorkflowBuilder />;
       case "publishing":
         return <Publishing project={project} />;
     }
