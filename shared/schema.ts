@@ -44,9 +44,21 @@ export const projectPublishing = pgTable("project_publishing", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// New table for extraction steps
+export const extractionSteps = pgTable("extraction_steps", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  stepName: text("step_name").notNull(),
+  stepDescription: text("step_description"),
+  stepNumber: integer("step_number").notNull(), // 1, 2, 3, etc.
+  orderIndex: integer("order_index").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const projectSchemaFields = pgTable("project_schema_fields", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  stepId: uuid("step_id").references(() => extractionSteps.id, { onDelete: "cascade" }), // Optional - for multi-step extraction
   fieldName: text("field_name").notNull(),
   fieldType: text("field_type").notNull(), // TEXT, NUMBER, DATE, BOOLEAN
   description: text("description"),
@@ -58,6 +70,7 @@ export const projectSchemaFields = pgTable("project_schema_fields", {
 export const objectCollections = pgTable("object_collections", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  stepId: uuid("step_id").references(() => extractionSteps.id, { onDelete: "cascade" }), // Optional - for multi-step extraction
   collectionName: text("collection_name").notNull(),
   description: text("description"),
   orderIndex: integer("order_index").default(0),
@@ -88,11 +101,25 @@ export const extractionSessions = pgTable("extraction_sessions", {
 });
 
 // New table for field-level validation tracking
+// New table for step-level extraction results
+export const stepExtractionResults = pgTable("step_extraction_results", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
+  stepId: uuid("step_id").notNull().references(() => extractionSteps.id, { onDelete: "cascade" }),
+  stepNumber: integer("step_number").notNull(),
+  extractionData: jsonb("extraction_data"), // JSON response from AI for this step
+  status: text("status").default("pending").notNull(), // 'pending', 'completed', 'error'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const fieldValidations = pgTable("field_validations", {
   id: uuid("id").defaultRandom().primaryKey(),
   sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
+  stepId: uuid("step_id").references(() => extractionSteps.id, { onDelete: "cascade" }), // Which step this validation belongs to
   fieldType: text("field_type").notNull(), // 'schema_field' or 'collection_property'
   fieldId: uuid("field_id").notNull(), // references projectSchemaFields.id or collectionProperties.id
+  fieldName: text("field_name"), // Cached field name for easier querying
   collectionName: text("collection_name"), // for collection properties only
   recordIndex: integer("record_index").default(0), // for collection properties, which record instance
   extractedValue: text("extracted_value"),
@@ -182,6 +209,17 @@ export const insertExtractionRuleSchema = createInsertSchema(extractionRules).om
   createdAt: true,
 });
 
+export const insertExtractionStepSchema = createInsertSchema(extractionSteps).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertStepExtractionResultSchema = createInsertSchema(stepExtractionResults).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertFieldValidationSchema = createInsertSchema(fieldValidations).omit({
   id: true,
   createdAt: true,
@@ -220,6 +258,10 @@ export type FieldValidation = typeof fieldValidations.$inferSelect;
 export type FieldValidationWithName = FieldValidation & {
   fieldName: string; // Added by backend through JOIN operations
 };
+export type ExtractingStep = typeof extractionSteps.$inferSelect;
+export type InsertExtractionStep = z.infer<typeof insertExtractionStepSchema>;
+export type StepExtractionResult = typeof stepExtractionResults.$inferSelect;
+export type InsertStepExtractionResult = z.infer<typeof insertStepExtractionResultSchema>;
 export type InsertFieldValidation = z.infer<typeof insertFieldValidationSchema>;
 export type ProjectPublishing = typeof projectPublishing.$inferSelect;
 export type InsertProjectPublishing = z.infer<typeof insertProjectPublishingSchema>;

@@ -11,6 +11,17 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **July 23, 2025 (Latest Update)**
+- ✓ **MULTI-STEP EXTRACTION ARCHITECTURE IMPLEMENTED**: Complete database schema update to support sequential AI processing steps
+- ✓ Added extraction_steps table to organize schema definitions into sequential processing phases
+- ✓ Enhanced project_schema_fields and object_collections with step_id foreign keys for step grouping
+- ✓ Created step_extraction_results table to store intermediate AI responses between steps
+- ✓ Updated field_validations table with step_id to track which step generated each validation
+- ✓ Multi-step process enables complex reasoning: Step 1 extracts basic data → Step 2 references {{Step1.FieldName}} for validation/conflicts
+- ✓ Users can now configure sequential extraction workflows where later steps build on previous results
+- ✓ Database schema supports field references across steps using {{PreviousStep.FieldName}} syntax in field descriptions
+- ✓ Foundation established for advanced multi-step AI reasoning workflows with cross-step field referencing
+
+**July 23, 2025**
 - ✓ **AUTO-VERIFICATION CONFIDENCE FEATURE IMPLEMENTED**: Enhanced schema prompt with auto-verification thresholds for automated validation status assignment
 - ✓ Added auto_verification_confidence field display to both PROJECT SCHEMA FIELDS and COLLECTIONS prompt sections
 - ✓ AI now receives explicit instructions to set validation_status to "verified" when confidence_score >= auto-verification threshold

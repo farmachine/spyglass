@@ -27,6 +27,8 @@ import CollectionDialog from "@/components/CollectionDialog";
 import PropertyDialog from "@/components/PropertyDialog";
 import DeleteDialog from "@/components/DeleteDialog";
 import CollectionCard from "@/components/CollectionCard";
+import { ExtractionStepsManager } from "@/components/ExtractionStepsManager";
+import { Switch } from "@/components/ui/switch";
 import type {
   ProjectWithDetails,
   ProjectSchemaField,
@@ -45,6 +47,7 @@ export default function DefineData({ project }: DefineDataProps) {
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type?: string; id?: number; name?: string }>({ open: false });
   const [mainObjectName, setMainObjectName] = useState(project.mainObjectName || "Session");
   const [isEditingMainObjectName, setIsEditingMainObjectName] = useState(false);
+  const [isMultiStepMode, setIsMultiStepMode] = useState(false);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -501,8 +504,43 @@ export default function DefineData({ project }: DefineDataProps) {
         </CardContent>
       </Card>
 
-      {/* Unified Data Structure Card */}
-      <Card>
+      {/* Extraction Mode Toggle Card */}
+      <Card className="mb-4">
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <Label className="text-sm font-medium mb-2 block">
+                Extraction Processing Mode
+              </Label>
+              <p className="text-sm text-gray-600">
+                {isMultiStepMode 
+                  ? "Multi-step extraction allows complex reasoning where later steps can reference previous results using {{StepName.FieldName}} syntax"
+                  : "Single-step extraction processes all fields and collections in one AI analysis pass"
+                }
+              </p>
+            </div>
+            <div className="flex items-center space-x-3">
+              <span className={`text-sm ${!isMultiStepMode ? 'font-medium text-blue-600' : 'text-gray-500'}`}>
+                Single-step
+              </span>
+              <Switch
+                checked={isMultiStepMode}
+                onCheckedChange={setIsMultiStepMode}
+              />
+              <span className={`text-sm ${isMultiStepMode ? 'font-medium text-blue-600' : 'text-gray-500'}`}>
+                Multi-step
+              </span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {isMultiStepMode ? (
+        <ExtractionStepsManager projectId={project.id} />
+      ) : (
+        <>
+          {/* Unified Data Structure Card */}
+          <Card>
         <CardContent className="pt-6">
           <div className="mb-2">
             <Label className="text-sm font-medium">
@@ -656,6 +694,8 @@ export default function DefineData({ project }: DefineDataProps) {
           </div>
         </CardContent>
       </Card>
+        </>
+      )}
 
       {/* Dialogs */}
       <SchemaFieldDialog
