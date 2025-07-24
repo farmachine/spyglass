@@ -18,7 +18,7 @@ export function useProjectSchemaFields(projectId: string | number) {
   });
 }
 
-export function useCreateSchemaField(projectId: number) {
+export function useCreateSchemaField(projectId: string | number) {
   const queryClient = useQueryClient();
   
   return useMutation({

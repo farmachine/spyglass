@@ -463,6 +463,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fields = await storage.getProjectSchemaFields(projectId);
       res.json(fields);
     } catch (error) {
+      console.error("Failed to fetch schema fields:", error);
       res.status(500).json({ message: "Failed to fetch schema fields" });
     }
   });
@@ -488,6 +489,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(201).json(field);
     } catch (error) {
+      console.error("Failed to create schema field:", error);
       res.status(500).json({ message: "Failed to create schema field" });
     }
   });

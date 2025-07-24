@@ -37,8 +37,8 @@ export default function StepBlock({
 }: StepBlockProps) {
   
   // Get fields and collections for this specific step
-  const { data: allFields = [] } = useProjectSchemaFields(parseInt(step.projectId));
-  const { data: allCollections = [] } = useObjectCollections(parseInt(step.projectId));
+  const { data: allFields = [] } = useProjectSchemaFields(step.projectId);
+  const { data: allCollections = [] } = useObjectCollections(step.projectId);
   
   // Filter fields and collections by stepId
   const stepFields = allFields.filter((field: any) => field.stepId === step.id);
