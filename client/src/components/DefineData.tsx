@@ -569,121 +569,99 @@ export default function DefineData({ project }: DefineDataProps) {
         </CardContent>
       </Card>
 
-      {/* Unified Data Structure Card - now supports steps inline */}
-          {/* Unified Data Structure Card */}
-          <Card>
-        <CardContent className="pt-6">
-          <div className="mb-2">
-            <Label className="text-sm font-medium">
-              Define the fields and lists to extract from your {project.mainObjectName || "Session"} documents
-            </Label>
-          </div>
-          {(schemaFieldsLoading || collectionsLoading) ? (
-            <div className="text-center py-8">
-              <div className="animate-spin h-12 w-12 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
-              <p className="text-sm text-gray-600">Loading data structure...</p>
-            </div>
-          ) : safeExtractionSteps.length === 0 ? (
-            <div className="text-center py-8">
-              <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No extraction steps defined
-              </h3>
-              <p className="text-sm text-gray-600 mb-6">
-                Create extraction steps to organize fields and collections for processing your {project.mainObjectName || "Session"} documents
+      {/* Main Content - No outer card wrapper */}
+      {(schemaFieldsLoading || collectionsLoading) ? (
+        <div className="text-center py-8">
+          <div className="animate-spin h-12 w-12 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
+          <p className="text-sm text-gray-600">Loading data structure...</p>
+        </div>
+      ) : safeExtractionSteps.length === 0 ? (
+        <div className="text-center py-8">
+          <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            No extraction steps defined
+          </h3>
+          <p className="text-sm text-gray-600 mb-6">
+            Create extraction steps to organize fields and collections for processing your {project.mainObjectName || "Session"} documents
+          </p>
+        </div>
+      ) : (
+        /* Extraction Steps - Main outer containers */
+        <div className="space-y-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Extraction Steps</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Define the fields and lists to extract from your {project.mainObjectName || "Session"} documents
               </p>
             </div>
-          ) : null}
-
-          {/* Extraction Steps - Main Data Structure */}
-          {safeExtractionSteps.length > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">Extraction Steps</h3>
-                <Badge variant="outline" className="text-sm">
-                  {safeExtractionSteps.length} step{safeExtractionSteps.length !== 1 ? 's' : ''}
-                </Badge>
-              </div>
-              {safeExtractionSteps.map((step) => (
-                <StepBlock 
-                  key={step.id} 
-                  step={step}
-                  onEdit={(step) => setStepDialog({ open: true, step })}
-                  onDelete={(step) => setDeleteDialog({ 
-                    open: true, 
-                    type: "step", 
-                    id: step.id, 
-                    name: step.stepName 
-                  })}
-                  onAddField={(stepId) => {
-                    // Set the stepId context for the field dialog
-                    setSchemaFieldDialog({ open: true, field: null, stepId });
-                  }}
-                  onAddCollection={(stepId) => {
-                    // Set the stepId context for the collection dialog  
-                    setCollectionDialog({ open: true, collection: null, stepId });
-                  }}
-                  onEditField={(field) => setSchemaFieldDialog({ open: true, field })}
-                  onDeleteField={(field) => setDeleteDialog({ 
-                    open: true, 
-                    type: "field", 
-                    id: field.id, 
-                    name: field.fieldName 
-                  })}
-                  onEditCollection={(collection) => setCollectionDialog({ open: true, collection })}
-                  onDeleteCollection={(collection) => setDeleteDialog({ 
-                    open: true, 
-                    type: "collection", 
-                    id: collection.id, 
-                    name: collection.collectionName 
-                  })}
-                  onEditProperty={(property, collectionId, collectionName) => setPropertyDialog({ 
-                    open: true, 
-                    property, 
-                    collectionId,
-                    collectionName 
-                  })}
-                  onDeleteProperty={(property) => setDeleteDialog({ 
-                    open: true, 
-                    type: "property", 
-                    id: property.id, 
-                    name: property.propertyName 
-                  })}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Action buttons */}
-          <div className="mt-6 pt-6 border-t space-y-3">
-            <Button 
-              variant="outline"
-              onClick={() => setSchemaFieldDialog({ open: true, field: null })}
-              className="w-full"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Field
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={() => setCollectionDialog({ open: true, collection: null })}
-              className="w-full"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add List
-            </Button>
-            
-            <Button 
-              variant="outline"
-              onClick={() => setStepDialog({ open: true, step: null })}
-              className="w-full border-orange-200 text-orange-700 hover:bg-orange-50"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Step
-            </Button>
+            <Badge variant="outline" className="text-sm">
+              {safeExtractionSteps.length} step{safeExtractionSteps.length !== 1 ? 's' : ''}
+            </Badge>
           </div>
-        </CardContent>
-      </Card>
+
+          {safeExtractionSteps.map((step) => (
+            <Card key={step.id} className="bg-white border-2 border-gray-300">
+              <StepBlock 
+                step={step}
+                onEdit={(step) => setStepDialog({ open: true, step })}
+                onDelete={(step) => setDeleteDialog({ 
+                  open: true, 
+                  type: "step", 
+                  id: step.id, 
+                  name: step.stepName 
+                })}
+                onAddField={(stepId) => {
+                  // Set the stepId context for the field dialog
+                  setSchemaFieldDialog({ open: true, field: null, stepId });
+                }}
+                onAddCollection={(stepId) => {
+                  // Set the stepId context for the collection dialog  
+                  setCollectionDialog({ open: true, collection: null, stepId });
+                }}
+                onEditField={(field) => setSchemaFieldDialog({ open: true, field })}
+                onDeleteField={(field) => setDeleteDialog({ 
+                  open: true, 
+                  type: "field", 
+                  id: field.id, 
+                  name: field.fieldName 
+                })}
+                onEditCollection={(collection) => setCollectionDialog({ open: true, collection })}
+                onDeleteCollection={(collection) => setDeleteDialog({ 
+                  open: true, 
+                  type: "collection", 
+                  id: collection.id, 
+                  name: collection.collectionName 
+                })}
+                onEditProperty={(property, collectionId, collectionName) => setPropertyDialog({ 
+                  open: true, 
+                  property, 
+                  collectionId,
+                  collectionName 
+                })}
+                onDeleteProperty={(property) => setDeleteDialog({ 
+                  open: true, 
+                  type: "property", 
+                  id: property.id, 
+                  name: property.propertyName 
+                })}
+              />
+            </Card>
+          ))}
+        </div>
+      )}
+        
+      {/* Add Step Button */}
+      <div className="mt-6">
+        <Button 
+          variant="outline"
+          onClick={() => setStepDialog({ open: true, step: null })}
+          className="w-full border-orange-200 text-orange-700 hover:bg-orange-50"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add Step
+        </Button>
+      </div>
 
       {/* Dialogs */}
       <SchemaFieldDialog
