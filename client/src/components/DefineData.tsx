@@ -276,7 +276,8 @@ export default function DefineData({ project }: DefineDataProps) {
 
   const handleDeleteSchemaField = async (id: string) => {
     try {
-      await deleteSchemaField.mutateAsync(parseInt(id));
+      // Pass the ID as string for UUID compatibility
+      await deleteSchemaField.mutateAsync(id);
       setDeleteDialog({ open: false });
       toast({
         title: "Field deleted",
@@ -526,19 +527,35 @@ export default function DefineData({ project }: DefineDataProps) {
   const handleDelete = async () => {
     if (!deleteDialog.id || !deleteDialog.type) return;
 
-    switch (deleteDialog.type) {
-      case "field":
-        await handleDeleteSchemaField(deleteDialog.id);
-        break;
-      case "collection":
-        await handleDeleteCollection(deleteDialog.id);
-        break;
-      case "property":
-        await handleDeleteProperty(deleteDialog.id);
-        break;
-      case "step":
-        await handleDeleteStep(deleteDialog.id as string);
-        break;
+    try {
+      switch (deleteDialog.type) {
+        case "field":
+          await handleDeleteSchemaField(deleteDialog.id);
+          break;
+        case "collection":
+          await handleDeleteCollection(deleteDialog.id);
+          break;
+        case "property":
+          await handleDeleteProperty(deleteDialog.id);
+          break;
+        case "step":
+          await handleDeleteStep(deleteDialog.id as string);
+          break;
+        default:
+          throw new Error("Unknown item type");
+      }
+      
+      setDeleteDialog({ open: false });
+      toast({
+        title: "Item deleted",
+        description: "Item has been deleted successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error", 
+        description: "Failed to delete item. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
