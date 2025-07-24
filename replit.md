@@ -10,7 +10,16 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**July 23, 2025 (Latest Update)**
+**July 24, 2025 (Latest Update)**
+- ✓ **STEP TABLES CLEANUP COMPLETED**: Removed all unused step-related database tables for cleaner architecture
+- ✓ Deleted `extracted_collection_items`, `extracted_collection_properties`, and `extracted_schema_fields` tables
+- ✓ Foreign key constraints handled properly with correct deletion order to prevent errors
+- ✓ System now uses only `field_validations` table for data storage and Excel exports
+- ✓ No code dependencies found - step tables were orphaned database artifacts
+- ✓ Excel export functionality preserved and continues working through current validation system
+- ✓ Database architecture simplified and more maintainable
+
+**July 23, 2025**
 - ✓ **AUTO-VERIFICATION CONFIDENCE FEATURE IMPLEMENTED**: Enhanced schema prompt with auto-verification thresholds for automated validation status assignment
 - ✓ Added auto_verification_confidence field display to both PROJECT SCHEMA FIELDS and COLLECTIONS prompt sections
 - ✓ AI now receives explicit instructions to set validation_status to "verified" when confidence_score >= auto-verification threshold
