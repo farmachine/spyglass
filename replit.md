@@ -11,28 +11,17 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **July 24, 2025 (Latest Update)**
-- ✓ **TERMINOLOGY UPDATE: STEP TO STAGE**: Changed overall extraction phases from "STEP" to "STAGE" with proper step numbering
-- ✓ Updated SchemaView headers: "STAGE 1 COMPLETE: Document Content Extracted" and "STAGE 2: PROJECT SCHEMA & AI PROCESSING CONFIGURATION (X STEPS)"
-- ✓ Added "STEP 1 OF 2" header above PROJECT SCHEMA FIELDS section for multi-step workflows
-- ✓ **BUTTON LABEL FIX**: Fixed confusing button text "Run Step 1: Step 1: Basic Information" to clean "Run Step 1 Extraction"
-- ✓ Enhanced document content display positioning between step header and schema fields in scrollable window
-- ✓ Fixed document content parsing to handle both extractedData and extracted_data field names
-- ✓ **DUPLICATE CONTENT DISPLAY REMOVED**: Removed duplicate document content display below STEP header as requested
-- ✓ **EMPTY SCHEMA FIELDS BUG FIXED**: Fixed critical issue where schema fields appeared empty due to incorrect step filtering
-- ✓ Enhanced schema field filtering with proper fallback logic: show step fields if available, otherwise show all fields
-- ✓ Applied same fallback logic to collections display and generateSchemaMarkdown function
-- ✓ **CRITICAL ISSUE IDENTIFIED**: Session 17dcbd81-78bf-49a7-a0fb-ddd2ac976686 has empty extracted_texts array causing "No document content available" error
-- ✓ System properly detects step hierarchy but document extraction process needs fixing for proper multi-step functionality
-- ✓ **STEP-BASED UI ARCHITECTURE FULLY IMPLEMENTED**: Complete frontend restructure to match step-based database hierarchy
-- ✓ Converted DefineData component to display step-based containers instead of global field/collection lists
-- ✓ Enhanced StepBlock component to render fields and collections within individual step containers
-- ✓ Updated dialog systems to support stepId context for creating fields/collections within specific steps
-- ✓ Fixed TypeScript compatibility issues across CollectionCard and schema hook components
-- ✓ Completed database migration removing old validation columns from schema tables
-- ✓ All validation data now properly stored in dedicated field_validations table with step relationships
-- ✓ UI now accurately reflects Step → Fields/Collections hierarchy matching database structure
-- ✓ Each step acts as independent container with its own Add Field and Add Collection buttons
-- ✓ Complete architectural alignment between database schema and user interface achieved
+- ✓ **STEP-BASED UI ARCHITECTURE COMPLETELY SIMPLIFIED**: Successfully simplified complex extraction steps database to use simple step numbers stored in schema field/collection objects
+- ✓ **DATABASE MIGRATION COMPLETED**: Removed all stepId foreign key references and cleared extraction_steps tables to eliminate complexity
+- ✓ **DEFINEDATA COMPONENT RESTRUCTURED**: Complete rewrite of DefineData component to organize fields and collections by step numbers instead of database relationships
+- ✓ Created DefineDataSimple component that groups fields and collections into proper step containers (Step 1, Step 2, etc.)
+- ✓ Each step container shows fields and collections with that step number, with Add Field/Add Collection buttons per step
+- ✓ Visual step separators with orange numbered badges and arrow indicators between sequential steps
+- ✓ Maintained existing field/collection functionality while simplifying the underlying architecture
+- ✓ Eliminated complex StepBlock component and extraction step CRUD operations for cleaner codebase
+- ✓ Schema fields and collections now use simple "step": 1, "step": 2 properties for organization
+- ✓ All LSP errors resolved and application runs cleanly with simplified step-based architecture
+- ✓ Complete architectural shift from database-driven step management to property-based step organization
 
 **July 23, 2025**
 - ✓ **MULTI-STEP EXTRACTION ARCHITECTURE IMPLEMENTED**: Complete database schema update to support sequential AI processing steps

@@ -71,6 +71,27 @@ export default function DefineDataSimple({ project }: DefineDataProps) {
   // Check if project has any data
   const hasDataItems = safeSchemaFields.length > 0 || safeCollections.length > 0;
 
+  // Group fields and collections by step number
+  const getStepNumbers = () => {
+    const stepNumbers = new Set<number>();
+    safeSchemaFields.forEach(field => {
+      if (field.step) stepNumbers.add(field.step);
+    });
+    safeCollections.forEach(collection => {
+      if (collection.step) stepNumbers.add(collection.step);
+    });
+    // If no steps defined, default to step 1
+    return stepNumbers.size > 0 ? Array.from(stepNumbers).sort() : [1];
+  };
+
+  const stepNumbers = getStepNumbers();
+  
+  const getStepFields = (stepNumber: number) => 
+    safeSchemaFields.filter(field => field.step === stepNumber);
+  
+  const getStepCollections = (stepNumber: number) => 
+    safeCollections.filter(collection => collection.step === stepNumber);
+
   // Main object name save handler
   const handleMainObjectNameSave = async () => {
     try {
@@ -104,7 +125,7 @@ export default function DefineDataSimple({ project }: DefineDataProps) {
         projectId: project.id.toString() 
       });
       sessionStorage.setItem(`project-${project.id.toString()}-interacted`, 'true');
-      setSchemaFieldDialog({ open: false });
+      setSchemaFieldDialog({ open: false, field: null });
       toast({
         title: "Field created",
         description: "Field has been created successfully."
@@ -126,7 +147,7 @@ export default function DefineDataSimple({ project }: DefineDataProps) {
         field: data,
         projectId: project.id.toString()
       });
-      setSchemaFieldDialog({ open: false });
+      setSchemaFieldDialog({ open: false, field: null });
       toast({
         title: "Field updated",
         description: "Field has been updated successfully."
@@ -170,7 +191,7 @@ export default function DefineDataSimple({ project }: DefineDataProps) {
         projectId: project.id.toString() 
       });
       sessionStorage.setItem(`project-${project.id.toString()}-interacted`, 'true');
-      setCollectionDialog({ open: false });
+      setCollectionDialog({ open: false, collection: null });
       toast({
         title: "Collection created",
         description: "Collection has been created successfully."
@@ -192,7 +213,7 @@ export default function DefineDataSimple({ project }: DefineDataProps) {
         collection: data,
         projectId: project.id.toString()
       });
-      setCollectionDialog({ open: false });
+      setCollectionDialog({ open: false, collection: null });
       toast({
         title: "Collection updated",
         description: "Collection has been updated successfully."
@@ -398,8 +419,8 @@ export default function DefineDataSimple({ project }: DefineDataProps) {
             </div>
           </div>
 
-          {/* Content */}
-          <div className="space-y-4">
+          {/* Content organized by steps */}
+          <div className="space-y-6">
             {safeSchemaFields.length === 0 && safeCollections.length === 0 ? (
               <Card className="p-8 text-center">
                 <Database className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -411,91 +432,137 @@ export default function DefineDataSimple({ project }: DefineDataProps) {
                 </p>
               </Card>
             ) : (
-              <>
-                {/* Fields Section */}
-                {safeSchemaFields.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3">Fields</h3>
-                    <div className="space-y-2">
-                      {safeSchemaFields.map((field) => (
-                        <div key={field.id} className="flex items-center justify-between p-3 bg-white border rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <FileText className="h-4 w-4 text-blue-600" />
-                            <div>
-                              <div className="font-medium">{field.fieldName}</div>
-                              <div className="text-sm text-gray-600">{field.description}</div>
-                            </div>
-                            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
-                              {field.fieldType}
-                            </Badge>
-                            {field.step && (
-                              <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700">
-                                Step {field.step}
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setSchemaFieldDialog({ open: true, field })}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setDeleteDialog({ 
-                                open: true, 
-                                type: "field", 
-                                id: field.id, 
-                                name: field.fieldName 
-                              })}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+              /* Step containers */
+              stepNumbers.map((stepNumber) => {
+                const stepFields = getStepFields(stepNumber);
+                const stepCollections = getStepCollections(stepNumber);
                 
-                {/* Collections Section */}
-                {safeCollections.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3">Collections</h3>
-                    <div className="space-y-4">
-                      {safeCollections.map((collection) => (
-                        <div key={collection.id}>
-                          <CollectionCard
-                            collection={collection}
-                            onEdit={() => setCollectionDialog({ open: true, collection })}
-                            onDelete={() => setDeleteDialog({ 
-                              open: true, 
-                              type: "collection", 
-                              id: collection.id, 
-                              name: collection.collectionName 
-                            })}
-                            onEditProperty={(property) => setPropertyDialog({ 
-                              open: true, 
-                              property, 
-                              collectionId: collection.id,
-                              collectionName: collection.collectionName 
-                            })}
-                            onDeleteProperty={(property) => setDeleteDialog({ 
-                              open: true, 
-                              type: "property", 
-                              id: property.id, 
-                              name: property.propertyName 
-                            })}
-                          />
+                return (
+                  <div key={stepNumber}>
+                    <Card className="bg-white border-l-4 border-l-orange-500 border-t border-r border-b border-gray-200 shadow-sm">
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                              {stepNumber}
+                            </div>
+                            <div>
+                              <CardTitle className="text-lg">Step {stepNumber}</CardTitle>
+                              <p className="text-sm text-gray-600">
+                                {stepFields.length + stepCollections.length} item{stepFields.length + stepCollections.length !== 1 ? 's' : ''}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button 
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setSchemaFieldDialog({ open: true, field: null, stepNumber })}
+                              className="text-blue-600 hover:bg-blue-50"
+                            >
+                              <Plus className="h-4 w-4 mr-1" />
+                              Add Field
+                            </Button>
+                            <Button 
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setCollectionDialog({ open: true, collection: null, stepNumber })}
+                              className="text-green-600 hover:bg-green-50"
+                            >
+                              <Plus className="h-4 w-4 mr-1" />
+                              Add Collection
+                            </Button>
+                          </div>
                         </div>
-                      ))}
-                    </div>
+                      </CardHeader>
+                      <CardContent>
+                        {stepFields.length === 0 && stepCollections.length === 0 ? (
+                          <p className="text-sm text-gray-600 italic text-center py-8 bg-gray-50 rounded-lg">
+                            No fields or collections defined for this step yet. Click "Add Field" or "Add Collection" to get started.
+                          </p>
+                        ) : (
+                          <div className="space-y-4">
+                            {/* Render fields for this step */}
+                            {stepFields.map((field) => (
+                              <div key={field.id} className="flex items-center justify-between p-3 bg-white border rounded-lg">
+                                <div className="flex items-center gap-3">
+                                  <FileText className="h-4 w-4 text-blue-600" />
+                                  <div>
+                                    <div className="font-medium">{field.fieldName}</div>
+                                    <div className="text-sm text-gray-600">{field.description}</div>
+                                  </div>
+                                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
+                                    {field.fieldType}
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setSchemaFieldDialog({ open: true, field })}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setDeleteDialog({ 
+                                      open: true, 
+                                      type: "field", 
+                                      id: field.id, 
+                                      name: field.fieldName 
+                                    })}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                            
+                            {/* Render collections for this step */}
+                            {stepCollections.map((collection) => (
+                              <CollectionCard
+                                key={collection.id}
+                                collection={collection}
+                                onEdit={() => setCollectionDialog({ open: true, collection })}
+                                onDelete={() => setDeleteDialog({ 
+                                  open: true, 
+                                  type: "collection", 
+                                  id: collection.id, 
+                                  name: collection.collectionName 
+                                })}
+                                onEditProperty={(property) => setPropertyDialog({ 
+                                  open: true, 
+                                  property, 
+                                  collectionId: collection.id,
+                                  collectionName: collection.collectionName 
+                                })}
+                                onDeleteProperty={(property) => setDeleteDialog({ 
+                                  open: true, 
+                                  type: "property", 
+                                  id: property.id, 
+                                  name: property.propertyName 
+                                })}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* Arrow separator between steps */}
+                    {stepNumber < Math.max(...stepNumbers) && (
+                      <div className="flex justify-center my-4">
+                        <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center shadow-sm">
+                          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                          </svg>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </>
+                );
+              })
             )}
           </div>
         </div>
