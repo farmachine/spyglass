@@ -10,6 +10,11 @@ import {
   organizations,
   users,
   projectPublishing,
+  extractionSteps,
+  stepSchemaFields,
+  stepCollections,
+  stepCollectionProperties,
+  stepReferences,
   type Project, 
   type InsertProject,
   type ProjectSchemaField,
@@ -35,7 +40,18 @@ import {
   type OrganizationWithUsers,
   type UserWithOrganization,
   type ProjectPublishing,
-  type InsertProjectPublishing
+  type InsertProjectPublishing,
+  type ExtractionStep,
+  type InsertExtractionStep,
+  type StepSchemaField,
+  type InsertStepSchemaField,
+  type StepCollection,
+  type InsertStepCollection,
+  type StepCollectionProperty,
+  type InsertStepCollectionProperty,
+  type StepReference,
+  type InsertStepReference,
+  type ExtractionStepWithDetails
 } from "@shared/schema";
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
@@ -122,6 +138,33 @@ export interface IStorage {
   getProjectPublishedOrganizations(projectId: string): Promise<Organization[]>;
   publishProjectToOrganization(publishing: InsertProjectPublishing): Promise<ProjectPublishing>;
   unpublishProjectFromOrganization(projectId: string, organizationId: string): Promise<boolean>;
+
+  // Extraction Steps
+  getExtractionSteps(projectId: string): Promise<ExtractionStepWithDetails[]>;
+  getExtractionStep(id: string): Promise<ExtractionStepWithDetails | undefined>;
+  createExtractionStep(step: InsertExtractionStep): Promise<ExtractionStep>;
+  updateExtractionStep(id: string, step: Partial<InsertExtractionStep>): Promise<ExtractionStep | undefined>;
+  deleteExtractionStep(id: string): Promise<boolean>;
+
+  // Step Schema Fields
+  createStepSchemaField(field: InsertStepSchemaField): Promise<StepSchemaField>;
+  updateStepSchemaField(id: string, field: Partial<InsertStepSchemaField>): Promise<StepSchemaField | undefined>;
+  deleteStepSchemaField(id: string): Promise<boolean>;
+
+  // Step Collections
+  createStepCollection(collection: InsertStepCollection): Promise<StepCollection>;
+  updateStepCollection(id: string, collection: Partial<InsertStepCollection>): Promise<StepCollection | undefined>;
+  deleteStepCollection(id: string): Promise<boolean>;
+
+  // Step Collection Properties  
+  createStepCollectionProperty(property: InsertStepCollectionProperty): Promise<StepCollectionProperty>;
+  updateStepCollectionProperty(id: string, property: Partial<InsertStepCollectionProperty>): Promise<StepCollectionProperty | undefined>;
+  deleteStepCollectionProperty(id: string): Promise<boolean>;
+
+  // Step References
+  createStepReference(reference: InsertStepReference): Promise<StepReference>;
+  updateStepReference(id: string, reference: Partial<InsertStepReference>): Promise<StepReference | undefined>;
+  deleteStepReference(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -2149,6 +2192,248 @@ class PostgreSQLStorage implements IStorage {
         )
       );
     return result.rowCount > 0;
+  }
+
+  // Extraction Steps
+  async getExtractionSteps(projectId: string): Promise<ExtractionStepWithDetails[]> {
+    return await this.retryOperation(async () => {
+      const steps = await this.db
+        .select()
+        .from(extractionSteps)
+        .where(eq(extractionSteps.projectId, projectId))
+        .orderBy(extractionSteps.orderIndex);
+
+      const stepDetails = await Promise.all(
+        steps.map(async (step) => {
+          const [schemaFields, collections, references] = await Promise.all([
+            this.db
+              .select()
+              .from(stepSchemaFields)
+              .where(eq(stepSchemaFields.extractionStepId, step.id))
+              .orderBy(stepSchemaFields.orderIndex),
+            
+            this.db
+              .select()
+              .from(stepCollections)
+              .where(eq(stepCollections.extractionStepId, step.id))
+              .orderBy(stepCollections.orderIndex),
+            
+            this.db
+              .select()
+              .from(stepReferences)
+              .where(eq(stepReferences.toStepId, step.id))
+          ]);
+
+          const collectionsWithProperties = await Promise.all(
+            collections.map(async (collection) => {
+              const properties = await this.db
+                .select()
+                .from(stepCollectionProperties)
+                .where(eq(stepCollectionProperties.stepCollectionId, collection.id))
+                .orderBy(stepCollectionProperties.orderIndex);
+              return { ...collection, properties };
+            })
+          );
+
+          return {
+            ...step,
+            schemaFields,
+            collections: collectionsWithProperties,
+            references
+          };
+        })
+      );
+
+      return stepDetails;
+    });
+  }
+
+  async getExtractionStep(id: string): Promise<ExtractionStepWithDetails | undefined> {
+    return await this.retryOperation(async () => {
+      const step = await this.db
+        .select()
+        .from(extractionSteps)
+        .where(eq(extractionSteps.id, id))
+        .limit(1);
+
+      if (step.length === 0) return undefined;
+
+      const [schemaFields, collections, references] = await Promise.all([
+        this.db
+          .select()
+          .from(stepSchemaFields)
+          .where(eq(stepSchemaFields.extractionStepId, id))
+          .orderBy(stepSchemaFields.orderIndex),
+        
+        this.db
+          .select()
+          .from(stepCollections)
+          .where(eq(stepCollections.extractionStepId, id))
+          .orderBy(stepCollections.orderIndex),
+        
+        this.db
+          .select()
+          .from(stepReferences)
+          .where(eq(stepReferences.toStepId, id))
+      ]);
+
+      const collectionsWithProperties = await Promise.all(
+        collections.map(async (collection) => {
+          const properties = await this.db
+            .select()
+            .from(stepCollectionProperties)
+            .where(eq(stepCollectionProperties.stepCollectionId, collection.id))
+            .orderBy(stepCollectionProperties.orderIndex);
+          return { ...collection, properties };
+        })
+      );
+
+      return {
+        ...step[0],
+        schemaFields,
+        collections: collectionsWithProperties,
+        references
+      };
+    });
+  }
+
+  async createExtractionStep(step: InsertExtractionStep): Promise<ExtractionStep> {
+    return await this.retryOperation(async () => {
+      const result = await this.db.insert(extractionSteps).values(step).returning();
+      return result[0];
+    });
+  }
+
+  async updateExtractionStep(id: string, step: Partial<InsertExtractionStep>): Promise<ExtractionStep | undefined> {
+    return await this.retryOperation(async () => {
+      const result = await this.db
+        .update(extractionSteps)
+        .set(step)
+        .where(eq(extractionSteps.id, id))
+        .returning();
+      return result[0];
+    });
+  }
+
+  async deleteExtractionStep(id: string): Promise<boolean> {
+    return await this.retryOperation(async () => {
+      const result = await this.db
+        .delete(extractionSteps)
+        .where(eq(extractionSteps.id, id));
+      return result.rowCount > 0;
+    });
+  }
+
+  // Step Schema Fields
+  async createStepSchemaField(field: InsertStepSchemaField): Promise<StepSchemaField> {
+    return await this.retryOperation(async () => {
+      const result = await this.db.insert(stepSchemaFields).values(field).returning();
+      return result[0];
+    });
+  }
+
+  async updateStepSchemaField(id: string, field: Partial<InsertStepSchemaField>): Promise<StepSchemaField | undefined> {
+    return await this.retryOperation(async () => {
+      const result = await this.db
+        .update(stepSchemaFields)
+        .set(field)
+        .where(eq(stepSchemaFields.id, id))
+        .returning();
+      return result[0];
+    });
+  }
+
+  async deleteStepSchemaField(id: string): Promise<boolean> {
+    return await this.retryOperation(async () => {
+      const result = await this.db
+        .delete(stepSchemaFields)
+        .where(eq(stepSchemaFields.id, id));
+      return result.rowCount > 0;
+    });
+  }
+
+  // Step Collections
+  async createStepCollection(collection: InsertStepCollection): Promise<StepCollection> {
+    return await this.retryOperation(async () => {
+      const result = await this.db.insert(stepCollections).values(collection).returning();
+      return result[0];
+    });
+  }
+
+  async updateStepCollection(id: string, collection: Partial<InsertStepCollection>): Promise<StepCollection | undefined> {
+    return await this.retryOperation(async () => {
+      const result = await this.db
+        .update(stepCollections)
+        .set(collection)
+        .where(eq(stepCollections.id, id))
+        .returning();
+      return result[0];
+    });
+  }
+
+  async deleteStepCollection(id: string): Promise<boolean> {
+    return await this.retryOperation(async () => {
+      const result = await this.db
+        .delete(stepCollections)
+        .where(eq(stepCollections.id, id));
+      return result.rowCount > 0;
+    });
+  }
+
+  // Step Collection Properties
+  async createStepCollectionProperty(property: InsertStepCollectionProperty): Promise<StepCollectionProperty> {
+    return await this.retryOperation(async () => {
+      const result = await this.db.insert(stepCollectionProperties).values(property).returning();
+      return result[0];
+    });
+  }
+
+  async updateStepCollectionProperty(id: string, property: Partial<InsertStepCollectionProperty>): Promise<StepCollectionProperty | undefined> {
+    return await this.retryOperation(async () => {
+      const result = await this.db
+        .update(stepCollectionProperties)
+        .set(property)
+        .where(eq(stepCollectionProperties.id, id))
+        .returning();
+      return result[0];
+    });
+  }
+
+  async deleteStepCollectionProperty(id: string): Promise<boolean> {
+    return await this.retryOperation(async () => {
+      const result = await this.db
+        .delete(stepCollectionProperties)
+        .where(eq(stepCollectionProperties.id, id));
+      return result.rowCount > 0;
+    });
+  }
+
+  // Step References
+  async createStepReference(reference: InsertStepReference): Promise<StepReference> {
+    return await this.retryOperation(async () => {
+      const result = await this.db.insert(stepReferences).values(reference).returning();
+      return result[0];
+    });
+  }
+
+  async updateStepReference(id: string, reference: Partial<InsertStepReference>): Promise<StepReference | undefined> {
+    return await this.retryOperation(async () => {
+      const result = await this.db
+        .update(stepReferences)
+        .set(reference)
+        .where(eq(stepReferences.id, id))
+        .returning();
+      return result[0];
+    });
+  }
+
+  async deleteStepReference(id: string): Promise<boolean> {
+    return await this.retryOperation(async () => {
+      const result = await this.db
+        .delete(stepReferences)
+        .where(eq(stepReferences.id, id));
+      return result.rowCount > 0;
+    });
   }
 }
 

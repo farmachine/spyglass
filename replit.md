@@ -10,7 +10,19 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**July 23, 2025 (Latest Update)**
+**July 24, 2025 (Latest Update)**
+- ✓ **MULTI-STEP EXTRACTION WORKFLOWS BACKEND INFRASTRUCTURE COMPLETED**: Full backend support for complex multi-step extraction workflows
+- ✓ Added 5 new database tables: extraction_steps, step_schema_fields, step_collections, step_collection_properties, step_references
+- ✓ Comprehensive PostgreSQL storage layer with complete CRUD operations for all extraction step entities
+- ✓ Full API routes implementation covering all extraction step management endpoints
+- ✓ Database schema includes step ordering, conditional logic, field references, and inter-step dependencies
+- ✓ Step-based schema definition allowing each step to have its own fields and collections
+- ✓ Reference system enabling steps to use outputs from previous steps as inputs
+- ✓ TypeScript interfaces and Zod validation schemas for all extraction step entities
+- ✓ Ready for frontend workflow builder implementation with drag-and-drop step creation
+- ✓ Backend infrastructure supports complex document processing workflows where each step can reference previous step outputs
+
+**July 23, 2025**
 - ✓ **AUTO-VERIFICATION CONFIDENCE FEATURE IMPLEMENTED**: Enhanced schema prompt with auto-verification thresholds for automated validation status assignment
 - ✓ Added auto_verification_confidence field display to both PROJECT SCHEMA FIELDS and COLLECTIONS prompt sections
 - ✓ AI now receives explicit instructions to set validation_status to "verified" when confidence_score >= auto-verification threshold

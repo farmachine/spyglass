@@ -75,6 +75,63 @@ export const collectionProperties = pgTable("collection_properties", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Extraction Steps for multi-step workflow
+export const extractionSteps = pgTable("extraction_steps", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  stepName: text("step_name").notNull(),
+  description: text("description"),
+  orderIndex: integer("order_index").default(0),
+  color: text("color").default("blue"), // UI color for visual distinction
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Schema fields for each extraction step
+export const stepSchemaFields = pgTable("step_schema_fields", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  extractionStepId: uuid("extraction_step_id").notNull().references(() => extractionSteps.id, { onDelete: "cascade" }),
+  fieldName: text("field_name").notNull(),
+  fieldType: text("field_type").notNull(), // TEXT, NUMBER, DATE, BOOLEAN
+  description: text("description"),
+  autoVerificationConfidence: integer("auto_verification_confidence").default(80),
+  orderIndex: integer("order_index").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Collections for each extraction step
+export const stepCollections = pgTable("step_collections", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  extractionStepId: uuid("extraction_step_id").notNull().references(() => extractionSteps.id, { onDelete: "cascade" }),
+  collectionName: text("collection_name").notNull(),
+  description: text("description"),
+  orderIndex: integer("order_index").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Properties for step collections
+export const stepCollectionProperties = pgTable("step_collection_properties", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  stepCollectionId: uuid("step_collection_id").notNull().references(() => stepCollections.id, { onDelete: "cascade" }),
+  propertyName: text("property_name").notNull(),
+  propertyType: text("property_type").notNull(), // TEXT, NUMBER, DATE, BOOLEAN
+  description: text("description"),
+  autoVerificationConfidence: integer("auto_verification_confidence").default(80),
+  orderIndex: integer("order_index").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// References between steps (e.g., "Step 2 references output from Step 1")
+export const stepReferences = pgTable("step_references", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  fromStepId: uuid("from_step_id").notNull().references(() => extractionSteps.id, { onDelete: "cascade" }),
+  toStepId: uuid("to_step_id").notNull().references(() => extractionSteps.id, { onDelete: "cascade" }),
+  referenceType: text("reference_type").notNull(), // "field", "collection", "all"
+  fromFieldId: uuid("from_field_id"), // Reference to stepSchemaFields or stepCollections
+  fromFieldType: text("from_field_type"), // "schema_field" or "collection"
+  displayName: text("display_name").notNull(), // e.g., "Step 1: Number of Parties"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const extractionSessions = pgTable("extraction_sessions", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
@@ -193,6 +250,32 @@ export const insertProjectPublishingSchema = createInsertSchema(projectPublishin
   createdAt: true,
 });
 
+// Extraction Steps schemas
+export const insertExtractionStepSchema = createInsertSchema(extractionSteps).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertStepSchemaFieldSchema = createInsertSchema(stepSchemaFields).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertStepCollectionSchema = createInsertSchema(stepCollections).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertStepCollectionPropertySchema = createInsertSchema(stepCollectionProperties).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertStepReferenceSchema = createInsertSchema(stepReferences).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type Organization = typeof organizations.$inferSelect;
 export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
@@ -223,6 +306,18 @@ export type FieldValidationWithName = FieldValidation & {
 export type InsertFieldValidation = z.infer<typeof insertFieldValidationSchema>;
 export type ProjectPublishing = typeof projectPublishing.$inferSelect;
 export type InsertProjectPublishing = z.infer<typeof insertProjectPublishingSchema>;
+
+// Extraction Steps types
+export type ExtractionStep = typeof extractionSteps.$inferSelect;
+export type InsertExtractionStep = z.infer<typeof insertExtractionStepSchema>;
+export type StepSchemaField = typeof stepSchemaFields.$inferSelect;
+export type InsertStepSchemaField = z.infer<typeof insertStepSchemaFieldSchema>;
+export type StepCollection = typeof stepCollections.$inferSelect;
+export type InsertStepCollection = z.infer<typeof insertStepCollectionSchema>;
+export type StepCollectionProperty = typeof stepCollectionProperties.$inferSelect;
+export type InsertStepCollectionProperty = z.infer<typeof insertStepCollectionPropertySchema>;
+export type StepReference = typeof stepReferences.$inferSelect;
+export type InsertStepReference = z.infer<typeof insertStepReferenceSchema>;
 
 // Validation status types
 export type ValidationStatus = 'valid' | 'invalid' | 'pending' | 'manual';
@@ -255,6 +350,16 @@ export type ProjectWithDetails = Project & {
   sessions: ExtractionSession[];
   knowledgeDocuments: KnowledgeDocument[];
   extractionRules: ExtractionRule[];
+  extractionSteps: ExtractionStepWithDetails[];
+};
+
+// Enhanced extraction step with all related data
+export type ExtractionStepWithDetails = ExtractionStep & {
+  schemaFields: StepSchemaField[];
+  collections: (StepCollection & {
+    properties: StepCollectionProperty[];
+  })[];
+  references: StepReference[];
 };
 
 export type ExtractionSessionWithValidation = ExtractionSession & {
