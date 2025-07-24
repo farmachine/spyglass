@@ -41,6 +41,17 @@ export default function CollectionCard({
 }: CollectionCardProps) {
   const { data: properties = [], isLoading } = useCollectionProperties(collection.id);
   const { toast } = useToast();
+
+  // Field type color mapping
+  const getFieldTypeColor = (type: string) => {
+    const colors = {
+      TEXT: "bg-blue-100 text-blue-800",
+      NUMBER: "bg-cyan-100 text-cyan-800", 
+      DATE: "bg-purple-100 text-purple-800",
+      BOOLEAN: "bg-orange-100 text-orange-800",
+    };
+    return colors[type as keyof typeof colors] || "bg-gray-100 text-gray-800";
+  };
   const queryClient = useQueryClient();
 
   // Sort properties by orderIndex for consistent ordering
@@ -216,7 +227,7 @@ export default function CollectionCard({
                               </TableCell>
                               <TableCell className="font-medium">{property.propertyName}</TableCell>
                               <TableCell>
-                                <Badge className={fieldTypeColors[property.propertyType as keyof typeof fieldTypeColors]}>
+                                <Badge className={getFieldTypeColor(property.propertyType)}>
                                   {property.propertyType}
                                 </Badge>
                               </TableCell>
