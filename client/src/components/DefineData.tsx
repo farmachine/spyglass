@@ -42,8 +42,8 @@ interface DefineDataProps {
 }
 
 export default function DefineData({ project }: DefineDataProps) {
-  const [schemaFieldDialog, setSchemaFieldDialog] = useState<{ open: boolean; field?: ProjectSchemaField | null }>({ open: false });
-  const [collectionDialog, setCollectionDialog] = useState<{ open: boolean; collection?: ObjectCollection | null }>({ open: false });
+  const [schemaFieldDialog, setSchemaFieldDialog] = useState<{ open: boolean; field?: ProjectSchemaField | null; stepId?: string }>({ open: false });
+  const [collectionDialog, setCollectionDialog] = useState<{ open: boolean; collection?: ObjectCollection | null; stepId?: string }>({ open: false });
   const [propertyDialog, setPropertyDialog] = useState<{ open: boolean; property?: CollectionProperty | null; collectionId?: number; collectionName?: string }>({ open: false });
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type?: string; id?: number; name?: string }>({ open: false });
   const [mainObjectName, setMainObjectName] = useState(project.mainObjectName || "Session");
@@ -221,7 +221,12 @@ export default function DefineData({ project }: DefineDataProps) {
   const handleCreateSchemaField = async (data: any) => {
     try {
       const orderIndex = safeSchemaFields.length; // Add to the end
-      await createSchemaField.mutateAsync({ ...data, orderIndex });
+      // Include stepId if provided (for step-based creation)
+      const fieldData = schemaFieldDialog.stepId 
+        ? { ...data, orderIndex, stepId: schemaFieldDialog.stepId }
+        : { ...data, orderIndex };
+      
+      await createSchemaField.mutateAsync(fieldData);
       
       // Mark project as interacted AFTER successful creation to prevent welcome flow redirects
       sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
@@ -283,7 +288,12 @@ export default function DefineData({ project }: DefineDataProps) {
   const handleCreateCollection = async (data: any) => {
     try {
       const orderIndex = safeCollections.length; // Add to the end
-      await createCollection.mutateAsync({ ...data, orderIndex });
+      // Include stepId if provided (for step-based creation)
+      const collectionData = collectionDialog.stepId 
+        ? { ...data, orderIndex, stepId: collectionDialog.stepId }
+        : { ...data, orderIndex };
+      
+      await createCollection.mutateAsync(collectionData);
       
       // Mark project as interacted AFTER successful creation to prevent welcome flow redirects
       sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
@@ -713,6 +723,40 @@ export default function DefineData({ project }: DefineDataProps) {
                     type: "step", 
                     id: step.id, 
                     name: step.stepName 
+                  })}
+                  onAddField={(stepId) => {
+                    // Set the stepId context for the field dialog
+                    setSchemaFieldDialog({ open: true, field: null, stepId });
+                  }}
+                  onAddCollection={(stepId) => {
+                    // Set the stepId context for the collection dialog  
+                    setCollectionDialog({ open: true, collection: null, stepId });
+                  }}
+                  onEditField={(field) => setSchemaFieldDialog({ open: true, field })}
+                  onDeleteField={(field) => setDeleteDialog({ 
+                    open: true, 
+                    type: "field", 
+                    id: field.id, 
+                    name: field.fieldName 
+                  })}
+                  onEditCollection={(collection) => setCollectionDialog({ open: true, collection })}
+                  onDeleteCollection={(collection) => setDeleteDialog({ 
+                    open: true, 
+                    type: "collection", 
+                    id: collection.id, 
+                    name: collection.collectionName 
+                  })}
+                  onEditProperty={(property, collectionId, collectionName) => setPropertyDialog({ 
+                    open: true, 
+                    property, 
+                    collectionId,
+                    collectionName 
+                  })}
+                  onDeleteProperty={(property) => setDeleteDialog({ 
+                    open: true, 
+                    type: "property", 
+                    id: property.id, 
+                    name: property.propertyName 
                   })}
                 />
               ))}
