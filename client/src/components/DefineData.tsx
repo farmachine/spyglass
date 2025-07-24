@@ -100,9 +100,9 @@ export default function DefineData({ project }: DefineDataProps) {
       await createExtractionStep.mutateAsync({
         projectId: project.id,
         stepData: {
-          name: stepData.name,
-          description: stepData.description,
-          orderIndex: safeExtractionSteps.length + 1
+          stepName: stepData.name,
+          stepDescription: stepData.description,
+          orderIndex: safeExtractionSteps.length
         }
       });
       toast({
@@ -110,6 +110,7 @@ export default function DefineData({ project }: DefineDataProps) {
         description: `Step "${stepData.name}" has been added to your extraction workflow.`,
       });
     } catch (error) {
+      console.error("Step creation error:", error);
       toast({
         title: "Error",
         description: "Failed to create extraction step. Please try again.",
