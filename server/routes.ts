@@ -1034,6 +1034,56 @@ except Exception as e:
     }
   });
 
+  // Extraction Steps
+  app.get("/api/projects/:projectId/steps", async (req, res) => {
+    try {
+      const projectId = req.params.projectId;
+      const steps = await storage.getExtractionSteps(projectId);
+      res.json(steps);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch extraction steps" });
+    }
+  });
+
+  app.post("/api/projects/:projectId/steps", async (req, res) => {
+    try {
+      const projectId = req.params.projectId;
+      const stepData = { 
+        ...req.body, 
+        projectId,
+        stepName: req.body.name, // Map 'name' to 'stepName'
+        stepDescription: req.body.description // Map 'description' to 'stepDescription'
+      };
+      const step = await storage.createExtractionStep(stepData);
+      res.status(201).json(step);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create extraction step" });
+    }
+  });
+
+  app.put("/api/extraction-steps/:id", async (req, res) => {
+    try {
+      const id = req.params.id;
+      const step = await storage.updateExtractionStep(id, req.body);
+      if (!step) {
+        return res.status(404).json({ message: "Step not found" });
+      }
+      res.json(step);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update extraction step" });
+    }
+  });
+
+  app.delete("/api/extraction-steps/:id", async (req, res) => {
+    try {
+      const id = req.params.id;
+      await storage.deleteExtractionStep(id);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete extraction step" });
+    }
+  });
+
   // Dashboard Statistics
   app.get("/api/dashboard/statistics", authenticateToken, async (req: AuthRequest, res) => {
     try {

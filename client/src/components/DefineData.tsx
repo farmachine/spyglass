@@ -22,12 +22,14 @@ import {
   useDeleteProperty
 } from "@/hooks/useSchema";
 import { useUpdateProject } from "@/hooks/useProjects";
+import { useExtractionSteps, useCreateExtractionStep, useDeleteExtractionStep } from "@/hooks/useExtractionSteps";
 import SchemaFieldDialog from "@/components/SchemaFieldDialog";
 import CollectionDialog from "@/components/CollectionDialog";
 import PropertyDialog from "@/components/PropertyDialog";
 import DeleteDialog from "@/components/DeleteDialog";
 import CollectionCard from "@/components/CollectionCard";
 import StepDialog from "@/components/StepDialog";
+import StepBlock from "@/components/StepBlock";
 import type {
   ProjectWithDetails,
   ProjectSchemaField,
@@ -55,6 +57,7 @@ export default function DefineData({ project }: DefineDataProps) {
   // Query for live data instead of using static props
   const { data: schemaFields = [], isLoading: schemaFieldsLoading } = useProjectSchemaFields(project.id);
   const { data: collections = [], isLoading: collectionsLoading } = useObjectCollections(project.id);
+  const { data: extractionSteps = [], isLoading: stepsLoading } = useExtractionSteps(project.id);
 
   // Handle data being null/undefined from API errors and sort by orderIndex
   const safeSchemaFields = Array.isArray(schemaFields) 
@@ -62,6 +65,9 @@ export default function DefineData({ project }: DefineDataProps) {
     : [];
   const safeCollections = Array.isArray(collections) 
     ? [...collections].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+    : [];
+  const safeExtractionSteps = Array.isArray(extractionSteps) 
+    ? [...extractionSteps].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
     : [];
 
   // Combine fields and collections for unified ordering
@@ -84,13 +90,32 @@ export default function DefineData({ project }: DefineDataProps) {
   const updateProperty = useUpdateProperty();
   const deleteProperty = useDeleteProperty();
 
-  // Handle step creation (placeholder for now)
-  const handleCreateStep = (stepData: any) => {
-    console.log('Creating step:', stepData);
-    toast({
-      title: "Step created",
-      description: `Step "${stepData.name}" has been added to your extraction workflow.`,
-    });
+  // Step mutations
+  const createExtractionStep = useCreateExtractionStep();
+  const deleteExtractionStep = useDeleteExtractionStep();
+
+  // Handle step creation
+  const handleCreateStep = async (stepData: any) => {
+    try {
+      await createExtractionStep.mutateAsync({
+        projectId: project.id,
+        stepData: {
+          name: stepData.name,
+          description: stepData.description,
+          orderIndex: safeExtractionSteps.length + 1
+        }
+      });
+      toast({
+        title: "Step created",
+        description: `Step "${stepData.name}" has been added to your extraction workflow.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create extraction step. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
   // Project mutations
@@ -388,6 +413,23 @@ export default function DefineData({ project }: DefineDataProps) {
     }
   };
 
+  const handleDeleteStep = async (id: string) => {
+    try {
+      await deleteExtractionStep.mutateAsync(id);
+      setDeleteDialog({ open: false });
+      toast({
+        title: "Step deleted",
+        description: "Extraction step has been deleted successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete step. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Main object name handlers
   const handleMainObjectNameSave = async () => {
     try {
@@ -422,6 +464,9 @@ export default function DefineData({ project }: DefineDataProps) {
         break;
       case "property":
         await handleDeleteProperty(deleteDialog.id);
+        break;
+      case "step":
+        await handleDeleteStep(deleteDialog.id);
         break;
     }
   };
@@ -646,6 +691,31 @@ export default function DefineData({ project }: DefineDataProps) {
                 )}
               </Droppable>
             </DragDropContext>
+          )}
+
+          {/* Extraction Steps */}
+          {safeExtractionSteps.length > 0 && (
+            <div className="mt-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">Extraction Steps</h3>
+                <Badge variant="outline" className="text-sm">
+                  {safeExtractionSteps.length} step{safeExtractionSteps.length !== 1 ? 's' : ''}
+                </Badge>
+              </div>
+              {safeExtractionSteps.map((step) => (
+                <StepBlock 
+                  key={step.id} 
+                  step={step}
+                  onEdit={(step) => setStepDialog({ open: true, step })}
+                  onDelete={(step) => setDeleteDialog({ 
+                    open: true, 
+                    type: "step", 
+                    id: step.id, 
+                    name: step.stepName 
+                  })}
+                />
+              ))}
+            </div>
           )}
 
           {/* Action buttons */}
