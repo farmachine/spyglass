@@ -869,6 +869,43 @@ ${error instanceof Error ? error.message : 'Unknown error'}
         </div>
       )}
 
+      {/* Document Content Display for Multi-Step */}
+      {extractionSteps && extractionSteps.length > 1 && documentContent && (
+        <div style={{ 
+          margin: '10px 0 30px 0', 
+          padding: '15px', 
+          backgroundColor: '#fff9c4',
+          border: '2px solid #d69e2e',
+          fontWeight: 'bold'
+        }}>
+          === EXTRACTED DOCUMENT CONTENT ({documentContent.count} DOCUMENTS) ===
+          <div style={{ 
+            marginTop: '10px',
+            padding: '15px',
+            backgroundColor: '#f8f9fa',
+            border: '1px solid #dee2e6',
+            maxHeight: '400px',
+            overflowY: 'auto',
+            fontSize: '11px',
+            fontWeight: 'normal',
+            fontFamily: 'monospace',
+            lineHeight: '1.4',
+            whiteSpace: 'pre-wrap'
+          }}>
+            {documentContent.text}
+          </div>
+          <div style={{ 
+            marginTop: '10px', 
+            fontSize: '12px',
+            fontStyle: 'italic', 
+            color: '#666',
+            fontWeight: 'normal'
+          }}>
+            Total characters: {documentContent.text.length} | Documents: {documentContent.count}
+          </div>
+        </div>
+      )}
+
       {/* Project Schema Fields */}
       <div style={{ 
         margin: '40px 0 20px 0', 
