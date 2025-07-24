@@ -583,130 +583,21 @@ export default function DefineData({ project }: DefineDataProps) {
               <div className="animate-spin h-12 w-12 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
               <p className="text-sm text-gray-600">Loading data structure...</p>
             </div>
-          ) : allDataItems.length === 0 ? (
+          ) : safeExtractionSteps.length === 0 ? (
             <div className="text-center py-8">
               <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No data structure defined
+                No extraction steps defined
               </h3>
               <p className="text-sm text-gray-600 mb-6">
-                Add fields and lists to extract data from your {project.mainObjectName || "Session"} documents
+                Create extraction steps to organize fields and collections for processing your {project.mainObjectName || "Session"} documents
               </p>
             </div>
-          ) : (
-            <DragDropContext onDragEnd={handleUnifiedDragEnd}>
-              <Droppable droppableId="unified-data">
-                {(provided) => (
-                  <div 
-                    className="space-y-4"
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                  >
-                    {allDataItems.map((item, index) => (
-                      <Draggable key={item.id} draggableId={item.id.toString()} index={index}>
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            className={snapshot.isDragging ? "opacity-50" : ""}
-                          >
-                            {item.type === 'field' ? (
-                              <Card className="border-l-4 border-l-blue-500">
-                                <CardHeader className="pb-3">
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3 flex-1">
-                                      <div
-                                        {...provided.dragHandleProps}
-                                        className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-100"
-                                      >
-                                        <GripVertical className="h-4 w-4 text-gray-400" />
-                                      </div>
-                                      <div className="flex-1">
-                                        <div className="flex items-center gap-2">
-                                          <CardTitle className="text-lg">{item.fieldName}</CardTitle>
-                                          <Badge className={fieldTypeColors[item.fieldType as keyof typeof fieldTypeColors]}>
-                                            {item.fieldType}
-                                          </Badge>
-                                          <Badge variant="outline" className="text-xs">
-                                            {item.autoVerificationConfidence || 80}% confidence
-                                          </Badge>
-                                        </div>
-                                        {item.description && (
-                                          <p className="text-sm text-gray-600 mt-1">{item.description}</p>
-                                        )}
-                                      </div>
-                                    </div>
-                                    <div className="flex gap-2">
-                                      <Button 
-                                        variant="ghost" 
-                                        size="sm"
-                                        onClick={() => setSchemaFieldDialog({ open: true, field: item })}
-                                      >
-                                        <Edit className="h-4 w-4" />
-                                      </Button>
-                                      <Button 
-                                        variant="ghost" 
-                                        size="sm" 
-                                        className="text-red-600"
-                                        onClick={() => setDeleteDialog({ 
-                                          open: true, 
-                                          type: "field", 
-                                          id: item.id, 
-                                          name: item.fieldName 
-                                        })}
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </CardHeader>
-                              </Card>
-                            ) : (
-                              <CollectionCard
-                                dragHandleProps={provided.dragHandleProps}
-                                collection={item}
-                                fieldTypeColors={fieldTypeColors}
-                                onEditCollection={(collection) => setCollectionDialog({ open: true, collection })}
-                                onDeleteCollection={(id, name) => setDeleteDialog({ 
-                                  open: true, 
-                                  type: "collection", 
-                                  id, 
-                                  name 
-                                })}
-                                onAddProperty={(collectionId, collectionName) => setPropertyDialog({ 
-                                  open: true, 
-                                  property: null, 
-                                  collectionId,
-                                  collectionName 
-                                })}
-                                onEditProperty={(property) => setPropertyDialog({ 
-                                  open: true, 
-                                  property, 
-                                  collectionId: property.collectionId,
-                                  collectionName: safeCollections.find(c => c.id === property.collectionId)?.collectionName || "" 
-                                })}
-                                onDeleteProperty={(id, name) => setDeleteDialog({ 
-                                  open: true, 
-                                  type: "property", 
-                                  id, 
-                                  name 
-                                })}
-                              />
-                            )}
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </DragDropContext>
-          )}
+          ) : null}
 
-          {/* Extraction Steps */}
+          {/* Extraction Steps - Main Data Structure */}
           {safeExtractionSteps.length > 0 && (
-            <div className="mt-6 space-y-4">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-gray-900">Extraction Steps</h3>
                 <Badge variant="outline" className="text-sm">
