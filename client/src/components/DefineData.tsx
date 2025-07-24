@@ -600,53 +600,71 @@ export default function DefineData({ project }: DefineDataProps) {
             </Badge>
           </div>
 
-          {safeExtractionSteps.map((step) => (
-            <Card key={step.id} className="bg-white border-2 border-gray-300">
-              <StepBlock 
-                step={step}
-                onEdit={(step) => setStepDialog({ open: true, step })}
-                onDelete={(step) => setDeleteDialog({ 
-                  open: true, 
-                  type: "step", 
-                  id: step.id, 
-                  name: step.stepName 
-                })}
-                onAddField={(stepId) => {
-                  // Set the stepId context for the field dialog
-                  setSchemaFieldDialog({ open: true, field: null, stepId });
-                }}
-                onAddCollection={(stepId) => {
-                  // Set the stepId context for the collection dialog  
-                  setCollectionDialog({ open: true, collection: null, stepId });
-                }}
-                onEditField={(field) => setSchemaFieldDialog({ open: true, field })}
-                onDeleteField={(field) => setDeleteDialog({ 
-                  open: true, 
-                  type: "field", 
-                  id: field.id, 
-                  name: field.fieldName 
-                })}
-                onEditCollection={(collection) => setCollectionDialog({ open: true, collection })}
-                onDeleteCollection={(collection) => setDeleteDialog({ 
-                  open: true, 
-                  type: "collection", 
-                  id: collection.id, 
-                  name: collection.collectionName 
-                })}
-                onEditProperty={(property, collectionId, collectionName) => setPropertyDialog({ 
-                  open: true, 
-                  property, 
-                  collectionId,
-                  collectionName 
-                })}
-                onDeleteProperty={(property) => setDeleteDialog({ 
-                  open: true, 
-                  type: "property", 
-                  id: property.id, 
-                  name: property.propertyName 
-                })}
-              />
-            </Card>
+{safeExtractionSteps.map((step, index) => (
+            <div key={step.id} className="relative">
+              <Card className="bg-white border-l-4 border-l-blue-500 border-t border-r border-b border-gray-200 shadow-sm">
+                <StepBlock 
+                  step={step}
+                  onEdit={(step) => setStepDialog({ open: true, step })}
+                  onDelete={(step) => setDeleteDialog({ 
+                    open: true, 
+                    type: "step", 
+                    id: step.id, 
+                    name: step.stepName 
+                  })}
+                  onAddField={(stepId) => {
+                    // Set the stepId context for the field dialog
+                    setSchemaFieldDialog({ open: true, field: null, stepId });
+                  }}
+                  onAddCollection={(stepId) => {
+                    // Set the stepId context for the collection dialog  
+                    setCollectionDialog({ open: true, collection: null, stepId });
+                  }}
+                  onEditField={(field) => setSchemaFieldDialog({ open: true, field })}
+                  onDeleteField={(field) => setDeleteDialog({ 
+                    open: true, 
+                    type: "field", 
+                    id: field.id, 
+                    name: field.fieldName 
+                  })}
+                  onEditCollection={(collection) => setCollectionDialog({ open: true, collection })}
+                  onDeleteCollection={(collection) => setDeleteDialog({ 
+                    open: true, 
+                    type: "collection", 
+                    id: collection.id, 
+                    name: collection.collectionName 
+                  })}
+                  onEditProperty={(property, collectionId, collectionName) => setPropertyDialog({ 
+                    open: true, 
+                    property, 
+                    collectionId,
+                    collectionName 
+                  })}
+                  onDeleteProperty={(property) => setDeleteDialog({ 
+                    open: true, 
+                    type: "property", 
+                    id: property.id, 
+                    name: property.propertyName 
+                  })}
+                />
+              </Card>
+              
+              {/* Arrow separator between steps */}
+              {index < safeExtractionSteps.length - 1 && (
+                <div className="flex justify-center my-4">
+                  <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center shadow-sm">
+                    <svg 
+                      className="w-5 h-5 text-white" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    </svg>
+                  </div>
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}
