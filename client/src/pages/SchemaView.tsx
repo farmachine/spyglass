@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useExtractionSteps } from "@/hooks/useExtractionSteps";
 
 interface SchemaData {
   project: any;
@@ -33,6 +34,13 @@ export default function SchemaView() {
     queryKey: [`/api/projects/${session?.projectId}/schema-data`],
     enabled: !!session?.projectId,
   });
+
+  // Get extraction steps for multi-step workflow
+  const { data: extractionSteps, isLoading: stepsLoading } = useExtractionSteps(session?.projectId || "");
+  
+  // State for tracking current step and previous step results
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [previousStepsResults, setPreviousStepsResults] = useState<any[]>([]);
 
   // State for document content
   const [documentContent, setDocumentContent] = useState<{
@@ -281,25 +289,45 @@ ${error instanceof Error ? error.message : 'Unknown error'}
   }, [extractionMode, geminiResponse, isSavingToDatabase, savedValidations, isProcessing, sessionId]);
 
   // Function to generate markdown from schema data
-  const generateSchemaMarkdown = (data: SchemaData, documentText: string, documentCount: number) => {
-    let markdown = `# AI EXTRACTION TASK\n\n`;
+  const generateSchemaMarkdown = (data: SchemaData, documentText: string, documentCount: number, stepIndex: number = 0, previousResults: any[] = []) => {
+    // Filter schema data by current step
+    const currentStepId = extractionSteps?.[stepIndex]?.id;
+    const currentStepFields = data.schema_fields.filter(field => field.stepId === currentStepId);
+    const currentStepCollections = data.collections.filter(collection => collection.stepId === currentStepId);
+    
+    let markdown = `# AI EXTRACTION TASK - STEP ${stepIndex + 1}\n\n`;
     markdown += `You are an expert data extraction AI. Your task is to analyze the documents below and extract structured data according to the schema provided.\n\n`;
+    
+    // Add previous step results if available
+    if (previousResults.length > 0) {
+      markdown += `## PREVIOUS STEP RESULTS\n\n`;
+      markdown += `**INSTRUCTION:** Use the results from previous steps as context. You can reference previous step data using {{Step${stepIndex}.FieldName}} syntax in your reasoning.\n\n`;
+      
+      previousResults.forEach((stepResult, index) => {
+        markdown += `### ${stepResult.stepName} (Step ${stepResult.stepIndex + 1}) Results:\n\n`;
+        markdown += `\`\`\`\n${stepResult.geminiResponse}\n\`\`\`\n\n`;
+      });
+      
+      markdown += `--- END OF PREVIOUS RESULTS ---\n\n`;
+    }
+    
     markdown += `## DOCUMENTS TO PROCESS\n\n`;
     markdown += `Number of documents: ${documentCount}\n`;
     markdown += `Document separator: "--- DOCUMENT SEPARATOR ---"\n\n`;
     markdown += `${documentText}\n\n`;
     markdown += `--- END OF DOCUMENTS ---\n\n\n`;
-    markdown += `# EXTRACTION SCHEMA\n\n`;
+    markdown += `# EXTRACTION SCHEMA - STEP ${stepIndex + 1}\n\n`;
     markdown += `Project: ${data.project?.name || 'Unknown'}\n`;
     markdown += `Description: ${data.project?.description || 'No description'}\n`;
-    markdown += `Main Object: ${data.project?.mainObjectName || 'Session'}\n\n`;
+    markdown += `Main Object: ${data.project?.mainObjectName || 'Session'}\n`;
+    markdown += `Current Step: ${extractionSteps?.[stepIndex]?.stepName || `Step ${stepIndex + 1}`}\n\n`;
     
-    // Project Schema Fields
+    // Project Schema Fields for current step
     markdown += `## PROJECT SCHEMA FIELDS\n\n`;
     markdown += `**INSTRUCTION:** Extract these fields from the entire document set. Use extraction rules to adjust confidence scores. Reference knowledge documents for validation and conflict detection.\n\n`;
     
     const schemaFieldsData = {
-      schema_fields: data.schema_fields.map(field => {
+      schema_fields: currentStepFields.map(field => {
         const specificRules = data.extraction_rules
           .filter(rule => rule.targetFields?.includes(field.fieldName))
           .map(rule => rule.ruleContent);
@@ -328,7 +356,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
     markdown += `**INSTRUCTION:** Extract arrays of objects matching these collection structures. Apply extraction rules to individual properties and use knowledge documents to validate each extracted object. Count ALL instances across documents accurately.\n\n`;
     
     const collectionsData = {
-      collections: data.collections.map(collection => ({
+      collections: currentStepCollections.map(collection => ({
         collection_name: collection.collectionName,
         description: collection.description,
         properties: collection.properties?.map((prop: any) => {
@@ -401,10 +429,11 @@ ${error instanceof Error ? error.message : 'Unknown error'}
     
     // Summary
     markdown += `## EXTRACTION SUMMARY\n\n`;
-    markdown += `Schema Fields: ${data.schema_fields.length}\n`;
-    markdown += `Collections: ${data.collections.length}\n`;
+    markdown += `Schema Fields (Current Step): ${currentStepFields.length}\n`;
+    markdown += `Collections (Current Step): ${currentStepCollections.length}\n`;
     markdown += `Knowledge Documents: ${data.knowledge_documents.length}\n`;
-    markdown += `Extraction Rules: ${data.extraction_rules.length}\n\n`;
+    markdown += `Extraction Rules: ${data.extraction_rules.length}\n`;
+    markdown += `Previous Step Results: ${previousResults.length}\n\n`;
     
     // AI Processing Instructions
     markdown += `## AI PROCESSING INSTRUCTIONS\n\n`;
@@ -443,8 +472,8 @@ ${error instanceof Error ? error.message : 'Unknown error'}
     
     const outputSchema = {
       "field_validations": [
-        // Schema fields
-        ...data.schema_fields.map(field => ({
+        // Schema fields for current step
+        ...currentStepFields.map(field => ({
           "field_type": "schema_field",
           "field_id": field.id,
           "field_name": field.fieldName,
@@ -456,8 +485,8 @@ ${error instanceof Error ? error.message : 'Unknown error'}
           "validation_status": `Set based on confidence_score vs ${field.autoVerificationConfidence || 80}% threshold`,
           "record_index": 0
         })),
-        // Collection properties
-        ...data.collections.flatMap(collection => 
+        // Collection properties for current step
+        ...currentStepCollections.flatMap(collection => 
           collection.properties?.map((prop: any) => ({
             "field_type": "collection_property",
             "field_id": prop.id,
@@ -482,6 +511,31 @@ ${error instanceof Error ? error.message : 'Unknown error'}
 
 
 
+  // Function to handle step progression (AI extraction + step advancement)
+  const handleNextStep = async () => {
+    // For multi-step workflows with remaining steps, process current step and advance
+    if (extractionSteps && extractionSteps.length > 1 && currentStepIndex < extractionSteps.length - 1) {
+      await handleGeminiExtraction();
+      
+      // If extraction successful, store results and advance to next step
+      if (geminiResponse) {
+        const currentStepResult = {
+          stepIndex: currentStepIndex,
+          stepName: extractionSteps[currentStepIndex]?.stepName || `Step ${currentStepIndex + 1}`,
+          geminiResponse: geminiResponse
+        };
+        
+        setPreviousStepsResults(prev => [...prev, currentStepResult]);
+        setCurrentStepIndex(prev => prev + 1);
+        setGeminiResponse(''); // Clear for next step
+      }
+    } 
+    // For single-step workflow or final step, run normal extraction
+    else {
+      await handleGeminiExtraction();
+    }
+  };
+
   // Function to call Gemini directly using consolidated document content
   const handleGeminiExtraction = async () => {
     if (!documentContent) {
@@ -491,7 +545,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
     
     setIsProcessing(true);
     try {
-      const fullPrompt = generateSchemaMarkdown(schemaData, documentContent.text, documentContent.count);
+      const fullPrompt = generateSchemaMarkdown(schemaData, documentContent.text, documentContent.count, currentStepIndex, previousStepsResults);
       
       // Enhanced debug logging
       console.log('SCHEMA VIEW DEBUG - Consolidated document content:', {
@@ -534,6 +588,8 @@ ${error instanceof Error ? error.message : 'Unknown error'}
       setIsProcessing(false);
     }
   };
+
+
 
   // Function to save extraction results to database
   const handleSaveToDatabase = async () => {
@@ -822,7 +878,10 @@ ${error instanceof Error ? error.message : 'Unknown error'}
 
       <div style={{ marginBottom: '40px' }}>
         {JSON.stringify({
-          schema_fields: schemaData.schema_fields.map(field => {
+          schema_fields: (extractionSteps && extractionSteps.length > 0 ? 
+            schemaData.schema_fields.filter(field => field.stepId === extractionSteps[currentStepIndex]?.id) :
+            schemaData.schema_fields
+          ).map(field => {
             // Get rules that specifically target this field
             const specificRules = schemaData.extraction_rules
               .filter(rule => rule.targetFields?.includes(field.fieldName))
@@ -873,7 +932,10 @@ ${error instanceof Error ? error.message : 'Unknown error'}
 
       <div style={{ marginBottom: '40px' }}>
         {JSON.stringify({
-          collections: schemaData.collections.map(collection => ({
+          collections: (extractionSteps && extractionSteps.length > 0 ? 
+            schemaData.collections.filter(collection => collection.stepId === extractionSteps[currentStepIndex]?.id) :
+            schemaData.collections
+          ).map(collection => ({
             collection_name: collection.collectionName,
             description: collection.description,
             properties: collection.properties?.map((prop: any) => {
@@ -1165,7 +1227,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
             maxHeight: '400px',
             lineHeight: '1.4'
           }}>
-            {generateSchemaMarkdown(schemaData, session.extractedText, session.documents?.length || 0)}
+            {generateSchemaMarkdown(schemaData, session.extractedText, session.documents?.length || 0, currentStepIndex, previousStepsResults)}
           </pre>
         </div>
       )}
@@ -1193,11 +1255,27 @@ ${error instanceof Error ? error.message : 'Unknown error'}
             {extractionMode === 'automated' ? '🤖 AUTOMATED MODE' : '🔧 DEBUG MODE'}
           </div>
         )}
+        {extractionSteps && extractionSteps.length > 0 && (
+          <div style={{ 
+            margin: '10px 0',
+            padding: '10px',
+            backgroundColor: '#fff3cd',
+            border: '1px solid #ffecb5',
+            borderRadius: '4px',
+            fontWeight: 'normal'
+          }}>
+            <strong>Multi-Step Extraction Active:</strong> Step {currentStepIndex + 1} of {extractionSteps.length}<br/>
+            Current Step: {extractionSteps[currentStepIndex]?.stepName || `Step ${currentStepIndex + 1}`}
+            {previousStepsResults.length > 0 && (
+              <><br/>Previous Steps Complete: {previousStepsResults.length}</>
+            )}
+          </div>
+        )}
         <div style={{ marginBottom: '10px', fontWeight: 'bold' }}>
           STEP 2 COMPLETE: Schema & Prompt Generated
         </div>
         <button 
-          onClick={handleGeminiExtraction}
+          onClick={handleNextStep}
           disabled={isProcessing}
           style={{
             padding: '12px 24px',
@@ -1210,7 +1288,13 @@ ${error instanceof Error ? error.message : 'Unknown error'}
             cursor: isProcessing ? 'not-allowed' : 'pointer'
           }}
         >
-          {isProcessing ? 'PROCESSING...' : 'START EXTRACTION'}
+          {isProcessing ? 'PROCESSING...' : 
+            (extractionSteps && extractionSteps.length > 1) 
+              ? (currentStepIndex < extractionSteps.length - 1)
+                ? `Run Step ${currentStepIndex + 1}: ${extractionSteps[currentStepIndex]?.stepName || `Step ${currentStepIndex + 1}`}`
+                : 'SAVE TO DATABASE'
+              : 'START EXTRACTION'
+          }
         </button>
       </div>
 
@@ -1263,25 +1347,47 @@ ${error instanceof Error ? error.message : 'Unknown error'}
             {geminiResponse}
           </pre>
           
-          {/* Save to Database Button */}
+          {/* Multi-Step Button Logic */}
           <div style={{ marginTop: '20px', textAlign: 'center' }}>
-            <button
-              onClick={handleSaveToDatabase}
-              disabled={isSavingToDatabase}
-              style={{
-                backgroundColor: isSavingToDatabase ? '#6c757d' : '#007bff',
-                color: 'white',
-                border: 'none',
-                padding: '12px 24px',
-                fontSize: '14px',
-                fontWeight: 'bold',
-                borderRadius: '4px',
-                cursor: isSavingToDatabase ? 'not-allowed' : 'pointer',
-                opacity: isSavingToDatabase ? 0.7 : 1
-              }}
-            >
-              {isSavingToDatabase ? 'SAVING TO DATABASE...' : 'SAVE TO DATABASE'}
-            </button>
+            {extractionSteps && extractionSteps.length > 1 && currentStepIndex < extractionSteps.length - 1 ? (
+              // Show next step button if we have multiple steps and not on the last step
+              <button
+                onClick={handleNextStep}
+                disabled={isSavingToDatabase}
+                style={{
+                  backgroundColor: isSavingToDatabase ? '#6c757d' : '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px 24px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  borderRadius: '4px',
+                  cursor: isSavingToDatabase ? 'not-allowed' : 'pointer',
+                  opacity: isSavingToDatabase ? 0.7 : 1
+                }}
+              >
+                {isSavingToDatabase ? 'PROCESSING...' : `RUN STEP ${currentStepIndex + 2}: ${extractionSteps[currentStepIndex + 1]?.stepName || 'Next Step'}`}
+              </button>
+            ) : (
+              // Show save to database button for single step or final step
+              <button
+                onClick={handleSaveToDatabase}
+                disabled={isSavingToDatabase}
+                style={{
+                  backgroundColor: isSavingToDatabase ? '#6c757d' : '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px 24px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  borderRadius: '4px',
+                  cursor: isSavingToDatabase ? 'not-allowed' : 'pointer',
+                  opacity: isSavingToDatabase ? 0.7 : 1
+                }}
+              >
+                {isSavingToDatabase ? 'SAVING TO DATABASE...' : 'SAVE TO DATABASE'}
+              </button>
+            )}
           </div>
         </div>
       )}
