@@ -10,7 +10,7 @@ import type {
 } from "@shared/schema";
 
 // Schema Fields
-export function useProjectSchemaFields(projectId: number) {
+export function useProjectSchemaFields(projectId: string | number) {
   return useQuery({
     queryKey: ["/api/projects", projectId, "schema"],
     queryFn: () => apiRequest(`/api/projects/${projectId}/schema`),

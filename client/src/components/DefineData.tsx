@@ -55,9 +55,9 @@ export default function DefineData({ project }: DefineDataProps) {
   const queryClient = useQueryClient();
 
   // Query for live data instead of using static props
-  const { data: schemaFields = [], isLoading: schemaFieldsLoading } = useProjectSchemaFields(project.id);
-  const { data: collections = [], isLoading: collectionsLoading } = useObjectCollections(project.id);
-  const { data: extractionSteps = [], isLoading: stepsLoading } = useExtractionSteps(project.id);
+  const { data: schemaFields = [], isLoading: schemaFieldsLoading } = useProjectSchemaFields(project.id.toString());
+  const { data: collections = [], isLoading: collectionsLoading } = useObjectCollections(project.id.toString());
+  const { data: extractionSteps = [], isLoading: stepsLoading } = useExtractionSteps(project.id.toString());
 
   // Handle data being null/undefined from API errors and sort by orderIndex
   const safeSchemaFields = Array.isArray(schemaFields) 
@@ -77,12 +77,12 @@ export default function DefineData({ project }: DefineDataProps) {
   ].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
 
   // Schema field mutations
-  const createSchemaField = useCreateSchemaField(project.id);
+  const createSchemaField = useCreateSchemaField(project.id.toString().toString());
   const updateSchemaField = useUpdateSchemaField();
   const deleteSchemaField = useDeleteSchemaField();
 
   // Collection mutations
-  const createCollection = useCreateCollection(project.id);
+  const createCollection = useCreateCollection(project.id.toString().toString());
   const updateCollection = useUpdateCollection();
   const deleteCollection = useDeleteCollection();
 
@@ -98,7 +98,7 @@ export default function DefineData({ project }: DefineDataProps) {
   const handleCreateStep = async (stepData: any) => {
     try {
       await createExtractionStep.mutateAsync({
-        projectId: project.id,
+        projectId: project.id.toString().toString(),
         stepData: {
           stepName: stepData.name,
           stepDescription: stepData.description,
@@ -132,7 +132,7 @@ export default function DefineData({ project }: DefineDataProps) {
     onSuccess: () => {
       // Only invalidate collections query, not project query to prevent tab redirects
       queryClient.invalidateQueries({ 
-        queryKey: ["/api/projects", project.id, "collections"],
+        queryKey: ["/api/projects", project.id.toString(), "collections"],
         exact: true 
       });
     }
@@ -147,7 +147,7 @@ export default function DefineData({ project }: DefineDataProps) {
     onSuccess: () => {
       // Only invalidate schema fields, not the main project query to prevent tab redirects
       queryClient.invalidateQueries({ 
-        queryKey: ["/api/projects", project.id, "schema"],
+        queryKey: ["/api/projects", project.id.toString(), "schema"],
         exact: true 
       });
     },
@@ -169,8 +169,8 @@ export default function DefineData({ project }: DefineDataProps) {
     const updatedCollections = updatedItems.filter(item => item.type === 'collection');
 
     // Optimistically update both caches
-    queryClient.setQueryData(["/api/projects", project.id, "schema"], updatedFields);
-    queryClient.setQueryData(["/api/projects", project.id, "collections"], updatedCollections);
+    queryClient.setQueryData(["/api/projects", project.id.toString(), "schema"], updatedFields);
+    queryClient.setQueryData(["/api/projects", project.id.toString(), "collections"], updatedCollections);
 
     // Update orderIndex for all affected items in the background
     try {
@@ -194,11 +194,11 @@ export default function DefineData({ project }: DefineDataProps) {
     } catch (error) {
       // If update fails, refetch to restore correct order
       queryClient.invalidateQueries({ 
-        queryKey: ["/api/projects", project.id, "schema"],
+        queryKey: ["/api/projects", project.id.toString(), "schema"],
         exact: true 
       });
       queryClient.invalidateQueries({ 
-        queryKey: ["/api/projects", project.id, "collections"],
+        queryKey: ["/api/projects", project.id.toString(), "collections"],
         exact: true 
       });
       
@@ -229,7 +229,7 @@ export default function DefineData({ project }: DefineDataProps) {
       await createSchemaField.mutateAsync(fieldData);
       
       // Mark project as interacted AFTER successful creation to prevent welcome flow redirects
-      sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
+      sessionStorage.setItem(`project-${project.id.toString()}-interacted`, 'true');
       
       setSchemaFieldDialog({ open: false });
       toast({
@@ -249,9 +249,9 @@ export default function DefineData({ project }: DefineDataProps) {
     if (!schemaFieldDialog.field) return;
     try {
       await updateSchemaField.mutateAsync({ 
-        id: schemaFieldDialog.field.id, 
+        id: parseInt(schemaFieldDialog.field.id.toString()), 
         field: data,
-        projectId: project.id // Pass the current project ID for cache invalidation
+        projectId: project.id.toString().toString() // Pass the current project ID for cache invalidation
       });
       setSchemaFieldDialog({ open: false });
       toast({
@@ -267,9 +267,9 @@ export default function DefineData({ project }: DefineDataProps) {
     }
   };
 
-  const handleDeleteSchemaField = async (id: number) => {
+  const handleDeleteSchemaField = async (id: string) => {
     try {
-      await deleteSchemaField.mutateAsync(id);
+      await deleteSchemaField.mutateAsync(parseInt(id));
       setDeleteDialog({ open: false });
       toast({
         title: "Field deleted",
@@ -296,7 +296,7 @@ export default function DefineData({ project }: DefineDataProps) {
       await createCollection.mutateAsync(collectionData);
       
       // Mark project as interacted AFTER successful creation to prevent welcome flow redirects
-      sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
+      sessionStorage.setItem(`project-${project.id.toString()}-interacted`, 'true');
       
       setCollectionDialog({ open: false });
       toast({
@@ -318,7 +318,7 @@ export default function DefineData({ project }: DefineDataProps) {
       await updateCollection.mutateAsync({ 
         id: collectionDialog.collection.id, 
         collection: data,
-        projectId: project.id // Pass the current project ID for cache invalidation
+        projectId: project.id.toString().toString() // Pass the current project ID for cache invalidation
       });
       setCollectionDialog({ open: false });
       toast({
@@ -334,10 +334,10 @@ export default function DefineData({ project }: DefineDataProps) {
     }
   };
 
-  const handleDeleteCollection = async (id: number) => {
+  const handleDeleteCollection = async (id: string) => {
     try {
       // Mark project as interacted to prevent welcome flow redirects
-      sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
+      sessionStorage.setItem(`project-${project.id.toString()}-interacted`, 'true');
       
       await deleteCollection.mutateAsync(id);
       setDeleteDialog({ open: false });
@@ -359,7 +359,7 @@ export default function DefineData({ project }: DefineDataProps) {
     if (!propertyDialog.collectionId) return;
     try {
       // Mark project as interacted to prevent welcome flow redirects
-      sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
+      sessionStorage.setItem(`project-${project.id.toString()}-interacted`, 'true');
       
       // Create the property directly using apiRequest since we need dynamic collectionId
       await apiRequest(`/api/collections/${propertyDialog.collectionId}/properties`, {
@@ -407,9 +407,9 @@ export default function DefineData({ project }: DefineDataProps) {
     }
   };
 
-  const handleDeleteProperty = async (id: number) => {
+  const handleDeleteProperty = async (id: string) => {
     try {
-      await deleteProperty.mutateAsync(id);
+      await deleteProperty.mutateAsync(parseInt(id));
       setDeleteDialog({ open: false });
       toast({
         title: "Property deleted",
@@ -445,7 +445,7 @@ export default function DefineData({ project }: DefineDataProps) {
   const handleMainObjectNameSave = async () => {
     try {
       await updateProject.mutateAsync({
-        id: project.id,
+        id: project.id.toString(),
         project: { mainObjectName }
       });
       setIsEditingMainObjectName(false);
@@ -477,7 +477,7 @@ export default function DefineData({ project }: DefineDataProps) {
         await handleDeleteProperty(deleteDialog.id);
         break;
       case "step":
-        await handleDeleteStep(deleteDialog.id);
+        await handleDeleteStep(deleteDialog.id as string);
         break;
     }
   };
