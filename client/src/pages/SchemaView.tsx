@@ -290,23 +290,18 @@ ${error instanceof Error ? error.message : 'Unknown error'}
 
   // Function to generate markdown from schema data
   const generateSchemaMarkdown = (data: SchemaData, documentText: string, documentCount: number, stepIndex: number = 0, previousResults: any[] = []) => {
-    // Filter schema data by current step with fallback logic
+    // Filter schema data by current step number with fallback logic
     let currentStepFields, currentStepCollections;
     
-    if (!extractionSteps || extractionSteps.length === 0) {
-      // No extraction steps, use all fields and collections
-      currentStepFields = data.schema_fields;
-      currentStepCollections = data.collections;
-    } else {
-      // Filter by current step ID
-      const currentStepId = extractionSteps?.[stepIndex]?.id;
-      const stepFields = data.schema_fields.filter(field => field.stepId === currentStepId);
-      const stepCollections = data.collections.filter(collection => collection.stepId === currentStepId);
-      
-      // Use step-filtered data if available, otherwise fallback to all data
-      currentStepFields = stepFields.length > 0 ? stepFields : data.schema_fields;
-      currentStepCollections = stepCollections.length > 0 ? stepCollections : data.collections;
-    }
+    const currentStepNumber = stepIndex + 1; // Convert from 0-based index to 1-based step number
+    
+    // Filter by step number
+    const stepFields = data.schema_fields.filter(field => field.step === currentStepNumber);
+    const stepCollections = data.collections.filter(collection => collection.step === currentStepNumber);
+    
+    // Use step-filtered data if available, otherwise fallback to all data
+    currentStepFields = stepFields.length > 0 ? stepFields : data.schema_fields;
+    currentStepCollections = stepCollections.length > 0 ? stepCollections : data.collections;
     
     let markdown = `# AI EXTRACTION TASK - STEP ${stepIndex + 1}\n\n`;
     markdown += `You are an expert data extraction AI. Your task is to analyze the documents below and extract structured data according to the schema provided.\n\n`;
@@ -558,6 +553,11 @@ ${error instanceof Error ? error.message : 'Unknown error'}
     
     setIsProcessing(true);
     try {
+      if (!schemaData) {
+        setGeminiResponse("=== ERROR ===\n\nSchema data not available. Please try refreshing the page.\n\n=== END ERROR ===");
+        return;
+      }
+      
       const fullPrompt = generateSchemaMarkdown(schemaData, documentContent.text, documentContent.count, currentStepIndex, previousStepsResults);
       
       // Enhanced debug logging
@@ -671,7 +671,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
       // Check for truncation indicators
       if (jsonText.includes('[TRUNCATED]') || jsonText.includes('…') || jsonText.endsWith('...')) {
         console.error('WARNING: JSON appears to be truncated!');
-        setError('Response was truncated. Please try again or contact support.');
+        setGeminiResponse('=== ERROR ===\n\nResponse was truncated. Please try again or contact support.\n\n=== END ERROR ===');
         return;
       }
       
@@ -909,16 +909,10 @@ ${error instanceof Error ? error.message : 'Unknown error'}
       <div style={{ marginBottom: '40px' }}>
         {JSON.stringify({
           schema_fields: (() => {
-            // If no extraction steps exist, show all fields
-            if (!extractionSteps || extractionSteps.length === 0) {
-              return schemaData.schema_fields;
-            }
+            const currentStepNumber = currentStepIndex + 1;
             
-            // Get current step ID
-            const currentStepId = extractionSteps[currentStepIndex]?.id;
-            
-            // Filter fields by current step ID
-            const stepFields = schemaData.schema_fields.filter(field => field.stepId === currentStepId);
+            // Filter fields by current step number
+            const stepFields = schemaData.schema_fields.filter(field => field.step === currentStepNumber);
             
             // If no fields found for current step, show all fields (fallback)
             return stepFields.length > 0 ? stepFields : schemaData.schema_fields;
@@ -974,16 +968,10 @@ ${error instanceof Error ? error.message : 'Unknown error'}
       <div style={{ marginBottom: '40px' }}>
         {JSON.stringify({
           collections: (() => {
-            // If no extraction steps exist, show all collections
-            if (!extractionSteps || extractionSteps.length === 0) {
-              return schemaData.collections;
-            }
+            const currentStepNumber = currentStepIndex + 1;
             
-            // Get current step ID
-            const currentStepId = extractionSteps[currentStepIndex]?.id;
-            
-            // Filter collections by current step ID
-            const stepCollections = schemaData.collections.filter(collection => collection.stepId === currentStepId);
+            // Filter collections by current step number
+            const stepCollections = schemaData.collections.filter(collection => collection.step === currentStepNumber);
             
             // If no collections found for current step, show all collections (fallback)
             return stepCollections.length > 0 ? stepCollections : schemaData.collections;

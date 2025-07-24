@@ -59,6 +59,7 @@ export const extractionSteps = pgTable("extraction_steps", {
 export const projectSchemaFields = pgTable("project_schema_fields", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  step: integer("step").default(1), // Step number for multi-step extraction
   stepId: uuid("step_id").references(() => extractionSteps.id, { onDelete: "cascade" }), // Optional - for multi-step extraction
   fieldName: text("field_name").notNull(),
   fieldType: text("field_type").notNull(), // TEXT, NUMBER, DATE, BOOLEAN
@@ -71,6 +72,7 @@ export const projectSchemaFields = pgTable("project_schema_fields", {
 export const objectCollections = pgTable("object_collections", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  step: integer("step").default(1), // Step number for multi-step extraction
   stepId: uuid("step_id").references(() => extractionSteps.id, { onDelete: "cascade" }), // Optional - for multi-step extraction
   collectionName: text("collection_name").notNull(),
   description: text("description"),
