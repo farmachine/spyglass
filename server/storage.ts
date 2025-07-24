@@ -6,7 +6,6 @@ import {
   extractionSessions,
   knowledgeDocuments,
   extractionRules,
-  extractionSteps,
   fieldValidations,
   organizations,
   users,
@@ -25,8 +24,6 @@ import {
   type InsertKnowledgeDocument,
   type ExtractionRule,
   type InsertExtractionRule,
-  type ExtractingStep,
-  type InsertExtractionStep,
   type FieldValidation,
   type InsertFieldValidation,
   type ExtractionSessionWithValidation,
@@ -79,8 +76,8 @@ export interface IStorage {
   // Project Schema Fields
   getProjectSchemaFields(projectId: string): Promise<ProjectSchemaField[]>;
   createProjectSchemaField(field: InsertProjectSchemaField): Promise<ProjectSchemaField>;
-  updateProjectSchemaField(id: string, field: Partial<InsertProjectSchemaField>): Promise<ProjectSchemaField | undefined>;
-  deleteProjectSchemaField(id: string): Promise<boolean>;
+  updateProjectSchemaField(id: number, field: Partial<InsertProjectSchemaField>): Promise<ProjectSchemaField | undefined>;
+  deleteProjectSchemaField(id: number): Promise<boolean>;
 
   // Object Collections
   getObjectCollections(projectId: string): Promise<(ObjectCollection & { properties: CollectionProperty[] })[]>;
@@ -113,12 +110,6 @@ export interface IStorage {
   updateExtractionRule(id: number, rule: Partial<InsertExtractionRule>): Promise<ExtractionRule | undefined>;
   deleteExtractionRule(id: number): Promise<boolean>;
 
-  // Extraction Steps
-  getExtractionSteps(projectId: string): Promise<ExtractingStep[]>;
-  createExtractionStep(step: InsertExtractionStep): Promise<ExtractingStep>;
-  updateExtractionStep(id: string, step: Partial<InsertExtractionStep>): Promise<ExtractingStep | undefined>;
-  deleteExtractionStep(id: string): Promise<boolean>;
-
   // Field Validations
   getFieldValidations(sessionId: string): Promise<FieldValidation[]>;
   createFieldValidation(validation: InsertFieldValidation): Promise<FieldValidation>;
@@ -143,7 +134,6 @@ export class MemStorage implements IStorage {
   private extractionSessions: Map<string, ExtractionSession>;
   private knowledgeDocuments: Map<string, KnowledgeDocument>;
   private extractionRules: Map<string, ExtractionRule>;
-  private extractionSteps: Map<string, ExtractingStep>;
   private fieldValidations: Map<string, FieldValidation>;
   private projectPublishing: Map<string, ProjectPublishing>;
 
@@ -157,7 +147,6 @@ export class MemStorage implements IStorage {
     this.extractionSessions = new Map();
     this.knowledgeDocuments = new Map();
     this.extractionRules = new Map();
-    this.extractionSteps = new Map();
     this.fieldValidations = new Map();
     this.projectPublishing = new Map();
     
@@ -1215,43 +1204,6 @@ export class MemStorage implements IStorage {
     return this.extractionRules.delete(numericId);
   }
 
-  // Extraction Steps
-  async getExtractionSteps(projectId: string): Promise<ExtractingStep[]> {
-    return Array.from(this.extractionSteps.values())
-      .filter(step => step.projectId === projectId)
-      .sort((a, b) => a.orderIndex - b.orderIndex);
-  }
-
-  async createExtractionStep(stepData: InsertExtractionStep): Promise<ExtractingStep> {
-    const id = this.generateUUID();
-    const step: ExtractingStep = {
-      ...stepData,
-      id,
-      isActive: stepData.isActive ?? true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.extractionSteps.set(id, step);
-    return step;
-  }
-
-  async updateExtractionStep(id: string, stepData: Partial<InsertExtractionStep>): Promise<ExtractingStep | undefined> {
-    const existingStep = this.extractionSteps.get(id);
-    if (!existingStep) return undefined;
-
-    const updatedStep = { 
-      ...existingStep, 
-      ...stepData, 
-      updatedAt: new Date() 
-    };
-    this.extractionSteps.set(id, updatedStep);
-    return updatedStep;
-  }
-
-  async deleteExtractionStep(id: string): Promise<boolean> {
-    return this.extractionSteps.delete(id);
-  }
-
   // Field Validations
   async getFieldValidations(sessionId: number): Promise<FieldValidation[]> {
     return Array.from(this.fieldValidations.values())
@@ -1928,7 +1880,7 @@ class PostgreSQLStorage implements IStorage {
     const result = await this.db
       .delete(projectSchemaFields)
       .where(eq(projectSchemaFields.id, id));
-    return (result.rowCount ?? 0) > 0;
+    return result.rowCount > 0;
   }
 
   // Object Collections
@@ -2098,38 +2050,6 @@ class PostgreSQLStorage implements IStorage {
       .where(eq(extractionRules.id, id));
     return result.rowCount > 0;
   }
-
-  // Extraction Steps methods
-  async getExtractionSteps(projectId: string): Promise<ExtractingStep[]> {
-    const result = await this.db
-      .select()
-      .from(extractionSteps)
-      .where(eq(extractionSteps.projectId, projectId))
-      .orderBy(extractionSteps.orderIndex);
-    return result;
-  }
-
-  async createExtractionStep(step: InsertExtractionStep): Promise<ExtractingStep> {
-    const result = await this.db.insert(extractionSteps).values(step).returning();
-    return result[0];
-  }
-
-  async updateExtractionStep(id: string, step: Partial<InsertExtractionStep>): Promise<ExtractingStep | undefined> {
-    const result = await this.db
-      .update(extractionSteps)
-      .set(step)
-      .where(eq(extractionSteps.id, id))
-      .returning();
-    return result[0];
-  }
-
-  async deleteExtractionStep(id: string): Promise<boolean> {
-    const result = await this.db
-      .delete(extractionSteps)
-      .where(eq(extractionSteps.id, id));
-    return result.rowCount > 0;
-  }
-
   async getFieldValidations(sessionId: string): Promise<FieldValidation[]> { 
     const result = await this.db.select().from(fieldValidations).where(eq(fieldValidations.sessionId, sessionId));
     

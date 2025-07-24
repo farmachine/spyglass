@@ -17,8 +17,7 @@ import {
   registerUserSchema,
   resetPasswordSchema,
   changePasswordApiSchema,
-  insertProjectPublishingSchema,
-  insertExtractionStepSchema
+  insertProjectPublishingSchema
 } from "@shared/schema";
 import { authenticateToken, requireAdmin, generateToken, comparePassword, hashPassword, type AuthRequest } from "./auth";
 
@@ -463,7 +462,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fields = await storage.getProjectSchemaFields(projectId);
       res.json(fields);
     } catch (error) {
-      console.error("Failed to fetch schema fields:", error);
       res.status(500).json({ message: "Failed to fetch schema fields" });
     }
   });
@@ -489,7 +487,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(201).json(field);
     } catch (error) {
-      console.error("Failed to create schema field:", error);
       res.status(500).json({ message: "Failed to create schema field" });
     }
   });
@@ -508,7 +505,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(field);
     } catch (error) {
-      console.error("Failed to update schema field:", error);
       res.status(500).json({ message: "Failed to update schema field" });
     }
   });
@@ -522,7 +518,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.status(204).send();
     } catch (error) {
-      console.error("Failed to delete schema field:", error);
       res.status(500).json({ message: "Failed to delete schema field" });
     }
   });
@@ -611,52 +606,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Delete collection error:", error);
       res.status(500).json({ message: "Failed to delete collection" });
-    }
-  });
-
-  // Schema field reordering
-  app.post("/api/schema-fields/reorder", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const { stepId, fields } = req.body;
-      
-      if (!stepId || !Array.isArray(fields)) {
-        return res.status(400).json({ error: "Missing stepId or fields array" });
-      }
-
-      // Update the orderIndex for each field
-      for (const field of fields) {
-        await storage.updateProjectSchemaField(field.id, { 
-          orderIndex: field.orderIndex 
-        });
-      }
-
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error reordering fields:", error);
-      res.status(500).json({ error: "Failed to reorder fields" });
-    }
-  });
-
-  // Collection reordering
-  app.post("/api/collections/reorder", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const { stepId, collections } = req.body;
-      
-      if (!stepId || !Array.isArray(collections)) {
-        return res.status(400).json({ error: "Missing stepId or collections array" });
-      }
-
-      // Update the orderIndex for each collection
-      for (const collection of collections) {
-        await storage.updateObjectCollection(collection.id, { 
-          orderIndex: collection.orderIndex 
-        });
-      }
-
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error reordering collections:", error);
-      res.status(500).json({ error: "Failed to reorder collections" });
     }
   });
 
@@ -1082,62 +1031,6 @@ except Exception as e:
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Failed to delete extraction rule" });
-    }
-  });
-
-  // Extraction Steps
-  app.get("/api/projects/:projectId/steps", async (req, res) => {
-    try {
-      const projectId = req.params.projectId;
-      const steps = await storage.getExtractionSteps(projectId);
-      res.json(steps);
-    } catch (error) {
-      console.error("Failed to fetch extraction steps:", error);
-      res.status(500).json({ message: "Failed to fetch extraction steps", error: error.message });
-    }
-  });
-
-  app.post("/api/projects/:projectId/steps", async (req, res) => {
-    try {
-      const projectId = req.params.projectId;
-      console.log("Creating extraction step with data:", req.body);
-      
-      const result = insertExtractionStepSchema.safeParse({ ...req.body, projectId });
-      if (!result.success) {
-        console.error("Validation errors:", result.error.errors);
-        return res.status(400).json({ message: "Invalid extraction step data", errors: result.error.errors });
-      }
-      
-      console.log("Validated step data:", result.data);
-      const step = await storage.createExtractionStep(result.data);
-      console.log("Created step:", step);
-      res.status(201).json(step);
-    } catch (error) {
-      console.error("Failed to create extraction step:", error);
-      res.status(500).json({ message: "Failed to create extraction step", error: error.message });
-    }
-  });
-
-  app.put("/api/extraction-steps/:id", async (req, res) => {
-    try {
-      const id = req.params.id;
-      const step = await storage.updateExtractionStep(id, req.body);
-      if (!step) {
-        return res.status(404).json({ message: "Step not found" });
-      }
-      res.json(step);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to update extraction step" });
-    }
-  });
-
-  app.delete("/api/extraction-steps/:id", async (req, res) => {
-    try {
-      const id = req.params.id;
-      await storage.deleteExtractionStep(id);
-      res.status(204).send();
-    } catch (error) {
-      res.status(500).json({ message: "Failed to delete extraction step" });
     }
   });
 

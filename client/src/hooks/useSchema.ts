@@ -10,7 +10,7 @@ import type {
 } from "@shared/schema";
 
 // Schema Fields
-export function useProjectSchemaFields(projectId: string | number) {
+export function useProjectSchemaFields(projectId: number) {
   return useQuery({
     queryKey: ["/api/projects", projectId, "schema"],
     queryFn: () => apiRequest(`/api/projects/${projectId}/schema`),
@@ -18,7 +18,7 @@ export function useProjectSchemaFields(projectId: string | number) {
   });
 }
 
-export function useCreateSchemaField(projectId: string | number) {
+export function useCreateSchemaField(projectId: number) {
   const queryClient = useQueryClient();
   
   return useMutation({
@@ -38,7 +38,7 @@ export function useUpdateSchemaField() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, field, projectId }: { id: string; field: Partial<InsertProjectSchemaField>; projectId?: string | number }) =>
+    mutationFn: ({ id, field, projectId }: { id: number; field: Partial<InsertProjectSchemaField>; projectId?: number }) =>
       apiRequest(`/api/schema-fields/${id}`, {
         method: "PUT",
         body: JSON.stringify(field),
@@ -60,7 +60,7 @@ export function useDeleteSchemaField() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (id: string) => apiRequest(`/api/schema-fields/${id}`, {
+    mutationFn: (id: number) => apiRequest(`/api/schema-fields/${id}`, {
       method: "DELETE",
     }),
     onSuccess: (_, id) => {
@@ -71,7 +71,7 @@ export function useDeleteSchemaField() {
 }
 
 // Object Collections
-export function useObjectCollections(projectId: string) {
+export function useObjectCollections(projectId: number) {
   return useQuery({
     queryKey: ["/api/projects", projectId, "collections"],
     queryFn: () => apiRequest(`/api/projects/${projectId}/collections`),
@@ -79,7 +79,7 @@ export function useObjectCollections(projectId: string) {
   });
 }
 
-export function useCreateCollection(projectId: string) {
+export function useCreateCollection(projectId: number) {
   const queryClient = useQueryClient();
   
   return useMutation({
@@ -99,7 +99,7 @@ export function useUpdateCollection() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, collection, projectId }: { id: string; collection: Partial<InsertObjectCollection>; projectId?: string }) =>
+    mutationFn: ({ id, collection, projectId }: { id: number; collection: Partial<InsertObjectCollection>; projectId?: number }) =>
       apiRequest(`/api/collections/${id}`, {
         method: "PUT",
         body: JSON.stringify(collection),
@@ -121,7 +121,7 @@ export function useDeleteCollection() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (id: string) => apiRequest(`/api/collections/${id}`, {
+    mutationFn: (id: number) => apiRequest(`/api/collections/${id}`, {
       method: "DELETE",
     }),
     onSuccess: () => {
@@ -136,7 +136,7 @@ export function useDeleteCollection() {
 }
 
 // Collection Properties
-export function useCollectionProperties(collectionId: string) {
+export function useCollectionProperties(collectionId: number) {
   return useQuery({
     queryKey: ["/api/collections", collectionId, "properties"],
     queryFn: () => apiRequest(`/api/collections/${collectionId}/properties`),
@@ -145,7 +145,7 @@ export function useCollectionProperties(collectionId: string) {
 }
 
 // Get all properties for all collections in a project (for target fields)
-export function useAllProjectProperties(projectId: string) {
+export function useAllProjectProperties(projectId: number) {
   return useQuery({
     queryKey: ["/api/projects", projectId, "all-properties"],
     queryFn: async () => {
@@ -157,7 +157,7 @@ export function useAllProjectProperties(projectId: string) {
       for (const collection of collections) {
         try {
           const properties = await apiRequest(`/api/collections/${collection.id}/properties`);
-          allProperties.push(...properties.map((prop: any) => ({
+          allProperties.push(...properties.map(prop => ({
             ...prop,
             collectionName: collection.collectionName,
           })));
@@ -172,7 +172,7 @@ export function useAllProjectProperties(projectId: string) {
   });
 }
 
-export function useCreateProperty(collectionId: string) {
+export function useCreateProperty(collectionId: number) {
   const queryClient = useQueryClient();
   
   return useMutation({
@@ -222,37 +222,6 @@ export function useDeleteProperty() {
       // Invalidate all relevant queries
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       queryClient.invalidateQueries({ queryKey: ["/api/collections"] });
-    },
-  });
-}
-
-// Field and Collection reordering mutations
-export function useReorderFields() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: ({ stepId, fields }: { stepId: string; fields: { id: string; orderIndex: number }[] }) =>
-      apiRequest(`/api/schema-fields/reorder`, {
-        method: "POST",
-        body: JSON.stringify({ stepId, fields }),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
-    },
-  });
-}
-
-export function useReorderCollections() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: ({ stepId, collections }: { stepId: string; collections: { id: string; orderIndex: number }[] }) =>
-      apiRequest(`/api/collections/reorder`, {
-        method: "POST",
-        body: JSON.stringify({ stepId, collections }),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
     },
   });
 }
