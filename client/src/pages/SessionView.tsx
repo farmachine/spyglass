@@ -290,11 +290,17 @@ export default function SessionView() {
   // Column resizing functions
   const handleMouseDown = (e: React.MouseEvent, columnId: string) => {
     e.preventDefault();
+    e.stopPropagation();
+    
     const startX = e.clientX;
     const element = e.currentTarget.closest('th') as HTMLElement;
     const startWidth = element ? element.offsetWidth : 150;
     
     setResizing({ columnId, startX, startWidth });
+    
+    // Add cursor style to body during resize for better UX
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
   };
 
   const handleMouseMove = (e: MouseEvent) => {
@@ -311,6 +317,10 @@ export default function SessionView() {
 
   const handleMouseUp = () => {
     setResizing(null);
+    
+    // Reset cursor styles
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
   };
 
   // Add event listeners for resizing
@@ -1792,7 +1802,9 @@ Thank you for your assistance.`;
                                     <div
                                       className="column-resizer opacity-0 group-hover:opacity-50 transition-opacity"
                                       onMouseDown={(e) => handleMouseDown(e, `${collection.id}-${property.id}`)}
-                                    />
+                                    >
+                                      <div className="absolute right-1 top-0 bottom-0 w-0.5 bg-current opacity-50" />
+                                    </div>
                                   </div>
                                 </TableHead>
                               ))}

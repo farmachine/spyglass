@@ -114,16 +114,22 @@
   cursor: col-resize;
   user-select: none;
   position: absolute;
-  right: 0;
+  right: -2px;
   top: 0;
   bottom: 0;
-  width: 4px;
+  width: 8px;
   background-color: transparent;
   transition: background-color 0.2s;
+  z-index: 10;
 }
 
 .column-resizer:hover {
   background-color: #3b82f6;
+  opacity: 1 !important;
+}
+
+.column-resizer:active {
+  background-color: #2563eb;
   opacity: 1 !important;
 }
 @layer utilities {
