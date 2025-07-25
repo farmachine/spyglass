@@ -1312,7 +1312,7 @@ Thank you for your assistance.`;
             const wasManuallyUpdated = validation.validationStatus === 'manual';
             
             // Debug logging for specific fields
-            if (fieldName.includes('MSA') || fieldName.includes('ID') || validation.extractedValue === '12345') {
+            if (fieldName.includes('MSA') || fieldName.includes('ID') || validation.extractedValue === '12345' || validation.extractedValue === '1234567' || validation.id === '9f48ae6c-b104-41d5-ba49-17dd7b25ffad') {
               console.log(`Field Debug - Field: ${fieldName}, Status: ${validation.validationStatus}, Value: ${validation.extractedValue}, WasManuallyUpdated: ${wasManuallyUpdated}, ValidationId: ${validation.id}`);
             }
             
