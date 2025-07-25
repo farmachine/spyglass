@@ -102,6 +102,7 @@ export const fieldValidations = pgTable("field_validations", {
   validationStatus: text("validation_status").default("pending").notNull(), // 'valid', 'invalid', 'pending', 'manual'
   aiReasoning: text("ai_reasoning"), // AI explanation for validation status
   manuallyVerified: boolean("manually_verified").default(false).notNull(),
+  manuallyUpdated: boolean("manually_updated").default(false).notNull(), // true when user edits a field value
   confidenceScore: integer("confidence_score").default(0), // 0-100
   documentSource: text("document_source"), // name of the document where data was found
   documentSections: text("document_sections"), // sections where data was found (JSON array)

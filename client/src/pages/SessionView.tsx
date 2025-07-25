@@ -954,7 +954,8 @@ Thank you for your assistance.`;
           data: {
             extractedValue: valueToStore,
             validationStatus: "manual",
-            manuallyVerified: true
+            manuallyVerified: true,
+            manuallyUpdated: true  // Mark as manually updated when user edits date
           }
         });
       } catch (error) {
@@ -998,7 +999,8 @@ Thank you for your assistance.`;
           data: {
             extractedValue: valueToStore,
             validationStatus: "manual",
-            manuallyVerified: true
+            manuallyVerified: true,
+            manuallyUpdated: true  // Mark as manually updated when user edits field
           }
         });
         
