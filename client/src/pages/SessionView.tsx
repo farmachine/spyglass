@@ -1561,7 +1561,7 @@ Thank you for your assistance.`;
                 const maxRecordIndex = validationIndices.length > 0 ? Math.max(...validationIndices) : -1;
                 return maxRecordIndex >= 0;
               }).length}, 1fr)` }}>
-                <TabsTrigger value="all-data">{project.mainObjectName || 'Session'} Info</TabsTrigger>
+                <TabsTrigger value="all-data">All Data</TabsTrigger>
                 {project.collections.map((collection) => {
                   const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
                   const validationIndices = collectionValidations.length > 0 ? collectionValidations.map(v => v.recordIndex) : [];
@@ -1577,207 +1577,234 @@ Thank you for your assistance.`;
                 })}
               </TabsList>
 
-              {/* Schema Fields Info Tab Content */}
+              {/* All Data Tab Content */}
               <TabsContent value="all-data" className="mt-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      {project.mainObjectName || 'Session'} Information
-                      <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                        {project.schemaFields.length} {project.schemaFields.length === 1 ? 'field' : 'fields'}
-                      </span>
-                    </CardTitle>
-                    <p className="text-sm text-gray-600">Main object properties and metadata</p>
-                  </CardHeader>
-                  <CardContent>
-                    <Table className="session-table">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="border-r border-gray-300">Field</TableHead>
-                          <TableHead className="border-r border-gray-300">Value</TableHead>
-                          <TableHead className="w-32 border-r border-gray-300">Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {project.schemaFields
-                          .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-                          .map((field) => {
-                            const originalValue = extractedData[field.fieldName];
-                            const validation = getValidation(field.fieldName);
-                            
-                            // Show field if it has a value OR if there's a validation for it
-                            if (originalValue !== undefined || validation) {
-                              let displayValue = validation?.extractedValue ?? originalValue ?? null;
-                              if (displayValue === "null" || displayValue === "undefined") {
-                                displayValue = null;
-                              }
-                              
-                              const wasManuallyUpdated = validation?.validationStatus === 'manual';
-                              const isVerified = validation?.validationStatus === 'verified' || validation?.validationStatus === 'valid';
-                              const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
-                              const score = Math.round(validation?.confidenceScore || 0);
-                              const fieldName = field.fieldName;
+                <Card className="mb-8">
+                  <CardContent className="space-y-4 pt-4">
+                    {/* Project Schema Fields */}
+                    {project.schemaFields.map((field) => {
+                      const originalValue = extractedData[field.fieldName];
+                      const validation = getValidation(field.fieldName);
+                      
+                      // Show field if it has a value OR if there's a validation for it
+                      if (originalValue !== undefined || validation) {
+                        // Use validation's extractedValue (which includes manual edits), not the original extracted value
+                        let displayValue = validation?.extractedValue ?? originalValue ?? null;
+                        if (displayValue === "null" || displayValue === "undefined") {
+                          displayValue = null;
+                        }
+                        console.log(`Rendering field ${field.fieldName} - originalValue:`, originalValue, 'validation:', !!validation, 'displayValue:', displayValue);
+                        return renderFieldWithValidation(field.fieldName, displayValue, true);
+                      }
+                      return null;
+                    })}
 
-                              return (
-                                <TableRow key={field.id} className="border-b border-gray-300 group">
-                                  <TableCell className="font-medium border-r border-gray-300 relative pl-6 pr-2">
-                                    {/* Field Type Icon */}
-                                    <div className="absolute top-2 left-1">
-                                      {field.fieldType === 'TEXT' && <Type className="h-3 w-3 text-blue-600" />}
-                                      {field.fieldType === 'TEXTAREA' && <AlignLeft className="h-3 w-3 text-purple-600" />}
-                                      {field.fieldType === 'NUMBER' && <Hash className="h-3 w-3 text-green-600" />}
-                                      {field.fieldType === 'DATE' && <Calendar className="h-3 w-3 text-orange-600" />}
-                                      {field.fieldType === 'SELECT' && <List className="h-3 w-3 text-red-600" />}
-                                    </div>
-                                    <div>
-                                      <div className="font-medium">{field.fieldName}</div>
-                                      {field.description && (
-                                        <div className="text-xs text-gray-500 mt-1">{field.description}</div>
-                                      )}
-                                    </div>
-                                  </TableCell>
-                                  <TableCell className="border-r border-gray-300 relative pl-6 pr-2">
-                                    {/* Confidence/Verification Indicator */}
-                                    {(() => {
-                                      if (wasManuallyUpdated) {
-                                        return (
-                                          <div className="absolute top-2 left-1 w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
-                                            <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                                          </div>
-                                        );
-                                      } else if (isVerified) {
-                                        return (
-                                          <TooltipProvider>
-                                            <Tooltip>
-                                              <TooltipTrigger asChild>
-                                                <button
-                                                  onClick={() => handleFieldVerification(fieldName, false)}
-                                                  className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors"
-                                                  aria-label="Click to unverify"
-                                                >
-                                                  <span className="text-xs font-bold">✓</span>
-                                                </button>
-                                              </TooltipTrigger>
-                                              <TooltipContent>
-                                                Verified with {score}% confidence
-                                              </TooltipContent>
-                                            </Tooltip>
-                                          </TooltipProvider>
-                                        );
-                                      } else if (hasValue && validation?.confidenceScore) {
-                                        const colorClass = score >= 80 ? 'bg-green-500' : 
-                                                         score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
-                                        
-                                        return (
-                                          <button
-                                            onClick={() => {
-                                              if (validation.aiReasoning) {
-                                                setSelectedReasoning({
-                                                  reasoning: validation.aiReasoning,
-                                                  fieldName,
-                                                  confidenceScore: validation.confidenceScore || 0
-                                                });
-                                              }
-                                            }}
-                                            className={`absolute top-2 left-1 w-3 h-3 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity`}
-                                            title={`${score}% confidence - Click for AI analysis`}
-                                          />
-                                        );
-                                      }
-                                      return null;
-                                    })()}
-                                    
-                                    {editingField === fieldName ? (
-                                      <div className="flex items-center gap-2">
-                                        {field.fieldType === 'DATE' ? (
-                                          <input
-                                            type="date"
-                                            value={editValue}
-                                            onChange={(e) => setEditValue(e.target.value)}
-                                            className="flex-1 px-2 py-1 border rounded text-sm"
-                                            autoFocus
-                                          />
-                                        ) : field.fieldType === 'TEXTAREA' ? (
-                                          <textarea
-                                            value={editValue}
-                                            onChange={(e) => setEditValue(e.target.value)}
-                                            className="flex-1 px-2 py-1 border rounded text-sm min-h-[60px]"
-                                            autoFocus
-                                          />
-                                        ) : (
-                                          <input
-                                            type={field.fieldType === 'NUMBER' ? 'number' : 'text'}
-                                            value={editValue}
-                                            onChange={(e) => setEditValue(e.target.value)}
-                                            className="flex-1 px-2 py-1 border rounded text-sm"
-                                            autoFocus
-                                          />
-                                        )}
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => handleSave(fieldName)}
-                                          className="text-green-600 hover:text-green-700 p-1 h-auto"
-                                        >
-                                          <Check className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => setEditingField(null)}
-                                          className="text-gray-400 hover:text-gray-600 p-1 h-auto"
-                                        >
-                                          <X className="h-4 w-4" />
-                                        </Button>
-                                      </div>
-                                    ) : (
-                                      <div className="flex items-center justify-between">
-                                        <span>
-                                          {hasValue ? (
-                                            field.fieldType === 'DATE' && displayValue ? (
-                                              format(new Date(displayValue), 'MMM d, yyyy')
-                                            ) : (
-                                              displayValue
-                                            )
-                                          ) : (
-                                            <span className="text-gray-400 italic">Not set</span>
-                                          )}
-                                        </span>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => {
-                                            setEditingField(fieldName);
-                                            setEditValue(displayValue || "");
-                                          }}
-                                          className="text-gray-400 hover:text-gray-600 p-1 h-auto opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                          <Edit2 className="h-3 w-3" />
-                                        </Button>
-                                      </div>
-                                    )}
-                                  </TableCell>
-                                  <TableCell className="border-r border-gray-300">
-                                    <Button
-                                      onClick={() => handleFieldVerification(fieldName, !isVerified)}
-                                      variant="ghost"
-                                      size="sm"
-                                      className={`px-2 py-1 text-xs font-medium rounded ${
-                                        isVerified 
-                                          ? 'text-green-700 bg-green-100 hover:bg-green-200' 
-                                          : 'text-red-700 bg-red-100 hover:bg-red-200'
+                    {/* Collections */}
+                    {project.collections.map((collection) => {
+                      const collectionData = extractedData[collection.collectionName];
+                      
+                      // Get all validations for this collection
+                      const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
+                      
+                      // Determine how many instances we need to show based on validation records
+                      // The validation records contain the authoritative record indices from the database
+                      const validationIndices = collectionValidations.length > 0 ? collectionValidations.map(v => v.recordIndex) : [];
+                      const maxRecordIndex = validationIndices.length > 0 ? Math.max(...validationIndices) : -1;
+                      
+                      if (maxRecordIndex < 0) return null;
+
+                      const isExpanded = expandedCollections.has(collection.collectionName);
+
+                      return (
+                        <div key={collection.id} className="border border-gray-200 rounded-lg border-l-4 border-l-green-500 bg-white">
+                          <div className="p-4">
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="flex items-center gap-2 flex-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => toggleCollectionExpansion(collection.collectionName)}
+                                  className="p-1 h-auto"
+                                >
+                                  {isExpanded ? (
+                                    <ChevronDown className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronRight className="h-4 w-4" />
+                                  )}
+                                </Button>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <h3 className="text-lg font-semibold">{collection.collectionName}</h3>
+                                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                                      {maxRecordIndex + 1} {maxRecordIndex === 0 ? 'item' : 'items'}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm text-gray-600 mt-1">{collection.description}</p>
+                                </div>
+                              </div>
+                              {/* Collection Verification Status - positioned like field validation icons */}
+                              <div className="flex items-center gap-3">
+                                {getCollectionVerificationProgress(collection.collectionName).percentage === 100 ? (
+                                  <div className="flex items-center gap-1">
+                                    <CheckCircle className="h-4 w-4 text-green-600" />
+                                    <span className="text-green-600 font-medium text-sm">Verified</span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1">
+                                    <AlertTriangle className="h-4 w-4 text-red-600" />
+                                    <span className="text-red-600 font-medium text-sm">Unverified</span>
+                                  </div>
+                                )}
+                                
+                                {/* Collection Verification Progress */}
+                                <div className="flex items-center gap-2">
+                                  <div className="w-20 bg-gray-200 rounded-full h-2">
+                                    <div 
+                                      className={`h-2 rounded-full transition-all duration-300 ${
+                                        getCollectionVerificationProgress(collection.collectionName).percentage === 100 ? 'bg-green-600' : 
+                                        getCollectionVerificationProgress(collection.collectionName).percentage > 0 ? 'bg-blue-600' : 'bg-gray-400'
                                       }`}
-                                    >
-                                      {isVerified ? 'Verified' : 'Unverified'}
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              );
-                            }
-                            return null;
-                          })}
-                      </TableBody>
-                    </Table>
+                                      style={{ width: `${getCollectionVerificationProgress(collection.collectionName).percentage}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-xs font-medium text-gray-700 min-w-[28px]">
+                                    {getCollectionVerificationProgress(collection.collectionName).percentage}%
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            {isExpanded && (
+                              <div>
+                                {Array.from({ length: maxRecordIndex + 1 }, (_, index) => {
+                                  const item = collectionData?.[index] || {};
+                                  
+                                  // Try to get a meaningful name for this item
+                                  const getItemDisplayName = (item: any, collection: any, index: number) => {
+                                    // Look for common name fields
+                                    const nameFields = ['name', 'Name', 'title', 'Title', 'companyName', 'Company Name'];
+                                    for (const field of nameFields) {
+                                      if (item[field] && typeof item[field] === 'string' && item[field].trim()) {
+                                        return item[field].trim();
+                                      }
+                                    }
+                                    
+                                    // Look for any property that's marked as a name field
+                                    const nameProperty = collection.properties.find((p: any) => 
+                                      p.propertyName.toLowerCase().includes('name') || 
+                                      p.propertyName.toLowerCase().includes('title')
+                                    );
+                                    if (nameProperty && item[nameProperty.propertyName]) {
+                                      return item[nameProperty.propertyName];
+                                    }
+                                    
+                                    // Fall back to generic "Item X"
+                                    return `Item ${index + 1}`;
+                                  };
+                                  
+                                  const itemDisplayName = getItemDisplayName(item, collection, index);
+                                  const itemKey = `${collection.collectionName}-${index}`;
+                                  const isEditingDisplayName = editingDisplayNames[itemKey] || false;
+                                  // Use custom display name if set, otherwise fall back to extracted display name
+                                  const editDisplayName = displayNames[itemKey] !== undefined ? displayNames[itemKey] : itemDisplayName;
+                                  
+                                  return (
+                                    <div key={index} className="mb-6 p-4 bg-gray-50 rounded-lg w-full overflow-hidden">
+                                      <div className="flex items-center gap-2 mb-4">
+                                        {isEditingDisplayName ? (
+                                          <div className="flex items-center gap-2 flex-1">
+                                            <Input
+                                              type="text"
+                                              value={editDisplayName}
+                                              onChange={(e) => setDisplayNames(prev => ({ ...prev, [itemKey]: e.target.value }))}
+                                              className="flex-1"
+                                              placeholder="Item display name"
+                                            />
+                                            <Button 
+                                              size="sm" 
+                                              onClick={() => {
+                                                setEditingDisplayNames(prev => ({ ...prev, [itemKey]: false }));
+                                                // Display name is already saved in state
+                                              }}
+                                            >
+                                              Save
+                                            </Button>
+                                            <Button 
+                                              size="sm" 
+                                              variant="outline" 
+                                              onClick={() => {
+                                                // Reset to original display name on cancel
+                                                setDisplayNames(prev => ({ ...prev, [itemKey]: itemDisplayName }));
+                                                setEditingDisplayNames(prev => ({ ...prev, [itemKey]: false }));
+                                              }}
+                                            >
+                                              Cancel
+                                            </Button>
+                                          </div>
+                                        ) : (
+                                          <div className="flex items-center gap-2 flex-1">
+                                            <h4 className="font-medium">{editDisplayName}</h4>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              onClick={() => {
+                                                // Initialize with current display name if not already set
+                                                if (displayNames[itemKey] === undefined) {
+                                                  setDisplayNames(prev => ({ ...prev, [itemKey]: editDisplayName }));
+                                                }
+                                                setEditingDisplayNames(prev => ({ ...prev, [itemKey]: true }));
+                                              }}
+                                              className="h-6 px-2"
+                                            >
+                                              <Edit3 className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="space-y-4">
+                                        {collection.properties
+                                          .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+                                          .map((property) => {
+                                          // Try multiple possible property name mappings for extracted data
+                                          const possibleKeys = [
+                                            property.propertyName, // exact match
+                                            property.propertyName.toLowerCase(), // lowercase
+                                            property.propertyName.charAt(0).toLowerCase() + property.propertyName.slice(1), // camelCase
+                                          ];
+                                          
+                                          let originalValue = undefined;
+                                          for (const key of possibleKeys) {
+                                            if (item[key] !== undefined) {
+                                              originalValue = item[key];
+                                              break;
+                                            }
+                                          }
+                                          
+                                          const fieldName = `${collection.collectionName}.${property.propertyName}[${index}]`;
+                                          const validation = getValidation(fieldName);
+                                          
+                                          // Debug logging for validation matching
+                                          if (!validation && originalValue !== undefined && originalValue !== null) {
+                                            console.log(`No validation found for ${fieldName}, available validations:`, validations.map(v => v.fieldName));
+                                          }
+                                          
+                                          // Always show the property, even if no value is extracted
+                                          // Use validation's extractedValue (which includes manual edits), not the original extracted value
+                                          let displayValue = validation?.extractedValue ?? originalValue ?? null;
+                                          if (displayValue === "null" || displayValue === "undefined") {
+                                            displayValue = null;
+                                          }
+                                          return renderFieldWithValidation(fieldName, displayValue);
+                                        })}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -1785,12 +1812,7 @@ Thank you for your assistance.`;
               {/* Individual Collection Tabs */}
               {project.collections.map((collection) => {
                 const collectionData = extractedData[collection.collectionName];
-                
-                // Get all validations for this collection
                 const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
-                
-                // Determine how many instances we need to show based on validation records
-                // The validation records contain the authoritative record indices from the database
                 const validationIndices = collectionValidations.length > 0 ? collectionValidations.map(v => v.recordIndex) : [];
                 const maxRecordIndex = validationIndices.length > 0 ? Math.max(...validationIndices) : -1;
                 
@@ -1820,14 +1842,29 @@ Thank you for your assistance.`;
                                   key={property.id} 
                                   className="relative border-r border-gray-300"
                                   style={{ 
-                                    width: `${columnWidths[`${collection.id}-${property.id}`] || 150}px`,
-                                    minWidth: '100px'
+                                    width: `${columnWidths[`${collection.id}-${property.id}`] || (
+                                      property.fieldType === 'TEXTAREA' ? 400 : 
+                                      property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? 300 :
+                                      property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? 280 :
+                                      property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 200 :
+                                      property.fieldType === 'TEXT' ? 120 : 
+                                      property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? 80 :
+                                      property.propertyName.toLowerCase().includes('status') ? 100 :
+                                      100
+                                    )}px`,
+                                    minWidth: '80px'
                                   }}
                                 >
-                                  <div className="flex items-center justify-between">
-                                    <span>{property.propertyName}</span>
+                                  <div className="flex items-center justify-between group">
+                                    <button
+                                      onClick={() => handleSort(property.propertyName, collection.id)}
+                                      className="flex items-center gap-2 hover:bg-gray-100 px-2 py-1 rounded flex-1 min-w-0"
+                                    >
+                                      <span className="truncate">{property.propertyName}</span>
+                                      {getSortIcon(property.propertyName, collection.id)}
+                                    </button>
                                     <div
-                                      className="absolute right-0 top-0 w-3 h-full cursor-col-resize hover:bg-blue-200 bg-blue-100 opacity-0 hover:opacity-100 border-r-2 border-blue-400"
+                                      className="column-resizer opacity-0 group-hover:opacity-100 transition-opacity"
                                       onMouseDown={(e) => handleMouseDown(e, `${collection.id}-${property.id}`)}
                                     />
                                   </div>
@@ -1838,129 +1875,174 @@ Thank you for your assistance.`;
                           </TableHeader>
                           <TableBody>
                             {(() => {
-                              return Array.from({ length: maxRecordIndex + 1 }, (_, index) => {
-                                const originalIndex = index;
-                                const itemValidations = validations.filter(v => 
-                                  v.collectionName === collection.collectionName && 
-                                  v.recordIndex === originalIndex
-                                );
-                                
-                                return (
-                                  <TableRow key={originalIndex} className="border-b border-gray-300 group">
-                                    <TableCell className="font-medium border-r border-gray-300 bg-gray-50">
-                                      #{originalIndex + 1}
-                                    </TableCell>
-                                    {collection.properties
-                                      .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-                                      .map((property) => {
-                                        const fieldName = `${collection.collectionName}.${property.propertyName}[${originalIndex}]`;
-                                        const validation = itemValidations.find(v => 
-                                          v.fieldName === fieldName ||
-                                          v.fieldName === `${collection.collectionName}.${property.propertyName}` && v.recordIndex === originalIndex
-                                        );
-                                        
-                                        const displayValue = validation?.extractedValue ?? null;
-                                        const wasManuallyUpdated = validation?.validationStatus === 'manual';
-                                        const isVerified = validation?.validationStatus === 'verified' || validation?.validationStatus === 'valid';
-                                        const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
-                                        const score = Math.round(validation?.confidenceScore || 0);
+                              // Create array of items with original indices
+                              const itemsWithIndices = Array.from({ length: maxRecordIndex + 1 }, (_, index) => ({
+                                item: collectionData?.[index] || {},
+                                originalIndex: index
+                              }));
+                              
+                              // Apply sorting if configured
+                              const sortedItems = sortConfig && sortConfig.collectionId === collection.id 
+                                ? sortCollectionData(itemsWithIndices, collection, sortConfig)
+                                : itemsWithIndices;
+                              
+                              return sortedItems.map(({ item, originalIndex }, displayIndex) => (
+                                <TableRow key={originalIndex} className="border-b border-gray-300">
+                                  <TableCell className="font-medium border-r border-gray-300">{displayIndex + 1}</TableCell>
+                                  {collection.properties
+                                    .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+                                    .map((property) => {
+                                    const fieldName = `${collection.collectionName}.${property.propertyName}[${originalIndex}]`;
+                                    const validation = getValidation(fieldName);
+                                    
+                                    // Try multiple possible property name mappings for extracted data
+                                    const possibleKeys = [
+                                      property.propertyName,
+                                      property.propertyName.toLowerCase(),
+                                      property.propertyName.charAt(0).toLowerCase() + property.propertyName.slice(1),
+                                    ];
+                                    
+                                    let originalValue = undefined;
+                                    for (const key of possibleKeys) {
+                                      if (item[key] !== undefined) {
+                                        originalValue = item[key];
+                                        break;
+                                      }
+                                    }
+                                    
+                                    let displayValue = validation?.extractedValue ?? originalValue ?? null;
+                                    if (displayValue === "null" || displayValue === "undefined") {
+                                      displayValue = null;
+                                    }
+                                    
+                                    return (
+                                      <TableCell 
+                                        key={property.id} 
+                                        className="relative border-r border-gray-300"
+                                        style={{ 
+                                          width: `${columnWidths[`${collection.id}-${property.id}`] || (
+                                            property.fieldType === 'TEXTAREA' ? 400 : 
+                                            property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? 300 :
+                                            property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? 280 :
+                                            property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 200 :
+                                            property.fieldType === 'TEXT' ? 120 : 
+                                            property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? 80 :
+                                            property.propertyName.toLowerCase().includes('status') ? 100 :
+                                            100
+                                          )}px`,
+                                          minWidth: '80px'
+                                        }}
+                                      >
+                                        <div className="relative w-full">
+                                          {/* Content */}
+                                          <div className={`table-cell-content w-full pl-6 pr-2 ${
+                                            property.fieldType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
+                                          } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed`}>
+                                            {formatValueForDisplay(displayValue, property.fieldType)}
+                                          </div>
+                                          
+                                          {/* Combined confidence/verification indicator on top-left corner */}
+                                          {validation && (
+                                            <>
+                                              {(() => {
+                                                const wasManuallyUpdated = validation.validationStatus === 'manual';
+                                                const hasValue = validation.extractedValue !== null && 
+                                                               validation.extractedValue !== undefined && 
+                                                               validation.extractedValue !== "" && 
+                                                               validation.extractedValue !== "null" && 
+                                                               validation.extractedValue !== "undefined";
+                                                const isVerified = validation.validationStatus === 'verified' || validation.validationStatus === 'valid';
+                                                const score = Math.round(validation.confidenceScore || 0);
 
-                                        return (
-                                          <TableCell 
-                                            key={property.id} 
-                                            className="border-r border-gray-300 relative pl-6 pr-2"
-                                          >
-                                            {/* Confidence/Verification Indicator */}
-                                            {(() => {
-                                              if (wasManuallyUpdated) {
-                                                return (
-                                                  <div className="absolute top-2 left-1 w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
-                                                    <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                                                  </div>
-                                                );
-                                              } else if (isVerified) {
-                                                return (
-                                                  <TooltipProvider>
-                                                    <Tooltip>
-                                                      <TooltipTrigger asChild>
-                                                        <button
-                                                          onClick={() => handleFieldVerification(fieldName, false)}
-                                                          className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors"
-                                                          aria-label="Click to unverify"
-                                                        >
-                                                          <span className="text-xs font-bold">✓</span>
-                                                        </button>
-                                                      </TooltipTrigger>
-                                                      <TooltipContent>
-                                                        Verified with {score}% confidence
-                                                      </TooltipContent>
-                                                    </Tooltip>
-                                                  </TooltipProvider>
-                                                );
-                                              } else if (hasValue && validation?.confidenceScore) {
-                                                const colorClass = score >= 80 ? 'bg-green-500' : 
-                                                                 score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
-                                                
-                                                return (
-                                                  <button
-                                                    onClick={() => {
-                                                      if (validation.aiReasoning) {
-                                                        setSelectedReasoning({
-                                                          reasoning: validation.aiReasoning,
-                                                          fieldName,
-                                                          confidenceScore: validation.confidenceScore || 0
-                                                        });
-                                                      }
-                                                    }}
-                                                    className={`absolute top-2 left-1 w-3 h-3 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity`}
-                                                    title={`${score}% confidence - Click for AI analysis`}
-                                                  />
-                                                );
-                                              }
-                                              return null;
-                                            })()}
-                                            
-                                            <span>
-                                              {hasValue ? displayValue : (
-                                                <span className="text-gray-400 italic">Not set</span>
-                                              )}
-                                            </span>
-                                          </TableCell>
-                                        );
-                                      })}
-                                    <TableCell className="border-r border-gray-300">
-                                      {(() => {
-                                        const itemValidations = validations.filter(v => 
-                                          v.collectionName === collection.collectionName && 
-                                          v.recordIndex === originalIndex
-                                        );
-                                        const allVerified = itemValidations.length > 0 && 
-                                          itemValidations.every(v => v?.validationStatus === 'valid' || v?.validationStatus === 'verified');
-                                        
-                                        return (
-                                          <button
-                                            onClick={() => handleItemVerification(collection.collectionName, originalIndex, !allVerified)}
-                                            className="flex items-center gap-1 hover:bg-gray-100 px-2 py-1 rounded transition-colors"
-                                            title={allVerified ? "Click to mark all fields as unverified" : "Click to mark all fields as verified"}
-                                          >
-                                            {allVerified ? (
-                                              <>
-                                                <CheckCircle className="h-4 w-4 text-green-600" />
-                                                <span className="text-green-600 font-medium text-sm">Verified</span>
-                                              </>
-                                            ) : (
-                                              <>
-                                                <AlertTriangle className="h-4 w-4 text-red-600" />
-                                                <span className="text-red-600 font-medium text-sm">Unverified</span>
-                                              </>
-                                            )}
-                                          </button>
-                                        );
-                                      })()}
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              });
+                                                if (wasManuallyUpdated) {
+                                                  return (
+                                                    <div className="absolute top-2 left-1 w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
+                                                      <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                                                    </div>
+                                                  );
+                                                } else if (isVerified) {
+                                                  // Show green tick when verified
+                                                  return (
+                                                    <TooltipProvider>
+                                                      <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                          <button
+                                                            onClick={() => handleFieldVerification(fieldName, false)}
+                                                            className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors"
+                                                            aria-label="Click to unverify"
+                                                          >
+                                                            <span className="text-xs font-bold">✓</span>
+                                                          </button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                          Verified with {score}% confidence
+                                                        </TooltipContent>
+                                                      </Tooltip>
+                                                    </TooltipProvider>
+                                                  );
+                                                } else if (hasValue && validation.confidenceScore) {
+                                                  // Show colored confidence dot when not verified
+                                                  const colorClass = score >= 80 ? 'bg-green-500' : 
+                                                                   score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
+                                                  
+                                                  return (
+                                                    <button
+                                                      onClick={() => {
+                                                        if (validation.aiReasoning) {
+                                                          setSelectedReasoning({
+                                                            reasoning: validation.aiReasoning,
+                                                            fieldName,
+                                                            confidenceScore: validation.confidenceScore || 0
+                                                          });
+                                                        }
+                                                      }}
+                                                      className={`absolute top-2 left-1 w-3 h-3 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity`}
+                                                      title={`${score}% confidence - Click for AI analysis`}
+                                                    />
+                                                  );
+                                                }
+                                                return null;
+                                              })()}
+                                            </>
+                                          )}
+                                        </div>
+                                      </TableCell>
+                                    );
+                                  })}
+                                  <TableCell className="border-r border-gray-300">
+                                    {(() => {
+                                      // Calculate verification status for this item
+                                      const itemValidations = collection.properties.map(property => {
+                                        const fieldName = `${collection.collectionName}.${property.propertyName}[${originalIndex}]`;
+                                        return getValidation(fieldName);
+                                      }).filter(Boolean);
+                                      
+                                      const allVerified = itemValidations.length > 0 && 
+                                        itemValidations.every(v => v?.validationStatus === 'valid' || v?.validationStatus === 'verified');
+                                      
+                                      return (
+                                        <button
+                                          onClick={() => handleItemVerification(collection.collectionName, originalIndex, !allVerified)}
+                                          className="flex items-center gap-1 hover:bg-gray-100 px-2 py-1 rounded transition-colors"
+                                          title={allVerified ? "Click to mark all fields as unverified" : "Click to mark all fields as verified"}
+                                        >
+                                          {allVerified ? (
+                                            <>
+                                              <CheckCircle className="h-4 w-4 text-green-600" />
+                                              <span className="text-green-600 font-medium text-sm">Verified</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <AlertTriangle className="h-4 w-4 text-red-600" />
+                                              <span className="text-red-600 font-medium text-sm">Unverified</span>
+                                            </>
+                                          )}
+                                        </button>
+                                      );
+                                    })()}
+                                  </TableCell>
+                                </TableRow>
+                              ));
                             })()}
                           </TableBody>
                         </Table>
@@ -2041,18 +2123,62 @@ Thank you for your assistance.`;
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-blue-600" />
-              Data Verification Report
+              <AlertCircle className="h-5 w-5 text-blue-600" />
+              Request More Info Draft
             </DialogTitle>
+            <DialogDescription>
+              Email-ready report for requesting missing information from data providers
+            </DialogDescription>
           </DialogHeader>
           
           <div className="mt-4">
-            <div className="p-4 bg-gray-50 rounded-md text-sm whitespace-pre-wrap font-monospace">
-              {reasoningText}
-            </div>
+            <Label htmlFor="report-text" className="text-sm font-medium">
+              Report Content (ready to copy and paste into email)
+            </Label>
+            <textarea
+              id="report-text"
+              value={generateDataReport()}
+              readOnly
+              className="w-full h-80 mt-2 p-3 border rounded-md bg-gray-50 text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          
+          <div className="flex justify-between mt-6 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(generateDataReport());
+                  toast({
+                    title: "Copied to clipboard",
+                    description: "Data report has been copied to your clipboard.",
+                  });
+                } catch (error) {
+                  toast({
+                    title: "Copy failed",
+                    description: "Failed to copy to clipboard. Please select and copy the text manually.",
+                    variant: "destructive"
+                  });
+                }
+              }}
+              className="flex items-center gap-2"
+            >
+              <Copy className="h-4 w-4" />
+              Copy to Clipboard
+            </Button>
+            <Button onClick={() => setShowReasoningDialog(false)}>
+              Close
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Validation Processing Dialog */}
+      <ValidationProcessingDialog
+        open={showValidationDialog}
+        processingStep={validationStep}
+        processingProgress={validationProgress}
+      />
     </div>
   );
-};
+}
