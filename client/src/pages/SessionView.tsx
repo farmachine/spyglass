@@ -1640,8 +1640,8 @@ Thank you for your assistance.`;
                                     // Show blue user icon for manually updated fields - highest priority
                                     
                                     return (
-                                      <div className="w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
-                                        <User className="h-2 w-2 text-white" />
+                                      <div className="w-3 h-3 flex items-center justify-center">
+                                        <User className="h-3 w-3 text-slate-700" />
                                       </div>
                                     );
                                   } else if (isVerified) {
@@ -1951,8 +1951,8 @@ Thank you for your assistance.`;
 
                                                   
                                                   return (
-                                                    <div className="absolute top-2 left-1 w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
-                                                      <User className="h-2 w-2 text-white" />
+                                                    <div className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center">
+                                                      <User className="h-3 w-3 text-slate-700" />
                                                     </div>
                                                   );
                                                 } else if (isVerified) {
