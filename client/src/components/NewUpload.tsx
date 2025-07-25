@@ -346,21 +346,19 @@ export default function NewUpload({ project }: NewUploadProps) {
   };
 
   return (
-    <div className="space-y-6 relative">
-
-      
-      <div>
+    <div className="min-h-screen flex flex-col items-center justify-center py-12 px-4">
+      {/* Header Section */}
+      <div className="text-center mb-8">
         <h2 className="text-2xl font-semibold text-gray-900">Add New {project.mainObjectName || "Session"}</h2>
         <p className="text-gray-600 mt-1">
           Upload documents for AI-powered data extraction into your organization's desired format.
         </p>
       </div>
 
-
-
-      <Card>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Main Form Card */}
+      <Card className="w-full max-w-2xl">
+        <CardContent className="p-8">
+          <div className="space-y-8">
             {/* Upload Area */}
             <div className="space-y-4">
               <div
@@ -434,9 +432,8 @@ export default function NewUpload({ project }: NewUploadProps) {
             </div>
 
             {/* Session Configuration */}
-            <div>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
                   <FormField
                     control={form.control}
                     name="sessionName"
@@ -545,7 +542,6 @@ export default function NewUpload({ project }: NewUploadProps) {
                   </Button>
                 </form>
               </Form>
-            </div>
           </div>
         </CardContent>
       </Card>
