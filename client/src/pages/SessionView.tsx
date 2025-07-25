@@ -1625,7 +1625,7 @@ Thank you for your assistance.`;
                                       </div>
                                     );
                                   } else if (isVerified) {
-                                    // Show green tick when verified
+                                    // Show green tick when verified - clicking unverifies
                                     return (
                                       <TooltipProvider>
                                         <Tooltip>
@@ -1644,8 +1644,8 @@ Thank you for your assistance.`;
                                         </Tooltip>
                                       </TooltipProvider>
                                     );
-                                  } else if (hasValue && validation?.confidenceScore) {
-                                    // Show colored confidence dot when not verified
+                                  } else if (hasValue && validation) {
+                                    // Show colored confidence dot when not verified - clicking opens AI analysis modal
                                     const colorClass = score >= 80 ? 'bg-green-500' : 
                                                      score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
                                     
@@ -1655,8 +1655,12 @@ Thank you for your assistance.`;
                                           if (validation.aiReasoning) {
                                             setSelectedReasoning({
                                               reasoning: validation.aiReasoning,
-                                              fieldName,
-                                              confidenceScore: validation.confidenceScore || 0
+                                              fieldName: getFieldDisplayName(fieldName),
+                                              confidenceScore: validation.confidenceScore || 0,
+                                              getFieldDisplayName,
+                                              validation,
+                                              onVerificationChange: (isVerified) => handleFieldVerification(fieldName, isVerified),
+                                              isVerified: validation.validationStatus === 'verified' || validation.validationStatus === 'valid'
                                             });
                                           }
                                         }}
