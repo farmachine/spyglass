@@ -538,8 +538,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 await storage.createExtractionRule({
                   projectId,
                   ruleName: `${field.field_name} Rule`,
-                  ruleDescription: field.extraction_rules,
-                  targetFields: [field.field_name]
+                  ruleContent: field.extraction_rules,
+                  targetField: field.field_name
                 });
               }
             }
@@ -578,8 +578,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     await storage.createExtractionRule({
                       projectId,
                       ruleName: `${collection.collection_name}.${property.property_name} Rule`,
-                      ruleDescription: property.extraction_rules,
-                      targetFields: [`${collection.collection_name}.${property.property_name}`]
+                      ruleContent: property.extraction_rules,
+                      targetField: `${collection.collection_name}.${property.property_name}`
                     });
                   }
                 }
