@@ -11,10 +11,12 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **July 25, 2025 (Latest Update)**
-- ✓ **VERIFICATION UI IMPROVEMENTS COMPLETED**: Enhanced verification display with bigger tick icons and updated column naming
+- ✓ **VERIFICATION UI IMPROVEMENTS COMPLETED**: Enhanced verification display with bigger tick icons and dynamic column header
 - ✓ Replaced "Verified" badge with larger green tick icon (h-5 w-5) matching the style of small ticks while maintaining "verify all" functionality
 - ✓ Replaced "Unverified" badge with grey version of the same tick icon for visual consistency
-- ✓ Updated column header from "Status" to "Accepted" for better clarity in collection tables
+- ✓ Replaced "Accepted" column header with dynamic tick icon that changes color based on collection verification status
+- ✓ Fixed column width to 64px with centered alignment for consistent tick icon display
+- ✓ Header tick shows green when all items verified, grey when any items unverified
 - ✓ Tick icons maintain all click functionality for toggling verification status
 - ✓ **TAB LABELING AND DEFAULT BEHAVIOR ENHANCED**: Updated "Info" tab to "Information" for better clarity and set as default tab
 - ✓ Information tab now loads automatically when users first access session view page for immediate data access

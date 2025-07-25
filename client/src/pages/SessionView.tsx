@@ -1861,7 +1861,26 @@ Thank you for your assistance.`;
                                   </div>
                                 </TableHead>
                               ))}
-                              <TableHead className="w-32 border-r border-gray-300">Accepted</TableHead>
+                              <TableHead className="w-16 border-r border-gray-300" style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}>
+                                {(() => {
+                                  // Calculate if all items in this collection are verified
+                                  const allItemsVerified = Array.from({ length: maxRecordIndex + 1 }, (_, index) => {
+                                    const itemValidations = collection.properties.map(property => {
+                                      const fieldName = `${collection.collectionName}.${property.propertyName}[${index}]`;
+                                      return getValidation(fieldName);
+                                    }).filter(Boolean);
+                                    
+                                    return itemValidations.length > 0 && 
+                                      itemValidations.every(v => v?.validationStatus === 'valid' || v?.validationStatus === 'verified');
+                                  }).every(isVerified => isVerified);
+                                  
+                                  return (
+                                    <div className="flex justify-center">
+                                      <CheckCircle className={`h-5 w-5 ${allItemsVerified ? 'text-green-600' : 'text-gray-400'}`} />
+                                    </div>
+                                  );
+                                })()}
+                              </TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
