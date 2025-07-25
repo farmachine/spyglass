@@ -1815,7 +1815,7 @@ Thank you for your assistance.`;
                                   {collection.properties
                                     .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
                                     .map((property) => {
-                                    const fieldName = `${collection.collectionName}.${property.propertyName}[${index}]`;
+                                    const fieldName = `${collection.collectionName}.${property.propertyName}[${originalIndex}]`;
                                     const validation = getValidation(fieldName);
                                     
                                     // Try multiple possible property name mappings for extracted data
