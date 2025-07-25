@@ -298,9 +298,9 @@ export default function SessionView() {
     
     setResizing({ columnId, startX, startWidth });
     
-    // Add cursor style to body during resize for better UX
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
+    // Add global dragging class for consistent cursor behavior
+    document.body.classList.add('column-resizing');
+    (e.currentTarget as HTMLElement).classList.add('dragging');
   };
 
   const handleMouseMove = (e: MouseEvent) => {
@@ -318,9 +318,11 @@ export default function SessionView() {
   const handleMouseUp = () => {
     setResizing(null);
     
-    // Reset cursor styles
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
+    // Remove global dragging classes
+    document.body.classList.remove('column-resizing');
+    document.querySelectorAll('.dragging').forEach(el => {
+      el.classList.remove('dragging');
+    });
   };
 
   // Add event listeners for resizing
@@ -1800,11 +1802,9 @@ Thank you for your assistance.`;
                                       {getSortIcon(property.propertyName, collection.id)}
                                     </button>
                                     <div
-                                      className="column-resizer opacity-0 group-hover:opacity-50 transition-opacity"
+                                      className="column-resizer opacity-0 group-hover:opacity-100 transition-opacity"
                                       onMouseDown={(e) => handleMouseDown(e, `${collection.id}-${property.id}`)}
-                                    >
-                                      <div className="absolute right-1 top-0 bottom-0 w-0.5 bg-current opacity-50" />
-                                    </div>
+                                    />
                                   </div>
                                 </TableHead>
                               ))}
