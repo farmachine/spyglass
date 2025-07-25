@@ -264,7 +264,7 @@ export default function SessionView() {
   const [showValidationDialog, setShowValidationDialog] = useState(false);
   const [validationStep, setValidationStep] = useState<'validating' | 'complete'>('validating');
   const [validationProgress, setValidationProgress] = useState(0);
-  const [activeTab, setActiveTab] = useState('all-data');
+  const [activeTab, setActiveTab] = useState('info');
   const [selectedReasoning, setSelectedReasoning] = useState<{
     reasoning: string;
     fieldName: string;
@@ -1576,7 +1576,7 @@ Thank you for your assistance.`;
             </div>
 
             {/* Session Data Tabs */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full folder-tabs">
+            <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="info" className="w-full folder-tabs">
               <TabsList className="w-full justify-start tabs-list">
                 <TabsTrigger value="info" className="tabs-trigger">{project.mainObjectName || "Session"} Information</TabsTrigger>
                 {project.collections.map((collection) => {
@@ -1598,7 +1598,7 @@ Thank you for your assistance.`;
                 <Card className="border-t-0 rounded-tl-none ml-0">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      {project.mainObjectName || "Session"} Info
+                      {project.mainObjectName || "Session"} Information
                     </CardTitle>
                     <p className="text-sm text-gray-600">
                       Core information and fields extracted from this {(project.mainObjectName || "session").toLowerCase()}.

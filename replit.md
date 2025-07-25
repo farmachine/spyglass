@@ -11,6 +11,10 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **July 25, 2025 (Latest Update)**
+- ✓ **TAB LABELING AND DEFAULT BEHAVIOR ENHANCED**: Updated "Info" tab to "Information" for better clarity and set as default tab
+- ✓ Information tab now loads automatically when users first access session view page for immediate data access
+- ✓ Enhanced tab state initialization from 'all-data' to 'info' ensuring proper first tab selection
+- ✓ Added white bridge element using ::before pseudo-element to seamlessly connect first tab to container border
 - ✓ **DOCUMENT ICONS REMOVED FROM ALL HEADERS**: Cleaned up header styling by removing FileText icons throughout SessionView for cleaner appearance
 - ✓ Removed document icons from main session header, Info tab card header, and all collection card headers
 - ✓ Headers now have simplified, clean styling without redundant visual elements
