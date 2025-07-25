@@ -16,7 +16,7 @@ Preferred communication style: Simple, everyday language.
 - ✓ Session status badges completely replaced with tick icons: green CheckCircle (verified), grey CheckCircle (unverified)
 - ✓ All text-based status indicators removed from sessions table for clean, minimal interface
 - ✓ Removed Actions column from sessions list and made Session Name clickable for navigation
-- ✓ Dashboard statistics cards converted to icon-only design: dark blue Database icon (total sessions), grey tick (unverified), green tick (verified)
+- ✓ Statistics cards redesigned: removed container borders, positioned to right side with compact spacing
 - ✓ ProjectLayout and SessionView statistics cards updated to match dashboard design with text labels completely removed
 - ✓ Consistent color scheme enforced: green ticks (verified), grey ticks (unverified), dark slate blue (total/neutral indicators)
 - ✓ All verification interfaces now use unified tick system: column headers, field verification, progress indicators, and statistics cards

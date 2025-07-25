@@ -447,43 +447,25 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
 
             {/* Statistics Cards */}
             {project.sessions.length > 0 && (
-              <div className="flex gap-4 flex-shrink-0">
-                <Card className="min-w-[140px]">
-                  <CardContent className="pt-1 pb-4">
-                    <div className="flex items-start">
-                      <Database className="h-7 w-7 text-slate-700 mt-1" />
-                      <div className="ml-3">
-                        <p className="text-2xl font-bold text-gray-900">{project.sessions.length}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+              <div className="flex gap-3 flex-shrink-0 ml-auto">
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                  <Database className="h-6 w-6 text-slate-700" />
+                  <span className="text-xl font-bold text-gray-900">{project.sessions.length}</span>
+                </div>
 
-                <Card className="min-w-[140px]">
-                  <CardContent className="pt-1 pb-4">
-                    <div className="flex items-start">
-                      <CheckCircle className="h-7 w-7 text-gray-400 mt-1" />
-                      <div className="ml-3">
-                        <p className="text-2xl font-bold text-gray-900">
-                          {verificationStats.in_progress + verificationStats.pending}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                  <CheckCircle className="h-6 w-6 text-gray-400" />
+                  <span className="text-xl font-bold text-gray-900">
+                    {verificationStats.in_progress + verificationStats.pending}
+                  </span>
+                </div>
 
-                <Card className="min-w-[140px]">
-                  <CardContent className="pt-1 pb-4">
-                    <div className="flex items-start">
-                      <CheckCircle className="h-7 w-7 text-green-600 mt-1" />
-                      <div className="ml-3">
-                        <p className="text-2xl font-bold text-gray-900">
-                          {verificationStats.verified}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                  <span className="text-xl font-bold text-gray-900">
+                    {verificationStats.verified}
+                  </span>
+                </div>
               </div>
             )}
           </div>
