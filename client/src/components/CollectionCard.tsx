@@ -39,7 +39,7 @@ export default function CollectionCard({
   onDeleteProperty,
   dragHandleProps,
 }: CollectionCardProps) {
-  const { data: properties = [], isLoading } = useCollectionProperties(collection.id);
+  const { data: properties = [], isLoading } = useCollectionProperties(String(collection.id));
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -104,49 +104,52 @@ export default function CollectionCard({
   };
 
   return (
-    <Card className="border-gray-200 border-l-4 border-l-green-500">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 flex-1">
+    <Card className="bg-gray-50 rounded-lg border-l-4 border-l-green-500">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="flex items-start gap-3 flex-1">
             {dragHandleProps && (
               <div
                 {...dragHandleProps}
-                className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-100"
+                className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-200 mt-1"
               >
                 <GripVertical className="h-4 w-4 text-gray-400" />
               </div>
             )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="p-1 h-auto"
-            >
-              {isExpanded ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-            </Button>
-            <div className="flex-1">
+            <div className="flex-1 space-y-2">
               <div className="flex items-center gap-2">
-                <CardTitle className="text-lg">{collection.collectionName}</CardTitle>
-                <Badge className="bg-green-100 text-green-800">List</Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="p-0 h-auto hover:bg-transparent"
+                >
+                  {isExpanded ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                </Button>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-medium text-gray-900">{collection.collectionName}</h3>
+                    <Badge className="bg-green-100 text-green-800 text-xs">List</Badge>
+                    <Badge variant="outline" className="text-xs bg-white">
+                      {properties.length} field{properties.length !== 1 ? 's' : ''}
+                    </Badge>
+                  </div>
+                  {collection.description && (
+                    <p className="text-sm text-gray-600 mt-1">{collection.description}</p>
+                  )}
+                </div>
               </div>
-              {collection.description && (
-                <p className="text-sm text-gray-600 mt-1">{collection.description}</p>
-              )}
             </div>
-            {!isExpanded && properties.length > 0 && (
-              <div className="text-sm text-gray-500">
-                {properties.length} field{properties.length !== 1 ? 's' : ''}
-              </div>
-            )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1">
             <Button 
               variant="ghost" 
               size="sm"
+              className="h-8 w-8 p-0"
               onClick={() => onEditCollection(collection)}
             >
               <Edit className="h-4 w-4" />
@@ -154,16 +157,17 @@ export default function CollectionCard({
             <Button 
               variant="ghost" 
               size="sm" 
-              className="text-red-600"
-              onClick={() => onDeleteCollection(collection.id, collection.collectionName)}
+              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={() => onDeleteCollection(String(collection.id), collection.collectionName)}
             >
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         </div>
-      </CardHeader>
-      {isExpanded && (
-        <CardContent>
+        
+        {/* Expanded content */}
+        {isExpanded && (
+          <div className="pt-4 border-t border-gray-200">
           {isLoading ? (
           <div className="text-center py-4">
             <div className="animate-spin h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-2" />
@@ -175,7 +179,7 @@ export default function CollectionCard({
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => onAddProperty(collection.id, collection.collectionName)}
+              onClick={() => onAddProperty(Number(collection.id), collection.collectionName)}
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Property
@@ -241,7 +245,7 @@ export default function CollectionCard({
                                     variant="ghost" 
                                     size="sm" 
                                     className="text-red-600"
-                                    onClick={() => onDeleteProperty(property.id, property.propertyName)}
+                                    onClick={() => onDeleteProperty(Number(property.id), property.propertyName)}
                                   >
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
@@ -263,7 +267,7 @@ export default function CollectionCard({
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => onAddProperty(collection.id, collection.collectionName)}
+                onClick={() => onAddProperty(Number(collection.id), collection.collectionName)}
                 className="w-full"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -271,9 +275,10 @@ export default function CollectionCard({
               </Button>
             </div>
           </div>
+          )}
+          </div>
         )}
-        </CardContent>
-      )}
+      </CardContent>
     </Card>
   );
 }

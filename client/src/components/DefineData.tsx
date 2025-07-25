@@ -596,12 +596,18 @@ export default function DefineData({ project }: DefineDataProps) {
 
       {/* Unified Data Structure Card */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="mb-2">
-            <Label className="text-sm font-medium">
-              Define the fields and lists to extract from your {project.mainObjectName || "Session"} documents
-            </Label>
-          </div>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            Data Structure
+            <Badge variant="secondary" className="bg-gray-100 text-gray-600">
+              {safeSchemaFields.length} fields, {safeCollections.length} lists
+            </Badge>
+          </CardTitle>
+          <p className="text-sm text-gray-600">
+            Define the fields and lists to extract from your {project.mainObjectName || "Session"} documents.
+          </p>
+        </CardHeader>
+        <CardContent>
           {(schemaFieldsLoading || collectionsLoading) ? (
             <div className="text-center py-8">
               <div className="animate-spin h-12 w-12 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
@@ -622,7 +628,7 @@ export default function DefineData({ project }: DefineDataProps) {
               <Droppable droppableId="unified-data">
                 {(provided) => (
                   <div 
-                    className="space-y-4"
+                    className="grid grid-cols-1 md:grid-cols-2 gap-4"
                     ref={provided.innerRef}
                     {...provided.droppableProps}
                   >
@@ -635,35 +641,38 @@ export default function DefineData({ project }: DefineDataProps) {
                             className={snapshot.isDragging ? "opacity-50" : ""}
                           >
                             {item.type === 'field' ? (
-                              <Card className="border-l-4 border-l-blue-500">
-                                <CardHeader className="pb-3">
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3 flex-1">
+                              <Card className="bg-gray-50 rounded-lg border-l-4 border-l-blue-500">
+                                <CardContent className="p-4">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="flex items-start gap-3 flex-1">
                                       <div
                                         {...provided.dragHandleProps}
-                                        className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-100"
+                                        className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-200 mt-1"
                                       >
                                         <GripVertical className="h-4 w-4 text-gray-400" />
                                       </div>
-                                      <div className="flex-1">
-                                        <div className="flex items-center gap-2">
-                                          <CardTitle className="text-lg">{item.fieldName}</CardTitle>
-                                          <Badge className={fieldTypeColors[item.fieldType as keyof typeof fieldTypeColors]}>
-                                            {item.fieldType}
-                                          </Badge>
-                                          <Badge variant="outline" className="text-xs">
-                                            {item.autoVerificationConfidence || 80}% confidence
-                                          </Badge>
+                                      <div className="flex-1 space-y-2">
+                                        <div className="space-y-1">
+                                          <h3 className="font-medium text-gray-900">{item.fieldName}</h3>
+                                          <div className="flex items-center gap-2">
+                                            <Badge className={fieldTypeColors[item.fieldType as keyof typeof fieldTypeColors]}>
+                                              {item.fieldType}
+                                            </Badge>
+                                            <Badge variant="outline" className="text-xs bg-white">
+                                              Auto-verify at {item.autoVerificationConfidence || 80}%
+                                            </Badge>
+                                          </div>
                                         </div>
                                         {item.description && (
-                                          <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+                                          <p className="text-sm text-gray-600">{item.description}</p>
                                         )}
                                       </div>
                                     </div>
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-1">
                                       <Button 
                                         variant="ghost" 
                                         size="sm"
+                                        className="h-8 w-8 p-0"
                                         onClick={() => setSchemaFieldDialog({ open: true, field: item })}
                                       >
                                         <Edit className="h-4 w-4" />
@@ -671,7 +680,7 @@ export default function DefineData({ project }: DefineDataProps) {
                                       <Button 
                                         variant="ghost" 
                                         size="sm" 
-                                        className="text-red-600"
+                                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                                         onClick={() => setDeleteDialog({ 
                                           open: true, 
                                           type: "field", 
@@ -683,7 +692,7 @@ export default function DefineData({ project }: DefineDataProps) {
                                       </Button>
                                     </div>
                                   </div>
-                                </CardHeader>
+                                </CardContent>
                               </Card>
                             ) : (
                               <CollectionCard
@@ -729,23 +738,25 @@ export default function DefineData({ project }: DefineDataProps) {
           )}
 
           {/* Action buttons */}
-          <div className="mt-6 pt-6 border-t space-y-3">
-            <Button 
-              variant="outline"
-              onClick={() => setSchemaFieldDialog({ open: true, field: null })}
-              className="w-full"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Field
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={() => setCollectionDialog({ open: true, collection: null })}
-              className="w-full"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add List
-            </Button>
+          <div className="mt-6 pt-6 border-t">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Button 
+                variant="outline"
+                onClick={() => setSchemaFieldDialog({ open: true, field: null })}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Field
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => setCollectionDialog({ open: true, collection: null })}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add List
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
