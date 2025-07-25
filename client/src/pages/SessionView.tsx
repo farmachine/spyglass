@@ -1519,10 +1519,17 @@ Thank you for your assistance.`;
                     <ArrowLeft className="h-4 w-4" />
                   </Button>
                 </Link>
-                <FileText className="h-8 w-8 text-primary mt-1" />
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center space-x-2">
                     <h2 className="text-3xl font-bold">{project.mainObjectName || "Session"}: {session?.sessionName}</h2>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <h3 className="text-2xl font-semibold text-gray-700">
+                      {activeTab === 'info' 
+                        ? `${project.mainObjectName || "Session"} Information`
+                        : project.collections.find(c => c.collectionName === activeTab)?.collectionName || activeTab
+                      }
+                    </h3>
                   </div>
                 </div>
               </div>
@@ -1584,7 +1591,7 @@ Thank you for your assistance.`;
                 const maxRecordIndex = validationIndices.length > 0 ? Math.max(...validationIndices) : -1;
                 return maxRecordIndex >= 0;
               }).length}, 1fr)` }}>
-                <TabsTrigger value="info">{project.mainObjectName || "Session"} Information</TabsTrigger>
+                <TabsTrigger value="info">{project.mainObjectName || "Session"} Info</TabsTrigger>
                 {project.collections.map((collection) => {
                   const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
                   const validationIndices = collectionValidations.length > 0 ? collectionValidations.map(v => v.recordIndex) : [];
@@ -1603,8 +1610,7 @@ Thank you for your assistance.`;
               <TabsContent value="info" className="mt-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5" />
+                    <CardTitle>
                       {project.mainObjectName || "Session"} Info
                     </CardTitle>
                     <p className="text-sm text-gray-600">
@@ -1821,7 +1827,6 @@ Thank you for your assistance.`;
                     <Card>
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                          <FileText className="h-5 w-5" />
                           {collection.collectionName}
                           <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
                             {maxRecordIndex + 1} {maxRecordIndex === 0 ? 'item' : 'items'}
