@@ -1563,7 +1563,7 @@ Thank you for your assistance.`;
                 const maxRecordIndex = validationIndices.length > 0 ? Math.max(...validationIndices) : -1;
                 return maxRecordIndex >= 0;
               }).length}, 1fr)` }}>
-                <TabsTrigger value="all-data">All Data</TabsTrigger>
+                <TabsTrigger value="all-data">RETIRE ME</TabsTrigger>
                 <TabsTrigger value="info">{project.mainObjectName || "Session"} Info</TabsTrigger>
                 {project.collections.map((collection) => {
                   const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
