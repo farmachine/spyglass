@@ -203,7 +203,6 @@ export default function AllData({ project }: AllDataProps) {
                     <SortableHeader field="progress" className="py-3 w-32">Progress</SortableHeader>
                     <SortableHeader field="status" className="py-3 w-32">Status</SortableHeader>
                     <SortableHeader field="createdAt" className="py-3 w-32">Created</SortableHeader>
-                    <TableHead className="py-3 w-20">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -214,14 +213,16 @@ export default function AllData({ project }: AllDataProps) {
                   return (
                     <TableRow key={session.id} className="hover:bg-gray-50">
                       <TableCell className="py-3">
-                        <div>
-                          <p className="font-medium text-sm">{session.sessionName}</p>
-                          {session.description && (
-                            <p className="text-xs text-muted-foreground truncate max-w-[200px]">
-                              {session.description}
-                            </p>
-                          )}
-                        </div>
+                        <Link href={`/projects/${project.id}/sessions/${session.id}`}>
+                          <div className="cursor-pointer hover:text-primary transition-colors">
+                            <p className="font-medium text-sm">{session.sessionName}</p>
+                            {session.description && (
+                              <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                                {session.description}
+                              </p>
+                            )}
+                          </div>
+                        </Link>
                       </TableCell>
                       <TableCell className="py-3 text-sm">
                         {session.documentCount}
@@ -257,13 +258,6 @@ export default function AllData({ project }: AllDataProps) {
                         <div className="text-xs text-muted-foreground">
                           {formatDate(session.createdAt).split(',')[0]}
                         </div>
-                      </TableCell>
-                      <TableCell className="py-3">
-                        <Link href={`/projects/${project.id}/sessions/${session.id}`}>
-                          <Button size="sm" variant="outline" className="h-7 px-2 text-xs">
-                            <ExternalLink className="h-3 w-3" />
-                          </Button>
-                        </Link>
                       </TableCell>
                     </TableRow>
                   );
