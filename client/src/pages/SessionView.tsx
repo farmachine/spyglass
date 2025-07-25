@@ -1316,7 +1316,7 @@ Thank you for your assistance.`;
 
         {/* Main Content */}
         <div className="flex-1 p-8 overflow-x-hidden">
-          <div className="max-w-4xl mx-auto w-full">
+          <div className="w-full">
             {/* Session Review Header */}
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-4">
@@ -1701,13 +1701,15 @@ Thank you for your assistance.`;
                                     }
                                     
                                     return (
-                                      <TableCell key={property.id}>
-                                        <div className="flex items-center justify-between">
-                                          <span className="flex-1">
-                                            {formatValueForDisplay(displayValue, property.fieldType)}
-                                          </span>
+                                      <TableCell key={property.id} className={`relative ${
+                                        property.fieldType === 'TEXTAREA' ? 'min-w-[300px] max-w-[400px]' : 
+                                        property.fieldType === 'TEXT' ? 'min-w-[150px] max-w-[250px]' : 
+                                        property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? 'min-w-[100px] max-w-[150px]' :
+                                        'min-w-[120px] max-w-[200px]'
+                                      }`}>
+                                        <div className="relative w-full">
                                           {validation && (
-                                            <div className="flex flex-col gap-1 ml-2">
+                                            <div className="absolute top-0 right-0 flex flex-col gap-0.5 z-10">
                                               {(() => {
                                                 const wasManuallyUpdated = validation.validationStatus === 'manual';
                                                 const hasValue = validation.extractedValue !== null && 
@@ -1719,10 +1721,10 @@ Thank you for your assistance.`;
                                                 if (wasManuallyUpdated) {
                                                   return (
                                                     <div 
-                                                      className="w-3 h-3 rounded-full bg-blue-500 flex items-center justify-center"
+                                                      className="w-2 h-2 rounded-full bg-blue-500 flex items-center justify-center"
                                                       title="Manual Input"
                                                     >
-                                                      <span className="text-white text-xs font-bold">M</span>
+                                                      <span className="text-white text-[8px] font-bold">M</span>
                                                     </div>
                                                   );
                                                 } else {
@@ -1731,7 +1733,7 @@ Thank you for your assistance.`;
                                                                         effectiveConfidence >= 50 ? 'bg-yellow-500' : 'bg-red-500';
                                                   return (
                                                     <div 
-                                                      className={`w-3 h-3 rounded-full ${confidenceColor}`}
+                                                      className={`w-2 h-2 rounded-full ${confidenceColor}`}
                                                       title={`Confidence: ${Math.round(effectiveConfidence)}%`}
                                                     />
                                                   );
@@ -1746,14 +1748,19 @@ Thank you for your assistance.`;
                                                       confidenceScore: validation.confidenceScore || 0
                                                     });
                                                   }}
-                                                  className="w-3 h-3 rounded-full bg-blue-100 border border-blue-300 flex items-center justify-center hover:bg-blue-200 transition-colors"
+                                                  className="w-2 h-2 rounded-full bg-blue-100 border border-blue-300 flex items-center justify-center hover:bg-blue-200 transition-colors"
                                                   title="Click for AI analysis"
                                                 >
-                                                  <Info className="h-2 w-2 text-blue-600" />
+                                                  <Info className="h-1 w-1 text-blue-600" />
                                                 </button>
                                               )}
                                             </div>
                                           )}
+                                          <div className={`w-full ${validation ? 'pr-4' : ''} ${
+                                            property.fieldType === 'TEXTAREA' ? 'min-h-[60px]' : 'py-1'
+                                          }`}>
+                                            {formatValueForDisplay(displayValue, property.fieldType)}
+                                          </div>
                                         </div>
                                       </TableCell>
                                     );
