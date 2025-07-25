@@ -89,6 +89,8 @@
   border-bottom: 3px solid #e2e8f0;
   border-radius: 0 !important;
   margin-bottom: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
 .folder-tabs .tabs-trigger {
@@ -105,6 +107,10 @@
   z-index: 1 !important;
   box-shadow: none !important;
   min-height: 48px !important;
+}
+
+.folder-tabs .tabs-trigger:first-child {
+  margin-left: 0 !important;
 }
 
 .folder-tabs .tabs-trigger:hover {
@@ -134,10 +140,19 @@
   z-index: 4;
 }
 
-/* Ensure tab content connects seamlessly */
+/* Ensure tab content connects seamlessly and aligns properly */
 .folder-tabs [data-orientation="horizontal"][role="tabpanel"] {
   margin-top: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
   border-top: none !important;
+  border-radius: 0 8px 8px 8px !important;
+}
+
+/* Fix card alignment within tab content */
+.folder-tabs [data-orientation="horizontal"][role="tabpanel"] .card {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
   border-radius: 0 8px 8px 8px !important;
 }
 
