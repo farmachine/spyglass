@@ -1887,7 +1887,7 @@ Thank you for your assistance.`;
                                 : itemsWithIndices;
                               
                               return sortedItems.map(({ item, originalIndex }, displayIndex) => (
-                                <TableRow key={originalIndex}>
+                                <TableRow key={originalIndex} className="border-b border-gray-300">
                                   <TableCell className="font-medium border-r border-gray-300">{displayIndex + 1}</TableCell>
                                   {collection.properties
                                     .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
@@ -1956,7 +1956,7 @@ Thank you for your assistance.`;
 
                                                 if (wasManuallyUpdated) {
                                                   return (
-                                                    <div className="absolute top-1 left-1 w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
+                                                    <div className="absolute top-2 left-1 w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
                                                       <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
                                                     </div>
                                                   );
@@ -1968,7 +1968,7 @@ Thank you for your assistance.`;
                                                         <TooltipTrigger asChild>
                                                           <button
                                                             onClick={() => handleFieldVerification(fieldName, false)}
-                                                            className="absolute top-1 left-1 w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors"
+                                                            className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors"
                                                             aria-label="Click to unverify"
                                                           >
                                                             <span className="text-xs font-bold">✓</span>
@@ -1996,7 +1996,7 @@ Thank you for your assistance.`;
                                                           });
                                                         }
                                                       }}
-                                                      className={`absolute top-1 left-1 w-3 h-3 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity`}
+                                                      className={`absolute top-2 left-1 w-3 h-3 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity`}
                                                       title={`${score}% confidence - Click for AI analysis`}
                                                     />
                                                   );
