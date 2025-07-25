@@ -1461,9 +1461,9 @@ Thank you for your assistance.`;
 
       <div className="flex h-[calc(100vh-160px)]">
         {/* Sidebar */}
-        <div className="w-64 bg-white border-r border-gray-200">
-          <div className="p-6">
-            <nav className="space-y-1">
+        <div className="w-56 bg-slate-50 border-r border-slate-200">
+          <div className="p-4">
+            <nav className="space-y-0.5">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = item.id === 'data'; // Highlight "All Data" since we're in session view
@@ -1471,13 +1471,13 @@ Thank you for your assistance.`;
                 return (
                   <Link key={item.id} href={item.href}>
                     <button
-                      className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors ${
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
                         isActive
-                          ? "bg-primary text-white font-bold"
-                          : "text-gray-700 hover:bg-gray-50 font-medium"
+                          ? "bg-slate-700 text-white font-medium shadow-sm"
+                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
                       }`}
                     >
-                      <Icon className={`h-4 w-4 ${isActive ? "text-white" : "text-gray-400"}`} />
+                      <Icon className={`h-4 w-4 ${isActive ? "text-white" : "text-slate-500"}`} />
                       {item.label}
                     </button>
                   </Link>
