@@ -1662,6 +1662,13 @@ Thank you for your assistance.`;
                                         title={`${score}% confidence - Click for AI analysis`}
                                       />
                                     );
+                                  } else if (!hasValue) {
+                                    // Show red exclamation mark for missing fields
+                                    return (
+                                      <div className="w-3 h-3 flex items-center justify-center text-red-500 font-bold text-xs flex-shrink-0" title="Missing data">
+                                        !
+                                      </div>
+                                    );
                                   }
                                   // Return empty div to maintain consistent spacing
                                   return <div className="w-3 h-3 flex-shrink-0"></div>;
@@ -1959,6 +1966,13 @@ Thank you for your assistance.`;
                                                       className={`absolute top-2 left-1 w-3 h-3 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity`}
                                                       title={`${score}% confidence - Click for AI analysis`}
                                                     />
+                                                  );
+                                                } else if (!hasValue) {
+                                                  // Show red exclamation mark for missing fields
+                                                  return (
+                                                    <div className="absolute top-2 left-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
+                                                      <span className="text-white text-xs font-bold leading-none">!</span>
+                                                    </div>
                                                   );
                                                 }
                                                 return null;
