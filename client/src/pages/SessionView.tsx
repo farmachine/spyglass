@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, FileText, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, FileText, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import * as XLSX from 'xlsx';
 import { Link } from "wouter";
@@ -1321,7 +1321,9 @@ Thank you for your assistance.`;
             if (wasManuallyUpdated) {
               return (
                 <div className="flex items-center gap-2">
-                  <ManualInputBadge />
+                  <div className="w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
+                    <User className="h-2 w-2 text-white" />
+                  </div>
                   {validation.originalExtractedValue !== undefined && validation.originalExtractedValue !== null && (
                     <button
                       onClick={() => handleRevertToAI(fieldName)}
@@ -1924,7 +1926,7 @@ Thank you for your assistance.`;
                                                 if (wasManuallyUpdated) {
                                                   return (
                                                     <div className="absolute top-2 left-1 w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
-                                                      <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                                                      <User className="h-2 w-2 text-white" />
                                                     </div>
                                                   );
                                                 } else if (isVerified) {
