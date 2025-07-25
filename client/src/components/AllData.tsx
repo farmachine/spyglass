@@ -232,7 +232,7 @@ export default function AllData({ project }: AllDataProps) {
                             <div 
                               className={`h-2.5 rounded-full transition-all duration-300 ${
                                 progress.percentage === 100 ? 'bg-green-600' : 
-                                progress.percentage > 0 ? 'bg-blue-600' : 'bg-gray-400'
+                                progress.percentage > 0 ? 'bg-green-600' : 'bg-gray-400'
                               }`}
                               style={{ width: `${progress.percentage}%` }}
                             />
@@ -244,14 +244,12 @@ export default function AllData({ project }: AllDataProps) {
                       </TableCell>
                       <TableCell className="py-3">
                         {verificationStatus === 'verified' ? (
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center justify-center">
                             <CheckCircle className="h-4 w-4 text-green-600" />
-                            <span className="text-sm font-medium text-green-700">Verified</span>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-1.5">
-                            <AlertTriangle className="h-4 w-4 text-red-600" />
-                            <span className="text-sm font-medium text-red-700">Unverified</span>
+                          <div className="flex items-center justify-center">
+                            <CheckCircle className="h-4 w-4 text-gray-400" />
                           </div>
                         )}
                       </TableCell>
