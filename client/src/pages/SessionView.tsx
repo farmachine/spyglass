@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, FileText } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, FileText, ArrowUpDown, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import * as XLSX from 'xlsx';
 import { Link } from "wouter";
@@ -241,6 +241,15 @@ export default function SessionView() {
     fieldName: string;
     confidenceScore: number;
   } | null>(null);
+  
+  // Column sorting and resizing state
+  const [sortConfig, setSortConfig] = useState<{ 
+    key: string; 
+    direction: 'asc' | 'desc' | null;
+    collectionId?: string;
+  } | null>(null);
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+  const [resizing, setResizing] = useState<{ columnId: string; startX: number; startWidth: number } | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -254,6 +263,99 @@ export default function SessionView() {
         newSet.add(collectionName);
       }
       return newSet;
+    });
+  };
+
+  // Sorting functions
+  const handleSort = (key: string, collectionId?: string) => {
+    setSortConfig(prev => {
+      if (prev?.key === key && prev?.collectionId === collectionId) {
+        // Cycle through: null -> asc -> desc -> null
+        if (prev.direction === null) return { key, direction: 'asc', collectionId };
+        if (prev.direction === 'asc') return { key, direction: 'desc', collectionId };
+        return null;
+      }
+      return { key, direction: 'asc', collectionId };
+    });
+  };
+
+  const getSortIcon = (key: string, collectionId?: string) => {
+    if (sortConfig?.key === key && sortConfig?.collectionId === collectionId) {
+      if (sortConfig.direction === 'asc') return <ArrowUp className="h-4 w-4" />;
+      if (sortConfig.direction === 'desc') return <ArrowDown className="h-4 w-4" />;
+    }
+    return <ArrowUpDown className="h-4 w-4 opacity-50" />;
+  };
+
+  // Column resizing functions
+  const handleMouseDown = (e: React.MouseEvent, columnId: string) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const element = e.currentTarget.closest('th') as HTMLElement;
+    const startWidth = element ? element.offsetWidth : 150;
+    
+    setResizing({ columnId, startX, startWidth });
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!resizing) return;
+    
+    const diff = e.clientX - resizing.startX;
+    const newWidth = Math.max(80, resizing.startWidth + diff); // Minimum width of 80px
+    
+    setColumnWidths(prev => ({
+      ...prev,
+      [resizing.columnId]: newWidth
+    }));
+  };
+
+  const handleMouseUp = () => {
+    setResizing(null);
+  };
+
+  // Add event listeners for resizing
+  useEffect(() => {
+    if (resizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [resizing]);
+
+  // Sort data function
+  const sortCollectionData = (itemsWithIndices: any[], collection: any, sortConfig: any) => {
+    if (!sortConfig || sortConfig.collectionId !== collection.id) return itemsWithIndices;
+    
+    const property = collection.properties.find((p: any) => p.propertyName === sortConfig.key);
+    if (!property) return itemsWithIndices;
+    
+    return [...itemsWithIndices].sort((a, b) => {
+      // Get values for comparison using original indices
+      const aValidation = getValidation(`${collection.collectionName}.${property.propertyName}[${a.originalIndex}]`);
+      const bValidation = getValidation(`${collection.collectionName}.${property.propertyName}[${b.originalIndex}]`);
+      
+      let aValue = aValidation?.extractedValue || a.item[property.propertyName] || '';
+      let bValue = bValidation?.extractedValue || b.item[property.propertyName] || '';
+      
+      // Handle different field types
+      if (property.fieldType === 'NUMBER') {
+        aValue = parseFloat(aValue) || 0;
+        bValue = parseFloat(bValue) || 0;
+      } else if (property.fieldType === 'DATE') {
+        aValue = new Date(aValue).getTime() || 0;
+        bValue = new Date(bValue).getTime() || 0;
+      } else {
+        aValue = String(aValue).toLowerCase();
+        bValue = String(bValue).toLowerCase();
+      }
+      
+      // Compare values
+      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
     });
   };
 
@@ -1662,29 +1764,54 @@ Thank you for your assistance.`;
                               {collection.properties
                                 .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
                                 .map((property) => (
-                                <TableHead key={property.id} className={
-                                  property.fieldType === 'TEXTAREA' ? 'min-w-[400px] max-w-[600px]' : 
-                                  property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? 'min-w-[300px] max-w-[400px]' :
-                                  property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? 'min-w-[280px] max-w-[380px]' :
-                                  property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 'min-w-[200px] max-w-[300px]' :
-                                  property.fieldType === 'TEXT' ? 'min-w-[120px] max-w-[180px]' : 
-                                  property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? 'min-w-[80px] max-w-[120px]' :
-                                  property.propertyName.toLowerCase().includes('status') ? 'min-w-[100px] max-w-[140px]' :
-                                  'min-w-[100px] max-w-[160px]'
-                                }>
-                                  {property.propertyName}
+                                <TableHead 
+                                  key={property.id} 
+                                  className={`relative ${
+                                    property.fieldType === 'TEXTAREA' ? 'min-w-[400px] max-w-[600px]' : 
+                                    property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? 'min-w-[300px] max-w-[400px]' :
+                                    property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? 'min-w-[280px] max-w-[380px]' :
+                                    property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 'min-w-[200px] max-w-[300px]' :
+                                    property.fieldType === 'TEXT' ? 'min-w-[120px] max-w-[180px]' : 
+                                    property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? 'min-w-[80px] max-w-[120px]' :
+                                    property.propertyName.toLowerCase().includes('status') ? 'min-w-[100px] max-w-[140px]' :
+                                    'min-w-[100px] max-w-[160px]'
+                                  }`}
+                                  style={{ width: columnWidths[`${collection.id}-${property.id}`] || 'auto' }}
+                                >
+                                  <div className="flex items-center justify-between group">
+                                    <button
+                                      onClick={() => handleSort(property.propertyName, collection.id)}
+                                      className="flex items-center gap-2 hover:bg-gray-100 px-2 py-1 rounded flex-1 min-w-0"
+                                    >
+                                      <span className="truncate">{property.propertyName}</span>
+                                      {getSortIcon(property.propertyName, collection.id)}
+                                    </button>
+                                    <div
+                                      className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-500 opacity-0 group-hover:opacity-50 transition-opacity"
+                                      onMouseDown={(e) => handleMouseDown(e, `${collection.id}-${property.id}`)}
+                                    />
+                                  </div>
                                 </TableHead>
                               ))}
                               <TableHead className="w-32">Status</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {Array.from({ length: maxRecordIndex + 1 }, (_, index) => {
-                              const item = collectionData?.[index] || {};
+                            {(() => {
+                              // Create array of items with original indices
+                              const itemsWithIndices = Array.from({ length: maxRecordIndex + 1 }, (_, index) => ({
+                                item: collectionData?.[index] || {},
+                                originalIndex: index
+                              }));
                               
-                              return (
-                                <TableRow key={index}>
-                                  <TableCell className="font-medium">{index + 1}</TableCell>
+                              // Apply sorting if configured
+                              const sortedItems = sortConfig && sortConfig.collectionId === collection.id 
+                                ? sortCollectionData(itemsWithIndices, collection, sortConfig)
+                                : itemsWithIndices;
+                              
+                              return sortedItems.map(({ item, originalIndex }, displayIndex) => (
+                                <TableRow key={originalIndex}>
+                                  <TableCell className="font-medium">{displayIndex + 1}</TableCell>
                                   {collection.properties
                                     .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
                                     .map((property) => {
@@ -1784,7 +1911,7 @@ Thank you for your assistance.`;
                                     {(() => {
                                       // Calculate verification status for this item
                                       const itemValidations = collection.properties.map(property => {
-                                        const fieldName = `${collection.collectionName}.${property.propertyName}[${index}]`;
+                                        const fieldName = `${collection.collectionName}.${property.propertyName}[${originalIndex}]`;
                                         return getValidation(fieldName);
                                       }).filter(Boolean);
                                       
@@ -1805,8 +1932,8 @@ Thank you for your assistance.`;
                                     })()}
                                   </TableCell>
                                 </TableRow>
-                              );
-                            })}
+                              ));
+                            })()}
                           </TableBody>
                         </Table>
                       </CardContent>
