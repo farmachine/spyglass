@@ -1519,7 +1519,6 @@ Thank you for your assistance.`;
                     <ArrowLeft className="h-4 w-4" />
                   </Button>
                 </Link>
-                <FileText className="h-8 w-8 text-primary mt-1" />
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center space-x-2">
                     <h2 className="text-3xl font-bold">{project.mainObjectName || "Session"}: {session?.sessionName}</h2>
@@ -1604,7 +1603,6 @@ Thank you for your assistance.`;
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5" />
                       {project.mainObjectName || "Session"} Info
                     </CardTitle>
                     <p className="text-sm text-gray-600">
@@ -1821,7 +1819,6 @@ Thank you for your assistance.`;
                     <Card>
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                          <FileText className="h-5 w-5" />
                           {collection.collectionName}
                           <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
                             {maxRecordIndex + 1} {maxRecordIndex === 0 ? 'item' : 'items'}
