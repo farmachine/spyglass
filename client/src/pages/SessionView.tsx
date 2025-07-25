@@ -306,12 +306,14 @@ export default function SessionView() {
   const handleMouseMove = (e: MouseEvent) => {
     if (!resizing) return;
     
+    e.preventDefault();
+    
     const diff = e.clientX - resizing.startX;
     const newWidth = Math.max(80, resizing.startWidth + diff); // Minimum width of 80px
     
     setColumnWidths(prev => ({
       ...prev,
-      [resizing.columnId]: `${newWidth}px`
+      [resizing.columnId]: newWidth
     }));
   };
 
@@ -1780,16 +1782,16 @@ Thank you for your assistance.`;
                                   key={property.id} 
                                   className="relative"
                                   style={{ 
-                                    width: columnWidths[`${collection.id}-${property.id}`] || (
-                                      property.fieldType === 'TEXTAREA' ? '400px' : 
-                                      property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? '300px' :
-                                      property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? '280px' :
-                                      property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? '200px' :
-                                      property.fieldType === 'TEXT' ? '120px' : 
-                                      property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? '80px' :
-                                      property.propertyName.toLowerCase().includes('status') ? '100px' :
-                                      '100px'
-                                    ),
+                                    width: `${columnWidths[`${collection.id}-${property.id}`] || (
+                                      property.fieldType === 'TEXTAREA' ? 400 : 
+                                      property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? 300 :
+                                      property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? 280 :
+                                      property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 200 :
+                                      property.fieldType === 'TEXT' ? 120 : 
+                                      property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? 80 :
+                                      property.propertyName.toLowerCase().includes('status') ? 100 :
+                                      100
+                                    )}px`,
                                     minWidth: '80px'
                                   }}
                                 >
@@ -1858,16 +1860,16 @@ Thank you for your assistance.`;
                                         key={property.id} 
                                         className="relative"
                                         style={{ 
-                                          width: columnWidths[`${collection.id}-${property.id}`] || (
-                                            property.fieldType === 'TEXTAREA' ? '400px' : 
-                                            property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? '300px' :
-                                            property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? '280px' :
-                                            property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? '200px' :
-                                            property.fieldType === 'TEXT' ? '120px' : 
-                                            property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? '80px' :
-                                            property.propertyName.toLowerCase().includes('status') ? '100px' :
-                                            '100px'
-                                          ),
+                                          width: `${columnWidths[`${collection.id}-${property.id}`] || (
+                                            property.fieldType === 'TEXTAREA' ? 400 : 
+                                            property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? 300 :
+                                            property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? 280 :
+                                            property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 200 :
+                                            property.fieldType === 'TEXT' ? 120 : 
+                                            property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? 80 :
+                                            property.propertyName.toLowerCase().includes('status') ? 100 :
+                                            100
+                                          )}px`,
                                           minWidth: '80px'
                                         }}
                                       >
