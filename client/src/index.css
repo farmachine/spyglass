@@ -88,6 +88,7 @@
   height: auto !important;
   border-bottom: 3px solid #e2e8f0;
   border-radius: 0 !important;
+  margin-bottom: 0 !important;
 }
 
 .folder-tabs .tabs-trigger {
@@ -131,6 +132,13 @@
   height: 3px;
   background: white;
   z-index: 4;
+}
+
+/* Ensure tab content connects seamlessly */
+.folder-tabs [data-orientation="horizontal"][role="tabpanel"] {
+  margin-top: 0 !important;
+  border-top: none !important;
+  border-radius: 0 8px 8px 8px !important;
 }
 
 /* Table text wrapping and spacing */

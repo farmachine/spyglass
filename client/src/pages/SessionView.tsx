@@ -1594,7 +1594,7 @@ Thank you for your assistance.`;
                 })}
               </TabsList>
               {/* Info Tab Content - Single Object View */}
-              <TabsContent value="info" className="mt-6">
+              <TabsContent value="info" className="mt-0">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -1810,7 +1810,7 @@ Thank you for your assistance.`;
                 if (maxRecordIndex < 0) return null;
 
                 return (
-                  <TabsContent key={collection.id} value={collection.collectionName} className="mt-6">
+                  <TabsContent key={collection.id} value={collection.collectionName} className="mt-0">
                     <Card>
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
