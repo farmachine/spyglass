@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, FileText, ArrowUpDown, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, FileText, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import * as XLSX from 'xlsx';
 import { Link } from "wouter";
@@ -1933,15 +1933,18 @@ Thank you for your assistance.`;
                                           minWidth: '80px'
                                         }}
                                       >
-                                        <div className="space-y-2">
-                                          <div className={`table-cell-content ${
+                                        <div className="relative w-full">
+                                          {/* Content */}
+                                          <div className={`table-cell-content w-full pr-6 pb-4 ${
                                             property.fieldType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
                                           } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed`}>
                                             {formatValueForDisplay(displayValue, property.fieldType)}
                                           </div>
                                           
+                                          {/* Small indicators overlay */}
                                           {validation && (
-                                            <div className="flex justify-start">
+                                            <>
+                                              {/* Top-right confidence indicator */}
                                               {(() => {
                                                 const wasManuallyUpdated = validation.validationStatus === 'manual';
                                                 const hasValue = validation.extractedValue !== null && 
@@ -1949,27 +1952,55 @@ Thank you for your assistance.`;
                                                                validation.extractedValue !== "" && 
                                                                validation.extractedValue !== "null" && 
                                                                validation.extractedValue !== "undefined";
-                                                const isVerified = validation.validationStatus === 'verified' || validation.validationStatus === 'valid';
                                                 
                                                 if (wasManuallyUpdated) {
-                                                  return <ManualInputBadge />;
-                                                } else if (hasValue && validation.confidenceScore) {
                                                   return (
-                                                    <ConfidenceBadge
-                                                      confidenceScore={validation.confidenceScore}
-                                                      reasoning={validation.aiReasoning}
-                                                      fieldName={fieldName}
-                                                      getFieldDisplayName={getFieldDisplayName}
-                                                      validation={validation}
-                                                      onVerificationChange={(verified) => handleFieldVerification(fieldName, verified)}
-                                                      isVerified={isVerified}
-                                                    />
+                                                    <div className="absolute top-1 right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center text-white text-[8px] font-bold">
+                                                      M
+                                                    </div>
                                                   );
-                                                } else {
-                                                  return <NotExtractedBadge />;
+                                                } else if (hasValue && validation.confidenceScore) {
+                                                  const score = Math.round(validation.confidenceScore);
+                                                  const colorClass = score >= 80 ? 'bg-green-500' : 
+                                                                   score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
+                                                  
+                                                  return (
+                                                    <button
+                                                      onClick={() => {
+                                                        if (validation.aiReasoning) {
+                                                          setSelectedReasoning({
+                                                            reasoning: validation.aiReasoning,
+                                                            fieldName,
+                                                            confidenceScore: validation.confidenceScore || 0
+                                                          });
+                                                        }
+                                                      }}
+                                                      className={`absolute top-1 right-1 ${colorClass} text-white text-[8px] font-bold px-1 py-0.5 rounded cursor-pointer hover:opacity-80 transition-opacity`}
+                                                      title={`Confidence: ${score}% - Click for AI analysis`}
+                                                    >
+                                                      {score}%
+                                                    </button>
+                                                  );
                                                 }
+                                                return null;
                                               })()}
-                                            </div>
+                                              
+                                              {/* Bottom-right verification area */}
+                                              {(() => {
+                                                const isVerified = validation.validationStatus === 'verified' || validation.validationStatus === 'valid';
+                                                return (
+                                                  <button
+                                                    onClick={() => handleFieldVerification(fieldName, !isVerified)}
+                                                    className="absolute bottom-1 right-1 w-4 h-4 flex items-center justify-center hover:bg-gray-100 rounded transition-colors"
+                                                    title={isVerified ? "Click to unverify" : "Click to verify"}
+                                                  >
+                                                    {isVerified && (
+                                                      <span className="text-green-600 text-xs font-bold">✓</span>
+                                                    )}
+                                                  </button>
+                                                );
+                                              })()}
+                                            </>
                                           )}
                                         </div>
                                       </TableCell>
@@ -2024,16 +2055,64 @@ Thank you for your assistance.`;
 
       {/* AI Reasoning Modal */}
       {selectedReasoning && (
-        <AIReasoningModal 
-          isOpen={!!selectedReasoning}
-          onClose={() => setSelectedReasoning(null)}
-          reasoning={selectedReasoning.reasoning}
-          fieldName={selectedReasoning.fieldName}
-          confidenceScore={selectedReasoning.confidenceScore}
-          getFieldDisplayName={getFieldDisplayName}
-          validation={getValidation(selectedReasoning.fieldName)}
-          onVerificationChange={(verified) => handleFieldVerification(selectedReasoning.fieldName, verified)}
-        />
+        <Dialog open={!!selectedReasoning} onOpenChange={() => setSelectedReasoning(null)}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5 text-blue-600" />
+                AI Analysis - {getFieldDisplayName(selectedReasoning.fieldName)}
+              </DialogTitle>
+              <DialogDescription>
+                Confidence: {Math.round(selectedReasoning.confidenceScore)}%
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="mt-4 space-y-4">
+              <div>
+                <Label className="text-sm font-medium">AI Reasoning</Label>
+                <div className="mt-2 p-3 bg-gray-50 rounded-md text-sm whitespace-pre-wrap">
+                  {selectedReasoning.reasoning}
+                </div>
+              </div>
+              
+              {(() => {
+                const validation = getValidation(selectedReasoning.fieldName);
+                const isVerified = validation?.validationStatus === 'verified' || validation?.validationStatus === 'valid';
+                
+                return (
+                  <div className="flex gap-2 pt-4 border-t">
+                    <Button
+                      onClick={() => {
+                        handleFieldVerification(selectedReasoning.fieldName, !isVerified);
+                        setSelectedReasoning(null);
+                      }}
+                      variant={isVerified ? "outline" : "default"}
+                      className="flex items-center gap-2"
+                    >
+                      {isVerified ? (
+                        <>
+                          <X className="h-4 w-4" />
+                          Mark as Unverified
+                        </>
+                      ) : (
+                        <>
+                          <Check className="h-4 w-4" />
+                          Mark as Verified
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={() => setSelectedReasoning(null)}
+                      variant="outline"
+                    >
+                      Close
+                    </Button>
+                  </div>
+                );
+              })()}
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Data Report Dialog */}
