@@ -46,6 +46,7 @@ export default function SchemaView() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSavingToDatabase, setIsSavingToDatabase] = useState(false);
   const [savedValidations, setSavedValidations] = useState<any[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Auto-load document content using Gemini API when session is available
   useEffect(() => {
@@ -112,6 +113,7 @@ export default function SchemaView() {
       if (session.documents && session.documents.length > 0 && session.status !== 'text_extracted') {
         console.log('Auto-triggering Gemini document content extraction...');
         setIsLoadingDocuments(true);
+        setError(null); // Clear any previous errors
         
         try {
           // Use the extract-text endpoint which uses Gemini API for content extraction
@@ -121,6 +123,7 @@ export default function SchemaView() {
           });
           
           if (response.message) {
+            console.log('Document extraction completed, refreshing session data...');
             // Refresh the session data to get the updated extractedData
             setTimeout(() => {
               window.location.reload();
@@ -128,6 +131,7 @@ export default function SchemaView() {
           }
         } catch (error) {
           console.error('Gemini document extraction failed:', error);
+          setError('Document extraction failed. Please try refreshing the page or uploading documents again.');
           setIsLoadingDocuments(false);
         }
       }
@@ -139,17 +143,17 @@ export default function SchemaView() {
   // Auto-trigger extraction when in automated mode and schema is ready
   useEffect(() => {
     const autoTriggerExtraction = async () => {
-      if (extractionMode === 'automated' && schemaData && documentContent && !isProcessing && !geminiResponse) {
+      if (extractionMode === 'automated' && schemaData && !isProcessing && !geminiResponse) {
         console.log('AUTO-TRIGGER: Starting automatic Gemini extraction in automated mode');
         
         if (!documentContent) {
-          setGeminiResponse("=== ERROR ===\n\nNo document content available. Please wait for document extraction to complete.\n\n=== END ERROR ===");
+          console.log('AUTO-TRIGGER: Waiting for document content to be available...');
           return;
         }
         
         setIsProcessing(true);
         try {
-          const fullPrompt = generateSchemaMarkdown(schemaData, documentContent.text, documentContent.count);
+          const fullPrompt = generateSchemaMarkdown(schemaData!, documentContent.text, documentContent.count);
           
           console.log('AUTO-TRIGGER: Generated extraction prompt with document content');
           
@@ -491,7 +495,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
     
     setIsProcessing(true);
     try {
-      const fullPrompt = generateSchemaMarkdown(schemaData, documentContent.text, documentContent.count);
+      const fullPrompt = generateSchemaMarkdown(schemaData!, documentContent.text, documentContent.count);
       
       // Enhanced debug logging
       console.log('SCHEMA VIEW DEBUG - Consolidated document content:', {
@@ -733,6 +737,21 @@ ${error instanceof Error ? error.message : 'Unknown error'}
         Project: {schemaData.project?.name || 'Unnamed Project'}
         Main Object: {schemaData.project?.mainObjectName || 'Session'}
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <div style={{ 
+          margin: '0 0 20px 0', 
+          padding: '15px', 
+          backgroundColor: '#f8d7da',
+          border: '2px solid #dc3545',
+          color: '#721c24',
+          fontWeight: 'bold'
+        }}>
+          === ERROR ===
+          {error}
+        </div>
+      )}
 
       {/* Document Content Display */}
       {documentContent && (
