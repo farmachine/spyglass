@@ -346,7 +346,7 @@ export default function NewUpload({ project }: NewUploadProps) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-start pt-8 pb-12 px-4">
+    <div className="min-h-screen flex flex-col items-center justify-start pt-4 pb-12 px-4">
       {/* Header Section */}
       <div className="text-center mb-8">
         <div className="flex justify-center mb-4">
