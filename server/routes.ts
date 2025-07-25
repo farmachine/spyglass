@@ -599,6 +599,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 fileName: `${knowledgeDocName.toLowerCase().replace(/\s+/g, '_')}.txt`,
                 fileType: 'text',
                 content: `AI-generated guidance document for ${schema.main_object_name || 'document'} processing.`,
+                description: `AI-generated knowledge document: ${knowledgeDocName}`,
                 fileSize: 100
               });
             }
