@@ -1555,13 +1555,14 @@ Thank you for your assistance.`;
 
             {/* Session Data Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${1 + project.collections.filter(collection => {
+              <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${2 + project.collections.filter(collection => {
                 const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
                 const validationIndices = collectionValidations.length > 0 ? collectionValidations.map(v => v.recordIndex) : [];
                 const maxRecordIndex = validationIndices.length > 0 ? Math.max(...validationIndices) : -1;
                 return maxRecordIndex >= 0;
               }).length}, 1fr)` }}>
                 <TabsTrigger value="all-data">All Data</TabsTrigger>
+                <TabsTrigger value="info">{project.mainObjectName || "Session"} Info</TabsTrigger>
                 {project.collections.map((collection) => {
                   const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
                   const validationIndices = collectionValidations.length > 0 ? collectionValidations.map(v => v.recordIndex) : [];
@@ -1805,6 +1806,119 @@ Thank you for your assistance.`;
                         </div>
                       );
                     })}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Info Tab Content - Single Object View */}
+              <TabsContent value="info" className="mt-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      {project.mainObjectName || "Session"} Information
+                    </CardTitle>
+                    <p className="text-sm text-gray-600">
+                      Core information and fields extracted from this {(project.mainObjectName || "session").toLowerCase()}.
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {project.schemaFields
+                        .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+                        .map((field) => {
+                        const originalValue = extractedData[field.fieldName];
+                        const validation = getValidation(field.fieldName);
+                        
+                        // Show field if it has a value OR if there's a validation for it
+                        if (originalValue !== undefined || validation) {
+                          // Use validation's extractedValue (which includes manual edits), not the original extracted value
+                          let displayValue = validation?.extractedValue ?? originalValue ?? null;
+                          if (displayValue === "null" || displayValue === "undefined") {
+                            displayValue = null;
+                          }
+                          
+                          return (
+                            <div key={field.id} className="space-y-2">
+                              <Label className="text-sm font-medium text-gray-700">
+                                {field.fieldName}
+                              </Label>
+                              <div className="relative">
+                                {(() => {
+                                  const fieldName = field.fieldName;
+                                  const validation = getValidation(fieldName);
+                                  const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
+                                  const wasManuallyUpdated = validation && validation.originalValue !== validation.extractedValue && validation.extractedValue !== null;
+                                  const isVerified = validation?.validationStatus === 'verified' || validation?.validationStatus === 'valid';
+                                  const score = Math.round(validation?.confidenceScore || 0);
+
+                                  // Render confidence indicator/verification status  
+                                  if (wasManuallyUpdated) {
+                                    return (
+                                      <div className="absolute top-2 left-1 w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
+                                        <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                                      </div>
+                                    );
+                                  } else if (isVerified) {
+                                    // Show green tick when verified
+                                    return (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <button
+                                              onClick={() => handleFieldVerification(fieldName, false)}
+                                              className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors"
+                                              aria-label="Click to unverify"
+                                            >
+                                              <span className="text-xs font-bold">✓</span>
+                                            </button>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            Verified with {score}% confidence
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    );
+                                  } else if (hasValue && validation?.confidenceScore) {
+                                    // Show colored confidence dot when not verified
+                                    const colorClass = score >= 80 ? 'bg-green-500' : 
+                                                     score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
+                                    
+                                    return (
+                                      <button
+                                        onClick={() => {
+                                          if (validation.aiReasoning) {
+                                            setSelectedReasoning({
+                                              reasoning: validation.aiReasoning,
+                                              fieldName,
+                                              confidenceScore: validation.confidenceScore || 0
+                                            });
+                                          }
+                                        }}
+                                        className={`absolute top-2 left-1 w-3 h-3 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity`}
+                                        title={`${score}% confidence - Click for AI analysis`}
+                                      />
+                                    );
+                                  }
+                                  return null;
+                                })()}
+                                
+                                <div className="pl-6 pr-2">
+                                  {renderFieldContent(field.fieldName, displayValue)}
+                                </div>
+                              </div>
+                              
+                              {field.description && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {field.description}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })}
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
