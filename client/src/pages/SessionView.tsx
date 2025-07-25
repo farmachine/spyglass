@@ -1318,10 +1318,7 @@ Thank you for your assistance.`;
             // Check if field was manually updated by user (uses dedicated manually_updated flag)
             const wasManuallyUpdated = validation.manuallyUpdated;
             
-            // Debug logging for MSA field specifically
-            if (fieldName === 'MSA ID/Number') {
-              console.log(`INFO VIEW RENDER CHECK - Field: ${fieldName}, ManuallyUpdated: ${validation.manuallyUpdated}, WasManuallyUpdated: ${wasManuallyUpdated}, ValidationID: ${validation.id}, ExtractedValue: ${validation.extractedValue}`);
-            }
+
             
             // Check if field has actual value - if it has a value, it should never show "Not Extracted"
             const hasValue = validation.extractedValue !== null && 
@@ -1636,13 +1633,18 @@ Thank you for your assistance.`;
                                   const isVerified = validation?.validationStatus === 'verified' || validation?.validationStatus === 'valid';
                                   const score = Math.round(validation?.confidenceScore || 0);
 
-                                  // Debug logging for MSA field in Info view
-                                  if (fieldName === 'MSA ID/Number') {
-                                    console.log(`INFO VIEW INDICATOR - Field: ${fieldName}, ValidationExists: ${!!validation}, WasManuallyUpdated: ${wasManuallyUpdated}, HasValue: ${hasValue}, IsVerified: ${isVerified}, DisplayValue: ${displayValue}`);
-                                  }
+
 
                                   // Render confidence indicator/verification status to the left of field name
-                                  if (isVerified) {
+                                  if (wasManuallyUpdated) {
+                                    // Show blue user icon for manually updated fields - highest priority
+                                    
+                                    return (
+                                      <div className="w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
+                                        <User className="h-2 w-2 text-white" />
+                                      </div>
+                                    );
+                                  } else if (isVerified) {
                                     // Show green tick when verified - clicking unverifies
                                     return (
                                       <TooltipProvider>
@@ -1946,10 +1948,7 @@ Thank you for your assistance.`;
                                                 const score = Math.round(validation.confidenceScore || 0);
 
                                                 if (wasManuallyUpdated) {
-                                                  // Debug logging for MSA field
-                                                  if (fieldName.includes('MSA')) {
-                                                    console.log(`TABLE VIEW - MSA Field Rendering Blue User Icon - wasManuallyUpdated: ${wasManuallyUpdated}, fieldName: ${fieldName}, validation:`, validation);
-                                                  }
+
                                                   
                                                   return (
                                                     <div className="absolute top-2 left-1 w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
