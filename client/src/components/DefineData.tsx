@@ -10,6 +10,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import {
   useProjectSchemaFields,
@@ -591,59 +599,86 @@ export default function DefineData({ project }: DefineDataProps) {
                     </Button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {safeSchemaFields.map((field) => (
-                      <Card key={field.id} className="bg-gray-50 rounded-lg border-l-4 border-l-blue-500">
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-start gap-3 flex-1">
-                              <div className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-200 mt-1">
-                                <GripVertical className="h-4 w-4 text-gray-400" />
-                              </div>
-                              <div className="flex-1 space-y-2">
-                                <div className="space-y-1">
-                                  <h3 className="font-medium text-gray-900">{field.fieldName}</h3>
-                                  <div className="flex items-center gap-2">
-                                    <Badge className={fieldTypeColors[field.fieldType as keyof typeof fieldTypeColors]}>
-                                      {field.fieldType}
-                                    </Badge>
-                                    <Badge variant="outline" className="text-xs bg-white">
-                                      Auto-verify at {field.autoVerificationConfidence || 80}%
-                                    </Badge>
-                                  </div>
-                                </div>
-                                {field.description && (
-                                  <p className="text-sm text-gray-600">{field.description}</p>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex gap-1">
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                className="h-8 w-8 p-0"
-                                onClick={() => setSchemaFieldDialog({ open: true, field })}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                onClick={() => setDeleteDialog({ 
-                                  open: true, 
-                                  type: "field", 
-                                  id: field.id, 
-                                  name: field.fieldName 
-                                })}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                  <div className="space-y-4">
+                    <DragDropContext onDragEnd={() => {}}>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-8"></TableHead>
+                            <TableHead>Field Name</TableHead>
+                            <TableHead>Type</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead>Auto Verify</TableHead>
+                            <TableHead className="w-24">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <Droppable droppableId="schema-fields">
+                          {(provided) => (
+                            <TableBody ref={provided.innerRef} {...provided.droppableProps}>
+                              {safeSchemaFields.map((field, index) => (
+                                <Draggable key={field.id} draggableId={field.id.toString()} index={index}>
+                                  {(provided, snapshot) => (
+                                    <TableRow 
+                                      ref={provided.innerRef}
+                                      {...provided.draggableProps}
+                                      className={snapshot.isDragging ? "opacity-50" : ""}
+                                    >
+                                      <TableCell>
+                                        <div
+                                          {...provided.dragHandleProps}
+                                          className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-100"
+                                        >
+                                          <GripVertical className="h-4 w-4 text-gray-400" />
+                                        </div>
+                                      </TableCell>
+                                      <TableCell className="font-medium">{field.fieldName}</TableCell>
+                                      <TableCell>
+                                        <Badge className={fieldTypeColors[field.fieldType as keyof typeof fieldTypeColors]}>
+                                          {field.fieldType}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell className="text-gray-600">
+                                        {field.description || "-"}
+                                      </TableCell>
+                                      <TableCell>
+                                        <Badge variant="outline" className="text-xs">
+                                          {field.autoVerificationConfidence || 80}%
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell>
+                                        <div className="flex gap-2">
+                                          <Button 
+                                            variant="ghost" 
+                                            size="sm"
+                                            onClick={() => setSchemaFieldDialog({ open: true, field })}
+                                          >
+                                            <Edit className="h-4 w-4" />
+                                          </Button>
+                                          <Button 
+                                            variant="ghost" 
+                                            size="sm"
+                                            className="text-red-600"
+                                            onClick={() => setDeleteDialog({ 
+                                              open: true, 
+                                              type: "field", 
+                                              id: field.id, 
+                                              name: field.fieldName 
+                                            })}
+                                          >
+                                            <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
+                                  )}
+                                </Draggable>
+                              ))}
+                              {provided.placeholder}
+                            </TableBody>
+                          )}
+                        </Droppable>
+                      </Table>
+                    </DragDropContext>
                   </div>
                 )}
 
