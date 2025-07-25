@@ -565,7 +565,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   const propertyData = {
                     collectionId: createdCollection.id,
                     propertyName: property.property_name,
-                    fieldType: property.field_type,
+                    propertyType: property.field_type,
                     description: property.description,
                     autoVerificationConfidence: property.auto_verification_confidence || 80,
                     orderIndex: j
