@@ -1655,7 +1655,7 @@ Thank you for your assistance.`;
                         <p className="text-sm text-gray-600">{collection.description}</p>
                       </CardHeader>
                       <CardContent>
-                        <Table>
+                        <Table className="session-table">
                           <TableHeader>
                             <TableRow>
                               <TableHead className="w-24">Item #</TableHead>
@@ -1769,9 +1769,9 @@ Thank you for your assistance.`;
                                               )}
                                             </div>
                                           )}
-                                          <div className={`w-full ${validation ? 'pr-4' : ''} ${
-                                            property.fieldType === 'TEXTAREA' ? 'min-h-[60px]' : 'py-1'
-                                          }`}>
+                                          <div className={`table-cell-content w-full ${validation ? 'pr-4' : ''} ${
+                                            property.fieldType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
+                                          } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed`}>
                                             {formatValueForDisplay(displayValue, property.fieldType)}
                                           </div>
                                         </div>

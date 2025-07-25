@@ -73,6 +73,31 @@
 }
 
 /* Additional utility classes for Flow Capture theme */
+
+/* Table text wrapping and spacing */
+.session-table td {
+  word-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  vertical-align: top;
+  padding: 12px 8px;
+  line-height: 1.5;
+}
+
+.session-table th {
+  padding: 12px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+/* Ensure text content doesn't overflow */
+.table-cell-content {
+  max-width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
 @layer utilities {
   .text-warning {
     color: hsl(var(--warning));
