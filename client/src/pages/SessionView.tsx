@@ -2007,30 +2007,32 @@ Thank you for your assistance.`;
                                     );
                                   })}
                                   <TableCell className="border-r border-gray-300">
-                                    {(() => {
-                                      // Calculate verification status for this item
-                                      const itemValidations = collection.properties.map(property => {
-                                        const fieldName = `${collection.collectionName}.${property.propertyName}[${originalIndex}]`;
-                                        return getValidation(fieldName);
-                                      }).filter(Boolean);
-                                      
-                                      const allVerified = itemValidations.length > 0 && 
-                                        itemValidations.every(v => v?.validationStatus === 'valid' || v?.validationStatus === 'verified');
-                                      
-                                      return (
-                                        <button
-                                          onClick={() => handleItemVerification(collection.collectionName, originalIndex, !allVerified)}
-                                          className="flex items-center gap-1 hover:bg-gray-100 px-2 py-1 rounded transition-colors"
-                                          title={allVerified ? "Click to mark all fields as unverified" : "Click to mark all fields as verified"}
-                                        >
-                                          {allVerified ? (
-                                            <CheckCircle className="h-5 w-5 text-green-600" />
-                                          ) : (
-                                            <CheckCircle className="h-5 w-5 text-gray-400" />
-                                          )}
-                                        </button>
-                                      );
-                                    })()}
+                                    <div className="flex justify-center">
+                                      {(() => {
+                                        // Calculate verification status for this item
+                                        const itemValidations = collection.properties.map(property => {
+                                          const fieldName = `${collection.collectionName}.${property.propertyName}[${originalIndex}]`;
+                                          return getValidation(fieldName);
+                                        }).filter(Boolean);
+                                        
+                                        const allVerified = itemValidations.length > 0 && 
+                                          itemValidations.every(v => v?.validationStatus === 'valid' || v?.validationStatus === 'verified');
+                                        
+                                        return (
+                                          <button
+                                            onClick={() => handleItemVerification(collection.collectionName, originalIndex, !allVerified)}
+                                            className="flex items-center justify-center hover:bg-gray-100 px-2 py-1 rounded transition-colors"
+                                            title={allVerified ? "Click to mark all fields as unverified" : "Click to mark all fields as verified"}
+                                          >
+                                            {allVerified ? (
+                                              <CheckCircle className="h-5 w-5 text-green-600" />
+                                            ) : (
+                                              <CheckCircle className="h-5 w-5 text-gray-400" />
+                                            )}
+                                          </button>
+                                        );
+                                      })()}
+                                    </div>
                                   </TableCell>
                                 </TableRow>
                               ));

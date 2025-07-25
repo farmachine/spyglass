@@ -201,7 +201,11 @@ export default function AllData({ project }: AllDataProps) {
                     <SortableHeader field="sessionName">Session Name</SortableHeader>
                     <SortableHeader field="documentCount" className="py-3 w-24">Docs</SortableHeader>
                     <SortableHeader field="progress" className="py-3 w-32">Progress</SortableHeader>
-                    <SortableHeader field="status" className="py-3 w-32">Status</SortableHeader>
+                    <SortableHeader field="status" className="py-3 w-16 text-center">
+                      <div className="flex justify-center">
+                        <CheckCircle className="h-4 w-4 text-gray-400" />
+                      </div>
+                    </SortableHeader>
                     <SortableHeader field="createdAt" className="py-3 w-32">Created</SortableHeader>
                   </TableRow>
                 </TableHeader>
@@ -243,16 +247,14 @@ export default function AllData({ project }: AllDataProps) {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="py-3">
-                        {verificationStatus === 'verified' ? (
-                          <div className="flex items-center justify-center">
+                      <TableCell className="py-3 text-center">
+                        <div className="flex justify-center">
+                          {verificationStatus === 'verified' ? (
                             <CheckCircle className="h-4 w-4 text-green-600" />
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-center">
+                          ) : (
                             <CheckCircle className="h-4 w-4 text-gray-400" />
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="py-3">
                         <div className="text-xs text-muted-foreground">
