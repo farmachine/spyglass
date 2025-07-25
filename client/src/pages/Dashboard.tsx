@@ -204,66 +204,41 @@ export default function Dashboard() {
               <div className="flex items-center space-x-4">
                 {statisticsLoading ? (
                   <>
-                    <Card className="w-32 h-16">
-                      <CardContent className="p-3">
-                        <Skeleton className="h-3 w-16 mb-1" />
-                        <Skeleton className="h-6 w-8" />
-                      </CardContent>
-                    </Card>
-                    <Card className="w-32 h-16">
-                      <CardContent className="p-3">
-                        <Skeleton className="h-3 w-16 mb-1" />
-                        <Skeleton className="h-6 w-8" />
-                      </CardContent>
-                    </Card>
-                    <Card className="w-32 h-16">
-                      <CardContent className="p-3">
-                        <Skeleton className="h-3 w-16 mb-1" />
-                        <Skeleton className="h-6 w-8" />
-                      </CardContent>
-                    </Card>
-                    <Card className="w-32 h-16">
-                      <CardContent className="p-3">
-                        <Skeleton className="h-3 w-16 mb-1" />
-                        <Skeleton className="h-6 w-8" />
-                      </CardContent>
-                    </Card>
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                      <Skeleton className="h-6 w-6 rounded" />
+                      <Skeleton className="h-6 w-8" />
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                      <Skeleton className="h-6 w-6 rounded" />
+                      <Skeleton className="h-6 w-8" />
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                      <Skeleton className="h-6 w-6 rounded" />
+                      <Skeleton className="h-6 w-8" />
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                      <Skeleton className="h-6 w-6 rounded" />
+                      <Skeleton className="h-6 w-8" />
+                    </div>
                   </>
                 ) : statistics ? (
                   <>
-                    <Card className="bg-blue-50 border-blue-200">
-                      <CardContent className="flex items-center p-3">
-                        <FileText className="h-5 w-5 text-primary mr-2" />
-                        <div>
-                          <p className="text-xs text-primary font-medium">Projects</p>
-                          <p className="text-lg font-bold text-primary">{statistics.totalProjects}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <Card className="bg-purple-50 border-purple-200">
-                      <CardContent className="flex items-center p-3">
-                        <Database className="h-5 w-5 text-slate-700 mr-2" />
-                        <div>
-                          <p className="text-lg font-bold text-slate-700">{statistics.totalSessions}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <Card className="bg-red-50 border-red-200">
-                      <CardContent className="flex items-center p-3">
-                        <CheckCircle className="h-5 w-5 text-gray-400 mr-2" />
-                        <div>
-                          <p className="text-lg font-bold text-red-800">{statistics.unverifiedSessions}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <Card className="bg-green-50 border-green-200">
-                      <CardContent className="flex items-center p-3">
-                        <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-                        <div>
-                          <p className="text-lg font-bold text-green-800">{statistics.verifiedSessions}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                      <FileText className="h-6 w-6 text-primary" />
+                      <span className="text-xl font-bold text-gray-900">{statistics.totalProjects}</span>
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                      <Database className="h-6 w-6 text-slate-700" />
+                      <span className="text-xl font-bold text-gray-900">{statistics.totalSessions}</span>
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                      <CheckCircle className="h-6 w-6 text-gray-400" />
+                      <span className="text-xl font-bold text-gray-900">{statistics.unverifiedSessions}</span>
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                      <CheckCircle className="h-6 w-6 text-green-600" />
+                      <span className="text-xl font-bold text-gray-900">{statistics.verifiedSessions}</span>
+                    </div>
                   </>
                 ) : null}
               </div>
