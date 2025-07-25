@@ -264,7 +264,7 @@ export default function SessionView() {
   const [showValidationDialog, setShowValidationDialog] = useState(false);
   const [validationStep, setValidationStep] = useState<'validating' | 'complete'>('validating');
   const [validationProgress, setValidationProgress] = useState(0);
-  const [activeTab, setActiveTab] = useState('all-data');
+  const [activeTab, setActiveTab] = useState('info');
   const [selectedReasoning, setSelectedReasoning] = useState<{
     reasoning: string;
     fieldName: string;
@@ -1374,7 +1374,6 @@ Thank you for your assistance.`;
 
   const navItems = [
     { id: "upload", label: `New ${project?.mainObjectName || "Session"}`, icon: Upload, href: `/projects/${projectId}?tab=upload` },
-    { id: "data", label: `All ${project?.mainObjectName || "Session"}s`, icon: Database, href: `/projects/${projectId}?tab=all-data` },
     ...(canAccessConfigTabs ? [
       { id: "knowledge", label: "Knowledge/Rules", icon: Brain, href: `/projects/${projectId}?tab=knowledge` },
       { id: "define", label: "Define Data", icon: Settings, href: `/projects/${projectId}?tab=define` },
@@ -1557,13 +1556,12 @@ Thank you for your assistance.`;
 
             {/* Session Data Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${2 + project.collections.filter(collection => {
+              <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${1 + project.collections.filter(collection => {
                 const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
                 const validationIndices = collectionValidations.length > 0 ? collectionValidations.map(v => v.recordIndex) : [];
                 const maxRecordIndex = validationIndices.length > 0 ? Math.max(...validationIndices) : -1;
                 return maxRecordIndex >= 0;
               }).length}, 1fr)` }}>
-                <TabsTrigger value="all-data">All Data</TabsTrigger>
                 <TabsTrigger value="info">{project.mainObjectName || "Session"} Info</TabsTrigger>
                 {project.collections.map((collection) => {
                   const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
@@ -1580,237 +1578,7 @@ Thank you for your assistance.`;
                 })}
               </TabsList>
 
-              {/* All Data Tab Content */}
-              <TabsContent value="all-data" className="mt-6">
-                <Card className="mb-8">
-                  <CardContent className="space-y-4 pt-4">
-                    {/* Project Schema Fields */}
-                    {project.schemaFields.map((field) => {
-                      const originalValue = extractedData[field.fieldName];
-                      const validation = getValidation(field.fieldName);
-                      
-                      // Show field if it has a value OR if there's a validation for it
-                      if (originalValue !== undefined || validation) {
-                        // Use validation's extractedValue (which includes manual edits), not the original extracted value
-                        let displayValue = validation?.extractedValue ?? originalValue ?? null;
-                        if (displayValue === "null" || displayValue === "undefined") {
-                          displayValue = null;
-                        }
-                        console.log(`Rendering field ${field.fieldName} - originalValue:`, originalValue, 'validation:', !!validation, 'displayValue:', displayValue);
-                        return renderFieldWithValidation(field.fieldName, displayValue, true);
-                      }
-                      return null;
-                    })}
 
-                    {/* Collections */}
-                    {project.collections.map((collection) => {
-                      const collectionData = extractedData[collection.collectionName];
-                      
-                      // Get all validations for this collection
-                      const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
-                      
-                      // Determine how many instances we need to show based on validation records
-                      // The validation records contain the authoritative record indices from the database
-                      const validationIndices = collectionValidations.length > 0 ? collectionValidations.map(v => v.recordIndex) : [];
-                      const maxRecordIndex = validationIndices.length > 0 ? Math.max(...validationIndices) : -1;
-                      
-                      if (maxRecordIndex < 0) return null;
-
-                      const isExpanded = expandedCollections.has(collection.collectionName);
-
-                      return (
-                        <div key={collection.id} className="border border-gray-200 rounded-lg border-l-4 border-l-green-500 bg-white">
-                          <div className="p-4">
-                            <div className="flex items-center justify-between mb-4">
-                              <div className="flex items-center gap-2 flex-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => toggleCollectionExpansion(collection.collectionName)}
-                                  className="p-1 h-auto"
-                                >
-                                  {isExpanded ? (
-                                    <ChevronDown className="h-4 w-4" />
-                                  ) : (
-                                    <ChevronRight className="h-4 w-4" />
-                                  )}
-                                </Button>
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <h3 className="text-lg font-semibold">{collection.collectionName}</h3>
-                                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                                      {maxRecordIndex + 1} {maxRecordIndex === 0 ? 'item' : 'items'}
-                                    </span>
-                                  </div>
-                                  <p className="text-sm text-gray-600 mt-1">{collection.description}</p>
-                                </div>
-                              </div>
-                              {/* Collection Verification Status - positioned like field validation icons */}
-                              <div className="flex items-center gap-3">
-                                {getCollectionVerificationProgress(collection.collectionName).percentage === 100 ? (
-                                  <div className="flex items-center gap-1">
-                                    <CheckCircle className="h-4 w-4 text-green-600" />
-                                    <span className="text-green-600 font-medium text-sm">Verified</span>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center gap-1">
-                                    <AlertTriangle className="h-4 w-4 text-red-600" />
-                                    <span className="text-red-600 font-medium text-sm">Unverified</span>
-                                  </div>
-                                )}
-                                
-                                {/* Collection Verification Progress */}
-                                <div className="flex items-center gap-2">
-                                  <div className="w-20 bg-gray-200 rounded-full h-2">
-                                    <div 
-                                      className={`h-2 rounded-full transition-all duration-300 ${
-                                        getCollectionVerificationProgress(collection.collectionName).percentage === 100 ? 'bg-green-600' : 
-                                        getCollectionVerificationProgress(collection.collectionName).percentage > 0 ? 'bg-blue-600' : 'bg-gray-400'
-                                      }`}
-                                      style={{ width: `${getCollectionVerificationProgress(collection.collectionName).percentage}%` }}
-                                    />
-                                  </div>
-                                  <span className="text-xs font-medium text-gray-700 min-w-[28px]">
-                                    {getCollectionVerificationProgress(collection.collectionName).percentage}%
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                            {isExpanded && (
-                              <div>
-                                {Array.from({ length: maxRecordIndex + 1 }, (_, index) => {
-                                  const item = collectionData?.[index] || {};
-                                  
-                                  // Try to get a meaningful name for this item
-                                  const getItemDisplayName = (item: any, collection: any, index: number) => {
-                                    // Look for common name fields
-                                    const nameFields = ['name', 'Name', 'title', 'Title', 'companyName', 'Company Name'];
-                                    for (const field of nameFields) {
-                                      if (item[field] && typeof item[field] === 'string' && item[field].trim()) {
-                                        return item[field].trim();
-                                      }
-                                    }
-                                    
-                                    // Look for any property that's marked as a name field
-                                    const nameProperty = collection.properties.find((p: any) => 
-                                      p.propertyName.toLowerCase().includes('name') || 
-                                      p.propertyName.toLowerCase().includes('title')
-                                    );
-                                    if (nameProperty && item[nameProperty.propertyName]) {
-                                      return item[nameProperty.propertyName];
-                                    }
-                                    
-                                    // Fall back to generic "Item X"
-                                    return `Item ${index + 1}`;
-                                  };
-                                  
-                                  const itemDisplayName = getItemDisplayName(item, collection, index);
-                                  const itemKey = `${collection.collectionName}-${index}`;
-                                  const isEditingDisplayName = editingDisplayNames[itemKey] || false;
-                                  // Use custom display name if set, otherwise fall back to extracted display name
-                                  const editDisplayName = displayNames[itemKey] !== undefined ? displayNames[itemKey] : itemDisplayName;
-                                  
-                                  return (
-                                    <div key={index} className="mb-6 p-4 bg-gray-50 rounded-lg w-full overflow-hidden">
-                                      <div className="flex items-center gap-2 mb-4">
-                                        {isEditingDisplayName ? (
-                                          <div className="flex items-center gap-2 flex-1">
-                                            <Input
-                                              type="text"
-                                              value={editDisplayName}
-                                              onChange={(e) => setDisplayNames(prev => ({ ...prev, [itemKey]: e.target.value }))}
-                                              className="flex-1"
-                                              placeholder="Item display name"
-                                            />
-                                            <Button 
-                                              size="sm" 
-                                              onClick={() => {
-                                                setEditingDisplayNames(prev => ({ ...prev, [itemKey]: false }));
-                                                // Display name is already saved in state
-                                              }}
-                                            >
-                                              Save
-                                            </Button>
-                                            <Button 
-                                              size="sm" 
-                                              variant="outline" 
-                                              onClick={() => {
-                                                // Reset to original display name on cancel
-                                                setDisplayNames(prev => ({ ...prev, [itemKey]: itemDisplayName }));
-                                                setEditingDisplayNames(prev => ({ ...prev, [itemKey]: false }));
-                                              }}
-                                            >
-                                              Cancel
-                                            </Button>
-                                          </div>
-                                        ) : (
-                                          <div className="flex items-center gap-2 flex-1">
-                                            <h4 className="font-medium">{editDisplayName}</h4>
-                                            <Button
-                                              size="sm"
-                                              variant="ghost"
-                                              onClick={() => {
-                                                // Initialize with current display name if not already set
-                                                if (displayNames[itemKey] === undefined) {
-                                                  setDisplayNames(prev => ({ ...prev, [itemKey]: editDisplayName }));
-                                                }
-                                                setEditingDisplayNames(prev => ({ ...prev, [itemKey]: true }));
-                                              }}
-                                              className="h-6 px-2"
-                                            >
-                                              <Edit3 className="h-3 w-3" />
-                                            </Button>
-                                          </div>
-                                        )}
-                                      </div>
-                                      <div className="space-y-4">
-                                        {collection.properties
-                                          .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-                                          .map((property) => {
-                                          // Try multiple possible property name mappings for extracted data
-                                          const possibleKeys = [
-                                            property.propertyName, // exact match
-                                            property.propertyName.toLowerCase(), // lowercase
-                                            property.propertyName.charAt(0).toLowerCase() + property.propertyName.slice(1), // camelCase
-                                          ];
-                                          
-                                          let originalValue = undefined;
-                                          for (const key of possibleKeys) {
-                                            if (item[key] !== undefined) {
-                                              originalValue = item[key];
-                                              break;
-                                            }
-                                          }
-                                          
-                                          const fieldName = `${collection.collectionName}.${property.propertyName}[${index}]`;
-                                          const validation = getValidation(fieldName);
-                                          
-                                          // Debug logging for validation matching
-                                          if (!validation && originalValue !== undefined && originalValue !== null) {
-                                            console.log(`No validation found for ${fieldName}, available validations:`, validations.map(v => v.fieldName));
-                                          }
-                                          
-                                          // Always show the property, even if no value is extracted
-                                          // Use validation's extractedValue (which includes manual edits), not the original extracted value
-                                          let displayValue = validation?.extractedValue ?? originalValue ?? null;
-                                          if (displayValue === "null" || displayValue === "undefined") {
-                                            displayValue = null;
-                                          }
-                                          return renderFieldWithValidation(fieldName, displayValue);
-                                        })}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </CardContent>
-                </Card>
-              </TabsContent>
 
               {/* Info Tab Content - Single Object View */}
               <TabsContent value="info" className="mt-6">
