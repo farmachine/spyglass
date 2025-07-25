@@ -287,15 +287,15 @@ export default function ProjectCard({ project }: ProjectCardProps) {
               {verificationStats.verified > 0 && (
                 <div className="flex items-center gap-1">
                   <CheckCircle className="h-3.5 w-3.5 text-green-600" />
-                  <span className="text-sm font-medium text-green-700">{verificationStats.verified}</span>
+                  <span className="text-sm font-medium text-black">{verificationStats.verified}</span>
                 </div>
               )}
               
               {/* Unverified Sessions */}
               {verificationStats.unverified > 0 && (
                 <div className="flex items-center gap-1">
-                  <AlertTriangle className="h-3.5 w-3.5 text-red-600" />
-                  <span className="text-sm font-medium text-red-700">{verificationStats.unverified}</span>
+                  <CheckCircle className="h-3.5 w-3.5 text-gray-400" />
+                  <span className="text-sm font-medium text-black">{verificationStats.unverified}</span>
                 </div>
               )}
             </div>
