@@ -451,9 +451,8 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                 <Card className="min-w-[140px]">
                   <CardContent className="pt-1 pb-4">
                     <div className="flex items-start">
-                      <Database className="h-7 w-7 text-blue-600 mt-1" />
+                      <Database className="h-7 w-7 text-slate-700 mt-1" />
                       <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-600">Total {project.mainObjectName || "Session"}s</p>
                         <p className="text-2xl font-bold text-gray-900">{project.sessions.length}</p>
                       </div>
                     </div>
@@ -463,9 +462,8 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                 <Card className="min-w-[140px]">
                   <CardContent className="pt-1 pb-4">
                     <div className="flex items-start">
-                      <AlertTriangle className="h-7 w-7 text-red-600 mt-1" />
+                      <CheckCircle className="h-7 w-7 text-gray-400 mt-1" />
                       <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-600">Unverified</p>
                         <p className="text-2xl font-bold text-gray-900">
                           {verificationStats.in_progress + verificationStats.pending}
                         </p>
@@ -479,7 +477,6 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                     <div className="flex items-start">
                       <CheckCircle className="h-7 w-7 text-green-600 mt-1" />
                       <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-600">Verified</p>
                         <p className="text-2xl font-bold text-gray-900">
                           {verificationStats.verified}
                         </p>

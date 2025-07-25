@@ -1,4 +1,4 @@
-import { Plus, Settings, Search, LayoutDashboard, Shield, Database, AlertTriangle, CheckCircle2, FileText } from "lucide-react";
+import { Plus, Settings, Search, LayoutDashboard, Shield, Database, AlertTriangle, CheckCircle2, CheckCircle, FileText } from "lucide-react";
 import { WaveIcon, DropletIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -242,27 +242,24 @@ export default function Dashboard() {
                     </Card>
                     <Card className="bg-purple-50 border-purple-200">
                       <CardContent className="flex items-center p-3">
-                        <Database className="h-5 w-5 text-gray-600 mr-2" />
+                        <Database className="h-5 w-5 text-slate-700 mr-2" />
                         <div>
-                          <p className="text-xs text-gray-600 font-medium">Sessions</p>
-                          <p className="text-lg font-bold text-gray-600">{statistics.totalSessions}</p>
+                          <p className="text-lg font-bold text-slate-700">{statistics.totalSessions}</p>
                         </div>
                       </CardContent>
                     </Card>
                     <Card className="bg-red-50 border-red-200">
                       <CardContent className="flex items-center p-3">
-                        <AlertTriangle className="h-5 w-5 text-red-600 mr-2" />
+                        <CheckCircle className="h-5 w-5 text-gray-400 mr-2" />
                         <div>
-                          <p className="text-xs text-red-600 font-medium">Unverified</p>
                           <p className="text-lg font-bold text-red-800">{statistics.unverifiedSessions}</p>
                         </div>
                       </CardContent>
                     </Card>
                     <Card className="bg-green-50 border-green-200">
                       <CardContent className="flex items-center p-3">
-                        <CheckCircle2 className="h-5 w-5 text-green-600 mr-2" />
+                        <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
                         <div>
-                          <p className="text-xs text-green-600 font-medium">Verified</p>
                           <p className="text-lg font-bold text-green-800">{statistics.verifiedSessions}</p>
                         </div>
                       </CardContent>

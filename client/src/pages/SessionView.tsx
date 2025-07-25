@@ -1438,9 +1438,8 @@ Thank you for your assistance.`;
                 <Card className="min-w-[140px]">
                   <CardContent className="pt-1 pb-4">
                     <div className="flex items-start">
-                      <Database className="h-7 w-7 text-blue-600 mt-1" />
+                      <Database className="h-7 w-7 text-slate-700 mt-1" />
                       <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-600">Total {project.mainObjectName || "Session"}s</p>
                         <p className="text-2xl font-bold text-gray-900">{project.sessions.length}</p>
                       </div>
                     </div>
@@ -1450,9 +1449,8 @@ Thank you for your assistance.`;
                 <Card className="min-w-[140px]">
                   <CardContent className="pt-1 pb-4">
                     <div className="flex items-start">
-                      <AlertTriangle className="h-7 w-7 text-red-600 mt-1" />
+                      <CheckCircle className="h-7 w-7 text-gray-400 mt-1" />
                       <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-600">Unverified</p>
                         <p className="text-2xl font-bold text-gray-900">
                           {verificationStats.in_progress + verificationStats.pending}
                         </p>
@@ -1466,7 +1464,6 @@ Thank you for your assistance.`;
                     <div className="flex items-start">
                       <CheckCircle className="h-7 w-7 text-green-600 mt-1" />
                       <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-600">Verified</p>
                         <p className="text-2xl font-bold text-gray-900">
                           {verificationStats.verified}
                         </p>
@@ -1534,9 +1531,8 @@ Thank you for your assistance.`;
                     <span className="text-green-600 font-medium text-sm">Verified</span>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1">
-                    <AlertTriangle className="h-4 w-4 text-red-600" />
-                    <span className="text-red-600 font-medium text-sm">Unverified</span>
+                  <div className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-gray-400" />
                   </div>
                 )}
                 
@@ -1546,7 +1542,7 @@ Thank you for your assistance.`;
                     <div 
                       className={`h-2 rounded-full transition-all duration-300 ${
                         getVerificationProgress().percentage === 100 ? 'bg-green-600' : 
-                        getVerificationProgress().percentage > 0 ? 'bg-blue-600' : 'bg-gray-400'
+                        getVerificationProgress().percentage > 0 ? 'bg-green-600' : 'bg-gray-400'
                       }`}
                       style={{ width: `${getVerificationProgress().percentage}%` }}
                     />
