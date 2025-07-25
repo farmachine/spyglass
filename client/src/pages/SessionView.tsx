@@ -1046,6 +1046,8 @@ Thank you for your assistance.`;
     }
   };
 
+
+
   const handleRevertToAI = async (fieldName: string) => {
     const validation = getValidation(fieldName);
     
@@ -1904,7 +1906,87 @@ Thank you for your assistance.`;
                                 })()}
                                 
                                 <div className="pl-6 pr-2">
-                                  {renderFieldContent(field.fieldName, displayValue)}
+                                  {(() => {
+                                    const validation = getValidation(field.fieldName);
+                                    const isEditing = editingField === field.fieldName;
+                                    const fieldType = field.fieldType;
+                                    
+                                    if (isEditing) {
+                                      return (
+                                        <div className="flex items-center gap-2">
+                                          {fieldType === 'DATE' ? (
+                                            <Input
+                                              type="date"
+                                              value={editValue}
+                                              onChange={(e) => setEditValue(e.target.value)}
+                                              className="flex-1"
+                                            />
+                                          ) : fieldType === 'NUMBER' ? (
+                                            <Input
+                                              type="number"
+                                              value={editValue}
+                                              onChange={(e) => setEditValue(e.target.value)}
+                                              className="flex-1"
+                                            />
+                                          ) : fieldType === 'BOOLEAN' ? (
+                                            <Select value={editValue} onValueChange={setEditValue}>
+                                              <SelectTrigger className="flex-1">
+                                                <SelectValue placeholder="Select value" />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="true">True</SelectItem>
+                                                <SelectItem value="false">False</SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                          ) : fieldType === 'TEXTAREA' ? (
+                                            <textarea
+                                              value={editValue}
+                                              onChange={(e) => setEditValue(e.target.value)}
+                                              className="w-full min-h-[100px] p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                              rows={4}
+                                            />
+                                          ) : (
+                                            <Input
+                                              type="text"
+                                              value={editValue}
+                                              onChange={(e) => setEditValue(e.target.value)}
+                                              className="flex-1"
+                                            />
+                                          )}
+                                          <Button size="sm" onClick={() => handleSave(field.fieldName)}>
+                                            Save
+                                          </Button>
+                                          <Button size="sm" variant="outline" onClick={() => setEditingField(null)}>
+                                            Cancel
+                                          </Button>
+                                        </div>
+                                      );
+                                    } else {
+                                      return (
+                                        <div className="flex items-center gap-2">
+                                          <div className="flex-1">
+                                            {fieldType === 'TEXTAREA' ? (
+                                              <div className="whitespace-pre-wrap text-sm text-gray-900 p-2 bg-gray-50 border rounded-md min-h-[60px]">
+                                                {formatValueForDisplay(displayValue, fieldType)}
+                                              </div>
+                                            ) : (
+                                              <span className="text-sm text-gray-900">
+                                                {formatValueForDisplay(displayValue, fieldType)}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() => handleEdit(field.fieldName, displayValue)}
+                                            className="h-6 px-2"
+                                          >
+                                            <Edit3 className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      );
+                                    }
+                                  })()}
                                 </div>
                               </div>
                               
