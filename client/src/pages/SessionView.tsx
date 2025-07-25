@@ -1318,9 +1318,9 @@ Thank you for your assistance.`;
             // Check if field was manually updated by user (uses dedicated manually_updated flag)
             const wasManuallyUpdated = validation.manuallyUpdated;
             
-            // Debug logging for specific MSA field only
-            if (validation.id === '9f48ae6c-b104-41d5-ba49-17dd7b25ffad') {
-              console.log(`MSA Field Debug - Field: ${fieldName}, Status: ${validation.validationStatus}, ManuallyVerified: ${validation.manuallyVerified}, Value: ${validation.extractedValue}, WasManuallyUpdated: ${wasManuallyUpdated}, Full validation object:`, validation);
+            // Debug logging for MSA field specifically
+            if (fieldName === 'MSA ID/Number') {
+              console.log(`INFO VIEW RENDER CHECK - Field: ${fieldName}, ManuallyUpdated: ${validation.manuallyUpdated}, WasManuallyUpdated: ${wasManuallyUpdated}, ValidationID: ${validation.id}, ExtractedValue: ${validation.extractedValue}`);
             }
             
             // Check if field has actual value - if it has a value, it should never show "Not Extracted"
@@ -1635,6 +1635,11 @@ Thank you for your assistance.`;
                                   const wasManuallyUpdated = validation && validation.manuallyUpdated;
                                   const isVerified = validation?.validationStatus === 'verified' || validation?.validationStatus === 'valid';
                                   const score = Math.round(validation?.confidenceScore || 0);
+
+                                  // Debug logging for MSA field in Info view
+                                  if (fieldName === 'MSA ID/Number') {
+                                    console.log(`INFO VIEW INDICATOR - Field: ${fieldName}, ValidationExists: ${!!validation}, WasManuallyUpdated: ${wasManuallyUpdated}, HasValue: ${hasValue}, IsVerified: ${isVerified}, DisplayValue: ${displayValue}`);
+                                  }
 
                                   // Render confidence indicator/verification status to the left of field name
                                   if (isVerified) {
