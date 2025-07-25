@@ -15,7 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import type { FieldValidation } from "@/types/api";
 import NewUpload from "./NewUpload";
-
+import AllData from "./AllData";
 import KnowledgeRules from "./KnowledgeRules";
 import DefineData from "./DefineData";
 import Publishing from "./Publishing";
@@ -28,7 +28,7 @@ interface ProjectLayoutProps {
   projectId: string;
 }
 
-type ActiveTab = "upload" | "knowledge" | "define" | "publishing";
+type ActiveTab = "upload" | "data" | "knowledge" | "define" | "publishing";
 
 export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const [, setLocation] = useLocation();
@@ -116,7 +116,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
           setActiveTab('upload');
           break;
         case 'all-data':
-          setActiveTab('upload');
+          setActiveTab('data');
           break;
         case 'knowledge':
           if (canAccessConfigTabs) setActiveTab('knowledge');
@@ -296,6 +296,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
 
   const navItems = [
     { id: "upload" as const, label: `New ${project.mainObjectName || "Session"}`, icon: DropletIcon, disabled: showWelcomeFlow },
+    { id: "data" as const, label: `All ${project.mainObjectName || "Session"}s`, icon: FlowIcon, disabled: showWelcomeFlow },
     ...(canAccessConfigTabs ? [
       { id: "knowledge" as const, label: "Knowledge/Rules", icon: TideIcon, disabled: showWelcomeFlow },
       { id: "define" as const, label: "Define Data", icon: StreamIcon, disabled: false }, // Define Data always enabled
@@ -309,6 +310,8 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
     switch (activeTab) {
       case "upload":
         return <NewUpload project={project} />;
+      case "data":
+        return <AllData project={project} />;
       case "knowledge":
         return <KnowledgeRules project={project} />;
       case "define":
