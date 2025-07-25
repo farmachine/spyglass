@@ -10,7 +10,16 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**July 24, 2025 (Latest Update)**
+**July 25, 2025 (Latest Update)**
+- ✓ **COLLECTION DISPLAY BUG COMPLETELY RESOLVED**: Fixed critical frontend issue where only first collection item displayed instead of all extracted records
+- ✓ Root cause identified: maxRecordIndex calculation incorrectly used extracted data array length instead of validation record indices
+- ✓ Updated SessionView.tsx to calculate maxRecordIndex based only on validation records from database (authoritative source)
+- ✓ System now correctly displays all collection items: 8 parties with indices 0, 1, 5, 6, 7 instead of just record 0
+- ✓ All extracted companies now visible: "Cogent, Inc.", "3M Company", "FSC CT, Inc.", "Fortune Brands", "Norcraft Companies", etc.
+- ✓ Frontend collection rendering logic now matches database validation records exactly
+- ✓ Multi-document aggregation working perfectly: AI extraction → database storage → complete UI display
+
+**July 24, 2025**
 - ✓ **STEP TABLES CLEANUP COMPLETED**: Removed all unused step-related database tables for cleaner architecture
 - ✓ Deleted `extracted_collection_items`, `extracted_collection_properties`, and `extracted_schema_fields` tables
 - ✓ Foreign key constraints handled properly with correct deletion order to prevent errors
