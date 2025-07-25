@@ -141,6 +141,11 @@
   z-index: 11;
 }
 
+/* Ensure the first active tab extends its white overlay to align with card left border */
+.folder-tabs .tabs-trigger:first-child[data-state="active"]::after {
+  left: -2px;
+}
+
 /* Ensure tab content connects seamlessly and aligns properly */
 .folder-tabs [data-orientation="horizontal"][role="tabpanel"] {
   margin-top: 0 !important;
@@ -157,6 +162,7 @@
   border-radius: 0 8px 8px 8px !important;
   z-index: 1 !important;
   position: relative !important;
+  border-left: 2px solid #e2e8f0 !important;
 }
 
 /* Table text wrapping and spacing */

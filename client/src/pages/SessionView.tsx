@@ -1594,8 +1594,8 @@ Thank you for your assistance.`;
                 })}
               </TabsList>
               {/* Info Tab Content - Single Object View */}
-              <TabsContent value="info" className="mt-0 px-0">
-                <Card className="border-t-0 rounded-tl-none">
+              <TabsContent value="info" className="mt-0 px-0 ml-0">
+                <Card className="border-t-0 rounded-tl-none ml-0">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       {project.mainObjectName || "Session"} Info
@@ -1810,8 +1810,8 @@ Thank you for your assistance.`;
                 if (maxRecordIndex < 0) return null;
 
                 return (
-                  <TabsContent key={collection.id} value={collection.collectionName} className="mt-0 px-0">
-                    <Card className="border-t-0 rounded-tl-none">
+                  <TabsContent key={collection.id} value={collection.collectionName} className="mt-0 px-0 ml-0">
+                    <Card className="border-t-0 rounded-tl-none ml-0">
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           {collection.collectionName}
