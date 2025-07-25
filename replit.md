@@ -11,10 +11,10 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **July 25, 2025 (Latest Update)**
-- ✓ **VERIFICATION UI IMPROVEMENTS COMPLETED**: Enhanced verification display with bigger blue tick icon and updated column naming
-- ✓ Replaced "Verified" badge with larger blue tick icon (h-6 w-6) while maintaining "verify all" functionality
+- ✓ **VERIFICATION UI IMPROVEMENTS COMPLETED**: Enhanced verification display with bigger green tick icon and updated column naming
+- ✓ Replaced "Verified" badge with larger green tick icon (h-5 w-5) matching the style of small ticks while maintaining "verify all" functionality
 - ✓ Updated column header from "Status" to "Accepted" for better clarity in collection tables
-- ✓ Blue tick icon maintains all click functionality for toggling verification status
+- ✓ Green tick icon maintains all click functionality for toggling verification status
 - ✓ **TAB LABELING AND DEFAULT BEHAVIOR ENHANCED**: Updated "Info" tab to "Information" for better clarity and set as default tab
 - ✓ Information tab now loads automatically when users first access session view page for immediate data access
 - ✓ Enhanced tab state initialization from 'all-data' to 'info' ensuring proper first tab selection

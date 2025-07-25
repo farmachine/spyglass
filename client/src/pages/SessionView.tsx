@@ -2027,7 +2027,7 @@ Thank you for your assistance.`;
                                           title={allVerified ? "Click to mark all fields as unverified" : "Click to mark all fields as verified"}
                                         >
                                           {allVerified ? (
-                                            <CheckCircle className="h-6 w-6 text-blue-600" />
+                                            <CheckCircle className="h-5 w-5 text-green-600" />
                                           ) : (
                                             <>
                                               <AlertTriangle className="h-4 w-4 text-red-600" />
