@@ -1576,13 +1576,8 @@ Thank you for your assistance.`;
             </div>
 
             {/* Session Data Tabs */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${1 + project.collections.filter(collection => {
-                const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
-                const validationIndices = collectionValidations.length > 0 ? collectionValidations.map(v => v.recordIndex) : [];
-                const maxRecordIndex = validationIndices.length > 0 ? Math.max(...validationIndices) : -1;
-                return maxRecordIndex >= 0;
-              }).length}, 1fr)` }}>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full folder-tabs">
+              <TabsList className="w-full justify-start">
                 <TabsTrigger value="info">{project.mainObjectName || "Session"} Information</TabsTrigger>
                 {project.collections.map((collection) => {
                   const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
