@@ -1311,10 +1311,8 @@ Thank you for your assistance.`;
             // The validation status 'manual' is set when user actually edits a field
             const wasManuallyUpdated = validation.validationStatus === 'manual';
             
-            // Debug logging for specific fields
-            if (fieldName.includes('MSA') || fieldName.includes('ID') || validation.extractedValue === '12345' || validation.extractedValue === '1234567' || validation.id === '9f48ae6c-b104-41d5-ba49-17dd7b25ffad') {
-              console.log(`Field Debug - Field: ${fieldName}, Status: ${validation.validationStatus}, Value: ${validation.extractedValue}, WasManuallyUpdated: ${wasManuallyUpdated}, ValidationId: ${validation.id}`);
-            }
+            // Debug logging for ALL fields to catch the MSA field
+            console.log(`All Field Debug - Field: ${fieldName}, Status: ${validation.validationStatus}, Value: ${validation.extractedValue}, WasManuallyUpdated: ${wasManuallyUpdated}, ValidationId: ${validation.id}`);
             
             // Check if field has actual value - if it has a value, it should never show "Not Extracted"
             const hasValue = validation.extractedValue !== null && 
