@@ -350,7 +350,7 @@ export default function NewUpload({ project }: NewUploadProps) {
       {/* Header Section */}
       <div className="text-center mb-8">
         <div className="flex justify-center mb-4">
-          <TrendingUp className="h-12 w-12 text-blue-600" />
+          <TrendingUp className="h-12 w-12 text-primary" />
         </div>
         <h2 className="text-2xl font-semibold text-gray-900">Add New {project.mainObjectName || "Session"}</h2>
         <p className="text-gray-600 mt-1">
