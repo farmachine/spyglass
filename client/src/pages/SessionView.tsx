@@ -305,7 +305,7 @@ export default function SessionView() {
     
     setColumnWidths(prev => ({
       ...prev,
-      [resizing.columnId]: newWidth
+      [resizing.columnId]: `${newWidth}px`
     }));
   };
 
@@ -1766,17 +1766,20 @@ Thank you for your assistance.`;
                                 .map((property) => (
                                 <TableHead 
                                   key={property.id} 
-                                  className={`relative ${
-                                    property.fieldType === 'TEXTAREA' ? 'min-w-[400px] max-w-[600px]' : 
-                                    property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? 'min-w-[300px] max-w-[400px]' :
-                                    property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? 'min-w-[280px] max-w-[380px]' :
-                                    property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 'min-w-[200px] max-w-[300px]' :
-                                    property.fieldType === 'TEXT' ? 'min-w-[120px] max-w-[180px]' : 
-                                    property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? 'min-w-[80px] max-w-[120px]' :
-                                    property.propertyName.toLowerCase().includes('status') ? 'min-w-[100px] max-w-[140px]' :
-                                    'min-w-[100px] max-w-[160px]'
-                                  }`}
-                                  style={{ width: columnWidths[`${collection.id}-${property.id}`] || 'auto' }}
+                                  className="relative"
+                                  style={{ 
+                                    width: columnWidths[`${collection.id}-${property.id}`] || (
+                                      property.fieldType === 'TEXTAREA' ? '400px' : 
+                                      property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? '300px' :
+                                      property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? '280px' :
+                                      property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? '200px' :
+                                      property.fieldType === 'TEXT' ? '120px' : 
+                                      property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? '80px' :
+                                      property.propertyName.toLowerCase().includes('status') ? '100px' :
+                                      '100px'
+                                    ),
+                                    minWidth: '80px'
+                                  }}
                                 >
                                   <div className="flex items-center justify-between group">
                                     <button
@@ -1787,7 +1790,7 @@ Thank you for your assistance.`;
                                       {getSortIcon(property.propertyName, collection.id)}
                                     </button>
                                     <div
-                                      className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-500 opacity-0 group-hover:opacity-50 transition-opacity"
+                                      className="column-resizer opacity-0 group-hover:opacity-50 transition-opacity"
                                       onMouseDown={(e) => handleMouseDown(e, `${collection.id}-${property.id}`)}
                                     />
                                   </div>
@@ -1839,16 +1842,23 @@ Thank you for your assistance.`;
                                     }
                                     
                                     return (
-                                      <TableCell key={property.id} className={`relative ${
-                                        property.fieldType === 'TEXTAREA' ? 'min-w-[400px] max-w-[600px] w-auto' : 
-                                        property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? 'min-w-[300px] max-w-[400px] w-auto' :
-                                        property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? 'min-w-[280px] max-w-[380px] w-auto' :
-                                        property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 'min-w-[200px] max-w-[300px] w-auto' :
-                                        property.fieldType === 'TEXT' ? 'min-w-[120px] max-w-[180px] w-auto' : 
-                                        property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? 'min-w-[80px] max-w-[120px] w-auto' :
-                                        property.propertyName.toLowerCase().includes('status') ? 'min-w-[100px] max-w-[140px] w-auto' :
-                                        'min-w-[100px] max-w-[160px] w-auto'
-                                      }`}>
+                                      <TableCell 
+                                        key={property.id} 
+                                        className="relative"
+                                        style={{ 
+                                          width: columnWidths[`${collection.id}-${property.id}`] || (
+                                            property.fieldType === 'TEXTAREA' ? '400px' : 
+                                            property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? '300px' :
+                                            property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? '280px' :
+                                            property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? '200px' :
+                                            property.fieldType === 'TEXT' ? '120px' : 
+                                            property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? '80px' :
+                                            property.propertyName.toLowerCase().includes('status') ? '100px' :
+                                            '100px'
+                                          ),
+                                          minWidth: '80px'
+                                        }}
+                                      >
                                         <div className="relative w-full">
                                           {validation && (
                                             <div className="absolute top-0 right-0 flex flex-col gap-0.5 z-10">
