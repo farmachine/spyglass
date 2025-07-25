@@ -1577,8 +1577,8 @@ Thank you for your assistance.`;
 
             {/* Session Data Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full folder-tabs">
-              <TabsList className="w-full justify-start">
-                <TabsTrigger value="info">{project.mainObjectName || "Session"} Information</TabsTrigger>
+              <TabsList className="w-full justify-start tabs-list">
+                <TabsTrigger value="info" className="tabs-trigger">{project.mainObjectName || "Session"} Information</TabsTrigger>
                 {project.collections.map((collection) => {
                   const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
                   const validationIndices = collectionValidations.length > 0 ? collectionValidations.map(v => v.recordIndex) : [];
@@ -1587,7 +1587,7 @@ Thank you for your assistance.`;
                   if (maxRecordIndex < 0) return null;
                   
                   return (
-                    <TabsTrigger key={collection.id} value={collection.collectionName}>
+                    <TabsTrigger key={collection.id} value={collection.collectionName} className="tabs-trigger">
                       {collection.collectionName}
                     </TabsTrigger>
                   );
