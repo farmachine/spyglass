@@ -1205,9 +1205,13 @@ export class MemStorage implements IStorage {
   }
 
   // Field Validations
-  async getFieldValidations(sessionId: number): Promise<FieldValidation[]> {
+  async getFieldValidations(sessionId: string): Promise<FieldValidation[]> {
+    // Convert string to number for filtering in memory storage
+    const numericId = parseInt(sessionId);
+    if (isNaN(numericId)) return [];
+    
     return Array.from(this.fieldValidations.values())
-      .filter(validation => validation.sessionId === sessionId)
+      .filter(validation => validation.sessionId === numericId)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
