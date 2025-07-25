@@ -1935,16 +1935,15 @@ Thank you for your assistance.`;
                                       >
                                         <div className="relative w-full">
                                           {/* Content */}
-                                          <div className={`table-cell-content w-full pr-6 pb-4 ${
+                                          <div className={`table-cell-content w-full pr-6 ${
                                             property.fieldType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
                                           } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed`}>
                                             {formatValueForDisplay(displayValue, property.fieldType)}
                                           </div>
                                           
-                                          {/* Small indicators overlay */}
+                                          {/* Combined confidence/verification indicator on right edge */}
                                           {validation && (
                                             <>
-                                              {/* Top-right confidence indicator */}
                                               {(() => {
                                                 const wasManuallyUpdated = validation.validationStatus === 'manual';
                                                 const hasValue = validation.extractedValue !== null && 
@@ -1952,15 +1951,37 @@ Thank you for your assistance.`;
                                                                validation.extractedValue !== "" && 
                                                                validation.extractedValue !== "null" && 
                                                                validation.extractedValue !== "undefined";
-                                                
+                                                const isVerified = validation.validationStatus === 'verified' || validation.validationStatus === 'valid';
+                                                const score = Math.round(validation.confidenceScore || 0);
+
                                                 if (wasManuallyUpdated) {
                                                   return (
-                                                    <div className="absolute top-1 right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center text-white text-[8px] font-bold">
-                                                      M
+                                                    <div className="absolute top-1/2 right-1 transform -translate-y-1/2 w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
+                                                      <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
                                                     </div>
                                                   );
+                                                } else if (isVerified) {
+                                                  // Show green tick when verified
+                                                  return (
+                                                    <TooltipProvider>
+                                                      <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                          <button
+                                                            onClick={() => handleFieldVerification(fieldName, false)}
+                                                            className="absolute top-1/2 right-1 transform -translate-y-1/2 w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors"
+                                                            aria-label="Click to unverify"
+                                                          >
+                                                            <span className="text-xs font-bold">✓</span>
+                                                          </button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                          Verified with {score}% confidence
+                                                        </TooltipContent>
+                                                      </Tooltip>
+                                                    </TooltipProvider>
+                                                  );
                                                 } else if (hasValue && validation.confidenceScore) {
-                                                  const score = Math.round(validation.confidenceScore);
+                                                  // Show colored confidence dot when not verified
                                                   const colorClass = score >= 80 ? 'bg-green-500' : 
                                                                    score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
                                                   
@@ -1975,30 +1996,12 @@ Thank you for your assistance.`;
                                                           });
                                                         }
                                                       }}
-                                                      className={`absolute top-1 right-1 ${colorClass} text-white text-[8px] font-bold px-1 py-0.5 rounded cursor-pointer hover:opacity-80 transition-opacity`}
-                                                      title={`Confidence: ${score}% - Click for AI analysis`}
-                                                    >
-                                                      {score}%
-                                                    </button>
+                                                      className={`absolute top-1/2 right-1 transform -translate-y-1/2 w-3 h-3 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity`}
+                                                      title={`${score}% confidence - Click for AI analysis`}
+                                                    />
                                                   );
                                                 }
                                                 return null;
-                                              })()}
-                                              
-                                              {/* Bottom-right verification area */}
-                                              {(() => {
-                                                const isVerified = validation.validationStatus === 'verified' || validation.validationStatus === 'valid';
-                                                return (
-                                                  <button
-                                                    onClick={() => handleFieldVerification(fieldName, !isVerified)}
-                                                    className="absolute bottom-1 right-1 w-4 h-4 flex items-center justify-center hover:bg-gray-100 rounded transition-colors"
-                                                    title={isVerified ? "Click to unverify" : "Click to verify"}
-                                                  >
-                                                    {isVerified && (
-                                                      <span className="text-green-600 text-xs font-bold">✓</span>
-                                                    )}
-                                                  </button>
-                                                );
                                               })()}
                                             </>
                                           )}
