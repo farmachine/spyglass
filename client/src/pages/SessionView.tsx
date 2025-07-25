@@ -1861,7 +1861,7 @@ Thank you for your assistance.`;
                                   </div>
                                 </TableHead>
                               ))}
-                              <TableHead className="w-32 border-r border-gray-300">Status</TableHead>
+                              <TableHead className="w-32 border-r border-gray-300">Accepted</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -2027,10 +2027,7 @@ Thank you for your assistance.`;
                                           title={allVerified ? "Click to mark all fields as unverified" : "Click to mark all fields as verified"}
                                         >
                                           {allVerified ? (
-                                            <>
-                                              <CheckCircle className="h-4 w-4 text-green-600" />
-                                              <span className="text-green-600 font-medium text-sm">Verified</span>
-                                            </>
+                                            <CheckCircle className="h-6 w-6 text-blue-600" />
                                           ) : (
                                             <>
                                               <AlertTriangle className="h-4 w-4 text-red-600" />
