@@ -2,7 +2,7 @@ import React, { useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Upload, X, FileText, AlertCircle, Play, CheckCircle, Clock } from "lucide-react";
+import { Upload, X, FileText, AlertCircle, Play, CheckCircle, Clock, TrendingUp } from "lucide-react";
 import { WaveIcon, DropletIcon, FlowIcon, StreamIcon } from "@/components/SeaIcons";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -349,6 +349,9 @@ export default function NewUpload({ project }: NewUploadProps) {
     <div className="min-h-screen flex flex-col items-center justify-center py-12 px-4">
       {/* Header Section */}
       <div className="text-center mb-8">
+        <div className="flex justify-center mb-4">
+          <TrendingUp className="h-12 w-12 text-blue-600" />
+        </div>
         <h2 className="text-2xl font-semibold text-gray-900">Add New {project.mainObjectName || "Session"}</h2>
         <p className="text-gray-600 mt-1">
           Upload documents for AI-powered data extraction into your organization's desired format.
