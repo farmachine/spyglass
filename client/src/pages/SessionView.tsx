@@ -1511,15 +1511,20 @@ Thank you for your assistance.`;
         {/* Main Content */}
         <div className="flex-1 p-8 overflow-x-hidden">
           <div className="w-full">
-            {/* Session Review Header */}
+            {/* Session Review Header - Now styled like page header */}
             <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-4">
+              <div className="flex items-start space-x-3 flex-1 mr-6">
                 <Link href={`/projects/${projectId}?tab=all-data`}>
-                  <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" className="flex items-center gap-2 mt-1">
                     <ArrowLeft className="h-4 w-4" />
                   </Button>
                 </Link>
-                <h3 className="text-xl font-bold text-gray-900">{project.mainObjectName || "Session"}: {session?.sessionName}</h3>
+                <FileText className="h-8 w-8 text-primary mt-1" />
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <h2 className="text-3xl font-bold">{project.mainObjectName || "Session"}: {session?.sessionName}</h2>
+                  </div>
+                </div>
               </div>
               
               {/* Status and progress bar aligned to right */}
@@ -1579,7 +1584,7 @@ Thank you for your assistance.`;
                 const maxRecordIndex = validationIndices.length > 0 ? Math.max(...validationIndices) : -1;
                 return maxRecordIndex >= 0;
               }).length}, 1fr)` }}>
-                <TabsTrigger value="info">{project.mainObjectName || "Session"} Info</TabsTrigger>
+                <TabsTrigger value="info">{project.mainObjectName || "Session"} Information</TabsTrigger>
                 {project.collections.map((collection) => {
                   const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
                   const validationIndices = collectionValidations.length > 0 ? collectionValidations.map(v => v.recordIndex) : [];
@@ -1600,7 +1605,7 @@ Thank you for your assistance.`;
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <FileText className="h-5 w-5" />
-                      {project.mainObjectName || "Session"} Information
+                      {project.mainObjectName || "Session"} Info
                     </CardTitle>
                     <p className="text-sm text-gray-600">
                       Core information and fields extracted from this {(project.mainObjectName || "session").toLowerCase()}.
@@ -1816,6 +1821,7 @@ Thank you for your assistance.`;
                     <Card>
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
+                          <FileText className="h-5 w-5" />
                           {collection.collectionName}
                           <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
                             {maxRecordIndex + 1} {maxRecordIndex === 0 ? 'item' : 'items'}
