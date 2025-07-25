@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Upload, Database, Brain, Settings, FolderOpen, Home as HomeIcon, FileText, Edit3, Check, X, AlertTriangle, CheckCircle } from "lucide-react";
+import { ArrowLeft, Upload, Database, Brain, Settings, FolderOpen, Home as HomeIcon, TrendingUp, Edit3, Check, X, AlertTriangle, CheckCircle } from "lucide-react";
 import { WaveIcon, FlowIcon, StreamIcon, TideIcon, ShipIcon, DropletIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -338,7 +338,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
         <div className="w-full px-6 py-6">
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-3 flex-1 mr-6">
-              <FileText className="h-8 w-8 text-primary mt-1" />
+              <TrendingUp className="h-8 w-8 text-primary mt-1" />
               <div className="flex-1 space-y-2">
                 {/* Project Title */}
                 <div className="flex items-center space-x-2">

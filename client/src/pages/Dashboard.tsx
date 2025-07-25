@@ -1,4 +1,4 @@
-import { Plus, Settings, Search, LayoutDashboard, Shield, Database, AlertTriangle, CheckCircle2, CheckCircle, FileText } from "lucide-react";
+import { Plus, Settings, Search, LayoutDashboard, Shield, Database, AlertTriangle, CheckCircle2, CheckCircle, TrendingUp } from "lucide-react";
 import { WaveIcon, DropletIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -224,7 +224,7 @@ export default function Dashboard() {
                 ) : statistics ? (
                   <>
                     <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
-                      <FileText className="h-6 w-6 text-primary" />
+                      <TrendingUp className="h-6 w-6 text-primary" />
                       <span className="text-xl font-bold text-gray-900">{statistics.totalProjects}</span>
                     </div>
                     <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">

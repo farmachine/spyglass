@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, FileText, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import * as XLSX from 'xlsx';
 import { Link } from "wouter";
@@ -1417,7 +1417,7 @@ Thank you for your assistance.`;
         <div className="w-full px-6 py-6">
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-3 flex-1 mr-6">
-              <FileText className="h-8 w-8 text-primary mt-1" />
+              <TrendingUp className="h-8 w-8 text-primary mt-1" />
               <div className="flex-1 space-y-2">
                 <div className="flex items-center space-x-2">
                   <h2 className="text-3xl font-bold">{project.name}</h2>

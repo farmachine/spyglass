@@ -1,4 +1,4 @@
-import { Calendar, Settings, Trash2, Copy, Building, Users, Database, CheckCircle, AlertTriangle, FileText } from "lucide-react";
+import { Calendar, Settings, Trash2, Copy, Building, Users, Database, CheckCircle, AlertTriangle, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -202,7 +202,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
           <div className="flex items-start justify-between">
             <div className="flex-1 flex flex-col" onClick={() => setLocation(`/projects/${project.id}`)}>
               <div className="flex items-center gap-2 mb-1">
-                <FileText className="h-5 w-5 text-primary flex-shrink-0" />
+                <TrendingUp className="h-5 w-5 text-primary flex-shrink-0" />
                 <CardTitle className="text-lg font-bold text-black group-hover:text-black/80 transition-colors line-clamp-1">
                   {project.name}
                 </CardTitle>

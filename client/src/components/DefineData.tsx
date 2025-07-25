@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Edit, Trash2, Settings, FileText, Database, Tag, GripVertical, Sparkles } from "lucide-react";
+import { Plus, Edit, Trash2, Settings, Database, Tag, GripVertical, Sparkles } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
