@@ -1618,13 +1618,7 @@ Thank you for your assistance.`;
                                   const score = Math.round(validation?.confidenceScore || 0);
 
                                   // Render confidence indicator/verification status to the left of field name
-                                  if (wasManuallyUpdated) {
-                                    return (
-                                      <div className="w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                                        <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                                      </div>
-                                    );
-                                  } else if (isVerified) {
+                                  if (isVerified) {
                                     // Show green tick when verified - clicking unverifies
                                     return (
                                       <TooltipProvider>
