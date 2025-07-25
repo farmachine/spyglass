@@ -32,14 +32,16 @@ import type {
   ValidationStatus 
 } from "@shared/schema";
 
-// AI Reasoning Modal Component
+// AI Reasoning and Verification Modal Component
 const AIReasoningModal = ({ 
   isOpen, 
   onClose, 
   reasoning, 
   fieldName, 
   confidenceScore,
-  getFieldDisplayName
+  getFieldDisplayName,
+  validation,
+  onVerificationChange
 }: { 
   isOpen: boolean; 
   onClose: () => void; 
@@ -47,8 +49,11 @@ const AIReasoningModal = ({
   fieldName: string; 
   confidenceScore: number;
   getFieldDisplayName: (fieldName: string) => string;
+  validation: FieldValidation | undefined;
+  onVerificationChange: (isVerified: boolean) => void;
 }) => {
   const { toast } = useToast();
+  const isVerified = validation?.validationStatus === 'valid' || validation?.validationStatus === 'verified';
 
   const copyToClipboard = async () => {
     try {
@@ -66,16 +71,21 @@ const AIReasoningModal = ({
     }
   };
 
+  const handleVerificationToggle = (verified: boolean) => {
+    onVerificationChange(verified);
+    onClose();
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Info className="h-5 w-5 text-blue-600" />
-            AI Reasoning - {getFieldDisplayName(fieldName)}
+            AI Analysis - {getFieldDisplayName(fieldName)}
           </DialogTitle>
           <DialogDescription>
-            Confidence Score: {confidenceScore}% - Detailed analysis and suggested resolution
+            Confidence Score: {confidenceScore}% - Detailed analysis and verification options
           </DialogDescription>
         </DialogHeader>
         
@@ -85,15 +95,38 @@ const AIReasoningModal = ({
           </div>
         </div>
         
-        <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={copyToClipboard} className="flex items-center gap-2">
-            <Copy className="h-4 w-4" />
-            Copy to Clipboard
-          </Button>
-          <Button onClick={onClose} className="flex items-center gap-2">
-            <X className="h-4 w-4" />
-            Close
-          </Button>
+        <div className="flex justify-between items-center">
+          <div className="flex gap-3">
+            <Button 
+              variant={isVerified ? "secondary" : "default"}
+              onClick={() => handleVerificationToggle(true)}
+              className="flex items-center gap-2"
+              disabled={isVerified}
+            >
+              <CheckCircle className="h-4 w-4" />
+              {isVerified ? "Verified" : "Verify Field"}
+            </Button>
+            <Button 
+              variant={!isVerified ? "secondary" : "outline"}
+              onClick={() => handleVerificationToggle(false)}
+              className="flex items-center gap-2"
+              disabled={!isVerified}
+            >
+              <AlertTriangle className="h-4 w-4" />
+              {!isVerified ? "Unverified" : "Unverify Field"}
+            </Button>
+          </div>
+          
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={copyToClipboard} className="flex items-center gap-2">
+              <Copy className="h-4 w-4" />
+              Copy
+            </Button>
+            <Button onClick={onClose} className="flex items-center gap-2">
+              <X className="h-4 w-4" />
+              Close
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
@@ -105,54 +138,48 @@ const ConfidenceBadge = ({
   confidenceScore, 
   reasoning, 
   fieldName,
-  getFieldDisplayName
+  getFieldDisplayName,
+  validation,
+  onVerificationChange,
+  isVerified
 }: { 
   confidenceScore: number; 
   reasoning?: string; 
   fieldName: string;
   getFieldDisplayName: (fieldName: string) => string;
+  validation: FieldValidation | undefined;
+  onVerificationChange: (isVerified: boolean) => void;
+  isVerified: boolean;
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   const getConfidenceLevel = (score: number) => {
     if (score >= 80) {
-      return { level: "high", color: "bg-green-100 text-green-800 border-green-200", description: "High confidence" };
+      return { level: "high", color: "bg-green-100 text-green-800 border-green-200 hover:bg-green-200", description: "High confidence" };
     } else if (score >= 50) {
-      return { level: "medium", color: "bg-yellow-100 text-yellow-800 border-yellow-200", description: "Medium confidence" };
+      return { level: "medium", color: "bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200", description: "Medium confidence" };
     } else {
-      return { level: "low", color: "bg-red-100 text-red-800 border-red-200", description: "Low confidence" };
+      return { level: "low", color: "bg-red-100 text-red-800 border-red-200 hover:bg-red-200", description: "Low confidence" };
     }
   };
 
   const confidence = getConfidenceLevel(confidenceScore);
   
   return (
-    <div className="flex items-center gap-2">
-      <span 
-        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${confidence.color}`}
-        title={confidence.description}
+    <div className="relative">
+      <button
+        onClick={() => setIsModalOpen(true)}
+        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors ${confidence.color}`}
+        title={`${confidence.description} - Click for AI analysis and verification`}
       >
         Confidence: {confidenceScore}%
-      </span>
+      </button>
       
-      {reasoning && (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-                aria-label="Click to view detailed AI reasoning"
-                title="Click for detailed AI analysis"
-              >
-                <Info className="h-3 w-3" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="max-w-xs">Click to view detailed AI reasoning and analysis</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+      {/* Verification indicator - green tick in bottom right */}
+      {isVerified && (
+        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-600 rounded-full flex items-center justify-center">
+          <CheckCircle className="h-3 w-3 text-white" />
+        </div>
       )}
       
       {reasoning && (
@@ -163,6 +190,8 @@ const ConfidenceBadge = ({
           fieldName={fieldName}
           confidenceScore={confidenceScore}
           getFieldDisplayName={getFieldDisplayName}
+          validation={validation}
+          onVerificationChange={onVerificationChange}
         />
       )}
     </div>
@@ -527,6 +556,37 @@ export default function SessionView() {
       });
     }
   });
+
+  // Handler for field verification changes
+  const handleFieldVerification = (fieldName: string, isVerified: boolean) => {
+    const validation = getValidation(fieldName);
+    if (!validation) return;
+    
+    const newStatus: ValidationStatus = isVerified ? 'verified' : 'unverified';
+    updateValidationMutation.mutate({
+      id: validation.id,
+      data: { validationStatus: newStatus }
+    });
+  };
+
+  // Handler for bulk item verification (status column click)
+  const handleItemVerification = (collectionName: string, recordIndex: number, isVerified: boolean) => {
+    // Find all fields for this collection item
+    const itemValidations = validations.filter(v => 
+      v.collectionName === collectionName && 
+      v.fieldName.includes(`[${recordIndex}]`)
+    );
+    
+    const newStatus: ValidationStatus = isVerified ? 'verified' : 'unverified';
+    
+    // Update all fields for this item
+    itemValidations.forEach(validation => {
+      updateValidationMutation.mutate({
+        id: validation.id,
+        data: { validationStatus: newStatus }
+      });
+    });
+  };
 
   // Auto-run batch validation after extraction redirect
   useEffect(() => {
@@ -1873,9 +1933,15 @@ Thank you for your assistance.`;
                                           minWidth: '80px'
                                         }}
                                       >
-                                        <div className="relative w-full">
+                                        <div className="space-y-2">
+                                          <div className={`table-cell-content ${
+                                            property.fieldType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
+                                          } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed`}>
+                                            {formatValueForDisplay(displayValue, property.fieldType)}
+                                          </div>
+                                          
                                           {validation && (
-                                            <div className="absolute top-0 right-0 flex flex-col gap-0.5 z-10">
+                                            <div className="flex justify-start">
                                               {(() => {
                                                 const wasManuallyUpdated = validation.validationStatus === 'manual';
                                                 const hasValue = validation.extractedValue !== null && 
@@ -1883,50 +1949,28 @@ Thank you for your assistance.`;
                                                                validation.extractedValue !== "" && 
                                                                validation.extractedValue !== "null" && 
                                                                validation.extractedValue !== "undefined";
+                                                const isVerified = validation.validationStatus === 'verified' || validation.validationStatus === 'valid';
                                                 
                                                 if (wasManuallyUpdated) {
+                                                  return <ManualInputBadge />;
+                                                } else if (hasValue && validation.confidenceScore) {
                                                   return (
-                                                    <div 
-                                                      className="w-2 h-2 rounded-full bg-blue-500 flex items-center justify-center"
-                                                      title="Manual Input"
-                                                    >
-                                                      <span className="text-white text-[8px] font-bold">M</span>
-                                                    </div>
-                                                  );
-                                                } else {
-                                                  const effectiveConfidence = hasValue ? validation.confidenceScore : 0;
-                                                  const confidenceColor = effectiveConfidence >= 80 ? 'bg-green-500' : 
-                                                                        effectiveConfidence >= 50 ? 'bg-yellow-500' : 'bg-red-500';
-                                                  return (
-                                                    <div 
-                                                      className={`w-2 h-2 rounded-full ${confidenceColor}`}
-                                                      title={`Confidence: ${Math.round(effectiveConfidence)}%`}
+                                                    <ConfidenceBadge
+                                                      confidenceScore={validation.confidenceScore}
+                                                      reasoning={validation.aiReasoning}
+                                                      fieldName={fieldName}
+                                                      getFieldDisplayName={getFieldDisplayName}
+                                                      validation={validation}
+                                                      onVerificationChange={(verified) => handleFieldVerification(fieldName, verified)}
+                                                      isVerified={isVerified}
                                                     />
                                                   );
+                                                } else {
+                                                  return <NotExtractedBadge />;
                                                 }
                                               })()}
-                                              {validation.aiReasoning && (
-                                                <button
-                                                  onClick={() => {
-                                                    setSelectedReasoning({
-                                                      reasoning: validation.aiReasoning,
-                                                      fieldName,
-                                                      confidenceScore: validation.confidenceScore || 0
-                                                    });
-                                                  }}
-                                                  className="w-2 h-2 rounded-full bg-blue-100 border border-blue-300 flex items-center justify-center hover:bg-blue-200 transition-colors"
-                                                  title="Click for AI analysis"
-                                                >
-                                                  <Info className="h-1 w-1 text-blue-600" />
-                                                </button>
-                                              )}
                                             </div>
                                           )}
-                                          <div className={`table-cell-content w-full ${validation ? 'pr-4' : ''} ${
-                                            property.fieldType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
-                                          } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed`}>
-                                            {formatValueForDisplay(displayValue, property.fieldType)}
-                                          </div>
                                         </div>
                                       </TableCell>
                                     );
@@ -1942,16 +1986,24 @@ Thank you for your assistance.`;
                                       const allVerified = itemValidations.length > 0 && 
                                         itemValidations.every(v => v?.validationStatus === 'valid' || v?.validationStatus === 'verified');
                                       
-                                      return allVerified ? (
-                                        <div className="flex items-center gap-1">
-                                          <CheckCircle className="h-4 w-4 text-green-600" />
-                                          <span className="text-green-600 font-medium text-sm">Verified</span>
-                                        </div>
-                                      ) : (
-                                        <div className="flex items-center gap-1">
-                                          <AlertTriangle className="h-4 w-4 text-red-600" />
-                                          <span className="text-red-600 font-medium text-sm">Unverified</span>
-                                        </div>
+                                      return (
+                                        <button
+                                          onClick={() => handleItemVerification(collection.collectionName, originalIndex, !allVerified)}
+                                          className="flex items-center gap-1 hover:bg-gray-100 px-2 py-1 rounded transition-colors"
+                                          title={allVerified ? "Click to mark all fields as unverified" : "Click to mark all fields as verified"}
+                                        >
+                                          {allVerified ? (
+                                            <>
+                                              <CheckCircle className="h-4 w-4 text-green-600" />
+                                              <span className="text-green-600 font-medium text-sm">Verified</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <AlertTriangle className="h-4 w-4 text-red-600" />
+                                              <span className="text-red-600 font-medium text-sm">Unverified</span>
+                                            </>
+                                          )}
+                                        </button>
                                       );
                                     })()}
                                   </TableCell>
@@ -1979,6 +2031,8 @@ Thank you for your assistance.`;
           fieldName={selectedReasoning.fieldName}
           confidenceScore={selectedReasoning.confidenceScore}
           getFieldDisplayName={getFieldDisplayName}
+          validation={getValidation(selectedReasoning.fieldName)}
+          onVerificationChange={(verified) => handleFieldVerification(selectedReasoning.fieldName, verified)}
         />
       )}
 
