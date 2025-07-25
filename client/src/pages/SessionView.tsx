@@ -264,7 +264,7 @@ export default function SessionView() {
   const [showValidationDialog, setShowValidationDialog] = useState(false);
   const [validationStep, setValidationStep] = useState<'validating' | 'complete'>('validating');
   const [validationProgress, setValidationProgress] = useState(0);
-  const [activeTab, setActiveTab] = useState('all-data');
+  const [activeTab, setActiveTab] = useState('info');
   const [selectedReasoning, setSelectedReasoning] = useState<{
     reasoning: string;
     fieldName: string;
@@ -1557,13 +1557,12 @@ Thank you for your assistance.`;
 
             {/* Session Data Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${2 + project.collections.filter(collection => {
+              <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${1 + project.collections.filter(collection => {
                 const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
                 const validationIndices = collectionValidations.length > 0 ? collectionValidations.map(v => v.recordIndex) : [];
                 const maxRecordIndex = validationIndices.length > 0 ? Math.max(...validationIndices) : -1;
                 return maxRecordIndex >= 0;
               }).length}, 1fr)` }}>
-                <TabsTrigger value="all-data">All Data</TabsTrigger>
                 <TabsTrigger value="info">{project.mainObjectName || "Session"} Info</TabsTrigger>
                 {project.collections.map((collection) => {
                   const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
@@ -1579,12 +1578,6 @@ Thank you for your assistance.`;
                   );
                 })}
               </TabsList>
-
-              {/* All Data Tab Content */}
-              <TabsContent value="all-data" className="mt-6">
-                <Card className="mb-8">
-                  <CardContent className="space-y-4 pt-4">
-                    {/* Project Schema Fields */}
                     {project.schemaFields.map((field) => {
                       const originalValue = extractedData[field.fieldName];
                       const validation = getValidation(field.fieldName);
