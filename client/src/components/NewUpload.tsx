@@ -473,6 +473,38 @@ export default function NewUpload({ project }: NewUploadProps) {
                     )}
                   />
 
+
+
+                  <Button 
+                    type="submit" 
+                    disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
+                    className="w-full"
+                    onClick={form.handleSubmit((data) => handleSubmit(data, 'automated'))}
+                  >
+                    {isProcessing ? (
+                      <>
+                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <FlowIcon className="h-4 w-4 mr-2" />
+                        Start Extraction
+                      </>
+                    )}
+                  </Button>
+
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
+                    className="w-full bg-white hover:bg-gray-50 text-gray-700 border-gray-300 mt-2"
+                    onClick={form.handleSubmit((data) => handleSubmit(data, 'debug'))}
+                  >
+                    Run in debug mode
+                  </Button>
+
                   <div className="pt-4">
                     <h4 className="font-medium text-gray-900 mb-2">Extraction Schema</h4>
                     <div className="space-y-2">
@@ -513,36 +545,6 @@ export default function NewUpload({ project }: NewUploadProps) {
                       )}
                     </div>
                   </div>
-
-                  <Button 
-                    type="submit" 
-                    disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
-                    className="w-full"
-                    onClick={form.handleSubmit((data) => handleSubmit(data, 'automated'))}
-                  >
-                    {isProcessing ? (
-                      <>
-                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <FlowIcon className="h-4 w-4 mr-2" />
-                        Start Extraction
-                      </>
-                    )}
-                  </Button>
-
-                  <Button 
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
-                    className="w-full bg-white hover:bg-gray-50 text-gray-700 border-gray-300 mt-2"
-                    onClick={form.handleSubmit((data) => handleSubmit(data, 'debug'))}
-                  >
-                    Run in debug mode
-                  </Button>
                 </form>
               </Form>
           </div>
