@@ -690,6 +690,12 @@ export default function SessionView() {
         // Sort by createdAt descending (most recent first) and return the first one
         const bestValidation = validationsWithValues.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
         console.log(`Selected validation with value for ${fieldName}:`, bestValidation.extractedValue);
+        
+        // Debug logging for MSA field specifically
+        if (fieldName === 'MSA ID/Number') {
+          console.log(`MSA Field Debug - ExtractedValue: ${bestValidation.extractedValue}, ManuallyUpdated: ${bestValidation.manuallyUpdated}, ValidationStatus: ${bestValidation.validationStatus}`);
+        }
+        
         return bestValidation;
       }
       
@@ -1325,6 +1331,11 @@ Thank you for your assistance.`;
                            validation.extractedValue !== "undefined";
             
             if (wasManuallyUpdated) {
+              // Debug logging for MSA field
+              if (fieldName === 'MSA ID/Number') {
+                console.log(`INFO VIEW - MSA Field Rendering Blue User Icon - wasManuallyUpdated: ${wasManuallyUpdated}, validation:`, validation);
+              }
+              
               return (
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
@@ -1930,6 +1941,11 @@ Thank you for your assistance.`;
                                                 const score = Math.round(validation.confidenceScore || 0);
 
                                                 if (wasManuallyUpdated) {
+                                                  // Debug logging for MSA field
+                                                  if (fieldName.includes('MSA')) {
+                                                    console.log(`TABLE VIEW - MSA Field Rendering Blue User Icon - wasManuallyUpdated: ${wasManuallyUpdated}, fieldName: ${fieldName}, validation:`, validation);
+                                                  }
+                                                  
                                                   return (
                                                     <div className="absolute top-2 left-1 w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
                                                       <User className="h-2 w-2 text-white" />
