@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Edit, Trash2, Settings, FileText, Database, Tag, GripVertical } from "lucide-react";
+import { Plus, Edit, Trash2, Settings, FileText, Database, Tag, GripVertical, Sparkles } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
   useProjectSchemaFields,
@@ -45,6 +46,10 @@ export default function DefineData({ project }: DefineDataProps) {
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type?: string; id?: number; name?: string }>({ open: false });
   const [mainObjectName, setMainObjectName] = useState(project.mainObjectName || "Session");
   const [isEditingMainObjectName, setIsEditingMainObjectName] = useState(false);
+  
+  // AI Query state
+  const [aiQuery, setAiQuery] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -83,6 +88,36 @@ export default function DefineData({ project }: DefineDataProps) {
   
   // Project mutations
   const updateProject = useUpdateProject();
+  
+  // AI Schema Generation mutation
+  const generateSchemaMutation = useMutation({
+    mutationFn: ({ query }: { query: string }) =>
+      apiRequest(`/api/projects/${project.id}/generate-schema`, {
+        method: "POST",
+        body: JSON.stringify({ query }),
+      }),
+    onSuccess: (data) => {
+      // Invalidate all queries to refresh the UI
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id] });
+      
+      toast({
+        title: "Schema generated successfully",
+        description: `Created ${data.data.schemaFields.length} fields and ${data.data.collections.length} collections.`,
+      });
+      
+      setAiQuery("");
+      setIsGenerating(false);
+    },
+    onError: (error: any) => {
+      console.error("AI schema generation error:", error);
+      toast({
+        title: "Failed to generate schema",
+        description: error.message || "Please try again with a different description.",
+        variant: "destructive",
+      });
+      setIsGenerating(false);
+    },
+  });
 
   // Create mutations that don't invalidate any queries for reordering
   const updateCollectionForReorder = useMutation({
@@ -376,6 +411,21 @@ export default function DefineData({ project }: DefineDataProps) {
     }
   };
 
+  // AI Schema Generation handler
+  const handleGenerateSchema = async () => {
+    if (!aiQuery.trim()) {
+      toast({
+        title: "Query required",
+        description: "Please describe what data you want to collect.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsGenerating(true);
+    await generateSchemaMutation.mutateAsync({ query: aiQuery.trim() });
+  };
+
   // Main object name handlers
   const handleMainObjectNameSave = async () => {
     try {
@@ -430,6 +480,49 @@ export default function DefineData({ project }: DefineDataProps) {
           <p className="text-blue-700 mb-4 text-center">
             To start extracting data from your {project.mainObjectName || "Session"} documents, you'll need to define what information you want to capture.
           </p>
+          
+          {/* AI Schema Generation Section */}
+          <div className="bg-white border border-blue-200 rounded-lg p-4 mb-4 mx-auto max-w-2xl">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="h-5 w-5 text-purple-600" />
+              <h4 className="font-semibold text-purple-900">Generate with AI</h4>
+            </div>
+            <p className="text-sm text-gray-600 mb-3">
+              Describe what data you want to collect and AI will create the complete schema for you.
+            </p>
+            <div className="space-y-3">
+              <Textarea
+                placeholder="e.g., I need to collect party information from NDAs including company names, addresses, and contact details"
+                value={aiQuery}
+                onChange={(e) => setAiQuery(e.target.value)}
+                rows={3}
+                className="resize-none"
+                disabled={isGenerating}
+              />
+              <Button
+                onClick={handleGenerateSchema}
+                disabled={isGenerating || !aiQuery.trim()}
+                className="w-full bg-purple-600 hover:bg-purple-700"
+              >
+                {isGenerating ? (
+                  <>
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                    Generating Schema...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Generate with AI
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+          
+          <div className="text-center mb-4">
+            <span className="text-gray-500 text-sm">or build manually</span>
+          </div>
+          
           <div className="text-left max-w-md mx-auto space-y-2 text-sm text-blue-600">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-blue-400 rounded-full"></div>

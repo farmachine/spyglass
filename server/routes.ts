@@ -449,6 +449,183 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Schema Generation
+  app.post("/api/projects/:projectId/generate-schema", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const projectId = req.params.projectId;
+      const { query } = req.body;
+      
+      if (!query || typeof query !== 'string') {
+        return res.status(400).json({ message: "Query is required" });
+      }
+      
+      // Verify project belongs to user's organization
+      const project = await storage.getProject(projectId, req.user!.organizationId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      console.log(`Generating AI schema for project ${projectId} with query: "${query}"`);
+      
+      // Call Python AI schema generator
+      const python = spawn('python3', ['ai_schema_generator.py', query, projectId]);
+      
+      let output = '';
+      let errorOutput = '';
+      
+      python.stdout.on('data', (data) => {
+        output += data.toString();
+      });
+      
+      python.stderr.on('data', (data) => {
+        errorOutput += data.toString();
+      });
+      
+      python.on('close', async (code) => {
+        if (code !== 0) {
+          console.error('AI schema generation failed:', errorOutput);
+          return res.status(500).json({ 
+            message: "Failed to generate schema", 
+            error: errorOutput 
+          });
+        }
+        
+        try {
+          const result = JSON.parse(output);
+          
+          if (!result.success) {
+            return res.status(500).json({ 
+              message: "AI schema generation failed", 
+              error: result.error 
+            });
+          }
+          
+          const schema = result.schema;
+          console.log('AI generated schema:', JSON.stringify(schema, null, 2));
+          
+          // Create schema fields and collections in database
+          const createdItems = {
+            mainObjectName: schema.main_object_name,
+            schemaFields: [],
+            collections: []
+          };
+          
+          // Update main object name
+          if (schema.main_object_name) {
+            await storage.updateProject(projectId, { 
+              mainObjectName: schema.main_object_name 
+            }, req.user!.organizationId);
+          }
+          
+          // Create schema fields
+          if (schema.schema_fields && Array.isArray(schema.schema_fields)) {
+            for (let i = 0; i < schema.schema_fields.length; i++) {
+              const field = schema.schema_fields[i];
+              const fieldData = {
+                projectId,
+                fieldName: field.field_name,
+                fieldType: field.field_type,
+                description: field.description,
+                autoVerificationConfidence: field.auto_verification_confidence || 80,
+                orderIndex: i
+              };
+              
+              const createdField = await storage.createProjectSchemaField(fieldData);
+              createdItems.schemaFields.push(createdField);
+              
+              // Create extraction rule if provided
+              if (field.extraction_rules) {
+                await storage.createExtractionRule({
+                  projectId,
+                  ruleName: `${field.field_name} Rule`,
+                  ruleDescription: field.extraction_rules,
+                  targetFields: [field.field_name]
+                });
+              }
+            }
+          }
+          
+          // Create collections and their properties
+          if (schema.collections && Array.isArray(schema.collections)) {
+            for (let i = 0; i < schema.collections.length; i++) {
+              const collection = schema.collections[i];
+              const collectionData = {
+                projectId,
+                collectionName: collection.collection_name,
+                description: collection.description,
+                orderIndex: i
+              };
+              
+              const createdCollection = await storage.createObjectCollection(collectionData);
+              
+              // Create properties for this collection
+              if (collection.properties && Array.isArray(collection.properties)) {
+                for (let j = 0; j < collection.properties.length; j++) {
+                  const property = collection.properties[j];
+                  const propertyData = {
+                    collectionId: createdCollection.id,
+                    propertyName: property.property_name,
+                    fieldType: property.field_type,
+                    description: property.description,
+                    autoVerificationConfidence: property.auto_verification_confidence || 80,
+                    orderIndex: j
+                  };
+                  
+                  await storage.createCollectionProperty(propertyData);
+                  
+                  // Create extraction rule if provided
+                  if (property.extraction_rules) {
+                    await storage.createExtractionRule({
+                      projectId,
+                      ruleName: `${collection.collection_name}.${property.property_name} Rule`,
+                      ruleDescription: property.extraction_rules,
+                      targetFields: [`${collection.collection_name}.${property.property_name}`]
+                    });
+                  }
+                }
+              }
+              
+              createdItems.collections.push(createdCollection);
+            }
+          }
+          
+          // Create knowledge document if suggested
+          if (schema.schema_fields?.[0]?.knowledge_documents || schema.collections?.[0]?.properties?.[0]?.knowledge_documents) {
+            const knowledgeDocName = schema.schema_fields?.[0]?.knowledge_documents || schema.collections?.[0]?.properties?.[0]?.knowledge_documents;
+            if (knowledgeDocName && knowledgeDocName !== "Contract Review Playbook") {
+              await storage.createKnowledgeDocument({
+                projectId,
+                displayName: knowledgeDocName,
+                fileName: `${knowledgeDocName.toLowerCase().replace(/\s+/g, '_')}.txt`,
+                fileType: 'text',
+                content: `AI-generated guidance document for ${schema.main_object_name || 'document'} processing.`,
+                fileSize: 100
+              });
+            }
+          }
+          
+          res.json({
+            success: true,
+            message: "Schema generated successfully",
+            data: createdItems
+          });
+          
+        } catch (parseError) {
+          console.error('Failed to parse AI schema generation output:', parseError);
+          console.error('Raw output:', output);
+          res.status(500).json({ 
+            message: "Failed to parse AI response", 
+            error: parseError.message 
+          });
+        }
+      });
+      
+    } catch (error) {
+      console.error("Generate schema error:", error);
+      res.status(500).json({ message: "Failed to generate schema" });
+    }
+  });
+
   // Project Schema Fields
   app.get("/api/projects/:projectId/schema", authenticateToken, async (req: AuthRequest, res) => {
     try {
