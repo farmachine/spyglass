@@ -1309,9 +1309,8 @@ Thank you for your assistance.`;
             
 
             
-            // Only consider it manually updated if it was explicitly marked as manual status
-            // The validation status 'manual' is set when user actually edits a field
-            const wasManuallyUpdated = validation.validationStatus === 'manual';
+            // Check if field was manually updated by user (uses dedicated manually_updated flag)
+            const wasManuallyUpdated = validation.manuallyUpdated;
             
             // Debug logging for specific MSA field only
             if (validation.id === '9f48ae6c-b104-41d5-ba49-17dd7b25ffad') {
@@ -1622,7 +1621,7 @@ Thank you for your assistance.`;
                                   const fieldName = field.fieldName;
                                   const validation = getValidation(fieldName);
                                   const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
-                                  const wasManuallyUpdated = validation && validation.originalValue !== validation.extractedValue && validation.extractedValue !== null;
+                                  const wasManuallyUpdated = validation && validation.manuallyUpdated;
                                   const isVerified = validation?.validationStatus === 'verified' || validation?.validationStatus === 'valid';
                                   const score = Math.round(validation?.confidenceScore || 0);
 
@@ -1921,7 +1920,7 @@ Thank you for your assistance.`;
                                           {validation && (
                                             <>
                                               {(() => {
-                                                const wasManuallyUpdated = validation.validationStatus === 'manual';
+                                                const wasManuallyUpdated = validation.manuallyUpdated;
                                                 const hasValue = validation.extractedValue !== null && 
                                                                validation.extractedValue !== undefined && 
                                                                validation.extractedValue !== "" && 
