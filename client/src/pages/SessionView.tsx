@@ -236,6 +236,11 @@ export default function SessionView() {
   const [validationStep, setValidationStep] = useState<'validating' | 'complete'>('validating');
   const [validationProgress, setValidationProgress] = useState(0);
   const [activeTab, setActiveTab] = useState('all-data');
+  const [selectedReasoning, setSelectedReasoning] = useState<{
+    reasoning: string;
+    fieldName: string;
+    confidenceScore: number;
+  } | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -1697,32 +1702,58 @@ Thank you for your assistance.`;
                                     
                                     return (
                                       <TableCell key={property.id}>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center justify-between">
                                           <span className="flex-1">
                                             {formatValueForDisplay(displayValue, property.fieldType)}
                                           </span>
-                                          {validation && (() => {
-                                            const wasManuallyUpdated = validation.validationStatus === 'manual';
-                                            const hasValue = validation.extractedValue !== null && 
-                                                           validation.extractedValue !== undefined && 
-                                                           validation.extractedValue !== "" && 
-                                                           validation.extractedValue !== "null" && 
-                                                           validation.extractedValue !== "undefined";
-                                            
-                                            if (wasManuallyUpdated) {
-                                              return <ManualInputBadge />;
-                                            } else {
-                                              const effectiveConfidence = hasValue ? validation.confidenceScore : 0;
-                                              return (
-                                                <ConfidenceBadge 
-                                                  confidenceScore={effectiveConfidence} 
-                                                  reasoning={validation.aiReasoning} 
-                                                  fieldName={fieldName} 
-                                                  getFieldDisplayName={getFieldDisplayName} 
-                                                />
-                                              );
-                                            }
-                                          })()}
+                                          {validation && (
+                                            <div className="flex flex-col gap-1 ml-2">
+                                              {(() => {
+                                                const wasManuallyUpdated = validation.validationStatus === 'manual';
+                                                const hasValue = validation.extractedValue !== null && 
+                                                               validation.extractedValue !== undefined && 
+                                                               validation.extractedValue !== "" && 
+                                                               validation.extractedValue !== "null" && 
+                                                               validation.extractedValue !== "undefined";
+                                                
+                                                if (wasManuallyUpdated) {
+                                                  return (
+                                                    <div 
+                                                      className="w-3 h-3 rounded-full bg-blue-500 flex items-center justify-center"
+                                                      title="Manual Input"
+                                                    >
+                                                      <span className="text-white text-xs font-bold">M</span>
+                                                    </div>
+                                                  );
+                                                } else {
+                                                  const effectiveConfidence = hasValue ? validation.confidenceScore : 0;
+                                                  const confidenceColor = effectiveConfidence >= 80 ? 'bg-green-500' : 
+                                                                        effectiveConfidence >= 50 ? 'bg-yellow-500' : 'bg-red-500';
+                                                  return (
+                                                    <div 
+                                                      className={`w-3 h-3 rounded-full ${confidenceColor}`}
+                                                      title={`Confidence: ${Math.round(effectiveConfidence)}%`}
+                                                    />
+                                                  );
+                                                }
+                                              })()}
+                                              {validation.aiReasoning && (
+                                                <button
+                                                  onClick={() => {
+                                                    setSelectedReasoning({
+                                                      reasoning: validation.aiReasoning,
+                                                      fieldName,
+                                                      confidenceScore: validation.confidenceScore || 0
+                                                    });
+                                                  }}
+                                                  className="w-3 h-3 rounded-full bg-blue-100 border border-blue-300 flex items-center justify-center hover:bg-blue-200 transition-colors"
+                                                  title="Click for AI analysis"
+                                                >
+                                                  <Info className="h-2 w-2 text-blue-600" />
+                                                </button>
+                                              )}
+                                            </div>
+                                          )}
                                         </div>
                                       </TableCell>
                                     );
@@ -1765,6 +1796,18 @@ Thank you for your assistance.`;
           </div>
         </div>
       </div>
+
+      {/* AI Reasoning Modal */}
+      {selectedReasoning && (
+        <AIReasoningModal 
+          isOpen={!!selectedReasoning}
+          onClose={() => setSelectedReasoning(null)}
+          reasoning={selectedReasoning.reasoning}
+          fieldName={selectedReasoning.fieldName}
+          confidenceScore={selectedReasoning.confidenceScore}
+          getFieldDisplayName={getFieldDisplayName}
+        />
+      )}
 
       {/* Data Report Dialog */}
       <Dialog open={showReasoningDialog} onOpenChange={setShowReasoningDialog}>
