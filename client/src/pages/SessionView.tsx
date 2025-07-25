@@ -2029,10 +2029,7 @@ Thank you for your assistance.`;
                                           {allVerified ? (
                                             <CheckCircle className="h-5 w-5 text-green-600" />
                                           ) : (
-                                            <>
-                                              <AlertTriangle className="h-4 w-4 text-red-600" />
-                                              <span className="text-red-600 font-medium text-sm">Unverified</span>
-                                            </>
+                                            <CheckCircle className="h-5 w-5 text-gray-400" />
                                           )}
                                         </button>
                                       );
