@@ -1664,11 +1664,12 @@ Thank you for your assistance.`;
                                 .map((property) => (
                                 <TableHead key={property.id} className={
                                   property.fieldType === 'TEXTAREA' ? 'min-w-[400px] max-w-[600px]' : 
-                                  property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? 'min-w-[350px] max-w-[500px]' :
+                                  property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? 'min-w-[300px] max-w-[400px]' :
+                                  property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? 'min-w-[280px] max-w-[380px]' :
                                   property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 'min-w-[200px] max-w-[300px]' :
                                   property.fieldType === 'TEXT' ? 'min-w-[120px] max-w-[180px]' : 
                                   property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? 'min-w-[80px] max-w-[120px]' :
-                                  property.propertyName.toLowerCase().includes('status') || property.propertyName.toLowerCase().includes('action') ? 'min-w-[100px] max-w-[140px]' :
+                                  property.propertyName.toLowerCase().includes('status') ? 'min-w-[100px] max-w-[140px]' :
                                   'min-w-[100px] max-w-[160px]'
                                 }>
                                   {property.propertyName}
@@ -1713,11 +1714,12 @@ Thank you for your assistance.`;
                                     return (
                                       <TableCell key={property.id} className={`relative ${
                                         property.fieldType === 'TEXTAREA' ? 'min-w-[400px] max-w-[600px] w-auto' : 
-                                        property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? 'min-w-[350px] max-w-[500px] w-auto' :
+                                        property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? 'min-w-[300px] max-w-[400px] w-auto' :
+                                        property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? 'min-w-[280px] max-w-[380px] w-auto' :
                                         property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 'min-w-[200px] max-w-[300px] w-auto' :
                                         property.fieldType === 'TEXT' ? 'min-w-[120px] max-w-[180px] w-auto' : 
                                         property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? 'min-w-[80px] max-w-[120px] w-auto' :
-                                        property.propertyName.toLowerCase().includes('status') || property.propertyName.toLowerCase().includes('action') ? 'min-w-[100px] max-w-[140px] w-auto' :
+                                        property.propertyName.toLowerCase().includes('status') ? 'min-w-[100px] max-w-[140px] w-auto' :
                                         'min-w-[100px] max-w-[160px] w-auto'
                                       }`}>
                                         <div className="relative w-full">
