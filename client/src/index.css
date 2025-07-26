@@ -14,7 +14,7 @@
   --card-foreground: hsl(223, 84%, 18%); /* #0F172A */
   --border: hsl(214, 32%, 91%); /* Light border */
   --input: hsl(214, 32%, 91%); /* Light input border */
-  --primary: hsl(199, 89%, 48%); /* #0EA5E9 - Sea Blue */
+  --primary: hsl(225, 35%, 48%); /* #4F63A4 - Slate Blue */
   --primary-foreground: hsl(0, 0%, 100%); /* White text on primary */
   --secondary: hsl(199, 95%, 74%); /* #BAE6FD - Lighter blue */
   --secondary-foreground: hsl(223, 84%, 18%); /* Dark text on light secondary */
@@ -22,7 +22,7 @@
   --accent-foreground: hsl(223, 84%, 18%); /* #0F172A */
   --destructive: hsl(0, 84%, 60%); /* #EF4444 - Error Red */
   --destructive-foreground: hsl(0, 0%, 100%);
-  --ring: hsl(199, 89%, 48%); /* Primary blue for focus rings */
+  --ring: hsl(225, 35%, 48%); /* Primary slate blue for focus rings */
   --radius: 0.5rem;
   
   /* Custom Flow Capture colors */
@@ -41,7 +41,7 @@
   --card-foreground: hsl(0, 0%, 98%);
   --border: hsl(240, 3.7%, 15.9%);
   --input: hsl(240, 3.7%, 15.9%);
-  --primary: hsl(199, 89%, 48%); /* Keep sea blue in dark mode */
+  --primary: hsl(225, 35%, 48%); /* Keep slate blue in dark mode */
   --primary-foreground: hsl(0, 0%, 100%);
   --secondary: hsl(240, 3.7%, 15.9%);
   --secondary-foreground: hsl(0, 0%, 98%);
@@ -49,7 +49,7 @@
   --accent-foreground: hsl(0, 0%, 98%);
   --destructive: hsl(0, 62.8%, 30.6%);
   --destructive-foreground: hsl(0, 0%, 98%);
-  --ring: hsl(199, 89%, 48%); /* Sea blue for focus rings */
+  --ring: hsl(225, 35%, 48%); /* Slate blue for focus rings */
   --radius: 0.5rem;
   
   /* Custom Flow Capture colors for dark mode */

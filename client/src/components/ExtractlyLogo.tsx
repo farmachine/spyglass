@@ -29,7 +29,7 @@ export default function ExtractlyLogo({ className = "", showText = true, size = 
           {/* First wave line */}
           <path
             d="M2 6 Q6 3 10 6 Q14 9 18 6 Q20 5 22 6"
-            stroke="#0EA5E9"
+            stroke="#4F63A4"
             strokeWidth="1.5"
             strokeLinecap="round"
             fill="none"
@@ -38,7 +38,7 @@ export default function ExtractlyLogo({ className = "", showText = true, size = 
           {/* Second wave line */}
           <path
             d="M2 10 Q6 7 10 10 Q14 13 18 10 Q20 9 22 10"
-            stroke="#38BDF8"
+            stroke="#6366F1"
             strokeWidth="1.5"
             strokeLinecap="round"
             fill="none"
@@ -66,12 +66,12 @@ export default function ExtractlyLogo({ className = "", showText = true, size = 
         >
           <defs>
             <linearGradient id="waveGradient1" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#0EA5E9" />
-              <stop offset="100%" stopColor="#0284C7" />
+              <stop offset="0%" stopColor="#4F63A4" />
+              <stop offset="100%" stopColor="#3F4B85" />
             </linearGradient>
             <linearGradient id="waveGradient2" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#38BDF8" />
-              <stop offset="100%" stopColor="#0EA5E9" />
+              <stop offset="0%" stopColor="#6366F1" />
+              <stop offset="100%" stopColor="#4F63A4" />
             </linearGradient>
           </defs>
           
