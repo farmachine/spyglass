@@ -280,7 +280,8 @@ export default function Dashboard() {
               {isAdmin && (
                 <Button
                   onClick={() => setCreateDialogOpen(true)}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  size="sm"
+                  className="bg-primary hover:bg-primary/90 px-3 py-1.5 h-8"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   New Project
