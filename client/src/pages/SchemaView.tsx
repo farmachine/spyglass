@@ -486,8 +486,154 @@ ${error instanceof Error ? error.message : 'Unknown error'}
 
 
 
-  // Function to call Gemini directly using consolidated document content
+  // State for background processing progress
+  const [backgroundProgress, setBackgroundProgress] = useState<{
+    isRunning: boolean;
+    progress: number;
+    currentStep: string;
+    error?: string;
+  }>({ isRunning: false, progress: 0, currentStep: '' });
+
+  // Function to start background extraction
   const handleGeminiExtraction = async () => {
+    if (!session?.fileMetadata) {
+      setError("No documents uploaded for this session");
+      return;
+    }
+    
+    setIsProcessing(true);
+    setBackgroundProgress({ isRunning: true, progress: 0, currentStep: 'Starting extraction...' });
+    setError(null);
+    
+    try {
+      // Parse file metadata from the session
+      const files = JSON.parse(session.fileMetadata || '[]');
+      
+      console.log('BACKGROUND_EXTRACTION: Starting with files:', files.length);
+      
+      // Start background extraction
+      const startResponse = await apiRequest(`/api/sessions/${sessionId}/extract-async`, {
+        method: 'POST',
+        body: JSON.stringify({ 
+          files: files,
+          project_data: { projectId: session.projectId, id: session.projectId }
+        }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (startResponse.sessionId) {
+        console.log('BACKGROUND_EXTRACTION: Started successfully, polling for progress');
+        
+        // Start polling for progress
+        const pollInterval = setInterval(async () => {
+          try {
+            const statusResponse = await apiRequest(`/api/sessions/${sessionId}/status`);
+            
+            console.log('BACKGROUND_EXTRACTION: Status update:', statusResponse);
+            
+            setBackgroundProgress({
+              isRunning: statusResponse.status === 'processing',
+              progress: statusResponse.progress || 0,
+              currentStep: statusResponse.currentStep || 'Processing...',
+              error: statusResponse.errorMessage
+            });
+            
+            // Check if completed or failed
+            if (statusResponse.status === 'completed') {
+              clearInterval(pollInterval);
+              setIsProcessing(false);
+              setBackgroundProgress({ isRunning: false, progress: 100, currentStep: 'Extraction completed successfully!' });
+              
+              setGeminiResponse(`=== BACKGROUND EXTRACTION COMPLETED ===
+
+✅ Extraction completed successfully!
+📊 Documents processed: ${statusResponse.documentCount || 'Unknown'}
+⏱️ Processing time: Completed in background
+
+The extracted data has been saved to the database.
+You can now review the results by navigating to the session page.
+
+=== END RESULTS ===`);
+              
+              // Optional: Auto-redirect after success
+              setTimeout(() => {
+                setLocation(`/sessions/${sessionId}`);
+              }, 3000);
+              
+            } else if (statusResponse.status === 'error') {
+              clearInterval(pollInterval);
+              setIsProcessing(false);
+              setBackgroundProgress({ 
+                isRunning: false, 
+                progress: 0, 
+                currentStep: 'Extraction failed',
+                error: statusResponse.errorMessage 
+              });
+              
+              setGeminiResponse(`=== BACKGROUND EXTRACTION FAILED ===
+
+❌ Extraction failed: ${statusResponse.errorMessage || 'Unknown error'}
+
+Please try again or contact support if the issue persists.
+
+=== END ERROR ===`);
+            }
+            
+          } catch (pollError) {
+            console.error('BACKGROUND_EXTRACTION: Polling error:', pollError);
+            clearInterval(pollInterval);
+            setIsProcessing(false);
+            setBackgroundProgress({ 
+              isRunning: false, 
+              progress: 0, 
+              currentStep: 'Status check failed',
+              error: 'Failed to check extraction status' 
+            });
+          }
+        }, 3000); // Poll every 3 seconds
+        
+        // Safety timeout after 5 minutes
+        setTimeout(() => {
+          clearInterval(pollInterval);
+          if (backgroundProgress.isRunning) {
+            setIsProcessing(false);
+            setBackgroundProgress({ 
+              isRunning: false, 
+              progress: 0, 
+              currentStep: 'Extraction timed out',
+              error: 'Extraction took too long and was cancelled' 
+            });
+          }
+        }, 300000); // 5 minutes timeout
+        
+      } else {
+        setGeminiResponse(`=== BACKGROUND EXTRACTION ERROR ===
+
+❌ Failed to start extraction: ${startResponse.message || 'Unknown error'}
+
+Please try again or contact support if the issue persists.
+
+=== END ERROR ===`);
+        setIsProcessing(false);
+        setBackgroundProgress({ isRunning: false, progress: 0, currentStep: 'Failed to start extraction' });
+      }
+      
+    } catch (error) {
+      console.error('BACKGROUND_EXTRACTION: Error starting extraction:', error);
+      setGeminiResponse(`=== BACKGROUND EXTRACTION ERROR ===
+
+❌ Failed to start extraction: ${error instanceof Error ? error.message : 'Unknown error'}
+
+Please try again or contact support if the issue persists.
+
+=== END ERROR ===`);
+      setIsProcessing(false);
+      setBackgroundProgress({ isRunning: false, progress: 0, currentStep: 'Failed to start extraction' });
+    }
+  };
+
+  // Legacy function for old Gemini endpoint (keeping for compatibility)
+  const handleLegacyGeminiExtraction = async () => {
     if (!documentContent) {
       setGeminiResponse("=== ERROR ===\n\nNo document content available. Please wait for document extraction to complete.\n\n=== END ERROR ===");
       return;
@@ -528,7 +674,7 @@ ${response.error || 'Unknown error occurred'}
 === END ERROR ===`);
       }
     } catch (error) {
-      console.error('Gemini extraction failed:', error);
+      console.error('LEGACY_EXTRACTION: Gemini extraction failed:', error);
       setGeminiResponse(`=== API CALL ERROR ===
 
 ${error instanceof Error ? error.message : 'Unknown error'}
@@ -1215,21 +1361,82 @@ ${error instanceof Error ? error.message : 'Unknown error'}
         <div style={{ marginBottom: '10px', fontWeight: 'bold' }}>
           STEP 2 COMPLETE: Schema & Prompt Generated
         </div>
+        {/* Background Processing Progress Bar */}
+        {backgroundProgress.isRunning && (
+          <div style={{ 
+            marginBottom: '20px',
+            padding: '15px',
+            backgroundColor: '#e7f3ff',
+            border: '2px solid #4F63A4',
+            borderRadius: '8px'
+          }}>
+            <div style={{ 
+              marginBottom: '10px',
+              fontWeight: 'bold',
+              color: '#4F63A4'
+            }}>
+              🔄 Background Processing
+            </div>
+            <div style={{ 
+              marginBottom: '8px',
+              fontSize: '14px'
+            }}>
+              {backgroundProgress.currentStep}
+            </div>
+            <div style={{
+              width: '100%',
+              backgroundColor: '#e0e0e0',
+              borderRadius: '10px',
+              height: '20px',
+              overflow: 'hidden',
+              marginBottom: '5px'
+            }}>
+              <div style={{
+                width: `${backgroundProgress.progress}%`,
+                backgroundColor: '#4F63A4',
+                height: '100%',
+                borderRadius: '10px',
+                transition: 'width 0.3s ease'
+              }}></div>
+            </div>
+            <div style={{ 
+              fontSize: '12px',
+              color: '#666',
+              textAlign: 'right'
+            }}>
+              {backgroundProgress.progress}% complete
+            </div>
+            {backgroundProgress.error && (
+              <div style={{ 
+                marginTop: '10px',
+                padding: '8px',
+                backgroundColor: '#f8d7da',
+                color: '#721c24',
+                borderRadius: '4px',
+                fontSize: '14px'
+              }}>
+                ❌ Error: {backgroundProgress.error}
+              </div>
+            )}
+          </div>
+        )}
+
         <button 
           onClick={handleGeminiExtraction}
-          disabled={isProcessing}
+          disabled={isProcessing || backgroundProgress.isRunning}
           style={{
             padding: '12px 24px',
             fontSize: '16px',
             fontWeight: 'bold',
-            backgroundColor: isProcessing ? '#6c757d' : '#28a745',
+            backgroundColor: (isProcessing || backgroundProgress.isRunning) ? '#6c757d' : '#4F63A4',
             color: 'white',
             border: 'none',
             borderRadius: '4px',
-            cursor: isProcessing ? 'not-allowed' : 'pointer'
+            cursor: (isProcessing || backgroundProgress.isRunning) ? 'not-allowed' : 'pointer'
           }}
         >
-          {isProcessing ? 'PROCESSING...' : 'START EXTRACTION'}
+          {backgroundProgress.isRunning ? 'PROCESSING IN BACKGROUND...' : 
+           isProcessing ? 'PROCESSING...' : 'START EXTRACTION'}
         </button>
       </div>
 

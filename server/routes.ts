@@ -2917,7 +2917,218 @@ print(json.dumps(results))
     }
   });
 
-  // AI Extraction Endpoint
+  // BACKGROUND PROCESSING: Start async extraction
+  app.post("/api/sessions/:sessionId/extract-async", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const { files, project_data } = req.body;
+      
+      console.log(`ASYNC_EXTRACTION: Starting background extraction for session ${sessionId}`);
+      
+      // Update session status to processing
+      await storage.updateExtractionSession(sessionId, {
+        status: "processing",
+        processingProgress: 0,
+        processingStep: "Initializing extraction..."
+      });
+      
+      // Start background processing without waiting
+      setImmediate(async () => {
+        try {
+          // Update progress: File processing
+          await storage.updateExtractionSession(sessionId, {
+            processingProgress: 25,
+            processingStep: "Processing documents..."
+          });
+          
+          const projectId = project_data?.projectId || project_data?.id;
+          const convertedFiles = (files || []).map((file: any) => ({
+            file_name: file.name,
+            file_content: file.content,
+            mime_type: file.type
+          }));
+          
+          // Update progress: AI extraction
+          await storage.updateExtractionSession(sessionId, {
+            processingProgress: 50,
+            processingStep: "AI data extraction in progress..."
+          });
+          
+          const [project, extractionRules, knowledgeDocuments] = await Promise.all([
+            storage.getProjectWithDetails(projectId),
+            storage.getExtractionRules(projectId),
+            storage.getKnowledgeDocuments(projectId)
+          ]);
+          
+          const extractionData = {
+            session_id: sessionId,
+            files: convertedFiles,
+            project_schema: project,
+            extraction_rules: extractionRules,
+            knowledge_documents: knowledgeDocuments
+          };
+          
+          // Update progress: Processing with AI
+          await storage.updateExtractionSession(sessionId, {
+            processingProgress: 75,
+            processingStep: "Analyzing documents with AI..."
+          });
+          
+          // Run AI extraction
+          const { spawn } = await import('child_process');
+          const python = spawn('python3', ['-c', `
+import sys
+import json
+from ai_extraction import process_extraction_session
+
+# Read input data
+input_data = json.loads(sys.stdin.read())
+
+# Run AI extraction
+result = process_extraction_session(input_data)
+print(json.dumps(result))
+`], {
+            stdio: ['pipe', 'pipe', 'pipe']
+          });
+          
+          python.stdin.write(JSON.stringify(extractionData));
+          python.stdin.end();
+          
+          let pythonOutput = '';
+          let errorOutput = '';
+          
+          python.stdout.on('data', (data) => {
+            pythonOutput += data.toString();
+          });
+          
+          python.stderr.on('data', (data) => {
+            errorOutput += data.toString();
+          });
+          
+          python.on('close', async (code) => {
+            try {
+              if (code !== 0) {
+                console.error(`ASYNC_EXTRACTION: Python process failed with code ${code}`);
+                console.error(`ASYNC_EXTRACTION: Error output: ${errorOutput}`);
+                await storage.updateExtractionSession(sessionId, {
+                  status: "error",
+                  processingProgress: 0,
+                  processingStep: "Extraction failed",
+                  errorMessage: errorOutput || "Unknown error occurred"
+                });
+                return;
+              }
+              
+              const extractionResults = JSON.parse(pythonOutput);
+              
+              if (extractionResults.success) {
+                // Update progress: Saving results
+                await storage.updateExtractionSession(sessionId, {
+                  processingProgress: 90,
+                  processingStep: "Saving extraction results..."
+                });
+                
+                // Save results to database
+                await storage.updateExtractionSession(sessionId, {
+                  status: "completed",
+                  extractedData: JSON.stringify(extractionResults.extracted_data || {}),
+                  documentCount: extractionResults.document_count || 0,
+                  processingProgress: 100,
+                  processingStep: "Extraction completed successfully"
+                });
+                
+                // Save field validations
+                if (extractionResults.field_validations) {
+                  for (const validation of extractionResults.field_validations) {
+                    await storage.createFieldValidation({
+                      sessionId,
+                      fieldType: validation.field_type,
+                      fieldId: validation.field_id,
+                      collectionName: validation.collection_name,
+                      recordIndex: validation.record_index || 0,
+                      extractedValue: validation.extracted_value,
+                      originalExtractedValue: validation.extracted_value,
+                      originalConfidenceScore: validation.confidence_score,
+                      originalAiReasoning: validation.ai_reasoning,
+                      validationStatus: validation.validation_status || "unverified",
+                      aiReasoning: validation.ai_reasoning,
+                      confidenceScore: validation.confidence_score,
+                      documentSource: validation.document_source,
+                      documentSections: JSON.stringify(validation.document_sections || [])
+                    });
+                  }
+                }
+                
+                console.log(`ASYNC_EXTRACTION: Successfully completed extraction for session ${sessionId}`);
+              } else {
+                await storage.updateExtractionSession(sessionId, {
+                  status: "error",
+                  processingProgress: 0,
+                  processingStep: "AI extraction failed",
+                  errorMessage: extractionResults.error || "Unknown AI error"
+                });
+              }
+            } catch (parseError) {
+              console.error(`ASYNC_EXTRACTION: Failed to parse results: ${parseError.message}`);
+              await storage.updateExtractionSession(sessionId, {
+                status: "error",
+                processingProgress: 0,
+                processingStep: "Failed to process results",
+                errorMessage: parseError.message
+              });
+            }
+          });
+          
+        } catch (backgroundError) {
+          console.error(`ASYNC_EXTRACTION: Background process error: ${backgroundError.message}`);
+          await storage.updateExtractionSession(sessionId, {
+            status: "error",
+            processingProgress: 0,
+            processingStep: "Background processing failed",
+            errorMessage: backgroundError.message
+          });
+        }
+      });
+      
+      // Return immediately
+      res.json({ 
+        sessionId,
+        status: "processing",
+        message: "Extraction started in background",
+        estimatedTime: "30-60 seconds"
+      });
+      
+    } catch (error) {
+      console.error("ASYNC_EXTRACTION: Failed to start background extraction:", error);
+      res.status(500).json({ message: "Failed to start background extraction process" });
+    }
+  });
+
+  // STATUS POLLING: Get extraction progress
+  app.get("/api/sessions/:sessionId/status", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const session = await storage.getExtractionSession(sessionId);
+      
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      
+      res.json({
+        sessionId,
+        status: session.status,
+        progress: session.processingProgress || 0,
+        currentStep: session.processingStep || "Initializing...",
+        errorMessage: session.errorMessage,
+        documentCount: session.documentCount
+      });
+    } catch (error) {
+      console.error("STATUS_POLLING: Error getting session status:", error);
+      res.status(500).json({ message: "Failed to get session status" });
+    }
+  });
+
+  // AI Extraction Endpoint (LEGACY - keeping for compatibility)
   app.post("/api/sessions/:sessionId/extract", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
@@ -2975,13 +3186,13 @@ print(json.dumps(results))
 import sys
 import json
 sys.path.append('.')
-from ai_extraction import run_full_document_extraction
+from ai_extraction import process_extraction_session
 
 # Read input data
 input_data = json.loads(sys.stdin.read())
 
 # Run AI extraction
-result = run_full_document_extraction(input_data)
+result = process_extraction_session(input_data)
 
 # Output result
 print(json.dumps(result))

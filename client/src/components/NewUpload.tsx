@@ -282,28 +282,94 @@ export default function NewUpload({ project }: NewUploadProps) {
       // Mark files as completed
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
 
-      // Show success briefly before redirect
+      // Show success completion
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       if (textExtractionResult && session?.id) {
+        // Step 4: Start Background AI Extraction
+        setProcessingStep('extracting');
+        setProcessingProgress(0);
+        
         toast({
-          title: "Text extraction complete",
-          description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
+          title: "Starting AI Extraction",
+          description: "Beginning background extraction process. This may take a few minutes.",
         });
 
-        // Close dialog and redirect to schema view with mode parameter
-        setShowProcessingDialog(false);
-        const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
-        const urlWithMode = `${redirectUrl}?mode=${mode}`;
+        // Start background extraction
+        const extractionResponse = await apiRequest(`/api/sessions/${session.id}/extract-async`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
 
-        setLocation(urlWithMode);
+        if (extractionResponse.success) {
+          // Poll for extraction status
+          let attempts = 0;
+          const maxAttempts = 100; // 5 minutes with 3-second polling
+          
+          const pollStatus = async (): Promise<void> => {
+            try {
+              if (attempts >= maxAttempts) {
+                throw new Error("Extraction timeout - process is taking longer than expected");
+              }
+
+              const statusResponse = await apiRequest(`/api/sessions/${session.id}/status`);
+              
+              if (statusResponse.status === 'completed') {
+                // Extraction completed successfully
+                setProcessingStep('complete');
+                setProcessingProgress(100);
+                
+                setTimeout(() => {
+                  setShowProcessingDialog(false);
+                  setIsProcessing(false);
+                  
+                  // Reset form and files for next upload
+                  form.reset();
+                  setSelectedFiles([]);
+                  
+                  toast({
+                    title: "Extraction Complete",
+                    description: `AI extraction completed successfully! Navigate to the session to review results.`,
+                  });
+                }, 2000);
+                return;
+              } else if (statusResponse.status === 'failed') {
+                throw new Error(statusResponse.errorMessage || "Extraction failed");
+              } else if (statusResponse.status === 'processing') {
+                // Update progress
+                const progress = statusResponse.processingProgress || 0;
+                setProcessingProgress(progress);
+                
+                // Continue polling
+                attempts++;
+                setTimeout(pollStatus, 3000);
+              } else {
+                // Status is 'pending' or unknown, keep polling
+                attempts++;
+                setTimeout(pollStatus, 3000);
+              }
+            } catch (error) {
+              console.error("Error polling extraction status:", error);
+              setShowProcessingDialog(false);
+              setIsProcessing(false);
+              
+              toast({
+                title: "Extraction Status Error",
+                description: "Could not check extraction status. Please check the session manually.",
+                variant: "destructive",
+              });
+            }
+          };
+
+          // Start polling
+          setTimeout(pollStatus, 3000);
+        } else {
+          throw new Error("Failed to start background extraction");
+        }
       } else {
         throw new Error("Text extraction completed but session data is missing");
       }
-      
-      // Reset form
-      form.reset();
-      setSelectedFiles([]);
+
     } catch (error) {
       console.error("Failed to extract text:", error);
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "error" as const })));
@@ -573,16 +639,16 @@ export default function NewUpload({ project }: NewUploadProps) {
                 </span>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {processingStep === 'uploading' && 'Processing Documents'}
+                {processingStep === 'uploading' && 'Uploading Documents'}
                 {processingStep === 'extracting' && 'AI Data Extraction'}
-                {processingStep === 'validating' && 'Validation & Rules'}
-                {processingStep === 'complete' && 'Processing Complete'}
+                {processingStep === 'validating' && 'Finalizing Upload'}
+                {processingStep === 'complete' && 'Extraction Complete'}
               </h3>
               <p className="text-sm text-gray-600">
                 {processingStep === 'uploading' && `Uploading ${processedDocuments} of ${totalDocuments} documents...`}
-                {processingStep === 'extracting' && 'Analyzing documents and extracting data using AI...'}
-                {processingStep === 'validating' && 'Applying extraction rules and validation logic...'}
-                {processingStep === 'complete' && 'All documents processed successfully!'}
+                {processingStep === 'extracting' && 'AI is analyzing documents and extracting structured data in the background...'}
+                {processingStep === 'validating' && 'Finalizing document upload...'}
+                {processingStep === 'complete' && 'AI extraction completed successfully! Your session is ready for review.'}
               </p>
             </div>
 
@@ -593,7 +659,7 @@ export default function NewUpload({ project }: NewUploadProps) {
                 <span>
                   {processingStep === 'uploading' && `${processedDocuments}/${totalDocuments} files`}
                   {processingStep === 'extracting' && 'Extracting...'}
-                  {processingStep === 'validating' && 'Validating...'}
+                  {processingStep === 'validating' && 'Finalizing...'}
                   {processingStep === 'complete' && 'Done!'}
                 </span>
               </div>
@@ -633,7 +699,7 @@ export default function NewUpload({ project }: NewUploadProps) {
             {processingStep === 'complete' && (
               <div className="mt-4 text-center">
                 <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                <p className="text-sm text-green-600 font-medium">Redirecting to review page...</p>
+                <p className="text-sm text-green-600 font-medium">AI extraction complete! Your session is ready for review.</p>
               </div>
             )}
           </div>
