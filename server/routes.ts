@@ -2979,13 +2979,13 @@ print(json.dumps(results))
           const python = spawn('python3', ['-c', `
 import sys
 import json
-from ai_extraction import run_full_document_extraction
+from ai_extraction import process_extraction_session
 
 # Read input data
 input_data = json.loads(sys.stdin.read())
 
 # Run AI extraction
-result = run_full_document_extraction(input_data)
+result = process_extraction_session(input_data)
 print(json.dumps(result))
 `], {
             stdio: ['pipe', 'pipe', 'pipe']
@@ -3186,13 +3186,13 @@ print(json.dumps(result))
 import sys
 import json
 sys.path.append('.')
-from ai_extraction import run_full_document_extraction
+from ai_extraction import process_extraction_session
 
 # Read input data
 input_data = json.loads(sys.stdin.read())
 
 # Run AI extraction
-result = run_full_document_extraction(input_data)
+result = process_extraction_session(input_data)
 
 # Output result
 print(json.dumps(result))

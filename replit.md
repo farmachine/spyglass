@@ -25,6 +25,9 @@ Preferred communication style: Simple, everyday language.
 - ✓ Added real-time status polling during extraction with progress updates and completion handling
 - ✓ Processing dialog shows: Upload → AI Data Extraction → Validate → Complete with proper progress tracking
 - ✓ Complete end-to-end workflow: Upload files → Automatic AI extraction → Background processing → Results ready for review
+- ✓ **EXTRACTION FUNCTION NAME BUG FIXED**: Fixed ImportError by replacing non-existent 'run_full_document_extraction' with correct 'process_extraction_session' function
+- ✓ Updated both async extraction endpoints in server/routes.ts to use the correct function name from ai_extraction.py
+- ✓ Session 4be6ea5b-e073-4dc1-a0c0-a8308e26792e failure resolved - extraction should now work properly
 
 **July 25, 2025**
 - ✓ **SLATE BLUE THEME IMPLEMENTATION COMPLETED**: Successfully updated entire application color scheme to match user-preferred slate blue tone
