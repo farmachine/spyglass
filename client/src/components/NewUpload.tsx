@@ -282,28 +282,31 @@ export default function NewUpload({ project }: NewUploadProps) {
       // Mark files as completed
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
 
-      // Show success briefly before redirect
+      // Show success completion
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       if (textExtractionResult && session?.id) {
-        toast({
-          title: "Text extraction complete",
-          description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
-        });
-
-        // Close dialog and redirect to schema view with mode parameter
-        setShowProcessingDialog(false);
-        const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
-        const urlWithMode = `${redirectUrl}?mode=${mode}`;
-
-        setLocation(urlWithMode);
+        // Show success and stay on upload tab
+        setProcessingStep('complete');
+        setProcessingProgress(100);
+        
+        setTimeout(() => {
+          setShowProcessingDialog(false);
+          setIsProcessing(false);
+          
+          // Reset form and files for next upload
+          form.reset();
+          setSelectedFiles([]);
+          
+          toast({
+            title: "Upload Complete",
+            description: `${selectedFiles.length} file(s) processed successfully. You can now navigate to the session to start extraction.`,
+          });
+        }, 2000);
       } else {
         throw new Error("Text extraction completed but session data is missing");
       }
-      
-      // Reset form
-      form.reset();
-      setSelectedFiles([]);
+
     } catch (error) {
       console.error("Failed to extract text:", error);
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "error" as const })));
