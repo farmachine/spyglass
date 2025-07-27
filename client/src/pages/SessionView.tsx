@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User } from "lucide-react";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2 } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import * as XLSX from 'xlsx';
 import { Link } from "wouter";
@@ -17,9 +19,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import { apiRequest } from "@/lib/queryClient";
 import ExtractlyLogo from "@/components/ExtractlyLogo";
 import ValidationIcon from "@/components/ValidationIcon";
 import UserProfile from "@/components/UserProfile";
@@ -557,6 +556,53 @@ export default function SessionView() {
     }
   });
 
+  // Create field validation mutation for new collection items
+  const createValidationMutation = useMutation({
+    mutationFn: async (validation: Partial<FieldValidation>) => {
+      return apiRequest('/api/validations', {
+        method: 'POST',
+        body: JSON.stringify(validation)
+      });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/validations/project', projectId] });
+    },
+    onError: (error: any) => {
+      console.error('Failed to create validation:', error);
+      toast({
+        title: "Failed to create item",
+        description: error?.message || "An error occurred while creating the item.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Delete field validation mutation for removing collection items
+  const deleteValidationMutation = useMutation({
+    mutationFn: async (validationId: string) => {
+      return apiRequest(`/api/validations/${validationId}`, {
+        method: 'DELETE'
+      });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/validations/project', projectId] });
+      toast({
+        title: "Item deleted",
+        description: "The collection item has been successfully removed.",
+      });
+    },
+    onError: (error: any) => {
+      console.error('Failed to delete validation:', error);
+      toast({
+        title: "Failed to delete item",
+        description: error?.message || "An error occurred while deleting the item.",
+        variant: "destructive"
+      });
+    }
+  });
+
   // Handler for field verification changes
   const handleFieldVerification = (fieldName: string, isVerified: boolean) => {
     const validation = getValidation(fieldName);
@@ -586,6 +632,77 @@ export default function SessionView() {
         data: { validationStatus: newStatus }
       });
     });
+  };
+
+  // Handler for adding new collection item
+  const handleAddCollectionItem = async (collectionId: string, collectionName: string) => {
+    if (!sessionId || !project) return;
+    
+    // Find the collection and its properties
+    const collection = project.collections.find(c => c.id === collectionId);
+    if (!collection) return;
+    
+    // Calculate the next record index
+    const collectionValidations = validations.filter(v => v.collectionName === collectionName);
+    const existingIndices = collectionValidations.map(v => v.recordIndex || 0);
+    const nextIndex = existingIndices.length > 0 ? Math.max(...existingIndices) + 1 : 0;
+    
+    // Create validation records for each property in the collection
+    for (const property of collection.properties) {
+      const fieldName = `${collectionName}.${property.propertyName}[${nextIndex}]`;
+      
+      try {
+        await createValidationMutation.mutateAsync({
+          sessionId,
+          fieldType: 'collection_property' as const,
+          fieldId: property.id,
+          fieldName,
+          collectionName,
+          recordIndex: nextIndex,
+          extractedValue: null,
+          validationStatus: 'pending' as const,
+          aiReasoning: 'Manually added item',
+          manuallyVerified: false,
+          confidenceScore: 0
+        });
+      } catch (error) {
+        console.error(`Failed to create validation for ${fieldName}:`, error);
+        break; // Stop creating validations if one fails
+      }
+    }
+    
+    toast({
+      title: "Item added",
+      description: `New ${collectionName.toLowerCase()} item has been added.`,
+    });
+  };
+
+  // Handler for deleting collection item
+  const handleDeleteCollectionItem = async (collectionName: string, recordIndex: number) => {
+    // Find all validations for this specific item
+    const itemValidations = validations.filter(v => 
+      v.collectionName === collectionName && 
+      v.recordIndex === recordIndex
+    );
+    
+    if (itemValidations.length === 0) {
+      toast({
+        title: "Nothing to delete",
+        description: "No data found for this item.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Delete all validation records for this item
+    for (const validation of itemValidations) {
+      try {
+        await deleteValidationMutation.mutateAsync(validation.id);
+      } catch (error) {
+        console.error(`Failed to delete validation ${validation.id}:`, error);
+        break; // Stop if deletion fails
+      }
+    }
   };
 
   // Auto-run batch validation after extraction redirect
@@ -1791,13 +1908,26 @@ Thank you for your assistance.`;
                   <TabsContent key={collection.id} value={collection.collectionName} className="mt-0 px-0 ml-0">
                     <Card className="border-t-0 rounded-tl-none ml-0">
                       <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          {collection.collectionName}
-                          <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                            {maxRecordIndex + 1} {maxRecordIndex === 0 ? 'item' : 'items'}
-                          </span>
-                        </CardTitle>
-                        <p className="text-sm text-gray-600">{collection.description}</p>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle className="flex items-center gap-2">
+                              {collection.collectionName}
+                              <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                                {maxRecordIndex + 1} {maxRecordIndex === 0 ? 'item' : 'items'}
+                              </span>
+                            </CardTitle>
+                            <p className="text-sm text-gray-600 mt-1">{collection.description}</p>
+                          </div>
+                          <Button 
+                            onClick={() => handleAddCollectionItem(collection.id, collection.collectionName)}
+                            disabled={createValidationMutation.isPending}
+                            className="flex items-center gap-2 bg-primary hover:bg-primary/90"
+                            size="sm"
+                          >
+                            <Plus className="h-4 w-4" />
+                            Add Item
+                          </Button>
+                        </div>
                       </CardHeader>
                       <CardContent>
                         <Table className="session-table">
@@ -1858,6 +1988,9 @@ Thank you for your assistance.`;
                                     </div>
                                   );
                                 })()}
+                              </TableHead>
+                              <TableHead className="w-12 text-center" style={{ width: '48px', minWidth: '48px', maxWidth: '48px' }}>
+                                Actions
                               </TableHead>
                             </TableRow>
                           </TableHeader>
@@ -2033,6 +2166,18 @@ Thank you for your assistance.`;
                                         );
                                       })()}
                                     </div>
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleDeleteCollectionItem(collection.collectionName, originalIndex)}
+                                      disabled={deleteValidationMutation.isPending}
+                                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                      title="Delete this item"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
                                   </TableCell>
                                 </TableRow>
                               ));
