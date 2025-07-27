@@ -576,16 +576,16 @@ export default function NewUpload({ project }: NewUploadProps) {
                 </span>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {processingStep === 'uploading' && 'Processing Documents'}
-                {processingStep === 'extracting' && 'AI Data Extraction'}
-                {processingStep === 'validating' && 'Validation & Rules'}
-                {processingStep === 'complete' && 'Processing Complete'}
+                {processingStep === 'uploading' && 'Uploading Documents'}
+                {processingStep === 'extracting' && 'Preparing Documents'}
+                {processingStep === 'validating' && 'Finalizing Upload'}
+                {processingStep === 'complete' && 'Upload Complete'}
               </h3>
               <p className="text-sm text-gray-600">
                 {processingStep === 'uploading' && `Uploading ${processedDocuments} of ${totalDocuments} documents...`}
-                {processingStep === 'extracting' && 'Analyzing documents and extracting data using AI...'}
-                {processingStep === 'validating' && 'Applying extraction rules and validation logic...'}
-                {processingStep === 'complete' && 'All documents processed successfully!'}
+                {processingStep === 'extracting' && 'Processing document content for storage...'}
+                {processingStep === 'validating' && 'Finalizing document upload...'}
+                {processingStep === 'complete' && 'Documents uploaded successfully! Navigate to a session to start extraction.'}
               </p>
             </div>
 
@@ -595,8 +595,8 @@ export default function NewUpload({ project }: NewUploadProps) {
                 <span>{Math.round(processingProgress)}%</span>
                 <span>
                   {processingStep === 'uploading' && `${processedDocuments}/${totalDocuments} files`}
-                  {processingStep === 'extracting' && 'Extracting...'}
-                  {processingStep === 'validating' && 'Validating...'}
+                  {processingStep === 'extracting' && 'Processing...'}
+                  {processingStep === 'validating' && 'Finalizing...'}
                   {processingStep === 'complete' && 'Done!'}
                 </span>
               </div>
@@ -619,7 +619,7 @@ export default function NewUpload({ project }: NewUploadProps) {
                 ) : (
                   <Clock className="h-3 w-3 mr-1" />
                 )}
-                Extract
+                Process
               </div>
               <div className={`flex items-center ${processingStep === 'validating' ? 'text-blue-600' : processingStep === 'complete' ? 'text-green-600' : 'text-gray-400'}`}>
                 {processingStep === 'validating' ? (
@@ -629,14 +629,14 @@ export default function NewUpload({ project }: NewUploadProps) {
                 ) : (
                   <Clock className="h-3 w-3 mr-1" />
                 )}
-                Validate
+                Store
               </div>
             </div>
 
             {processingStep === 'complete' && (
               <div className="mt-4 text-center">
                 <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                <p className="text-sm text-green-600 font-medium">Redirecting to review page...</p>
+                <p className="text-sm text-green-600 font-medium">Upload complete! Navigate to a session to start extraction.</p>
               </div>
             )}
           </div>
