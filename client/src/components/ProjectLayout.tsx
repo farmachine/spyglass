@@ -23,6 +23,19 @@ import UserProfile from "./UserProfile";
 import Breadcrumb from "./Breadcrumb";
 import ExtractlyLogo from "./ExtractlyLogo";
 import WavePattern from "./WavePattern";
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarTrigger,
+  SidebarInset,
+  SidebarRail
+} from "@/components/ui/sidebar";
 
 interface ProjectLayoutProps {
   projectId: string;
@@ -322,203 +335,216 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="w-full px-6 py-4">
-          <div className="flex items-center justify-between w-full">
-            <ExtractlyLogo />
-            <UserProfile />
-          </div>
-        </div>
-      </div>
+    <SidebarProvider>
+      <div className="min-h-screen bg-gray-50 flex w-full">
 
-      {/* Page Title */}
-      <div className="bg-white border-b border-gray-100">
-        <div className="w-full px-6 py-6">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start space-x-3 flex-1 mr-6">
-              <TrendingUp className="h-8 w-8 text-primary mt-1" />
-              <div className="flex-1 space-y-2">
-                {/* Project Title */}
-                <div className="flex items-center space-x-2">
-                  {isEditingTitle ? (
-                    <div className="flex items-center space-x-2 flex-1">
-                      <Input
-                        value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                        className="text-2xl font-bold border-primary"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleTitleSave();
-                          if (e.key === 'Escape') handleTitleCancel();
-                        }}
-                        autoFocus
-                      />
-                      <Button
-                        size="sm"
-                        onClick={handleTitleSave}
-                        disabled={!editTitle.trim() || updateProjectMutation.isPending}
-                      >
-                        <Check className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={handleTitleCancel}
-                        disabled={updateProjectMutation.isPending}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-2 flex-1 group">
-                      <h2 className="text-3xl font-bold">{project.name}</h2>
-                      {canEditProject && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={handleTitleEdit}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity"
+        {/* Collapsible Sidebar */}
+        <Sidebar collapsible="icon" className="bg-slate-50 border-slate-200">
+          <SidebarContent>
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {navItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = activeTab === item.id;
+                    const isDisabled = item.disabled;
+                    
+                    return (
+                      <SidebarMenuItem key={item.id}>
+                        <SidebarMenuButton
+                          onClick={() => {
+                            if (!isDisabled) {
+                              userNavigatedRef.current = true;
+                              // Mark that user has interacted with this project when they navigate manually
+                              sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
+                              setActiveTab(item.id);
+                            }
+                          }}
+                          isActive={isActive}
+                          disabled={isDisabled}
+                          className={`${
+                            isDisabled
+                              ? "text-slate-400 cursor-not-allowed opacity-50"
+                              : isActive
+                              ? "bg-primary text-white font-medium shadow-sm"
+                              : "text-slate-600 hover:bg-slate-100 hover:text-slate-700"
+                          }`}
                         >
-                          <Edit3 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </div>
+                          <Icon className={`h-4 w-4 ${
+                            isDisabled ? "text-slate-300" : isActive ? "text-white" : "text-slate-500"
+                          }`} />
+                          <span>{item.label}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </SidebarContent>
+          <SidebarRail />
+        </Sidebar>
 
-                {/* Project Description */}
-                <div className="flex items-start space-x-2">
-                  {isEditingDescription ? (
-                    <div className="flex items-start space-x-2 flex-1">
-                      <Textarea
-                        value={editDescription}
-                        onChange={(e) => setEditDescription(e.target.value)}
-                        className="text-sm text-gray-600 border-primary min-h-[60px]"
-                        placeholder="Add a project description..."
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && e.ctrlKey) handleDescriptionSave();
-                          if (e.key === 'Escape') handleDescriptionCancel();
-                        }}
-                        autoFocus
-                      />
-                      <div className="flex flex-col space-y-1">
-                        <Button
-                          size="sm"
-                          onClick={handleDescriptionSave}
-                          disabled={updateProjectMutation.isPending}
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={handleDescriptionCancel}
-                          disabled={updateProjectMutation.isPending}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-start space-x-2 flex-1 group">
-                      {project.description ? (
-                        <p className="text-sm text-gray-600">{project.description}</p>
-                      ) : canEditProject ? (
-                        <p className="text-sm text-gray-400 italic">Click to add description</p>
-                      ) : (
-                        <p className="text-sm text-gray-400">No description</p>
-                      )}
-                      {canEditProject && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={handleDescriptionEdit}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <Edit3 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  )}
+        {/* Main Content Area */}
+        <SidebarInset className="flex-1">
+          {/* Header */}
+          <div className="bg-white border-b border-gray-200 shadow-sm">
+            <div className="w-full px-6 py-4">
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-4">
+                  <SidebarTrigger />
+                  <ExtractlyLogo />
                 </div>
+                <UserProfile />
               </div>
             </div>
+          </div>
 
-            {/* Statistics Cards */}
-            {project.sessions.length > 0 && (
-              <div className="flex gap-3 flex-shrink-0 ml-auto">
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
-                  <Database className="h-6 w-6 text-slate-700" />
-                  <span className="text-xl font-bold text-gray-900">{project.sessions.length}</span>
+          {/* Page Title */}
+          <div className="bg-white border-b border-gray-100">
+            <div className="w-full px-6 py-6">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start space-x-3 flex-1 mr-6">
+                  <TrendingUp className="h-8 w-8 text-primary mt-1" />
+                  <div className="flex-1 space-y-2">
+                    {/* Project Title */}
+                    <div className="flex items-center space-x-2">
+                      {isEditingTitle ? (
+                        <div className="flex items-center space-x-2 flex-1">
+                          <Input
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            className="text-2xl font-bold border-primary"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleTitleSave();
+                              if (e.key === 'Escape') handleTitleCancel();
+                            }}
+                            autoFocus
+                          />
+                          <Button
+                            size="sm"
+                            onClick={handleTitleSave}
+                            disabled={!editTitle.trim() || updateProjectMutation.isPending}
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleTitleCancel}
+                            disabled={updateProjectMutation.isPending}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-2 flex-1 group">
+                          <h2 className="text-3xl font-bold">{project.name}</h2>
+                          {canEditProject && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={handleTitleEdit}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <Edit3 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Project Description */}
+                    <div className="flex items-start space-x-2">
+                      {isEditingDescription ? (
+                        <div className="flex items-start space-x-2 flex-1">
+                          <Textarea
+                            value={editDescription}
+                            onChange={(e) => setEditDescription(e.target.value)}
+                            className="text-sm text-gray-600 border-primary min-h-[60px]"
+                            placeholder="Add a project description..."
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && e.ctrlKey) handleDescriptionSave();
+                              if (e.key === 'Escape') handleDescriptionCancel();
+                            }}
+                            autoFocus
+                          />
+                          <div className="flex flex-col space-y-1">
+                            <Button
+                              size="sm"
+                              onClick={handleDescriptionSave}
+                              disabled={updateProjectMutation.isPending}
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={handleDescriptionCancel}
+                              disabled={updateProjectMutation.isPending}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-start space-x-2 flex-1 group">
+                          {project.description ? (
+                            <p className="text-sm text-gray-600">{project.description}</p>
+                          ) : canEditProject ? (
+                            <p className="text-sm text-gray-400 italic">Click to add description</p>
+                          ) : (
+                            <p className="text-sm text-gray-400">No description</p>
+                          )}
+                          {canEditProject && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={handleDescriptionEdit}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <Edit3 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-gray-400" />
-                  <span className="text-xl font-bold text-gray-900">
-                    {verificationStats.in_progress + verificationStats.pending}
-                  </span>
-                </div>
+                {/* Statistics Cards */}
+                {project.sessions.length > 0 && (
+                  <div className="flex gap-3 flex-shrink-0 ml-auto">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                      <Database className="h-6 w-6 text-slate-700" />
+                      <span className="text-xl font-bold text-gray-900">{project.sessions.length}</span>
+                    </div>
 
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-green-600" />
-                  <span className="text-xl font-bold text-gray-900">
-                    {verificationStats.verified}
-                  </span>
-                </div>
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                      <CheckCircle className="h-6 w-6 text-gray-400" />
+                      <span className="text-xl font-bold text-gray-900">
+                        {verificationStats.in_progress + verificationStats.pending}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                      <CheckCircle className="h-6 w-6 text-green-600" />
+                      <span className="text-xl font-bold text-gray-900">
+                        {verificationStats.verified}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* Main Content - Full Width */}
-      <div className="flex h-[calc(100vh-168px)]">
-        {/* Sidebar */}
-        <div className="w-56 bg-slate-50 border-r border-slate-200">
-          <div className="p-4">
-            <nav className="space-y-0.5">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = activeTab === item.id;
-                const isDisabled = item.disabled;
-                
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      if (!isDisabled) {
-                        userNavigatedRef.current = true;
-                        // Mark that user has interacted with this project when they navigate manually
-                        sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
-                        setActiveTab(item.id);
-                      }
-                    }}
-                    disabled={isDisabled}
-                    className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
-                      isDisabled
-                        ? "text-slate-400 cursor-not-allowed opacity-50 font-normal"
-                        : isActive
-                        ? "bg-primary text-white font-medium shadow-sm"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
-                    }`}
-                  >
-                    <Icon className={`h-4 w-4 ${
-                      isDisabled ? "text-slate-300" : isActive ? "text-white" : "text-slate-500"
-                    }`} />
-                    {item.label}
-                  </button>
-                );
-              })}
-            </nav>
+          {/* Main Content */}
+          <div className="flex-1 overflow-auto p-8">
+            {renderActiveContent()}
           </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="flex-1 overflow-auto p-8">
-          {renderActiveContent()}
-        </div>
+        </SidebarInset>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }
