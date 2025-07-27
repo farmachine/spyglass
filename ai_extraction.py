@@ -297,8 +297,8 @@ def extract_data_from_document(
         if project_schema.get("schema_fields"):
             prompt += "Schema fields to extract:\n"
             for field in project_schema["schema_fields"]:
-                field_name = field.get('field_name', field.get('fieldName', field.get('name', '')))
-                field_type = field.get('field_type', field.get('fieldType', field.get('type', 'TEXT')))
+                field_name = field['fieldName']
+                field_type = field['fieldType']
                 field_description = field.get('description', '')
                 if field_description:
                     prompt += f"- {field_name} ({field_type}): {field_description}\n"
@@ -362,7 +362,7 @@ def extract_data_from_document(
         # Add expected fields 
         if project_schema.get("schema_fields"):
             for field in project_schema["schema_fields"]:
-                field_name = field.get('field_name', field.get('fieldName', field.get('name', '')))
+                field_name = field['fieldName']
                 prompt += f'  "{field_name}": null,\n'
         
         # Add expected collections
@@ -587,8 +587,8 @@ def extract_data_from_document(
                         continue
                         
                     field_id = str(field.get("id", "unknown"))
-                    field_name = field.get("field_name", field.get("fieldName", field.get("name", "")))
-                    field_type = field.get("field_type", field.get("fieldType", field.get("type", "TEXT")))
+                    field_name = field.get("fieldName", "")
+                    field_type = field.get("fieldType", "TEXT")
                     extracted_value = extracted_data.get(field_name)
                     
                     fields_to_validate.append({
@@ -844,8 +844,8 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
                 continue
                 
             field_id = str(field.get("id", "unknown"))
-            field_name = field.get("field_name", field.get("fieldName", field.get("name", "")))
-            field_type = field.get("field_type", field.get("fieldType", field.get("type", "TEXT")))
+            field_name = field.get("fieldName", "")
+            field_type = field.get("fieldType", "TEXT")
             
             # Skip if validation already exists
             if field_name in existing_field_names:
