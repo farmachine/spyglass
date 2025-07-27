@@ -20,6 +20,11 @@ Preferred communication style: Simple, everyday language.
 - ✓ Background extraction includes status polling, automatic completion handling, and 5-minute safety timeout
 - ✓ Progress bar displays current step and completion percentage with error handling for failed extractions
 - ✓ Complete workflow: Upload documents → Stay on upload tab → Navigate to session manually → Start background extraction with progress tracking
+- ✓ **SINGLE-BUTTON WORKFLOW IMPLEMENTED**: Upload button now triggers complete extraction process without manual navigation required
+- ✓ Modified NewUpload component to call background extraction API immediately after document upload completion
+- ✓ Added real-time status polling during extraction with progress updates and completion handling
+- ✓ Processing dialog shows: Upload → AI Data Extraction → Validate → Complete with proper progress tracking
+- ✓ Complete end-to-end workflow: Upload files → Automatic AI extraction → Background processing → Results ready for review
 
 **July 25, 2025**
 - ✓ **SLATE BLUE THEME IMPLEMENTATION COMPLETED**: Successfully updated entire application color scheme to match user-preferred slate blue tone
