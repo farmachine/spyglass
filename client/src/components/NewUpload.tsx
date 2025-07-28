@@ -268,6 +268,10 @@ export default function NewUpload({ project }: NewUploadProps) {
         
         try {
           // Upload files to session for debug mode
+          console.log(`DEBUG: Making upload request to /api/sessions/${session.id}/upload-files`);
+          console.log(`DEBUG: Files data length: ${filesData.length}`);
+          console.log(`DEBUG: Files data sample:`, filesData.map(f => ({ name: f.name, size: f.size, type: f.type, contentLength: f.content?.length })));
+          
           const uploadResponse = await apiRequest(`/api/sessions/${session.id}/upload-files`, {
             method: 'POST',
             body: JSON.stringify({ files: filesData }),
