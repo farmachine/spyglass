@@ -18,7 +18,7 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   name: text("name").notNull(),
   organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
-  role: text("role", { enum: ["admin", "user"] }).default("user").notNull(),
+  role: text("role").default("user").notNull(), // 'admin', 'user'
   isActive: boolean("is_active").default(true).notNull(),
   isTemporaryPassword: boolean("is_temporary_password").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -192,8 +192,6 @@ export const insertKnowledgeDocumentSchema = createInsertSchema(knowledgeDocumen
 export const insertExtractionRuleSchema = createInsertSchema(extractionRules).omit({
   id: true,
   createdAt: true,
-}).extend({
-  targetFields: z.array(z.string()).optional(),
 });
 
 export const insertSessionDocumentSchema = createInsertSchema(sessionDocuments).omit({
@@ -241,11 +239,6 @@ export type FieldValidationWithName = FieldValidation & {
   fieldName: string; // Added by backend through JOIN operations
 };
 export type InsertFieldValidation = z.infer<typeof insertFieldValidationSchema>;
-
-// Extend InsertFieldValidation to optionally include fieldName for backwards compatibility
-export type ExtendedInsertFieldValidation = InsertFieldValidation & {
-  fieldName?: string;
-};
 export type SessionDocument = typeof sessionDocuments.$inferSelect;
 export type InsertSessionDocument = z.infer<typeof insertSessionDocumentSchema>;
 export type ProjectPublishing = typeof projectPublishing.$inferSelect;

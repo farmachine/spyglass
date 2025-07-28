@@ -26,9 +26,7 @@ import {
   type ExtractionRule,
   type InsertExtractionRule,
   type FieldValidation,
-  type FieldValidationWithName,
   type InsertFieldValidation,
-  type ExtendedInsertFieldValidation,
   type SessionDocument,
   type InsertSessionDocument,
   type ExtractionSessionWithValidation,
@@ -81,8 +79,8 @@ export interface IStorage {
   // Project Schema Fields
   getProjectSchemaFields(projectId: string): Promise<ProjectSchemaField[]>;
   createProjectSchemaField(field: InsertProjectSchemaField): Promise<ProjectSchemaField>;
-  updateProjectSchemaField(id: string, field: Partial<InsertProjectSchemaField>): Promise<ProjectSchemaField | undefined>;
-  deleteProjectSchemaField(id: string): Promise<boolean>;
+  updateProjectSchemaField(id: number, field: Partial<InsertProjectSchemaField>): Promise<ProjectSchemaField | undefined>;
+  deleteProjectSchemaField(id: number): Promise<boolean>;
 
   // Object Collections
   getObjectCollections(projectId: string): Promise<(ObjectCollection & { properties: CollectionProperty[] })[]>;
@@ -94,8 +92,8 @@ export interface IStorage {
   // Collection Properties
   getCollectionProperties(collectionId: string): Promise<CollectionProperty[]>;
   createCollectionProperty(property: InsertCollectionProperty): Promise<CollectionProperty>;
-  updateCollectionProperty(id: string, property: Partial<InsertCollectionProperty>): Promise<CollectionProperty | undefined>;
-  deleteCollectionProperty(id: string): Promise<boolean>;
+  updateCollectionProperty(id: number, property: Partial<InsertCollectionProperty>): Promise<CollectionProperty | undefined>;
+  deleteCollectionProperty(id: number): Promise<boolean>;
 
   // Extraction Sessions
   getExtractionSessions(projectId: string): Promise<ExtractionSession[]>;
@@ -113,12 +111,12 @@ export interface IStorage {
   // Extraction Rules
   getExtractionRules(projectId: string): Promise<ExtractionRule[]>;
   createExtractionRule(rule: InsertExtractionRule): Promise<ExtractionRule>;
-  updateExtractionRule(id: string, rule: Partial<InsertExtractionRule>): Promise<ExtractionRule | undefined>;
-  deleteExtractionRule(id: string): Promise<boolean>;
+  updateExtractionRule(id: number, rule: Partial<InsertExtractionRule>): Promise<ExtractionRule | undefined>;
+  deleteExtractionRule(id: number): Promise<boolean>;
 
   // Field Validations
-  getFieldValidations(sessionId: string): Promise<FieldValidationWithName[]>;
-  createFieldValidation(validation: InsertFieldValidation | ExtendedInsertFieldValidation): Promise<FieldValidation>;
+  getFieldValidations(sessionId: string): Promise<FieldValidation[]>;
+  createFieldValidation(validation: InsertFieldValidation): Promise<FieldValidation>;
   updateFieldValidation(id: string, validation: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined>;
   deleteFieldValidation(id: string): Promise<boolean>;
   getSessionWithValidations(sessionId: string): Promise<ExtractionSessionWithValidation | undefined>;

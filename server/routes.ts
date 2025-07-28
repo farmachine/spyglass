@@ -56,7 +56,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: user.email,
         name: user.name,
         organizationId: user.organizationId,
-        role: user.role as "admin" | "user",
+        role: user.role,
         isTemporaryPassword: user.isTemporaryPassword
       });
 
@@ -2030,265 +2030,6 @@ print(json.dumps(result))
     }
   });
 
-  // COMPLETE BACKGROUND PROCESSING ENDPOINT
-  // Handles entire workflow: Text extraction → Schema generation → AI extraction → Validation saving
-  app.post("/api/sessions/:sessionId/process-complete", async (req, res) => {
-    try {
-      const sessionId = req.params.sessionId;
-      const { files, extractionMode } = req.body;
-      
-      console.log(`BACKGROUND PROCESSING: Starting complete workflow for session ${sessionId}`);
-      
-      // Get session to find project ID
-      const session = await storage.getExtractionSession(sessionId);
-      if (!session) {
-        return res.status(404).json({ message: "Session not found" });
-      }
-      
-      const projectId = session.projectId;
-      
-      // STEP 1: Text extraction from documents
-      console.log(`STEP 1: Text extraction for session ${sessionId}`);
-      await storage.updateExtractionSession(sessionId, { status: "extracting_text" });
-      
-      const convertedFiles = (files || []).map((file: any) => ({
-        file_name: file.name,
-        file_content: file.content,
-        mime_type: file.type
-      }));
-      
-      // Run text extraction using existing logic
-      const extractionData = {
-        files: convertedFiles,
-        project_id: projectId,
-        session_id: sessionId
-      };
-      
-      let textExtractionResult;
-      try {
-        const { spawn } = await import('child_process');
-        let output = '';
-        let error = '';
-        
-        const python = spawn('python3', ['test_extraction.py'], {
-          cwd: process.cwd()
-        });
-        
-        python.stdin.write(JSON.stringify(extractionData));
-        python.stdin.end();
-        
-        python.stdout.on('data', (data: any) => {
-          output += data.toString();
-        });
-        
-        python.stderr.on('data', (data: any) => {
-          error += data.toString();
-        });
-        
-        await new Promise((resolve, reject) => {
-          python.on('close', async (code: any) => {
-            if (code !== 0) {
-              console.error('TEXT EXTRACTION error:', error);
-              return reject(new Error(`Text extraction failed: ${error}`));
-            }
-            
-            try {
-              const result = JSON.parse(output);
-              console.log(`TEXT EXTRACTION: Extracted text from ${result.total_documents} documents, ${result.total_word_count} words total`);
-              
-              // Store extracted text data in session
-              await storage.updateExtractionSession(sessionId, {
-                status: "text_extracted",
-                extractedData: JSON.stringify(result)
-              });
-              
-              // Save extracted content to session documents for debugging and reuse
-              if (session) {
-                for (const extractedDoc of result.extracted_texts || []) {
-                  await storage.createSessionDocument({
-                    sessionId: sessionId,
-                    projectId: session.projectId,
-                    fileName: extractedDoc.file_name,
-                    extractedContent: extractedDoc.text_content,
-                    wordCount: extractedDoc.word_count
-                  });
-                }
-                console.log(`Saved ${result.extracted_texts?.length || 0} session documents for debugging`);
-              }
-              
-              textExtractionResult = result;
-              resolve(result);
-              
-            } catch (parseError) {
-              console.error('TEXT EXTRACTION JSON parse error:', parseError);
-              reject(new Error(`Invalid JSON response: ${parseError}`));
-            }
-          });
-        });
-      } catch (extractionError) {
-        console.error('Text extraction failed:', extractionError);
-        await storage.updateExtractionSession(sessionId, { status: "failed" });
-        return res.status(500).json({ message: "Text extraction failed", error: extractionError.message });
-      }
-      
-      // STEP 2: Get schema data for AI processing
-      console.log(`STEP 2: Getting schema data for session ${sessionId}`);
-      await storage.updateExtractionSession(sessionId, { status: "preparing_ai" });
-      
-      const project = await storage.getProject(projectId);
-      if (!project) {
-        return res.status(404).json({ message: "Project not found" });
-      }
-      
-      const schemaFields = await storage.getProjectSchemaFields(projectId);
-      const collections = await storage.getObjectCollections(projectId);
-      const knowledgeDocuments = await storage.getKnowledgeDocuments(projectId);
-      const extractionRules = await storage.getExtractionRules(projectId);
-      
-      // Get collection properties for each collection
-      const collectionsWithProperties = await Promise.all(
-        collections.map(async (collection) => {
-          const properties = await storage.getCollectionProperties(collection.id);
-          return { ...collection, properties };
-        })
-      );
-      
-      // STEP 3: AI extraction using existing logic
-      console.log(`STEP 3: AI processing for session ${sessionId}`);
-      await storage.updateExtractionSession(sessionId, { status: "ai_processing" });
-      
-      // Prepare data for existing Python extraction script
-      const aiExtractionData = {
-        session_id: sessionId,
-        project_id: projectId,
-        schema_fields: schemaFields,
-        collections: collectionsWithProperties,
-        knowledge_documents: knowledgeDocuments,
-        extraction_rules: extractionRules,
-        session_data: {
-          files: convertedFiles,
-          documents: textExtractionResult.extracted_texts || []
-        }
-      };
-      
-      try {
-        const { spawn } = await import('child_process');
-        let pythonOutput = '';
-        let pythonError = '';
-        
-        const python = spawn('python3', ['-c', `
-import sys
-import json
-sys.path.append('.')
-from ai_extraction import run_full_document_extraction
-
-# Read input data
-input_data = json.loads(sys.stdin.read())
-
-# Run AI extraction
-result = run_full_document_extraction(input_data)
-
-# Output result
-print(json.dumps(result))
-`]);
-        
-        python.stdin.write(JSON.stringify(aiExtractionData));
-        python.stdin.end();
-        
-        python.stdout.on('data', (data: any) => {
-          pythonOutput += data.toString();
-        });
-        
-        python.stderr.on('data', (data: any) => {
-          pythonError += data.toString();
-        });
-        
-        await new Promise((resolve, reject) => {
-          python.on('close', async (code: any) => {
-            if (code !== 0) {
-              console.error('AI EXTRACTION error:', pythonError);
-              await storage.updateExtractionSession(sessionId, { status: "failed" });
-              return reject(new Error(`AI extraction failed: ${pythonError}`));
-            }
-            
-            try {
-              const extractionResults = JSON.parse(pythonOutput);
-              
-              if (extractionResults.success) {
-                console.log(`AI EXTRACTION: Successfully processed ${extractionResults.total_fields_processed || 0} fields`);
-                
-                // STEP 4: Save validations
-                console.log(`STEP 4: Saving validations for session ${sessionId}`);
-                await storage.updateExtractionSession(sessionId, { status: "saving_validations" });
-                
-                // Create field validations from results
-                if (extractionResults.field_validations) {
-                  for (const validation of extractionResults.field_validations) {
-                    await storage.createFieldValidation({
-                      sessionId: sessionId,
-                      fieldType: validation.field_type || 'schema_field',
-                      fieldId: validation.field_id,
-                      fieldName: validation.field_name,
-                      collectionName: validation.collection_name || null,
-                      recordIndex: validation.record_index || 0,
-                      extractedValue: validation.extracted_value,
-                      validationStatus: validation.validation_status || 'pending',
-                      aiReasoning: validation.ai_reasoning || '',
-                      manuallyVerified: false,
-                      confidenceScore: validation.confidence_score || 0
-                    });
-                  }
-                }
-                
-                // STEP 5: Mark session as completed
-                await storage.updateExtractionSession(sessionId, { 
-                  status: "completed",
-                  extractedData: JSON.stringify(extractionResults.extracted_data || {}),
-                  documentCount: extractionResults.document_count || 0
-                });
-                
-                console.log(`BACKGROUND PROCESSING: Complete workflow finished for session ${sessionId}`);
-                
-                res.json({
-                  success: true,
-                  message: "Complete extraction workflow finished successfully",
-                  sessionId: sessionId,
-                  redirect: `/sessions/${sessionId}`,
-                  validationsSaved: extractionResults.field_validations?.length || 0
-                });
-                
-                resolve(extractionResults);
-              } else {
-                console.error('AI EXTRACTION failed:', extractionResults.error);
-                await storage.updateExtractionSession(sessionId, { status: "failed" });
-                res.status(500).json({ 
-                  message: "AI extraction failed",
-                  error: extractionResults.error
-                });
-                reject(new Error(extractionResults.error));
-              }
-            } catch (parseError) {
-              console.error('AI EXTRACTION JSON parse error:', parseError);
-              await storage.updateExtractionSession(sessionId, { status: "failed" });
-              res.status(500).json({ message: "Failed to parse extraction results", error: parseError.message });
-              reject(parseError);
-            }
-          });
-        });
-        
-      } catch (aiError) {
-        console.error('AI extraction failed:', aiError);
-        await storage.updateExtractionSession(sessionId, { status: "failed" });
-        return res.status(500).json({ message: "AI extraction failed", error: aiError.message });
-      }
-      
-    } catch (error) {
-      console.error("BACKGROUND PROCESSING error:", error);
-      await storage.updateExtractionSession(sessionId, { status: "failed" });
-      res.status(500).json({ message: "Complete processing workflow failed", error: error.message });
-    }
-  });
-
   // Gemini AI extraction endpoint
   app.post("/api/sessions/:sessionId/gemini-extraction", async (req, res) => {
     try {
@@ -2436,7 +2177,7 @@ print(json.dumps(result))
       console.log('Getting schema data for session:', sessionId);
       
       // Get the session to find the project ID
-      const session = await storage.getExtractionSession(sessionId);
+      const session = await storage.getSession(sessionId);
       if (!session) {
         return res.status(404).json({ error: 'Session not found' });
       }
@@ -2453,7 +2194,7 @@ print(json.dumps(result))
       // Get schema fields, collections, knowledge documents, and extraction rules
       const [schemaFields, collections, knowledgeDocuments, extractionRules] = await Promise.all([
         storage.getProjectSchemaFields(projectId),
-        storage.getObjectCollections(projectId),
+        storage.getProjectCollections(projectId),
         storage.getKnowledgeDocuments(projectId),
         storage.getExtractionRules(projectId)
       ]);

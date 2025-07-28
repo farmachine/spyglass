@@ -22,6 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateExtractionSession } from "@/hooks/useExtractionSessions";
+import { useProcessExtraction } from "@/hooks/useAIExtraction";
 import { useProjectSchemaFields, useObjectCollections } from "@/hooks/useSchema";
 import { useExtractionRules } from "@/hooks/useKnowledge";
 import { useToast } from "@/hooks/use-toast";
@@ -69,6 +70,7 @@ export default function NewUpload({ project }: NewUploadProps) {
   const [, setLocation] = useLocation();
   
   const createExtractionSession = useCreateExtractionSession(project.id);
+  const processExtraction = useProcessExtraction();
   const { toast } = useToast();
   
   // Fetch schema data for validation
@@ -260,69 +262,60 @@ export default function NewUpload({ project }: NewUploadProps) {
         }
       }));
 
-      // Step 3: Complete Background Processing (NEW SIMPLIFIED APPROACH)
+      // Step 3: Text Extraction Phase (NEW SIMPLIFIED APPROACH)
       setProcessingStep('extracting');
       setProcessingProgress(0);
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "processing" as const })));
 
-      // Call new complete processing endpoint that handles everything in background
-      const completeProcessingResult = await apiRequest(`/api/sessions/${session.id}/process-complete`, {
+      // Call new text extraction endpoint
+      const textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
         method: 'POST',
-        body: JSON.stringify({ files: filesData, extractionMode: mode }),
+        body: JSON.stringify({ files: filesData }),
         headers: { 'Content-Type': 'application/json' }
       });
 
-      if (!completeProcessingResult.success) {
-        throw new Error(completeProcessingResult.error || 'Processing failed');
-      }
-
-      // Simulate progress updates for user feedback during background processing
-      setProcessingStep('extracting');
-      setProcessingProgress(25);
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      setProcessingStep('validating');
-      setProcessingProgress(50);
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      setProcessingProgress(75);
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Complete processing
-      setProcessingStep('complete');
       setProcessingProgress(100);
 
-      // Mark all files as completed
-      setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const, progress: 100 })));
+      // Step 4: Complete
+      setProcessingStep('complete');
 
-      // Wait a moment before redirecting
+      // Mark files as completed
+      setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
+
+      // Show success briefly before redirect
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      toast({
-        title: "Extraction completed successfully!",
-        description: `Processed ${selectedFiles.length} document(s) and saved ${completeProcessingResult.validationsSaved || 0} field validations.`,
-      });
+      if (textExtractionResult && session?.id) {
+        toast({
+          title: "Text extraction complete",
+          description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
+        });
 
-      // Reset form and close dialog
+        // Close dialog and redirect to schema view with mode parameter
+        setShowProcessingDialog(false);
+        const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
+        const urlWithMode = `${redirectUrl}?mode=${mode}`;
+
+        setLocation(urlWithMode);
+      } else {
+        throw new Error("Text extraction completed but session data is missing");
+      }
+      
+      // Reset form
       form.reset();
       setSelectedFiles([]);
-      setShowProcessingDialog(false);
-
-      // Redirect to session review page
-      setLocation(completeProcessingResult.redirect || `/sessions/${session.id}`);
-
     } catch (error) {
-      console.error('Processing failed:', error);
-      
-      // Mark all files as error
+      console.error("Failed to extract text:", error);
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "error" as const })));
       
       setShowProcessingDialog(false);
       toast({
-        title: "Processing Failed",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        title: "Text extraction failed",
+        description: "There was an error extracting text from your files. Please try again.",
         variant: "destructive",
       });
+      
+      // Don't redirect on error - keep user on upload tab
     } finally {
       setIsProcessing(false);
     }
@@ -443,7 +436,7 @@ export default function NewUpload({ project }: NewUploadProps) {
 
             {/* Session Configuration */}
             <Form {...form}>
-              <form onSubmit={form.handleSubmit((data) => handleSubmit(data, 'automated'))} className="space-y-6">
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
                   <FormField
                     control={form.control}
                     name="sessionName"
