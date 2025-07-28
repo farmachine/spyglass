@@ -1055,6 +1055,30 @@ ${error instanceof Error ? error.message : 'Unknown error'}
                 );
               })}
             </div>
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setCompletedSteps(new Set());
+                    setCurrentStep('extract');
+                    setStepData({});
+                    setGeminiResponse(null);
+                    setSavedValidations(null);
+                    setError(null);
+                    setDocumentContent(null);
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Reset Debug Session
+                </Button>
+                <span className="text-sm text-gray-500 flex items-center">
+                  Clear all completion states to test step-by-step workflow
+                </span>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
