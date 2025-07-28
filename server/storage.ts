@@ -124,7 +124,6 @@ export interface IStorage {
   // Session Documents
   createSessionDocument(document: InsertSessionDocument): Promise<SessionDocument>;
   getSessionDocumentsBySession(sessionId: string): Promise<SessionDocument[]>;
-  updateSessionDocument(id: string, document: Partial<InsertSessionDocument>): Promise<SessionDocument | undefined>;
   getSessionDocument(id: string): Promise<SessionDocument | undefined>;
   updateSessionDocument(id: string, document: Partial<InsertSessionDocument>): Promise<SessionDocument | undefined>;
   deleteSessionDocument(id: string): Promise<boolean>;

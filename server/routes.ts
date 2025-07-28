@@ -1729,77 +1729,6 @@ except Exception as e:
     }
   });
   
-  // Upload files endpoint - stores files in session_documents table for debug mode
-  app.post("/api/sessions/:sessionId/upload-files", async (req, res) => {
-    try {
-      const sessionId = req.params.sessionId;
-      const { files } = req.body;
-      
-      console.log(`[UPLOAD-FILES] Uploading ${files?.length || 0} files for session: ${sessionId}`);
-      console.log(`[UPLOAD-FILES] Request body keys:`, Object.keys(req.body || {}));
-      console.log(`[UPLOAD-FILES] Files array type:`, Array.isArray(files));
-      
-      const session = await storage.getExtractionSession(sessionId);
-      if (!session) {
-        return res.status(404).json({ error: 'Session not found' });
-      }
-
-      if (!files || !Array.isArray(files)) {
-        return res.status(400).json({ error: 'Files array required' });
-      }
-
-      // Helper function to determine file type from MIME type
-      const getFileType = (mimeType: string): string => {
-        if (mimeType.includes('pdf')) return 'pdf';
-        if (mimeType.includes('word') || mimeType.includes('document')) return 'word';
-        if (mimeType.includes('sheet') || mimeType.includes('excel')) return 'excel';
-        return 'unknown';
-      };
-
-      // Save each file to session_documents table
-      const savedDocuments = [];
-      for (const file of files) {
-        const fileType = getFileType(file.type);
-        console.log(`[UPLOAD-FILES] Saving file ${file.name} (type: ${fileType}, size: ${file.size})`);
-        
-        const sessionDocument = await storage.createSessionDocument({
-          sessionId,
-          projectId: session.projectId,
-          fileName: file.name,
-          fileType,
-          fileSize: file.size,
-          originalFileData: file.content, // base64 encoded file content
-          extractionStatus: 'pending'
-        });
-        
-        savedDocuments.push(sessionDocument);
-      }
-
-      // Update session document count and status
-      await storage.updateExtractionSession(sessionId, {
-        documentCount: savedDocuments.length,
-        status: 'files_uploaded'
-      });
-
-      console.log(`[UPLOAD-FILES] Successfully saved ${savedDocuments.length} files to session_documents table`);
-      
-      res.json({
-        success: true,
-        message: `${files.length} files uploaded successfully`,
-        documentCount: savedDocuments.length,
-        documents: savedDocuments.map(doc => ({
-          id: doc.id,
-          fileName: doc.fileName,
-          fileType: doc.fileType,
-          extractionStatus: doc.extractionStatus
-        }))
-      });
-    } catch (error) {
-      console.error(`[UPLOAD-FILES] Error uploading files:`, error);
-      res.status(500).json({ error: 'Failed to upload files' });
-    }
-  });
-
   // STEP-BY-STEP DEVELOPMENT: Extract document text only
   app.post("/api/sessions/:sessionId/extract-text", async (req, res) => {
     try {
@@ -1807,44 +1736,10 @@ except Exception as e:
       const { files } = req.body;
       
       console.log(`TEXT EXTRACTION: Starting text extraction for session ${sessionId}`);
+      console.log(`Processing ${files?.length || 0} documents`);
       
-      // Check if files are provided in request or retrieve from session_documents (for debug mode)
-      let filesToProcess = files || [];
-      
-      if (!filesToProcess || filesToProcess.length === 0) {
-        // For debug mode, retrieve files from session_documents table
-        const sessionDocuments = await storage.getSessionDocumentsBySession(sessionId);
-        console.log(`TEXT EXTRACTION: Found ${sessionDocuments.length} session documents`);
-        
-        if (sessionDocuments && sessionDocuments.length > 0) {
-          // Convert session documents to file format for processing
-          filesToProcess = sessionDocuments
-            .filter(doc => doc.originalFileData && doc.extractionStatus === 'pending')
-            .map(doc => ({
-              name: doc.fileName,
-              type: doc.fileType === 'pdf' ? 'application/pdf' : 
-                    doc.fileType === 'word' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' :
-                    doc.fileType === 'excel' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' :
-                    'application/octet-stream',
-              content: doc.originalFileData,
-              size: doc.fileSize,
-              documentId: doc.id // Keep track of document ID for updating
-            }));
-          console.log(`TEXT EXTRACTION: Converted ${filesToProcess.length} session documents to file format`);
-        }
-        
-        if (!filesToProcess || filesToProcess.length === 0) {
-          console.log(`TEXT EXTRACTION: No files found for session ${sessionId} - either no files uploaded or already processed`);
-          return res.status(400).json({ 
-            error: 'No files found for text extraction. Please upload files first.' 
-          });
-        }
-      }
-      
-      console.log(`Processing ${filesToProcess?.length || 0} documents`);
-      
-      // Convert to Python script expected format
-      const convertedFiles = (filesToProcess || []).map((file: any) => ({
+      // Convert frontend file format to Python script expected format
+      const convertedFiles = (files || []).map((file: any) => ({
         file_name: file.name,
         file_content: file.content, // This is the data URL from FileReader
         mime_type: file.type

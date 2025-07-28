@@ -262,47 +262,7 @@ export default function NewUpload({ project }: NewUploadProps) {
         }
       }));
 
-      // In debug mode, upload files but don't run extraction - redirect to debug screen
-      if (mode === 'debug') {
-        console.log(`DEBUG: Uploading ${filesData.length} files for debug mode to session ${session.id}`);
-        
-        try {
-          // Upload files to session for debug mode
-          console.log(`DEBUG: Making upload request to /api/sessions/${session.id}/upload-files`);
-          console.log(`DEBUG: Files data length: ${filesData.length}`);
-          console.log(`DEBUG: Files data sample:`, filesData.map(f => ({ name: f.name, size: f.size, type: f.type, contentLength: f.content?.length })));
-          
-          const uploadResponse = await apiRequest(`/api/sessions/${session.id}/upload-files`, {
-            method: 'POST',
-            body: JSON.stringify({ files: filesData }),
-            headers: { 'Content-Type': 'application/json' }
-          });
-          
-          console.log('DEBUG: Upload response:', uploadResponse);
-          
-          toast({
-            title: "Files uploaded for debug mode",
-            description: `${filesData.length} file(s) uploaded successfully. Redirecting to debug interface...`,
-          });
-        } catch (uploadError) {
-          console.error('DEBUG: Upload failed:', uploadError);
-          toast({
-            title: "Upload failed",
-            description: "Failed to upload files for debug mode. Please try again.",
-            variant: "destructive",
-          });
-          setShowProcessingDialog(false);
-          setIsProcessing(false);
-          return;
-        }
-        
-        setShowProcessingDialog(false);
-        setIsProcessing(false);
-        setLocation(`/sessions/${session.id}/schema-view?mode=debug`);
-        return;
-      }
-
-      // Step 3: Text Extraction Phase (AUTOMATED MODE ONLY)
+      // Step 3: Text Extraction Phase (NEW SIMPLIFIED APPROACH)
       setProcessingStep('extracting');
       setProcessingProgress(0);
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "processing" as const })));

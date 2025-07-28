@@ -137,13 +137,9 @@ export const sessionDocuments = pgTable("session_documents", {
   id: uuid("id").defaultRandom().primaryKey(),
   sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
-  fileName: text("file_name").notNull(),
-  fileType: text("file_type").notNull(), // 'pdf', 'word', 'excel'
-  fileSize: integer("file_size").notNull(),
-  originalFileData: text("original_file_data"), // base64 encoded original file content
-  extractedContent: text("extracted_content"), // markdown text extracted from file
+  fileName: text("file_name"),
+  extractedContent: text("extracted_content"),
   wordCount: integer("word_count"),
-  extractionStatus: text("extraction_status").default("pending").notNull(), // 'pending', 'completed', 'failed'
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

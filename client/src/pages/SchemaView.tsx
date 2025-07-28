@@ -141,14 +141,10 @@ export default function SchemaView() {
     const loadDocumentContentWithGemini = async () => {
       if (!session || !sessionId || !session.projectId) return;
       
-      // Check URL params once at the top - if we just came from "Run in debug mode", start completely fresh
-      const urlParams = new URLSearchParams(window.location.search);
-      const isNewDebugSession = urlParams.get('mode') === 'debug';
-      
       // In debug mode, don't auto-load - wait for manual trigger
       if (extractionMode === 'debug') {
-        // Only restore document state if this is NOT a fresh session from debug mode
-        if (!isNewDebugSession && sessionDocuments && sessionDocuments.length > 0 && sessionDocuments[0].extractedContent) {
+        // Check if we have saved session documents in the database
+        if (sessionDocuments && sessionDocuments.length > 0) {
           console.log('DEBUG: Found saved session documents in database:', sessionDocuments.length);
           const text = sessionDocuments.map((doc: any, index: number) => 
             `--- DATABASE DOCUMENT ${index + 1}: ${doc.fileName} (${doc.wordCount} words) ---\n${doc.extractedContent}`
@@ -160,50 +156,6 @@ export default function SchemaView() {
           setStepData(prev => ({ ...prev, extract: { documentContent: text, documentCount: sessionDocuments.length } }));
           setCompletedSteps(prev => new Set([...prev, 'extract']));
           console.log('DEBUG: document content set from database session documents');
-        } else if (isNewDebugSession) {
-          console.log('DEBUG: Fresh debug session - starting with clean document state');
-        }
-        
-        // Only restore completion state if this is NOT a fresh session from debug mode
-        if (!isNewDebugSession) {
-          // Check if AI processing was already completed by looking for field validations
-          const checkAIProcessingCompletion = async () => {
-            try {
-              const validationsResponse = await apiRequest(`/api/sessions/${sessionId}/validations`);
-              if (validationsResponse && Array.isArray(validationsResponse) && validationsResponse.length > 0) {
-                console.log('DEBUG: Found existing field validations, AI processing was previously completed');
-                
-                // Create a summary of the extracted data
-                const fieldCount = validationsResponse.length;
-                const verifiedCount = validationsResponse.filter((v: any) => v.validationStatus === 'verified').length;
-                const avgConfidence = Math.round(validationsResponse.reduce((sum: number, v: any) => sum + (v.confidenceScore || 0), 0) / fieldCount);
-                
-                const responseText = `=== AI EXTRACTION PREVIOUSLY COMPLETED ===
-
-Found ${fieldCount} extracted field validations in database:
-- ${verifiedCount} verified fields
-- ${fieldCount - verifiedCount} unverified fields  
-- Average confidence: ${avgConfidence}%
-
-Sample extracted data:
-${validationsResponse.slice(0, 3).map((v: any) => `• ${v.fieldName}: ${v.extractedValue || 'Not set'} (${v.confidenceScore}% confidence)`).join('\n')}
-${fieldCount > 3 ? `\n... and ${fieldCount - 3} more fields` : ''}
-
-=== RESULTS SAVED IN DATABASE ===`;
-
-                setGeminiResponse(responseText);
-                setSavedValidations(validationsResponse);
-                setCompletedSteps(prev => new Set([...prev, 'process', 'save']));
-                console.log('DEBUG: AI processing and database save marked as completed');
-              }
-            } catch (error) {
-              console.log('DEBUG: No existing validations found, AI processing not yet completed');
-            }
-          };
-          
-          checkAIProcessingCompletion();
-        } else {
-          console.log('DEBUG: Fresh debug session - starting with clean state');
         }
         return;
       }
@@ -876,14 +828,12 @@ ${error instanceof Error ? error.message : 'Unknown error'}
     setError(null);
     
     try {
-      // In debug mode, call extract-text without files since they're already uploaded
       const response = await apiRequest(`/api/sessions/${sessionId}/extract-text`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
       
       if (response.message) {
-        // Reload to get the extracted content
         setTimeout(() => {
           window.location.reload();
         }, 1000);
@@ -1066,30 +1016,6 @@ ${error instanceof Error ? error.message : 'Unknown error'}
                 );
               })}
             </div>
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setCompletedSteps(new Set());
-                    setCurrentStep('extract');
-                    setStepData({});
-                    setGeminiResponse(null);
-                    setSavedValidations(null);
-                    setError(null);
-                    setDocumentContent(null);
-                  }}
-                  className="flex items-center gap-2"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  Reset Debug Session
-                </Button>
-                <span className="text-sm text-gray-500 flex items-center">
-                  Clear all completion states to test step-by-step workflow
-                </span>
-              </div>
-            </div>
           </CardContent>
         </Card>
 
@@ -1145,11 +1071,12 @@ ${error instanceof Error ? error.message : 'Unknown error'}
                       <CheckCircle className="h-4 w-4" />
                       <span className="font-medium">Text extraction completed</span>
                     </div>
-                    {documentContent && documentContent.text && (
+                    {documentContent && (
                       <div className="bg-gray-50 border rounded-lg p-4">
                         <h4 className="font-medium mb-2">Extracted Content ({documentContent.count} documents)</h4>
                         <div className="bg-white border rounded p-3 max-h-64 overflow-y-auto font-mono text-sm">
-                          {documentContent.text}
+                          {documentContent.text.substring(0, 1000)}
+                          {documentContent.text.length > 1000 && '... (truncated for display)'}
                         </div>
                         <p className="text-sm text-gray-600 mt-2">
                           Total: {documentContent.text.length} characters from {documentContent.count} documents
@@ -1163,7 +1090,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
           )}
 
           {/* Step 2: Schema Generation */}
-          {(currentStep === 'schema' || completedSteps.has('schema')) && (
+          {currentStep === 'schema' && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -1199,11 +1126,12 @@ ${error instanceof Error ? error.message : 'Unknown error'}
                       <CheckCircle className="h-4 w-4" />
                       <span className="font-medium">Schema generated successfully</span>
                     </div>
-                    {stepData.schema && stepData.schema.markdown && (
+                    {stepData.schema && (
                       <div className="bg-gray-50 border rounded-lg p-4">
                         <h4 className="font-medium mb-2">Generated Prompt</h4>
                         <div className="bg-white border rounded p-3 max-h-64 overflow-y-auto font-mono text-xs">
-                          {stepData.schema.markdown}
+                          {stepData.schema.markdown.substring(0, 2000)}
+                          {stepData.schema.markdown.length > 2000 && '... (truncated for display)'}
                         </div>
                         <p className="text-sm text-gray-600 mt-2">
                           Total: {stepData.schema.markdown.length} characters
@@ -1217,7 +1145,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
           )}
 
           {/* Step 3: AI Processing */}
-          {(currentStep === 'process' || completedSteps.has('process')) && (
+          {currentStep === 'process' && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -1253,14 +1181,15 @@ ${error instanceof Error ? error.message : 'Unknown error'}
                       <CheckCircle className="h-4 w-4" />
                       <span className="font-medium">AI processing completed</span>
                     </div>
-                    {(stepData.process?.output || geminiResponse) && (
+                    {stepData.process && (
                       <div className="bg-gray-50 border rounded-lg p-4">
                         <h4 className="font-medium mb-2">AI Response</h4>
                         <div className="bg-white border rounded p-3 max-h-64 overflow-y-auto font-mono text-xs">
-                          {stepData.process?.output || geminiResponse}
+                          {stepData.process.output.substring(0, 2000)}
+                          {stepData.process.output.length > 2000 && '... (truncated for display)'}
                         </div>
                         <p className="text-sm text-gray-600 mt-2">
-                          Total: {(stepData.process?.output || geminiResponse || '').length} characters
+                          Total: {stepData.process.output.length} characters
                         </p>
                       </div>
                     )}
@@ -1271,7 +1200,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
           )}
 
           {/* Step 4: Database Save */}
-          {(currentStep === 'save' || completedSteps.has('save')) && (
+          {currentStep === 'save' && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -1330,7 +1259,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
           )}
 
           {/* Step 5: Complete */}
-          {completedSteps.has('complete') && (
+          {currentStep === 'complete' && completedSteps.has('complete') && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
