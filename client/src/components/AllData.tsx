@@ -62,15 +62,11 @@ export default function AllData({ project }: AllDataProps) {
   });
 
   // Get verification status for a session
-  const getVerificationStatus = (sessionId: number): 'verified' | 'in_progress' | 'pending' => {
+  const getVerificationStatus = (sessionId: string): 'verified' | 'in_progress' | 'pending' | 'processing' => {
     const sessionValidations = allValidations.filter(v => v.sessionId === sessionId);
     if (sessionValidations.length === 0) return 'pending';
     
     const allVerified = sessionValidations.every(v => v.validationStatus === 'valid' || v.validationStatus === 'verified');
-    
-    // Debug logging
-    console.log(`Session ${sessionId} - Validations: ${sessionValidations.length}, All verified: ${allVerified}`);
-    console.log(`Session ${sessionId} - Status breakdown:`, sessionValidations.map(v => ({ field: v.fieldName, status: v.validationStatus })));
     
     return allVerified ? 'verified' : 'in_progress';
   };
@@ -89,16 +85,27 @@ export default function AllData({ project }: AllDataProps) {
 
   const verificationStats = getVerificationStats();
 
-  // Get verification progress for a session
-  const getSessionProgress = (sessionId: number) => {
+  // Get verification progress for a session with status awareness
+  const getSessionProgress = (sessionId: string, sessionStatus: string) => {
     const sessionValidations = allValidations.filter(v => v.sessionId === sessionId);
-    if (sessionValidations.length === 0) return { verified: 0, total: 0, percentage: 0 };
+    
+    // If session is processing, show processing state
+    if (sessionStatus === 'processing') {
+      return { verified: 0, total: 0, percentage: -1, status: 'processing' };
+    }
+    
+    if (sessionValidations.length === 0) return { verified: 0, total: 0, percentage: 0, status: 'pending' };
     
     const verified = sessionValidations.filter(v => v.validationStatus === 'valid' || v.validationStatus === 'verified').length;
     const total = sessionValidations.length;
     const percentage = Math.round((verified / total) * 100);
     
-    return { verified, total, percentage };
+    return { 
+      verified, 
+      total, 
+      percentage,
+      status: verified === total ? 'completed' : 'in_progress'
+    };
   };
 
   // Sortable column header component
