@@ -22,7 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateExtractionSession } from "@/hooks/useExtractionSessions";
-import { useProcessExtraction, useStartBackgroundExtraction } from "@/hooks/useAIExtraction";
+import { useProcessExtraction } from "@/hooks/useAIExtraction";
 import { useProjectSchemaFields, useObjectCollections } from "@/hooks/useSchema";
 import { useExtractionRules } from "@/hooks/useKnowledge";
 import { useToast } from "@/hooks/use-toast";
@@ -71,7 +71,6 @@ export default function NewUpload({ project }: NewUploadProps) {
   
   const createExtractionSession = useCreateExtractionSession(project.id);
   const processExtraction = useProcessExtraction();
-  const startBackgroundExtraction = useStartBackgroundExtraction();
   const { toast } = useToast();
   
   // Fetch schema data for validation
@@ -206,17 +205,30 @@ export default function NewUpload({ project }: NewUploadProps) {
 
     setExtractionMode(mode);
     setIsProcessing(true);
+    setShowProcessingDialog(true);
+    setTotalDocuments(selectedFiles.length);
+    setProcessedDocuments(0);
+    setProcessingStep('uploading');
+    setProcessingProgress(0);
 
     try {
-      // Step 1: Create extraction session with "processing" status
+      // Step 1: Create extraction session
       const session = await createExtractionSession.mutateAsync({
         sessionName: data.sessionName,
         description: data.description || null,
         documentCount: selectedFiles.length,
-        status: "processing",
+        status: "in_progress",
       });
 
-      // Step 2: Prepare file data
+      // Step 2: File upload progress
+      setProcessingStep('uploading');
+      for (let i = 0; i < selectedFiles.length; i++) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        setProcessedDocuments(i + 1);
+        setProcessingProgress(((i + 1) / selectedFiles.length) * 100);
+      }
+
+      // Prepare file data for text extraction
       const filesData = await Promise.all(selectedFiles.map(async (fileData) => {
         try {
           // Read file content as base64
@@ -250,68 +262,60 @@ export default function NewUpload({ project }: NewUploadProps) {
         }
       }));
 
-      // Step 3: Prepare collections with their properties loaded
-      const collectionsWithProperties = await Promise.all(
-        collections.map(async (collection) => {
-          try {
-            const response = await fetch(`/api/collections/${collection.id}/properties`);
-            if (response.ok) {
-              const properties = await response.json();
-              return {
-                ...collection,
-                properties
-              };
-            } else {
-              console.warn(`Failed to load properties for collection ${collection.id}`);
-              return {
-                ...collection,
-                properties: []
-              };
-            }
-          } catch (error) {
-            console.error(`Error loading properties for collection ${collection.id}:`, error);
-            return {
-              ...collection,
-              properties: []
-            };
-          }
-        })
-      );
+      // Step 3: Text Extraction Phase (NEW SIMPLIFIED APPROACH)
+      setProcessingStep('extracting');
+      setProcessingProgress(0);
+      setSelectedFiles(prev => prev.map(f => ({ ...f, status: "processing" as const })));
 
-      const project_data = {
-        id: project.id,
-        projectId: project.id,
-        schemaFields,
-        collections: collectionsWithProperties,
-        mainObjectName: project.mainObjectName
-      };
-
-      await startBackgroundExtraction.mutateAsync({
-        sessionId: session.id,
-        files: filesData,
-        project_data
+      // Call new text extraction endpoint
+      const textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
+        method: 'POST',
+        body: JSON.stringify({ files: filesData }),
+        headers: { 'Content-Type': 'application/json' }
       });
 
-      toast({
-        title: "Processing started",
-        description: `${selectedFiles.length} file(s) uploaded successfully. Processing in background...`,
-      });
+      setProcessingProgress(100);
 
-      // Navigate to session view to show processing status
-      setLocation(`/projects/${project.id}/sessions/${session.id}`);
+      // Step 4: Complete
+      setProcessingStep('complete');
+
+      // Mark files as completed
+      setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
+
+      // Show success briefly before redirect
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      if (textExtractionResult && session?.id) {
+        toast({
+          title: "Text extraction complete",
+          description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
+        });
+
+        // Close dialog and redirect to schema view with mode parameter
+        setShowProcessingDialog(false);
+        const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
+        const urlWithMode = `${redirectUrl}?mode=${mode}`;
+
+        setLocation(urlWithMode);
+      } else {
+        throw new Error("Text extraction completed but session data is missing");
+      }
       
       // Reset form
       form.reset();
       setSelectedFiles([]);
     } catch (error) {
-      console.error("Failed to start processing:", error);
+      console.error("Failed to extract text:", error);
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "error" as const })));
       
+      setShowProcessingDialog(false);
       toast({
-        title: "Upload failed",
-        description: "There was an error starting the processing. Please try again.",
+        title: "Text extraction failed",
+        description: "There was an error extracting text from your files. Please try again.",
         variant: "destructive",
       });
+      
+      // Don't redirect on error - keep user on upload tab
     } finally {
       setIsProcessing(false);
     }

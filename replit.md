@@ -10,16 +10,7 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**July 28, 2025 (Latest Update)**
-- ✓ **Background Extraction Document Content Bug Fixed**: Resolved critical issue where extracted document data wasn't displaying in SessionView
-- ✓ Root cause identified: Background extraction only stored field data but not original document content needed for "MSA Information" tab
-- ✓ Enhanced background extraction to use Gemini API for document content extraction alongside field extraction
-- ✓ Added comprehensive data structure with both aggregated_extraction and documents arrays for complete SessionView support
-- ✓ Fixed collection properties loading in NewUpload component to prevent empty validation records
-- ✓ Background extraction now stores complete data structure: field values + document content + metadata
-- ✓ Sessions now properly display extracted document content and field validation data after background processing
-
-**July 25, 2025**
+**July 25, 2025 (Latest Update)**
 - ✓ **SLATE BLUE THEME IMPLEMENTATION COMPLETED**: Successfully updated entire application color scheme to match user-preferred slate blue tone
 - ✓ Changed primary color from sea blue (#0EA5E9) to professional slate blue (#4F63A4) throughout CSS variables
 - ✓ Updated ExtractlyLogo wave gradients to use new slate blue color palette for consistent branding

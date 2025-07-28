@@ -58,19 +58,19 @@ export default function AllData({ project }: AllDataProps) {
     },
     enabled: project.sessions.length > 0,
     refetchOnWindowFocus: false,
-    staleTime: 0,  // Make sure data is always fresh
-    refetchInterval: 5000  // Refresh every 5 seconds to catch status changes
+    staleTime: 0  // Make sure data is always fresh
   });
 
-  // Use project sessions directly with reactive updates
-  const sessionsToDisplay = project.sessions;
-
   // Get verification status for a session
-  const getVerificationStatus = (sessionId: string): 'verified' | 'in_progress' | 'pending' => {
+  const getVerificationStatus = (sessionId: number): 'verified' | 'in_progress' | 'pending' => {
     const sessionValidations = allValidations.filter(v => v.sessionId === sessionId);
     if (sessionValidations.length === 0) return 'pending';
     
     const allVerified = sessionValidations.every(v => v.validationStatus === 'valid' || v.validationStatus === 'verified');
+    
+    // Debug logging
+    console.log(`Session ${sessionId} - Validations: ${sessionValidations.length}, All verified: ${allVerified}`);
+    console.log(`Session ${sessionId} - Status breakdown:`, sessionValidations.map(v => ({ field: v.fieldName, status: v.validationStatus })));
     
     return allVerified ? 'verified' : 'in_progress';
   };
@@ -79,7 +79,7 @@ export default function AllData({ project }: AllDataProps) {
   const getVerificationStats = () => {
     const stats = { verified: 0, in_progress: 0, pending: 0 };
     
-    for (const session of sessionsToDisplay) {
+    for (const session of project.sessions) {
       const status = getVerificationStatus(session.id);
       stats[status]++;
     }
@@ -90,7 +90,7 @@ export default function AllData({ project }: AllDataProps) {
   const verificationStats = getVerificationStats();
 
   // Get verification progress for a session
-  const getSessionProgress = (sessionId: string) => {
+  const getSessionProgress = (sessionId: number) => {
     const sessionValidations = allValidations.filter(v => v.sessionId === sessionId);
     if (sessionValidations.length === 0) return { verified: 0, total: 0, percentage: 0 };
     
@@ -134,7 +134,7 @@ export default function AllData({ project }: AllDataProps) {
 
   // Sorted sessions using useMemo for performance
   const sortedSessions = useMemo(() => {
-    const sessions = [...sessionsToDisplay];
+    const sessions = [...project.sessions];
     
     return sessions.sort((a, b) => {
       let aValue, bValue;
@@ -171,7 +171,7 @@ export default function AllData({ project }: AllDataProps) {
         return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
       }
     });
-  }, [sessionsToDisplay, sortField, sortDirection, allValidations]);
+  }, [project.sessions, sortField, sortDirection, allValidations]);
 
   return (
     <div>
@@ -232,35 +232,24 @@ export default function AllData({ project }: AllDataProps) {
                         {session.documentCount}
                       </TableCell>
                       <TableCell className="py-3">
-                        {session.status === 'processing' ? (
-                          <div className="flex items-center gap-2">
-                            <div className="w-20 bg-gray-200 rounded-full h-2.5">
-                              <div className="h-2.5 rounded-full bg-blue-500 animate-pulse" style={{ width: '40%' }} />
-                            </div>
-                            <span className="text-xs font-medium text-blue-600">Processing...</span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-20 bg-gray-200 rounded-full h-2.5">
+                            <div 
+                              className={`h-2.5 rounded-full transition-all duration-300 ${
+                                progress.percentage === 100 ? 'bg-green-600' : 
+                                progress.percentage > 0 ? 'bg-green-600' : 'bg-gray-400'
+                              }`}
+                              style={{ width: `${progress.percentage}%` }}
+                            />
                           </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <div className="w-20 bg-gray-200 rounded-full h-2.5">
-                              <div 
-                                className={`h-2.5 rounded-full transition-all duration-300 ${
-                                  progress.percentage === 100 ? 'bg-green-600' : 
-                                  progress.percentage > 0 ? 'bg-green-600' : 'bg-gray-400'
-                                }`}
-                                style={{ width: `${progress.percentage}%` }}
-                              />
-                            </div>
-                            <span className="text-xs font-medium text-gray-700 min-w-[32px]">
-                              {progress.percentage}%
-                            </span>
-                          </div>
-                        )}
+                          <span className="text-xs font-medium text-gray-700 min-w-[32px]">
+                            {progress.percentage}%
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell className="py-3 text-center">
                         <div className="flex justify-center">
-                          {session.status === 'processing' ? (
-                            <Clock className="h-4 w-4 text-blue-500 animate-spin" />
-                          ) : verificationStatus === 'verified' ? (
+                          {verificationStatus === 'verified' ? (
                             <CheckCircle className="h-4 w-4 text-green-600" />
                           ) : (
                             <CheckCircle className="h-4 w-4 text-gray-400" />
