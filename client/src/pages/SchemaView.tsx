@@ -141,10 +141,14 @@ export default function SchemaView() {
     const loadDocumentContentWithGemini = async () => {
       if (!session || !sessionId || !session.projectId) return;
       
+      // Check URL params once at the top - if we just came from "Run in debug mode", start completely fresh
+      const urlParams = new URLSearchParams(window.location.search);
+      const isNewDebugSession = urlParams.get('mode') === 'debug';
+      
       // In debug mode, don't auto-load - wait for manual trigger
       if (extractionMode === 'debug') {
-        // Check if we have saved session documents in the database already extracted
-        if (sessionDocuments && sessionDocuments.length > 0 && sessionDocuments[0].extractedContent) {
+        // Only restore document state if this is NOT a fresh session from debug mode
+        if (!isNewDebugSession && sessionDocuments && sessionDocuments.length > 0 && sessionDocuments[0].extractedContent) {
           console.log('DEBUG: Found saved session documents in database:', sessionDocuments.length);
           const text = sessionDocuments.map((doc: any, index: number) => 
             `--- DATABASE DOCUMENT ${index + 1}: ${doc.fileName} (${doc.wordCount} words) ---\n${doc.extractedContent}`
@@ -156,21 +160,25 @@ export default function SchemaView() {
           setStepData(prev => ({ ...prev, extract: { documentContent: text, documentCount: sessionDocuments.length } }));
           setCompletedSteps(prev => new Set([...prev, 'extract']));
           console.log('DEBUG: document content set from database session documents');
+        } else if (isNewDebugSession) {
+          console.log('DEBUG: Fresh debug session - starting with clean document state');
         }
         
-        // Check if AI processing was already completed by looking for field validations
-        const checkAIProcessingCompletion = async () => {
-          try {
-            const validationsResponse = await apiRequest(`/api/sessions/${sessionId}/validations`);
-            if (validationsResponse && Array.isArray(validationsResponse) && validationsResponse.length > 0) {
-              console.log('DEBUG: Found existing field validations, AI processing was previously completed');
-              
-              // Create a summary of the extracted data
-              const fieldCount = validationsResponse.length;
-              const verifiedCount = validationsResponse.filter((v: any) => v.validationStatus === 'verified').length;
-              const avgConfidence = Math.round(validationsResponse.reduce((sum: number, v: any) => sum + (v.confidenceScore || 0), 0) / fieldCount);
-              
-              const responseText = `=== AI EXTRACTION PREVIOUSLY COMPLETED ===
+        // Only restore completion state if this is NOT a fresh session from debug mode
+        if (!isNewDebugSession) {
+          // Check if AI processing was already completed by looking for field validations
+          const checkAIProcessingCompletion = async () => {
+            try {
+              const validationsResponse = await apiRequest(`/api/sessions/${sessionId}/validations`);
+              if (validationsResponse && Array.isArray(validationsResponse) && validationsResponse.length > 0) {
+                console.log('DEBUG: Found existing field validations, AI processing was previously completed');
+                
+                // Create a summary of the extracted data
+                const fieldCount = validationsResponse.length;
+                const verifiedCount = validationsResponse.filter((v: any) => v.validationStatus === 'verified').length;
+                const avgConfidence = Math.round(validationsResponse.reduce((sum: number, v: any) => sum + (v.confidenceScore || 0), 0) / fieldCount);
+                
+                const responseText = `=== AI EXTRACTION PREVIOUSLY COMPLETED ===
 
 Found ${fieldCount} extracted field validations in database:
 - ${verifiedCount} verified fields
@@ -183,17 +191,20 @@ ${fieldCount > 3 ? `\n... and ${fieldCount - 3} more fields` : ''}
 
 === RESULTS SAVED IN DATABASE ===`;
 
-              setGeminiResponse(responseText);
-              setSavedValidations(validationsResponse);
-              setCompletedSteps(prev => new Set([...prev, 'process', 'save']));
-              console.log('DEBUG: AI processing and database save marked as completed');
+                setGeminiResponse(responseText);
+                setSavedValidations(validationsResponse);
+                setCompletedSteps(prev => new Set([...prev, 'process', 'save']));
+                console.log('DEBUG: AI processing and database save marked as completed');
+              }
+            } catch (error) {
+              console.log('DEBUG: No existing validations found, AI processing not yet completed');
             }
-          } catch (error) {
-            console.log('DEBUG: No existing validations found, AI processing not yet completed');
-          }
-        };
-        
-        checkAIProcessingCompletion();
+          };
+          
+          checkAIProcessingCompletion();
+        } else {
+          console.log('DEBUG: Fresh debug session - starting with clean state');
+        }
         return;
       }
       
