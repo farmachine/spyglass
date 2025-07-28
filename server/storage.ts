@@ -26,7 +26,9 @@ import {
   type ExtractionRule,
   type InsertExtractionRule,
   type FieldValidation,
+  type FieldValidationWithName,
   type InsertFieldValidation,
+  type ExtendedInsertFieldValidation,
   type SessionDocument,
   type InsertSessionDocument,
   type ExtractionSessionWithValidation,
@@ -115,8 +117,8 @@ export interface IStorage {
   deleteExtractionRule(id: string): Promise<boolean>;
 
   // Field Validations
-  getFieldValidations(sessionId: string): Promise<FieldValidation[]>;
-  createFieldValidation(validation: InsertFieldValidation): Promise<FieldValidation>;
+  getFieldValidations(sessionId: string): Promise<FieldValidationWithName[]>;
+  createFieldValidation(validation: InsertFieldValidation | ExtendedInsertFieldValidation): Promise<FieldValidation>;
   updateFieldValidation(id: string, validation: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined>;
   deleteFieldValidation(id: string): Promise<boolean>;
   getSessionWithValidations(sessionId: string): Promise<ExtractionSessionWithValidation | undefined>;

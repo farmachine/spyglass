@@ -241,6 +241,11 @@ export type FieldValidationWithName = FieldValidation & {
   fieldName: string; // Added by backend through JOIN operations
 };
 export type InsertFieldValidation = z.infer<typeof insertFieldValidationSchema>;
+
+// Extend InsertFieldValidation to optionally include fieldName for backwards compatibility
+export type ExtendedInsertFieldValidation = InsertFieldValidation & {
+  fieldName?: string;
+};
 export type SessionDocument = typeof sessionDocuments.$inferSelect;
 export type InsertSessionDocument = z.infer<typeof insertSessionDocumentSchema>;
 export type ProjectPublishing = typeof projectPublishing.$inferSelect;

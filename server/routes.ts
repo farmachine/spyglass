@@ -2436,7 +2436,7 @@ print(json.dumps(result))
       console.log('Getting schema data for session:', sessionId);
       
       // Get the session to find the project ID
-      const session = await storage.getSession(sessionId);
+      const session = await storage.getExtractionSession(sessionId);
       if (!session) {
         return res.status(404).json({ error: 'Session not found' });
       }
@@ -2453,7 +2453,7 @@ print(json.dumps(result))
       // Get schema fields, collections, knowledge documents, and extraction rules
       const [schemaFields, collections, knowledgeDocuments, extractionRules] = await Promise.all([
         storage.getProjectSchemaFields(projectId),
-        storage.getProjectCollections(projectId),
+        storage.getObjectCollections(projectId),
         storage.getKnowledgeDocuments(projectId),
         storage.getExtractionRules(projectId)
       ]);
