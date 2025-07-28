@@ -58,19 +58,19 @@ export default function AllData({ project }: AllDataProps) {
     },
     enabled: project.sessions.length > 0,
     refetchOnWindowFocus: false,
-    staleTime: 0  // Make sure data is always fresh
+    staleTime: 0,  // Make sure data is always fresh
+    refetchInterval: 5000  // Refresh every 5 seconds to catch status changes
   });
 
+  // Use project sessions directly with reactive updates
+  const sessionsToDisplay = project.sessions;
+
   // Get verification status for a session
-  const getVerificationStatus = (sessionId: number): 'verified' | 'in_progress' | 'pending' => {
+  const getVerificationStatus = (sessionId: string): 'verified' | 'in_progress' | 'pending' => {
     const sessionValidations = allValidations.filter(v => v.sessionId === sessionId);
     if (sessionValidations.length === 0) return 'pending';
     
     const allVerified = sessionValidations.every(v => v.validationStatus === 'valid' || v.validationStatus === 'verified');
-    
-    // Debug logging
-    console.log(`Session ${sessionId} - Validations: ${sessionValidations.length}, All verified: ${allVerified}`);
-    console.log(`Session ${sessionId} - Status breakdown:`, sessionValidations.map(v => ({ field: v.fieldName, status: v.validationStatus })));
     
     return allVerified ? 'verified' : 'in_progress';
   };
@@ -79,7 +79,7 @@ export default function AllData({ project }: AllDataProps) {
   const getVerificationStats = () => {
     const stats = { verified: 0, in_progress: 0, pending: 0 };
     
-    for (const session of project.sessions) {
+    for (const session of sessionsToDisplay) {
       const status = getVerificationStatus(session.id);
       stats[status]++;
     }
@@ -90,7 +90,7 @@ export default function AllData({ project }: AllDataProps) {
   const verificationStats = getVerificationStats();
 
   // Get verification progress for a session
-  const getSessionProgress = (sessionId: number) => {
+  const getSessionProgress = (sessionId: string) => {
     const sessionValidations = allValidations.filter(v => v.sessionId === sessionId);
     if (sessionValidations.length === 0) return { verified: 0, total: 0, percentage: 0 };
     
@@ -134,7 +134,7 @@ export default function AllData({ project }: AllDataProps) {
 
   // Sorted sessions using useMemo for performance
   const sortedSessions = useMemo(() => {
-    const sessions = [...project.sessions];
+    const sessions = [...sessionsToDisplay];
     
     return sessions.sort((a, b) => {
       let aValue, bValue;
@@ -171,7 +171,7 @@ export default function AllData({ project }: AllDataProps) {
         return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
       }
     });
-  }, [project.sessions, sortField, sortDirection, allValidations]);
+  }, [sessionsToDisplay, sortField, sortDirection, allValidations]);
 
   return (
     <div>
