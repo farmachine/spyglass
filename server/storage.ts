@@ -8,7 +8,6 @@ import {
   extractionRules,
   fieldValidations,
   sessionDocuments,
-  extractionProcessData,
   organizations,
   users,
   projectPublishing,
@@ -30,8 +29,6 @@ import {
   type InsertFieldValidation,
   type SessionDocument,
   type InsertSessionDocument,
-  type ExtractionProcessData,
-  type InsertExtractionProcessData,
   type ExtractionSessionWithValidation,
   type ProjectWithDetails,
   type Organization,
@@ -131,11 +128,6 @@ export interface IStorage {
   updateSessionDocument(id: string, document: Partial<InsertSessionDocument>): Promise<SessionDocument | undefined>;
   deleteSessionDocument(id: string): Promise<boolean>;
 
-  // Extraction Process Data
-  createExtractionProcessData(data: InsertExtractionProcessData): Promise<ExtractionProcessData>;
-  getExtractionProcessData(sessionId: string): Promise<ExtractionProcessData | undefined>;
-  updateExtractionProcessData(sessionId: string, data: Partial<InsertExtractionProcessData>): Promise<ExtractionProcessData | undefined>;
-
   // Project Publishing
   getProjectPublishing(projectId: string): Promise<ProjectPublishing[]>;
   getProjectPublishedOrganizations(projectId: string): Promise<Organization[]>;
@@ -155,7 +147,6 @@ export class MemStorage implements IStorage {
   private extractionRules: Map<string, ExtractionRule>;
   private fieldValidations: Map<string, FieldValidation>;
   private sessionDocuments: Map<string, SessionDocument>;
-  private extractionProcessDataMap: Map<string, ExtractionProcessData>;
   private projectPublishing: Map<string, ProjectPublishing>;
 
   constructor() {
@@ -170,7 +161,6 @@ export class MemStorage implements IStorage {
     this.extractionRules = new Map();
     this.fieldValidations = new Map();
     this.sessionDocuments = new Map();
-    this.extractionProcessDataMap = new Map();
     this.projectPublishing = new Map();
     
     // Initialize with sample data for development
@@ -1334,36 +1324,6 @@ export class MemStorage implements IStorage {
   async deleteSessionDocument(id: string): Promise<boolean> {
     return this.sessionDocuments.delete(id);
   }
-
-  // Extraction Process Data
-  async createExtractionProcessData(data: InsertExtractionProcessData): Promise<ExtractionProcessData> {
-    const id = this.generateUUID();
-    const processData: ExtractionProcessData = {
-      ...data,
-      id,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.extractionProcessDataMap.set(data.sessionId, processData);
-    return processData;
-  }
-
-  async getExtractionProcessData(sessionId: string): Promise<ExtractionProcessData | undefined> {
-    return this.extractionProcessDataMap.get(sessionId);
-  }
-
-  async updateExtractionProcessData(sessionId: string, data: Partial<InsertExtractionProcessData>): Promise<ExtractionProcessData | undefined> {
-    const existingData = this.extractionProcessDataMap.get(sessionId);
-    if (!existingData) return undefined;
-
-    const updatedData = { 
-      ...existingData, 
-      ...data, 
-      updatedAt: new Date() 
-    };
-    this.extractionProcessDataMap.set(sessionId, updatedData);
-    return updatedData;
-  }
 }
 
 // PostgreSQL Storage Implementation
@@ -2282,36 +2242,6 @@ class PostgreSQLStorage implements IStorage {
       .delete(sessionDocuments)
       .where(eq(sessionDocuments.id, id));
     return result.rowCount > 0;
-  }
-
-  // Extraction Process Data
-  async createExtractionProcessData(data: InsertExtractionProcessData): Promise<ExtractionProcessData> {
-    return await this.retryOperation(async () => {
-      const result = await this.db.insert(extractionProcessData).values(data).returning();
-      return result[0];
-    });
-  }
-
-  async getExtractionProcessData(sessionId: string): Promise<ExtractionProcessData | undefined> {
-    return await this.retryOperation(async () => {
-      const result = await this.db
-        .select()
-        .from(extractionProcessData)
-        .where(eq(extractionProcessData.sessionId, sessionId))
-        .limit(1);
-      return result[0];
-    });
-  }
-
-  async updateExtractionProcessData(sessionId: string, data: Partial<InsertExtractionProcessData>): Promise<ExtractionProcessData | undefined> {
-    return await this.retryOperation(async () => {
-      const result = await this.db
-        .update(extractionProcessData)
-        .set({ ...data, updatedAt: new Date() })
-        .where(eq(extractionProcessData.sessionId, sessionId))
-        .returning();
-      return result[0];
-    });
   }
 }
 
