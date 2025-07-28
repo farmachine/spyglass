@@ -1736,6 +1736,8 @@ except Exception as e:
       const { files } = req.body;
       
       console.log(`[UPLOAD-FILES] Uploading ${files?.length || 0} files for session: ${sessionId}`);
+      console.log(`[UPLOAD-FILES] Request body keys:`, Object.keys(req.body || {}));
+      console.log(`[UPLOAD-FILES] Files array type:`, Array.isArray(files));
       
       const session = await storage.getExtractionSession(sessionId);
       if (!session) {

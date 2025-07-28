@@ -264,12 +264,33 @@ export default function NewUpload({ project }: NewUploadProps) {
 
       // In debug mode, upload files but don't run extraction - redirect to debug screen
       if (mode === 'debug') {
-        // Upload files to session for debug mode
-        await apiRequest(`/api/sessions/${session.id}/upload-files`, {
-          method: 'POST',
-          body: JSON.stringify({ files: filesData }),
-          headers: { 'Content-Type': 'application/json' }
-        });
+        console.log(`DEBUG: Uploading ${filesData.length} files for debug mode to session ${session.id}`);
+        
+        try {
+          // Upload files to session for debug mode
+          const uploadResponse = await apiRequest(`/api/sessions/${session.id}/upload-files`, {
+            method: 'POST',
+            body: JSON.stringify({ files: filesData }),
+            headers: { 'Content-Type': 'application/json' }
+          });
+          
+          console.log('DEBUG: Upload response:', uploadResponse);
+          
+          toast({
+            title: "Files uploaded for debug mode",
+            description: `${filesData.length} file(s) uploaded successfully. Redirecting to debug interface...`,
+          });
+        } catch (uploadError) {
+          console.error('DEBUG: Upload failed:', uploadError);
+          toast({
+            title: "Upload failed",
+            description: "Failed to upload files for debug mode. Please try again.",
+            variant: "destructive",
+          });
+          setShowProcessingDialog(false);
+          setIsProcessing(false);
+          return;
+        }
         
         setShowProcessingDialog(false);
         setIsProcessing(false);
