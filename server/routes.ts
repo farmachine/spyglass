@@ -12,7 +12,6 @@ import {
   insertExtractionSessionSchema,
   insertFieldValidationSchema,
   insertSessionDocumentSchema,
-  insertExtractionJobSchema,
   insertOrganizationSchema,
   insertUserSchema,
   loginSchema,
@@ -2037,136 +2036,60 @@ print(json.dumps(result))
       const sessionId = req.params.sessionId;
       const { prompt, projectId } = req.body;
       
-      // Get mode from URL parameters (automated or debug)
-      const extractionMode = req.query.mode as 'automated' | 'debug' || 'automated';
+      console.log(`GEMINI EXTRACTION: Starting for session ${sessionId}`);
       
-      console.log(`GEMINI EXTRACTION: Starting for session ${sessionId} in ${extractionMode} mode`);
+      // Call the existing Python script for AI extraction
+      const { spawn } = await import('child_process');
+      let output = '';
+      let error = '';
       
-      // Create extraction job for debugging
-      const extractionJob = await storage.createExtractionJob({
-        sessionId: sessionId,
-        sessionDocumentUuids: [], // Will populate this after fixing storage layer
-        extractionStatus: 'created',
-        extractionPrompt: prompt || '',
-        promptGenerationStatus: 'completed',
-        aiResponse: '',
-        aiResponseStatus: 'pending',
-        fieldValidationDatabaseWriteStatus: 'pending',
-        errorMessage: null
+      const python = spawn('python3', ['ai_extraction_single_step.py'], {
+        cwd: process.cwd()
+      });
+
+      // Send the prompt data to Python
+      const pythonInput = JSON.stringify({
+        prompt: prompt,
+        projectId: projectId,
+        sessionId: sessionId
       });
       
-      console.log(`EXTRACTION JOB: Created job ${extractionJob.id} for session ${sessionId}`);
-      
-      try {
-        // Update job status to processing
-        await storage.updateExtractionJob(extractionJob.id, {
-          extractionStatus: 'processing',
-          aiResponseStatus: 'processing'
-        });
-        
-        // Call the existing Python script for AI extraction
-        const { spawn } = await import('child_process');
-        let output = '';
-        let error = '';
-        
-        const python = spawn('python3', ['ai_extraction_single_step.py'], {
-          cwd: process.cwd()
-        });
+      python.stdin.write(pythonInput);
+      python.stdin.end();
 
-        // Send the prompt data to Python
-        const pythonInput = JSON.stringify({
-          prompt: prompt,
-          projectId: projectId,
-          sessionId: sessionId
-        });
-        
-        python.stdin.write(pythonInput);
-        python.stdin.end();
+      python.stdout.on('data', (data: any) => {
+        output += data.toString();
+      });
 
-        python.stdout.on('data', (data: any) => {
-          output += data.toString();
-        });
+      python.stderr.on('data', (data: any) => {
+        error += data.toString();
+      });
 
-        python.stderr.on('data', (data: any) => {
-          error += data.toString();
-        });
-
-        await new Promise((resolve, reject) => {
-          python.on('close', async (code: any) => {
-            if (code !== 0) {
-              console.error('GEMINI EXTRACTION error:', error);
-              
-              // Update job with error status
-              await storage.updateExtractionJob(extractionJob.id, {
-                extractionStatus: 'failed',
-                aiResponseStatus: 'failed',
-                errorMessage: `Python script failed: ${error}`
-              });
-              
-              return reject(new Error(`Gemini extraction failed: ${error}`));
-            }
+      await new Promise((resolve, reject) => {
+        python.on('close', async (code: any) => {
+          if (code !== 0) {
+            console.error('GEMINI EXTRACTION error:', error);
+            return reject(new Error(`Gemini extraction failed: ${error}`));
+          }
           
           try {
             const result = JSON.parse(output);
             console.log('GEMINI EXTRACTION result:', result.success ? 'Success' : 'Failed');
             
-            if (result.success) {
-              // Update job with successful AI response
-              await storage.updateExtractionJob(extractionJob.id, {
-                extractionStatus: 'completed',
-                aiResponseStatus: 'completed',
-                aiResponse: result.extractedData || result.result || '',
-                fieldValidationDatabaseWriteStatus: 'completed'
-              });
-              
-              console.log(`EXTRACTION JOB: Successfully completed job ${extractionJob.id}`);
-            } else {
-              // Update job with failed status
-              await storage.updateExtractionJob(extractionJob.id, {
-                extractionStatus: 'failed',
-                aiResponseStatus: 'failed',
-                errorMessage: result.error || 'Unknown error'
-              });
-            }
-            
             res.json({
               success: result.success,
               extractedData: result.extractedData || result.result,
-              error: result.error,
-              jobId: extractionJob.id
+              error: result.error
             });
             
             resolve(result);
           } catch (parseError) {
             console.error('GEMINI EXTRACTION JSON parse error:', parseError);
             console.error('Raw output:', output);
-            
-            // Update job with parsing error
-            await storage.updateExtractionJob(extractionJob.id, {
-              extractionStatus: 'failed',
-              aiResponseStatus: 'failed',
-              errorMessage: `JSON parsing failed: ${parseError.message}`
-            });
-            
             reject(new Error(`Invalid JSON response: ${parseError}`));
           }
         });
       });
-      
-      } catch (jobError) {
-        console.error("GEMINI EXTRACTION job processing error:", jobError);
-        
-        // Update job with failure status if it exists
-        if (extractionJob) {
-          await storage.updateExtractionJob(extractionJob.id, {
-            extractionStatus: 'failed',
-            aiResponseStatus: 'failed',
-            errorMessage: jobError.message || 'Job processing failed'
-          });
-        }
-        
-        throw jobError;
-      }
       
     } catch (error) {
       console.error("GEMINI EXTRACTION error:", error);
@@ -3066,25 +2989,6 @@ print(json.dumps(results))
 
       console.log(`AI_EXTRACTION: Processing ${schemaFields.length} schema fields and ${collectionsWithProperties.length} collections`);
 
-      // Get session documents for job tracking
-      const sessionDocuments = await storage.getSessionDocumentsBySession(sessionId);
-      const sessionDocumentUuids = sessionDocuments.map(doc => doc.id);
-      
-      // Create extraction job for debugging
-      const extractionJob = await storage.createExtractionJob({
-        sessionId: sessionId,
-        sessionDocumentUuids: sessionDocumentUuids,
-        extractionStatus: 'started',
-        extractionPrompt: JSON.stringify(extractionData),
-        promptGenerationStatus: 'completed',
-        aiResponse: null,
-        aiResponseStatus: 'pending',
-        fieldValidationDatabaseWriteStatus: 'pending',
-        errorMessage: null
-      });
-      
-      console.log(`AI_EXTRACTION: Created extraction job ${extractionJob.id} for debugging`);
-
       // Call Python AI extraction script
       const { spawn } = await import('child_process');
       let pythonOutput = '';
@@ -3121,14 +3025,6 @@ print(json.dumps(result))
         if (code !== 0) {
           console.error(`AI_EXTRACTION: Python process failed with code ${code}`);
           console.error(`AI_EXTRACTION: Error output: ${pythonError}`);
-          
-          // Update extraction job with error
-          await storage.updateExtractionJob(extractionJob.id, {
-            extractionStatus: 'failed',
-            aiResponseStatus: 'failed',
-            errorMessage: pythonError
-          });
-          
           return res.status(500).json({ 
             message: "AI extraction failed", 
             error: pythonError,
@@ -3141,14 +3037,6 @@ print(json.dumps(result))
           
           if (extractionResults.success) {
             console.log(`AI_EXTRACTION: Successfully processed ${extractionResults.total_fields_processed || 0} fields`);
-            
-            // Update extraction job with successful results
-            await storage.updateExtractionJob(extractionJob.id, {
-              extractionStatus: 'completed',
-              aiResponse: JSON.stringify(extractionResults),
-              aiResponseStatus: 'completed',
-              fieldValidationDatabaseWriteStatus: 'started'
-            });
             
             // Update session status to completed
             await storage.updateExtractionSession(sessionId, {
@@ -3174,13 +3062,6 @@ print(json.dumps(result))
                   confidenceScore: validation.confidence_score || 0
                 });
               }
-              
-              // Mark field validation database write as completed
-              await storage.updateExtractionJob(extractionJob.id, {
-                fieldValidationDatabaseWriteStatus: 'completed'
-              });
-              
-              console.log(`AI_EXTRACTION: Created ${extractionResults.field_validations.length} field validations for job ${extractionJob.id}`);
             }
             
             res.json({
@@ -3191,15 +3072,6 @@ print(json.dumps(result))
             });
           } else {
             console.log('AI_EXTRACTION: Extraction failed:', extractionResults.error);
-            
-            // Update extraction job with failure
-            await storage.updateExtractionJob(extractionJob.id, {
-              extractionStatus: 'failed',
-              aiResponse: JSON.stringify(extractionResults),
-              aiResponseStatus: 'completed',
-              errorMessage: extractionResults.error || 'Unknown extraction error'
-            });
-            
             res.status(500).json({ 
               message: "AI extraction failed",
               error: extractionResults.error
@@ -3208,15 +3080,6 @@ print(json.dumps(result))
         } catch (parseError) {
           console.error(`AI_EXTRACTION: Failed to parse Python output: ${parseError}`);
           console.error(`AI_EXTRACTION: Raw output: ${pythonOutput}`);
-          
-          // Update extraction job with parsing error
-          await storage.updateExtractionJob(extractionJob.id, {
-            extractionStatus: 'failed',
-            aiResponseStatus: 'failed',
-            errorMessage: `JSON parsing failed: ${parseError.message}`,
-            aiResponse: pythonOutput
-          });
-          
           res.status(500).json({
             message: "Failed to parse extraction results",
             error: parseError.message,
@@ -3374,81 +3237,6 @@ print(json.dumps(result))
     } catch (error) {
       console.error("Error deleting session document:", error);
       res.status(500).json({ message: "Failed to delete session document" });
-    }
-  });
-
-  // Extraction Jobs Routes
-  
-  // Create an extraction job
-  app.post("/api/sessions/:sessionId/extraction-jobs", async (req, res) => {
-    try {
-      const sessionId = req.params.sessionId;
-      const result = insertExtractionJobSchema.safeParse({
-        ...req.body,
-        sessionId
-      });
-      
-      if (!result.success) {
-        return res.status(400).json({ message: "Invalid extraction job data", errors: result.error.errors });
-      }
-
-      const extractionJob = await storage.createExtractionJob(result.data);
-      res.json(extractionJob);
-    } catch (error) {
-      console.error("Error creating extraction job:", error);
-      res.status(500).json({ message: "Failed to create extraction job" });
-    }
-  });
-
-  // Get all extraction jobs for a session
-  app.get("/api/sessions/:sessionId/extraction-jobs", async (req, res) => {
-    try {
-      const sessionId = req.params.sessionId;
-      const extractionJobs = await storage.getExtractionJobsBySession(sessionId);
-      res.json(extractionJobs);
-    } catch (error) {
-      console.error("Error getting extraction jobs:", error);
-      res.status(500).json({ message: "Failed to get extraction jobs" });
-    }
-  });
-
-  // Get a specific extraction job
-  app.get("/api/extraction-jobs/:id", async (req, res) => {
-    try {
-      const id = req.params.id;
-      const extractionJob = await storage.getExtractionJob(id);
-      
-      if (!extractionJob) {
-        return res.status(404).json({ message: "Extraction job not found" });
-      }
-      
-      res.json(extractionJob);
-    } catch (error) {
-      console.error("Error getting extraction job:", error);
-      res.status(500).json({ message: "Failed to get extraction job" });
-    }
-  });
-
-  // Update an extraction job
-  app.put("/api/extraction-jobs/:id", async (req, res) => {
-    try {
-      const id = req.params.id;
-      const result = insertExtractionJobSchema.partial().safeParse(req.body);
-      
-      if (!result.success) {
-        return res.status(400).json({ message: "Invalid extraction job data", errors: result.error.errors });
-      }
-
-      const extractionJob = await storage.updateExtractionJob(id, result.data);
-      
-      if (!extractionJob) {
-        return res.status(404).json({ message: "Extraction job not found" });
-      }
-      
-      res.json(extractionJob);
-    } catch (error) {
-      console.error("Error updating extraction job:", error);
-      res.status(500).json({ message: "Failed to update extraction job" });
     }
   });
 

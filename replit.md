@@ -11,12 +11,6 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **July 28, 2025 (Latest Update)**
-- ✓ **EXTRACTION JOBS DEBUGGING SYSTEM COMPLETED**: Successfully implemented comprehensive job tracking infrastructure for extraction pipeline debugging
-- ✓ Created extraction_jobs database table with UUID foreign keys referencing session_documents for efficient debugging without content duplication
-- ✓ Added complete storage interface methods for extraction jobs management in both MemStorage and PostgreSQL implementations
-- ✓ Implemented full CRUD API routes for extraction jobs with proper validation using Zod schemas
-- ✓ Database architecture established: jobs track extraction_status, extraction_prompt, ai_response, field validation database write status, and more
-- ✓ Complete foundation ready for extraction pipeline step-by-step debugging and output tracking
 - ✓ **DATABASE INTEGRATION COMPLETED**: Successfully implemented persistent storage for extracted document content
 - ✓ Added session_documents table with id, session_id, project_id, extracted_content, created_at, updated_at, file_name, word_count fields
 - ✓ Fixed critical storage interface bug - added missing getSession method to IStorage interface and MemStorage implementation

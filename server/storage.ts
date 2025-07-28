@@ -8,7 +8,6 @@ import {
   extractionRules,
   fieldValidations,
   sessionDocuments,
-  extractionJobs,
   organizations,
   users,
   projectPublishing,
@@ -30,8 +29,6 @@ import {
   type InsertFieldValidation,
   type SessionDocument,
   type InsertSessionDocument,
-  type ExtractionJob,
-  type InsertExtractionJob,
   type ExtractionSessionWithValidation,
   type ProjectWithDetails,
   type Organization,
@@ -131,12 +128,6 @@ export interface IStorage {
   updateSessionDocument(id: string, document: Partial<InsertSessionDocument>): Promise<SessionDocument | undefined>;
   deleteSessionDocument(id: string): Promise<boolean>;
 
-  // Extraction Jobs
-  createExtractionJob(job: InsertExtractionJob): Promise<ExtractionJob>;
-  getExtractionJob(id: string): Promise<ExtractionJob | undefined>;
-  getExtractionJobsBySession(sessionId: string): Promise<ExtractionJob[]>;
-  updateExtractionJob(id: string, job: Partial<InsertExtractionJob>): Promise<ExtractionJob | undefined>;
-
   // Project Publishing
   getProjectPublishing(projectId: string): Promise<ProjectPublishing[]>;
   getProjectPublishedOrganizations(projectId: string): Promise<Organization[]>;
@@ -156,7 +147,6 @@ export class MemStorage implements IStorage {
   private extractionRules: Map<string, ExtractionRule>;
   private fieldValidations: Map<string, FieldValidation>;
   private sessionDocuments: Map<string, SessionDocument>;
-  private extractionJobs: Map<string, ExtractionJob>;
   private projectPublishing: Map<string, ProjectPublishing>;
 
   constructor() {
@@ -171,7 +161,6 @@ export class MemStorage implements IStorage {
     this.extractionRules = new Map();
     this.fieldValidations = new Map();
     this.sessionDocuments = new Map();
-    this.extractionJobs = new Map();
     this.projectPublishing = new Map();
     
     // Initialize with sample data for development
@@ -190,7 +179,6 @@ export class MemStorage implements IStorage {
       id: orgId,
       name: "ACME Corporation", 
       description: "Sample organization for testing",
-      type: "primary",
       createdAt: new Date()
     };
     this.organizations.set(orgId, org);
@@ -205,7 +193,6 @@ export class MemStorage implements IStorage {
       organizationId: orgId,
       role: "admin",
       isActive: true,
-      isTemporaryPassword: false,
       createdAt: new Date()
     };
     this.users.set(userId, adminUser);
@@ -217,8 +204,6 @@ export class MemStorage implements IStorage {
       name: "Sample Invoice Processing",
       description: "Extract data from invoices and receipts",
       organizationId: orgId, // Link to organization
-      createdBy: userId,
-      status: "active" as const,
       mainObjectName: "Invoice",
       isInitialSetupComplete: true,
       createdAt: new Date(),
@@ -649,7 +634,7 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async getOrganization(id: string): Promise<Organization | undefined> {
+  async getOrganization(id: number): Promise<Organization | undefined> {
     return this.organizations.get(id);
   }
 
@@ -657,7 +642,7 @@ export class MemStorage implements IStorage {
     return Array.from(this.organizations.values()).find(org => org.type === 'primary');
   }
 
-  async getOrganizationWithUsers(id: string): Promise<OrganizationWithUsers | undefined> {
+  async getOrganizationWithUsers(id: number): Promise<OrganizationWithUsers | undefined> {
     const org = this.organizations.get(id);
     if (!org) return undefined;
     
@@ -667,7 +652,7 @@ export class MemStorage implements IStorage {
 
   async createOrganization(insertOrg: InsertOrganization): Promise<Organization> {
     const org: Organization = {
-      id: this.generateUUID(),
+      id: this.currentOrganizationId++,
       ...insertOrg,
       createdAt: new Date(),
     };
@@ -675,7 +660,7 @@ export class MemStorage implements IStorage {
     return org;
   }
 
-  async updateOrganization(id: string, updateData: Partial<InsertOrganization>): Promise<Organization | undefined> {
+  async updateOrganization(id: number, updateData: Partial<InsertOrganization>): Promise<Organization | undefined> {
     const org = this.organizations.get(id);
     if (!org) return undefined;
     
@@ -684,18 +669,18 @@ export class MemStorage implements IStorage {
     return updated;
   }
 
-  async deleteOrganization(id: string): Promise<boolean> {
+  async deleteOrganization(id: number): Promise<boolean> {
     return this.organizations.delete(id);
   }
 
-  // Users  
-  async getUsers(organizationId: string): Promise<User[]> {
+  // Users
+  async getUsers(organizationId: number): Promise<User[]> {
     return Array.from(this.users.values())
       .filter(u => u.organizationId === organizationId)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
-  async getUser(id: string): Promise<User | undefined> {
+  async getUser(id: number): Promise<User | undefined> {
     return this.users.get(id);
   }
 
@@ -703,7 +688,7 @@ export class MemStorage implements IStorage {
     return Array.from(this.users.values()).find(u => u.email === email);
   }
 
-  async getUserWithOrganization(id: string): Promise<UserWithOrganization | undefined> {
+  async getUserWithOrganization(id: number): Promise<UserWithOrganization | undefined> {
     const user = this.users.get(id);
     if (!user) return undefined;
     
@@ -720,7 +705,7 @@ export class MemStorage implements IStorage {
     const passwordHash = await bcryptjs.default.hash(password, 10);
     
     const user: User = {
-      id: this.generateUUID(),
+      id: this.currentUserId++,
       ...insertUser,
       passwordHash,
       createdAt: new Date(),
@@ -1338,42 +1323,6 @@ export class MemStorage implements IStorage {
 
   async deleteSessionDocument(id: string): Promise<boolean> {
     return this.sessionDocuments.delete(id);
-  }
-
-  // Extraction Jobs
-  async createExtractionJob(insertJob: InsertExtractionJob): Promise<ExtractionJob> {
-    const id = this.generateUUID();
-    const job: ExtractionJob = {
-      ...insertJob,
-      id,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.extractionJobs.set(id, job);
-    return job;
-  }
-
-  async getExtractionJob(id: string): Promise<ExtractionJob | undefined> {
-    return this.extractionJobs.get(id);
-  }
-
-  async getExtractionJobsBySession(sessionId: string): Promise<ExtractionJob[]> {
-    return Array.from(this.extractionJobs.values())
-      .filter(job => job.sessionId === sessionId)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }
-
-  async updateExtractionJob(id: string, updateData: Partial<InsertExtractionJob>): Promise<ExtractionJob | undefined> {
-    const job = this.extractionJobs.get(id);
-    if (!job) return undefined;
-
-    const updatedJob = { 
-      ...job, 
-      ...updateData, 
-      updatedAt: new Date() 
-    };
-    this.extractionJobs.set(id, updatedJob);
-    return updatedJob;
   }
 }
 
@@ -2293,39 +2242,6 @@ class PostgreSQLStorage implements IStorage {
       .delete(sessionDocuments)
       .where(eq(sessionDocuments.id, id));
     return result.rowCount > 0;
-  }
-
-  // Extraction Jobs
-  async createExtractionJob(job: InsertExtractionJob): Promise<ExtractionJob> {
-    const result = await this.db.insert(extractionJobs).values(job).returning();
-    return result[0];
-  }
-
-  async getExtractionJob(id: string): Promise<ExtractionJob | undefined> {
-    const result = await this.db
-      .select()
-      .from(extractionJobs)
-      .where(eq(extractionJobs.id, id))
-      .limit(1);
-    return result[0];
-  }
-
-  async getExtractionJobsBySession(sessionId: string): Promise<ExtractionJob[]> {
-    const result = await this.db
-      .select()
-      .from(extractionJobs)
-      .where(eq(extractionJobs.sessionId, sessionId))
-      .orderBy(extractionJobs.createdAt);
-    return result;
-  }
-
-  async updateExtractionJob(id: string, job: Partial<InsertExtractionJob>): Promise<ExtractionJob | undefined> {
-    const result = await this.db
-      .update(extractionJobs)
-      .set(job)
-      .where(eq(extractionJobs.id, id))
-      .returning();
-    return result[0];
   }
 }
 
