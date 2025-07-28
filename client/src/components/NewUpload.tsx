@@ -260,10 +260,10 @@ export default function NewUpload({ project }: NewUploadProps) {
           description: `Processing ${selectedFiles.length} file(s) in the background. You can navigate to other sections while extraction runs.`,
         });
 
-        // Reset form and redirect to All Sessions view
+        // Reset form and redirect to Dashboard
         form.reset();
         setSelectedFiles([]);
-        setLocation('/dashboard');
+        setLocation('/');
       } else {
         throw new Error(backgroundResult.error || "Failed to start background extraction");
       }
