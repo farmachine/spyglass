@@ -250,15 +250,39 @@ export default function NewUpload({ project }: NewUploadProps) {
         }
       }));
 
-      // Step 3: Start background extraction
+      // Step 3: Prepare collections with their properties loaded
+      const collectionsWithProperties = await Promise.all(
+        collections.map(async (collection) => {
+          try {
+            const response = await fetch(`/api/collections/${collection.id}/properties`);
+            if (response.ok) {
+              const properties = await response.json();
+              return {
+                ...collection,
+                properties
+              };
+            } else {
+              console.warn(`Failed to load properties for collection ${collection.id}`);
+              return {
+                ...collection,
+                properties: []
+              };
+            }
+          } catch (error) {
+            console.error(`Error loading properties for collection ${collection.id}:`, error);
+            return {
+              ...collection,
+              properties: []
+            };
+          }
+        })
+      );
+
       const project_data = {
         id: project.id,
         projectId: project.id,
         schemaFields,
-        collections: collections.map(collection => ({
-          ...collection,
-          properties: []
-        })),
+        collections: collectionsWithProperties,
         mainObjectName: project.mainObjectName
       };
 
