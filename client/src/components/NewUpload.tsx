@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
+import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -60,6 +61,11 @@ export default function NewUpload({ project }: NewUploadProps) {
   const [selectedFiles, setSelectedFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showProcessingDialog, setShowProcessingDialog] = useState(false);
+  const [processingStep, setProcessingStep] = useState<'uploading' | 'extracting' | 'validating' | 'complete'>('uploading');
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [processedDocuments, setProcessedDocuments] = useState(0);
+  const [totalDocuments, setTotalDocuments] = useState(0);
   const [extractionMode, setExtractionMode] = useState<'automated' | 'debug'>('automated');
   const [, setLocation] = useLocation();
   
@@ -68,9 +74,9 @@ export default function NewUpload({ project }: NewUploadProps) {
   const { toast } = useToast();
   
   // Fetch schema data for validation
-  const { data: schemaFields = [] } = useProjectSchemaFields(String(project.id));
-  const { data: collections = [] } = useObjectCollections(String(project.id));
-  const { data: extractionRules = [] } = useExtractionRules(String(project.id));
+  const { data: schemaFields = [] } = useProjectSchemaFields(project.id);
+  const { data: collections = [] } = useObjectCollections(project.id);
+  const { data: extractionRules = [] } = useExtractionRules(project.id);
   
 
 
@@ -199,17 +205,30 @@ export default function NewUpload({ project }: NewUploadProps) {
 
     setExtractionMode(mode);
     setIsProcessing(true);
+    setShowProcessingDialog(true);
+    setTotalDocuments(selectedFiles.length);
+    setProcessedDocuments(0);
+    setProcessingStep('uploading');
+    setProcessingProgress(0);
 
     try {
-      // Step 1: Create extraction session with 'processing' status
+      // Step 1: Create extraction session
       const session = await createExtractionSession.mutateAsync({
         sessionName: data.sessionName,
         description: data.description || null,
         documentCount: selectedFiles.length,
-        status: "processing", // Start with processing status for background extraction
+        status: "in_progress",
       });
 
-      // Step 2: Prepare file data
+      // Step 2: File upload progress
+      setProcessingStep('uploading');
+      for (let i = 0; i < selectedFiles.length; i++) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        setProcessedDocuments(i + 1);
+        setProcessingProgress(((i + 1) / selectedFiles.length) * 100);
+      }
+
+      // Prepare file data for text extraction
       const filesData = await Promise.all(selectedFiles.map(async (fileData) => {
         try {
           // Read file content as base64
@@ -243,38 +262,60 @@ export default function NewUpload({ project }: NewUploadProps) {
         }
       }));
 
-      // Step 3: Start background extraction and redirect immediately
-      const backgroundResult = await apiRequest(`/api/sessions/${session.id}/start-background-extraction`, {
+      // Step 3: Text Extraction Phase (NEW SIMPLIFIED APPROACH)
+      setProcessingStep('extracting');
+      setProcessingProgress(0);
+      setSelectedFiles(prev => prev.map(f => ({ ...f, status: "processing" as const })));
+
+      // Call new text extraction endpoint
+      const textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
         method: 'POST',
-        body: JSON.stringify({ 
-          files: filesData,
-          projectId: project.id,
-          mode: mode
-        }),
+        body: JSON.stringify({ files: filesData }),
         headers: { 'Content-Type': 'application/json' }
       });
 
-      if (backgroundResult.success) {
+      setProcessingProgress(100);
+
+      // Step 4: Complete
+      setProcessingStep('complete');
+
+      // Mark files as completed
+      setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
+
+      // Show success briefly before redirect
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      if (textExtractionResult && session?.id) {
         toast({
-          title: "Background extraction started",
-          description: `Processing ${selectedFiles.length} file(s) in the background. You can navigate to other sections while extraction runs.`,
+          title: "Text extraction complete",
+          description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
         });
 
-        // Reset form and redirect to Dashboard
-        form.reset();
-        setSelectedFiles([]);
-        setLocation('/');
+        // Close dialog and redirect to schema view with mode parameter
+        setShowProcessingDialog(false);
+        const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
+        const urlWithMode = `${redirectUrl}?mode=${mode}`;
+
+        setLocation(urlWithMode);
       } else {
-        throw new Error(backgroundResult.error || "Failed to start background extraction");
+        throw new Error("Text extraction completed but session data is missing");
       }
       
+      // Reset form
+      form.reset();
+      setSelectedFiles([]);
     } catch (error) {
-      console.error("Failed to start background extraction:", error);
+      console.error("Failed to extract text:", error);
+      setSelectedFiles(prev => prev.map(f => ({ ...f, status: "error" as const })));
+      
+      setShowProcessingDialog(false);
       toast({
-        title: "Failed to start extraction",
-        description: "There was an error starting the background extraction. Please try again.",
+        title: "Text extraction failed",
+        description: "There was an error extracting text from your files. Please try again.",
         variant: "destructive",
       });
+      
+      // Don't redirect on error - keep user on upload tab
     } finally {
       setIsProcessing(false);
     }
@@ -372,7 +413,9 @@ export default function NewUpload({ project }: NewUploadProps) {
                             <span className="text-xs text-gray-500">
                               {getStatusText(fileData.status)}
                             </span>
-
+                            {fileData.status === "uploading" && (
+                              <Progress value={fileData.progress} className="flex-1 h-1" />
+                            )}
                           </div>
                         </div>
                         {!isProcessing && fileData.status === "pending" && (
@@ -393,7 +436,7 @@ export default function NewUpload({ project }: NewUploadProps) {
 
             {/* Session Configuration */}
             <Form {...form}>
-              <form onSubmit={form.handleSubmit((data) => handleSubmit(data, 'automated'))} className="space-y-6">
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
                   <FormField
                     control={form.control}
                     name="sessionName"
@@ -441,12 +484,12 @@ export default function NewUpload({ project }: NewUploadProps) {
                     {isProcessing ? (
                       <>
                         <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                        Starting Background Extraction...
+                        Processing...
                       </>
                     ) : (
                       <>
                         <FlowIcon className="h-4 w-4 mr-2" />
-                        Start Background Extraction
+                        Start Extraction
                       </>
                     )}
                   </Button>
@@ -508,7 +551,94 @@ export default function NewUpload({ project }: NewUploadProps) {
         </CardContent>
       </Card>
 
+      {/* Processing Dialog */}
+      <Dialog open={showProcessingDialog} modal={true}>
+        <DialogContent className="sm:max-w-md" onEscapeKeyDown={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
+          <DialogHeader className="sr-only">
+            <DialogTitle>Document Processing</DialogTitle>
+            <DialogDescription>Processing your documents through multiple stages</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center p-6">
+            <div className="w-16 h-16 mb-6 relative">
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-100 border-t-blue-600"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <WaveIcon className="h-6 w-6 text-blue-600" />
+              </div>
+            </div>
 
+            <div className="text-center mb-6">
+              <div className="mb-2">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mb-2">
+                  {extractionMode === 'automated' ? 'Automated Mode' : 'Debug Mode'}
+                </span>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {processingStep === 'uploading' && 'Processing Documents'}
+                {processingStep === 'extracting' && 'AI Data Extraction'}
+                {processingStep === 'validating' && 'Validation & Rules'}
+                {processingStep === 'complete' && 'Processing Complete'}
+              </h3>
+              <p className="text-sm text-gray-600">
+                {processingStep === 'uploading' && `Uploading ${processedDocuments} of ${totalDocuments} documents...`}
+                {processingStep === 'extracting' && 'Analyzing documents and extracting data using AI...'}
+                {processingStep === 'validating' && 'Applying extraction rules and validation logic...'}
+                {processingStep === 'complete' && 'All documents processed successfully!'}
+              </p>
+            </div>
+
+            <div className="w-full mb-4">
+              <Progress value={processingProgress} className="h-2" />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>{Math.round(processingProgress)}%</span>
+                <span>
+                  {processingStep === 'uploading' && `${processedDocuments}/${totalDocuments} files`}
+                  {processingStep === 'extracting' && 'Extracting...'}
+                  {processingStep === 'validating' && 'Validating...'}
+                  {processingStep === 'complete' && 'Done!'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-4 text-xs text-gray-500">
+              <div className={`flex items-center ${processingStep !== 'uploading' ? 'text-green-600' : ''}`}>
+                {processingStep === 'uploading' ? (
+                  <div className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full mr-1" />
+                ) : (
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                )}
+                Upload
+              </div>
+              <div className={`flex items-center ${processingStep === 'extracting' ? 'text-blue-600' : processingStep === 'validating' || processingStep === 'complete' ? 'text-green-600' : 'text-gray-400'}`}>
+                {processingStep === 'extracting' ? (
+                  <div className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full mr-1" />
+                ) : processingStep === 'validating' || processingStep === 'complete' ? (
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                ) : (
+                  <Clock className="h-3 w-3 mr-1" />
+                )}
+                Extract
+              </div>
+              <div className={`flex items-center ${processingStep === 'validating' ? 'text-blue-600' : processingStep === 'complete' ? 'text-green-600' : 'text-gray-400'}`}>
+                {processingStep === 'validating' ? (
+                  <div className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full mr-1" />
+                ) : processingStep === 'complete' ? (
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                ) : (
+                  <Clock className="h-3 w-3 mr-1" />
+                )}
+                Validate
+              </div>
+            </div>
+
+            {processingStep === 'complete' && (
+              <div className="mt-4 text-center">
+                <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                <p className="text-sm text-green-600 font-medium">Redirecting to review page...</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

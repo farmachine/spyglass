@@ -539,39 +539,6 @@ ${error instanceof Error ? error.message : 'Unknown error'}
     }
   };
 
-  // Function to start background extraction
-  const handleBackgroundExtraction = async () => {
-    if (!session || !session.documents) {
-      setError("No session or documents available for extraction");
-      return;
-    }
-    
-    setIsProcessing(true);
-    try {
-      // Make API call to start background extraction
-      const response = await apiRequest(`/api/sessions/${sessionId}/start-background-extraction`, {
-        method: 'POST',
-        body: JSON.stringify({ 
-          files: session.documents,
-          projectId: session.projectId 
-        }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      if (response.success) {
-        // Redirect to dashboard as specified in backend response
-        setLocation('/dashboard');
-      } else {
-        setError(`Background extraction failed: ${response.error || 'Unknown error'}`);
-      }
-    } catch (error) {
-      console.error('Background extraction failed:', error);
-      setError(`Failed to start background extraction: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   // Function to save extraction results to database
   const handleSaveToDatabase = async () => {
     if (!geminiResponse) {
@@ -1245,45 +1212,25 @@ ${error instanceof Error ? error.message : 'Unknown error'}
             {extractionMode === 'automated' ? '🤖 AUTOMATED MODE' : '🔧 DEBUG MODE'}
           </div>
         )}
-        <div style={{ marginBottom: '15px', fontWeight: 'bold' }}>
+        <div style={{ marginBottom: '10px', fontWeight: 'bold' }}>
           STEP 2 COMPLETE: Schema & Prompt Generated
         </div>
-        <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button 
-            onClick={handleBackgroundExtraction}
-            disabled={isProcessing}
-            style={{
-              padding: '12px 24px',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              backgroundColor: isProcessing ? '#6c757d' : '#4F63A4',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: isProcessing ? 'not-allowed' : 'pointer',
-              minWidth: '200px'
-            }}
-          >
-            {isProcessing ? 'PROCESSING...' : '🚀 START BACKGROUND EXTRACTION'}
-          </button>
-          <button 
-            onClick={handleGeminiExtraction}
-            disabled={isProcessing}
-            style={{
-              padding: '12px 24px',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              backgroundColor: isProcessing ? '#6c757d' : '#28a745',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: isProcessing ? 'not-allowed' : 'pointer',
-              minWidth: '200px'
-            }}
-          >
-            {isProcessing ? 'PROCESSING...' : '🔧 START DEBUG EXTRACTION'}
-          </button>
-        </div>
+        <button 
+          onClick={handleGeminiExtraction}
+          disabled={isProcessing}
+          style={{
+            padding: '12px 24px',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            backgroundColor: isProcessing ? '#6c757d' : '#28a745',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: isProcessing ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {isProcessing ? 'PROCESSING...' : 'START EXTRACTION'}
+        </button>
       </div>
 
       {/* Display Gemini Response */}
