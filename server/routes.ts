@@ -56,7 +56,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: user.email,
         name: user.name,
         organizationId: user.organizationId,
-        role: user.role,
+        role: user.role as "admin" | "user",
         isTemporaryPassword: user.isTemporaryPassword
       });
 

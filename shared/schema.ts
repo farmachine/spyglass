@@ -18,7 +18,7 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   name: text("name").notNull(),
   organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
-  role: text("role").default("user").notNull(), // 'admin', 'user'
+  role: text("role", { enum: ["admin", "user"] }).default("user").notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   isTemporaryPassword: boolean("is_temporary_password").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -192,6 +192,8 @@ export const insertKnowledgeDocumentSchema = createInsertSchema(knowledgeDocumen
 export const insertExtractionRuleSchema = createInsertSchema(extractionRules).omit({
   id: true,
   createdAt: true,
+}).extend({
+  targetFields: z.array(z.string()).optional(),
 });
 
 export const insertSessionDocumentSchema = createInsertSchema(sessionDocuments).omit({

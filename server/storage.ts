@@ -79,8 +79,8 @@ export interface IStorage {
   // Project Schema Fields
   getProjectSchemaFields(projectId: string): Promise<ProjectSchemaField[]>;
   createProjectSchemaField(field: InsertProjectSchemaField): Promise<ProjectSchemaField>;
-  updateProjectSchemaField(id: number, field: Partial<InsertProjectSchemaField>): Promise<ProjectSchemaField | undefined>;
-  deleteProjectSchemaField(id: number): Promise<boolean>;
+  updateProjectSchemaField(id: string, field: Partial<InsertProjectSchemaField>): Promise<ProjectSchemaField | undefined>;
+  deleteProjectSchemaField(id: string): Promise<boolean>;
 
   // Object Collections
   getObjectCollections(projectId: string): Promise<(ObjectCollection & { properties: CollectionProperty[] })[]>;
@@ -92,8 +92,8 @@ export interface IStorage {
   // Collection Properties
   getCollectionProperties(collectionId: string): Promise<CollectionProperty[]>;
   createCollectionProperty(property: InsertCollectionProperty): Promise<CollectionProperty>;
-  updateCollectionProperty(id: number, property: Partial<InsertCollectionProperty>): Promise<CollectionProperty | undefined>;
-  deleteCollectionProperty(id: number): Promise<boolean>;
+  updateCollectionProperty(id: string, property: Partial<InsertCollectionProperty>): Promise<CollectionProperty | undefined>;
+  deleteCollectionProperty(id: string): Promise<boolean>;
 
   // Extraction Sessions
   getExtractionSessions(projectId: string): Promise<ExtractionSession[]>;
@@ -111,8 +111,8 @@ export interface IStorage {
   // Extraction Rules
   getExtractionRules(projectId: string): Promise<ExtractionRule[]>;
   createExtractionRule(rule: InsertExtractionRule): Promise<ExtractionRule>;
-  updateExtractionRule(id: number, rule: Partial<InsertExtractionRule>): Promise<ExtractionRule | undefined>;
-  deleteExtractionRule(id: number): Promise<boolean>;
+  updateExtractionRule(id: string, rule: Partial<InsertExtractionRule>): Promise<ExtractionRule | undefined>;
+  deleteExtractionRule(id: string): Promise<boolean>;
 
   // Field Validations
   getFieldValidations(sessionId: string): Promise<FieldValidation[]>;
