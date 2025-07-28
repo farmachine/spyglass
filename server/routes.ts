@@ -1993,14 +1993,15 @@ print(json.dumps(result))
               const existingJob = await storage.getExtractionJob(sessionId);
               if (existingJob) {
                 await storage.updateExtractionJob(sessionId, {
-                  extractedDocumentContent: JSON.stringify(result),
-                  documentExtractionStatus: 'text_extracted'
+                  parsedExtractionResults: JSON.stringify(result),
+                  extractionStatus: 'text_extracted'
                 });
               } else {
                 await storage.createExtractionJob({
                   sessionId: sessionId,
-                  documentExtractionStatus: 'text_extracted',
-                  extractedDocumentContent: JSON.stringify(result)
+                  sessionDocumentUuids: [], // Empty for now
+                  extractionStatus: 'text_extracted',
+                  parsedExtractionResults: JSON.stringify(result)
                 });
               }
               console.log(`TEXT EXTRACTION: Saved results to extraction_jobs table for session ${sessionId}`);
@@ -3132,7 +3133,7 @@ print(json.dumps(result))
       }
       
       // Ensure we have text extraction results to work with
-      if (!extractionJob.extractedDocumentContent) {
+      if (!extractionJob.parsedExtractionResults) {
         throw new Error('Text extraction results not found. Please run text extraction first.');
       }
       
@@ -3171,7 +3172,7 @@ print(json.dumps(result))
       }));
       
       // Parse text extraction results from extraction_jobs table
-      const textExtractionResults = JSON.parse(extractionJob.extractedDocumentContent);
+      const textExtractionResults = JSON.parse(extractionJob.parsedExtractionResults);
       console.log(`BACKGROUND_EXTRACTION: Using text extraction results with ${textExtractionResults.total_documents} documents`);
       
       const extractionData = {
@@ -3239,9 +3240,10 @@ print(json.dumps(result))
         
         // Update extraction job with results
         await storage.updateExtractionJob(sessionId, {
-          documentExtractionStatus: 'complete',
-          extractedDocumentContent: JSON.stringify(extractionResults.extracted_data || {}),
-          parsedExtractionResults: JSON.stringify(extractionResults)
+          extractionStatus: 'complete',
+          aiResponse: JSON.stringify(extractionResults.extracted_data || {}),
+          parsedExtractionResults: JSON.stringify(extractionResults),
+          fieldValidationDatabaseWriteStatus: 'completed'
         });
         
         // Update session status
@@ -3281,8 +3283,8 @@ print(json.dumps(result))
       
       // Update extraction job status to failed
       await storage.updateExtractionJob(sessionId, {
-        documentExtractionStatus: 'failed',
-        extractedDocumentContent: JSON.stringify({ error: error.message })
+        extractionStatus: 'failed',
+        errorMessage: error.message
       });
       
       throw error;
@@ -3298,7 +3300,7 @@ print(json.dumps(result))
       
       // Check if extraction job already exists
       const existingJob = await storage.getExtractionJob(sessionId);
-      if (existingJob && existingJob.documentExtractionStatus === 'in_progress') {
+      if (existingJob && existingJob.extractionStatus === 'in_progress') {
         return res.json({
           message: "Extraction job already in progress",
           job: existingJob
@@ -3306,7 +3308,7 @@ print(json.dumps(result))
       }
       
       // Verify that text extraction has been completed
-      if (!existingJob || !existingJob.extractedDocumentContent) {
+      if (!existingJob || !existingJob.parsedExtractionResults) {
         return res.status(400).json({
           message: "Text extraction must be completed before starting AI extraction",
           error: "Missing text extraction results"
@@ -3315,16 +3317,16 @@ print(json.dumps(result))
       
       // Update extraction job status to in_progress for AI extraction
       const updatedJob = await storage.updateExtractionJob(sessionId, {
-        documentExtractionStatus: 'in_progress',
-        parsedExtractionResults: null // Clear any previous AI results
+        extractionStatus: 'in_progress',
+        aiResponse: null // Clear any previous AI results
       });
       
       // Start background extraction process (non-blocking)
       runBackgroundExtraction(sessionId).catch(error => {
         console.error(`Background extraction failed for session ${sessionId}:`, error);
         storage.updateExtractionJob(sessionId, {
-          documentExtractionStatus: 'failed',
-          parsedExtractionResults: JSON.stringify({ error: error.message })
+          extractionStatus: 'failed',
+          errorMessage: error.message
         });
       });
       

@@ -299,15 +299,15 @@ export default function NewUpload({ project }: NewUploadProps) {
 
         try {
           const jobStatus = await apiRequest(`/api/sessions/${session.id}/extraction-job`);
-          console.log(`Polling attempt ${pollAttempts}: Status = ${jobStatus.documentExtractionStatus}`);
+          console.log(`Polling attempt ${pollAttempts}: Status = ${jobStatus.extractionStatus}`);
           
-          if (jobStatus.documentExtractionStatus === 'complete') {
+          if (jobStatus.extractionStatus === 'complete') {
             extractionComplete = true;
             setProcessingProgress(100);
             console.log('Background extraction completed successfully');
-          } else if (jobStatus.documentExtractionStatus === 'failed') {
+          } else if (jobStatus.extractionStatus === 'failed') {
             console.error('Background extraction failed:', jobStatus);
-            throw new Error(`Background extraction failed: ${jobStatus.parsedExtractionResults || 'Unknown error'}`);
+            throw new Error(`Background extraction failed: ${jobStatus.errorMessage || 'Unknown error'}`);
           } else {
             // Still in progress, update progress based on time elapsed
             const progressPercent = Math.min((pollAttempts / maxPollAttempts) * 100, 90);

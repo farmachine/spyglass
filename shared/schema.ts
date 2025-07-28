@@ -147,8 +147,14 @@ export const sessionDocuments = pgTable("session_documents", {
 export const extractionJobs = pgTable("extraction_jobs", {
   id: uuid("id").defaultRandom().primaryKey(),
   sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
-  documentExtractionStatus: text("document_extraction_status").notNull().default("pending"), // 'pending', 'in_progress', 'complete', 'failed'
-  extractedDocumentContent: text("extracted_document_content"), // JSON string of extracted content
+  sessionDocumentUuids: text("session_document_uuids").array().notNull(), // Array of document UUIDs
+  extractionStatus: text("extraction_status").notNull().default("pending"), // 'pending', 'in_progress', 'complete', 'failed'
+  extractionPrompt: text("extraction_prompt"), // Generated extraction prompt
+  promptGenerationStatus: text("prompt_generation_status").default("pending"), // Status of prompt generation
+  aiResponse: text("ai_response"), // Raw AI response
+  aiResponseStatus: text("ai_response_status").default("pending"), // Status of AI response
+  fieldValidationDatabaseWriteStatus: text("field_validation_database_write_status").default("pending"), // Status of field validation write
+  errorMessage: text("error_message"), // Error messages if any
   parsedExtractionResults: text("parsed_extraction_results"), // JSON string of parsed AI extraction results
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
