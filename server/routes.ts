@@ -1746,29 +1746,28 @@ except Exception as e:
         return res.status(400).json({ error: 'Files array required' });
       }
 
-      // Store files in session documents
-      const documents = files.map((file: any, index: number) => ({
-        sessionId,
-        fileName: file.name,
-        fileSize: file.size || 0,
-        mimeType: file.type || 'application/octet-stream',
+      // Store file metadata temporarily in session extracted_data for debug mode
+      const fileMetadata = files.map((file: any, index: number) => ({
+        name: file.name,
+        size: file.size || 0,
+        type: file.type || 'application/octet-stream',
         content: file.content,
-        uploadOrder: index + 1
+        order: index + 1
       }));
 
-      // Save documents to session
+      // Save file metadata to session for later text extraction
       await storage.updateExtractionSession(sessionId, {
-        documents,
-        documentCount: documents.length,
+        extractedData: JSON.stringify({ debug_files: fileMetadata }),
+        documentCount: files.length,
         status: 'files_uploaded'
       });
 
-      console.log(`[UPLOAD-FILES] Successfully uploaded ${documents.length} files for session: ${sessionId}`);
+      console.log(`[UPLOAD-FILES] Successfully uploaded ${files.length} files for session: ${sessionId}`);
       
       res.json({
         success: true,
-        message: `${documents.length} files uploaded successfully`,
-        documentCount: documents.length
+        message: `${files.length} files uploaded successfully`,
+        documentCount: files.length
       });
     } catch (error) {
       console.error(`[UPLOAD-FILES] Error uploading files:`, error);
@@ -1783,10 +1782,30 @@ except Exception as e:
       const { files } = req.body;
       
       console.log(`TEXT EXTRACTION: Starting text extraction for session ${sessionId}`);
-      console.log(`Processing ${files?.length || 0} documents`);
       
-      // Convert frontend file format to Python script expected format
-      const convertedFiles = (files || []).map((file: any) => ({
+      // Check if files are provided in request or stored in session (for debug mode)
+      let filesToProcess = files || [];
+      
+      if (!filesToProcess || filesToProcess.length === 0) {
+        // Check if files were stored during debug upload
+        const session = await storage.getExtractionSession(sessionId);
+        if (session?.extractedData) {
+          try {
+            const sessionData = JSON.parse(session.extractedData);
+            if (sessionData.debug_files && Array.isArray(sessionData.debug_files)) {
+              filesToProcess = sessionData.debug_files;
+              console.log(`TEXT EXTRACTION: Found ${filesToProcess.length} debug files in session`);
+            }
+          } catch (parseError) {
+            console.error('Failed to parse session data:', parseError);
+          }
+        }
+      }
+      
+      console.log(`Processing ${filesToProcess?.length || 0} documents`);
+      
+      // Convert to Python script expected format
+      const convertedFiles = (filesToProcess || []).map((file: any) => ({
         file_name: file.name,
         file_content: file.content, // This is the data URL from FileReader
         mime_type: file.type
