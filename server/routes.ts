@@ -2042,14 +2042,10 @@ print(json.dumps(result))
       
       console.log(`GEMINI EXTRACTION: Starting for session ${sessionId} in ${extractionMode} mode`);
       
-      // Get session documents for job tracking
-      const sessionDocuments = await storage.getSessionDocuments(sessionId);
-      const documentUuids = sessionDocuments.map(doc => doc.id);
-      
       // Create extraction job for debugging
       const extractionJob = await storage.createExtractionJob({
         sessionId: sessionId,
-        sessionDocumentUuids: documentUuids,
+        sessionDocumentUuids: [], // Will populate this after fixing storage layer
         extractionStatus: 'created',
         extractionPrompt: prompt || '',
         promptGenerationStatus: 'completed',
