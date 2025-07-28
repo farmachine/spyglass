@@ -12,6 +12,7 @@ import {
   insertExtractionSessionSchema,
   insertFieldValidationSchema,
   insertSessionDocumentSchema,
+  insertExtractionProcessDataSchema,
   insertOrganizationSchema,
   insertUserSchema,
   loginSchema,
@@ -1287,6 +1288,58 @@ except Exception as e:
     }
   });
 
+  // Extraction Process Data - track pipeline stages
+  app.post("/api/sessions/:sessionId/extraction-process", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const processData = req.body;
+      
+      const created = await storage.createExtractionProcessData({
+        sessionId,
+        ...processData
+      });
+      
+      res.status(201).json(created);
+    } catch (error) {
+      console.error("Error creating extraction process data:", error);
+      res.status(500).json({ message: "Failed to create extraction process data" });
+    }
+  });
+
+  app.get("/api/sessions/:sessionId/extraction-process", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const processData = await storage.getExtractionProcessData(sessionId);
+      
+      if (!processData) {
+        return res.status(404).json({ message: "Extraction process data not found" });
+      }
+      
+      res.json(processData);
+    } catch (error) {
+      console.error("Error fetching extraction process data:", error);
+      res.status(500).json({ message: "Failed to fetch extraction process data" });
+    }
+  });
+
+  app.patch("/api/sessions/:sessionId/extraction-process", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const updateData = req.body;
+      
+      const updated = await storage.updateExtractionProcessData(sessionId, updateData);
+      
+      if (!updated) {
+        return res.status(404).json({ message: "Extraction process data not found" });
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating extraction process data:", error);
+      res.status(500).json({ message: "Failed to update extraction process data" });
+    }
+  });
+
   // Direct Excel export endpoint - bypass frontend filtering
   app.get('/api/sessions/:sessionId/direct-excel-data', async (req, res) => {
     try {
@@ -2003,6 +2056,24 @@ print(json.dumps(result))
                   });
                 }
                 console.log(`Saved ${result.extracted_texts?.length || 0} session documents for debugging`);
+
+                // Save pipeline stage 1: Document extraction completed
+                try {
+                  const combinedContent = result.extracted_texts?.map(doc => 
+                    `=== ${doc.file_name} ===\n${doc.text_content}`
+                  ).join('\n\n') || '';
+
+                  await storage.createExtractionProcessData({
+                    sessionId: sessionId,
+                    extractedDocumentContent: combinedContent,
+                    aiPrompt: null,
+                    aiOutput: null,
+                    parsedFieldValidations: null
+                  });
+                  console.log(`Pipeline tracking: Saved document extraction stage for session ${sessionId}`);
+                } catch (pipelineError) {
+                  console.error('Error saving pipeline stage 1:', pipelineError);
+                }
               }
             } catch (saveError) {
               console.error('Error saving session documents:', saveError);
@@ -2075,6 +2146,17 @@ print(json.dumps(result))
           try {
             const result = JSON.parse(output);
             console.log('GEMINI EXTRACTION result:', result.success ? 'Success' : 'Failed');
+            
+            // Save pipeline stage 2: AI prompt and output
+            try {
+              await storage.updateExtractionProcessData(sessionId, {
+                aiPrompt: prompt,
+                aiOutput: output
+              });
+              console.log(`Pipeline tracking: Saved AI extraction stage for session ${sessionId}`);
+            } catch (pipelineError) {
+              console.error('Error saving pipeline stage 2:', pipelineError);
+            }
             
             res.json({
               success: result.success,
@@ -2404,6 +2486,16 @@ print(json.dumps(result))
       }
 
       console.log(`SAVE VALIDATIONS: Successfully saved ${savedValidations.length} validations`);
+
+      // Save pipeline stage 3: Parsed field validations completed
+      try {
+        await storage.updateExtractionProcessData(sessionId, {
+          parsedFieldValidations: JSON.stringify(savedValidations)
+        });
+        console.log(`Pipeline tracking: Saved field validation stage for session ${sessionId}`);
+      } catch (pipelineError) {
+        console.error('Error saving pipeline stage 3:', pipelineError);
+      }
 
       res.json({
         success: true,

@@ -40,6 +40,12 @@ export default function SchemaView() {
     enabled: !!sessionId,
   });
 
+  // Query for extraction process data (pipeline tracking)
+  const { data: processData, isLoading: processLoading } = useQuery<any>({
+    queryKey: [`/api/sessions/${sessionId}/extraction-process`],
+    enabled: !!sessionId,
+  });
+
   // State for document content
   const [documentContent, setDocumentContent] = useState<{
     text: string;
@@ -806,6 +812,136 @@ ${error instanceof Error ? error.message : 'Unknown error'}
             fontWeight: 'normal'
           }}>
             Total characters: {documentContent.text.length} | Documents: {documentContent.count}
+          </div>
+        </div>
+      )}
+
+      {/* Pipeline Tracking Debug Information */}
+      {extractionMode === 'debug' && processData && (
+        <div style={{ 
+          margin: '0 0 40px 0', 
+          padding: '15px', 
+          backgroundColor: '#fff0f5',
+          border: '2px solid #dc3545',
+          fontWeight: 'bold'
+        }}>
+          === EXTRACTION PIPELINE TRACKING (DEBUG MODE) ===
+          <div style={{ 
+            marginTop: '10px',
+            fontSize: '12px',
+            fontWeight: 'normal',
+            color: '#666'
+          }}>
+            Last updated: {new Date(processData.updatedAt).toLocaleString()}
+          </div>
+          
+          {/* Stage 1: Document Extraction */}
+          <div style={{ 
+            marginTop: '15px',
+            padding: '12px',
+            backgroundColor: processData.extractedDocumentContent ? '#d4edda' : '#f8d7da',
+            border: `1px solid ${processData.extractedDocumentContent ? '#28a745' : '#dc3545'}`,
+            borderRadius: '4px'
+          }}>
+            <div style={{ fontWeight: 'bold', color: processData.extractedDocumentContent ? '#155724' : '#721c24' }}>
+              Stage 1: Document Content Extraction {processData.extractedDocumentContent ? '✓' : '✗'}
+            </div>
+            {processData.extractedDocumentContent && (
+              <div style={{ 
+                marginTop: '8px',
+                maxHeight: '150px',
+                overflowY: 'auto',
+                fontSize: '11px',
+                fontFamily: 'monospace',
+                backgroundColor: '#f8f9fa',
+                padding: '8px',
+                border: '1px solid #dee2e6',
+                borderRadius: '3px'
+              }}>
+                {processData.extractedDocumentContent.substring(0, 500)}
+                {processData.extractedDocumentContent.length > 500 && '... (truncated)'}
+              </div>
+            )}
+          </div>
+
+          {/* Stage 2: AI Prompt */}
+          <div style={{ 
+            marginTop: '15px',
+            padding: '12px',
+            backgroundColor: processData.aiPrompt ? '#d4edda' : '#f8d7da',
+            border: `1px solid ${processData.aiPrompt ? '#28a745' : '#dc3545'}`,
+            borderRadius: '4px'
+          }}>
+            <div style={{ fontWeight: 'bold', color: processData.aiPrompt ? '#155724' : '#721c24' }}>
+              Stage 2: AI Prompt Generation {processData.aiPrompt ? '✓' : '✗'}
+            </div>
+            {processData.aiPrompt && (
+              <div style={{ 
+                marginTop: '8px',
+                maxHeight: '150px',
+                overflowY: 'auto',
+                fontSize: '11px',
+                fontFamily: 'monospace',
+                backgroundColor: '#f8f9fa',
+                padding: '8px',
+                border: '1px solid #dee2e6',
+                borderRadius: '3px'
+              }}>
+                {processData.aiPrompt.substring(0, 500)}
+                {processData.aiPrompt.length > 500 && '... (truncated)'}
+              </div>
+            )}
+          </div>
+
+          {/* Stage 3: AI Output */}
+          <div style={{ 
+            marginTop: '15px',
+            padding: '12px',
+            backgroundColor: processData.aiOutput ? '#d4edda' : '#f8d7da',
+            border: `1px solid ${processData.aiOutput ? '#28a745' : '#dc3545'}`,
+            borderRadius: '4px'
+          }}>
+            <div style={{ fontWeight: 'bold', color: processData.aiOutput ? '#155724' : '#721c24' }}>
+              Stage 3: AI Response Processing {processData.aiOutput ? '✓' : '✗'}
+            </div>
+            {processData.aiOutput && (
+              <div style={{ 
+                marginTop: '8px',
+                maxHeight: '150px',
+                overflowY: 'auto',
+                fontSize: '11px',
+                fontFamily: 'monospace',
+                backgroundColor: '#f8f9fa',
+                padding: '8px',
+                border: '1px solid #dee2e6',
+                borderRadius: '3px'
+              }}>
+                {processData.aiOutput.substring(0, 500)}
+                {processData.aiOutput.length > 500 && '... (truncated)'}
+              </div>
+            )}
+          </div>
+
+          {/* Stage 4: Field Validations */}
+          <div style={{ 
+            marginTop: '15px',
+            padding: '12px',
+            backgroundColor: processData.parsedFieldValidations ? '#d4edda' : '#f8d7da',
+            border: `1px solid ${processData.parsedFieldValidations ? '#28a745' : '#dc3545'}`,
+            borderRadius: '4px'
+          }}>
+            <div style={{ fontWeight: 'bold', color: processData.parsedFieldValidations ? '#155724' : '#721c24' }}>
+              Stage 4: Field Validations Saved {processData.parsedFieldValidations ? '✓' : '✗'}
+            </div>
+            {processData.parsedFieldValidations && (
+              <div style={{ 
+                marginTop: '8px',
+                fontSize: '12px',
+                color: '#155724'
+              }}>
+                {JSON.parse(processData.parsedFieldValidations).length} field validations saved to database
+              </div>
+            )}
           </div>
         </div>
       )}
