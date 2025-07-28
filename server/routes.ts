@@ -1729,7 +1729,7 @@ except Exception as e:
     }
   });
   
-  // Upload files endpoint - stores files in session for debug mode
+  // Upload files endpoint - stores files in session_documents table for debug mode
   app.post("/api/sessions/:sessionId/upload-files", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
@@ -1748,28 +1748,51 @@ except Exception as e:
         return res.status(400).json({ error: 'Files array required' });
       }
 
-      // Store file metadata temporarily in session extracted_data for debug mode
-      const fileMetadata = files.map((file: any, index: number) => ({
-        name: file.name,
-        size: file.size || 0,
-        type: file.type || 'application/octet-stream',
-        content: file.content,
-        order: index + 1
-      }));
+      // Helper function to determine file type from MIME type
+      const getFileType = (mimeType: string): string => {
+        if (mimeType.includes('pdf')) return 'pdf';
+        if (mimeType.includes('word') || mimeType.includes('document')) return 'word';
+        if (mimeType.includes('sheet') || mimeType.includes('excel')) return 'excel';
+        return 'unknown';
+      };
 
-      // Save file metadata to session for later text extraction
+      // Save each file to session_documents table
+      const savedDocuments = [];
+      for (const file of files) {
+        const fileType = getFileType(file.type);
+        console.log(`[UPLOAD-FILES] Saving file ${file.name} (type: ${fileType}, size: ${file.size})`);
+        
+        const sessionDocument = await storage.createSessionDocument({
+          sessionId,
+          projectId: session.projectId,
+          fileName: file.name,
+          fileType,
+          fileSize: file.size,
+          originalFileData: file.content, // base64 encoded file content
+          extractionStatus: 'pending'
+        });
+        
+        savedDocuments.push(sessionDocument);
+      }
+
+      // Update session document count and status
       await storage.updateExtractionSession(sessionId, {
-        extractedData: JSON.stringify({ debug_files: fileMetadata }),
-        documentCount: files.length,
+        documentCount: savedDocuments.length,
         status: 'files_uploaded'
       });
 
-      console.log(`[UPLOAD-FILES] Successfully uploaded ${files.length} files for session: ${sessionId}`);
+      console.log(`[UPLOAD-FILES] Successfully saved ${savedDocuments.length} files to session_documents table`);
       
       res.json({
         success: true,
         message: `${files.length} files uploaded successfully`,
-        documentCount: files.length
+        documentCount: savedDocuments.length,
+        documents: savedDocuments.map(doc => ({
+          id: doc.id,
+          fileName: doc.fileName,
+          fileType: doc.fileType,
+          extractionStatus: doc.extractionStatus
+        }))
       });
     } catch (error) {
       console.error(`[UPLOAD-FILES] Error uploading files:`, error);
@@ -1785,34 +1808,36 @@ except Exception as e:
       
       console.log(`TEXT EXTRACTION: Starting text extraction for session ${sessionId}`);
       
-      // Check if files are provided in request or stored in session (for debug mode)
+      // Check if files are provided in request or retrieve from session_documents (for debug mode)
       let filesToProcess = files || [];
       
       if (!filesToProcess || filesToProcess.length === 0) {
         // For debug mode, retrieve files from session_documents table
-        const session = await storage.getExtractionSession(sessionId);
-        console.log(`TEXT EXTRACTION: Session found:`, !!session);
+        const sessionDocuments = await storage.getSessionDocumentsBySession(sessionId);
+        console.log(`TEXT EXTRACTION: Found ${sessionDocuments.length} session documents`);
         
-        if (session) {
-          // First check if files were stored in extractedData (legacy approach)
-          if (session.extractedData) {
-            try {
-              const sessionData = JSON.parse(session.extractedData);
-              if (sessionData.debug_files && Array.isArray(sessionData.debug_files)) {
-                filesToProcess = sessionData.debug_files;
-                console.log(`TEXT EXTRACTION: Found ${filesToProcess.length} debug files in extractedData`);
-              }
-            } catch (parseError) {
-              console.error('Failed to parse session extractedData:', parseError);
-            }
-          }
-          
-          // If no files found in extractedData, session_documents contains extracted text, not original files
-          // For debug mode, we need the original file data, which should be in extractedData
-          if (!filesToProcess || filesToProcess.length === 0) {
-            console.log(`TEXT EXTRACTION: No original file data found for debug session ${sessionId}`);
-            console.log(`TEXT EXTRACTION: Files must be re-uploaded or session data is missing`);
-          }
+        if (sessionDocuments && sessionDocuments.length > 0) {
+          // Convert session documents to file format for processing
+          filesToProcess = sessionDocuments
+            .filter(doc => doc.originalFileData && doc.extractionStatus === 'pending')
+            .map(doc => ({
+              name: doc.fileName,
+              type: doc.fileType === 'pdf' ? 'application/pdf' : 
+                    doc.fileType === 'word' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' :
+                    doc.fileType === 'excel' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' :
+                    'application/octet-stream',
+              content: doc.originalFileData,
+              size: doc.fileSize,
+              documentId: doc.id // Keep track of document ID for updating
+            }));
+          console.log(`TEXT EXTRACTION: Converted ${filesToProcess.length} session documents to file format`);
+        }
+        
+        if (!filesToProcess || filesToProcess.length === 0) {
+          console.log(`TEXT EXTRACTION: No files found for session ${sessionId} - either no files uploaded or already processed`);
+          return res.status(400).json({ 
+            error: 'No files found for text extraction. Please upload files first.' 
+          });
         }
       }
       
