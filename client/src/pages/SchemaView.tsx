@@ -34,6 +34,12 @@ export default function SchemaView() {
     enabled: !!session?.projectId,
   });
 
+  // Query for saved session documents
+  const { data: sessionDocuments, isLoading: documentsLoading } = useQuery<any[]>({
+    queryKey: [`/api/sessions/${sessionId}/documents`],
+    enabled: !!sessionId,
+  });
+
   // State for document content
   const [documentContent, setDocumentContent] = useState<{
     text: string;
@@ -48,10 +54,24 @@ export default function SchemaView() {
   const [savedValidations, setSavedValidations] = useState<any[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Auto-load document content using Gemini API when session is available
+  // Auto-load document content using database records or Gemini API when session is available
   useEffect(() => {
     const loadDocumentContentWithGemini = async () => {
       if (!session || !sessionId || !session.projectId) return;
+      
+      // First, check if we have saved session documents in the database
+      if (sessionDocuments && sessionDocuments.length > 0) {
+        console.log('DEBUG: Found saved session documents in database:', sessionDocuments.length);
+        const text = sessionDocuments.map((doc: any, index: number) => 
+          `--- DATABASE DOCUMENT ${index + 1}: ${doc.fileName} (${doc.wordCount} words) ---\n${doc.extractedContent}`
+        ).join('\n\n--- DOCUMENT SEPARATOR ---\n\n');
+        setDocumentContent({
+          text,
+          count: sessionDocuments.length
+        });
+        console.log('DEBUG: document content set from database session documents');
+        return;
+      }
       
       // Check if we already have Gemini-extracted content
       if (session.extractedData) {
@@ -138,7 +158,7 @@ export default function SchemaView() {
     };
 
     loadDocumentContentWithGemini();
-  }, [session, sessionId]);
+  }, [session, sessionId, sessionDocuments]);
 
   // Auto-trigger extraction when in automated mode and schema is ready
   useEffect(() => {
@@ -758,11 +778,11 @@ ${error instanceof Error ? error.message : 'Unknown error'}
         <div style={{ 
           margin: '0 0 40px 0', 
           padding: '15px', 
-          backgroundColor: '#fff9c4',
-          border: '2px solid #d69e2e',
+          backgroundColor: sessionDocuments && sessionDocuments.length > 0 ? '#d1f2eb' : '#fff9c4',
+          border: `2px solid ${sessionDocuments && sessionDocuments.length > 0 ? '#27ae60' : '#d69e2e'}`,
           fontWeight: 'bold'
         }}>
-          === EXTRACTED DOCUMENT CONTENT ({documentContent.count} DOCUMENTS) ===
+          === {sessionDocuments && sessionDocuments.length > 0 ? 'DATABASE-STORED' : 'EXTRACTED'} DOCUMENT CONTENT ({documentContent.count} DOCUMENTS) ===
           <div style={{ 
             marginTop: '10px',
             padding: '15px',

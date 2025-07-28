@@ -11,6 +11,7 @@ import {
   insertExtractionRuleSchema,
   insertExtractionSessionSchema,
   insertFieldValidationSchema,
+  insertSessionDocumentSchema,
   insertOrganizationSchema,
   insertUserSchema,
   loginSchema,
@@ -1986,6 +1987,28 @@ print(json.dumps(result))
               extractedData: JSON.stringify(result)
             });
             
+            // Save extracted content to session documents for debugging and reuse
+            try {
+              // Get session to find project ID
+              const session = await storage.getSession(sessionId);
+              if (session) {
+                // Save each extracted document as a session document record
+                for (const extractedDoc of result.extracted_texts || []) {
+                  await storage.createSessionDocument({
+                    sessionId: sessionId,
+                    projectId: session.projectId,
+                    fileName: extractedDoc.file_name,
+                    extractedContent: extractedDoc.text_content,
+                    wordCount: extractedDoc.word_count
+                  });
+                }
+                console.log(`Saved ${result.extracted_texts?.length || 0} session documents for debugging`);
+              }
+            } catch (saveError) {
+              console.error('Error saving session documents:', saveError);
+              // Don't fail the main process for this supplementary feature
+            }
+            
             resolve(result);
             
           } catch (parseError) {
@@ -3122,6 +3145,98 @@ print(json.dumps(result))
     } catch (error) {
       console.error("Error unpublishing project:", error);
       res.status(500).json({ message: "Failed to unpublish project" });
+    }
+  });
+
+  // Session Documents Routes
+  
+  // Create a session document
+  app.post("/api/sessions/:sessionId/documents", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const result = insertSessionDocumentSchema.safeParse({
+        ...req.body,
+        sessionId
+      });
+      
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid session document data", errors: result.error.errors });
+      }
+
+      const sessionDocument = await storage.createSessionDocument(result.data);
+      res.json(sessionDocument);
+    } catch (error) {
+      console.error("Error creating session document:", error);
+      res.status(500).json({ message: "Failed to create session document" });
+    }
+  });
+
+  // Get all session documents for a session
+  app.get("/api/sessions/:sessionId/documents", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const sessionDocuments = await storage.getSessionDocumentsBySession(sessionId);
+      res.json(sessionDocuments);
+    } catch (error) {
+      console.error("Error getting session documents:", error);
+      res.status(500).json({ message: "Failed to get session documents" });
+    }
+  });
+
+  // Get a specific session document
+  app.get("/api/session-documents/:id", async (req, res) => {
+    try {
+      const id = req.params.id;
+      const sessionDocument = await storage.getSessionDocument(id);
+      
+      if (!sessionDocument) {
+        return res.status(404).json({ message: "Session document not found" });
+      }
+      
+      res.json(sessionDocument);
+    } catch (error) {
+      console.error("Error getting session document:", error);
+      res.status(500).json({ message: "Failed to get session document" });
+    }
+  });
+
+  // Update a session document
+  app.put("/api/session-documents/:id", async (req, res) => {
+    try {
+      const id = req.params.id;
+      const result = insertSessionDocumentSchema.partial().safeParse(req.body);
+      
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid session document data", errors: result.error.errors });
+      }
+
+      const sessionDocument = await storage.updateSessionDocument(id, result.data);
+      
+      if (!sessionDocument) {
+        return res.status(404).json({ message: "Session document not found" });
+      }
+      
+      res.json(sessionDocument);
+    } catch (error) {
+      console.error("Error updating session document:", error);
+      res.status(500).json({ message: "Failed to update session document" });
+    }
+  });
+
+  // Delete a session document
+  app.delete("/api/session-documents/:id", async (req, res) => {
+    try {
+      const id = req.params.id;
+      const success = await storage.deleteSessionDocument(id);
+      
+      if (success) {
+        res.json({ message: "Session document deleted successfully" });
+      } else {
+        res.status(404).json({ message: "Session document not found" });
+      }
+    } catch (error) {
+      console.error("Error deleting session document:", error);
+      res.status(500).json({ message: "Failed to delete session document" });
     }
   });
 
