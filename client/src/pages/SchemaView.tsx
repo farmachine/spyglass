@@ -157,6 +157,23 @@ export default function SchemaView() {
           setCompletedSteps(prev => new Set([...prev, 'extract']));
           console.log('DEBUG: document content set from database session documents');
         }
+        
+        // Check if AI processing was already completed by looking for field validations
+        const checkAIProcessingCompletion = async () => {
+          try {
+            const validationsResponse = await apiRequest(`/api/sessions/${sessionId}/validations`);
+            if (validationsResponse && Array.isArray(validationsResponse) && validationsResponse.length > 0) {
+              console.log('DEBUG: Found existing field validations, AI processing was previously completed');
+              setGeminiResponse('AI extraction previously completed - results saved in database');
+              setCompletedSteps(prev => new Set([...prev, 'process', 'save']));
+              console.log('DEBUG: AI processing and database save marked as completed');
+            }
+          } catch (error) {
+            console.log('DEBUG: No existing validations found, AI processing not yet completed');
+          }
+        };
+        
+        checkAIProcessingCompletion();
         return;
       }
       
@@ -1181,14 +1198,14 @@ ${error instanceof Error ? error.message : 'Unknown error'}
                       <CheckCircle className="h-4 w-4" />
                       <span className="font-medium">AI processing completed</span>
                     </div>
-                    {stepData.process && stepData.process.output && (
+                    {(stepData.process?.output || geminiResponse) && (
                       <div className="bg-gray-50 border rounded-lg p-4">
                         <h4 className="font-medium mb-2">AI Response</h4>
                         <div className="bg-white border rounded p-3 max-h-64 overflow-y-auto font-mono text-xs">
-                          {stepData.process.output}
+                          {stepData.process?.output || geminiResponse}
                         </div>
                         <p className="text-sm text-gray-600 mt-2">
-                          Total: {stepData.process.output.length} characters
+                          Total: {(stepData.process?.output || geminiResponse || '').length} characters
                         </p>
                       </div>
                     )}
