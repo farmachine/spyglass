@@ -18,11 +18,6 @@ Preferred communication style: Simple, everyday language.
 - ✓ SchemaView component updated to fetch and display database-stored content with green highlighting for debugging
 - ✓ Document extraction process now automatically saves content to database for persistent storage and improved debugging workflow
 - ✓ Complete architecture transition from ephemeral to persistent document storage with CRUD operations
-- ✓ **AUTOMATED MODE WORKFLOW ENHANCEMENT**: Enhanced automated processing to stay on loading screen until complete extraction process finishes
-- ✓ Automated mode now executes full pipeline: text extraction → AI extraction → database save → direct redirect to session view
-- ✓ Debug mode preserves original workflow redirecting to schema view for manual control
-- ✓ Loading dialog shows comprehensive progress: uploading → extracting → validating → complete with accurate progress percentages
-- ✓ Eliminates intermediate schema view page during automated processing for streamlined user experience
 
 **July 25, 2025**
 - ✓ **SLATE BLUE THEME IMPLEMENTATION COMPLETED**: Successfully updated entire application color scheme to match user-preferred slate blue tone

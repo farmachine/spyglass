@@ -262,91 +262,43 @@ export default function NewUpload({ project }: NewUploadProps) {
         }
       }));
 
-      // Step 3: Text Extraction Phase
+      // Step 3: Text Extraction Phase (NEW SIMPLIFIED APPROACH)
       setProcessingStep('extracting');
       setProcessingProgress(0);
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "processing" as const })));
 
-      // Call text extraction endpoint
+      // Call new text extraction endpoint
       const textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
         method: 'POST',
         body: JSON.stringify({ files: filesData }),
         headers: { 'Content-Type': 'application/json' }
       });
 
-      setProcessingProgress(50);
+      setProcessingProgress(100);
 
-      if (mode === 'automated') {
-        // Step 4: AI Extraction Phase (automated mode only)
-        setProcessingStep('validating');
-        setProcessingProgress(60);
+      // Step 4: Complete
+      setProcessingStep('complete');
 
-        // Call Gemini extraction endpoint
-        const geminiResult = await apiRequest(`/api/sessions/${session.id}/gemini-extraction`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
+      // Mark files as completed
+      setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
+
+      // Show success briefly before redirect
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      if (textExtractionResult && session?.id) {
+        toast({
+          title: "Text extraction complete",
+          description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
         });
 
-        setProcessingProgress(80);
+        // Close dialog and redirect to schema view with mode parameter
+        setShowProcessingDialog(false);
+        const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
+        const urlWithMode = `${redirectUrl}?mode=${mode}`;
 
-        if (geminiResult && geminiResult.success) {
-          // Step 5: Save to database
-          const saveResult = await apiRequest(`/api/sessions/${session.id}/save-validations`, {
-            method: 'POST',
-            body: JSON.stringify({ extractedData: geminiResult.extractedData }),
-            headers: { 'Content-Type': 'application/json' }
-          });
-
-          setProcessingProgress(100);
-
-          if (saveResult && saveResult.success) {
-            // Step 6: Complete - redirect to session view
-            setProcessingStep('complete');
-            
-            // Mark files as completed
-            setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
-
-            // Show success briefly before redirect
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            toast({
-              title: "Extraction complete",
-              description: `${selectedFiles.length} file(s) processed successfully. Redirecting to results...`,
-            });
-
-            // Close dialog and redirect directly to session view
-            setShowProcessingDialog(false);
-            setLocation(`/sessions/${session.id}`);
-          } else {
-            throw new Error("Failed to save extraction results to database");
-          }
-        } else {
-          throw new Error("AI extraction failed");
-        }
+        setLocation(urlWithMode);
       } else {
-        // Debug mode - redirect to schema view as before
-        setProcessingProgress(100);
-        setProcessingStep('complete');
-        setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
-
-        // Show success briefly before redirect
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        if (textExtractionResult && session?.id) {
-          toast({
-            title: "Text extraction complete",
-            description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
-          });
-
-          // Close dialog and redirect to schema view with mode parameter
-          setShowProcessingDialog(false);
-          const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
-          const urlWithMode = `${redirectUrl}?mode=${mode}`;
-
-          setLocation(urlWithMode);
-        } else {
-          throw new Error("Text extraction completed but session data is missing");
-        }
+        throw new Error("Text extraction completed but session data is missing");
       }
       
       // Reset form
