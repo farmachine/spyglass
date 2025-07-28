@@ -3095,6 +3095,235 @@ print(json.dumps(result))
     }
   });
 
+  // Background Extraction Function
+  async function runBackgroundExtraction(sessionId: string) {
+    console.log(`BACKGROUND_EXTRACTION: Starting for session ${sessionId}`);
+    
+    try {
+      // Step 1: Get session and project data
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        throw new Error('Session not found');
+      }
+      
+      const projectId = session.projectId;
+      const [project, extractionRules, knowledgeDocuments] = await Promise.all([
+        storage.getProjectWithDetails(projectId),
+        storage.getExtractionRules(projectId),
+        storage.getKnowledgeDocuments(projectId)
+      ]);
+      
+      if (!project) {
+        throw new Error('Project not found');
+      }
+      
+      // Step 2: Prepare extraction data
+      const schemaFields = project.schemaFields.map(field => ({
+        id: field.id,
+        name: field.name,
+        field_type: field.fieldType,
+        description: field.description,
+        is_required: field.isRequired,
+        auto_verification_confidence: 80
+      }));
+      
+      const collectionsWithProperties = project.collections.map(collection => ({
+        id: collection.id,
+        name: collection.objectName,
+        properties: collection.properties.map(prop => ({
+          id: prop.id,
+          name: prop.name,
+          field_type: prop.fieldType,
+          description: prop.description,
+          is_required: prop.isRequired,
+          auto_verification_confidence: 80
+        }))
+      }));
+      
+      const extractionData = {
+        session_id: sessionId,
+        project_id: projectId,
+        schema_fields: schemaFields,
+        collections: collectionsWithProperties,
+        knowledge_documents: knowledgeDocuments,
+        extraction_rules: extractionRules,
+        session_data: {
+          files: JSON.parse(session.fileMetadata || '[]'),
+          documents: session.documents || []
+        }
+      };
+      
+      // Step 3: Run AI extraction
+      console.log(`BACKGROUND_EXTRACTION: Running AI extraction for ${schemaFields.length} fields and ${collectionsWithProperties.length} collections`);
+      
+      const { spawn } = await import('child_process');
+      const python = spawn('python3', ['-c', `
+import sys
+import json
+sys.path.append('.')
+from ai_extraction import run_full_document_extraction
+
+# Read input data
+input_data = json.loads(sys.stdin.read())
+
+# Run AI extraction
+result = run_full_document_extraction(input_data)
+
+# Output result
+print(json.dumps(result))
+`]);
+      
+      python.stdin.write(JSON.stringify(extractionData));
+      python.stdin.end();
+      
+      let pythonOutput = '';
+      let pythonError = '';
+      
+      python.stdout.on('data', (data) => {
+        pythonOutput += data.toString();
+      });
+      
+      python.stderr.on('data', (data) => {
+        pythonError += data.toString();
+      });
+      
+      await new Promise((resolve, reject) => {
+        python.on('close', (code) => {
+          if (code !== 0) {
+            reject(new Error(`Python process failed: ${pythonError}`));
+          } else {
+            resolve(pythonOutput);
+          }
+        });
+      });
+      
+      // Step 4: Parse and save results
+      const extractionResults = JSON.parse(pythonOutput);
+      
+      if (extractionResults.success) {
+        console.log(`BACKGROUND_EXTRACTION: Successfully processed ${extractionResults.total_fields_processed || 0} fields`);
+        
+        // Update extraction job with results
+        await storage.updateExtractionJob(sessionId, {
+          documentExtractionStatus: 'complete',
+          extractedDocumentContent: JSON.stringify(extractionResults.extracted_data || {}),
+          parsedExtractionResults: JSON.stringify(extractionResults)
+        });
+        
+        // Update session status
+        await storage.updateExtractionSession(sessionId, {
+          status: 'completed',
+          extractedData: JSON.stringify(extractionResults.extracted_data || {}),
+          documentCount: extractionResults.document_count || 0
+        });
+        
+        // Create field validations
+        if (extractionResults.field_validations) {
+          for (const validation of extractionResults.field_validations) {
+            await storage.createFieldValidation({
+              sessionId: sessionId,
+              fieldType: validation.field_type || 'schema_field',
+              fieldId: validation.field_id,
+              fieldName: validation.field_name,
+              collectionName: validation.collection_name || null,
+              recordIndex: validation.record_index || 0,
+              extractedValue: validation.extracted_value,
+              validationStatus: validation.validation_status || 'pending',
+              aiReasoning: validation.ai_reasoning || '',
+              manuallyVerified: false,
+              confidenceScore: validation.confidence_score || 0
+            });
+          }
+        }
+        
+        console.log(`BACKGROUND_EXTRACTION: Completed successfully for session ${sessionId}`);
+        
+      } else {
+        throw new Error(`AI extraction failed: ${extractionResults.error}`);
+      }
+      
+    } catch (error) {
+      console.error(`BACKGROUND_EXTRACTION: Failed for session ${sessionId}:`, error);
+      
+      // Update extraction job status to failed
+      await storage.updateExtractionJob(sessionId, {
+        documentExtractionStatus: 'failed',
+        extractedDocumentContent: JSON.stringify({ error: error.message })
+      });
+      
+      throw error;
+    }
+  }
+
+  // Extraction Job Routes for Background Processing
+  
+  // Start background extraction job
+  app.post("/api/sessions/:sessionId/extraction-job/start", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      
+      // Check if extraction job already exists
+      const existingJob = await storage.getExtractionJob(sessionId);
+      if (existingJob && existingJob.documentExtractionStatus === 'in_progress') {
+        return res.json({
+          message: "Extraction job already in progress",
+          job: existingJob
+        });
+      }
+      
+      // Create or update extraction job
+      let extractionJob;
+      if (existingJob) {
+        extractionJob = await storage.updateExtractionJob(sessionId, {
+          documentExtractionStatus: 'in_progress',
+          extractedDocumentContent: null,
+          parsedExtractionResults: null
+        });
+      } else {
+        extractionJob = await storage.createExtractionJob({
+          sessionId: sessionId,
+          documentExtractionStatus: 'in_progress'
+        });
+      }
+      
+      // Start background extraction process (non-blocking)
+      runBackgroundExtraction(sessionId).catch(error => {
+        console.error(`Background extraction failed for session ${sessionId}:`, error);
+        storage.updateExtractionJob(sessionId, {
+          documentExtractionStatus: 'failed',
+          extractedDocumentContent: JSON.stringify({ error: error.message })
+        });
+      });
+      
+      res.json({
+        message: "Background extraction job started",
+        job: extractionJob
+      });
+      
+    } catch (error) {
+      console.error("Failed to start extraction job:", error);
+      res.status(500).json({ message: "Failed to start extraction job" });
+    }
+  });
+  
+  // Get extraction job status
+  app.get("/api/sessions/:sessionId/extraction-job", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const extractionJob = await storage.getExtractionJob(sessionId);
+      
+      if (!extractionJob) {
+        return res.status(404).json({ message: "Extraction job not found" });
+      }
+      
+      res.json(extractionJob);
+      
+    } catch (error) {
+      console.error("Failed to get extraction job:", error);
+      res.status(500).json({ message: "Failed to get extraction job status" });
+    }
+  });
+
   // Project Publishing Routes
   
   // Get project published organizations

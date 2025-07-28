@@ -149,6 +149,7 @@ export const extractionJobs = pgTable("extraction_jobs", {
   sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
   documentExtractionStatus: text("document_extraction_status").notNull().default("pending"), // 'pending', 'in_progress', 'complete', 'failed'
   extractedDocumentContent: text("extracted_document_content"), // JSON string of extracted content
+  parsedExtractionResults: text("parsed_extraction_results"), // JSON string of parsed AI extraction results
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
