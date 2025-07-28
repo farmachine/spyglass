@@ -281,9 +281,11 @@ export default function NewUpload({ project }: NewUploadProps) {
       setProcessingProgress(0);
 
       // Start the background extraction job
-      await apiRequest(`/api/sessions/${session.id}/extraction-job/start`, {
+      const jobStartResult = await apiRequest(`/api/sessions/${session.id}/extraction-job/start`, {
         method: 'POST'
       });
+      
+      console.log('Background extraction job started:', jobStartResult);
 
       // Step 5: Poll for completion
       setProcessingStep('field_validation');
@@ -297,22 +299,26 @@ export default function NewUpload({ project }: NewUploadProps) {
 
         try {
           const jobStatus = await apiRequest(`/api/sessions/${session.id}/extraction-job`);
+          console.log(`Polling attempt ${pollAttempts}: Status = ${jobStatus.documentExtractionStatus}`);
           
           if (jobStatus.documentExtractionStatus === 'complete') {
             extractionComplete = true;
             setProcessingProgress(100);
+            console.log('Background extraction completed successfully');
           } else if (jobStatus.documentExtractionStatus === 'failed') {
-            throw new Error('Background extraction failed');
+            console.error('Background extraction failed:', jobStatus);
+            throw new Error(`Background extraction failed: ${jobStatus.parsedExtractionResults || 'Unknown error'}`);
           } else {
             // Still in progress, update progress based on time elapsed
             const progressPercent = Math.min((pollAttempts / maxPollAttempts) * 100, 90);
             setProcessingProgress(progressPercent);
+            console.log(`Background extraction in progress: ${progressPercent}%`);
           }
         } catch (pollError) {
           console.error('Error polling extraction status:', pollError);
-          // Continue polling unless it's a critical error
+          // Continue polling unless it's a critical error or we've tried enough times
           if (pollAttempts >= maxPollAttempts / 2) {
-            throw pollError;
+            throw new Error(`Extraction polling failed: ${pollError.message}`);
           }
         }
       }

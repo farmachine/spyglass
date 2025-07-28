@@ -11,6 +11,12 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **July 28, 2025 (Latest Update)**
+- ✓ **COMPLETE SEQUENTIAL DATA FLOW IMPLEMENTED**: Each processing step now correctly reads output from previous step via extraction_jobs table
+- ✓ Text extraction saves results to `extraction_jobs.extracted_document_content` for AI processing step
+- ✓ Background AI extraction reads text data from extraction_jobs table and saves parsed results to `parsed_extraction_results`
+- ✓ Field validation creation uses AI results from `parsed_extraction_results` with comprehensive error handling
+- ✓ Sequential validation: text extraction must complete before AI extraction can start (prevents missing data errors)
+- ✓ Enhanced debugging with detailed console logging at each step to track data flow through extraction_jobs table
 - ✓ **COMPLETE USER FLOW WITH BACKGROUND PROCESSING IMPLEMENTED**: Successfully built end-to-end user experience from "Start Extraction" button to session view
 - ✓ Updated NewUpload component to use background extraction job system with comprehensive 4-step processing workflow
 - ✓ Enhanced loading dialog with detailed step indicators: Upload → Text → AI → Validate with real-time progress tracking
