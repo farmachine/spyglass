@@ -1077,8 +1077,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
                       <div className="bg-gray-50 border rounded-lg p-4">
                         <h4 className="font-medium mb-2">Extracted Content ({documentContent.count} documents)</h4>
                         <div className="bg-white border rounded p-3 max-h-64 overflow-y-auto font-mono text-sm">
-                          {documentContent.text.substring(0, 1000)}
-                          {documentContent.text.length > 1000 && '... (truncated for display)'}
+                          {documentContent.text}
                         </div>
                         <p className="text-sm text-gray-600 mt-2">
                           Total: {documentContent.text.length} characters from {documentContent.count} documents
@@ -1092,7 +1091,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
           )}
 
           {/* Step 2: Schema Generation */}
-          {currentStep === 'schema' && (
+          {(currentStep === 'schema' || completedSteps.has('schema')) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -1132,8 +1131,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
                       <div className="bg-gray-50 border rounded-lg p-4">
                         <h4 className="font-medium mb-2">Generated Prompt</h4>
                         <div className="bg-white border rounded p-3 max-h-64 overflow-y-auto font-mono text-xs">
-                          {stepData.schema.markdown.substring(0, 2000)}
-                          {stepData.schema.markdown.length > 2000 && '... (truncated for display)'}
+                          {stepData.schema.markdown}
                         </div>
                         <p className="text-sm text-gray-600 mt-2">
                           Total: {stepData.schema.markdown.length} characters
@@ -1147,7 +1145,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
           )}
 
           {/* Step 3: AI Processing */}
-          {currentStep === 'process' && (
+          {(currentStep === 'process' || completedSteps.has('process')) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -1187,8 +1185,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
                       <div className="bg-gray-50 border rounded-lg p-4">
                         <h4 className="font-medium mb-2">AI Response</h4>
                         <div className="bg-white border rounded p-3 max-h-64 overflow-y-auto font-mono text-xs">
-                          {stepData.process.output.substring(0, 2000)}
-                          {stepData.process.output.length > 2000 && '... (truncated for display)'}
+                          {stepData.process.output}
                         </div>
                         <p className="text-sm text-gray-600 mt-2">
                           Total: {stepData.process.output.length} characters
@@ -1202,7 +1199,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
           )}
 
           {/* Step 4: Database Save */}
-          {currentStep === 'save' && (
+          {(currentStep === 'save' || completedSteps.has('save')) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -1261,7 +1258,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
           )}
 
           {/* Step 5: Complete */}
-          {currentStep === 'complete' && completedSteps.has('complete') && (
+          {completedSteps.has('complete') && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
