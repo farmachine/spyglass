@@ -1550,7 +1550,121 @@ except Exception as e:
     }
   });
 
-  // SIMPLIFIED TWO-STEP EXTRACTION PROCESS
+  // BACKGROUND EXTRACTION PROCESS
+  // Start extraction process in the background without blocking UI
+  app.post("/api/sessions/:sessionId/start-background-extraction", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const { files, project_data } = req.body;
+      
+      const projectId = project_data?.projectId || project_data?.id;
+      console.log(`BACKGROUND EXTRACTION: Starting background extraction for session ${sessionId}`);
+      
+      // Immediately respond to UI that processing has started
+      res.json({ 
+        message: "Extraction started in background", 
+        sessionId,
+        status: "processing"
+      });
+      
+      // Continue processing in background using setTimeout to avoid blocking
+      setTimeout(async () => {
+        try {
+          // Update session status to processing
+          await storage.updateExtractionSession(sessionId, {
+            status: "processing"
+          });
+          
+          // Convert frontend file format to Python script expected format
+          const convertedFiles = (files || []).map((file: any) => ({
+            file_name: file.name,
+            file_content: file.content, // This is the data URL from FileReader
+            mime_type: file.type
+          }));
+
+          // Get extraction rules for better AI guidance
+          const extractionRules = projectId ? await storage.getExtractionRules(projectId) : [];
+
+          // Prepare data for Python extraction script
+          const extractionData = {
+            step: "extract",
+            session_id: sessionId,
+            files: convertedFiles,
+            project_schema: {
+              schema_fields: project_data?.schemaFields || [],
+              collections: project_data?.collections || []
+            },
+            extraction_rules: extractionRules,
+            session_name: project_data?.mainObjectName || "contract"
+          };
+          
+          console.log(`BACKGROUND: Extracting from ${files?.length || 0} documents with ${extractionRules.length} extraction rules`);
+          
+          // Call Python extraction script
+          const python = spawn('python3', ['ai_extraction_simplified.py']);
+          
+          python.stdin.write(JSON.stringify(extractionData));
+          python.stdin.end();
+          
+          let output = '';
+          let error = '';
+          
+          python.stdout.on('data', (data: any) => {
+            output += data.toString();
+          });
+          
+          python.stderr.on('data', (data: any) => {
+            error += data.toString();
+          });
+          
+          python.on('close', async (code: any) => {
+            if (code !== 0) {
+              console.error('BACKGROUND extraction error:', error);
+              // Update session status to error
+              await storage.updateExtractionSession(sessionId, {
+                status: "error"
+              });
+              return;
+            }
+            
+            try {
+              const extractedData = JSON.parse(output);
+              console.log('BACKGROUND extracted data:', JSON.stringify(extractedData, null, 2));
+              
+              // Store extracted data in session and mark as completed
+              await storage.updateExtractionSession(sessionId, {
+                status: "in_progress", // Ready for review
+                extractedData: JSON.stringify(extractedData)
+              });
+              
+              // Create field validation records from extracted data
+              await createFieldValidationRecords(sessionId, extractedData, project_data);
+              
+              console.log(`BACKGROUND: Extraction completed for session ${sessionId}`);
+              
+            } catch (error) {
+              console.error('BACKGROUND processing error:', error);
+              await storage.updateExtractionSession(sessionId, {
+                status: "error"
+              });
+            }
+          });
+          
+        } catch (error) {
+          console.error("BACKGROUND extraction error:", error);
+          await storage.updateExtractionSession(sessionId, {
+            status: "error"
+          });
+        }
+      }, 100); // Small delay to allow response to be sent first
+      
+    } catch (error) {
+      console.error("Failed to start background extraction:", error);
+      res.status(500).json({ message: "Failed to start background extraction" });
+    }
+  });
+
+  // SIMPLIFIED TWO-STEP EXTRACTION PROCESS (kept for compatibility)
   // STEP 1: Extract data from documents (new simplified approach)
   app.post("/api/sessions/:sessionId/extract", async (req, res) => {
     try {

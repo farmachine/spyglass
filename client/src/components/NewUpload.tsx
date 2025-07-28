@@ -22,7 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateExtractionSession } from "@/hooks/useExtractionSessions";
-import { useProcessExtraction } from "@/hooks/useAIExtraction";
+import { useProcessExtraction, useStartBackgroundExtraction } from "@/hooks/useAIExtraction";
 import { useProjectSchemaFields, useObjectCollections } from "@/hooks/useSchema";
 import { useExtractionRules } from "@/hooks/useKnowledge";
 import { useToast } from "@/hooks/use-toast";
@@ -71,6 +71,7 @@ export default function NewUpload({ project }: NewUploadProps) {
   
   const createExtractionSession = useCreateExtractionSession(project.id);
   const processExtraction = useProcessExtraction();
+  const startBackgroundExtraction = useStartBackgroundExtraction();
   const { toast } = useToast();
   
   // Fetch schema data for validation
@@ -205,30 +206,17 @@ export default function NewUpload({ project }: NewUploadProps) {
 
     setExtractionMode(mode);
     setIsProcessing(true);
-    setShowProcessingDialog(true);
-    setTotalDocuments(selectedFiles.length);
-    setProcessedDocuments(0);
-    setProcessingStep('uploading');
-    setProcessingProgress(0);
 
     try {
-      // Step 1: Create extraction session
+      // Step 1: Create extraction session with "processing" status
       const session = await createExtractionSession.mutateAsync({
         sessionName: data.sessionName,
         description: data.description || null,
         documentCount: selectedFiles.length,
-        status: "in_progress",
+        status: "processing",
       });
 
-      // Step 2: File upload progress
-      setProcessingStep('uploading');
-      for (let i = 0; i < selectedFiles.length; i++) {
-        await new Promise(resolve => setTimeout(resolve, 200));
-        setProcessedDocuments(i + 1);
-        setProcessingProgress(((i + 1) / selectedFiles.length) * 100);
-      }
-
-      // Prepare file data for text extraction
+      // Step 2: Prepare file data
       const filesData = await Promise.all(selectedFiles.map(async (fileData) => {
         try {
           // Read file content as base64
@@ -262,60 +250,44 @@ export default function NewUpload({ project }: NewUploadProps) {
         }
       }));
 
-      // Step 3: Text Extraction Phase (NEW SIMPLIFIED APPROACH)
-      setProcessingStep('extracting');
-      setProcessingProgress(0);
-      setSelectedFiles(prev => prev.map(f => ({ ...f, status: "processing" as const })));
+      // Step 3: Start background extraction
+      const project_data = {
+        id: project.id,
+        projectId: project.id,
+        schemaFields,
+        collections: collections.map(collection => ({
+          ...collection,
+          properties: []
+        })),
+        mainObjectName: project.mainObjectName
+      };
 
-      // Call new text extraction endpoint
-      const textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
-        method: 'POST',
-        body: JSON.stringify({ files: filesData }),
-        headers: { 'Content-Type': 'application/json' }
+      await startBackgroundExtraction.mutateAsync({
+        sessionId: session.id,
+        files: filesData,
+        project_data
       });
 
-      setProcessingProgress(100);
+      toast({
+        title: "Processing started",
+        description: `${selectedFiles.length} file(s) uploaded successfully. Processing in background...`,
+      });
 
-      // Step 4: Complete
-      setProcessingStep('complete');
-
-      // Mark files as completed
-      setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
-
-      // Show success briefly before redirect
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      if (textExtractionResult && session?.id) {
-        toast({
-          title: "Text extraction complete",
-          description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
-        });
-
-        // Close dialog and redirect to schema view with mode parameter
-        setShowProcessingDialog(false);
-        const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
-        const urlWithMode = `${redirectUrl}?mode=${mode}`;
-
-        setLocation(urlWithMode);
-      } else {
-        throw new Error("Text extraction completed but session data is missing");
-      }
+      // Navigate to session view to show processing status
+      setLocation(`/projects/${project.id}/sessions/${session.id}`);
       
       // Reset form
       form.reset();
       setSelectedFiles([]);
     } catch (error) {
-      console.error("Failed to extract text:", error);
+      console.error("Failed to start processing:", error);
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "error" as const })));
       
-      setShowProcessingDialog(false);
       toast({
-        title: "Text extraction failed",
-        description: "There was an error extracting text from your files. Please try again.",
+        title: "Upload failed",
+        description: "There was an error starting the processing. Please try again.",
         variant: "destructive",
       });
-      
-      // Don't redirect on error - keep user on upload tab
     } finally {
       setIsProcessing(false);
     }

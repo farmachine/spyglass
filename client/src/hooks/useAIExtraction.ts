@@ -37,3 +37,27 @@ export function useProcessExtraction() {
     },
   });
 }
+
+export function useStartBackgroundExtraction() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ sessionId, files, project_data }: ProcessExtractionData) => {
+      const response = await apiRequest(`/api/sessions/${sessionId}/start-background-extraction`, {
+        method: "POST",
+        body: JSON.stringify({
+          files,
+          project_data
+        }),
+      });
+      return response;
+    },
+    onSuccess: (_, { project_data }) => {
+      if (project_data?.id) {
+        // Invalidate queries to refresh session list
+        queryClient.invalidateQueries({ queryKey: ["/api/projects", project_data.id] });
+        queryClient.invalidateQueries({ queryKey: ["/api/projects", project_data.id, "sessions"] });
+      }
+    },
+  });
+}

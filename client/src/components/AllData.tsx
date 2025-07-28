@@ -232,24 +232,35 @@ export default function AllData({ project }: AllDataProps) {
                         {session.documentCount}
                       </TableCell>
                       <TableCell className="py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-20 bg-gray-200 rounded-full h-2.5">
-                            <div 
-                              className={`h-2.5 rounded-full transition-all duration-300 ${
-                                progress.percentage === 100 ? 'bg-green-600' : 
-                                progress.percentage > 0 ? 'bg-green-600' : 'bg-gray-400'
-                              }`}
-                              style={{ width: `${progress.percentage}%` }}
-                            />
+                        {session.status === 'processing' ? (
+                          <div className="flex items-center gap-2">
+                            <div className="w-20 bg-gray-200 rounded-full h-2.5">
+                              <div className="h-2.5 rounded-full bg-blue-500 animate-pulse" style={{ width: '40%' }} />
+                            </div>
+                            <span className="text-xs font-medium text-blue-600">Processing...</span>
                           </div>
-                          <span className="text-xs font-medium text-gray-700 min-w-[32px]">
-                            {progress.percentage}%
-                          </span>
-                        </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <div className="w-20 bg-gray-200 rounded-full h-2.5">
+                              <div 
+                                className={`h-2.5 rounded-full transition-all duration-300 ${
+                                  progress.percentage === 100 ? 'bg-green-600' : 
+                                  progress.percentage > 0 ? 'bg-green-600' : 'bg-gray-400'
+                                }`}
+                                style={{ width: `${progress.percentage}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-medium text-gray-700 min-w-[32px]">
+                              {progress.percentage}%
+                            </span>
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="py-3 text-center">
                         <div className="flex justify-center">
-                          {verificationStatus === 'verified' ? (
+                          {session.status === 'processing' ? (
+                            <Clock className="h-4 w-4 text-blue-500 animate-spin" />
+                          ) : verificationStatus === 'verified' ? (
                             <CheckCircle className="h-4 w-4 text-green-600" />
                           ) : (
                             <CheckCircle className="h-4 w-4 text-gray-400" />
