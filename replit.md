@@ -12,7 +12,11 @@ Preferred communication style: Simple, everyday language.
 
 **July 28, 2025 (Latest Update)**
 - ✓ **BACKGROUND EXTRACTION SYSTEM FULLY IMPLEMENTED**: Complete asynchronous extraction workflow allowing users to navigate app during processing
-- ✓ Added "Start Background Extraction" button to SchemaView.tsx with proper styling matching application theme
+- ✓ **NEWUPLOAD COMPONENT CONVERTED TO BACKGROUND PROCESSING**: Updated NewUpload.tsx to use background extraction instead of synchronous processing
+- ✓ Replaced synchronous handleSubmit function with streamlined background extraction workflow
+- ✓ Users now click "Start Background Extraction" button and are immediately redirected to dashboard/sessions view
+- ✓ Session created with "processing" status allowing users to see extraction progress in All Sessions view
+- ✓ Removed processing dialog and progress indicators since extraction runs in background
 - ✓ Backend endpoint `/api/sessions/:sessionId/start-background-extraction` handles complete workflow: document extraction → AI processing → field validation → status updates
 - ✓ Session status management includes "processing" state for proper background workflow tracking
 - ✓ Users can start extraction and immediately navigate to dashboard while processing continues in background
