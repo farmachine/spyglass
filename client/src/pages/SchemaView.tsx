@@ -164,7 +164,27 @@ export default function SchemaView() {
             const validationsResponse = await apiRequest(`/api/sessions/${sessionId}/validations`);
             if (validationsResponse && Array.isArray(validationsResponse) && validationsResponse.length > 0) {
               console.log('DEBUG: Found existing field validations, AI processing was previously completed');
-              setGeminiResponse('AI extraction previously completed - results saved in database');
+              
+              // Create a summary of the extracted data
+              const fieldCount = validationsResponse.length;
+              const verifiedCount = validationsResponse.filter((v: any) => v.validationStatus === 'verified').length;
+              const avgConfidence = Math.round(validationsResponse.reduce((sum: number, v: any) => sum + (v.confidenceScore || 0), 0) / fieldCount);
+              
+              const responseText = `=== AI EXTRACTION PREVIOUSLY COMPLETED ===
+
+Found ${fieldCount} extracted field validations in database:
+- ${verifiedCount} verified fields
+- ${fieldCount - verifiedCount} unverified fields  
+- Average confidence: ${avgConfidence}%
+
+Sample extracted data:
+${validationsResponse.slice(0, 3).map((v: any) => `• ${v.fieldName}: ${v.extractedValue || 'Not set'} (${v.confidenceScore}% confidence)`).join('\n')}
+${fieldCount > 3 ? `\n... and ${fieldCount - 3} more fields` : ''}
+
+=== RESULTS SAVED IN DATABASE ===`;
+
+              setGeminiResponse(responseText);
+              setSavedValidations(validationsResponse);
               setCompletedSteps(prev => new Set([...prev, 'process', 'save']));
               console.log('DEBUG: AI processing and database save marked as completed');
             }
