@@ -98,6 +98,7 @@ export interface IStorage {
   // Extraction Sessions
   getExtractionSessions(projectId: string): Promise<ExtractionSession[]>;
   getExtractionSession(id: string): Promise<ExtractionSession | undefined>;
+  getSession(sessionId: string): Promise<ExtractionSession | undefined>;
   createExtractionSession(session: InsertExtractionSession): Promise<ExtractionSession>;
   updateExtractionSession(id: string, session: Partial<InsertExtractionSession>): Promise<ExtractionSession | undefined>;
 
@@ -1268,11 +1269,7 @@ export class MemStorage implements IStorage {
   }
 
   async getSession(sessionId: string): Promise<ExtractionSession | undefined> {
-    // Convert string ID to number for in-memory storage lookup
-    const numericId = parseInt(sessionId);
-    if (isNaN(numericId)) return undefined;
-    
-    return this.extractionSessions.get(numericId);
+    return this.extractionSessions.get(sessionId);
   }
 
   async getProjectCollections(projectId: string): Promise<ObjectCollection[]> {
