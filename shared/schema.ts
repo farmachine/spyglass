@@ -137,7 +137,9 @@ export const sessionDocuments = pgTable("session_documents", {
   id: uuid("id").defaultRandom().primaryKey(),
   sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  fileName: text("file_name"),
   extractedContent: text("extracted_content"),
+  wordCount: integer("word_count"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
