@@ -133,17 +133,6 @@ export const extractionRules = pgTable("extraction_rules", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const sessionDocuments = pgTable("session_documents", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
-  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
-  fileName: text("file_name"),
-  extractedContent: text("extracted_content"),
-  wordCount: integer("word_count"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
 // Insert schemas
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({
   id: true,
@@ -194,12 +183,6 @@ export const insertExtractionRuleSchema = createInsertSchema(extractionRules).om
   createdAt: true,
 });
 
-export const insertSessionDocumentSchema = createInsertSchema(sessionDocuments).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
 export const insertFieldValidationSchema = createInsertSchema(fieldValidations).omit({
   id: true,
   createdAt: true,
@@ -239,8 +222,6 @@ export type FieldValidationWithName = FieldValidation & {
   fieldName: string; // Added by backend through JOIN operations
 };
 export type InsertFieldValidation = z.infer<typeof insertFieldValidationSchema>;
-export type SessionDocument = typeof sessionDocuments.$inferSelect;
-export type InsertSessionDocument = z.infer<typeof insertSessionDocumentSchema>;
 export type ProjectPublishing = typeof projectPublishing.$inferSelect;
 export type InsertProjectPublishing = z.infer<typeof insertProjectPublishingSchema>;
 

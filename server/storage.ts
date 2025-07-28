@@ -7,7 +7,6 @@ import {
   knowledgeDocuments,
   extractionRules,
   fieldValidations,
-  sessionDocuments,
   organizations,
   users,
   projectPublishing,
@@ -27,8 +26,6 @@ import {
   type InsertExtractionRule,
   type FieldValidation,
   type InsertFieldValidation,
-  type SessionDocument,
-  type InsertSessionDocument,
   type ExtractionSessionWithValidation,
   type ProjectWithDetails,
   type Organization,
@@ -98,7 +95,6 @@ export interface IStorage {
   // Extraction Sessions
   getExtractionSessions(projectId: string): Promise<ExtractionSession[]>;
   getExtractionSession(id: string): Promise<ExtractionSession | undefined>;
-  getSession(sessionId: string): Promise<ExtractionSession | undefined>;
   createExtractionSession(session: InsertExtractionSession): Promise<ExtractionSession>;
   updateExtractionSession(id: string, session: Partial<InsertExtractionSession>): Promise<ExtractionSession | undefined>;
 
@@ -121,13 +117,6 @@ export interface IStorage {
   deleteFieldValidation(id: string): Promise<boolean>;
   getSessionWithValidations(sessionId: string): Promise<ExtractionSessionWithValidation | undefined>;
 
-  // Session Documents
-  createSessionDocument(document: InsertSessionDocument): Promise<SessionDocument>;
-  getSessionDocumentsBySession(sessionId: string): Promise<SessionDocument[]>;
-  getSessionDocument(id: string): Promise<SessionDocument | undefined>;
-  updateSessionDocument(id: string, document: Partial<InsertSessionDocument>): Promise<SessionDocument | undefined>;
-  deleteSessionDocument(id: string): Promise<boolean>;
-
   // Project Publishing
   getProjectPublishing(projectId: string): Promise<ProjectPublishing[]>;
   getProjectPublishedOrganizations(projectId: string): Promise<Organization[]>;
@@ -146,7 +135,6 @@ export class MemStorage implements IStorage {
   private knowledgeDocuments: Map<string, KnowledgeDocument>;
   private extractionRules: Map<string, ExtractionRule>;
   private fieldValidations: Map<string, FieldValidation>;
-  private sessionDocuments: Map<string, SessionDocument>;
   private projectPublishing: Map<string, ProjectPublishing>;
 
   constructor() {
@@ -160,7 +148,6 @@ export class MemStorage implements IStorage {
     this.knowledgeDocuments = new Map();
     this.extractionRules = new Map();
     this.fieldValidations = new Map();
-    this.sessionDocuments = new Map();
     this.projectPublishing = new Map();
     
     // Initialize with sample data for development
@@ -1269,7 +1256,11 @@ export class MemStorage implements IStorage {
   }
 
   async getSession(sessionId: string): Promise<ExtractionSession | undefined> {
-    return this.extractionSessions.get(sessionId);
+    // Convert string ID to number for in-memory storage lookup
+    const numericId = parseInt(sessionId);
+    if (isNaN(numericId)) return undefined;
+    
+    return this.extractionSessions.get(numericId);
   }
 
   async getProjectCollections(projectId: string): Promise<ObjectCollection[]> {
@@ -1283,46 +1274,6 @@ export class MemStorage implements IStorage {
     if (isNaN(numericId)) return undefined;
     
     return this.getSessionWithValidations(numericId);
-  }
-
-  // Session Documents
-  async createSessionDocument(document: InsertSessionDocument): Promise<SessionDocument> {
-    const id = this.generateUUID();
-    const sessionDocument: SessionDocument = {
-      ...document,
-      id,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.sessionDocuments.set(id, sessionDocument);
-    return sessionDocument;
-  }
-
-  async getSessionDocumentsBySession(sessionId: string): Promise<SessionDocument[]> {
-    return Array.from(this.sessionDocuments.values())
-      .filter(doc => doc.sessionId === sessionId)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }
-
-  async getSessionDocument(id: string): Promise<SessionDocument | undefined> {
-    return this.sessionDocuments.get(id);
-  }
-
-  async updateSessionDocument(id: string, document: Partial<InsertSessionDocument>): Promise<SessionDocument | undefined> {
-    const existingDocument = this.sessionDocuments.get(id);
-    if (!existingDocument) return undefined;
-
-    const updatedDocument = { 
-      ...existingDocument, 
-      ...document, 
-      updatedAt: new Date() 
-    };
-    this.sessionDocuments.set(id, updatedDocument);
-    return updatedDocument;
-  }
-
-  async deleteSessionDocument(id: string): Promise<boolean> {
-    return this.sessionDocuments.delete(id);
   }
 }
 
@@ -2201,46 +2152,6 @@ class PostgreSQLStorage implements IStorage {
           eq(projectPublishing.organizationId, organizationId)
         )
       );
-    return result.rowCount > 0;
-  }
-
-  // Session Documents
-  async createSessionDocument(document: InsertSessionDocument): Promise<SessionDocument> {
-    const result = await this.db.insert(sessionDocuments).values(document).returning();
-    return result[0];
-  }
-
-  async getSessionDocumentsBySession(sessionId: string): Promise<SessionDocument[]> {
-    const result = await this.db
-      .select()
-      .from(sessionDocuments)
-      .where(eq(sessionDocuments.sessionId, sessionId))
-      .orderBy(sessionDocuments.createdAt);
-    return result;
-  }
-
-  async getSessionDocument(id: string): Promise<SessionDocument | undefined> {
-    const result = await this.db
-      .select()
-      .from(sessionDocuments)
-      .where(eq(sessionDocuments.id, id))
-      .limit(1);
-    return result[0];
-  }
-
-  async updateSessionDocument(id: string, document: Partial<InsertSessionDocument>): Promise<SessionDocument | undefined> {
-    const result = await this.db
-      .update(sessionDocuments)
-      .set(document)
-      .where(eq(sessionDocuments.id, id))
-      .returning();
-    return result[0];
-  }
-
-  async deleteSessionDocument(id: string): Promise<boolean> {
-    const result = await this.db
-      .delete(sessionDocuments)
-      .where(eq(sessionDocuments.id, id));
     return result.rowCount > 0;
   }
 }
