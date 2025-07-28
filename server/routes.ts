@@ -1628,19 +1628,82 @@ except Exception as e:
             }
             
             try {
-              const extractedData = JSON.parse(output);
-              console.log('BACKGROUND extracted data:', JSON.stringify(extractedData, null, 2));
+              const extractedFieldData = JSON.parse(output);
+              console.log('BACKGROUND extracted field data:', JSON.stringify(extractedFieldData, null, 2));
               
-              // Store extracted data in session and mark as completed
+              // Also extract document content using Gemini for display purposes
+              let documentContent = [];
+              
+              try {
+                const { GoogleGenerativeAI } = require('@google/generative-ai');
+                const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+                const model = client.getGenerativeModel({ model: "gemini-1.5-flash" });
+                
+                // Extract text content from each document for display
+                for (const file of convertedFiles) {
+                  try {
+                    if (file.file_content && file.file_content.startsWith('data:')) {
+                      // Remove data URL prefix and get base64 content
+                      const base64Content = file.file_content.split(',')[1];
+                      const binaryData = Buffer.from(base64Content, 'base64');
+                      
+                      const fileData = {
+                        inlineData: {
+                          data: base64Content,
+                          mimeType: file.mime_type
+                        }
+                      };
+                      
+                      const prompt = "Extract and return the complete text content from this document. Include all text, preserving structure and formatting where possible.";
+                      const result = await model.generateContent([prompt, fileData]);
+                      const extractedText = result.response.text();
+                      
+                      documentContent.push({
+                        file_name: file.file_name,
+                        extracted_text: extractedText,
+                        mime_type: file.mime_type
+                      });
+                      
+                    }
+                  } catch (docError) {
+                    console.error(`Failed to extract content from ${file.file_name}:`, docError);
+                    documentContent.push({
+                      file_name: file.file_name,
+                      extracted_text: "Failed to extract document content",
+                      mime_type: file.mime_type
+                    });
+                  }
+                }
+              } catch (contentError) {
+                console.error('Failed to extract document content:', contentError);
+              }
+              
+              // Create complete data structure that SessionView expects
+              const completeExtractionData = {
+                aggregated_extraction: {
+                  extracted_data: extractedFieldData
+                },
+                documents: documentContent,
+                extracted_texts: documentContent.map(doc => ({
+                  file_name: doc.file_name,
+                  text_content: doc.extracted_text
+                })),
+                total_documents: convertedFiles.length,
+                total_word_count: documentContent.reduce((count, doc) => 
+                  count + (doc.extracted_text ? doc.extracted_text.split(/\s+/).length : 0), 0
+                )
+              };
+              
+              // Store complete extraction data in session and mark as completed
               await storage.updateExtractionSession(sessionId, {
                 status: "in_progress", // Ready for review
-                extractedData: JSON.stringify(extractedData)
+                extractedData: JSON.stringify(completeExtractionData)
               });
               
               // Create field validation records from extracted data
-              await createFieldValidationRecords(sessionId, extractedData, project_data);
+              await createFieldValidationRecords(sessionId, extractedFieldData, project_data);
               
-              console.log(`BACKGROUND: Extraction completed for session ${sessionId}`);
+              console.log(`BACKGROUND: Extraction completed for session ${sessionId}, ${documentContent.length} documents processed`);
               
             } catch (error) {
               console.error('BACKGROUND processing error:', error);
