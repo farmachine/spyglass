@@ -12,6 +12,7 @@ import {
   insertExtractionSessionSchema,
   insertFieldValidationSchema,
   insertSessionDocumentSchema,
+  insertExtractionJobSchema,
   insertOrganizationSchema,
   insertUserSchema,
   loginSchema,

@@ -11,10 +11,14 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **July 28, 2025 (Latest Update)**
+- ✓ **EXTRACTION JOBS TABLE SYSTEM COMPLETED**: Successfully implemented comprehensive extraction job tracking with database integration
+- ✓ Added extraction_jobs table with session_id, document_extraction_status, extracted_document_content, created_at, updated_at fields
+- ✓ Implemented complete IStorage interface methods: getExtractionJob, createExtractionJob, updateExtractionJob for both PostgreSQL and MemStorage
+- ✓ Fixed critical storage interface bugs - added missing getExtractionSession method and resolved method name mismatches in routes.ts
+- ✓ Complete extraction job workflow: create record on "start extraction" → set status to 'in_progress' → update with content and status to 'complete'
+- ✓ Enhanced extraction job management with proper database schema integration and comprehensive CRUD operations
 - ✓ **DATABASE INTEGRATION COMPLETED**: Successfully implemented persistent storage for extracted document content
 - ✓ Added session_documents table with id, session_id, project_id, extracted_content, created_at, updated_at, file_name, word_count fields
-- ✓ Fixed critical storage interface bug - added missing getSession method to IStorage interface and MemStorage implementation
-- ✓ Resolved method name mismatch in routes.ts - updated to use getExtractionSession instead of getSession for proper database integration
 - ✓ SchemaView component updated to fetch and display database-stored content with green highlighting for debugging
 - ✓ Document extraction process now automatically saves content to database for persistent storage and improved debugging workflow
 - ✓ Complete architecture transition from ephemeral to persistent document storage with CRUD operations

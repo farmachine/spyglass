@@ -144,6 +144,15 @@ export const sessionDocuments = pgTable("session_documents", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const extractionJobs = pgTable("extraction_jobs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
+  documentExtractionStatus: text("document_extraction_status").notNull().default("pending"), // 'pending', 'in_progress', 'complete', 'failed'
+  extractedDocumentContent: text("extracted_document_content"), // JSON string of extracted content
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({
   id: true,
@@ -200,6 +209,12 @@ export const insertSessionDocumentSchema = createInsertSchema(sessionDocuments).
   updatedAt: true,
 });
 
+export const insertExtractionJobSchema = createInsertSchema(extractionJobs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertFieldValidationSchema = createInsertSchema(fieldValidations).omit({
   id: true,
   createdAt: true,
@@ -241,6 +256,8 @@ export type FieldValidationWithName = FieldValidation & {
 export type InsertFieldValidation = z.infer<typeof insertFieldValidationSchema>;
 export type SessionDocument = typeof sessionDocuments.$inferSelect;
 export type InsertSessionDocument = z.infer<typeof insertSessionDocumentSchema>;
+export type ExtractionJob = typeof extractionJobs.$inferSelect;
+export type InsertExtractionJob = z.infer<typeof insertExtractionJobSchema>;
 export type ProjectPublishing = typeof projectPublishing.$inferSelect;
 export type InsertProjectPublishing = z.infer<typeof insertProjectPublishingSchema>;
 
