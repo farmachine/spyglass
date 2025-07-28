@@ -18,6 +18,8 @@ Preferred communication style: Simple, everyday language.
 - ✓ SchemaView component updated to fetch and display database-stored content with green highlighting for debugging
 - ✓ Document extraction process now automatically saves content to database for persistent storage and improved debugging workflow
 - ✓ Complete architecture transition from ephemeral to persistent document storage with CRUD operations
+- ✓ **DATABASE CLEANUP COMPLETED**: Removed orphaned extraction_process_data table that was not being used by the application
+- ✓ Database now contains only active tables: organizations, users, projects, project_publishing, project_schema_fields, object_collections, collection_properties, extraction_sessions, field_validations, knowledge_documents, extraction_rules, session_documents
 
 **July 25, 2025**
 - ✓ **SLATE BLUE THEME IMPLEMENTATION COMPLETED**: Successfully updated entire application color scheme to match user-preferred slate blue tone
