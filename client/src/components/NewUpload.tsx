@@ -62,7 +62,7 @@ export default function NewUpload({ project }: NewUploadProps) {
   const [dragActive, setDragActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showProcessingDialog, setShowProcessingDialog] = useState(false);
-  const [processingStep, setProcessingStep] = useState<'uploading' | 'extracting' | 'validating' | 'complete'>('uploading');
+  const [processingStep, setProcessingStep] = useState<'uploading' | 'text_extraction' | 'ai_extraction' | 'field_validation' | 'complete'>('uploading');
   const [processingProgress, setProcessingProgress] = useState(0);
   const [processedDocuments, setProcessedDocuments] = useState(0);
   const [totalDocuments, setTotalDocuments] = useState(0);
@@ -262,12 +262,12 @@ export default function NewUpload({ project }: NewUploadProps) {
         }
       }));
 
-      // Step 3: Text Extraction Phase (NEW SIMPLIFIED APPROACH)
-      setProcessingStep('extracting');
+      // Step 3: Text Extraction
+      setProcessingStep('text_extraction');
       setProcessingProgress(0);
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "processing" as const })));
 
-      // Call new text extraction endpoint
+      // Call text extraction endpoint
       const textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
         method: 'POST',
         body: JSON.stringify({ files: filesData }),
@@ -276,42 +276,85 @@ export default function NewUpload({ project }: NewUploadProps) {
 
       setProcessingProgress(100);
 
-      // Step 4: Complete
+      // Step 4: Start Background Extraction Job
+      setProcessingStep('ai_extraction');
+      setProcessingProgress(0);
+
+      // Start the background extraction job
+      await apiRequest(`/api/sessions/${session.id}/extraction-job/start`, {
+        method: 'POST'
+      });
+
+      // Step 5: Poll for completion
+      setProcessingStep('field_validation');
+      let extractionComplete = false;
+      let pollAttempts = 0;
+      const maxPollAttempts = 60; // 5 minutes max
+
+      while (!extractionComplete && pollAttempts < maxPollAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 5000)); // Check every 5 seconds
+        pollAttempts++;
+
+        try {
+          const jobStatus = await apiRequest(`/api/sessions/${session.id}/extraction-job`);
+          
+          if (jobStatus.documentExtractionStatus === 'complete') {
+            extractionComplete = true;
+            setProcessingProgress(100);
+          } else if (jobStatus.documentExtractionStatus === 'failed') {
+            throw new Error('Background extraction failed');
+          } else {
+            // Still in progress, update progress based on time elapsed
+            const progressPercent = Math.min((pollAttempts / maxPollAttempts) * 100, 90);
+            setProcessingProgress(progressPercent);
+          }
+        } catch (pollError) {
+          console.error('Error polling extraction status:', pollError);
+          // Continue polling unless it's a critical error
+          if (pollAttempts >= maxPollAttempts / 2) {
+            throw pollError;
+          }
+        }
+      }
+
+      if (!extractionComplete) {
+        throw new Error('Extraction timed out. Please check the session later.');
+      }
+
+      // Step 6: Complete
       setProcessingStep('complete');
+      setProcessingProgress(100);
 
       // Mark files as completed
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
 
       // Show success briefly before redirect
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
-      if (textExtractionResult && session?.id) {
+      if (session?.id) {
         toast({
-          title: "Text extraction complete",
-          description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
+          title: "Extraction complete",
+          description: `${selectedFiles.length} file(s) processed successfully. Redirecting to session view...`,
         });
 
-        // Close dialog and redirect to schema view with mode parameter
+        // Close dialog and redirect to session view
         setShowProcessingDialog(false);
-        const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
-        const urlWithMode = `${redirectUrl}?mode=${mode}`;
-
-        setLocation(urlWithMode);
+        setLocation(`/sessions/${session.id}`);
       } else {
-        throw new Error("Text extraction completed but session data is missing");
+        throw new Error("Extraction completed but session data is missing");
       }
       
       // Reset form
       form.reset();
       setSelectedFiles([]);
     } catch (error) {
-      console.error("Failed to extract text:", error);
+      console.error("Failed to complete extraction:", error);
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "error" as const })));
       
       setShowProcessingDialog(false);
       toast({
-        title: "Text extraction failed",
-        description: "There was an error extracting text from your files. Please try again.",
+        title: "Extraction failed",
+        description: "There was an error processing your files. Please try again.",
         variant: "destructive",
       });
       
@@ -574,14 +617,16 @@ export default function NewUpload({ project }: NewUploadProps) {
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 {processingStep === 'uploading' && 'Processing Documents'}
-                {processingStep === 'extracting' && 'AI Data Extraction'}
-                {processingStep === 'validating' && 'Validation & Rules'}
+                {processingStep === 'text_extraction' && 'Text Extraction'}
+                {processingStep === 'ai_extraction' && 'AI Data Extraction'}
+                {processingStep === 'field_validation' && 'Field Validation'}
                 {processingStep === 'complete' && 'Processing Complete'}
               </h3>
               <p className="text-sm text-gray-600">
                 {processingStep === 'uploading' && `Uploading ${processedDocuments} of ${totalDocuments} documents...`}
-                {processingStep === 'extracting' && 'Analyzing documents and extracting data using AI...'}
-                {processingStep === 'validating' && 'Applying extraction rules and validation logic...'}
+                {processingStep === 'text_extraction' && 'Extracting text content from uploaded documents...'}
+                {processingStep === 'ai_extraction' && 'Running AI analysis to extract structured data...'}
+                {processingStep === 'field_validation' && 'Creating field validations and applying rules...'}
                 {processingStep === 'complete' && 'All documents processed successfully!'}
               </p>
             </div>
@@ -592,14 +637,15 @@ export default function NewUpload({ project }: NewUploadProps) {
                 <span>{Math.round(processingProgress)}%</span>
                 <span>
                   {processingStep === 'uploading' && `${processedDocuments}/${totalDocuments} files`}
-                  {processingStep === 'extracting' && 'Extracting...'}
-                  {processingStep === 'validating' && 'Validating...'}
+                  {processingStep === 'text_extraction' && 'Text Processing...'}
+                  {processingStep === 'ai_extraction' && 'AI Analysis...'}
+                  {processingStep === 'field_validation' && 'Field Validation...'}
                   {processingStep === 'complete' && 'Done!'}
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center space-x-4 text-xs text-gray-500">
+            <div className="flex items-center space-x-3 text-xs text-gray-500">
               <div className={`flex items-center ${processingStep !== 'uploading' ? 'text-green-600' : ''}`}>
                 {processingStep === 'uploading' ? (
                   <div className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full mr-1" />
@@ -608,18 +654,28 @@ export default function NewUpload({ project }: NewUploadProps) {
                 )}
                 Upload
               </div>
-              <div className={`flex items-center ${processingStep === 'extracting' ? 'text-blue-600' : processingStep === 'validating' || processingStep === 'complete' ? 'text-green-600' : 'text-gray-400'}`}>
-                {processingStep === 'extracting' ? (
+              <div className={`flex items-center ${processingStep === 'text_extraction' ? 'text-blue-600' : ['ai_extraction', 'field_validation', 'complete'].includes(processingStep) ? 'text-green-600' : 'text-gray-400'}`}>
+                {processingStep === 'text_extraction' ? (
                   <div className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full mr-1" />
-                ) : processingStep === 'validating' || processingStep === 'complete' ? (
+                ) : ['ai_extraction', 'field_validation', 'complete'].includes(processingStep) ? (
                   <CheckCircle className="h-3 w-3 mr-1" />
                 ) : (
                   <Clock className="h-3 w-3 mr-1" />
                 )}
-                Extract
+                Text
               </div>
-              <div className={`flex items-center ${processingStep === 'validating' ? 'text-blue-600' : processingStep === 'complete' ? 'text-green-600' : 'text-gray-400'}`}>
-                {processingStep === 'validating' ? (
+              <div className={`flex items-center ${processingStep === 'ai_extraction' ? 'text-blue-600' : ['field_validation', 'complete'].includes(processingStep) ? 'text-green-600' : 'text-gray-400'}`}>
+                {processingStep === 'ai_extraction' ? (
+                  <div className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full mr-1" />
+                ) : ['field_validation', 'complete'].includes(processingStep) ? (
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                ) : (
+                  <Clock className="h-3 w-3 mr-1" />
+                )}
+                AI
+              </div>
+              <div className={`flex items-center ${processingStep === 'field_validation' ? 'text-blue-600' : processingStep === 'complete' ? 'text-green-600' : 'text-gray-400'}`}>
+                {processingStep === 'field_validation' ? (
                   <div className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full mr-1" />
                 ) : processingStep === 'complete' ? (
                   <CheckCircle className="h-3 w-3 mr-1" />
@@ -633,7 +689,7 @@ export default function NewUpload({ project }: NewUploadProps) {
             {processingStep === 'complete' && (
               <div className="mt-4 text-center">
                 <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                <p className="text-sm text-green-600 font-medium">Redirecting to review page...</p>
+                <p className="text-sm text-green-600 font-medium">Redirecting to session view...</p>
               </div>
             )}
           </div>
