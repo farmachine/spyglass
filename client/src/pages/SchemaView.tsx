@@ -1073,7 +1073,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
                       <CheckCircle className="h-4 w-4" />
                       <span className="font-medium">Text extraction completed</span>
                     </div>
-                    {documentContent && (
+                    {documentContent && documentContent.text && (
                       <div className="bg-gray-50 border rounded-lg p-4">
                         <h4 className="font-medium mb-2">Extracted Content ({documentContent.count} documents)</h4>
                         <div className="bg-white border rounded p-3 max-h-64 overflow-y-auto font-mono text-sm">
@@ -1127,7 +1127,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
                       <CheckCircle className="h-4 w-4" />
                       <span className="font-medium">Schema generated successfully</span>
                     </div>
-                    {stepData.schema && (
+                    {stepData.schema && stepData.schema.markdown && (
                       <div className="bg-gray-50 border rounded-lg p-4">
                         <h4 className="font-medium mb-2">Generated Prompt</h4>
                         <div className="bg-white border rounded p-3 max-h-64 overflow-y-auto font-mono text-xs">
@@ -1181,7 +1181,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
                       <CheckCircle className="h-4 w-4" />
                       <span className="font-medium">AI processing completed</span>
                     </div>
-                    {stepData.process && (
+                    {stepData.process && stepData.process.output && (
                       <div className="bg-gray-50 border rounded-lg p-4">
                         <h4 className="font-medium mb-2">AI Response</h4>
                         <div className="bg-white border rounded p-3 max-h-64 overflow-y-auto font-mono text-xs">
