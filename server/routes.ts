@@ -1789,30 +1789,30 @@ except Exception as e:
       let filesToProcess = files || [];
       
       if (!filesToProcess || filesToProcess.length === 0) {
-        // Check if files were stored during debug upload
+        // For debug mode, retrieve files from session_documents table
         const session = await storage.getExtractionSession(sessionId);
         console.log(`TEXT EXTRACTION: Session found:`, !!session);
-        console.log(`TEXT EXTRACTION: Session extractedData:`, session?.extractedData?.substring(0, 200) + '...');
         
-        if (session?.extractedData) {
-          try {
-            const sessionData = JSON.parse(session.extractedData);
-            console.log(`TEXT EXTRACTION: Parsed session data keys:`, Object.keys(sessionData));
-            console.log(`TEXT EXTRACTION: debug_files type:`, typeof sessionData.debug_files);
-            console.log(`TEXT EXTRACTION: debug_files array:`, Array.isArray(sessionData.debug_files));
-            
-            if (sessionData.debug_files && Array.isArray(sessionData.debug_files)) {
-              filesToProcess = sessionData.debug_files;
-              console.log(`TEXT EXTRACTION: Found ${filesToProcess.length} debug files in session`);
-              console.log(`TEXT EXTRACTION: First file name:`, filesToProcess[0]?.name);
-            } else {
-              console.log(`TEXT EXTRACTION: No debug_files found in session data`);
+        if (session) {
+          // First check if files were stored in extractedData (legacy approach)
+          if (session.extractedData) {
+            try {
+              const sessionData = JSON.parse(session.extractedData);
+              if (sessionData.debug_files && Array.isArray(sessionData.debug_files)) {
+                filesToProcess = sessionData.debug_files;
+                console.log(`TEXT EXTRACTION: Found ${filesToProcess.length} debug files in extractedData`);
+              }
+            } catch (parseError) {
+              console.error('Failed to parse session extractedData:', parseError);
             }
-          } catch (parseError) {
-            console.error('Failed to parse session data:', parseError);
           }
-        } else {
-          console.log(`TEXT EXTRACTION: No extractedData found in session`);
+          
+          // If no files found in extractedData, session_documents contains extracted text, not original files
+          // For debug mode, we need the original file data, which should be in extractedData
+          if (!filesToProcess || filesToProcess.length === 0) {
+            console.log(`TEXT EXTRACTION: No original file data found for debug session ${sessionId}`);
+            console.log(`TEXT EXTRACTION: Files must be re-uploaded or session data is missing`);
+          }
         }
       }
       
