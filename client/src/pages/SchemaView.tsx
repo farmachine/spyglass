@@ -2,6 +2,22 @@ import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { 
+  Upload, 
+  FileText, 
+  Brain, 
+  Database, 
+  CheckCircle, 
+  PlayCircle,
+  RotateCcw,
+  ChevronRight,
+  AlertCircle,
+  Clock
+} from "lucide-react";
 
 interface SchemaData {
   project: any;
@@ -9,6 +25,18 @@ interface SchemaData {
   collections: any[];
   knowledge_documents: any[];
   extraction_rules: any[];
+}
+
+// Debug step definitions
+type DebugStep = 'extract' | 'schema' | 'process' | 'save' | 'complete';
+
+interface StepConfig {
+  id: DebugStep;
+  title: string;
+  description: string;
+  icon: any;
+  completed: boolean;
+  active: boolean;
 }
 
 export default function SchemaView() {
@@ -19,6 +47,10 @@ export default function SchemaView() {
   // Get mode from URL parameters
   const urlParams = new URLSearchParams(window.location.search);
   const extractionMode = urlParams.get('mode') as 'automated' | 'debug' | null;
+  
+  // Debug step navigation state
+  const [currentStep, setCurrentStep] = useState<DebugStep>('extract');
+  const [completedSteps, setCompletedSteps] = useState<Set<DebugStep>>(new Set());
   
   // Debug logging to check mode value
   console.log('DEBUG: URL search params:', window.location.search);
@@ -53,11 +85,80 @@ export default function SchemaView() {
   const [isSavingToDatabase, setIsSavingToDatabase] = useState(false);
   const [savedValidations, setSavedValidations] = useState<any[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  
+  // Individual step loading states
+  const [stepLoading, setStepLoading] = useState<{[key: string]: boolean}>({});
+  
+  // Step data storage for debugging
+  const [stepData, setStepData] = useState<{[key: string]: any}>({});
 
-  // Auto-load document content using database records or Gemini API when session is available
+  // Helper functions for debug steps
+  const getStepConfig = (): StepConfig[] => [
+    {
+      id: 'extract',
+      title: 'Text Extraction',
+      description: 'Extract text from uploaded documents',
+      icon: Upload,
+      completed: completedSteps.has('extract'),
+      active: currentStep === 'extract'
+    },
+    {
+      id: 'schema',
+      title: 'Schema Generation',
+      description: 'Generate extraction schema and prompt',
+      icon: FileText,
+      completed: completedSteps.has('schema'),
+      active: currentStep === 'schema'
+    },
+    {
+      id: 'process',
+      title: 'AI Processing',
+      description: 'Run Gemini AI extraction',
+      icon: Brain,
+      completed: completedSteps.has('process'),
+      active: currentStep === 'process'
+    },
+    {
+      id: 'save',
+      title: 'Database Save',
+      description: 'Save validations to database',
+      icon: Database,
+      completed: completedSteps.has('save'),
+      active: currentStep === 'save'
+    },
+    {
+      id: 'complete',
+      title: 'Complete',
+      description: 'Review final results',
+      icon: CheckCircle,
+      completed: completedSteps.has('complete'),
+      active: currentStep === 'complete'
+    }
+  ];
+
+  // Auto-load document content using database records or allow manual trigger in debug mode
   useEffect(() => {
     const loadDocumentContentWithGemini = async () => {
       if (!session || !sessionId || !session.projectId) return;
+      
+      // In debug mode, don't auto-load - wait for manual trigger
+      if (extractionMode === 'debug') {
+        // Check if we have saved session documents in the database
+        if (sessionDocuments && sessionDocuments.length > 0) {
+          console.log('DEBUG: Found saved session documents in database:', sessionDocuments.length);
+          const text = sessionDocuments.map((doc: any, index: number) => 
+            `--- DATABASE DOCUMENT ${index + 1}: ${doc.fileName} (${doc.wordCount} words) ---\n${doc.extractedContent}`
+          ).join('\n\n--- DOCUMENT SEPARATOR ---\n\n');
+          setDocumentContent({
+            text,
+            count: sessionDocuments.length
+          });
+          setStepData(prev => ({ ...prev, extract: { documentContent: text, documentCount: sessionDocuments.length } }));
+          setCompletedSteps(prev => new Set([...prev, 'extract']));
+          console.log('DEBUG: document content set from database session documents');
+        }
+        return;
+      }
       
       // First, check if we have saved session documents in the database
       if (sessionDocuments && sessionDocuments.length > 0) {
@@ -158,7 +259,7 @@ export default function SchemaView() {
     };
 
     loadDocumentContentWithGemini();
-  }, [session, sessionId, sessionDocuments]);
+  }, [session, sessionId, sessionDocuments, extractionMode]);
 
   // Auto-trigger extraction when in automated mode and schema is ready
   useEffect(() => {
@@ -719,6 +820,500 @@ ${error instanceof Error ? error.message : 'Unknown error'}
 
 
 
+  // Debug step functions
+  const runTextExtraction = async () => {
+    if (!session || !sessionId) return;
+    
+    setStepLoading(prev => ({ ...prev, extract: true }));
+    setError(null);
+    
+    try {
+      const response = await apiRequest(`/api/sessions/${sessionId}/extract-text`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (response.message) {
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      }
+    } catch (error) {
+      console.error('Text extraction failed:', error);
+      setError('Text extraction failed. Please try again.');
+    } finally {
+      setStepLoading(prev => ({ ...prev, extract: false }));
+    }
+  };
+
+  const runSchemaGeneration = () => {
+    if (!schemaData || !documentContent) return;
+    
+    setStepLoading(prev => ({ ...prev, schema: true }));
+    
+    try {
+      const markdown = generateSchemaMarkdown(schemaData, documentContent.text, documentContent.count);
+      setStepData(prev => ({ 
+        ...prev, 
+        schema: { 
+          markdown, 
+          schemaData,
+          documentText: documentContent.text,
+          documentCount: documentContent.count 
+        }
+      }));
+      setCompletedSteps(prev => new Set([...prev, 'schema']));
+    } catch (error) {
+      console.error('Schema generation failed:', error);
+      setError('Schema generation failed. Please try again.');
+    } finally {
+      setStepLoading(prev => ({ ...prev, schema: false }));
+    }
+  };
+
+  const runAIProcessing = async () => {
+    if (!stepData.schema) {
+      setError('Please run schema generation first');
+      return;
+    }
+    
+    setStepLoading(prev => ({ ...prev, process: true }));
+    setError(null);
+    
+    try {
+      const response = await apiRequest(`/api/sessions/${sessionId}/gemini-extraction`, {
+        method: 'POST',
+        body: JSON.stringify({ prompt: stepData.schema.markdown }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (response.success) {
+        setGeminiResponse(response.response);
+        setStepData(prev => ({ ...prev, process: { input: stepData.schema.markdown, output: response.response } }));
+        setCompletedSteps(prev => new Set([...prev, 'process']));
+      } else {
+        setError(`AI processing failed: ${response.error}`);
+      }
+    } catch (error) {
+      console.error('AI processing failed:', error);
+      setError('AI processing failed. Please try again.');
+    } finally {
+      setStepLoading(prev => ({ ...prev, process: false }));
+    }
+  };
+
+  const runDatabaseSave = async () => {
+    if (!geminiResponse) {
+      setError('Please run AI processing first');
+      return;
+    }
+    
+    setStepLoading(prev => ({ ...prev, save: true }));
+    setError(null);
+    
+    try {
+      const jsonMatch = geminiResponse.match(/```json\s*([\s\S]*?)\s*```/);
+      if (!jsonMatch) {
+        setError('No valid JSON found in AI response');
+        return;
+      }
+      
+      const jsonText = jsonMatch[1];
+      const response = await apiRequest(`/api/sessions/${sessionId}/save-validations`, {
+        method: 'POST',
+        body: JSON.stringify({ extractedData: jsonText }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (response.success) {
+        setSavedValidations(response.validations || []);
+        setStepData(prev => ({ ...prev, save: { input: jsonText, output: response.validations } }));
+        setCompletedSteps(prev => new Set([...prev, 'save', 'complete']));
+      } else {
+        setError(`Database save failed: ${response.message}`);
+      }
+    } catch (error) {
+      console.error('Database save failed:', error);
+      setError('Database save failed. Please try again.');
+    } finally {
+      setStepLoading(prev => ({ ...prev, save: false }));
+    }
+  };
+
+  // If in debug mode, show the debug interface
+  if (extractionMode === 'debug') {
+    return (
+      <div className="p-6 max-w-7xl mx-auto">
+        {/* Debug Header */}
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+              🔧 DEBUG MODE
+            </Badge>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Debug Processing: {session?.sessionName || 'Unnamed Session'}
+          </h1>
+          <p className="text-gray-600">
+            Project: {schemaData.project?.name || 'Unnamed Project'}
+          </p>
+        </div>
+
+        {/* Step Navigation */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Brain className="h-5 w-5" />
+              Processing Steps
+            </CardTitle>
+            <CardDescription>
+              Click any step to run it individually or navigate to previous steps
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {getStepConfig().map((step, index) => {
+                const Icon = step.icon;
+                const isLoading = stepLoading[step.id];
+                const canRun = index === 0 || completedSteps.has(getStepConfig()[index - 1].id);
+                
+                return (
+                  <Button
+                    key={step.id}
+                    variant={step.active ? "default" : step.completed ? "outline" : "ghost"}
+                    size="sm"
+                    onClick={() => {
+                      setCurrentStep(step.id);
+                      if (step.id === 'extract' && !completedSteps.has('extract')) {
+                        runTextExtraction();
+                      } else if (step.id === 'schema' && !completedSteps.has('schema')) {
+                        runSchemaGeneration();
+                      } else if (step.id === 'process') {
+                        runAIProcessing();
+                      } else if (step.id === 'save') {
+                        runDatabaseSave();
+                      }
+                    }}
+                    disabled={isLoading || (!canRun && !step.completed)}
+                    className={`
+                      flex items-center gap-2 transition-all duration-200
+                      ${step.completed ? 'border-green-200 bg-green-50 text-green-700' : ''}
+                      ${step.active ? 'bg-primary text-primary-foreground' : ''}
+                    `}
+                  >
+                    {isLoading ? (
+                      <Clock className="h-4 w-4 animate-spin" />
+                    ) : step.completed ? (
+                      <CheckCircle className="h-4 w-4" />
+                    ) : (
+                      <Icon className="h-4 w-4" />
+                    )}
+                    <span className="hidden sm:inline">{step.title}</span>
+                    {index < getStepConfig().length - 1 && (
+                      <ChevronRight className="h-3 w-3 text-gray-400" />
+                    )}
+                  </Button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Error Display */}
+        {error && (
+          <Card className="mb-6 border-red-200 bg-red-50">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2 text-red-700">
+                <AlertCircle className="h-5 w-5" />
+                <span className="font-medium">Error</span>
+              </div>
+              <p className="mt-2 text-red-600">{error}</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Step Content */}
+        <div className="space-y-6">
+          {/* Step 1: Text Extraction */}
+          {(currentStep === 'extract' || completedSteps.has('extract')) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Upload className="h-5 w-5" />
+                  Step 1: Text Extraction
+                  {completedSteps.has('extract') && <CheckCircle className="h-4 w-4 text-green-600" />}
+                </CardTitle>
+                <CardDescription>Extract text content from uploaded documents</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {!completedSteps.has('extract') ? (
+                  <div className="flex items-center gap-3">
+                    <Button onClick={runTextExtraction} disabled={stepLoading.extract}>
+                      {stepLoading.extract ? (
+                        <>
+                          <Clock className="h-4 w-4 animate-spin mr-2" />
+                          Extracting...
+                        </>
+                      ) : (
+                        <>
+                          <PlayCircle className="h-4 w-4 mr-2" />
+                          Run Text Extraction
+                        </>
+                      )}
+                    </Button>
+                    <span className="text-sm text-gray-600">
+                      Extract text from {session?.documents?.length || 0} uploaded documents
+                    </span>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-green-700">
+                      <CheckCircle className="h-4 w-4" />
+                      <span className="font-medium">Text extraction completed</span>
+                    </div>
+                    {documentContent && (
+                      <div className="bg-gray-50 border rounded-lg p-4">
+                        <h4 className="font-medium mb-2">Extracted Content ({documentContent.count} documents)</h4>
+                        <div className="bg-white border rounded p-3 max-h-64 overflow-y-auto font-mono text-sm">
+                          {documentContent.text.substring(0, 1000)}
+                          {documentContent.text.length > 1000 && '... (truncated for display)'}
+                        </div>
+                        <p className="text-sm text-gray-600 mt-2">
+                          Total: {documentContent.text.length} characters from {documentContent.count} documents
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 2: Schema Generation */}
+          {currentStep === 'schema' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Step 2: Schema Generation
+                  {completedSteps.has('schema') && <CheckCircle className="h-4 w-4 text-green-600" />}
+                </CardTitle>
+                <CardDescription>Generate extraction schema and AI prompt</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {!completedSteps.has('schema') ? (
+                  <div className="flex items-center gap-3">
+                    <Button onClick={runSchemaGeneration} disabled={stepLoading.schema || !documentContent}>
+                      {stepLoading.schema ? (
+                        <>
+                          <Clock className="h-4 w-4 animate-spin mr-2" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <PlayCircle className="h-4 w-4 mr-2" />
+                          Generate Schema
+                        </>
+                      )}
+                    </Button>
+                    <span className="text-sm text-gray-600">
+                      Create extraction prompt from project schema
+                    </span>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-green-700">
+                      <CheckCircle className="h-4 w-4" />
+                      <span className="font-medium">Schema generated successfully</span>
+                    </div>
+                    {stepData.schema && (
+                      <div className="bg-gray-50 border rounded-lg p-4">
+                        <h4 className="font-medium mb-2">Generated Prompt</h4>
+                        <div className="bg-white border rounded p-3 max-h-64 overflow-y-auto font-mono text-xs">
+                          {stepData.schema.markdown.substring(0, 2000)}
+                          {stepData.schema.markdown.length > 2000 && '... (truncated for display)'}
+                        </div>
+                        <p className="text-sm text-gray-600 mt-2">
+                          Total: {stepData.schema.markdown.length} characters
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 3: AI Processing */}
+          {currentStep === 'process' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Brain className="h-5 w-5" />
+                  Step 3: AI Processing
+                  {completedSteps.has('process') && <CheckCircle className="h-4 w-4 text-green-600" />}
+                </CardTitle>
+                <CardDescription>Run Gemini AI extraction</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {!completedSteps.has('process') ? (
+                  <div className="flex items-center gap-3">
+                    <Button onClick={runAIProcessing} disabled={stepLoading.process || !stepData.schema}>
+                      {stepLoading.process ? (
+                        <>
+                          <Clock className="h-4 w-4 animate-spin mr-2" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <PlayCircle className="h-4 w-4 mr-2" />
+                          Run AI Processing
+                        </>
+                      )}
+                    </Button>
+                    <span className="text-sm text-gray-600">
+                      Send schema and documents to Gemini AI
+                    </span>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-green-700">
+                      <CheckCircle className="h-4 w-4" />
+                      <span className="font-medium">AI processing completed</span>
+                    </div>
+                    {stepData.process && (
+                      <div className="bg-gray-50 border rounded-lg p-4">
+                        <h4 className="font-medium mb-2">AI Response</h4>
+                        <div className="bg-white border rounded p-3 max-h-64 overflow-y-auto font-mono text-xs">
+                          {stepData.process.output.substring(0, 2000)}
+                          {stepData.process.output.length > 2000 && '... (truncated for display)'}
+                        </div>
+                        <p className="text-sm text-gray-600 mt-2">
+                          Total: {stepData.process.output.length} characters
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 4: Database Save */}
+          {currentStep === 'save' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="h-5 w-5" />
+                  Step 4: Database Save
+                  {completedSteps.has('save') && <CheckCircle className="h-4 w-4 text-green-600" />}
+                </CardTitle>
+                <CardDescription>Save validation results to database</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {!completedSteps.has('save') ? (
+                  <div className="flex items-center gap-3">
+                    <Button onClick={runDatabaseSave} disabled={stepLoading.save || !geminiResponse}>
+                      {stepLoading.save ? (
+                        <>
+                          <Clock className="h-4 w-4 animate-spin mr-2" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <PlayCircle className="h-4 w-4 mr-2" />
+                          Save to Database
+                        </>
+                      )}
+                    </Button>
+                    <span className="text-sm text-gray-600">
+                      Parse AI response and save field validations
+                    </span>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-green-700">
+                      <CheckCircle className="h-4 w-4" />
+                      <span className="font-medium">Database save completed</span>
+                    </div>
+                    {savedValidations && (
+                      <div className="bg-gray-50 border rounded-lg p-4">
+                        <h4 className="font-medium mb-2">Saved Validations</h4>
+                        <p className="text-sm text-gray-600">
+                          Successfully saved {savedValidations.length} field validations to database
+                        </p>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="mt-3"
+                          onClick={() => setLocation(`/sessions/${sessionId}`)}
+                        >
+                          Review Session Data
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 5: Complete */}
+          {currentStep === 'complete' && completedSteps.has('complete') && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  Processing Complete
+                </CardTitle>
+                <CardDescription>All steps completed successfully</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="text-2xl font-bold text-green-700">{documentContent?.count || 0}</div>
+                      <div className="text-sm text-green-600">Documents</div>
+                    </div>
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="text-2xl font-bold text-blue-700">{schemaData?.schema_fields?.length || 0}</div>
+                      <div className="text-sm text-blue-600">Schema Fields</div>
+                    </div>
+                    <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                      <div className="text-2xl font-bold text-purple-700">{schemaData?.collections?.length || 0}</div>
+                      <div className="text-sm text-purple-600">Collections</div>
+                    </div>
+                    <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                      <div className="text-2xl font-bold text-orange-700">{savedValidations?.length || 0}</div>
+                      <div className="text-sm text-orange-600">Validations</div>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <Button onClick={() => setLocation(`/sessions/${sessionId}`)}>
+                      Review Session Data
+                    </Button>
+                    <Button variant="outline" onClick={() => {
+                      setCompletedSteps(new Set());
+                      setCurrentStep('extract');
+                      setStepData({});
+                      setGeminiResponse(null);
+                      setSavedValidations(null);
+                      setError(null);
+                    }}>
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      Reset Debug Session
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Original automated mode interface
   return (
     <div style={{ 
       padding: '20px', 
