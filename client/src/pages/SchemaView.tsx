@@ -143,8 +143,8 @@ export default function SchemaView() {
       
       // In debug mode, don't auto-load - wait for manual trigger
       if (extractionMode === 'debug') {
-        // Check if we have saved session documents in the database
-        if (sessionDocuments && sessionDocuments.length > 0) {
+        // Check if we have saved session documents in the database already extracted
+        if (sessionDocuments && sessionDocuments.length > 0 && sessionDocuments[0].extractedContent) {
           console.log('DEBUG: Found saved session documents in database:', sessionDocuments.length);
           const text = sessionDocuments.map((doc: any, index: number) => 
             `--- DATABASE DOCUMENT ${index + 1}: ${doc.fileName} (${doc.wordCount} words) ---\n${doc.extractedContent}`
@@ -828,12 +828,14 @@ ${error instanceof Error ? error.message : 'Unknown error'}
     setError(null);
     
     try {
+      // In debug mode, call extract-text without files since they're already uploaded
       const response = await apiRequest(`/api/sessions/${sessionId}/extract-text`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
       
       if (response.message) {
+        // Reload to get the extracted content
         setTimeout(() => {
           window.location.reload();
         }, 1000);

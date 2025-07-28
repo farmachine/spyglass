@@ -27,6 +27,11 @@ Preferred communication style: Simple, everyday language.
 - ✓ Navigation back to previous steps supported with step completion tracking and visual feedback
 - ✓ Step data persistence maintains input/output for each processing stage during debug session
 - ✓ Reset functionality allows starting debug session over from beginning with clean state
+- ✓ **DEBUG MODE WORKFLOW FIXED**: Updated NewUpload component to redirect to debug screen instead of running full extraction workflow
+- ✓ "Run in debug mode" button now uploads files first, then redirects to debug screen without automatic processing
+- ✓ Created /api/sessions/:sessionId/upload-files endpoint for debug mode file handling  
+- ✓ SchemaView updated to prevent automatic text extraction and schema generation in debug mode
+- ✓ Manual step triggering now works properly - users can trigger each step independently without auto-execution
 
 **July 25, 2025**
 - ✓ **SLATE BLUE THEME IMPLEMENTATION COMPLETED**: Successfully updated entire application color scheme to match user-preferred slate blue tone

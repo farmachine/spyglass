@@ -1729,6 +1729,53 @@ except Exception as e:
     }
   });
   
+  // Upload files endpoint - stores files in session for debug mode
+  app.post("/api/sessions/:sessionId/upload-files", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const { files } = req.body;
+      
+      console.log(`[UPLOAD-FILES] Uploading ${files?.length || 0} files for session: ${sessionId}`);
+      
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: 'Session not found' });
+      }
+
+      if (!files || !Array.isArray(files)) {
+        return res.status(400).json({ error: 'Files array required' });
+      }
+
+      // Store files in session documents
+      const documents = files.map((file: any, index: number) => ({
+        sessionId,
+        fileName: file.name,
+        fileSize: file.size || 0,
+        mimeType: file.type || 'application/octet-stream',
+        content: file.content,
+        uploadOrder: index + 1
+      }));
+
+      // Save documents to session
+      await storage.updateExtractionSession(sessionId, {
+        documents,
+        documentCount: documents.length,
+        status: 'files_uploaded'
+      });
+
+      console.log(`[UPLOAD-FILES] Successfully uploaded ${documents.length} files for session: ${sessionId}`);
+      
+      res.json({
+        success: true,
+        message: `${documents.length} files uploaded successfully`,
+        documentCount: documents.length
+      });
+    } catch (error) {
+      console.error(`[UPLOAD-FILES] Error uploading files:`, error);
+      res.status(500).json({ error: 'Failed to upload files' });
+    }
+  });
+
   // STEP-BY-STEP DEVELOPMENT: Extract document text only
   app.post("/api/sessions/:sessionId/extract-text", async (req, res) => {
     try {

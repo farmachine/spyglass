@@ -262,7 +262,22 @@ export default function NewUpload({ project }: NewUploadProps) {
         }
       }));
 
-      // Step 3: Text Extraction Phase (NEW SIMPLIFIED APPROACH)
+      // In debug mode, upload files but don't run extraction - redirect to debug screen
+      if (mode === 'debug') {
+        // Upload files to session for debug mode
+        await apiRequest(`/api/sessions/${session.id}/upload-files`, {
+          method: 'POST',
+          body: JSON.stringify({ files: filesData }),
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        setShowProcessingDialog(false);
+        setIsProcessing(false);
+        setLocation(`/sessions/${session.id}/schema-view?mode=debug`);
+        return;
+      }
+
+      // Step 3: Text Extraction Phase (AUTOMATED MODE ONLY)
       setProcessingStep('extracting');
       setProcessingProgress(0);
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "processing" as const })));
