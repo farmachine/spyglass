@@ -1631,21 +1631,33 @@ except Exception as e:
               const extractedFieldData = JSON.parse(output);
               console.log('BACKGROUND extracted field data:', JSON.stringify(extractedFieldData, null, 2));
               
-              // Also extract document content using Gemini for display purposes
+              // Extract document content using same method as Python script
               let documentContent = [];
+              
+              console.log(`BACKGROUND: Extracting document content from ${convertedFiles.length} files`);
               
               try {
                 const { GoogleGenerativeAI } = require('@google/generative-ai');
                 const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-                const model = client.getGenerativeModel({ model: "gemini-1.5-flash" });
+                const model = client.getGenerativeModel({ 
+                  model: "gemini-1.5-flash",
+                  generationConfig: {
+                    maxOutputTokens: 10000000,
+                    temperature: 0.1,
+                  }
+                });
                 
                 // Extract text content from each document for display
-                for (const file of convertedFiles) {
+                for (let i = 0; i < convertedFiles.length; i++) {
+                  const file = convertedFiles[i];
+                  console.log(`BACKGROUND: Processing document ${i + 1}/${convertedFiles.length}: ${file.file_name}`);
+                  
                   try {
                     if (file.file_content && file.file_content.startsWith('data:')) {
                       // Remove data URL prefix and get base64 content
                       const base64Content = file.file_content.split(',')[1];
-                      const binaryData = Buffer.from(base64Content, 'base64');
+                      
+                      console.log(`BACKGROUND: File ${file.file_name} - MIME: ${file.mime_type}, Base64 length: ${base64Content.length}`);
                       
                       const fileData = {
                         inlineData: {
@@ -1654,9 +1666,13 @@ except Exception as e:
                         }
                       };
                       
-                      const prompt = "Extract and return the complete text content from this document. Include all text, preserving structure and formatting where possible.";
+                      const prompt = "Extract and return the complete text content from this document. Include all text, preserving structure and formatting where possible. Return only the extracted text content, no additional commentary.";
+                      
+                      console.log(`BACKGROUND: Calling Gemini API for ${file.file_name}...`);
                       const result = await model.generateContent([prompt, fileData]);
                       const extractedText = result.response.text();
+                      
+                      console.log(`BACKGROUND: Successfully extracted ${extractedText.length} characters from ${file.file_name}`);
                       
                       documentContent.push({
                         file_name: file.file_name,
@@ -1664,18 +1680,33 @@ except Exception as e:
                         mime_type: file.mime_type
                       });
                       
+                    } else {
+                      console.warn(`BACKGROUND: File ${file.file_name} has invalid content format`);
+                      documentContent.push({
+                        file_name: file.file_name,
+                        extracted_text: "Invalid file format - no content available",
+                        mime_type: file.mime_type
+                      });
                     }
                   } catch (docError) {
-                    console.error(`Failed to extract content from ${file.file_name}:`, docError);
+                    console.error(`BACKGROUND: Failed to extract content from ${file.file_name}:`, docError.message);
                     documentContent.push({
                       file_name: file.file_name,
-                      extracted_text: "Failed to extract document content",
+                      extracted_text: `Failed to extract document content: ${docError.message}`,
                       mime_type: file.mime_type
                     });
                   }
                 }
               } catch (contentError) {
-                console.error('Failed to extract document content:', contentError);
+                console.error('BACKGROUND: Failed to initialize document content extraction:', contentError.message);
+                // Create placeholder entries for all files
+                for (const file of convertedFiles) {
+                  documentContent.push({
+                    file_name: file.file_name,
+                    extracted_text: `Document content extraction failed: ${contentError.message}`,
+                    mime_type: file.mime_type
+                  });
+                }
               }
               
               // Create complete data structure that SessionView expects
