@@ -190,6 +190,7 @@ export class MemStorage implements IStorage {
       id: orgId,
       name: "ACME Corporation", 
       description: "Sample organization for testing",
+      type: "primary",
       createdAt: new Date()
     };
     this.organizations.set(orgId, org);
@@ -204,6 +205,7 @@ export class MemStorage implements IStorage {
       organizationId: orgId,
       role: "admin",
       isActive: true,
+      isTemporaryPassword: false,
       createdAt: new Date()
     };
     this.users.set(userId, adminUser);
@@ -215,6 +217,8 @@ export class MemStorage implements IStorage {
       name: "Sample Invoice Processing",
       description: "Extract data from invoices and receipts",
       organizationId: orgId, // Link to organization
+      createdBy: userId,
+      status: "active" as const,
       mainObjectName: "Invoice",
       isInitialSetupComplete: true,
       createdAt: new Date(),
@@ -645,7 +649,7 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async getOrganization(id: number): Promise<Organization | undefined> {
+  async getOrganization(id: string): Promise<Organization | undefined> {
     return this.organizations.get(id);
   }
 
@@ -653,7 +657,7 @@ export class MemStorage implements IStorage {
     return Array.from(this.organizations.values()).find(org => org.type === 'primary');
   }
 
-  async getOrganizationWithUsers(id: number): Promise<OrganizationWithUsers | undefined> {
+  async getOrganizationWithUsers(id: string): Promise<OrganizationWithUsers | undefined> {
     const org = this.organizations.get(id);
     if (!org) return undefined;
     
@@ -663,7 +667,7 @@ export class MemStorage implements IStorage {
 
   async createOrganization(insertOrg: InsertOrganization): Promise<Organization> {
     const org: Organization = {
-      id: this.currentOrganizationId++,
+      id: this.generateUUID(),
       ...insertOrg,
       createdAt: new Date(),
     };
@@ -671,7 +675,7 @@ export class MemStorage implements IStorage {
     return org;
   }
 
-  async updateOrganization(id: number, updateData: Partial<InsertOrganization>): Promise<Organization | undefined> {
+  async updateOrganization(id: string, updateData: Partial<InsertOrganization>): Promise<Organization | undefined> {
     const org = this.organizations.get(id);
     if (!org) return undefined;
     
@@ -680,18 +684,18 @@ export class MemStorage implements IStorage {
     return updated;
   }
 
-  async deleteOrganization(id: number): Promise<boolean> {
+  async deleteOrganization(id: string): Promise<boolean> {
     return this.organizations.delete(id);
   }
 
-  // Users
-  async getUsers(organizationId: number): Promise<User[]> {
+  // Users  
+  async getUsers(organizationId: string): Promise<User[]> {
     return Array.from(this.users.values())
       .filter(u => u.organizationId === organizationId)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
-  async getUser(id: number): Promise<User | undefined> {
+  async getUser(id: string): Promise<User | undefined> {
     return this.users.get(id);
   }
 
@@ -699,7 +703,7 @@ export class MemStorage implements IStorage {
     return Array.from(this.users.values()).find(u => u.email === email);
   }
 
-  async getUserWithOrganization(id: number): Promise<UserWithOrganization | undefined> {
+  async getUserWithOrganization(id: string): Promise<UserWithOrganization | undefined> {
     const user = this.users.get(id);
     if (!user) return undefined;
     
@@ -716,7 +720,7 @@ export class MemStorage implements IStorage {
     const passwordHash = await bcryptjs.default.hash(password, 10);
     
     const user: User = {
-      id: this.currentUserId++,
+      id: this.generateUUID(),
       ...insertUser,
       passwordHash,
       createdAt: new Date(),
