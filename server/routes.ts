@@ -12,6 +12,7 @@ import {
   insertExtractionSessionSchema,
   insertFieldValidationSchema,
   insertSessionDocumentSchema,
+  insertExtractionJobSchema,
   insertOrganizationSchema,
   insertUserSchema,
   loginSchema,
@@ -3237,6 +3238,81 @@ print(json.dumps(result))
     } catch (error) {
       console.error("Error deleting session document:", error);
       res.status(500).json({ message: "Failed to delete session document" });
+    }
+  });
+
+  // Extraction Jobs Routes
+  
+  // Create an extraction job
+  app.post("/api/sessions/:sessionId/extraction-jobs", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const result = insertExtractionJobSchema.safeParse({
+        ...req.body,
+        sessionId
+      });
+      
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid extraction job data", errors: result.error.errors });
+      }
+
+      const extractionJob = await storage.createExtractionJob(result.data);
+      res.json(extractionJob);
+    } catch (error) {
+      console.error("Error creating extraction job:", error);
+      res.status(500).json({ message: "Failed to create extraction job" });
+    }
+  });
+
+  // Get all extraction jobs for a session
+  app.get("/api/sessions/:sessionId/extraction-jobs", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const extractionJobs = await storage.getExtractionJobsBySession(sessionId);
+      res.json(extractionJobs);
+    } catch (error) {
+      console.error("Error getting extraction jobs:", error);
+      res.status(500).json({ message: "Failed to get extraction jobs" });
+    }
+  });
+
+  // Get a specific extraction job
+  app.get("/api/extraction-jobs/:id", async (req, res) => {
+    try {
+      const id = req.params.id;
+      const extractionJob = await storage.getExtractionJob(id);
+      
+      if (!extractionJob) {
+        return res.status(404).json({ message: "Extraction job not found" });
+      }
+      
+      res.json(extractionJob);
+    } catch (error) {
+      console.error("Error getting extraction job:", error);
+      res.status(500).json({ message: "Failed to get extraction job" });
+    }
+  });
+
+  // Update an extraction job
+  app.put("/api/extraction-jobs/:id", async (req, res) => {
+    try {
+      const id = req.params.id;
+      const result = insertExtractionJobSchema.partial().safeParse(req.body);
+      
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid extraction job data", errors: result.error.errors });
+      }
+
+      const extractionJob = await storage.updateExtractionJob(id, result.data);
+      
+      if (!extractionJob) {
+        return res.status(404).json({ message: "Extraction job not found" });
+      }
+      
+      res.json(extractionJob);
+    } catch (error) {
+      console.error("Error updating extraction job:", error);
+      res.status(500).json({ message: "Failed to update extraction job" });
     }
   });
 
