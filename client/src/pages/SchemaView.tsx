@@ -136,12 +136,12 @@ export default function SchemaView() {
     }
   ];
 
-  // Auto-load document content using database records or allow manual trigger in debug mode
+  // Auto-load document content and trigger extraction in debug mode
   useEffect(() => {
     const loadDocumentContentWithGemini = async () => {
       if (!session || !sessionId || !session.projectId) return;
       
-      // In debug mode, don't auto-load - wait for manual trigger
+      // In debug mode, check for existing content first, then auto-trigger if needed
       if (extractionMode === 'debug') {
         // Check if we have saved session documents in the database
         if (sessionDocuments && sessionDocuments.length > 0) {
@@ -154,8 +154,34 @@ export default function SchemaView() {
             count: sessionDocuments.length
           });
           setStepData(prev => ({ ...prev, extract: { documentContent: text, documentCount: sessionDocuments.length } }));
-          setCompletedSteps(prev => new Set([...prev, 'extract']));
+          setCompletedSteps(prev => new Set([...Array.from(prev), 'extract']));
           console.log('DEBUG: document content set from database session documents');
+          return;
+        }
+        
+        // If no saved documents but we have uploaded documents, auto-trigger text extraction
+        if (session.documents && session.documents.length > 0 && session.status !== 'text_extracted') {
+          console.log('DEBUG: Auto-triggering text extraction in debug mode...');
+          setStepLoading(prev => ({ ...prev, extract: true }));
+          setError(null);
+          
+          try {
+            const response = await apiRequest(`/api/sessions/${sessionId}/extract-text`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+            });
+            
+            if (response.message) {
+              console.log('DEBUG: Text extraction completed, refreshing...');
+              setTimeout(() => {
+                window.location.reload();
+              }, 1000);
+            }
+          } catch (error) {
+            console.error('DEBUG: Text extraction failed:', error);
+            setError('Text extraction failed. Please try again.');
+            setStepLoading(prev => ({ ...prev, extract: false }));
+          }
         }
         return;
       }
@@ -862,7 +888,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
           documentCount: documentContent.count 
         }
       }));
-      setCompletedSteps(prev => new Set([...prev, 'schema']));
+      setCompletedSteps(prev => new Set([...Array.from(prev), 'schema']));
     } catch (error) {
       console.error('Schema generation failed:', error);
       setError('Schema generation failed. Please try again.');
@@ -890,7 +916,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
       if (response.success) {
         setGeminiResponse(response.response);
         setStepData(prev => ({ ...prev, process: { input: stepData.schema.markdown, output: response.response } }));
-        setCompletedSteps(prev => new Set([...prev, 'process']));
+        setCompletedSteps(prev => new Set([...Array.from(prev), 'process']));
       } else {
         setError(`AI processing failed: ${response.error}`);
       }
@@ -928,7 +954,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
       if (response.success) {
         setSavedValidations(response.validations || []);
         setStepData(prev => ({ ...prev, save: { input: jsonText, output: response.validations } }));
-        setCompletedSteps(prev => new Set([...prev, 'save', 'complete']));
+        setCompletedSteps(prev => new Set([...Array.from(prev), 'save', 'complete']));
       } else {
         setError(`Database save failed: ${response.message}`);
       }
@@ -1062,7 +1088,10 @@ ${error instanceof Error ? error.message : 'Unknown error'}
                       )}
                     </Button>
                     <span className="text-sm text-gray-600">
-                      Extract text from {session?.documents?.length || 0} uploaded documents
+                      {stepLoading.extract ? 
+                        'Running automatically...' : 
+                        `Extract text from ${session?.documents?.length || 0} uploaded documents`
+                      }
                     </span>
                   </div>
                 ) : (
