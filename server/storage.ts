@@ -4,6 +4,7 @@ import {
   objectCollections, 
   collectionProperties, 
   extractionSessions,
+  extractedDocuments,
   knowledgeDocuments,
   extractionRules,
   fieldValidations,
@@ -20,6 +21,8 @@ import {
   type InsertCollectionProperty,
   type ExtractionSession,
   type InsertExtractionSession,
+  type ExtractedDocument,
+  type InsertExtractedDocument,
   type KnowledgeDocument,
   type InsertKnowledgeDocument,
   type ExtractionRule,
@@ -98,6 +101,11 @@ export interface IStorage {
   createExtractionSession(session: InsertExtractionSession): Promise<ExtractionSession>;
   updateExtractionSession(id: string, session: Partial<InsertExtractionSession>): Promise<ExtractionSession | undefined>;
 
+  // Extracted Documents
+  getExtractedDocuments(sessionId: string): Promise<ExtractedDocument[]>;
+  createExtractedDocument(document: InsertExtractedDocument): Promise<ExtractedDocument>;
+  deleteExtractedDocuments(sessionId: string): Promise<boolean>;
+
   // Knowledge Documents
   getKnowledgeDocuments(projectId: string): Promise<KnowledgeDocument[]>;
   createKnowledgeDocument(document: InsertKnowledgeDocument): Promise<KnowledgeDocument>;
@@ -136,6 +144,7 @@ export class MemStorage implements IStorage {
   private extractionRules: Map<string, ExtractionRule>;
   private fieldValidations: Map<string, FieldValidation>;
   private projectPublishing: Map<string, ProjectPublishing>;
+  private extractedDocuments: Map<string, ExtractedDocument>;
 
   constructor() {
     this.organizations = new Map();
@@ -149,6 +158,7 @@ export class MemStorage implements IStorage {
     this.extractionRules = new Map();
     this.fieldValidations = new Map();
     this.projectPublishing = new Map();
+    this.extractedDocuments = new Map();
     
     // Initialize with sample data for development
     this.initializeSampleData();
@@ -1275,6 +1285,36 @@ export class MemStorage implements IStorage {
     
     return this.getSessionWithValidations(numericId);
   }
+
+  // Extracted Documents methods
+  async getExtractedDocuments(sessionId: string): Promise<ExtractedDocument[]> {
+    return Array.from(this.extractedDocuments.values())
+      .filter(doc => doc.sessionId === sessionId)
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  }
+
+  async createExtractedDocument(document: InsertExtractedDocument): Promise<ExtractedDocument> {
+    const id = this.generateUUID();
+    const extractedDoc: ExtractedDocument = {
+      ...document,
+      id,
+      createdAt: new Date(),
+    };
+    this.extractedDocuments.set(id, extractedDoc);
+    return extractedDoc;
+  }
+
+  async deleteExtractedDocuments(sessionId: string): Promise<boolean> {
+    const documentsToDelete = Array.from(this.extractedDocuments.entries())
+      .filter(([, doc]) => doc.sessionId === sessionId);
+    
+    let deleted = false;
+    for (const [id] of documentsToDelete) {
+      this.extractedDocuments.delete(id);
+      deleted = true;
+    }
+    return deleted;
+  }
 }
 
 // PostgreSQL Storage Implementation
@@ -2112,6 +2152,30 @@ class PostgreSQLStorage implements IStorage {
       ...session,
       fieldValidations: validations
     };
+  }
+
+  // Extracted Documents methods
+  async getExtractedDocuments(sessionId: string): Promise<ExtractedDocument[]> {
+    const result = await this.db
+      .select()
+      .from(extractedDocuments)
+      .where(eq(extractedDocuments.sessionId, sessionId));
+    return result;
+  }
+
+  async createExtractedDocument(document: InsertExtractedDocument): Promise<ExtractedDocument> {
+    const result = await this.db
+      .insert(extractedDocuments)
+      .values(document)
+      .returning();
+    return result[0];
+  }
+
+  async deleteExtractedDocuments(sessionId: string): Promise<boolean> {
+    const result = await this.db
+      .delete(extractedDocuments)
+      .where(eq(extractedDocuments.sessionId, sessionId));
+    return result.rowCount > 0;
   }
 
   // Project Publishing methods

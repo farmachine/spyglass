@@ -1286,6 +1286,42 @@ except Exception as e:
     }
   });
 
+  // Get extracted documents for a session (for prompt builder)
+  app.get("/api/sessions/:sessionId/extracted-documents", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      
+      // Verify session exists
+      const session = await storage.getExtractionSession(sessionId);  
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      
+      const extractedDocuments = await storage.getExtractedDocuments(sessionId);
+      res.json(extractedDocuments);
+    } catch (error) {
+      console.error("Failed to fetch extracted documents:", error);
+      res.status(500).json({ message: "Failed to fetch extracted documents" });
+    }
+  });
+
+  // Get extracted document content by ID (for prompt builder)
+  app.get("/api/extracted-documents/:documentId/content", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const documentId = req.params.documentId;
+      const content = await storage.getExtractedDocumentContent(documentId);
+      
+      if (!content) {
+        return res.status(404).json({ message: "Document content not found" });
+      }
+      
+      res.json({ content });
+    } catch (error) {
+      console.error("Failed to fetch document content:", error);
+      res.status(500).json({ message: "Failed to fetch document content" });
+    }
+  });
+
   // Direct Excel export endpoint - bypass frontend filtering
   app.get('/api/sessions/:sessionId/direct-excel-data', async (req, res) => {
     try {
@@ -2097,6 +2133,22 @@ print(json.dumps(result))
           try {
             const result = JSON.parse(textOutput);
             console.log('BACKGROUND text extraction completed');
+            
+            // Store extracted document content in database
+            console.log(`BACKGROUND: Storing extracted content for ${result.extracted_texts?.length || 0} documents`);
+            if (result.extracted_texts && Array.isArray(result.extracted_texts)) {
+              for (const extractedDoc of result.extracted_texts) {
+                // Find the original file to get size and type
+                const originalFile = files.find(f => f.name === extractedDoc.file_name);
+                await storage.createExtractedDocument({
+                  sessionId: sessionId,
+                  fileName: extractedDoc.file_name,
+                  fileType: originalFile?.type || 'application/octet-stream',
+                  fileSize: originalFile?.size || 0,
+                  extractedContent: extractedDoc.text_content
+                });
+              }
+            }
             
             // Update session with extracted data
             await storage.updateExtractionSession(sessionId, {

@@ -87,6 +87,17 @@ export const extractionSessions = pgTable("extraction_sessions", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Table to store extracted document content for background processing
+export const extractedDocuments = pgTable("extracted_documents", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
+  fileName: text("file_name").notNull(),
+  fileType: text("file_type").notNull(),
+  fileSize: integer("file_size").notNull(),
+  extractedContent: text("extracted_content").notNull(), // The actual extracted text content
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // New table for field-level validation tracking
 export const fieldValidations = pgTable("field_validations", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -173,6 +184,11 @@ export const insertExtractionSessionSchema = createInsertSchema(extractionSessio
   updatedAt: true,
 });
 
+export const insertExtractedDocumentSchema = createInsertSchema(extractedDocuments).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertKnowledgeDocumentSchema = createInsertSchema(knowledgeDocuments).omit({
   id: true,
   uploadedAt: true,
@@ -213,6 +229,8 @@ export type CollectionProperty = typeof collectionProperties.$inferSelect;
 export type InsertCollectionProperty = z.infer<typeof insertCollectionPropertySchema>;
 export type ExtractionSession = typeof extractionSessions.$inferSelect;
 export type InsertExtractionSession = z.infer<typeof insertExtractionSessionSchema>;
+export type ExtractedDocument = typeof extractedDocuments.$inferSelect;
+export type InsertExtractedDocument = z.infer<typeof insertExtractedDocumentSchema>;
 export type KnowledgeDocument = typeof knowledgeDocuments.$inferSelect;
 export type InsertKnowledgeDocument = z.infer<typeof insertKnowledgeDocumentSchema>;
 export type ExtractionRule = typeof extractionRules.$inferSelect;
