@@ -1990,7 +1990,7 @@ print(json.dumps(result))
             // Save extracted content to session documents for debugging and reuse
             try {
               // Get session to find project ID
-              const session = await storage.getSession(sessionId);
+              const session = await storage.getExtractionSession(sessionId);
               if (session) {
                 // Save each extracted document as a session document record
                 for (const extractedDoc of result.extracted_texts || []) {
