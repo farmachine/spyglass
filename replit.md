@@ -10,7 +10,16 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**July 25, 2025 (Latest Update)**
+**July 28, 2025 (Latest Update)**
+- ✓ **BACKGROUND EXTRACTION SYSTEM FULLY IMPLEMENTED**: Complete asynchronous extraction workflow allowing users to navigate app during processing
+- ✓ Added "Start Background Extraction" button to SchemaView.tsx with proper styling matching application theme
+- ✓ Backend endpoint `/api/sessions/:sessionId/start-background-extraction` handles complete workflow: document extraction → AI processing → field validation → status updates
+- ✓ Session status management includes "processing" state for proper background workflow tracking
+- ✓ Users can start extraction and immediately navigate to dashboard while processing continues in background
+- ✓ Complete integration with existing extraction logic preserving all AI capabilities and validation features
+- ✓ Enhanced user experience: no waiting periods, extraction runs silently while users continue working
+
+**July 25, 2025**
 - ✓ **SLATE BLUE THEME IMPLEMENTATION COMPLETED**: Successfully updated entire application color scheme to match user-preferred slate blue tone
 - ✓ Changed primary color from sea blue (#0EA5E9) to professional slate blue (#4F63A4) throughout CSS variables
 - ✓ Updated ExtractlyLogo wave gradients to use new slate blue color palette for consistent branding
