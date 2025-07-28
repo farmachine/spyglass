@@ -1628,102 +1628,9 @@ except Exception as e:
             }
             
             try {
-              const extractedFieldData = JSON.parse(output);
-              console.log('BACKGROUND extracted field data:', JSON.stringify(extractedFieldData, null, 2));
-              
-              // Extract document content using same method as Python script
-              let documentContent = [];
-              
-              console.log(`BACKGROUND: Extracting document content from ${convertedFiles.length} files`);
-              
-              try {
-                const { GoogleGenerativeAI } = require('@google/generative-ai');
-                const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-                const model = client.getGenerativeModel({ 
-                  model: "gemini-1.5-flash",
-                  generationConfig: {
-                    maxOutputTokens: 10000000,
-                    temperature: 0.1,
-                  }
-                });
-                
-                // Extract text content from each document for display
-                for (let i = 0; i < convertedFiles.length; i++) {
-                  const file = convertedFiles[i];
-                  console.log(`BACKGROUND: Processing document ${i + 1}/${convertedFiles.length}: ${file.file_name}`);
-                  
-                  try {
-                    if (file.file_content && file.file_content.startsWith('data:')) {
-                      // Remove data URL prefix and get base64 content
-                      const base64Content = file.file_content.split(',')[1];
-                      
-                      console.log(`BACKGROUND: File ${file.file_name} - MIME: ${file.mime_type}, Base64 length: ${base64Content.length}`);
-                      
-                      const fileData = {
-                        inlineData: {
-                          data: base64Content,
-                          mimeType: file.mime_type
-                        }
-                      };
-                      
-                      const prompt = "Extract and return the complete text content from this document. Include all text, preserving structure and formatting where possible. Return only the extracted text content, no additional commentary.";
-                      
-                      console.log(`BACKGROUND: Calling Gemini API for ${file.file_name}...`);
-                      const result = await model.generateContent([prompt, fileData]);
-                      const extractedText = result.response.text();
-                      
-                      console.log(`BACKGROUND: Successfully extracted ${extractedText.length} characters from ${file.file_name}`);
-                      
-                      documentContent.push({
-                        file_name: file.file_name,
-                        extracted_text: extractedText,
-                        mime_type: file.mime_type
-                      });
-                      
-                    } else {
-                      console.warn(`BACKGROUND: File ${file.file_name} has invalid content format`);
-                      documentContent.push({
-                        file_name: file.file_name,
-                        extracted_text: "Invalid file format - no content available",
-                        mime_type: file.mime_type
-                      });
-                    }
-                  } catch (docError) {
-                    console.error(`BACKGROUND: Failed to extract content from ${file.file_name}:`, docError.message);
-                    documentContent.push({
-                      file_name: file.file_name,
-                      extracted_text: `Failed to extract document content: ${docError.message}`,
-                      mime_type: file.mime_type
-                    });
-                  }
-                }
-              } catch (contentError) {
-                console.error('BACKGROUND: Failed to initialize document content extraction:', contentError.message);
-                // Create placeholder entries for all files
-                for (const file of convertedFiles) {
-                  documentContent.push({
-                    file_name: file.file_name,
-                    extracted_text: `Document content extraction failed: ${contentError.message}`,
-                    mime_type: file.mime_type
-                  });
-                }
-              }
-              
-              // Create complete data structure that SessionView expects
-              const completeExtractionData = {
-                aggregated_extraction: {
-                  extracted_data: extractedFieldData
-                },
-                documents: documentContent,
-                extracted_texts: documentContent.map(doc => ({
-                  file_name: doc.file_name,
-                  text_content: doc.extracted_text
-                })),
-                total_documents: convertedFiles.length,
-                total_word_count: documentContent.reduce((count, doc) => 
-                  count + (doc.extracted_text ? doc.extracted_text.split(/\s+/).length : 0), 0
-                )
-              };
+              const completeExtractionData = JSON.parse(output);
+              console.log('BACKGROUND: Received comprehensive extraction data from Python script');
+              console.log(`BACKGROUND: Data includes ${completeExtractionData.total_documents || 0} documents with ${completeExtractionData.total_word_count || 0} words`);
               
               // Store complete extraction data in session and mark as completed
               await storage.updateExtractionSession(sessionId, {
@@ -1731,10 +1638,11 @@ except Exception as e:
                 extractedData: JSON.stringify(completeExtractionData)
               });
               
-              // Create field validation records from extracted data
+              // Create field validation records from extracted field data
+              const extractedFieldData = completeExtractionData.aggregated_extraction?.extracted_data || {};
               await createFieldValidationRecords(sessionId, extractedFieldData, project_data);
               
-              console.log(`BACKGROUND: Extraction completed for session ${sessionId}, ${documentContent.length} documents processed`);
+              console.log(`BACKGROUND: Extraction completed for session ${sessionId}, comprehensive data from Python script stored`);
               
             } catch (error) {
               console.error('BACKGROUND processing error:', error);

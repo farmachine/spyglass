@@ -516,9 +516,56 @@ RETURN: Complete readable content from this document."""
                 extracted_data = {session_name: {}}
             else:
                 extracted_data = json.loads(response_text)
+            
+            # Create document content objects for SessionView
+            document_objects = []
+            extracted_texts = []
+            
+            for doc in documents:
+                file_name = doc.get('file_name', 'Unknown')
+                
+                # Extract the content for this specific document from the full extracted_content_text
+                doc_start = f"=== DOCUMENT: {file_name} ==="
+                start_idx = extracted_content_text.find(doc_start)
+                
+                if start_idx != -1:
+                    # Find the end of this document's content (next document or end of string)
+                    next_doc_start = extracted_content_text.find("=== DOCUMENT:", start_idx + len(doc_start))
+                    if next_doc_start != -1:
+                        doc_content = extracted_content_text[start_idx + len(doc_start):next_doc_start].strip()
+                    else:
+                        doc_content = extracted_content_text[start_idx + len(doc_start):].strip()
+                else:
+                    doc_content = "Content extraction failed"
+                
+                document_objects.append({
+                    'file_name': file_name,
+                    'extracted_text': doc_content,
+                    'mime_type': doc.get('mime_type', 'unknown')
+                })
+                
+                extracted_texts.append({
+                    'file_name': file_name,
+                    'text_content': doc_content
+                })
+            
+            # Calculate total word count
+            total_word_count = sum(len(doc['extracted_text'].split()) for doc in document_objects)
+            
+            # Create comprehensive result structure that matches what SessionView expects
+            comprehensive_result = {
+                'aggregated_extraction': {
+                    'extracted_data': extracted_data
+                },
+                'documents': document_objects,
+                'extracted_texts': extracted_texts,
+                'total_documents': len(documents),
+                'total_word_count': total_word_count
+            }
                 
             logging.info(f"STEP 1: Successfully extracted data with keys: {list(extracted_data.keys())}")
-            return ExtractionResult(success=True, extracted_data=extracted_data)
+            logging.info(f"STEP 1: Created document content for {len(document_objects)} documents with {total_word_count} total words")
+            return ExtractionResult(success=True, extracted_data=comprehensive_result)
             
         except json.JSONDecodeError as e:
             logging.error(f"Failed to parse AI response as JSON: {e}")
