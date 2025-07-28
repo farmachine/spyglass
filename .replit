@@ -41,4 +41,4 @@ args = "npm run dev"
 waitForPort = 5000
 
 [agent]
-integrations = ["python_gemini==1.0.0"]
+integrations = ["python_database==1.0.0", "python_gemini==1.0.0"]
