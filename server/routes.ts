@@ -2990,6 +2990,25 @@ print(json.dumps(results))
 
       console.log(`AI_EXTRACTION: Processing ${schemaFields.length} schema fields and ${collectionsWithProperties.length} collections`);
 
+      // Get session documents for job tracking
+      const sessionDocuments = await storage.getSessionDocumentsBySession(sessionId);
+      const sessionDocumentUuids = sessionDocuments.map(doc => doc.id);
+      
+      // Create extraction job for debugging
+      const extractionJob = await storage.createExtractionJob({
+        sessionId: sessionId,
+        sessionDocumentUuids: sessionDocumentUuids,
+        extractionStatus: 'started',
+        extractionPrompt: JSON.stringify(extractionData),
+        promptGenerationStatus: 'completed',
+        aiResponse: null,
+        aiResponseStatus: 'pending',
+        fieldValidationDatabaseWriteStatus: 'pending',
+        errorMessage: null
+      });
+      
+      console.log(`AI_EXTRACTION: Created extraction job ${extractionJob.id} for debugging`);
+
       // Call Python AI extraction script
       const { spawn } = await import('child_process');
       let pythonOutput = '';
@@ -3026,6 +3045,14 @@ print(json.dumps(result))
         if (code !== 0) {
           console.error(`AI_EXTRACTION: Python process failed with code ${code}`);
           console.error(`AI_EXTRACTION: Error output: ${pythonError}`);
+          
+          // Update extraction job with error
+          await storage.updateExtractionJob(extractionJob.id, {
+            extractionStatus: 'failed',
+            aiResponseStatus: 'failed',
+            errorMessage: pythonError
+          });
+          
           return res.status(500).json({ 
             message: "AI extraction failed", 
             error: pythonError,
@@ -3038,6 +3065,14 @@ print(json.dumps(result))
           
           if (extractionResults.success) {
             console.log(`AI_EXTRACTION: Successfully processed ${extractionResults.total_fields_processed || 0} fields`);
+            
+            // Update extraction job with successful results
+            await storage.updateExtractionJob(extractionJob.id, {
+              extractionStatus: 'completed',
+              aiResponse: JSON.stringify(extractionResults),
+              aiResponseStatus: 'completed',
+              fieldValidationDatabaseWriteStatus: 'started'
+            });
             
             // Update session status to completed
             await storage.updateExtractionSession(sessionId, {
@@ -3063,6 +3098,13 @@ print(json.dumps(result))
                   confidenceScore: validation.confidence_score || 0
                 });
               }
+              
+              // Mark field validation database write as completed
+              await storage.updateExtractionJob(extractionJob.id, {
+                fieldValidationDatabaseWriteStatus: 'completed'
+              });
+              
+              console.log(`AI_EXTRACTION: Created ${extractionResults.field_validations.length} field validations for job ${extractionJob.id}`);
             }
             
             res.json({
@@ -3073,6 +3115,15 @@ print(json.dumps(result))
             });
           } else {
             console.log('AI_EXTRACTION: Extraction failed:', extractionResults.error);
+            
+            // Update extraction job with failure
+            await storage.updateExtractionJob(extractionJob.id, {
+              extractionStatus: 'failed',
+              aiResponse: JSON.stringify(extractionResults),
+              aiResponseStatus: 'completed',
+              errorMessage: extractionResults.error || 'Unknown extraction error'
+            });
+            
             res.status(500).json({ 
               message: "AI extraction failed",
               error: extractionResults.error
@@ -3081,6 +3132,15 @@ print(json.dumps(result))
         } catch (parseError) {
           console.error(`AI_EXTRACTION: Failed to parse Python output: ${parseError}`);
           console.error(`AI_EXTRACTION: Raw output: ${pythonOutput}`);
+          
+          // Update extraction job with parsing error
+          await storage.updateExtractionJob(extractionJob.id, {
+            extractionStatus: 'failed',
+            aiResponseStatus: 'failed',
+            errorMessage: `JSON parsing failed: ${parseError.message}`,
+            aiResponse: pythonOutput
+          });
+          
           res.status(500).json({
             message: "Failed to parse extraction results",
             error: parseError.message,
