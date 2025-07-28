@@ -8,7 +8,6 @@ import {
   extractionRules,
   fieldValidations,
   sessionDocuments,
-  extractionJobs,
   organizations,
   users,
   projectPublishing,
@@ -30,8 +29,6 @@ import {
   type InsertFieldValidation,
   type SessionDocument,
   type InsertSessionDocument,
-  type ExtractionJob,
-  type InsertExtractionJob,
   type ExtractionSessionWithValidation,
   type ProjectWithDetails,
   type Organization,
@@ -131,11 +128,6 @@ export interface IStorage {
   updateSessionDocument(id: string, document: Partial<InsertSessionDocument>): Promise<SessionDocument | undefined>;
   deleteSessionDocument(id: string): Promise<boolean>;
 
-  // Extraction Jobs
-  getExtractionJob(sessionId: string): Promise<ExtractionJob | undefined>;
-  createExtractionJob(extractionJob: InsertExtractionJob): Promise<ExtractionJob>;
-  updateExtractionJob(sessionId: string, extractionJob: Partial<InsertExtractionJob>): Promise<ExtractionJob | undefined>;
-
   // Project Publishing
   getProjectPublishing(projectId: string): Promise<ProjectPublishing[]>;
   getProjectPublishedOrganizations(projectId: string): Promise<Organization[]>;
@@ -155,7 +147,6 @@ export class MemStorage implements IStorage {
   private extractionRules: Map<string, ExtractionRule>;
   private fieldValidations: Map<string, FieldValidation>;
   private sessionDocuments: Map<string, SessionDocument>;
-  private extractionJobs: Map<string, ExtractionJob>;
   private projectPublishing: Map<string, ProjectPublishing>;
 
   constructor() {
@@ -170,7 +161,6 @@ export class MemStorage implements IStorage {
     this.extractionRules = new Map();
     this.fieldValidations = new Map();
     this.sessionDocuments = new Map();
-    this.extractionJobs = new Map();
     this.projectPublishing = new Map();
     
     // Initialize with sample data for development
@@ -1334,34 +1324,6 @@ export class MemStorage implements IStorage {
   async deleteSessionDocument(id: string): Promise<boolean> {
     return this.sessionDocuments.delete(id);
   }
-
-  // Extraction Jobs
-  async getExtractionJob(sessionId: string): Promise<ExtractionJob | undefined> {
-    return this.extractionJobs.get(sessionId);
-  }
-
-  async createExtractionJob(extractionJob: InsertExtractionJob): Promise<ExtractionJob> {
-    const job: ExtractionJob = {
-      ...extractionJob,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.extractionJobs.set(extractionJob.sessionId, job);
-    return job;
-  }
-
-  async updateExtractionJob(sessionId: string, extractionJob: Partial<InsertExtractionJob>): Promise<ExtractionJob | undefined> {
-    const existingJob = this.extractionJobs.get(sessionId);
-    if (!existingJob) return undefined;
-
-    const updatedJob = { 
-      ...existingJob, 
-      ...extractionJob, 
-      updatedAt: new Date() 
-    };
-    this.extractionJobs.set(sessionId, updatedJob);
-    return updatedJob;
-  }
 }
 
 // PostgreSQL Storage Implementation
@@ -2280,33 +2242,6 @@ class PostgreSQLStorage implements IStorage {
       .delete(sessionDocuments)
       .where(eq(sessionDocuments.id, id));
     return result.rowCount > 0;
-  }
-
-  // Extraction Jobs
-  async getExtractionJob(sessionId: string): Promise<ExtractionJob | undefined> {
-    const result = await this.db
-      .select()
-      .from(extractionJobs)
-      .where(eq(extractionJobs.sessionId, sessionId))
-      .limit(1);
-    return result[0];
-  }
-
-  async createExtractionJob(extractionJob: InsertExtractionJob): Promise<ExtractionJob> {
-    const result = await this.db.insert(extractionJobs).values(extractionJob).returning();
-    return result[0];
-  }
-
-  async updateExtractionJob(sessionId: string, extractionJob: Partial<InsertExtractionJob>): Promise<ExtractionJob | undefined> {
-    const result = await this.db
-      .update(extractionJobs)
-      .set({
-        ...extractionJob,
-        updatedAt: new Date()
-      })
-      .where(eq(extractionJobs.sessionId, sessionId))
-      .returning();
-    return result[0];
   }
 }
 
