@@ -133,21 +133,6 @@ export const extractionRules = pgTable("extraction_rules", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const sessionDocuments = pgTable("session_documents", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
-  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
-  fileName: text("file_name").notNull(),
-  fileType: text("file_type").notNull(),
-  fileSize: integer("file_size").notNull(),
-  extractionStatus: text("extraction_status").notNull(), // 'completed', 'failed', 'processing'
-  extractedContent: text("extracted_content"), // extracted text content
-  wordCount: integer("word_count"),
-  originalFileData: text("original_file_data"), // base64 encoded file data
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
 // Insert schemas
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({
   id: true,
@@ -209,12 +194,6 @@ export const insertProjectPublishingSchema = createInsertSchema(projectPublishin
   createdAt: true,
 });
 
-export const insertSessionDocumentSchema = createInsertSchema(sessionDocuments).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
 // Types
 export type Organization = typeof organizations.$inferSelect;
 export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
@@ -244,8 +223,6 @@ export type FieldValidationWithName = FieldValidation & {
 };
 export type InsertFieldValidation = z.infer<typeof insertFieldValidationSchema>;
 export type ProjectPublishing = typeof projectPublishing.$inferSelect;
-export type SessionDocument = typeof sessionDocuments.$inferSelect;
-export type InsertSessionDocument = z.infer<typeof insertSessionDocumentSchema>;
 export type InsertProjectPublishing = z.infer<typeof insertProjectPublishingSchema>;
 
 // Validation status types
