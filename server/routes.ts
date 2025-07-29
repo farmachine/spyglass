@@ -2020,7 +2020,7 @@ print(json.dumps(result))
       let output = '';
       let error = '';
       
-      const python = spawn('python3', ['ai_extraction_single_step.py'], {
+      const python = spawn('python3', ['ai_extraction.py'], {
         cwd: process.cwd()
       });
 
@@ -2434,7 +2434,7 @@ print(json.dumps(result))
       };
       
       // Call Python single-step extraction script
-      const python = spawn('python3', ['ai_extraction_single_step.py']);
+      const python = spawn('python3', ['ai_extraction.py']);
       
       python.stdin.write(JSON.stringify(extractionData));
       python.stdin.end();

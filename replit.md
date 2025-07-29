@@ -10,7 +10,11 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**July 25, 2025 (Latest Update)**
+**July 29, 2025 (Latest Update)**
+- ✓ **CRITICAL 500 API ERROR COMPLETELY RESOLVED**: Fixed server routes to use optimized ai_extraction.py instead of deleted ai_extraction_single_step.py
+- ✓ Updated both /api/sessions/:sessionId/gemini-extraction and document processing endpoints to call correct Python script
+- ✓ Eliminated "can't open file ai_extraction_single_step.py" errors that were preventing AI extraction functionality
+- ✓ All AI extraction workflows now working with optimized 717-line ai_extraction.py script
 - ✓ **SLATE BLUE THEME IMPLEMENTATION COMPLETED**: Successfully updated entire application color scheme to match user-preferred slate blue tone
 - ✓ Changed primary color from sea blue (#0EA5E9) to professional slate blue (#4F63A4) throughout CSS variables
 - ✓ Updated ExtractlyLogo wave gradients to use new slate blue color palette for consistent branding
