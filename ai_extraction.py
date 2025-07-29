@@ -543,8 +543,10 @@ def main():
         processor = DocumentProcessor(api_key)
         results = processor.process_session(session_data)
         
-        # Output results
-        print(json.dumps(results, indent=2))
+        # Output results immediately with flush
+        output_json = json.dumps(results, ensure_ascii=False)
+        print(output_json)
+        sys.stdout.flush()
         
     except Exception as e:
         logging.error(f"Processing failed: {e}")
@@ -557,7 +559,9 @@ def main():
             "extracted_data": {},
             "validations": []
         }
-        print(json.dumps(error_result, indent=2))
+        output_json = json.dumps(error_result, ensure_ascii=False)
+        print(output_json)
+        sys.stdout.flush()
 
 # Legacy API compatibility function
 def run_post_extraction_batch_validation(session_data: Dict[str, Any]) -> Dict[str, Any]:

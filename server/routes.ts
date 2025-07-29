@@ -2087,11 +2087,11 @@ print(json.dumps(result))
         error += data.toString();
       });
 
-      // Add timeout
+      // Add timeout - increased for large documents
       const timeoutId = setTimeout(() => {
         python.kill();
-        console.error('GEMINI EXTRACTION timeout after 60 seconds');
-      }, 60000);
+        console.error('GEMINI EXTRACTION timeout after 180 seconds');
+      }, 180000);
 
       await new Promise((resolve, reject) => {
         python.on('close', async (code: any) => {
