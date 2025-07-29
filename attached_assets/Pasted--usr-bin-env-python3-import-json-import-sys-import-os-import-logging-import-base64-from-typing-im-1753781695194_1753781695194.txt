@@ -330,14 +330,11 @@ class DocumentProcessor:
                     mime_type=file_info.get("mimeType", "text/plain"),
                     schema=schema
                 )
-                
                 all_extractions.append({
                     "file_name": file_info.get("name"),
                     "extracted_data": extracted_data,
                     "success": bool(extracted_data)
                 })
-                logging.info(f"Extracted data from {file_info.get('name')}")
-                
             except Exception as e:
                 logging.error(f"Failed to extract from {file_info.get('name')}: {e}")
                 all_extractions.append({
@@ -347,11 +344,11 @@ class DocumentProcessor:
                     "error": str(e)
                 })
         
-        # Step 2: Aggregate all extractions
+        # Step 2: Aggregate data (simple merge strategy)
         aggregated_data = self._aggregate_extractions(all_extractions, schema)
         
         # Step 3: Validate aggregated data
-        validation_results = self.validator.validate_extracted_data(
+        validations = self.validator.validate_extracted_data(
             extracted_data=aggregated_data,
             schema=schema,
             extraction_rules=extraction_rules,
@@ -374,13 +371,13 @@ class DocumentProcessor:
                     "collection_name": v.collection_name,
                     "record_index": v.record_index
                 }
-                for v in validation_results
+                for v in validations
             ],
             "processing_summary": {
                 "total_files": len(files),
                 "successful_extractions": len([e for e in all_extractions if e["success"]]),
-                "total_validations": len(validation_results),
-                "verified_fields": len([v for v in validation_results if v.validation_status == "verified"])
+                "total_validations": len(validations),
+                "verified_fields": len([v for v in validations if v.validation_status == "verified"])
             }
         }
     
