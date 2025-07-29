@@ -87,21 +87,6 @@ export const extractionSessions = pgTable("extraction_sessions", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Individual documents uploaded to sessions
-export const sessionDocuments = pgTable("session_documents", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
-  fileName: text("file_name").notNull(),
-  originalFileName: text("original_file_name").notNull(),
-  fileType: text("file_type").notNull(), // pdf, docx, xlsx, etc.
-  fileSize: integer("file_size").notNull(),
-  mimeType: text("mime_type").notNull(),
-  extractedContent: text("extracted_content"), // Text content extracted by Gemini/processing
-  rawFileData: text("raw_file_data"), // Base64 encoded file data for storage
-  processingStatus: text("processing_status").default("pending").notNull(), // pending, processed, error
-  uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
-});
-
 // New table for field-level validation tracking
 export const fieldValidations = pgTable("field_validations", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -188,11 +173,6 @@ export const insertExtractionSessionSchema = createInsertSchema(extractionSessio
   updatedAt: true,
 });
 
-export const insertSessionDocumentSchema = createInsertSchema(sessionDocuments).omit({
-  id: true,
-  uploadedAt: true,
-});
-
 export const insertKnowledgeDocumentSchema = createInsertSchema(knowledgeDocuments).omit({
   id: true,
   uploadedAt: true,
@@ -233,8 +213,6 @@ export type CollectionProperty = typeof collectionProperties.$inferSelect;
 export type InsertCollectionProperty = z.infer<typeof insertCollectionPropertySchema>;
 export type ExtractionSession = typeof extractionSessions.$inferSelect;
 export type InsertExtractionSession = z.infer<typeof insertExtractionSessionSchema>;
-export type SessionDocument = typeof sessionDocuments.$inferSelect;
-export type InsertSessionDocument = z.infer<typeof insertSessionDocumentSchema>;
 export type KnowledgeDocument = typeof knowledgeDocuments.$inferSelect;
 export type InsertKnowledgeDocument = z.infer<typeof insertKnowledgeDocumentSchema>;
 export type ExtractionRule = typeof extractionRules.$inferSelect;
