@@ -10,7 +10,17 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**July 25, 2025 (Latest Update)**
+**July 29, 2025 (Latest Update)**
+- ✓ **CRITICAL EPIPE ERROR RESOLUTION COMPLETED**: Replaced Server-Sent Events with polling-based progress tracking to eliminate server crashes
+- ✓ Root cause identified: EventSource SSE connections were causing write EPIPE errors and authentication issues due to inability to pass custom headers
+- ✓ Implemented robust polling mechanism that checks progress every 1 second via authenticated REST endpoints
+- ✓ Enhanced error handling and connection management with proper cleanup for interval-based progress tracking
+- ✓ Application stability significantly improved - no more server crashes during document extraction processes
+- ✓ Real-time progress updates maintained with 1-second polling interval providing excellent user experience
+- ✓ Authentication now working properly through standard API request headers instead of problematic SSE authentication
+- ✓ Complete TypeScript error resolution across NewUpload and OrchestrationProgressDialog components
+
+**July 25, 2025**
 - ✓ **SLATE BLUE THEME IMPLEMENTATION COMPLETED**: Successfully updated entire application color scheme to match user-preferred slate blue tone
 - ✓ Changed primary color from sea blue (#0EA5E9) to professional slate blue (#4F63A4) throughout CSS variables
 - ✓ Updated ExtractlyLogo wave gradients to use new slate blue color palette for consistent branding

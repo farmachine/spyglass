@@ -51,56 +51,49 @@ export const useOrchestrationExtraction = () => {
     }
   });
 
-  // Connect to Server-Sent Events for real-time progress
+  // Connect to progress updates using polling instead of SSE
   const connectToProgressStream = (sessionId: string) => {
     if (eventSourceRef.current) {
-      eventSourceRef.current.close();
+      clearInterval(eventSourceRef.current as any);
     }
 
-    const eventSource = new EventSource(`/api/orchestration/stream/${sessionId}`);
-    eventSourceRef.current = eventSource;
-
-    eventSource.onopen = () => {
-      setIsConnected(true);
-    };
-
-    eventSource.onmessage = (event) => {
+    setIsConnected(true);
+    
+    // Poll for progress updates every 1 second
+    const pollInterval = setInterval(async () => {
       try {
-        const data = JSON.parse(event.data);
-        
-        if (data.type === 'completed') {
-          setProgress(prev => prev ? { ...prev, status: 'completed', overallProgress: 100 } : null);
-          eventSource.close();
-          setIsConnected(false);
+        const response = await getProgress(sessionId);
+        if (response && response.success) {
+          const progressData = response.progress;
           
-          // Invalidate related queries to refresh data
-          queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
-          queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
-          
-        } else if (data.type === 'error') {
-          setProgress(prev => prev ? { ...prev, status: 'failed', error: data.error } : null);
-          eventSource.close();
-          setIsConnected(false);
-          
-        } else if (data.type === 'cancelled') {
-          setProgress(prev => prev ? { ...prev, status: 'failed', error: 'Cancelled by user' } : null);
-          eventSource.close();
-          setIsConnected(false);
-          
-        } else {
-          // Regular progress update
-          setProgress(data);
+          if (progressData.status === 'completed') {
+            setProgress(prev => prev ? { ...prev, status: 'completed', overallProgress: 100 } : null);
+            clearInterval(pollInterval);
+            setIsConnected(false);
+            
+            // Invalidate related queries to refresh data
+            queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
+            queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+            
+          } else if (progressData.status === 'failed') {
+            setProgress(prev => prev ? { ...prev, status: 'failed', error: progressData.error } : null);
+            clearInterval(pollInterval);
+            setIsConnected(false);
+            
+          } else {
+            // Regular progress update
+            setProgress(progressData);
+          }
         }
       } catch (error) {
-        console.error('Failed to parse progress data:', error);
+        console.error('Failed to get progress:', error);
+        clearInterval(pollInterval);
+        setIsConnected(false);
       }
-    };
+    }, 1000);
 
-    eventSource.onerror = (error) => {
-      console.error('EventSource error:', error);
-      setIsConnected(false);
-      eventSource.close();
-    };
+    // Store interval reference for cleanup
+    eventSourceRef.current = pollInterval as any;
   };
 
   // Control mutations
@@ -130,7 +123,11 @@ export const useOrchestrationExtraction = () => {
       // Clean up progress tracking
       setProgress(null);
       if (eventSourceRef.current) {
-        eventSourceRef.current.close();
+        if (typeof eventSourceRef.current === 'number') {
+          clearInterval(eventSourceRef.current);
+        } else {
+          eventSourceRef.current.close();
+        }
         setIsConnected(false);
       }
     }
@@ -154,7 +151,11 @@ export const useOrchestrationExtraction = () => {
   useEffect(() => {
     return () => {
       if (eventSourceRef.current) {
-        eventSourceRef.current.close();
+        if (typeof eventSourceRef.current === 'number') {
+          clearInterval(eventSourceRef.current);
+        } else {
+          eventSourceRef.current.close();
+        }
       }
     };
   }, []);
