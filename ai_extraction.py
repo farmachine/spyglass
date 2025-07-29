@@ -67,31 +67,58 @@ class AIExtractor:
     
     def _build_extraction_prompt(self, schema: Dict[str, Any], file_name: str) -> str:
         """Build a focused extraction prompt"""
-        prompt = f"""Extract data from document: {file_name}
+        prompt = f"""You are a document data extraction AI. Extract structured data from this document: {file_name}
 
-CRITICAL: Extract ONLY real data. Return null for missing values.
+TASK: Extract real data from the document according to the schema below. 
 
-SCHEMA FIELDS:"""
+EXTRACTION SCHEMA:"""
         
         # Add schema fields
-        for field in schema.get("schema_fields", []):
-            name = field.get('fieldName', '')
-            field_type = field.get('fieldType', 'TEXT')
-            description = field.get('description', '')
-            prompt += f"\n- {name} ({field_type}): {description}"
+        schema_fields = schema.get("schema_fields", [])
+        if schema_fields:
+            prompt += "\n\nFIELDS TO EXTRACT:"
+            for field in schema_fields:
+                name = field.get('fieldName', '')
+                field_type = field.get('fieldType', 'TEXT')
+                description = field.get('description', '')
+                prompt += f"\n- {name} ({field_type}): {description}"
         
         # Add collections
-        for collection in schema.get("collections", []):
-            collection_name = collection.get('collectionName', '')
-            prompt += f"\n\nCOLLECTION: {collection_name}"
-            
-            for prop in collection.get("properties", []):
-                prop_name = prop.get('propertyName', '')
-                prop_type = prop.get('propertyType', 'TEXT')
-                description = prop.get('description', '')
-                prompt += f"\n  - {prop_name} ({prop_type}): {description}"
+        collections = schema.get("collections", [])
+        if collections:
+            prompt += "\n\nCOLLECTIONS TO EXTRACT:"
+            for collection in collections:
+                collection_name = collection.get('collectionName', '')
+                prompt += f"\n\n{collection_name} (extract all instances found):"
+                
+                for prop in collection.get("properties", []):
+                    prop_name = prop.get('propertyName', '')
+                    prop_type = prop.get('propertyType', 'TEXT')
+                    description = prop.get('description', '')
+                    prompt += f"\n  - {prop_name} ({prop_type}): {description}"
         
-        prompt += "\n\nReturn JSON format matching the schema structure."
+        prompt += f"""
+
+INSTRUCTIONS:
+1. Extract ALL relevant data that matches the schema
+2. For fields: return single values
+3. For collections: return arrays of objects
+4. If data is not found, use null for fields and empty array [] for collections
+5. Return valid JSON only
+
+REQUIRED OUTPUT FORMAT:
+{{"""
+        
+        # Add expected structure
+        for field in schema_fields:
+            field_name = field.get('fieldName', '')
+            prompt += f'\n  "{field_name}": null,'
+        
+        for collection in collections:
+            collection_name = collection.get('collectionName', '')
+            prompt += f'\n  "{collection_name}": [],'
+        
+        prompt = prompt.rstrip(',') + "\n}\n\nNow extract data from the document:"
         return prompt
     
     def _call_gemini_with_retry(self, prompt: str, file_name: str, max_retries: int = 4) -> Dict[str, Any]:
@@ -113,14 +140,23 @@ SCHEMA FIELDS:"""
                 )
                 
                 if response and response.text:
+                    logging.info(f"Raw Gemini response length: {len(response.text)}")
+                    logging.info(f"Raw response preview: {response.text[:200]}")
                     result = self._parse_ai_response(response.text)
                     if not result or result == {}:
-                        logging.warning(f"AI returned empty result for {file_name}")
-                        return {"status": "no_data_found", "message": "No extractable data found in document"}
+                        logging.warning(f"AI returned empty result for {file_name}. Response was: {response.text[:500]}")
+                        return {
+                            "error": "EMPTY_EXTRACTION",
+                            "message": f"AI could not extract meaningful data from {file_name}",
+                            "raw_response": response.text[:500]
+                        }
                     return result
                 else:
                     logging.error(f"Empty response from Gemini for {file_name}")
-                    return {}
+                    return {
+                        "error": "NO_RESPONSE",
+                        "message": "Gemini API returned no response"
+                    }
                     
             except Exception as e:
                 error_msg = str(e)
@@ -279,18 +315,18 @@ class ValidationEngine:
         # Collect all fields to validate
         fields_to_validate = []
         
-        # Schema fields
+        # Schema fields - include all fields from schema, even if null
         for field in schema.get("schema_fields", []):
             field_name = field.get('fieldName', '')
-            if field_name in extracted_data:
-                fields_to_validate.append({
-                    'field_id': str(field.get('id', '')),
-                    'field_name': field_name,
-                    'field_type': field.get('fieldType', 'TEXT'),
-                    'extracted_value': extracted_data[field_name],
-                    'collection_name': None,
-                    'record_index': None
-                })
+            extracted_value = extracted_data.get(field_name, None)
+            fields_to_validate.append({
+                'field_id': str(field.get('id', '')),
+                'field_name': field_name,
+                'field_type': field.get('fieldType', 'TEXT'),
+                'extracted_value': extracted_value,
+                'collection_name': None,
+                'record_index': None
+            })
         
         # Collection fields
         for collection in schema.get("collections", []):
@@ -444,10 +480,14 @@ class DocumentProcessor:
                     schema=schema
                 )
                 
+                # Check if extraction has error
+                has_error = isinstance(extracted_data, dict) and "error" in extracted_data
+                
                 all_extractions.append({
                     "file_name": file_info.get("name"),
                     "extracted_data": extracted_data,
-                    "success": bool(extracted_data)
+                    "success": bool(extracted_data) and not has_error,
+                    "error": extracted_data.get("error") if has_error else None
                 })
                 logging.info(f"Extracted data from {file_info.get('name')}")
                 
@@ -471,8 +511,29 @@ class DocumentProcessor:
             knowledge_docs=knowledge_docs
         )
         
+        # Check for errors in extractions
+        failed_extractions = [e for e in all_extractions if not e["success"]]
+        if failed_extractions:
+            error_messages = []
+            for extraction in failed_extractions:
+                if "error" in extraction:
+                    error_messages.append(f"{extraction['file_name']}: {extraction['error']}")
+                else:
+                    error_messages.append(f"{extraction['file_name']}: Extraction failed")
+            
+            return {
+                "success": False,
+                "error": "EXTRACTION_FAILED",
+                "message": "One or more documents failed to extract",
+                "details": error_messages,
+                "session_id": session_data.get("session_id"),
+                "extracted_data": {},
+                "validations": []
+            }
+        
         # Step 4: Return results
         return {
+            "success": True,
             "session_id": session_data.get("session_id"),
             "extracted_data": aggregated_data,
             "validations": [
@@ -502,13 +563,13 @@ class DocumentProcessor:
         aggregated = {}
         collection_names = [c.get('collectionName') for c in schema.get('collections', [])]
         
-        # For schema fields: use the last successful extraction (most complete)
+        # For schema fields: use the last successful extraction (include null values)
         for extraction in reversed(extractions):
             if extraction["success"]:
                 for field_name, value in extraction["extracted_data"].items():
                     if field_name not in collection_names and field_name not in aggregated:
-                        if value is not None and value != "":
-                            aggregated[field_name] = value
+                        # Include null values - they're valid extraction results
+                        aggregated[field_name] = value
         
         # For collections: combine all items from all documents
         for collection_name in collection_names:

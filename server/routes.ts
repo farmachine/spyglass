@@ -2115,6 +2115,39 @@ print(json.dumps(result))
             const result = JSON.parse(output);
             console.log('GEMINI EXTRACTION result:', result.success ? 'Success' : 'Failed');
             
+            // Save validations to database if extraction was successful
+            if (result.success && result.validations && Array.isArray(result.validations)) {
+              console.log(`GEMINI EXTRACTION: Saving ${result.validations.length} validations to database`);
+              
+              try {
+                // Clear existing validations for this session
+                const existingValidations = await storage.getFieldValidations(sessionId);
+                for (const existing of existingValidations) {
+                  await storage.deleteFieldValidation(existing.id);
+                }
+                console.log(`GEMINI EXTRACTION: Cleared ${existingValidations.length} existing validations`);
+                
+                // Save new validations
+                for (const validation of result.validations) {
+                  await storage.createFieldValidation({
+                    sessionId: sessionId,
+                    fieldType: validation.field_type,
+                    fieldId: validation.field_id,
+                    collectionName: validation.collection_name,
+                    recordIndex: validation.record_index,
+                    extractedValue: validation.extracted_value,
+                    validationStatus: validation.validation_status,
+                    aiReasoning: validation.ai_reasoning,
+                    manuallyVerified: false,
+                    confidenceScore: validation.confidence_score
+                  });
+                }
+                console.log('GEMINI EXTRACTION: Successfully saved all validations to database');
+              } catch (saveError) {
+                console.error('GEMINI EXTRACTION: Error saving validations:', saveError);
+              }
+            }
+            
             res.json({
               success: result.success,
               extractedData: result.extracted_data || result.extractedData || result.result,
