@@ -94,7 +94,7 @@ SCHEMA FIELDS:"""
         prompt += "\n\nReturn JSON format matching the schema structure."
         return prompt
     
-    def _call_gemini_with_retry(self, prompt: str, file_name: str, max_retries: int = 3) -> Dict[str, Any]:
+    def _call_gemini_with_retry(self, prompt: str, file_name: str, max_retries: int = 4) -> Dict[str, Any]:
         """Call Gemini API with retry logic for 503 overload errors"""
         import time
         from google import genai
@@ -129,13 +129,18 @@ SCHEMA FIELDS:"""
                 # Check if it's a 503 overload error
                 if "503" in error_msg or "overloaded" in error_msg.lower() or "UNAVAILABLE" in error_msg:
                     if attempt < max_retries - 1:
-                        wait_time = (2 ** attempt) * 10  # Exponential backoff: 10s, 20s, 40s
-                        logging.info(f"API overloaded, retrying in {wait_time} seconds...")
+                        wait_time = (2 ** attempt) * 15  # Longer backoff: 15s, 30s, 60s
+                        logging.info(f"API overloaded, retrying in {wait_time} seconds... (attempt {attempt + 1}/{max_retries})")
                         time.sleep(wait_time)
                         continue
                     else:
                         logging.error(f"API overloaded after {max_retries} attempts, giving up")
-                        return {"error": "API_OVERLOADED", "message": f"Gemini API is temporarily overloaded. Please try again in a few minutes."}
+                        return {
+                            "error": "API_OVERLOADED", 
+                            "message": f"Gemini API is experiencing high demand and is temporarily overloaded. Please try again in 5-10 minutes when server capacity becomes available.",
+                            "retry_suggested": True,
+                            "wait_time_minutes": 10
+                        }
                 else:
                     # Non-503 errors, don't retry
                     logging.error(f"Non-retryable error: {error_msg}")

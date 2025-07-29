@@ -2119,7 +2119,8 @@ print(json.dumps(result))
               success: result.success,
               extractedData: result.extracted_data || result.extractedData || result.result,
               error: result.error,
-              processingDetails: result.processing_summary
+              processingDetails: result.processing_summary,
+              apiStatus: result.error === "API_OVERLOADED" ? "overloaded" : "available"
             });
             
             resolve(result);
