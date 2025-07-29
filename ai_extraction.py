@@ -30,9 +30,9 @@ class AIExtractor:
     def _setup_ai_client(self):
         """Initialize AI client once"""
         try:
-            import google.generativeai as genai
-            genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel('gemini-1.5-flash')
+            from google import genai
+            self.client = genai.Client(api_key=self.api_key)
+            self.model_name = "gemini-2.5-flash"
         except ImportError as e:
             raise Exception(f"Google AI modules not available: {e}")
     
@@ -50,11 +50,24 @@ class AIExtractor:
         try:
             if mime_type.startswith("text/"):
                 content_text = self._process_text_content(file_content)
-                response = self.model.generate_content(prompt + f"\n\nDocument content:\n{content_text}")
+                response = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=prompt + f"\n\nDocument content:\n{content_text}"
+                )
+            elif "spreadsheet" in mime_type or mime_type.endswith(".xlsx") or mime_type.endswith(".xls"):
+                # Handle Excel files
+                content_text = self._process_excel_content(file_content, file_name)
+                response = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=prompt + f"\n\nDocument content:\n{content_text}"
+                )
             else:
                 # Handle PDFs and other binary files
                 content_text = self._process_pdf_content(file_content)
-                response = self.model.generate_content(prompt + f"\n\nDocument content:\n{content_text}")
+                response = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=prompt + f"\n\nDocument content:\n{content_text}"
+                )
             
             return self._parse_ai_response(response.text)
             
@@ -99,6 +112,49 @@ SCHEMA FIELDS:"""
                 return base64.b64decode(base64_content).decode('utf-8', errors='ignore')
             return file_content
         return file_content.decode('utf-8', errors='ignore')
+    
+    def _process_excel_content(self, file_content: Any, file_name: str) -> str:
+        """Process Excel content using pandas"""
+        try:
+            # Decode base64 if needed
+            if isinstance(file_content, str) and file_content.startswith('data:'):
+                base64_content = file_content.split(',', 1)[1]
+                binary_content = base64.b64decode(base64_content)
+            elif isinstance(file_content, str):
+                binary_content = base64.b64decode(file_content)
+            else:
+                binary_content = file_content
+            
+            import pandas as pd
+            import io
+            
+            # Read Excel file
+            excel_file = io.BytesIO(binary_content)
+            
+            # Get all sheet names
+            excel_sheets = pd.read_excel(excel_file, sheet_name=None, engine='openpyxl')
+            
+            formatted_content = f"Excel File: {file_name}\n"
+            formatted_content += "=" * 50 + "\n\n"
+            
+            # Process each sheet
+            for sheet_name, df in excel_sheets.items():
+                formatted_content += f"SHEET: {sheet_name}\n"
+                formatted_content += "-" * 30 + "\n"
+                
+                # Convert DataFrame to string representation
+                if not df.empty:
+                    # Clean up the DataFrame display
+                    formatted_content += df.to_string(index=False, na_rep='')
+                    formatted_content += "\n\n"
+                else:
+                    formatted_content += "Sheet is empty\n\n"
+            
+            return formatted_content
+            
+        except Exception as e:
+            logging.error(f"Excel processing error: {e}")
+            return f"EXCEL_PROCESSING_ERROR: {str(e)}"
     
     def _process_pdf_content(self, file_content: Any) -> str:
         """Process PDF content - simplified approach"""
@@ -162,8 +218,8 @@ class ValidationEngine:
         self, 
         extracted_data: Dict[str, Any], 
         schema: Dict[str, Any],
-        extraction_rules: List[Dict] = None,
-        knowledge_docs: List[Dict] = None
+        extraction_rules: Optional[List[Dict]] = None,
+        knowledge_docs: Optional[List[Dict]] = None
     ) -> List[ValidationResult]:
         """Validate all extracted data in one batch"""
         
@@ -209,8 +265,8 @@ class ValidationEngine:
     def _batch_validate(
         self, 
         fields: List[Dict], 
-        extraction_rules: List[Dict] = None,
-        knowledge_docs: List[Dict] = None
+        extraction_rules: Optional[List[Dict]] = None,
+        knowledge_docs: Optional[List[Dict]] = None
     ) -> List[ValidationResult]:
         """Run AI validation on all fields at once"""
         
@@ -250,7 +306,10 @@ Return JSON format:
 }"""
         
         try:
-            response = self.extractor.model.generate_content(prompt)
+            response = self.extractor.client.models.generate_content(
+                model=self.extractor.model_name,
+                contents=prompt
+            )
             validation_data = self.extractor._parse_ai_response(response.text)
             
             # Convert to ValidationResult objects
