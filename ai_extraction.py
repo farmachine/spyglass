@@ -588,14 +588,16 @@ def extract_data_from_document(
 
 def main():
     """Main function for command-line usage"""
-    if len(sys.argv) < 2:
-        print("Usage: python ai_extraction.py <extraction_data_json>")
-        sys.exit(1)
-    
     try:
-        extraction_data = json.loads(sys.argv[1])
+        # Read input data from stdin
+        input_data = sys.stdin.read()
+        if not input_data.strip():
+            raise ValueError("No input data provided")
         
-        files = extraction_data.get('files', [])
+        extraction_data = json.loads(input_data)
+        
+        # Handle both 'files' and 'documents' keys for backwards compatibility
+        files = extraction_data.get('files', extraction_data.get('documents', []))
         project_schema = extraction_data.get('project_schema', {})
         extraction_rules = extraction_data.get('extraction_rules', [])
         knowledge_documents = extraction_data.get('knowledge_documents', [])
