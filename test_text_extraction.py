@@ -11,8 +11,12 @@ import os
 def test_text_extraction():
     try:
         # Read input from stdin
-        input_data = sys.stdin.read()
+        input_data = sys.stdin.read().strip()
+        print(f"DEBUG: Received input length: {len(input_data)}", file=sys.stderr)
         print(f"DEBUG: Received input: {input_data[:200]}...", file=sys.stderr)
+        
+        if not input_data:
+            raise Exception("No input data received")
         
         data = json.loads(input_data)
         files = data.get('files', [])

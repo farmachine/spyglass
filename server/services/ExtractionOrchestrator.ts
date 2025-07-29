@@ -176,15 +176,23 @@ export class ExtractionOrchestrator extends EventEmitter {
         stderr += data.toString();
       });
 
-      process.stdin.write(JSON.stringify({ files }));
+      const inputData = JSON.stringify({ files });
+      console.log(`Sending to text extraction script: ${inputData.substring(0, 200)}...`);
+      process.stdin.write(inputData);
       process.stdin.end();
 
       process.on('close', (code) => {
+        console.log(`Text extraction process exited with code ${code}`);
+        console.log(`stdout: ${stdout}`);
+        console.log(`stderr: ${stderr}`);
+        
         if (code === 0) {
           try {
             const result = JSON.parse(stdout);
             resolve(result);
           } catch (e) {
+            console.error('JSON parse error:', e);
+            console.error('Raw stdout:', stdout);
             reject(new Error(`Failed to parse text extraction result: ${e}`));
           }
         } else {
@@ -347,6 +355,9 @@ export class ExtractionOrchestrator extends EventEmitter {
   }
 
   private handleError(sessionId: string, error: any): void {
+    console.error(`Extraction error for session ${sessionId}:`, error);
+    console.error('Error stack:', error.stack);
+    
     const progress = this.activeExtractions.get(sessionId);
     if (progress) {
       progress.status = 'failed';
