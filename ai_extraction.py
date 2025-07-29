@@ -443,6 +443,95 @@ def main():
         }
         print(json.dumps(error_result, indent=2))
 
+# Legacy API compatibility function
+def run_post_extraction_batch_validation(session_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Legacy function for API compatibility - delegates to new simplified processor"""
+    try:
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            raise Exception("GEMINI_API_KEY not found")
+        
+        processor = DocumentProcessor(api_key)
+        
+        # Get existing validations from session data
+        existing_validations = session_data.get("existing_validations", [])
+        
+        # For post-extraction validation, we just need to re-validate existing data
+        # Extract the data that was already processed
+        extracted_data = {}
+        for validation in existing_validations:
+            field_name = validation.get("field_name", "")
+            if "." in field_name and "[" in field_name:
+                # Collection property - extract collection and property info
+                parts = field_name.split(".")
+                if len(parts) >= 2:
+                    collection_name = parts[0]
+                    prop_part = parts[1]
+                    if "[" in prop_part:
+                        prop_name = prop_part.split("[")[0]
+                        
+                        if collection_name not in extracted_data:
+                            extracted_data[collection_name] = []
+                        
+                        # Ensure we have enough items in the collection
+                        record_index = validation.get("record_index", 0)
+                        while len(extracted_data[collection_name]) <= record_index:
+                            extracted_data[collection_name].append({})
+                        
+                        extracted_data[collection_name][record_index][prop_name] = validation.get("extracted_value")
+            else:
+                # Schema field
+                extracted_data[field_name] = validation.get("extracted_value")
+        
+        # Re-validate using the new validation engine
+        validation_results = processor.validator.validate_extracted_data(
+            extracted_data=extracted_data,
+            schema=session_data.get("project_schema", {}),
+            extraction_rules=session_data.get("extraction_rules", []),
+            knowledge_docs=session_data.get("knowledge_documents", [])
+        )
+        
+        # Convert results to legacy format expected by API
+        updated_validations = []
+        for existing in existing_validations:
+            field_name = existing.get("field_name", "")
+            
+            # Find matching validation result
+            matching_result = None
+            for result in validation_results:
+                if result.field_name == field_name:
+                    matching_result = result
+                    break
+            
+            if matching_result:
+                # Update with new validation results
+                updated_validation = existing.copy()
+                updated_validation["confidence_score"] = matching_result.confidence_score
+                updated_validation["ai_reasoning"] = matching_result.ai_reasoning
+                updated_validation["validation_status"] = matching_result.validation_status
+                updated_validations.append(updated_validation)
+            else:
+                # Keep original if no matching result found
+                updated_validations.append(existing)
+        
+        return {
+            "success": True,
+            "updated_validations": updated_validations,
+            "validation_summary": {
+                "total_processed": len(updated_validations),
+                "verified_count": len([v for v in updated_validations if v.get("validation_status") == "verified"]),
+                "unverified_count": len([v for v in updated_validations if v.get("validation_status") == "unverified"])
+            }
+        }
+        
+    except Exception as e:
+        logging.error(f"Post-extraction batch validation failed: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "updated_validations": session_data.get("existing_validations", [])
+        }
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, stream=sys.stderr)
     main()

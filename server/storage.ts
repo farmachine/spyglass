@@ -76,8 +76,8 @@ export interface IStorage {
   // Project Schema Fields
   getProjectSchemaFields(projectId: string): Promise<ProjectSchemaField[]>;
   createProjectSchemaField(field: InsertProjectSchemaField): Promise<ProjectSchemaField>;
-  updateProjectSchemaField(id: number, field: Partial<InsertProjectSchemaField>): Promise<ProjectSchemaField | undefined>;
-  deleteProjectSchemaField(id: number): Promise<boolean>;
+  updateProjectSchemaField(id: string, field: Partial<InsertProjectSchemaField>): Promise<ProjectSchemaField | undefined>;
+  deleteProjectSchemaField(id: string): Promise<boolean>;
 
   // Object Collections
   getObjectCollections(projectId: string): Promise<(ObjectCollection & { properties: CollectionProperty[] })[]>;
@@ -89,8 +89,8 @@ export interface IStorage {
   // Collection Properties
   getCollectionProperties(collectionId: string): Promise<CollectionProperty[]>;
   createCollectionProperty(property: InsertCollectionProperty): Promise<CollectionProperty>;
-  updateCollectionProperty(id: number, property: Partial<InsertCollectionProperty>): Promise<CollectionProperty | undefined>;
-  deleteCollectionProperty(id: number): Promise<boolean>;
+  updateCollectionProperty(id: string, property: Partial<InsertCollectionProperty>): Promise<CollectionProperty | undefined>;
+  deleteCollectionProperty(id: string): Promise<boolean>;
 
   // Extraction Sessions
   getExtractionSessions(projectId: string): Promise<ExtractionSession[]>;
@@ -107,8 +107,8 @@ export interface IStorage {
   // Extraction Rules
   getExtractionRules(projectId: string): Promise<ExtractionRule[]>;
   createExtractionRule(rule: InsertExtractionRule): Promise<ExtractionRule>;
-  updateExtractionRule(id: number, rule: Partial<InsertExtractionRule>): Promise<ExtractionRule | undefined>;
-  deleteExtractionRule(id: number): Promise<boolean>;
+  updateExtractionRule(id: string, rule: Partial<InsertExtractionRule>): Promise<ExtractionRule | undefined>;
+  deleteExtractionRule(id: string): Promise<boolean>;
 
   // Field Validations
   getFieldValidations(sessionId: string): Promise<FieldValidation[]>;
@@ -1093,13 +1093,13 @@ export class MemStorage implements IStorage {
   }
 
   // Extraction Sessions
-  async getExtractionSessions(projectId: number): Promise<ExtractionSession[]> {
+  async getExtractionSessions(projectId: string): Promise<ExtractionSession[]> {
     return Array.from(this.extractionSessions.values())
       .filter(session => session.projectId === projectId)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
-  async getExtractionSession(id: number): Promise<ExtractionSession | undefined> {
+  async getExtractionSession(id: string): Promise<ExtractionSession | undefined> {
     return this.extractionSessions.get(id);
   }
 
@@ -1119,7 +1119,7 @@ export class MemStorage implements IStorage {
     return session;
   }
 
-  async updateExtractionSession(id: number, updateData: any): Promise<ExtractionSession | undefined> {
+  async updateExtractionSession(id: string, updateData: any): Promise<ExtractionSession | undefined> {
     const session = this.extractionSessions.get(id);
     if (!session) return undefined;
 
@@ -1950,7 +1950,7 @@ class PostgreSQLStorage implements IStorage {
     const result = await this.db.insert(collectionProperties).values(property).returning();
     return result[0];
   }
-  async updateCollectionProperty(id: number, property: Partial<InsertCollectionProperty>): Promise<CollectionProperty | undefined> {
+  async updateCollectionProperty(id: string, property: Partial<InsertCollectionProperty>): Promise<CollectionProperty | undefined> {
     const result = await this.db
       .update(collectionProperties)
       .set(property)
@@ -1959,7 +1959,7 @@ class PostgreSQLStorage implements IStorage {
     return result[0];
   }
 
-  async deleteCollectionProperty(id: number): Promise<boolean> {
+  async deleteCollectionProperty(id: string): Promise<boolean> {
     const result = await this.db
       .delete(collectionProperties)
       .where(eq(collectionProperties.id, id));
@@ -1967,7 +1967,7 @@ class PostgreSQLStorage implements IStorage {
   }
 
   // Extraction Sessions
-  async getExtractionSessions(projectId: number): Promise<ExtractionSession[]> {
+  async getExtractionSessions(projectId: string): Promise<ExtractionSession[]> {
     const result = await this.db
       .select()
       .from(extractionSessions)
@@ -2039,7 +2039,7 @@ class PostgreSQLStorage implements IStorage {
     const result = await this.db.insert(extractionRules).values(rule).returning();
     return result[0];
   }
-  async updateExtractionRule(id: number, rule: Partial<InsertExtractionRule>): Promise<ExtractionRule | undefined> {
+  async updateExtractionRule(id: string, rule: Partial<InsertExtractionRule>): Promise<ExtractionRule | undefined> {
     const result = await this.db
       .update(extractionRules)
       .set(rule)
@@ -2048,7 +2048,7 @@ class PostgreSQLStorage implements IStorage {
     return result[0];
   }
 
-  async deleteExtractionRule(id: number): Promise<boolean> {
+  async deleteExtractionRule(id: string): Promise<boolean> {
     const result = await this.db
       .delete(extractionRules)
       .where(eq(extractionRules.id, id));
