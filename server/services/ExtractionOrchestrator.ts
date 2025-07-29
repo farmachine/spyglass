@@ -223,7 +223,7 @@ export class ExtractionOrchestrator extends EventEmitter {
     mode: string
   ): Promise<any> {
     return new Promise((resolve, reject) => {
-      const scriptName = mode === 'debug' ? 'ai_extraction.py' : 'ai_extraction_single_step.py';
+      const scriptName = mode === 'debug' ? 'ai_extraction.py' : 'ai_extraction_simplified.py';
       const pythonScript = path.join(__dirname, '../../', scriptName);
       
       const process = spawn('python3', [pythonScript], {
@@ -245,20 +245,29 @@ export class ExtractionOrchestrator extends EventEmitter {
       });
 
       const inputData = {
-        session_id: sessionId,
-        extracted_texts: extractedTexts,
-        schema_data: schemaData
+        step: "extract",
+        files: extractedTexts.extracted_texts || extractedTexts,
+        project_schema: schemaData,
+        extraction_rules: schemaData.extraction_rules || [],
+        session_name: "contract"
       };
 
       process.stdin.write(JSON.stringify(inputData));
       process.stdin.end();
 
       process.on('close', (code) => {
+        console.log(`AI extraction process exited with code ${code}`);
+        console.log(`stdout: ${stdout}`);
+        console.log(`stderr: ${stderr}`);
+        
         if (code === 0) {
           try {
             const result = JSON.parse(stdout);
+            console.log(`Parsed AI extraction result:`, Object.keys(result));
             resolve(result);
           } catch (e) {
+            console.error('JSON parse error:', e);
+            console.error('Raw stdout:', stdout);
             reject(new Error(`Failed to parse AI extraction result: ${e}`));
           }
         } else {
@@ -273,6 +282,10 @@ export class ExtractionOrchestrator extends EventEmitter {
   }
 
   private async createValidationRecords(sessionId: string, extractionResult: any): Promise<number> {
+    console.log(`Creating validation records for session ${sessionId}`);
+    console.log(`Extraction result keys:`, Object.keys(extractionResult || {}));
+    console.log(`Extraction result:`, JSON.stringify(extractionResult, null, 2));
+    
     const response = await fetch(`http://localhost:5000/api/sessions/${sessionId}/save-validations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -280,6 +293,9 @@ export class ExtractionOrchestrator extends EventEmitter {
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Failed to save validations: ${response.status} ${response.statusText}`);
+      console.error(`Error response:`, errorText);
       throw new Error(`Failed to save validations: ${response.statusText}`);
     }
 
