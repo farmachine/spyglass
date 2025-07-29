@@ -1586,7 +1586,7 @@ except Exception as e:
       console.log(`STEP 1: Extracting from ${files?.length || 0} documents with ${extractionRules.length} extraction rules`);
       
       // Call Python extraction script
-      const python = spawn('python3', ['ai_extraction.py']);
+      const python = spawn('python3', ['ai_extraction_simplified.py']);
       
       python.stdin.write(JSON.stringify(extractionData));
       python.stdin.end();
@@ -1668,7 +1668,7 @@ except Exception as e:
       console.log(`STEP 2: Validating ${fieldValidations.length} field records`);
       
       // Call Python validation script
-      const python = spawn('python3', ['ai_extraction.py']);
+      const python = spawn('python3', ['ai_extraction_simplified.py']);
       
       python.stdin.write(JSON.stringify(validationData));
       python.stdin.end();
@@ -2014,67 +2014,22 @@ print(json.dumps(result))
       const { prompt, projectId } = req.body;
       
       console.log(`GEMINI EXTRACTION: Starting for session ${sessionId}`);
-      console.log(`DEBUG: Project ID: ${projectId}`);
-      
-      // Gather session data for Python script
-      const session = await storage.getExtractionSession(sessionId);
-      if (!session) {
-        return res.status(404).json({ success: false, error: 'Session not found' });
-      }
-      
-      // Get project schema data
-      const [schemaFields, collections, extractionRules, knowledgeDocs] = await Promise.all([
-        storage.getProjectSchemaFields(projectId),
-        storage.getObjectCollections(projectId),
-        storage.getExtractionRules(projectId),
-        storage.getKnowledgeDocuments(projectId)
-      ]);
-      
-      // Extract the files from the session data
-      let files = [];
-      if (session.extractedData) {
-        try {
-          const extractedData = JSON.parse(session.extractedData);
-          if (extractedData.extracted_texts && Array.isArray(extractedData.extracted_texts)) {
-            files = extractedData.extracted_texts.map(item => ({
-              name: item.file_name,
-              content: item.text_content,
-              mimeType: 'text/plain'
-            }));
-          }
-        } catch (e) {
-          console.error('Failed to parse extractedData:', e);
-        }
-      }
-      
-      // Build session data for Python script
-      const sessionData = {
-        session_id: sessionId,
-        project_schema: {
-          schema_fields: schemaFields,
-          collections: collections
-        },
-        files: files,
-        extraction_rules: extractionRules,
-        knowledge_documents: knowledgeDocs
-      };
       
       // Call the existing Python script for AI extraction
       const { spawn } = await import('child_process');
       let output = '';
       let error = '';
       
-      const python = spawn('python3', ['ai_extraction.py'], {
+      const python = spawn('python3', ['ai_extraction_single_step.py'], {
         cwd: process.cwd()
       });
 
-      // Send the complete session data to Python
-      const pythonInput = JSON.stringify(sessionData);
-      
-      console.log(`DEBUG: Sending ${JSON.stringify(sessionData).length} chars to Python`);
-      console.log(`DEBUG: Schema fields count: ${schemaFields.length}`);
-      console.log(`DEBUG: Collections count: ${collections.length}`);
-      console.log(`DEBUG: Files count: ${files.length}`);
+      // Send the prompt data to Python
+      const pythonInput = JSON.stringify({
+        prompt: prompt,
+        projectId: projectId,
+        sessionId: sessionId
+      });
       
       python.stdin.write(pythonInput);
       python.stdin.end();
@@ -2087,79 +2042,27 @@ print(json.dumps(result))
         error += data.toString();
       });
 
-      // Add timeout - increased for large documents
-      const timeoutId = setTimeout(() => {
-        python.kill();
-        console.error('GEMINI EXTRACTION timeout after 180 seconds');
-      }, 180000);
-
       await new Promise((resolve, reject) => {
         python.on('close', async (code: any) => {
-          clearTimeout(timeoutId);
-          
-          console.log(`GEMINI EXTRACTION process exited with code: ${code}`);
-          console.log(`GEMINI EXTRACTION output length: ${output.length}`);
-          console.log(`GEMINI EXTRACTION error length: ${error.length}`);
-          
           if (code !== 0) {
             console.error('GEMINI EXTRACTION error:', error);
-            return reject(new Error(`Gemini extraction failed (code ${code}): ${error}`));
-          }
-          
-          if (!output.trim()) {
-            console.error('GEMINI EXTRACTION: No output received');
-            return reject(new Error('No output received from extraction process'));
+            return reject(new Error(`Gemini extraction failed: ${error}`));
           }
           
           try {
             const result = JSON.parse(output);
             console.log('GEMINI EXTRACTION result:', result.success ? 'Success' : 'Failed');
             
-            // Save validations to database if extraction was successful
-            if (result.success && result.validations && Array.isArray(result.validations)) {
-              console.log(`GEMINI EXTRACTION: Saving ${result.validations.length} validations to database`);
-              
-              try {
-                // Clear existing validations for this session
-                const existingValidations = await storage.getFieldValidations(sessionId);
-                for (const existing of existingValidations) {
-                  await storage.deleteFieldValidation(existing.id);
-                }
-                console.log(`GEMINI EXTRACTION: Cleared ${existingValidations.length} existing validations`);
-                
-                // Save new validations
-                for (const validation of result.validations) {
-                  await storage.createFieldValidation({
-                    sessionId: sessionId,
-                    fieldType: validation.field_type,
-                    fieldId: validation.field_id,
-                    collectionName: validation.collection_name,
-                    recordIndex: validation.record_index,
-                    extractedValue: validation.extracted_value,
-                    validationStatus: validation.validation_status,
-                    aiReasoning: validation.ai_reasoning,
-                    manuallyVerified: false,
-                    confidenceScore: validation.confidence_score
-                  });
-                }
-                console.log('GEMINI EXTRACTION: Successfully saved all validations to database');
-              } catch (saveError) {
-                console.error('GEMINI EXTRACTION: Error saving validations:', saveError);
-              }
-            }
-            
             res.json({
               success: result.success,
-              extractedData: result.extracted_data || result.extractedData || result.result,
-              error: result.error,
-              processingDetails: result.processing_summary,
-              apiStatus: result.error === "API_OVERLOADED" ? "overloaded" : "available"
+              extractedData: result.extractedData || result.result,
+              error: result.error
             });
             
             resolve(result);
           } catch (parseError) {
             console.error('GEMINI EXTRACTION JSON parse error:', parseError);
-            console.error('Raw output:', output.substring(0, 1000));
+            console.error('Raw output:', output);
             reject(new Error(`Invalid JSON response: ${parseError}`));
           }
         });
@@ -2531,7 +2434,7 @@ print(json.dumps(result))
       };
       
       // Call Python single-step extraction script
-      const python = spawn('python3', ['ai_extraction.py']);
+      const python = spawn('python3', ['ai_extraction_single_step.py']);
       
       python.stdin.write(JSON.stringify(extractionData));
       python.stdin.end();
@@ -2882,7 +2785,137 @@ print(json.dumps(result))
     }
   });
 
+  // Batch validation endpoint for post-extraction validation
+  app.post("/api/sessions/:sessionId/batch-validate", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      console.log(`BATCH_VALIDATION: Starting batch validation for session ${sessionId}`);
+      
+      // Get session and project data
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
 
+      const projectId = session.projectId;
+      
+      // Get project schema, rules, and knowledge documents
+      const [project, extractionRules, knowledgeDocuments, existingValidations] = await Promise.all([
+        storage.getProjectWithDetails(projectId),
+        storage.getExtractionRules(projectId),
+        storage.getKnowledgeDocuments(projectId),
+        storage.getFieldValidations(sessionId)
+      ]);
+
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      // Prepare session data for batch validation
+      const sessionData = {
+        session_id: sessionId,
+        project_schema: {
+          schema_fields: project.schemaFields || [],
+          collections: project.collections || []
+        },
+        extraction_rules: extractionRules || [],
+        knowledge_documents: knowledgeDocuments || [],
+        existing_validations: existingValidations.map(v => ({
+          field_name: v.fieldName,
+          field_id: v.fieldId,
+          field_type: v.fieldType,
+          extracted_value: v.extractedValue,
+          confidence_score: v.confidenceScore,
+          validation_status: v.validationStatus,
+          ai_reasoning: v.aiReasoning,
+          auto_verification_threshold: 80 // Default threshold
+        }))
+      };
+
+      // Call Python batch validation function
+      const python = spawn('python3', ['-c', `
+import sys
+import json
+sys.path.append('.')
+from ai_extraction import run_post_extraction_batch_validation
+
+# Read input data
+input_data = json.loads(sys.stdin.read())
+
+# Run batch validation
+results = run_post_extraction_batch_validation(input_data)
+
+print(json.dumps(results))
+`]);
+
+      let pythonOutput = '';
+      let pythonError = '';
+      
+      python.stdout.on('data', (data) => {
+        pythonOutput += data.toString();
+      });
+      
+      python.stderr.on('data', (data) => {
+        pythonError += data.toString();
+      });
+      
+      python.on('close', async (code) => {
+        if (code !== 0) {
+          console.error(`BATCH_VALIDATION: Python process failed with code ${code}`);
+          console.error(`BATCH_VALIDATION: Error output: ${pythonError}`);
+          return res.status(500).json({ 
+            message: "Batch validation failed", 
+            error: pythonError,
+            code: code
+          });
+        }
+
+        try {
+          const validationResults = JSON.parse(pythonOutput);
+          
+          if (validationResults.success) {
+            // Update database with new validation data
+            const updatedValidations = validationResults.updated_validations || [];
+            
+            console.log(`BATCH_VALIDATION: Processing ${updatedValidations.length} updated validations`);
+            
+            // Update database with validation results
+            for (const validation of updatedValidations) {
+              await storage.updateFieldValidation(validation.uuid, {
+                validationStatus: validation.validationStatus,
+                confidenceScore: validation.validationConfidence,
+                aiReasoning: validation.AIReasoning
+              });
+            }
+            
+            console.log(`BATCH_VALIDATION: Completed successfully`);
+            res.json({
+              success: true,
+              message: "Batch validation completed",
+              validationsUpdated: updatedValidations.length
+            });
+          } else {
+            res.status(500).json({
+              message: "Batch validation failed",
+              error: validationResults.error
+            });
+          }
+        } catch (parseError) {
+          console.error(`BATCH_VALIDATION: Failed to parse Python output: ${parseError}`);
+          console.error(`BATCH_VALIDATION: Raw output: ${pythonOutput}`);
+          res.status(500).json({
+            message: "Failed to parse batch validation results",
+            error: parseError.message,
+            output: pythonOutput
+          });
+        }
+      });
+
+    } catch (error) {
+      console.error("BATCH_VALIDATION error:", error);
+      res.status(500).json({ message: "Failed to start batch validation process" });
+    }
+  });
 
   // AI Extraction Endpoint
   app.post("/api/sessions/:sessionId/extract", async (req, res) => {
