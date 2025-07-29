@@ -257,8 +257,8 @@ export class ExtractionOrchestrator extends EventEmitter {
 
       process.on('close', (code) => {
         console.log(`AI extraction process exited with code ${code}`);
-        console.log(`stdout: ${stdout}`);
-        console.log(`stderr: ${stderr}`);
+        console.log(`AI extraction stdout length: ${stdout.length} characters`);
+        console.log(`AI extraction stderr: ${stderr}`);
         
         if (code === 0) {
           try {
