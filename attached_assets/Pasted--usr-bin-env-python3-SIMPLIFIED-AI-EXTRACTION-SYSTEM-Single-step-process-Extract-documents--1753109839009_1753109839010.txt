@@ -1,0 +1,521 @@
+#!/usr/bin/env python3
+"""
+SIMPLIFIED AI EXTRACTION SYSTEM
+Single-step process: Extract documents → Generate field records with confidence, status, and reasoning
+"""
+
+import os
+import json
+import logging
+import base64
+import re
+from typing import Dict, Any, List, Optional
+from dataclasses import dataclass
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+@dataclass
+class ExtractionResult:
+    """Result of the complete extraction and field creation process"""
+    success: bool
+    field_records: Optional[List[Dict[str, Any]]] = None
+    error_message: Optional[str] = None
+    documents_processed: int = 0
+
+class DocumentExtractor:
+    """Handles document content extraction and AI-powered field generation"""
+    
+    def __init__(self):
+        self.logger = logger
+    
+    def extract_documents_and_create_fields(
+        self,
+        documents: List[Dict[str, Any]],
+        project_schema: Dict[str, Any],
+        extraction_rules: List[Dict[str, Any]] = None,
+        knowledge_documents: List[Dict[str, Any]] = None,
+        session_id: str = None
+    ) -> ExtractionResult:
+        """
+        Complete extraction process:
+        1. Extract all document content into single text
+        2. Generate schema-guided extraction with confidence/status/reasoning
+        3. Return field records ready for API creation
+        """
+        try:
+            # Validate inputs
+            if not documents:
+                return ExtractionResult(success=False, error_message="No documents provided")
+            
+            api_key = os.environ.get("GEMINI_API_KEY")
+            if not api_key:
+                return ExtractionResult(success=False, error_message="GEMINI_API_KEY not found")
+            
+            # Import Gemini
+            import google.generativeai as genai
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            
+            self.logger.info(f"Starting extraction for {len(documents)} documents")
+            
+            # Step 1: Extract all document content
+            document_content = self._extract_all_document_content(documents, model)
+            
+            # Step 2: Build comprehensive extraction prompt
+            extraction_prompt = self._build_extraction_prompt(
+                document_content, project_schema, extraction_rules, knowledge_documents, session_id
+            )
+            
+            # Step 3: Get AI extraction with field records
+            response = model.generate_content(extraction_prompt)
+            
+            if not response or not response.text:
+                return ExtractionResult(success=False, error_message="No response from AI")
+            
+            # Step 4: Parse field records from AI response
+            field_records = self._parse_field_records(response.text)
+            
+            if field_records is None:
+                return ExtractionResult(success=False, error_message="Failed to parse AI response")
+            
+            self.logger.info(f"Successfully created {len(field_records)} field records")
+            return ExtractionResult(
+                success=True,
+                field_records=field_records,
+                documents_processed=len(documents)
+            )
+            
+        except Exception as e:
+            self.logger.error(f"Extraction failed: {e}")
+            return ExtractionResult(success=False, error_message=str(e))
+    
+    def _extract_all_document_content(self, documents: List[Dict[str, Any]], model) -> str:
+        """Extract all document content into single text value using Gemini"""
+        all_content = []
+        
+        for doc in documents:
+            file_content = doc.get('file_content', '')
+            file_name = doc.get('file_name', 'unknown')
+            mime_type = doc.get('mime_type', 'text/plain')
+            
+            self.logger.info(f"Extracting content from: {file_name} ({mime_type})")
+            
+            try:
+                if mime_type.startswith("text/"):
+                    # Handle text files directly
+                    content_text = self._extract_text_content(file_content)
+                    all_content.append(f"=== DOCUMENT: {file_name} ===\n{content_text}")
+                    
+                else:
+                    # Use Gemini to extract content from binary files
+                    if isinstance(file_content, str) and file_content.startswith('data:'):
+                        mime_part, base64_content = file_content.split(',', 1)
+                        binary_content = base64.b64decode(base64_content)
+                        
+                        # Create file part for Gemini
+                        file_part = {
+                            "mime_type": mime_type,
+                            "data": binary_content
+                        }
+                        
+                        # Extract text using Gemini
+                        extract_prompt = f"Extract all text content from this document. Return only the extracted text, no explanations."
+                        response = model.generate_content([extract_prompt, file_part])
+                        
+                        if response and response.text:
+                            extracted_text = response.text.strip()
+                            all_content.append(f"=== DOCUMENT: {file_name} ===\n{extracted_text}")
+                        else:
+                            all_content.append(f"=== DOCUMENT: {file_name} ===\n[Could not extract content]")
+                            
+            except Exception as e:
+                self.logger.error(f"Failed to extract content from {file_name}: {e}")
+                all_content.append(f"=== DOCUMENT: {file_name} ===\n[Extraction failed: {str(e)}]")
+        
+        combined_content = "\n\n".join(all_content)
+        self.logger.info(f"Combined document content length: {len(combined_content)} characters")
+        return combined_content
+    
+    def _extract_text_content(self, content: Any) -> str:
+        """Extract text from various content formats"""
+        if isinstance(content, str):
+            if content.startswith('data:'):
+                try:
+                    base64_content = content.split(',', 1)[1]
+                    decoded_bytes = base64.b64decode(base64_content)
+                    return decoded_bytes.decode('utf-8', errors='ignore')
+                except Exception:
+                    return content
+            return content
+        elif isinstance(content, bytes):
+            return content.decode('utf-8', errors='ignore')
+        else:
+            return str(content)
+    
+    def _build_extraction_prompt(
+        self,
+        document_content: str,
+        project_schema: Dict[str, Any],
+        extraction_rules: List[Dict[str, Any]],
+        knowledge_documents: List[Dict[str, Any]],
+        session_id: str
+    ) -> str:
+        """Build comprehensive extraction prompt with schema guidance"""
+        
+        prompt = f"""You are an expert data extraction specialist. Extract data from the document content and create field records with confidence ratings, status, and reasoning.
+
+CRITICAL INSTRUCTIONS:
+1. Extract data based on schema field descriptions (these are your extraction instructions)
+2. Apply extraction rules where applicable to modify extraction behavior
+3. Check extracted values against knowledge documents for conflicts
+4. Generate confidence rating (0.0-1.0) based on extraction certainty and rule compliance
+5. Set status: "extracted" (found value), "missing" (not found), "conflict" (knowledge conflict)
+6. Provide detailed reasoning for confidence and status decisions
+7. Return field records ready for API creation
+
+DOCUMENT CONTENT TO ANALYZE:
+{document_content[:10000]}  # Limit content for token efficiency
+
+EXTRACTION SCHEMA WITH AI GUIDANCE:"""
+        
+        # Build schema guidance with rules
+        schema_guidance = self._build_schema_guidance(project_schema, extraction_rules)
+        prompt += schema_guidance
+        
+        # Add knowledge documents for conflict checking
+        if knowledge_documents:
+            prompt += "\n\nKNOWLEDGE BASE FOR CONFLICT DETECTION:"
+            for doc in knowledge_documents:
+                doc_name = doc.get('displayName', doc.get('fileName', 'Document'))
+                content = doc.get('content', '')[:1000]  # Limit length
+                if content:
+                    prompt += f"\n- {doc_name}: {content}..."
+        
+        # Generate example output format
+        example_output = self._generate_field_records_example(project_schema, extraction_rules, session_id)
+        
+        prompt += f"""
+
+REQUIRED OUTPUT FORMAT (field records for API creation):
+{example_output}
+
+CONFIDENCE RATING GUIDELINES:
+- 1.0 = Perfect extraction, clear value, no conflicts
+- 0.8-0.9 = Good extraction, minor uncertainties
+- 0.6-0.7 = Acceptable extraction, some ambiguity
+- 0.3-0.5 = Weak extraction, significant uncertainty
+- 0.1-0.2 = Very uncertain extraction
+- 0.0 = No extraction possible
+
+STATUS GUIDELINES:
+- "extracted": Value successfully found and extracted
+- "missing": Value not found in documents
+- "conflict": Value conflicts with knowledge base
+
+REASONING GUIDELINES:
+- Explain why confidence level was chosen
+- Reference specific document sections or knowledge conflicts
+- Mention applicable extraction rules
+- Be specific and actionable
+
+RETURN ONLY VALID JSON - NO EXPLANATIONS OR MARKDOWN"""
+        
+        return prompt
+    
+    def _build_schema_guidance(self, project_schema: Dict[str, Any], extraction_rules: List[Dict[str, Any]]) -> str:
+        """Build schema guidance with rule applications"""
+        guidance = ""
+        
+        # Project schema fields
+        schema_fields = project_schema.get("schema_fields", [])
+        if schema_fields:
+            guidance += "\n\nPROJECT FIELDS:"
+            for field in schema_fields:
+                field_guidance = self._build_field_guidance(field, extraction_rules)
+                guidance += f"\n- {field_guidance}"
+        
+        # Collections
+        collections = project_schema.get("collections", [])
+        if collections:
+            guidance += "\n\nCOLLECTIONS:"
+            for collection in collections:
+                collection_guidance = self._build_collection_guidance(collection, extraction_rules)
+                guidance += f"\n{collection_guidance}"
+        
+        return guidance
+    
+    def _build_field_guidance(self, field: Dict[str, Any], extraction_rules: List[Dict[str, Any]]) -> str:
+        """Build guidance for individual field with applicable rules"""
+        field_name = field.get('fieldName', '')
+        field_type = field.get('fieldType', 'TEXT')
+        description = field.get('description', 'Extract this field')
+        
+        # Find applicable rules
+        applicable_rules = self._find_applicable_rules(field_name, extraction_rules or [])
+        
+        guidance = f"**{field_name}** ({field_type}): {description}"
+        
+        if applicable_rules:
+            rule_guidance = []
+            for rule in applicable_rules:
+                rule_content = rule.get('ruleContent', '')
+                rule_guidance.append(f"RULE: {rule_content}")
+            guidance += " | " + " | ".join(rule_guidance)
+        
+        return guidance
+    
+    def _build_collection_guidance(self, collection: Dict[str, Any], extraction_rules: List[Dict[str, Any]]) -> str:
+        """Build guidance for collection with properties"""
+        collection_name = collection.get('collectionName', collection.get('objectName', ''))
+        description = collection.get('description', 'Extract array of objects')
+        
+        guidance = f"- **{collection_name}**: {description}"
+        
+        # Add properties
+        properties = collection.get("properties", [])
+        if properties:
+            guidance += f"\n  Properties for {collection_name}:"
+            for prop in properties:
+                prop_guidance = self._build_property_guidance(prop, collection_name, extraction_rules or [])
+                guidance += f"\n  * {prop_guidance}"
+        
+        return guidance
+    
+    def _build_property_guidance(self, prop: Dict[str, Any], collection_name: str, extraction_rules: List[Dict[str, Any]]) -> str:
+        """Build guidance for collection property"""
+        prop_name = prop.get('propertyName', '')
+        prop_type = prop.get('propertyType', 'TEXT')
+        description = prop.get('description', 'Extract this property')
+        
+        # Find applicable rules for property
+        full_prop_name = f"{collection_name}.{prop_name}"
+        arrow_notation = f"{collection_name} --> {prop_name}"
+        
+        applicable_rules = []
+        for rule in extraction_rules:
+            rule_target = rule.get('targetField', [])
+            if self._rule_applies_to_target(rule_target, [arrow_notation, full_prop_name, prop_name]):
+                applicable_rules.append(rule)
+        
+        guidance = f"**{prop_name}** ({prop_type}): {description}"
+        
+        if applicable_rules:
+            rule_guidance = []
+            for rule in applicable_rules:
+                rule_content = rule.get('ruleContent', '')
+                rule_guidance.append(f"RULE: {rule_content}")
+            guidance += " | " + " | ".join(rule_guidance)
+        
+        return guidance
+    
+    def _find_applicable_rules(self, field_name: str, extraction_rules: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Find rules applicable to a field"""
+        applicable_rules = []
+        for rule in extraction_rules:
+            if not rule.get('isActive', True):
+                continue
+                
+            rule_target = rule.get('targetField', [])
+            if self._rule_applies_to_target(rule_target, [field_name]):
+                applicable_rules.append(rule)
+        
+        return applicable_rules
+    
+    def _rule_applies_to_target(self, rule_target: Any, target_names: List[str]) -> bool:
+        """Check if rule applies to any of the target names"""
+        if isinstance(rule_target, list):
+            return any(target in rule_target for target in target_names) or 'All Fields' in rule_target
+        else:
+            return rule_target in target_names or rule_target == 'All Fields'
+    
+    def _generate_field_records_example(self, project_schema: Dict[str, Any], extraction_rules: List[Dict[str, Any]], session_id: str) -> str:
+        """Generate example field records output"""
+        example_records = []
+        
+        # Project fields
+        schema_fields = project_schema.get("schema_fields", [])
+        for field in schema_fields:
+            field_name = field.get('fieldName', '')
+            field_type = field.get('fieldType', 'TEXT')
+            description = field.get('description', '')
+            
+            # Find rules for confidence example
+            applicable_rules = self._find_applicable_rules(field_name, extraction_rules or [])
+            confidence = 0.95
+            reasoning = f"High confidence: {description}"
+            
+            # Check for rule-specified confidence
+            for rule in applicable_rules:
+                rule_content = rule.get('ruleContent', '')
+                confidence_match = re.search(r'(\d{1,2})%', rule_content)
+                if confidence_match:
+                    confidence_pct = int(confidence_match.group(1))
+                    confidence = confidence_pct / 100.0
+                    reasoning = f"Rule-specified confidence: {rule_content[:50]}..."
+                    break
+            
+            example_record = {
+                "sessionId": session_id or "session_uuid",
+                "fieldName": field_name,
+                "fieldType": field_type,
+                "fieldValue": "extracted_value",
+                "collectionId": None,
+                "recordIndex": None,
+                "extractionStatus": "extracted",
+                "confidenceScore": confidence,
+                "aiReasoning": reasoning,
+                "isManuallyVerified": False
+            }
+            example_records.append(example_record)
+        
+        # Collection fields
+        collections = project_schema.get("collections", [])
+        for collection in collections:
+            collection_name = collection.get('collectionName', collection.get('objectName', ''))
+            properties = collection.get("properties", [])
+            
+            for prop in properties:
+                prop_name = prop.get('propertyName', '')
+                prop_type = prop.get('propertyType', 'TEXT')
+                
+                example_record = {
+                    "sessionId": session_id or "session_uuid",
+                    "fieldName": prop_name,
+                    "fieldType": prop_type,
+                    "fieldValue": "extracted_value",
+                    "collectionId": collection_name,
+                    "recordIndex": 0,
+                    "extractionStatus": "extracted",
+                    "confidenceScore": 0.85,
+                    "aiReasoning": f"Extracted from {collection_name} collection",
+                    "isManuallyVerified": False
+                }
+                example_records.append(example_record)
+        
+        return json.dumps({"fieldRecords": example_records[:3]}, indent=2)  # Show first 3 as example
+    
+    def _parse_field_records(self, response_text: str) -> Optional[List[Dict[str, Any]]]:
+        """Parse field records from AI response"""
+        try:
+            # Clean response
+            cleaned_text = response_text.strip()
+            
+            # Remove markdown code blocks
+            if cleaned_text.startswith("```json"):
+                cleaned_text = cleaned_text[7:]
+            if cleaned_text.startswith("```"):
+                cleaned_text = cleaned_text[3:]
+            if cleaned_text.endswith("```"):
+                cleaned_text = cleaned_text[:-3]
+            
+            cleaned_text = cleaned_text.strip()
+            
+            if not cleaned_text:
+                return []
+            
+            # Parse JSON
+            response_data = json.loads(cleaned_text)
+            
+            # Extract field records
+            field_records = response_data.get('fieldRecords', [])
+            
+            # Validate field records
+            validated_records = []
+            for record in field_records:
+                if self._validate_field_record(record):
+                    validated_records.append(record)
+                else:
+                    self.logger.warning(f"Invalid field record: {record}")
+            
+            return validated_records
+            
+        except json.JSONDecodeError as e:
+            self.logger.error(f"JSON parsing failed: {e}")
+            self.logger.error(f"Response text: {cleaned_text[:500]}...")
+            return None
+        except Exception as e:
+            self.logger.error(f"Field record parsing failed: {e}")
+            return None
+    
+    def _validate_field_record(self, record: Dict[str, Any]) -> bool:
+        """Validate field record structure"""
+        required_fields = ['fieldName', 'fieldType', 'extractionStatus', 'confidenceScore', 'aiReasoning']
+        
+        for field in required_fields:
+            if field not in record:
+                return False
+        
+        # Validate confidence score
+        confidence = record.get('confidenceScore', 0)
+        if not isinstance(confidence, (int, float)) or confidence < 0 or confidence > 1:
+            return False
+        
+        # Validate status
+        valid_statuses = ['extracted', 'missing', 'conflict']
+        if record.get('extractionStatus') not in valid_statuses:
+            return False
+        
+        return True
+
+# Main function for API integration
+def extract_and_create_field_records(
+    documents: List[Dict[str, Any]],
+    project_schema: Dict[str, Any],
+    extraction_rules: List[Dict[str, Any]] = None,
+    knowledge_documents: List[Dict[str, Any]] = None,
+    session_id: str = None
+) -> ExtractionResult:
+    """
+    Main function for complete extraction and field record creation
+    
+    Args:
+        documents: List of document objects with file_content, file_name, mime_type
+        project_schema: Schema with schema_fields and collections
+        extraction_rules: Rules for extraction guidance
+        knowledge_documents: Knowledge base for conflict detection
+        session_id: Session identifier for field records
+    
+    Returns:
+        ExtractionResult with field records ready for API creation
+    """
+    extractor = DocumentExtractor()
+    return extractor.extract_documents_and_create_fields(
+        documents, project_schema, extraction_rules, knowledge_documents, session_id
+    )
+
+# CLI interface
+if __name__ == "__main__":
+    import sys
+    
+    try:
+        # Read input from stdin
+        input_data = json.loads(sys.stdin.read())
+        
+        result = extract_and_create_field_records(
+            documents=input_data.get("documents", []),
+            project_schema=input_data.get("project_schema", {}),
+            extraction_rules=input_data.get("extraction_rules", []),
+            knowledge_documents=input_data.get("knowledge_documents", []),
+            session_id=input_data.get("session_id")
+        )
+        
+        if result.success:
+            output = {
+                "success": True,
+                "fieldRecords": result.field_records,
+                "documentsProcessed": result.documents_processed
+            }
+            print(json.dumps(output))
+        else:
+            print(json.dumps({"error": result.error_message}), file=sys.stderr)
+            sys.exit(1)
+            
+    except Exception as e:
+        logger.error(f"CLI execution failed: {e}")
+        print(json.dumps({"error": str(e)}), file=sys.stderr)
+        sys.exit(1)

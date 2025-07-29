@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Define Data - Project View</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .header {
+            background: white;
+            padding: 20px 40px;
+            border-bottom: 1px solid #e0e0e0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .project-container {
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+        
+        .sidebar {
+            width: 250px;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            padding: 20px 0;
+        }
+        
+        .sidebar-header {
+            padding: 0 20px 20px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 20px;
+        }
+        
+        .project-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 4px;
+        }
+        
+        .project-description {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        
+        .nav-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .nav-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .nav-item.active {
+            background: #e8f4f8;
+            border-left-color: #3498db;
+            color: #3498db;
+        }
+        
+        .nav-item.active .nav-text {
+            font-weight: 600;
+        }
+        
+        .nav-text {
+            font-size: 14px;
+        }
+        
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+        
+        .page-header {
+            margin-bottom: 30px;
+        }
+        
+        .page-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+        
+        .page-subtitle {
+            font-size: 16px;
+            color: #7f8c8d;
+        }
+        
+        .schema-sections {
+            display: grid;
+            gap: 30px;
+        }
+        
+        .schema-section {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .section-description {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-top: 4px;
+        }
+        
+        .add-btn {
+            background: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .add-btn:hover {
+            background: #2980b9;
+        }
+        
+        .fields-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .field-item {
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .field-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        
+        .field-info {
+            flex: 1;
+        }
+        
+        .field-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 4px;
+        }
+        
+        .field-type {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #e8f4f8;
+            color: #3498db;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .field-type.text {
+            background: #e8f4f8;
+            color: #3498db;
+        }
+        
+        .field-type.number {
+            background: #fef9e7;
+            color: #f39c12;
+        }
+        
+        .field-type.date {
+            background: #eaf2f8;
+            color: #8e44ad;
+        }
+        
+        .field-type.boolean {
+            background: #e8f5e8;
+            color: #27ae60;
+        }
+        
+        .field-description {
+            font-size: 14px;
+            color: #555;
+            line-height: 1.5;
+            margin-top: 12px;
+        }
+        
+        .field-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .action-btn {
+            padding: 6px 12px;
+            border: 1px solid #e0e0e0;
+            background: white;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .action-btn:hover {
+            background: #f8f9fa;
+        }
+        
+        .action-btn.danger {
+            color: #e74c3c;
+            border-color: #e74c3c;
+        }
+        
+        .action-btn.danger:hover {
+            background: #fdf2f2;
+        }
+        
+        .collections-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .collection-item {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #f8f9fa;
+            overflow: hidden;
+        }
+        
+        .collection-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .collection-info {
+            flex: 1;
+        }
+        
+        .collection-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 4px;
+        }
+        
+        .collection-description {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        
+        .collection-meta {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .collection-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .collection-properties {
+            padding: 20px;
+        }
+        
+        .properties-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .properties-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .add-property-btn {
+            background: #27ae60;
+            color: white;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .properties-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 12px;
+        }
+        
+        .property-item {
+            padding: 12px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .property-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        
+        .property-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        
+        .property-type {
+            display: inline-block;
+            padding: 2px 6px;
+            background: #e8f4f8;
+            color: #3498db;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .property-description {
+            font-size: 12px;
+            color: #7f8c8d;
+            line-height: 1.4;
+        }
+        
+        .property-actions {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .property-action-btn {
+            padding: 2px 6px;
+            border: 1px solid #e0e0e0;
+            background: white;
+            border-radius: 3px;
+            font-size: 10px;
+            cursor: pointer;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7f8c8d;
+        }
+        
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        
+        .empty-title {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+        
+        .empty-subtitle {
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+        }
+        
+        .modal-header {
+            margin-bottom: 24px;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .form-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .form-select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        
+        .btn-secondary {
+            background: #7f8c8d;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #7f8c8d;
+        }
+        
+        .drag-handle {
+            cursor: grab;
+            color: #bdc3c7;
+            font-size: 16px;
+            margin-right: 8px;
+        }
+        
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+        
+        .field-header-left {
+            display: flex;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Document Data Extraction</h1>
+    </div>
+    
+    <div class="project-container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="project-name">Pension Scheme Analysis</div>
+                <div class="project-description">Extract pension scheme data and employee records</div>
+            </div>
+            
+            <div class="nav-item">
+                <div class="nav-text">New Upload</div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-text">All Data</div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-text">Knowledge/Rules</div>
+            </div>
+            <div class="nav-item active">
+                <div class="nav-text">Define Data</div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="page-header">
+                <div class="page-title">Define Data Schema</div>
+                <div class="page-subtitle">Configure data collections and fields that will be extracted from documents</div>
+            </div>
+            
+            <div class="schema-sections">
+                <!-- Project Schema Section -->
+                <div class="schema-section">
+                    <div class="section-header">
+                        <div>
+                            <div class="section-title">Project Schema</div>
+                            <div class="section-description">Global data points that apply to the entire document set</div>
+                        </div>
+                        <button class="add-btn" onclick="openFieldModal('project')">+ Add Field</button>
+                    </div>
+                    
+                    <div class="fields-list">
+                        <div class="field-item">
+                            <div class="field-header">
+                                <div class="field-header-left">
+                                    <div class="drag-handle">⋮⋮</div>
+                                    <div class="field-info">
+                                        <div class="field-name">Company Name</div>
+                                        <span class="field-type text">Text</span>
+                                    </div>
+                                </div>
+                                <div class="field-actions">
+                                    <button class="action-btn">Edit</button>
+                                    <button class="action-btn danger">Delete</button>
+                                </div>
+                            </div>
+                            <div class="field-description">
+                                The legal name of the company operating the pension scheme
+                            </div>
+                        </div>
+                        
+                        <div class="field-item">
+                            <div class="field-header">
+                                <div class="field-header-left">
+                                    <div class="drag-handle">⋮⋮</div>
+                                    <div class="field-info">
+                                        <div class="field-name">Scheme Type</div>
+                                        <span class="field-type text">Text</span>
+                                    </div>
+                                </div>
+                                <div class="field-actions">
+                                    <button class="action-btn">Edit</button>
+                                    <button class="action-btn danger">Delete</button>
+                                </div>
+                            </div>
+                            <div class="field-description">
+                                Classification of pension scheme: Defined Benefit, Defined Contribution, or Hybrid
+                            </div>
+                        </div>
+                        
+                        <div class="field-item">
+                            <div class="field-header">
+                                <div class="field-header-left">
+                                    <div class="drag-handle">⋮⋮</div>
+                                    <div class="field-info">
+                                        <div class="field-name">Scheme Start Date</div>
+                                        <span class="field-type date">Date</span>
+                                    </div>
+                                </div>
+                                <div class="field-actions">
+                                    <button class="action-btn">Edit</button>
+                                    <button class="action-btn danger">Delete</button>
+                                </div>
+                            </div>
+                            <div class="field-description">
+                                The date when the pension scheme was established
+                            </div>
+                        </div>
+                        
+                        <div class="field-item">
+                            <div class="field-header">
+                                <div class="field-header-left">
+                                    <div class="drag-handle">⋮⋮</div>
+                                    <div class="field-info">
+                                        <div class="field-name">Total Scheme Value</div>
+                                        <span class="field-type number">Number</span>
+                                    </div>
+                                </div>
+                                <div class="field-actions">
+                                    <button class="action-btn">Edit</button>
+                                    <button class="action-btn danger">Delete</button>
+                                </div>
+                            </div>
+                            <div class="field-description">
+                                Total value of pension scheme assets in GBP
+                            </div>
+                        </div>
+                        
+                        <div class="field-item">
+                            <div class="field-header">
+                                <div class="field-header-left">
+                                    <div class="drag-handle">⋮⋮</div>
+                                    <div class="field-info">
+                                        <div class="field-name">Regulatory Compliant</div>
+                                        <span class="field-type boolean">Boolean</span>
+                                    </div>
+                                </div>
+                                <div class="field-actions">
+                                    <button class="action-btn">Edit</button>
+                                    <button class="action-btn danger">Delete</button>
+                                </div>
+                            </div>
+                            <div class="field-description">
+                                Whether the scheme is compliant with current UK pension regulations
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Object Collections Section -->
+                <div class="schema-section">
+                    <div class="section-header">
+                        <div>
+                            <div class="section-title">Object Collections</div>
+                            <div class="section-description">Define object types and their properties that create repeating data records</div>
+                        </div>
+                        <button class="add-btn" onclick="openCollectionModal()">+ Add Collection</button>
+                    </div>
+                    
+                    <div class="collections-list">
+                        <div class="collection-item">
+                            <div class="collection-header">
+                                <div class="collection-info">
+                                    <div class="collection-name">Employees</div>
+                                    <div class="collection-description">Individual employees enrolled in the pension scheme</div>
+                                </div>
+                                <div class="collection-meta">
+                                    <span>5 properties</span>
+                                    <div class="collection-actions">
+                                        <button class="action-btn">Edit</button>
+                                        <button class="action-btn danger">Delete</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="collection-properties">
+                                <div class="properties-header">
+                                    <div class="properties-title">Properties</div>
+                                    <button class="add-property-btn" onclick="openPropertyModal('employees')">+ Add Property</button>
+                                </div>
+                                <div class="properties-grid">
+                                    <div class="property-item">
+                                        <div class="property-header">
+                                            <div class="property-name">Employee Name</div>
+                                            <div class="property-actions">
+                                                <button class="property-action-btn">Edit</button>
+                                                <button class="property-action-btn danger">Delete</button>
+                                            </div>
+                                        </div>
+                                        <div style="margin-bottom: 4px;">
+                                            <span class="property-type">Text</span>
+                                        </div>
+                                        <div class="property-description">Full name of the employee</div>
+                                    </div>
+                                    
+                                    <div class="property-item">
+                                        <div class="property-header">
+                                            <div class="property-name">Date of Birth</div>
+                                            <div class="property-actions">
+                                                <button class="property-action-btn">Edit</button>
+                                                <button class="property-action-btn danger">Delete</button>
+                                            </div>
+                                        </div>
+                                        <div style="margin-bottom: 4px;">
+                                            <span class="property-type">Date</span>
+                                        </div>
+                                        <div class="property-description">Employee's date of birth</div>
+                                    </div>
+                                    
+                                    <div class="property-item">
+                                        <div class="property-header">
+                                            <div class="property-name">Annual Salary</div>
+                                            <div class="property-actions">
+                                                <button class="property-action-btn">Edit</button>
+                                                <button class="property-action-btn danger">Delete</button>
+                                            </div>
+                                        </div>
+                                        <div style="margin-bottom: 4px;">
+                                            <span class="property-type">Number</span>
+                                        </div>
+                                        <div class="property-description">Annual salary in GBP</div>
+                                    </div>
+                                    
+                                    <div class="property-item">
+                                        <div class="property-header">
+                                            <div class="property-name">Years of Service</div>
+                                            <div class="property-actions">
+                                                <button class="property-action-btn">Edit</button>
+                                                <button class="property-action-btn danger">Delete</button>
+                                            </div>
+                                        </div>
+                                        <div style="margin-bottom: 4px;">
+                                            <span class="property-type">Number</span>
+                                        </div>
+                                        <div class="property-description">Total years with company</div>
+                                    </div>
+                                    
+                                    <div class="property-item">
+                                        <div class="property-header">
+                                            <div class="property-name">Pension Contribution</div>
+                                            <div class="property-actions">
+                                                <button class="property-action-btn">Edit</button>
+                                                <button class="property-action-btn danger">Delete</button>
+                                            </div>
+                                        </div>
+                                        <div style="margin-bottom: 4px;">
+                                            <span class="property-type">Number</span>
+                                        </div>
+                                        <div class="property-description">Monthly contribution in GBP</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="collection-item">
+                            <div class="collection-header">
+                                <div class="collection-info">
+                                    <div class="collection-name">Trustees</div>
+                                    <div class="collection-description">Pension scheme trustees and board members</div>
+                                </div>
+                                <div class="collection-meta">
+                                    <span>3 properties</span>
+                                    <div class="collection-actions">
+                                        <button class="action-btn">Edit</button>
+                                        <button class="action-btn danger">Delete</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="collection-properties">
+                                <div class="properties-header">
+                                    <div class="properties-title">Properties</div>
+                                    <button class="add-property-btn" onclick="openPropertyModal('trustees')">+ Add Property</button>
+                                </div>
+                                <div class="properties-grid">
+                                    <div class="property-item">
+                                        <div class="property-header">
+                                            <div class="property-name">Trustee Name</div>
+                                            <div class="property-actions">
+                                                <button class="property-action-btn">Edit</button>
+                                                <button class="property-action-btn danger">Delete</button>
+                                            </div>
+                                        </div>
+                                        <div style="margin-bottom: 4px;">
+                                            <span class="property-type">Text</span>
+                                        </div>
+                                        <div class="property-description">Full name of the trustee</div>
+                                    </div>
+                                    
+                                    <div class="property-item">
+                                        <div class="property-header">
+                                            <div class="property-name">Role</div>
+                                            <div class="property-actions">
+                                                <button class="property-action-btn">Edit</button>
+                                                <button class="property-action-btn danger">Delete</button>
+                                            </div>
+                                        </div>
+                                        <div style="margin-bottom: 4px;">
+                                            <span class="property-type">Text</span>
+                                        </div>
+                                        <div class="property-description">Trustee role or position</div>
+                                    </div>
+                                    
+                                    <div class="property-item">
+                                        <div class="property-header">
+                                            <div class="property-name">Appointment Date</div>
+                                            <div class="property-actions">
+                                                <button class="property-action-btn">Edit</button>
+                                                <button class="property-action-btn danger">Delete</button>
+                                            </div>
+                                        </div>
+                                        <div style="margin-bottom: 4px;">
+                                            <span class="property-type">Date</span>
+                                        </div>
+                                        <div class="property-description">Date appointed as trustee</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Collection Modal -->
+    <div id="collectionModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeCollectionModal()">&times;</span>
+            <div class="modal-header">
+                <div class="modal-title">Add New Object Collection</div>
+            </div>
+            
+            <form>
+                <div class="form-group">
+                    <label class="form-label">Collection Name</label>
+                    <input type="text" class="form-input" placeholder="e.g., Employees, Contracts, Invoices">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" placeholder="Describe what objects this collection represents and what type of data it contains..."></textarea>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeCollectionModal()">Cancel</button>
+                    <button type="submit" class="btn-primary">Create Collection</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Add Property Modal -->
+    <div id="propertyModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closePropertyModal()">&times;</span>
+            <div class="modal-header">
+                <div class="modal-title">Add New Property</div>
+            </div>
+            
+            <form>
+                <div class="form-group">
+                    <label class="form-label">Property Name</label>
+                    <input type="text" class="form-input" placeholder="Enter property name">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Property Type</label>
+                    <select class="form-select">
+                        <option value="text">Text</option>
+                        <option value="number">Number</option>
+                        <option value="date">Date</option>
+                        <option value="boolean">Boolean (True/False)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" placeholder="Describe what this property represents and any specific requirements..."></textarea>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closePropertyModal()">Cancel</button>
+                    <button type="submit" class="btn-primary">Add Property</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Add Field Modal -->
+    <div id="fieldModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeFieldModal()">&times;</span>
+            <div class="modal-header">
+                <div class="modal-title">Add New Field</div>
+            </div>
+            
+            <form>
+                <div class="form-group">
+                    <label class="form-label">Field Name</label>
+                    <input type="text" class="form-input" placeholder="Enter field name">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Field Type</label>
+                    <select class="form-select">
+                        <option value="text">Text</option>
+                        <option value="number">Number</option>
+                        <option value="date">Date</option>
+                        <option value="boolean">Boolean (True/False)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" placeholder="Describe what this field represents and any specific requirements..."></textarea>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeFieldModal()">Cancel</button>
+                    <button type="submit" class="btn-primary">Add Field</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        let currentSchemaType = 'project';
+        let currentCollection = '';
+        
+        function openFieldModal(schemaType) {
+            currentSchemaType = schemaType;
+            const modal = document.getElementById('fieldModal');
+            const title = modal.querySelector('.modal-title');
+            title.textContent = `Add New ${schemaType === 'project' ? 'Project' : 'Record'} Field`;
+            modal.style.display = 'block';
+        }
+        
+        function closeFieldModal() {
+            document.getElementById('fieldModal').style.display = 'none';
+        }
+        
+        function openCollectionModal() {
+            document.getElementById('collectionModal').style.display = 'block';
+        }
+        
+        function closeCollectionModal() {
+            document.getElementById('collectionModal').style.display = 'none';
+        }
+        
+        function openPropertyModal(collectionName) {
+            currentCollection = collectionName;
+            const modal = document.getElementById('propertyModal');
+            const title = modal.querySelector('.modal-title');
+            title.textContent = `Add Property to ${collectionName.charAt(0).toUpperCase() + collectionName.slice(1)}`;
+            modal.style.display = 'block';
+        }
+        
+        function closePropertyModal() {
+            document.getElementById('propertyModal').style.display = 'none';
+        }
+        
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const fieldModal = document.getElementById('fieldModal');
+            const collectionModal = document.getElementById('collectionModal');
+            const propertyModal = document.getElementById('propertyModal');
+            
+            if (event.target === fieldModal) {
+                fieldModal.style.display = 'none';
+            }
+            if (event.target === collectionModal) {
+                collectionModal.style.display = 'none';
+            }
+            if (event.target === propertyModal) {
+                propertyModal.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

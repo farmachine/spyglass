@@ -1,0 +1,67 @@
+{
+  "field_validations": [
+    {
+      "field_type": "schema_field",
+      "field_id": "20fbda72-9ab2-4272-8756-1a3ef6c02ee0",
+      "field_name": "Number of Parties",
+      "description": "The number of parties across all the contracts. Please make sure you look for all companies mentioned across all the documents",
+      "extracted_value": null,
+      "confidence_score": 95,
+      "ai_reasoning": "AI explains extraction process here",
+      "document_source": "document_name.pdf",
+      "validation_status": "pending",
+      "record_index": 0
+    },
+    {
+      "field_type": "schema_field",
+      "field_id": "232cf66d-0769-42a9-96ae-84eaa4a6ebf7",
+      "field_name": "Number of NDAs",
+      "description": "The number of contracts in the document set. please make you you count what appears to be individual documents",
+      "extracted_value": null,
+      "confidence_score": 95,
+      "ai_reasoning": "AI explains extraction process here",
+      "document_source": "document_name.pdf",
+      "validation_status": "pending",
+      "record_index": 0
+    },
+    {
+      "field_type": "collection_property",
+      "field_id": "666a8bc8-76ac-4091-8ec4-939f80ab7b98",
+      "field_name": "Parties.Name",
+      "collection_name": "Parties",
+      "description": "Name of the party",
+      "extracted_value": null,
+      "confidence_score": 95,
+      "ai_reasoning": "See AI REASONING (ai_reasoning) in AI PROCESSING INSTRUCTIONS",
+      "document_source": "document_name.pdf",
+      "validation_status": "pending",
+      "record_index": 0
+    },
+    {
+      "field_type": "collection_property",
+      "field_id": "5b751e3a-59f0-4171-9c86-d340c0f91716",
+      "field_name": "Parties.Name and Address",
+      "collection_name": "Parties",
+      "description": "The party name and address",
+      "extracted_value": null,
+      "confidence_score": 95,
+      "ai_reasoning": "See AI REASONING (ai_reasoning) in AI PROCESSING INSTRUCTIONS",
+      "document_source": "document_name.pdf",
+      "validation_status": "pending",
+      "record_index": 0
+    },
+    {
+      "field_type": "collection_property",
+      "field_id": "3ae6fe3d-4b90-4df7-9fb3-2b8db2821538",
+      "field_name": "Parties.Address",
+      "collection_name": "Parties",
+      "description": "Address of the party",
+      "extracted_value": null,
+      "confidence_score": 95,
+      "ai_reasoning": "See AI REASONING (ai_reasoning) in AI PROCESSING INSTRUCTIONS",
+      "document_source": "document_name.pdf",
+      "validation_status": "pending",
+      "record_index": 0
+    }
+  ]
+}

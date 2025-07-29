@@ -2015,62 +2015,23 @@ print(json.dumps(result))
       
       console.log(`GEMINI EXTRACTION: Starting for session ${sessionId}`);
       
-      // Get session and extracted documents data
-      const session = await storage.getSession(sessionId);
-      if (!session) {
-        return res.status(404).json({ success: false, error: 'Session not found' });
-      }
-
-      // Get project data for schema structure
-      const project = await storage.getProject(projectId);
-      const schemaFields = await storage.getProjectSchemaFields(projectId);
-      const collections = await storage.getObjectCollections(projectId);
-      const extractionRules = await storage.getExtractionRules(projectId);
-      const knowledgeDocuments = await storage.getKnowledgeDocuments(projectId);
-
-      // Get session documents
-      const sessionFiles = await storage.getSessionFiles(sessionId);
-      
-      // Convert to format expected by Python script
-      const convertedFiles = sessionFiles.map((file: any) => ({
-        file_name: file.fileName,
-        file_content: file.content,
-        mime_type: file.mimeType
-      }));
-
-      // Prepare data structure for Python script
-      const extractionData = {
-        documents: convertedFiles,
-        project_schema: {
-          schema_fields: schemaFields.map(field => ({
-            id: field.id,
-            fieldName: field.fieldName,
-            fieldType: field.fieldType,
-            description: field.description
-          })),
-          collections: collections.map(collection => ({
-            id: collection.id,
-            collectionName: collection.collectionName,
-            description: collection.description,
-            properties: collection.properties || []
-          }))
-        },
-        extraction_rules: extractionRules,
-        knowledge_documents: knowledgeDocuments,
-        session_id: sessionId
-      };
-      
-      // Call the Python script for AI extraction
+      // Call the existing Python script for AI extraction
       const { spawn } = await import('child_process');
       let output = '';
-      let errorOutput = '';
+      let error = '';
       
-      const python = spawn('python3', ['ai_extraction.py'], {
+      const python = spawn('python3', ['ai_extraction_single_step.py'], {
         cwd: process.cwd()
       });
 
-      // Send the extraction data to Python
-      python.stdin.write(JSON.stringify(extractionData));
+      // Send the prompt data to Python
+      const pythonInput = JSON.stringify({
+        prompt: prompt,
+        projectId: projectId,
+        sessionId: sessionId
+      });
+      
+      python.stdin.write(pythonInput);
       python.stdin.end();
 
       python.stdout.on('data', (data: any) => {
@@ -2078,49 +2039,23 @@ print(json.dumps(result))
       });
 
       python.stderr.on('data', (data: any) => {
-        errorOutput += data.toString();
+        error += data.toString();
       });
 
       await new Promise((resolve, reject) => {
         python.on('close', async (code: any) => {
           if (code !== 0) {
-            console.error('GEMINI EXTRACTION error:', errorOutput);
-            return reject(new Error(`Gemini extraction failed: ${errorOutput}`));
+            console.error('GEMINI EXTRACTION error:', error);
+            return reject(new Error(`Gemini extraction failed: ${error}`));
           }
           
           try {
             const result = JSON.parse(output);
             console.log('GEMINI EXTRACTION result:', result.success ? 'Success' : 'Failed');
             
-            if (result.success) {
-              // Store the extraction results in session
-              await storage.updateExtractionSession(sessionId, {
-                status: "extracted",
-                extractedData: JSON.stringify(result.aggregated_extraction || result.extracted_data)
-              });
-
-              // Save field validations if available
-              if (result.aggregated_extraction && result.aggregated_extraction.field_validations) {
-                for (const validation of result.aggregated_extraction.field_validations) {
-                  await storage.saveFieldValidation(sessionId, {
-                    fieldId: validation.field_id,
-                    fieldName: validation.field_name,
-                    fieldType: validation.field_type,
-                    extractedValue: validation.extracted_value,
-                    validationStatus: validation.validation_status || "unverified",
-                    confidenceScore: validation.confidence_score || 0,
-                    aiReasoning: validation.ai_reasoning || "Extracted by AI",
-                    documentSource: validation.document_source || "Unknown"
-                  });
-                }
-              }
-            }
-            
             res.json({
               success: result.success,
-              extractedData: result.extracted_data,
-              aggregatedExtraction: result.aggregated_extraction,
-              processingNotes: result.processing_notes,
+              extractedData: result.extractedData || result.result,
               error: result.error
             });
             
@@ -2499,7 +2434,7 @@ print(json.dumps(result))
       };
       
       // Call Python single-step extraction script
-      const python = spawn('python3', ['ai_extraction.py']);
+      const python = spawn('python3', ['ai_extraction_single_step.py']);
       
       python.stdin.write(JSON.stringify(extractionData));
       python.stdin.end();
