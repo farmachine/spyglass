@@ -1452,6 +1452,7 @@ except Exception as e:
           sessionId,
           fieldType: 'schema_field',
           fieldId: field.id,
+          fieldName: field.fieldName,
           collectionName: null,
           recordIndex: 0,
           extractedValue: null,
@@ -1473,6 +1474,7 @@ except Exception as e:
             sessionId,
             fieldType: 'collection_property',
             fieldId: property.id,
+            fieldName: `${collection.collectionName}.${property.propertyName}[0]`,
             collectionName: collection.collectionName,
             recordIndex: 0,
             extractedValue: null,
@@ -2362,6 +2364,7 @@ print(json.dumps(result))
             sessionId: sessionId,
             fieldId: validation.field_id,
             fieldType: validation.field_type,
+            fieldName: fieldName, // Use the properly indexed field name
             collectionName: collectionName,
             extractedValue: validation.extracted_value,
             confidenceScore: validation.confidence_score,
@@ -2536,7 +2539,7 @@ print(json.dumps(result))
                   validationStatus: validation.validation_status,
                   confidenceScore: validation.validation_confidence,
                   aiReasoning: validation.ai_reasoning,
-                  manuallyUpdated: false
+                  manualInput: false
                 });
                 
                 console.log(`Created validation for ${validation.field_name} -> ${fieldMapping.fieldType}`);
@@ -2602,6 +2605,7 @@ print(json.dumps(result))
           sessionId,
           fieldType: 'schema_field',
           fieldId: field.id,
+          fieldName: field.fieldName,
           collectionName: null,
           recordIndex: 0,
           extractedValue: fieldValue !== undefined ? fieldValue?.toString() : null,
@@ -2668,6 +2672,7 @@ print(json.dumps(result))
                 sessionId,
                 fieldType: 'collection_property',
                 fieldId: property.id,
+                fieldName,
                 collectionName,
                 recordIndex: index,
                 extractedValue: propertyValue !== undefined ? propertyValue : null,
@@ -3024,6 +3029,7 @@ print(json.dumps(result))
                   sessionId: sessionId,
                   fieldType: validation.field_type || 'schema_field',
                   fieldId: validation.field_id,
+                  fieldName: validation.field_name,
                   collectionName: validation.collection_name || null,
                   recordIndex: validation.record_index || 0,
                   extractedValue: validation.extracted_value,
@@ -3118,10 +3124,6 @@ print(json.dumps(result))
       res.status(500).json({ message: "Failed to unpublish project" });
     }
   });
-
-  // Register orchestration routes
-  const orchestrationRoutes = await import('./routes/orchestration.js');
-  app.use('/api/orchestration', orchestrationRoutes.default);
 
   // Create HTTP server and return it
   const httpServer = createServer(app);

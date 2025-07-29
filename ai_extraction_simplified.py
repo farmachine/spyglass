@@ -75,7 +75,7 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
         # Add schema fields with descriptions for AI guidance  
         if project_schema.get("schema_fields"):
             for field in project_schema["schema_fields"]:
-                field_name = field.get('name', field.get('fieldName', 'Unknown'))
+                field_name = field['fieldName']
                 field_type = field['fieldType']
                 field_description = field.get('description', '')
                 camel_case_name = field_name.replace(' ', '').replace('of', 'Of')
@@ -166,7 +166,7 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
             # Add schema fields with descriptions and applicable rules
             if project_schema.get("schema_fields"):
                 for field in project_schema["schema_fields"]:
-                    field_name = field.get('name', field.get('fieldName', 'Unknown'))
+                    field_name = field['fieldName']
                     field_type = field['fieldType']
                     field_description = field.get('description', '')
                     camel_case_name = field_name.replace(' ', '').replace('of', 'Of')
@@ -290,9 +290,9 @@ RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
         extracted_content_text = ""
         
         for doc in documents:
-            file_content = doc.get('file_content') or doc.get('text_content')
-            file_name = doc.get('file_name', 'Unknown')
-            mime_type = doc.get('mime_type', 'text/plain')
+            file_content = doc['file_content']
+            file_name = doc['file_name']
+            mime_type = doc['mime_type']
             
             logging.info(f"STEP 1: Processing document: {file_name} ({mime_type})")
             
@@ -731,10 +731,7 @@ if __name__ == "__main__":
     
     try:
         # Read input from stdin
-        input_text = sys.stdin.read().strip()
-        if not input_text:
-            raise Exception("No input data received")
-        input_data = json.loads(input_text)
+        input_data = json.loads(sys.stdin.read())
         step = input_data.get("step", "extract")
         
         if step == "extract":
