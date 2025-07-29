@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Upload - Project View</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .header {
+            background: white;
+            padding: 20px 40px;
+            border-bottom: 1px solid #e0e0e0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .project-container {
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+        
+        .sidebar {
+            width: 250px;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            padding: 20px 0;
+        }
+        
+        .sidebar-header {
+            padding: 0 20px 20px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 20px;
+        }
+        
+        .project-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 4px;
+        }
+        
+        .project-description {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        
+        .nav-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .nav-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .nav-item.active {
+            background: #e8f4f8;
+            border-left-color: #3498db;
+            color: #3498db;
+        }
+        
+        .nav-item.active .nav-text {
+            font-weight: 600;
+        }
+        
+        .nav-text {
+            font-size: 14px;
+        }
+        
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+        
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .page-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .upload-btn {
+            background: #3498db;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .upload-btn:hover {
+            background: #2980b9;
+        }
+        
+        .upload-section {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .upload-area {
+            border: 2px dashed #bdc3c7;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9fa;
+            margin-bottom: 20px;
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            color: #bdc3c7;
+            margin-bottom: 16px;
+        }
+        
+        .upload-text {
+            font-size: 16px;
+            color: #7f8c8d;
+            margin-bottom: 8px;
+        }
+        
+        .upload-subtext {
+            font-size: 14px;
+            color: #95a5a6;
+        }
+        
+        .uploaded-files {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        
+        .file-item {
+            background: #e8f4f8;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .file-remove {
+            color: #e74c3c;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .data-section {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        
+        .project-data {
+            margin-bottom: 40px;
+        }
+        
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .data-field {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .field-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #2c3e50;
+            min-width: 120px;
+        }
+        
+        .field-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .field-input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .field-status {
+            font-size: 18px;
+            cursor: pointer;
+        }
+        
+        .status-success {
+            color: #27ae60;
+        }
+        
+        .status-error {
+            color: #e74c3c;
+        }
+        
+        .status-info {
+            color: #3498db;
+        }
+        
+        .records-section {
+            margin-top: 40px;
+        }
+        
+        .records-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .records-table th,
+        .records-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .records-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .records-table td {
+            position: relative;
+        }
+        
+        .cell-content {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .cell-input {
+            flex: 1;
+            padding: 4px 8px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .verify-btn {
+            background: #27ae60;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 30px;
+            transition: background 0.2s;
+        }
+        
+        .verify-btn:hover {
+            background: #219a52;
+        }
+        
+        .verify-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #2c3e50;
+            color: white;
+            text-align: left;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Document Data Extraction</h1>
+    </div>
+    
+    <div class="project-container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="project-name">Pension Scheme Analysis</div>
+                <div class="project-description">Extract pension scheme data and employee records</div>
+            </div>
+            
+            <div class="nav-item active">
+                <div class="nav-text">New Upload</div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-text">All Data</div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-text">Knowledge/Rules</div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-text">Define Data</div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="page-header">
+                <div class="page-title">New Upload</div>
+                <button class="upload-btn">+ Add More Documents</button>
+            </div>
+            
+            <div class="upload-section">
+                <div class="upload-area">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">Drop files here or click to browse</div>
+                    <div class="upload-subtext">Supports PDF, DOC, DOCX, XLS, XLSX</div>
+                </div>
+                
+                <div class="uploaded-files">
+                    <div class="file-item">
+                        📄 pension_scheme_overview.pdf
+                        <span class="file-remove">×</span>
+                    </div>
+                    <div class="file-item">
+                        📊 employee_list.xlsx
+                        <span class="file-remove">×</span>
+                    </div>
+                    <div class="file-item">
+                        📄 policy_document.pdf
+                        <span class="file-remove">×</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="data-section">
+                <div class="project-data">
+                    <div class="section-title">Pension Scheme Information</div>
+                    <div class="data-grid">
+                        <div class="data-field">
+                            <div class="field-label">Company Name:</div>
+                            <input class="field-input" value="ABC Corporation Ltd" readonly>
+                            <span class="field-status status-success">✓</span>
+                        </div>
+                        <div class="data-field">
+                            <div class="field-label">Scheme Type:</div>
+                            <input class="field-input" value="Defined Benefit">
+                            <span class="field-status status-success">✓</span>
+                        </div>
+                        <div class="data-field">
+                            <div class="field-label">Scheme Start Date:</div>
+                            <input class="field-input" value="1995-04-01" readonly>
+                            <span class="field-status status-success">✓</span>
+                        </div>
+                        <div class="data-field">
+                            <div class="field-label">Total Members:</div>
+                            <input class="field-input" value="" placeholder="Not found">
+                            <div class="tooltip">
+                                <span class="field-status status-error">⚠</span>
+                                <span class="tooltiptext">Could not extract total member count. Please check if this information is available in the uploaded documents or add additional documentation.</span>
+                            </div>
+                        </div>
+                        <div class="data-field">
+                            <div class="field-label">Scheme Value:</div>
+                            <input class="field-input" value="£12,500,000" readonly>
+                            <span class="field-status status-success">✓</span>
+                        </div>
+                        <div class="data-field">
+                            <div class="field-label">Regulatory Status:</div>
+                            <input class="field-input" value="" placeholder="Not found">
+                            <div class="tooltip">
+                                <span class="field-status status-error">⚠</span>
+                                <span class="tooltiptext">Regulatory compliance status not clearly indicated in the provided documents. May require additional regulatory filing documents.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="records-section">
+                    <div class="section-title">Employee Records (23 found)</div>
+                    <table class="records-table">
+                        <thead>
+                            <tr>
+                                <th>Employee Name</th>
+                                <th>Date of Birth</th>
+                                <th>Salary</th>
+                                <th>Years of Service</th>
+                                <th>Pension Contribution</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div class="cell-content">
+                                        <input class="cell-input" value="John Smith" readonly>
+                                        <span class="field-status status-success">✓</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="cell-content">
+                                        <input class="cell-input" value="1975-03-15" readonly>
+                                        <span class="field-status status-success">✓</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="cell-content">
+                                        <input class="cell-input" value="£45,000" readonly>
+                                        <span class="field-status status-success">✓</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="cell-content">
+                                        <input class="cell-input" value="15" readonly>
+                                        <span class="field-status status-success">✓</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="cell-content">
+                                        <input class="cell-input" value="" placeholder="Not found">
+                                        <div class="tooltip">
+                                            <span class="field-status status-error">⚠</span>
+                                            <span class="tooltiptext">Individual pension contribution amounts not found in employee records. May be in separate payroll documentation.</span>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="cell-content">
+                                        <input class="cell-input" value="Michael Brown" readonly>
+                                        <span class="field-status status-success">✓</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="cell-content">
+                                        <input class="cell-input" value="1970-11-08" readonly>
+                                        <span class="field-status status-success">✓</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="cell-content">
+                                        <input class="cell-input" value="£52,000" readonly>
+                                        <span class="field-status status-success">✓</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="cell-content">
+                                        <input class="cell-input" value="22" readonly>
+                                        <span class="field-status status-success">✓</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="cell-content">
+                                        <input class="cell-input" value="" placeholder="Not found">
+                                        <div class="tooltip">
+                                            <span class="field-status status-error">⚠</span>
+                                            <span class="tooltiptext">Individual pension contribution amounts not found in employee records. May be in separate payroll documentation.</span>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: #7f8c8d; font-style: italic; padding: 20px;">
+                                    ... and 20 more employees
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <button class="verify-btn" disabled>Verify Data Set</button>
+                <p style="margin-top: 10px; font-size: 14px; color: #7f8c8d;">
+                    Complete missing fields or upload additional documents to enable verification
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="cell-content">
+                                        <input class="cell-input" value="Sarah Johnson" readonly>
+                                        <span class="field-status status-success">✓</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="cell-content">
+                                        <input class="cell-input" value="1982-07-22" readonly>
+                                        <span class="field-status status-success">✓</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="cell-content">
+                                        <input class="cell-input" value="" placeholder="Not found">
+                                        <div class="tooltip">
+                                            <span class="field-status status-error">⚠</span>
+                                            <span class="tooltiptext">Salary information not available in current employee list. May require HR or payroll documentation.</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="cell-content">
+                                        <input class="cell-input" value="8" readonly>
+                                        <span class="field-status status-success">✓</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="cell-content">
+                                        <input class="cell-input" value="" placeholder="Not found">
+                                        <div class="tooltip">
+                                            <span class="field-status status-error">⚠</span>
+                                            <span class="tooltiptext">Individual pension contribution amounts not found in employee records. May be in separate payroll documentation.</span>

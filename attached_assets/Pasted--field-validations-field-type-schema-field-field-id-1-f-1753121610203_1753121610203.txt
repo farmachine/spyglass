@@ -1,0 +1,79 @@
+{
+  "field_validations": [
+    {
+      "field_type": "schema_field",
+      "field_id": "1",
+      "field_name": "Company Name",
+      "description": "Name of the primary company in the contract",
+      "extracted_value": null,
+      "confidence_score": 95,
+      "ai_reasoning": "AI explains extraction process here",
+      "document_source": "document_name.pdf",
+      "validation_status": "pending",
+      "record_index": 0
+    },
+    {
+      "field_type": "schema_field",
+      "field_id": "2",
+      "field_name": "Contract Date",
+      "description": "Date when the contract was signed",
+      "extracted_value": null,
+      "confidence_score": 95,
+      "ai_reasoning": "AI explains extraction process here",
+      "document_source": "document_name.pdf",
+      "validation_status": "pending",
+      "record_index": 0
+    },
+    {
+      "field_type": "schema_field",
+      "field_id": "3",
+      "field_name": "Number of Parties",
+      "description": "Total number of parties involved in this contract",
+      "extracted_value": null,
+      "confidence_score": 95,
+      "ai_reasoning": "AI explains extraction process here",
+      "document_source": "document_name.pdf",
+      "validation_status": "pending",
+      "record_index": 0
+    },
+    {
+      "field_type": "collection_property",
+      "field_id": "1",
+      "field_name": "Parties.Name",
+      "collection_name": "Parties",
+      "description": "Name of the party/company",
+      "extracted_value": null,
+      "confidence_score": 95,
+      "ai_reasoning": "AI explains extraction for this property",
+      "document_source": "document_name.pdf",
+      "validation_status": "pending",
+      "record_index": 0
+    },
+    {
+      "field_type": "collection_property",
+      "field_id": "2",
+      "field_name": "Parties.Country",
+      "collection_name": "Parties",
+      "description": "Country where the party is located",
+      "extracted_value": null,
+      "confidence_score": 95,
+      "ai_reasoning": "AI explains extraction for this property",
+      "document_source": "document_name.pdf",
+      "validation_status": "pending",
+      "record_index": 0
+    },
+    {
+      "field_type": "collection_property",
+      "field_id": "3",
+      "field_name": "Parties.Address",
+      "collection_name": "Parties",
+      "description": "Full address of the party",
+      "extracted_value": null,
+      "confidence_score": 95,
+      "ai_reasoning": "AI explains extraction for this property",
+      "document_source": "document_name.pdf",
+      "validation_status": "pending",
+      "record_index": 0
+    }
+  ]
+}
