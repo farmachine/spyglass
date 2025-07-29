@@ -1585,8 +1585,8 @@ except Exception as e:
       
       console.log(`STEP 1: Extracting from ${files?.length || 0} documents with ${extractionRules.length} extraction rules`);
       
-      // Call Python extraction script
-      const python = spawn('python3', ['ai_extraction_simplified.py']);
+      // Call Python extraction script (consolidated)
+      const python = spawn('python3', ['ai_extraction.py']);
       
       python.stdin.write(JSON.stringify(extractionData));
       python.stdin.end();
@@ -1667,8 +1667,8 @@ except Exception as e:
       
       console.log(`STEP 2: Validating ${fieldValidations.length} field records`);
       
-      // Call Python validation script
-      const python = spawn('python3', ['ai_extraction_simplified.py']);
+      // Call Python validation script (consolidated)
+      const python = spawn('python3', ['ai_extraction.py']);
       
       python.stdin.write(JSON.stringify(validationData));
       python.stdin.end();
