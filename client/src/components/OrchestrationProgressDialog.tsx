@@ -145,9 +145,11 @@ export function OrchestrationProgressDialog({
                   </p>
                   
                   <Badge variant={
-                    isCompleted ? 'success' : 
+                    isCompleted ? 'default' : 
                     isCurrent ? 'default' : 'secondary'
-                  } className="ml-2">
+                  } className={`ml-2 ${
+                    isCompleted ? 'bg-green-100 text-green-800 border-green-200' : ''
+                  }`}>
                     {isCompleted ? 'Done' : 
                      isCurrent ? `${progress.phaseProgress}%` : 'Pending'}
                   </Badge>

@@ -92,10 +92,7 @@ export default function NewUpload({ project }: NewUploadProps) {
     }
   }, [orchestration.progress?.status, orchestration.progress?.sessionId, setLocation, toast]);
   
-  // Fetch schema data for validation
-  const { data: schemaFields = [] } = useProjectSchemaFields(project.id);
-  const { data: collections = [] } = useObjectCollections(project.id);
-  const { data: extractionRules = [] } = useExtractionRules(project.id);
+  // No need to fetch schema data - use project data directly
   
 
 
@@ -286,10 +283,9 @@ export default function NewUpload({ project }: NewUploadProps) {
   };
 
   const canStartExtraction = selectedFiles.length > 0 && 
-    (schemaFields.length > 0 || collections.length > 0);
+    (project.schemaFields.length > 0 || project.collections.length > 0);
   
-  const isProcessing = orchestration.progress?.status === 'processing' || 
-                      orchestration.progress?.status === 'running';
+  const isProcessing = orchestration.progress?.status === 'running';
 
   const getStatusIcon = (status: UploadedFile['status']) => {
     switch (status) {
@@ -403,7 +399,7 @@ export default function NewUpload({ project }: NewUploadProps) {
 
             {/* Session Configuration */}
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+              <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
                   <FormField
                     control={form.control}
                     name="sessionName"
@@ -446,7 +442,7 @@ export default function NewUpload({ project }: NewUploadProps) {
                     type="submit" 
                     disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
                     className="w-full"
-                    onClick={form.handleSubmit((data) => handleSubmit(data, 'standard'))}
+                    onClick={() => form.handleSubmit((data) => handleSubmit(data, 'standard'))()}
                   >
                     {isProcessing ? (
                       <>
@@ -467,7 +463,7 @@ export default function NewUpload({ project }: NewUploadProps) {
                     size="sm"
                     disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
                     className="w-full bg-white hover:bg-gray-50 text-gray-700 border-gray-300 mt-2"
-                    onClick={form.handleSubmit((data) => handleSubmit(data, 'debug'))}
+                    onClick={() => form.handleSubmit((data) => handleSubmit(data, 'debug'))()}
                   >
                     Run in debug mode
                   </Button>
@@ -520,8 +516,9 @@ export default function NewUpload({ project }: NewUploadProps) {
 
       {/* Orchestration Progress Dialog */}
       <OrchestrationProgressDialog
+        open={!!orchestration.progress && orchestration.progress.status !== 'completed' && orchestration.progress.status !== 'failed'}
         progress={orchestration.progress}
-        extractionMode={extractionMode}
+        isConnected={true}
       />
     </div>
   );
