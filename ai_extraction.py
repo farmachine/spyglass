@@ -48,28 +48,16 @@ class AIExtractor:
         prompt = self._build_extraction_prompt(schema, file_name)
         
         try:
+            # Process document content
             if mime_type.startswith("text/"):
                 content_text = self._process_text_content(file_content)
-                response = self.client.models.generate_content(
-                    model=self.model_name,
-                    contents=prompt + f"\n\nDocument content:\n{content_text}"
-                )
             elif "spreadsheet" in mime_type or mime_type.endswith(".xlsx") or mime_type.endswith(".xls"):
-                # Handle Excel files
                 content_text = self._process_excel_content(file_content, file_name)
-                response = self.client.models.generate_content(
-                    model=self.model_name,
-                    contents=prompt + f"\n\nDocument content:\n{content_text}"
-                )
             else:
-                # Handle PDFs and other binary files
                 content_text = self._process_pdf_content(file_content)
-                response = self.client.models.generate_content(
-                    model=self.model_name,
-                    contents=prompt + f"\n\nDocument content:\n{content_text}"
-                )
             
-            return self._parse_ai_response(response.text)
+            # Try AI extraction with retry logic
+            return self._call_gemini_with_retry(prompt + f"\n\nDocument content:\n{content_text}", file_name)
             
         except Exception as e:
             logging.error(f"Extraction failed for {file_name}: {type(e).__name__}: {e}")
@@ -105,6 +93,55 @@ SCHEMA FIELDS:"""
         
         prompt += "\n\nReturn JSON format matching the schema structure."
         return prompt
+    
+    def _call_gemini_with_retry(self, prompt: str, file_name: str, max_retries: int = 3) -> Dict[str, Any]:
+        """Call Gemini API with retry logic for 503 overload errors"""
+        import time
+        from google import genai
+        from google.genai import types
+        
+        for attempt in range(max_retries):
+            try:
+                response = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        max_output_tokens=10000000,
+                        temperature=0.1,
+                        response_mime_type="application/json"
+                    )
+                )
+                
+                if response and response.text:
+                    result = self._parse_ai_response(response.text)
+                    if not result or result == {}:
+                        logging.warning(f"AI returned empty result for {file_name}")
+                        return {"status": "no_data_found", "message": "No extractable data found in document"}
+                    return result
+                else:
+                    logging.error(f"Empty response from Gemini for {file_name}")
+                    return {}
+                    
+            except Exception as e:
+                error_msg = str(e)
+                logging.error(f"Gemini API error for {file_name} (attempt {attempt + 1}): {error_msg}")
+                
+                # Check if it's a 503 overload error
+                if "503" in error_msg or "overloaded" in error_msg.lower() or "UNAVAILABLE" in error_msg:
+                    if attempt < max_retries - 1:
+                        wait_time = (2 ** attempt) * 10  # Exponential backoff: 10s, 20s, 40s
+                        logging.info(f"API overloaded, retrying in {wait_time} seconds...")
+                        time.sleep(wait_time)
+                        continue
+                    else:
+                        logging.error(f"API overloaded after {max_retries} attempts, giving up")
+                        return {"error": "API_OVERLOADED", "message": f"Gemini API is temporarily overloaded. Please try again in a few minutes."}
+                else:
+                    # Non-503 errors, don't retry
+                    logging.error(f"Non-retryable error: {error_msg}")
+                    return {}
+        
+        return {}
     
     def _process_text_content(self, file_content: Any) -> str:
         """Process text content from various formats"""
@@ -199,6 +236,11 @@ SCHEMA FIELDS:"""
             return {}
         
         logging.info(f"Raw AI response (first 500 chars): {response_text[:500]}")
+        
+        # Check for common failure messages
+        if "schema fields were not provided" in response_text.lower():
+            logging.error("Schema data not properly passed to AI")
+            return {"error": "SCHEMA_MISSING", "message": "Schema data not provided to AI"}
         
         # Clean markdown formatting
         response_text = response_text.strip()
