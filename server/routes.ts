@@ -3125,6 +3125,10 @@ print(json.dumps(result))
     }
   });
 
+  // Register orchestration routes
+  const orchestrationRoutes = await import('./routes/orchestration.js');
+  app.use('/api/orchestration', orchestrationRoutes.default);
+
   // Create HTTP server and return it
   const httpServer = createServer(app);
   return httpServer;
