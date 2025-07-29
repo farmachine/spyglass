@@ -2536,7 +2536,7 @@ print(json.dumps(result))
                   validationStatus: validation.validation_status,
                   confidenceScore: validation.validation_confidence,
                   aiReasoning: validation.ai_reasoning,
-                  manualInput: false
+                  manuallyUpdated: false
                 });
                 
                 console.log(`Created validation for ${validation.field_name} -> ${fieldMapping.fieldType}`);
@@ -3024,7 +3024,6 @@ print(json.dumps(result))
                   sessionId: sessionId,
                   fieldType: validation.field_type || 'schema_field',
                   fieldId: validation.field_id,
-                  fieldName: validation.field_name,
                   collectionName: validation.collection_name || null,
                   recordIndex: validation.record_index || 0,
                   extractedValue: validation.extracted_value,

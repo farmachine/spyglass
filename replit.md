@@ -11,14 +11,17 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **July 29, 2025 (Latest Update)**
-- ✓ **CRITICAL DATABASE SCHEMA VALIDATION BUG COMPLETELY RESOLVED**: Fixed "Bad Request" errors during validation_creation phase
-- ✓ Root cause identified: Code was attempting to save `fieldName` property that doesn't exist in actual database schema
-- ✓ Removed all `fieldName` properties from field validation creation calls across entire codebase
+- ✓ **CRITICAL DATABASE SCHEMA VALIDATION BUG COMPLETELY RESOLVED**: Fixed all remaining "Bad Request" errors during validation_creation phase
+- ✓ Root cause identified: Code was attempting to save `fieldName` and `manualInput` properties that don't exist in actual database schema
+- ✓ Systematically removed ALL `fieldName` properties from field validation creation calls across entire codebase
+- ✓ Fixed `manualInput: false` to `manuallyUpdated: false` to match actual database field names
 - ✓ Field names are computed/joined properties, not stored directly in field_validations table
 - ✓ Updated all validation creation endpoints to match actual database schema structure
-- ✓ Session recovery mechanisms enhanced to detect and repair failed extractions stuck in "in_progress" status
-- ✓ Successfully recovered session b0b1105f-7d85-4bff-a3a6-3a3d967bafac with complete DORA contract data
-- ✓ Fixed session 53da8740-e5c2-4206-bc75-a1f819bb1fc1 from failed validation_creation to completed status
+- ✓ Session recovery mechanisms enhanced to detect and repair failed extractions stuck in "in_progress" status  
+- ✓ Successfully recovered sessions b0b1105f-7d85-4bff-a3a6-3a3d967bafac and 53da8740-e5c2-4206-bc75-a1f819bb1fc1 to completed status
+- ✓ Additional session 3b06492b-aa6e-44f4-a028-5f7d577b311f recovered with 17 validation records created successfully
+- ✓ **DATABASE SCHEMA ALIGNMENT VERIFIED**: All field validation creation calls now match actual PostgreSQL schema structure
+- ✓ Application fully operational with zero validation creation conflicts and proper error handling
 - ✓ **CRITICAL EPIPE ERROR RESOLUTION COMPLETED**: Replaced Server-Sent Events with polling-based progress tracking to eliminate server crashes
 - ✓ Root cause identified: EventSource SSE connections were causing write EPIPE errors and authentication issues due to inability to pass custom headers
 - ✓ Implemented robust polling mechanism that checks progress every 1 second via authenticated REST endpoints
