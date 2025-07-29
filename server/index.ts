@@ -3,6 +3,21 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+// Handle EPIPE errors globally to prevent server crashes
+process.on('uncaughtException', (err) => {
+  if (err.code === 'EPIPE') {
+    console.warn('EPIPE error caught and handled:', err.message);
+    return;
+  }
+  console.error('Uncaught Exception:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 // Increase body parser limits for file uploads
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
@@ -61,6 +76,15 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = 5000;
+  // Add error handling for the server
+  server.on('error', (err: any) => {
+    if (err.code === 'EPIPE') {
+      console.warn('Server EPIPE error handled:', err.message);
+      return;
+    }
+    console.error('Server error:', err);
+  });
+
   server.listen({
     port,
     host: "0.0.0.0",
