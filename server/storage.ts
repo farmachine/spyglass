@@ -97,7 +97,6 @@ export interface IStorage {
   getExtractionSession(id: string): Promise<ExtractionSession | undefined>;
   createExtractionSession(session: InsertExtractionSession): Promise<ExtractionSession>;
   updateExtractionSession(id: string, session: Partial<InsertExtractionSession>): Promise<ExtractionSession | undefined>;
-  updateSessionStatus(sessionId: string, status: string): Promise<boolean>;
 
   // Knowledge Documents
   getKnowledgeDocuments(projectId: string): Promise<KnowledgeDocument[]>;
@@ -1129,18 +1128,6 @@ export class MemStorage implements IStorage {
     return updatedSession;
   }
 
-  async updateSessionStatus(sessionId: string, status: string): Promise<boolean> {
-    const numericId = parseInt(sessionId);
-    if (isNaN(numericId)) return false;
-    
-    const session = this.extractionSessions.get(numericId);
-    if (!session) return false;
-
-    const updatedSession = { ...session, status };
-    this.extractionSessions.set(numericId, updatedSession);
-    return true;
-  }
-
   // Knowledge Documents
   async getKnowledgeDocuments(projectId: number): Promise<KnowledgeDocument[]> {
     return Array.from(this.knowledgeDocuments.values())
@@ -2008,14 +1995,6 @@ class PostgreSQLStorage implements IStorage {
       .where(eq(extractionSessions.id, id))
       .returning();
     return result[0];
-  }
-
-  async updateSessionStatus(sessionId: string, status: string): Promise<boolean> {
-    const result = await this.db
-      .update(extractionSessions)
-      .set({ status })
-      .where(eq(extractionSessions.id, sessionId));
-    return result.rowCount > 0;
   }
 
   // Knowledge Documents

@@ -40,7 +40,6 @@ type UploadForm = z.infer<typeof uploadFormSchema>;
 
 interface NewUploadProps {
   project: ProjectWithDetails;
-  onSessionComplete?: (sessionId: string) => void;
 }
 
 const ACCEPTED_FILE_TYPES = [
@@ -58,7 +57,7 @@ interface UploadedFile {
   error?: string;
 }
 
-export default function NewUpload({ project, onSessionComplete }: NewUploadProps) {
+export default function NewUpload({ project }: NewUploadProps) {
   const [selectedFiles, setSelectedFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -263,69 +262,41 @@ export default function NewUpload({ project, onSessionComplete }: NewUploadProps
         }
       }));
 
-      // Step 3: Text Extraction Phase
+      // Step 3: Text Extraction Phase (NEW SIMPLIFIED APPROACH)
       setProcessingStep('extracting');
       setProcessingProgress(0);
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "processing" as const })));
 
-      // Call text extraction endpoint
+      // Call new text extraction endpoint
       const textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
         method: 'POST',
         body: JSON.stringify({ files: filesData }),
         headers: { 'Content-Type': 'application/json' }
       });
 
-      setProcessingProgress(33);
-
-      // Step 4: AI Extraction Phase (NEW EMBEDDED APPROACH)
-      if (mode === 'automated') {
-        setProcessingStep('validating');
-        setProcessingProgress(50);
-
-        // Call AI extraction endpoint directly
-        const aiExtractionResult = await apiRequest(`/api/sessions/${session.id}/ai-extraction`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
-
-        setProcessingProgress(90);
-
-        if (aiExtractionResult && aiExtractionResult.success) {
-          toast({
-            title: "Extraction completed",
-            description: `${selectedFiles.length} file(s) processed successfully. Opening session review...`,
-          });
-        }
-      }
-
-      // Step 5: Complete
-      setProcessingStep('complete');
       setProcessingProgress(100);
+
+      // Step 4: Complete
+      setProcessingStep('complete');
 
       // Mark files as completed
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
 
-      // Show success briefly before navigation
+      // Show success briefly before redirect
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       if (textExtractionResult && session?.id) {
+        toast({
+          title: "Text extraction complete",
+          description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
+        });
+
+        // Close dialog and redirect to schema view with mode parameter
         setShowProcessingDialog(false);
-        
-        if (mode === 'automated') {
-          // For automated mode: Navigate to All Data tab to show completed session
-          if (onSessionComplete) {
-            onSessionComplete(session.id);
-          }
-          toast({
-            title: "Session complete",
-            description: "Your extraction is ready for review. Navigate to All Data to see results.",
-          });
-        } else {
-          // For debug mode: Redirect to SchemaView as before
-          const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
-          const urlWithMode = `${redirectUrl}?mode=${mode}`;
-          setLocation(urlWithMode);
-        }
+        const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
+        const urlWithMode = `${redirectUrl}?mode=${mode}`;
+
+        setLocation(urlWithMode);
       } else {
         throw new Error("Text extraction completed but session data is missing");
       }
