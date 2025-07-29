@@ -386,10 +386,15 @@ def main():
         data = json.loads(input_data)
         
         operation = data.get('operation', 'extract')
+        session_id = data.get('session_id', data.get('sessionId', 'unknown'))
+        
+        # Log orchestrator usage
+        print(f"ORCHESTRATOR: Processing operation '{operation}' for session {session_id}", file=sys.stderr)
         
         if operation == 'extract_text':
             # Simple text extraction
             documents = data.get('documents', [])
+            print(f"ORCHESTRATOR: Text extraction for {len(documents)} documents", file=sys.stderr)
             extracted_texts = extract_document_text(documents)
             result = {
                 "success": True,
@@ -399,6 +404,7 @@ def main():
         elif operation == 'gemini_prompt':
             # Direct Gemini prompt processing
             prompt = data.get('prompt', '')
+            print(f"ORCHESTRATOR: Gemini prompt processing for session {session_id}", file=sys.stderr)
             result = process_gemini_prompt(prompt)
             result['sessionId'] = data.get('sessionId')
             result['projectId'] = data.get('projectId')
@@ -410,6 +416,7 @@ def main():
             rules = data.get('extraction_rules', [])
             knowledge_docs = data.get('knowledge_documents', [])
             
+            print(f"ORCHESTRATOR: Full extraction for {len(documents)} documents with {len(rules)} rules", file=sys.stderr)
             result = extract_structured_data(documents, schema, rules, knowledge_docs)
             
         elif operation == 'validate':
@@ -418,15 +425,21 @@ def main():
             rules = data.get('extraction_rules', [])
             knowledge_docs = data.get('knowledge_documents', [])
             
+            print(f"ORCHESTRATOR: Validating {len(field_validations)} fields with {len(rules)} rules", file=sys.stderr)
             result = validate_field_records(field_validations, rules, knowledge_docs)
             
         else:
+            print(f"ORCHESTRATOR: Unknown operation '{operation}'", file=sys.stderr)
             result = {"success": False, "error": f"Unknown operation: {operation}"}
+        
+        # Log completion
+        print(f"ORCHESTRATOR: Operation '{operation}' completed successfully: {result.get('success', False)}", file=sys.stderr)
         
         # Output result
         print(json.dumps(result))
         
     except Exception as e:
+        print(f"ORCHESTRATOR ERROR: {str(e)}", file=sys.stderr)
         error_result = {
             "success": False,
             "error": f"Orchestrator error: {str(e)}"

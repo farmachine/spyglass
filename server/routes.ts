@@ -2612,42 +2612,28 @@ except Exception as e:
         return res.status(404).json({ message: "Project not found" });
       }
 
-      // Prepare session data for batch validation
-      const sessionData = {
+      // Prepare data for unified orchestrator batch validation
+      const batchValidationData = {
+        operation: "validate",
         session_id: sessionId,
-        project_schema: {
-          schema_fields: project.schemaFields || [],
-          collections: project.collections || []
-        },
+        field_validations: existingValidations.map(v => ({
+          fieldName: v.fieldName,
+          fieldId: v.fieldId, 
+          fieldType: v.fieldType,
+          extractedValue: v.extractedValue,
+          confidenceScore: v.confidenceScore,
+          validationStatus: v.validationStatus,
+          aiReasoning: v.aiReasoning
+        })),
         extraction_rules: extractionRules || [],
-        knowledge_documents: knowledgeDocuments || [],
-        existing_validations: existingValidations.map(v => ({
-          field_name: v.fieldName,
-          field_id: v.fieldId,
-          field_type: v.fieldType,
-          extracted_value: v.extractedValue,
-          confidence_score: v.confidenceScore,
-          validation_status: v.validationStatus,
-          ai_reasoning: v.aiReasoning,
-          auto_verification_threshold: 80 // Default threshold
-        }))
+        knowledge_documents: knowledgeDocuments || []
       };
 
-      // Call Python batch validation function
-      const python = spawn('python3', ['-c', `
-import sys
-import json
-sys.path.append('.')
-from ai_extraction import run_post_extraction_batch_validation
-
-# Read input data
-input_data = json.loads(sys.stdin.read())
-
-# Run batch validation
-results = run_post_extraction_batch_validation(input_data)
-
-print(json.dumps(results))
-`]);
+      // Call unified extraction orchestrator for batch validation
+      const python = spawn('python3', ['ai_extraction_orchestrator.py']);
+      
+      python.stdin.write(JSON.stringify(batchValidationData));
+      python.stdin.end();
 
       let pythonOutput = '';
       let pythonError = '';
