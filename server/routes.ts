@@ -2014,6 +2014,50 @@ print(json.dumps(result))
       const { prompt, projectId } = req.body;
       
       console.log(`GEMINI EXTRACTION: Starting for session ${sessionId}`);
+      console.log(`DEBUG: Project ID: ${projectId}`);
+      
+      // Gather session data for Python script
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ success: false, error: 'Session not found' });
+      }
+      
+      // Get project schema data
+      const [schemaFields, collections, extractionRules, knowledgeDocs] = await Promise.all([
+        storage.getProjectSchemaFields(projectId),
+        storage.getObjectCollections(projectId),
+        storage.getExtractionRules(projectId),
+        storage.getKnowledgeDocuments(projectId)
+      ]);
+      
+      // Extract the files from the session data
+      let files = [];
+      if (session.extractedData) {
+        try {
+          const extractedData = JSON.parse(session.extractedData);
+          if (extractedData.extracted_texts && Array.isArray(extractedData.extracted_texts)) {
+            files = extractedData.extracted_texts.map(item => ({
+              name: item.file_name,
+              content: item.text_content,
+              mimeType: 'text/plain'
+            }));
+          }
+        } catch (e) {
+          console.error('Failed to parse extractedData:', e);
+        }
+      }
+      
+      // Build session data for Python script
+      const sessionData = {
+        session_id: sessionId,
+        project_schema: {
+          schema_fields: schemaFields,
+          collections: collections
+        },
+        files: files,
+        extraction_rules: extractionRules,
+        knowledge_documents: knowledgeDocs
+      };
       
       // Call the existing Python script for AI extraction
       const { spawn } = await import('child_process');
@@ -2024,12 +2068,13 @@ print(json.dumps(result))
         cwd: process.cwd()
       });
 
-      // Send the prompt data to Python
-      const pythonInput = JSON.stringify({
-        prompt: prompt,
-        projectId: projectId,
-        sessionId: sessionId
-      });
+      // Send the complete session data to Python
+      const pythonInput = JSON.stringify(sessionData);
+      
+      console.log(`DEBUG: Sending ${JSON.stringify(sessionData).length} chars to Python`);
+      console.log(`DEBUG: Schema fields count: ${schemaFields.length}`);
+      console.log(`DEBUG: Collections count: ${collections.length}`);
+      console.log(`DEBUG: Files count: ${files.length}`);
       
       python.stdin.write(pythonInput);
       python.stdin.end();
@@ -2042,11 +2087,28 @@ print(json.dumps(result))
         error += data.toString();
       });
 
+      // Add timeout
+      const timeoutId = setTimeout(() => {
+        python.kill();
+        console.error('GEMINI EXTRACTION timeout after 60 seconds');
+      }, 60000);
+
       await new Promise((resolve, reject) => {
         python.on('close', async (code: any) => {
+          clearTimeout(timeoutId);
+          
+          console.log(`GEMINI EXTRACTION process exited with code: ${code}`);
+          console.log(`GEMINI EXTRACTION output length: ${output.length}`);
+          console.log(`GEMINI EXTRACTION error length: ${error.length}`);
+          
           if (code !== 0) {
             console.error('GEMINI EXTRACTION error:', error);
-            return reject(new Error(`Gemini extraction failed: ${error}`));
+            return reject(new Error(`Gemini extraction failed (code ${code}): ${error}`));
+          }
+          
+          if (!output.trim()) {
+            console.error('GEMINI EXTRACTION: No output received');
+            return reject(new Error('No output received from extraction process'));
           }
           
           try {
@@ -2055,14 +2117,15 @@ print(json.dumps(result))
             
             res.json({
               success: result.success,
-              extractedData: result.extractedData || result.result,
-              error: result.error
+              extractedData: result.extracted_data || result.extractedData || result.result,
+              error: result.error,
+              processingDetails: result.processing_summary
             });
             
             resolve(result);
           } catch (parseError) {
             console.error('GEMINI EXTRACTION JSON parse error:', parseError);
-            console.error('Raw output:', output);
+            console.error('Raw output:', output.substring(0, 1000));
             reject(new Error(`Invalid JSON response: ${parseError}`));
           }
         });

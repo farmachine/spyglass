@@ -72,7 +72,9 @@ class AIExtractor:
             return self._parse_ai_response(response.text)
             
         except Exception as e:
-            logging.error(f"Extraction failed for {file_name}: {e}")
+            logging.error(f"Extraction failed for {file_name}: {type(e).__name__}: {e}")
+            import traceback
+            logging.error(f"Full traceback: {traceback.format_exc()}")
             return {}
     
     def _build_extraction_prompt(self, schema: Dict[str, Any], file_name: str) -> str:
@@ -193,7 +195,10 @@ SCHEMA FIELDS:"""
     def _parse_ai_response(self, response_text: str) -> Dict[str, Any]:
         """Parse and clean AI response"""
         if not response_text:
+            logging.error("Empty response from Gemini")
             return {}
+        
+        logging.info(f"Raw AI response (first 500 chars): {response_text[:500]}")
         
         # Clean markdown formatting
         response_text = response_text.strip()
@@ -206,6 +211,7 @@ SCHEMA FIELDS:"""
             return json.loads(response_text)
         except json.JSONDecodeError as e:
             logging.error(f"Failed to parse AI response: {e}")
+            logging.error(f"Response text: {response_text}")
             return {}
 
 class ValidationEngine:
@@ -375,6 +381,7 @@ class DocumentProcessor:
         logging.info("Starting simplified document processing")
         
         files = session_data.get("files", [])
+        logging.info(f"Processing session {session_data.get('session_id')} with {len(files)} files")
         schema = session_data.get("project_schema", {})
         extraction_rules = session_data.get("extraction_rules", [])
         knowledge_docs = session_data.get("knowledge_documents", [])
@@ -494,9 +501,12 @@ def main():
         
     except Exception as e:
         logging.error(f"Processing failed: {e}")
+        import traceback
+        logging.error(f"Full traceback: {traceback.format_exc()}")
         error_result = {
             "success": False,
             "error": str(e),
+            "traceback": traceback.format_exc(),
             "extracted_data": {},
             "validations": []
         }

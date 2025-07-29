@@ -1,0 +1,21 @@
+{
+  "session_id": "f14c22b8-ce28-432e-a03d-017317908132",
+  "project_schema": {
+    "schema_fields": [],
+    "collections": []
+  },
+  "files": [
+    {
+      "name": "Asana_2025-07-25 (2).xlsx",
+      "content": "Excel file content from Asana_2025-07-25 (2).xlsx:\n\n=== SHEET: MSA ===\n                  Property                              Value\n             MSA ID/Number                                   \n     ...",
+      "mimeType": "text/plain"
+    },
+    {
+      "name": "Asana Master Subscription Agreement (executable).pdf",
+      "content": "asana\nASANA MASTER SUBSCRIPTION AGREEMENT\nThis Master Subscription Agreement and all applicable exhibits, attachments, addenda, and Order Forms are the complete\nagreement between the parties identifie...",
+      "mimeType": "text/plain"
+    }
+  ],
+  "extraction_rules": [],
+  "knowledge_documents": []
+}
