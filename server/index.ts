@@ -5,7 +5,7 @@ import { setupVite, serveStatic, log } from "./vite";
 const app = express();
 
 // Handle EPIPE errors globally to prevent server crashes
-process.on('uncaughtException', (err) => {
+process.on('uncaughtException', (err: any) => {
   if (err.code === 'EPIPE') {
     console.warn('EPIPE error caught and handled:', err.message);
     return;

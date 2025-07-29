@@ -159,8 +159,8 @@ export class ExtractionOrchestrator extends EventEmitter {
 
   private async extractTextContent(sessionId: string, files: any[]): Promise<any> {
     return new Promise((resolve, reject) => {
-      const pythonScript = path.join(__dirname, '../../ai_extraction.py');
-      const process = spawn('python3', [pythonScript, 'extract_text'], {
+      const pythonScript = path.join(__dirname, '../../test_text_extraction.py');
+      const process = spawn('python3', [pythonScript], {
         cwd: path.join(__dirname, '../..'),
         stdio: 'pipe'
       });
