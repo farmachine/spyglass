@@ -306,10 +306,24 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
     ] : []),
   ];
 
+  // Handle session completion from NewUpload
+  const handleSessionComplete = (sessionId: string) => {
+    // Switch to All Data tab to show the completed session
+    setActiveTab("data");
+    // Invalidate project queries to refresh session list
+    queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
+    queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'sessions'] });
+    
+    toast({
+      title: "Extraction Complete",
+      description: "Your session is ready for review in the All Data tab.",
+    });
+  };
+
   const renderActiveContent = () => {
     switch (activeTab) {
       case "upload":
-        return <NewUpload project={project} />;
+        return <NewUpload project={project} onSessionComplete={handleSessionComplete} />;
       case "data":
         return <AllData project={project} />;
       case "knowledge":
