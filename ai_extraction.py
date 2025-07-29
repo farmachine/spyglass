@@ -6,6 +6,8 @@ import os
 import logging
 import tempfile
 import base64
+import uuid
+import psycopg2
 from typing import Dict, Any, List
 from dataclasses import dataclass
 
@@ -32,6 +34,52 @@ class ExtractionResult:
     confidence_score: float
     processing_notes: str
     field_validations: List[FieldValidationResult]
+
+def save_session_document(session_id: str, project_id: str, file_name: str, file_type: str, 
+                         file_size: int, extraction_status: str, extracted_content: str, 
+                         word_count: int, original_file_data: str = None) -> str:
+    """
+    Save document extraction result to session_documents table
+    Returns the document ID or None if failed
+    """
+    try:
+        # Get database URL from environment
+        database_url = os.environ.get("DATABASE_URL")
+        if not database_url:
+            logging.error("DATABASE_URL environment variable not found")
+            return None
+            
+        # Connect to database
+        conn = psycopg2.connect(database_url)
+        cur = conn.cursor()
+        
+        # Generate UUID for document
+        document_id = str(uuid.uuid4())
+        
+        # Insert document record
+        insert_query = """
+            INSERT INTO session_documents 
+            (id, session_id, project_id, file_name, file_type, file_size, 
+             extraction_status, extracted_content, word_count, original_file_data, 
+             created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+        """
+        
+        cur.execute(insert_query, (
+            document_id, session_id, project_id, file_name, file_type, 
+            file_size, extraction_status, extracted_content, word_count, original_file_data
+        ))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        logging.info(f"✅ Saved document {file_name} to session_documents table with ID: {document_id}")
+        return document_id
+        
+    except Exception as e:
+        logging.error(f"❌ Failed to save document {file_name} to database: {e}")
+        return None
 
 def generate_human_friendly_reasoning(field_name: str, extracted_value: Any, applied_rules: List[Dict[str, Any]]) -> str:
     """
@@ -256,7 +304,9 @@ def extract_data_from_document(
     mime_type: str,
     project_schema: Dict[str, Any],
     extraction_rules: List[Dict[str, Any]] = None,
-    knowledge_documents: List[Dict[str, Any]] = None
+    knowledge_documents: List[Dict[str, Any]] = None,
+    session_id: str = None,
+    project_id: str = None
 ) -> ExtractionResult:
     """Extract structured data from a document using AI"""
     
@@ -463,19 +513,85 @@ def extract_data_from_document(
                 logging.error(f"Unexpected file content type: {type(file_content)}")
                 raise Exception(f"Unsupported file content type: {type(file_content)}")
             
-            # Check PDF header
-            if binary_content[:4] == b'%PDF':
+            # Check document type and process accordingly
+            document_processed = False
+            
+            # Handle Word documents (.docx, .doc)
+            if (mime_type in ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword'] or
+                file_name.lower().endswith(('.docx', '.doc'))):
+                logging.info(f"Processing Word document: {file_name}")
+                try:
+                    from docx import Document
+                    import io
+                    
+                    # Create document from binary content
+                    doc_stream = io.BytesIO(binary_content)
+                    doc = Document(doc_stream)
+                    
+                    # Extract text from all paragraphs
+                    text_content = ""
+                    for paragraph in doc.paragraphs:
+                        text_content += paragraph.text + "\n"
+                    
+                    # Extract text from tables
+                    for table in doc.tables:
+                        for row in table.rows:
+                            for cell in row.cells:
+                                text_content += cell.text + "\t"
+                            text_content += "\n"
+                    
+                    if text_content.strip():
+                        logging.info(f"Successfully extracted text from Word document: {len(text_content)} characters")
+                        full_prompt = prompt + f"\n\nDocument content:\n{text_content}"
+                        response = model.generate_content(full_prompt)
+                        document_processed = True
+                    
+                except Exception as e:
+                    logging.error(f"Word document processing error: {e}")
+            
+            # Handle Excel documents (.xlsx, .xls)
+            elif (mime_type in ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'] or
+                  file_name.lower().endswith(('.xlsx', '.xls'))):
+                logging.info(f"Processing Excel document: {file_name}")
+                try:
+                    import pandas as pd
+                    import io
+                    
+                    # Create Excel stream from binary content
+                    excel_stream = io.BytesIO(binary_content)
+                    
+                    # Read all sheets
+                    engine = 'openpyxl' if file_name.lower().endswith('.xlsx') else 'xlrd'
+                    all_sheets = pd.read_excel(excel_stream, sheet_name=None, engine=engine)
+                    
+                    # Convert all sheets to text
+                    text_content_parts = []
+                    for sheet_name, df in all_sheets.items():
+                        text_content_parts.append(f"=== SHEET: {sheet_name} ===")
+                        sheet_text = df.to_string(index=False, na_rep='')
+                        text_content_parts.append(sheet_text)
+                    
+                    text_content = "\n\n".join(text_content_parts)
+                    
+                    if text_content.strip():
+                        logging.info(f"Successfully extracted text from Excel document: {len(text_content)} characters")
+                        full_prompt = prompt + f"\n\nDocument content:\n{text_content}"
+                        response = model.generate_content(full_prompt)
+                        document_processed = True
+                    
+                except Exception as e:
+                    logging.error(f"Excel document processing error: {e}")
+            
+            # Handle PDF documents
+            elif binary_content[:4] == b'%PDF' or mime_type == 'application/pdf':
                 logging.info("✅ Valid PDF header detected")
-            else:
-                logging.warning(f"❌ Invalid PDF header: {binary_content[:20]}")
-            
-            logging.info(f"Processing PDF with {len(binary_content)} bytes")
-            
-            # Try multiple PDF processing approaches with enhanced error handling
-            pdf_processed = False
-            
-            # Method 1: PyPDF2 text extraction
-            try:
+                logging.info(f"Processing PDF with {len(binary_content)} bytes")
+                
+                # Try multiple PDF processing approaches with enhanced error handling
+                pdf_processed = False
+                
+                # Method 1: PyPDF2 text extraction
+                try:
                 import PyPDF2
                 import io
                 
@@ -524,20 +640,46 @@ def extract_data_from_document(
             
 
             
-            # Final fallback if all PDF processing methods failed
-            if not pdf_processed:
-                logging.warning("All PDF processing methods failed - using intelligent fallback")
+                # Update document_processed if PDF processing succeeded
+                if pdf_processed:
+                    document_processed = True
+            
+            # Handle unsupported document types
+            else:
+                logging.warning(f"Unsupported document type: {file_name} ({mime_type})")
+                # Set extracted text to indicate unsupported format
+                text_content = f"Unsupported file format: {mime_type}. Only PDF, Word (.docx, .doc), and Excel (.xlsx, .xls) files are supported."
                 fallback_prompt = f"""
                 {prompt}
                 
-                CRITICAL: This PDF document named '{file_name}' could not be processed due to PDF formatting/corruption issues.
+                CRITICAL: This document named '{file_name}' has an unsupported file format ({mime_type}).
+                
+                IMPORTANT INSTRUCTIONS:
+                1. DO NOT extract any data - unsupported file format
+                2. Set ALL extracted values to null
+                3. Set ALL validation statuses to "invalid" 
+                4. Set ALL confidence scores to 0
+                5. Use "Unsupported file format - please upload PDF, Word, or Excel files" as the AI reasoning for each field
+                6. Mark the overall status as requiring manual review
+                
+                Supported formats: PDF, Word (.docx, .doc), Excel (.xlsx, .xls)
+                """
+                response = model.generate_content(fallback_prompt)
+            
+            # Final fallback if all processing methods failed
+            if not document_processed:
+                logging.warning("All document processing methods failed - using intelligent fallback")
+                fallback_prompt = f"""
+                {prompt}
+                
+                CRITICAL: This document named '{file_name}' could not be processed due to formatting/corruption issues.
                 
                 IMPORTANT INSTRUCTIONS:
                 1. DO NOT extract any data - the document content is inaccessible
                 2. Set ALL extracted values to null
                 3. Set ALL validation statuses to "invalid" 
                 4. Set ALL confidence scores to 0
-                5. Use "PDF processing failed - document format issues" as the AI reasoning for each field
+                5. Use "Document processing failed - format issues" as the AI reasoning for each field
                 6. Mark the overall status as requiring manual review
                 
                 This ensures users understand the document needs to be re-uploaded in a different format or fixed.
@@ -685,6 +827,60 @@ def extract_data_from_document(
         # Validation records will be created later during batch validation with proper confidence scores
         logging.info(f"📋 PURE_EXTRACTION: Extraction complete for {len(field_metadata)} fields - NO validation processing during extraction")
         logging.info(f"📋 PURE_EXTRACTION: Validation records will be created later during batch validation phase")
+        
+        # Save document extraction to session_documents table
+        # Extract extracted text content based on document type and processing method
+        extracted_text = ""
+        word_count = 0
+        
+        if mime_type.startswith("text/"):
+            extracted_text = content_text if 'content_text' in locals() else ""
+        elif 'text_content' in locals():
+            extracted_text = text_content
+        
+        if extracted_text:
+            word_count = len(extracted_text.split())
+        
+        # Determine file size (estimate from base64 if needed)
+        file_size = 0
+        if isinstance(file_content, str):
+            if file_content.startswith('data:'):
+                base64_content = file_content.split(',', 1)[1]
+                file_size = len(base64.b64decode(base64_content))
+            else:
+                file_size = len(file_content.encode('utf-8'))
+        elif isinstance(file_content, bytes):
+            file_size = len(file_content)
+        
+        # Get file extension for file_type
+        file_extension = file_name.lower().split('.')[-1] if '.' in file_name else 'unknown'
+        
+        # Store original file data as base64 for later retrieval
+        original_file_data = None
+        if isinstance(file_content, str) and file_content.startswith('data:'):
+            original_file_data = file_content
+        elif isinstance(file_content, bytes):
+            original_file_data = base64.b64encode(file_content).decode('utf-8')
+        
+        # Save document extraction to session_documents table
+        if session_id and project_id:
+            document_id = save_session_document(
+                session_id=session_id,
+                project_id=project_id,
+                file_name=file_name,
+                file_type=file_extension,
+                file_size=file_size,
+                extraction_status="completed",
+                extracted_content=extracted_text,
+                word_count=word_count,
+                original_file_data=original_file_data
+            )
+            if document_id:
+                logging.info(f"🗃️ Document saved to database with ID: {document_id}")
+            else:
+                logging.warning(f"⚠️ Failed to save document {file_name} to database")
+        else:
+            logging.warning(f"⚠️ Missing session_id or project_id - cannot save document to database")
         
         return ExtractionResult(
             extracted_data=extracted_data,
@@ -1043,7 +1239,9 @@ def process_extraction_session(session_data: Dict[str, Any]) -> Dict[str, Any]:
                 mime_type=mime_type,
                 project_schema=project_schema,
                 extraction_rules=extraction_rules,
-                knowledge_documents=knowledge_documents
+                knowledge_documents=knowledge_documents,
+                session_id=session_data.get("session_id"),
+                project_id=session_data.get("project_id")
             )
             
             document_result = {
