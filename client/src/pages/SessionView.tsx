@@ -23,7 +23,7 @@ import { apiRequest } from "@/lib/queryClient";
 import ExtractlyLogo from "@/components/ExtractlyLogo";
 import ValidationIcon from "@/components/ValidationIcon";
 import UserProfile from "@/components/UserProfile";
-import ValidationProcessingDialog from "@/components/ValidationProcessingDialog";
+
 
 import type { 
   ExtractionSession, 
@@ -258,12 +258,10 @@ export default function SessionView() {
   const [showReasoningDialog, setShowReasoningDialog] = useState(false);
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
   const [hasInitializedCollapsed, setHasInitializedCollapsed] = useState(false);
-  const [hasRunAutoValidation, setHasRunAutoValidation] = useState(false);
+
   const [editingDisplayNames, setEditingDisplayNames] = useState<Record<string, boolean>>({});
   const [displayNames, setDisplayNames] = useState<Record<string, string>>({});
-  const [showValidationDialog, setShowValidationDialog] = useState(false);
-  const [validationStep, setValidationStep] = useState<'validating' | 'complete'>('validating');
-  const [validationProgress, setValidationProgress] = useState(0);
+
   const [activeTab, setActiveTab] = useState('info');
   const [selectedReasoning, setSelectedReasoning] = useState<{
     reasoning: string;
@@ -519,43 +517,7 @@ export default function SessionView() {
     }
   });
 
-  // Batch validation mutation for applying extraction rules post-extraction (silent background operation)
-  const batchValidationMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest(`/api/sessions/${sessionId}/batch-validate`, {
-        method: 'POST'
-      });
-    },
-    onSuccess: async (result) => {
-      // Complete validation progress and show completion briefly
-      setValidationProgress(100);
-      setValidationStep('complete');
-      
-      // Invalidate and refetch validation queries to update UI
-      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
-      await queryClient.invalidateQueries({ queryKey: ['/api/validations/project', projectId] });
-      
-      // Hide dialog after showing completion for 1 second
-      setTimeout(() => {
-        setShowValidationDialog(false);
-        setValidationProgress(0);
-        setValidationStep('validating');
-      }, 1000);
-      
-      console.log(`✅ Batch validation completed: ${result.fields_processed} fields processed`);
-    },
-    onError: (error: any) => {
-      console.error('Batch validation failed:', error);
-      setShowValidationDialog(false);
-      setValidationProgress(0);
-      setValidationStep('validating');
-      toast({
-        title: "Validation processing error",
-        description: "Some validation rules may not have been applied correctly.",
-        variant: "destructive"
-      });
-    }
-  });
+
 
   // Handler for field verification changes
   const handleFieldVerification = (fieldName: string, isVerified: boolean) => {
@@ -588,25 +550,7 @@ export default function SessionView() {
     });
   };
 
-  // Auto-run batch validation after extraction redirect
-  useEffect(() => {
-    if (session && validations.length > 0 && !hasRunAutoValidation && !batchValidationMutation.isPending) {
-      // Check if this session was recently created (within last 5 minutes) to determine if we just extracted
-      const sessionCreatedAt = new Date(session.createdAt);
-      const now = new Date();
-      const timeDiffMinutes = (now.getTime() - sessionCreatedAt.getTime()) / (1000 * 60);
-      
-      // Only auto-validate for recently created sessions
-      if (timeDiffMinutes <= 5) {
-        console.log('🚀 Auto-running batch validation for new session');
-        setHasRunAutoValidation(true);
-        batchValidationMutation.mutate();
-      } else {
-        // Mark as already processed for older sessions
-        setHasRunAutoValidation(true);
-      }
-    }
-  }, [session, validations, hasRunAutoValidation, batchValidationMutation]);
+
 
   if (projectLoading || sessionLoading || validationsLoading) {
     return (
@@ -2166,12 +2110,7 @@ Thank you for your assistance.`;
         </DialogContent>
       </Dialog>
 
-      {/* Validation Processing Dialog */}
-      <ValidationProcessingDialog
-        open={showValidationDialog}
-        processingStep={validationStep}
-        processingProgress={validationProgress}
-      />
+
     </div>
   );
 }
