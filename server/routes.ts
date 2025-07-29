@@ -2011,37 +2011,10 @@ print(json.dumps(result))
   app.post("/api/sessions/:sessionId/gemini-extraction", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
-      const { projectId } = req.body;
+      const { prompt, projectId } = req.body;
       
       console.log(`GEMINI EXTRACTION: Starting for session ${sessionId}`);
       
-      // Get session data with documents
-      const session = await storage.getSessionWithValidations(sessionId);
-      if (!session) {
-        return res.status(404).json({ success: false, error: "Session not found" });
-      }
-
-      // Get project schema and extraction rules
-      const project = await storage.getProjectWithDetails(projectId);
-      if (!project) {
-        return res.status(404).json({ success: false, error: "Project not found" });
-      }
-
-      // Prepare documents from session data  
-      let documents = [];
-      if (session.extractedData) {
-        try {
-          const extractedData = JSON.parse(session.extractedData);
-          documents = extractedData.map((doc: any) => ({
-            file_name: doc.file_name || doc.name || 'document.pdf',
-            file_content: doc.content || doc.text_content || '',
-            mime_type: doc.type || doc.mime_type || 'application/pdf'
-          }));
-        } catch (e) {
-          console.error('Failed to parse session extracted data:', e);
-        }
-      }
-
       // Call the existing Python script for AI extraction
       const { spawn } = await import('child_process');
       let output = '';
@@ -2051,19 +2024,12 @@ print(json.dumps(result))
         cwd: process.cwd()
       });
 
-      // Send the correct data structure to Python
+      // Send the prompt data to Python
       const pythonInput = JSON.stringify({
-        step: "extract",
-        files: documents,
-        project_schema: {
-          fields: project.fields || [],
-          collections: project.collections || []
-        },
-        extraction_rules: project.extractionRules || [],
-        session_name: session.sessionName || "contract"
+        prompt: prompt,
+        projectId: projectId,
+        sessionId: sessionId
       });
-
-      console.log(`GEMINI EXTRACTION: Sending ${documents.length} documents to AI processing`);
       
       python.stdin.write(pythonInput);
       python.stdin.end();
@@ -2085,12 +2051,12 @@ print(json.dumps(result))
           
           try {
             const result = JSON.parse(output);
-            console.log('GEMINI EXTRACTION result:', result ? 'Success' : 'Failed');
+            console.log('GEMINI EXTRACTION result:', result.success ? 'Success' : 'Failed');
             
             res.json({
-              success: true,
-              extractedData: result,
-              error: null
+              success: result.success,
+              extractedData: result.extractedData || result.result,
+              error: result.error
             });
             
             resolve(result);
