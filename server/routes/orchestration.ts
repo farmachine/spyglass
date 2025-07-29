@@ -185,9 +185,12 @@ router.post('/cancel/:sessionId', authenticateToken, async (req: AuthRequest, re
 });
 
 // WebSocket-like endpoint for real-time progress updates
-router.get('/stream/:sessionId', authenticateToken, async (req: AuthRequest, res) => {
+router.get('/stream/:sessionId', async (req, res) => {
   try {
     const { sessionId } = sessionIdSchema.parse(req.params);
+    
+    // For now, skip authentication check for SSE endpoint
+    // TODO: Implement token-based authentication via query parameter
     
     // Set up Server-Sent Events
     res.writeHead(200, {
