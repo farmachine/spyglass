@@ -6,7 +6,7 @@ import os
 from google import genai
 from google.genai import types
 
-# Set up logging
+# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -36,28 +36,7 @@ Create a schema for extracting CSP data in the specific format shown. The output
 2. Intervention descriptions 
 3. Binary activity status strings (series of 1s and 0s representing different agricultural activities)
 
-Keep the schema simple and focused on the CSP format. Use only a few essential fields to capture this structured data.
-
-RESPONSE FORMAT:
-Return ONLY a valid JSON object. Example:
-
-{
-  "main_object_name": "CSP_Data",
-  "schema_fields": [
-    {
-      "field_name": "Country_Code",
-      "field_type": "TEXT",
-      "description": "Country code for the CSP data",
-      "auto_verification_confidence": 85,
-      "ai_guidance": "Extract the country code from the data",
-      "extraction_rules": "Look for 2-letter country codes",
-      "knowledge_documents": "CSP Guidelines"
-    }
-  ],
-  "collections": []
-}
-
-User Query: """
+Keep the schema simple and focused on the CSP format. Use only a few essential fields to capture this structured data."""
     else:
         system_prompt = """You are an AI assistant that helps users create data extraction schemas based on their natural language descriptions.
 
@@ -73,7 +52,7 @@ IMPORTANT GUIDELINES:
 - Suggest appropriate knowledge documents that would help with validation
 - Use appropriate field types: TEXT, NUMBER, DATE, BOOLEAN
 - Make collection and property names descriptive and user-friendly
-- Include realistic descriptions that explain what each field should contain
+- Include realistic descriptions that explain what each field should contain"""
 
 RESPONSE FORMAT:
 Return ONLY a valid JSON object with proper double-quoted property names. Do NOT include any markdown formatting, explanatory text, or comments. Return ONLY the JSON with this exact structure:
@@ -110,13 +89,17 @@ Return ONLY a valid JSON object with proper double-quoted property names. Do NOT
   ]
 }
 
-User Query: """
+Now process this user query and generate an appropriate schema structure.
+
+CRITICAL: Your response must be ONLY valid JSON with properly quoted property names. Do not include any explanations, markdown, or other text outside the JSON object.
+
+User Query:"""
 
     try:
         response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=[
-                types.Content(role="user", parts=[types.Part(text=f"{system_prompt}{user_query}")])
+                types.Content(role="user", parts=[types.Part(text=f"{system_prompt}\n\n{user_query}")])
             ],
             config=types.GenerateContentConfig(
                 max_output_tokens=8000,
