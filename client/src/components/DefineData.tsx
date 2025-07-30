@@ -51,8 +51,8 @@ interface DefineDataProps {
 export default function DefineData({ project }: DefineDataProps) {
   const [schemaFieldDialog, setSchemaFieldDialog] = useState<{ open: boolean; field?: ProjectSchemaField | null }>({ open: false });
   const [collectionDialog, setCollectionDialog] = useState<{ open: boolean; collection?: ObjectCollection | null }>({ open: false });
-  const [propertyDialog, setPropertyDialog] = useState<{ open: boolean; property?: CollectionProperty | null; collectionId?: number; collectionName?: string }>({ open: false });
-  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type?: string; id?: number; name?: string }>({ open: false });
+  const [propertyDialog, setPropertyDialog] = useState<{ open: boolean; property?: CollectionProperty | null; collectionId?: string; collectionName?: string }>({ open: false });
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type?: string; id?: string; name?: string }>({ open: false });
   const [mainObjectName, setMainObjectName] = useState(project.mainObjectName || "Session");
   const [isEditingMainObjectName, setIsEditingMainObjectName] = useState(false);
   const [activeTab, setActiveTab] = useState('main-data');
@@ -183,7 +183,7 @@ export default function DefineData({ project }: DefineDataProps) {
     }
   };
 
-  const handleDeleteSchemaField = async (id: number) => {
+  const handleDeleteSchemaField = async (id: string) => {
     try {
       // Mark project as interacted to prevent welcome flow redirects
       sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
@@ -248,7 +248,7 @@ export default function DefineData({ project }: DefineDataProps) {
     }
   };
 
-  const handleDeleteCollection = async (id: number) => {
+  const handleDeleteCollection = async (id: string) => {
     try {
       // Mark project as interacted to prevent welcome flow redirects
       sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
@@ -321,7 +321,7 @@ export default function DefineData({ project }: DefineDataProps) {
     }
   };
 
-  const handleDeleteProperty = async (id: number) => {
+  const handleDeleteProperty = async (id: string) => {
     try {
       await deleteProperty.mutateAsync(id);
       setDeleteDialog({ open: false });
@@ -764,7 +764,7 @@ export default function DefineData({ project }: DefineDataProps) {
 
       <PropertyDialog
         open={propertyDialog.open}
-        onOpenChange={(open) => setPropertyDialog({ open, property: null, collectionId: null, collectionName: "" })}
+        onOpenChange={(open) => setPropertyDialog({ open, property: null, collectionId: undefined, collectionName: "" })}
         onSave={propertyDialog.property ? handleUpdateProperty : handleCreateProperty}
         property={propertyDialog.property}
         collectionName={propertyDialog.collectionName}

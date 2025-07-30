@@ -22,10 +22,10 @@ interface CollectionCardProps {
   collection: ObjectCollection;
   fieldTypeColors: Record<string, string>;
   onEditCollection: (collection: ObjectCollection) => void;
-  onDeleteCollection: (id: number, name: string) => void;
-  onAddProperty: (collectionId: number, collectionName: string) => void;
+  onDeleteCollection: (id: string, name: string) => void;
+  onAddProperty: (collectionId: string, collectionName: string) => void;
   onEditProperty: (property: CollectionProperty) => void;
-  onDeleteProperty: (id: number, name: string) => void;
+  onDeleteProperty: (id: string, name: string) => void;
   dragHandleProps?: any;
 }
 
@@ -158,7 +158,7 @@ export default function CollectionCard({
             variant="ghost" 
             size="sm" 
             className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-            onClick={() => onDeleteCollection(String(collection.id), collection.collectionName)}
+            onClick={() => onDeleteCollection(collection.id, collection.collectionName)}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -179,7 +179,7 @@ export default function CollectionCard({
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => onAddProperty(Number(collection.id), collection.collectionName)}
+                onClick={() => onAddProperty(collection.id, collection.collectionName)}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Property
@@ -245,7 +245,7 @@ export default function CollectionCard({
                                       variant="ghost" 
                                       size="sm" 
                                       className="text-red-600"
-                                      onClick={() => onDeleteProperty(Number(property.id), property.propertyName)}
+                                      onClick={() => onDeleteProperty(property.id, property.propertyName)}
                                     >
                                       <Trash2 className="h-4 w-4" />
                                     </Button>
@@ -267,7 +267,7 @@ export default function CollectionCard({
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => onAddProperty(Number(collection.id), collection.collectionName)}
+                  onClick={() => onAddProperty(collection.id, collection.collectionName)}
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Property
