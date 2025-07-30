@@ -1968,28 +1968,24 @@ Thank you for your assistance.`;
                                   </div>
                                 </TableHead>
                               ))}
-                              <TableHead className="w-16 border-r border-gray-300" style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}>
-                                {(() => {
-                                  // Calculate if all items in this collection are verified
-                                  const allItemsVerified = Array.from({ length: maxRecordIndex + 1 }, (_, index) => {
-                                    const itemValidations = collection.properties.map(property => {
-                                      const fieldName = `${collection.collectionName}.${property.propertyName}[${index}]`;
-                                      return getValidation(fieldName);
-                                    }).filter(Boolean);
+                              <TableHead className="w-24 border-r border-gray-300" style={{ width: '96px', minWidth: '96px', maxWidth: '96px' }}>
+                                <div className="flex items-center justify-center gap-2">
+                                  {(() => {
+                                    // Calculate if all items in this collection are verified
+                                    const allItemsVerified = Array.from({ length: maxRecordIndex + 1 }, (_, index) => {
+                                      const itemValidations = collection.properties.map(property => {
+                                        const fieldName = `${collection.collectionName}.${property.propertyName}[${index}]`;
+                                        return getValidation(fieldName);
+                                      }).filter(Boolean);
+                                      
+                                      return itemValidations.length > 0 && 
+                                        itemValidations.every(v => v?.validationStatus === 'valid' || v?.validationStatus === 'verified');
+                                    }).every(isVerified => isVerified);
                                     
-                                    return itemValidations.length > 0 && 
-                                      itemValidations.every(v => v?.validationStatus === 'valid' || v?.validationStatus === 'verified');
-                                  }).every(isVerified => isVerified);
-                                  
-                                  return (
-                                    <div className="flex justify-center">
+                                    return (
                                       <CheckCircle className={`h-5 w-5 ${allItemsVerified ? 'text-green-600' : 'text-gray-400'}`} />
-                                    </div>
-                                  );
-                                })()}
-                              </TableHead>
-                              <TableHead className="w-20 border-r border-gray-300" style={{ width: '80px', minWidth: '80px', maxWidth: '80px' }}>
-                                <div className="flex justify-center">
+                                    );
+                                  })()}
                                   <Button
                                     size="sm"
                                     variant="ghost"
@@ -2159,7 +2155,7 @@ Thank you for your assistance.`;
                                     );
                                   })}
                                   <TableCell className="border-r border-gray-300">
-                                    <div className="flex justify-center">
+                                    <div className="flex items-center justify-center gap-2">
                                       {(() => {
                                         // Calculate verification status for this item
                                         const itemValidations = collection.properties.map(property => {
@@ -2184,10 +2180,6 @@ Thank you for your assistance.`;
                                           </button>
                                         );
                                       })()}
-                                    </div>
-                                  </TableCell>
-                                  <TableCell className="border-r border-gray-300">
-                                    <div className="flex justify-center">
                                       <Button
                                         size="sm"
                                         variant="ghost"
