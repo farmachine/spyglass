@@ -11,6 +11,14 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **July 30, 2025 (Latest Update)**
+- ✓ **EXTRACTION RULE CREATION ISSUE COMPLETELY RESOLVED**: Fixed critical type mismatch preventing extraction rule creation
+- ✓ Updated useKnowledge hooks to use string UUIDs instead of number types for projectId parameters
+- ✓ Fixed KnowledgeRules component to handle string rule IDs correctly for create/update/delete operations
+- ✓ Resolved "Failed to save rule" error by fixing frontend hooks type compatibility with UUID system
+- ✓ **CSP SESSION MISSING CHOICE OPTIONS FIXED**: Resolved session 7d369fe0-e114-44bf-84a2-7db427c03e0a collection display issue
+- ✓ Identified that 68 CHOICE-type collection properties were missing choice options in database
+- ✓ Updated all CSP Interventions collection properties to have "Yes / No" choice options as requested
+- ✓ Collection items now display properly with all 70 properties showing correct field structure
 - ✓ **COMPLETE CHOICE FIELD IMPLEMENTATION**: Successfully replaced BOOLEAN field type with customizable CHOICE fields throughout the entire system
 - ✓ Updated database schema with choiceOptions JSON field for both projectSchemaFields and collectionProperties tables
 - ✓ Enhanced SchemaFieldDialog and PropertyDialog components to support choice options configuration with proper UI
