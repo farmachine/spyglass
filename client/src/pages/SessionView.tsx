@@ -24,6 +24,7 @@ import ExtractlyLogo from "@/components/ExtractlyLogo";
 import ValidationIcon from "@/components/ValidationIcon";
 import UserProfile from "@/components/UserProfile";
 import ValidationProcessingDialog from "@/components/ValidationProcessingDialog";
+import { EditFieldValueDialog } from "@/components/EditFieldValueDialog";
 
 import type { 
   ExtractionSession, 
@@ -270,6 +271,43 @@ export default function SessionView() {
     fieldName: string;
     confidenceScore: number;
   } | null>(null);
+  
+  // Edit field dialog state
+  const [editFieldDialog, setEditFieldDialog] = useState<{
+    open: boolean;
+    validation: FieldValidation | null;
+  }>({ open: false, validation: null });
+
+  // Handler to open edit dialog
+  const handleEditField = (validation: FieldValidation) => {
+    setEditFieldDialog({ open: true, validation });
+  };
+
+  // Handler to save edited field value
+  const handleSaveFieldEdit = async (validationId: string, newValue: string, newStatus: string) => {
+    try {
+      await updateValidationMutation.mutateAsync({
+        id: validationId,
+        data: {
+          extractedValue: newValue,
+          validationStatus: newStatus as ValidationStatus,
+          manuallyVerified: true,
+          aiReasoning: `Value manually updated by user to: ${newValue}`
+        }
+      });
+
+      toast({
+        title: "Field updated",
+        description: "The field value has been updated successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Update failed",
+        description: "Failed to update field value. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
   
   // Column sorting and resizing state
   const [sortConfig, setSortConfig] = useState<{ 
@@ -1752,7 +1790,12 @@ Thank you for your assistance.`;
                                         <Button
                                           size="sm"
                                           variant="ghost"
-                                          onClick={() => handleEdit(field.fieldName, displayValue)}
+                                          onClick={() => {
+                                            const validation = getValidation(field.fieldName);
+                                            if (validation) {
+                                              handleEditField(validation);
+                                            }
+                                          }}
                                           className="h-6 px-2"
                                         >
                                           <Edit3 className="h-3 w-3" />
@@ -1923,10 +1966,23 @@ Thank you for your assistance.`;
                                       >
                                         <div className="relative w-full">
                                           {/* Content */}
-                                          <div className={`table-cell-content w-full pl-6 pr-2 ${
+                                          <div className={`table-cell-content w-full pl-6 pr-8 ${
                                             property.fieldType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
-                                          } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed`}>
+                                          } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed group relative`}>
                                             {formatValueForDisplay(displayValue, property.fieldType)}
+                                            
+                                            {/* Edit button */}
+                                            {validation && (
+                                              <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => handleEditField(validation)}
+                                                className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                title="Edit field value"
+                                              >
+                                                <Edit3 className="h-3 w-3" />
+                                              </Button>
+                                            )}
                                           </div>
                                           
                                           {/* Combined confidence/verification indicator on top-left corner */}
@@ -2172,6 +2228,16 @@ Thank you for your assistance.`;
         processingStep={validationStep}
         processingProgress={validationProgress}
       />
+
+      {/* Edit Field Value Dialog */}
+      {editFieldDialog.validation && (
+        <EditFieldValueDialog
+          open={editFieldDialog.open}
+          validation={editFieldDialog.validation}
+          onClose={() => setEditFieldDialog({ open: false, validation: null })}
+          onSave={handleSaveFieldEdit}
+        />
+      )}
     </div>
   );
 }
