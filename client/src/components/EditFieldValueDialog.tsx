@@ -9,14 +9,14 @@ import type { FieldValidation } from "@shared/schema";
 
 interface EditFieldValueDialogProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onClose: () => void;
   validation: FieldValidation | null;
   onSave: (validationId: string, newValue: string, newStatus: string) => void;
 }
 
 export function EditFieldValueDialog({ 
   open, 
-  onOpenChange, 
+  onClose, 
   validation, 
   onSave 
 }: EditFieldValueDialogProps) {
@@ -33,28 +33,23 @@ export function EditFieldValueDialog({
     if (!validation) return;
     
     onSave(validation.id, value, "manual"); // Always set status to manual when user edits
-    onOpenChange(false);
+    onClose();
   };
 
   const getFieldDisplayName = (validation: FieldValidation) => {
     if (validation.fieldType === "schema_field") {
-      return validation.fieldName || "Field";
+      return `Schema Field ${validation.fieldId}`;
     } else {
       // For collection properties, show a cleaner name
-      const parts = validation.fieldName?.split(".");
-      if (parts && parts.length >= 2) {
-        const collectionName = parts[0];
-        const propertyName = parts[1].replace(/\[\d+\]$/, ""); // Remove index like [0]
-        const index = validation.recordIndex !== undefined ? validation.recordIndex + 1 : "";
-        return `${collectionName} ${index ? `#${index}` : ""} - ${propertyName}`;
-      }
-      return validation.fieldName || "Property";
+      const collectionName = validation.collectionName || "Collection";
+      const index = validation.recordIndex !== null ? validation.recordIndex + 1 : "";
+      return `${collectionName} ${index ? `#${index}` : ""} - Field`;
     }
   };
 
   const getFieldType = (validation: FieldValidation) => {
     // This would ideally come from the schema, but for now we'll detect from field name
-    const fieldName = validation.fieldName?.toLowerCase() || "";
+    const fieldName = validation.fieldId?.toLowerCase() || "";
     if (fieldName.includes("date") || fieldName.includes("time")) return "date";
     if (fieldName.includes("email")) return "email";
     if (fieldName.includes("phone") || fieldName.includes("tel")) return "tel";
@@ -69,7 +64,7 @@ export function EditFieldValueDialog({
   const displayName = getFieldDisplayName(validation);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Field Value</DialogTitle>
