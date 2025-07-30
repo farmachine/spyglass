@@ -2054,7 +2054,7 @@ print(json.dumps(result))
       let output = '';
       let error = '';
       
-      const python = spawn('python3', ['ai_extraction_single_step.py'], {
+      const python = spawn('python3', ['ai_extraction_simplified.py'], {
         cwd: process.cwd()
       });
 
@@ -2276,54 +2276,7 @@ print(json.dumps(result))
     }
   });
 
-  // Gemini AI extraction endpoint for schema processing
-  app.post("/api/sessions/:sessionId/gemini-extraction", async (req, res) => {
-    try {
-      const sessionId = req.params.sessionId;
-      const { schemaMarkdown } = req.body;
-      
-      console.log('GEMINI EXTRACTION: Starting with schema markdown length:', schemaMarkdown?.length);
-      
-      // Get session and extracted text
-      const session = await storage.getSession(sessionId);
-      if (!session) {
-        return res.status(404).json({ error: 'Session not found' });
-      }
-      
-      // Get extracted text from session - for now, use a placeholder
-      const extractedText = "Document text content will be processed here";
-      
-      console.log('GEMINI EXTRACTION: Using placeholder text for now');
-      
-      // Prepare prompt for Gemini
-      const prompt = `${schemaMarkdown}\n\n## DOCUMENTS TO PROCESS\n\n${extractedText}\n\nPlease extract the data according to the schema above and return the JSON response in the exact format specified.`;
-      
-      console.log('GEMINI EXTRACTION: Sending to Gemini, total prompt length:', prompt.length);
-      
-      // Call Gemini API (simulate for now - you'll need to implement actual Gemini call)
-      const geminiResponse = `Raw Gemini Response:\n\nPrompt sent to Gemini AI:\n${prompt}\n\n--- SIMULATED GEMINI RESPONSE ---\n\nThis is where the actual Gemini API response would appear with the extracted JSON data according to the schema specification.`;
-      
-      // Store the raw response in session's extractedData field temporarily
-      await storage.updateExtractionSession(sessionId, {
-        extractedData: JSON.stringify({
-          geminiRawResponse: geminiResponse,
-          timestamp: new Date().toISOString()
-        })
-      });
-      
-      console.log('GEMINI EXTRACTION: Complete, stored raw response');
-      
-      res.json({
-        message: "Gemini extraction completed",
-        rawResponse: geminiResponse,
-        redirect: `/sessions/${sessionId}/gemini-results`
-      });
-      
-    } catch (error) {
-      console.error("GEMINI EXTRACTION error:", error);
-      res.status(500).json({ message: "Failed to process with Gemini", error: error.message });
-    }
-  });
+
 
   // Save validation results to field_validations database
   app.post("/api/sessions/:sessionId/save-validations", async (req, res) => {
