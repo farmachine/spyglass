@@ -14,7 +14,8 @@ Preferred communication style: Simple, everyday language.
 - ✓ **ICON VERTICAL STACKING PERFECTED**: Successfully implemented clean vertical stacking for confidence and info icons in both Info view and collection tables
 - ✓ Updated Info view field headers to use `items-start` alignment with confidence icons positioned above info icons
 - ✓ Collection table cells now use vertical flex column layout with consistent 16px icon sizing
-- ✓ Field labels properly aligned with top confidence icons using `mt-0.5` offset for perfect text positioning
+- ✓ Field labels flush with field container tops using absolute positioning and `pl-6` offset for perfect text alignment
+- ✓ Info view now matches collection table layout structure with zero margin from field top border
 - ✓ Removed old CSS positioning classes and replaced with clean flex-based layout system
 - ✓ **ACTION COLUMN ALIGNMENT PERFECTED**: Successfully aligned green '+' add button with delete trash icons for consistent visual layout
 - ✓ Changed gap spacing from `gap-2` to `gap-4` in collection table action columns for proper icon alignment
