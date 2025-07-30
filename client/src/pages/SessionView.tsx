@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2 } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import * as XLSX from 'xlsx';
 import { Link } from "wouter";
@@ -624,6 +624,92 @@ export default function SessionView() {
         data: { validationStatus: newStatus }
       });
     });
+  };
+
+  // Handler for adding new collection item
+  const handleAddCollectionItem = async (collectionName: string) => {
+    if (!session || !project) return;
+    
+    // Find the collection
+    const collection = project.collections.find(c => c.collectionName === collectionName);
+    if (!collection) return;
+    
+    // Find the highest existing record index for this collection
+    const collectionValidations = validations.filter(v => v.collectionName === collectionName);
+    const maxIndex = collectionValidations.length > 0 
+      ? Math.max(...collectionValidations.map(v => v.recordIndex || 0))
+      : -1;
+    const newIndex = maxIndex + 1;
+    
+    try {
+      // Create validation records for each property in the collection
+      const createPromises = collection.properties.map(property => {
+        return apiRequest(`/api/sessions/${session.id}/validations`, {
+          method: 'POST',
+          body: JSON.stringify({
+            fieldType: 'collection_property',
+            fieldId: property.id,
+            collectionName: collectionName,
+            recordIndex: newIndex,
+            extractedValue: '',
+            confidenceScore: 0,
+            validationStatus: 'unverified',
+            manuallyUpdated: true,
+            aiReasoning: 'New item added by user'
+          })
+        });
+      });
+      
+      await Promise.all(createPromises);
+      
+      // Invalidate queries to refresh the UI
+      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+      
+      toast({
+        title: "Item added",
+        description: `New ${collectionName.toLowerCase()} item added successfully.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to add item",
+        description: "An error occurred while adding the new item.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Handler for deleting collection item
+  const handleDeleteCollectionItem = async (collectionName: string, recordIndex: number) => {
+    try {
+      // Find all validations for this collection item
+      const itemValidations = validations.filter(v => 
+        v.collectionName === collectionName && 
+        v.recordIndex === recordIndex
+      );
+      
+      // Delete all validation records for this item
+      const deletePromises = itemValidations.map(validation => 
+        apiRequest(`/api/validations/${validation.id}`, {
+          method: 'DELETE'
+        })
+      );
+      
+      await Promise.all(deletePromises);
+      
+      // Invalidate queries to refresh the UI
+      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+      
+      toast({
+        title: "Item deleted",
+        description: `${collectionName} item deleted successfully.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to delete item",
+        description: "An error occurred while deleting the item.",
+        variant: "destructive"
+      });
+    }
   };
 
   // Auto-run batch validation after extraction redirect
@@ -1902,6 +1988,19 @@ Thank you for your assistance.`;
                                   );
                                 })()}
                               </TableHead>
+                              <TableHead className="w-20 border-r border-gray-300" style={{ width: '80px', minWidth: '80px', maxWidth: '80px' }}>
+                                <div className="flex justify-center">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleAddCollectionItem(collection.collectionName)}
+                                    className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                    title="Add new item"
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -2086,6 +2185,19 @@ Thank you for your assistance.`;
                                           </button>
                                         );
                                       })()}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="border-r border-gray-300">
+                                    <div className="flex justify-center">
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => handleDeleteCollectionItem(collection.collectionName, originalIndex)}
+                                        className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                        title="Delete this item"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
                                     </div>
                                   </TableCell>
                                 </TableRow>
