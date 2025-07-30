@@ -63,8 +63,24 @@ User Query: """
 
 Your task is to generate a complete project schema structure in JSON format that includes:
 1. Main object name (what type of document/data they're extracting)
-2. Schema fields (single-value fields that apply globally)
-3. Collections (lists of similar items with properties)
+2. Schema fields (single-value fields that apply globally to the entire document)
+3. Collections (lists of repeating items with their own properties)
+
+CRITICAL DECISION GUIDE - WHEN TO USE COLLECTIONS vs SCHEMA FIELDS:
+
+USE COLLECTIONS when the user mentions:
+- Multiple items of the same type (e.g., "parties", "products", "employees", "transactions")
+- Lists, arrays, or repeated entities 
+- "Each", "all", "every" followed by plural nouns
+- Keywords like: "list of", "multiple", "several", "various"
+- Examples: "parties in a contract", "products in an invoice", "signatories", "line items"
+
+USE SCHEMA FIELDS when the user mentions:
+- Single values that apply to the whole document
+- Totals, counts, or summary information
+- Document-level metadata
+- Keywords like: "total", "overall", "document", "contract date", "invoice number"
+- Examples: "total amount", "contract date", "number of parties", "document type"
 
 IMPORTANT GUIDELINES:
 - Always include realistic auto-verification confidence levels (usually 80-95%)
@@ -74,6 +90,20 @@ IMPORTANT GUIDELINES:
 - Use appropriate field types: TEXT, NUMBER, DATE, BOOLEAN
 - Make collection and property names descriptive and user-friendly
 - Include realistic descriptions that explain what each field should contain
+
+EXAMPLES OF GOOD SCHEMA DESIGN:
+
+Example 1 - Contract Document:
+- Schema Fields: "Contract Date", "Total Value", "Number of Parties" (document-level info)
+- Collections: "Parties" with properties like "Name", "Role", "Address" (multiple similar items)
+
+Example 2 - Invoice Document:
+- Schema Fields: "Invoice Number", "Total Amount", "Invoice Date" (document-level info)
+- Collections: "Line Items" with properties like "Product Name", "Quantity", "Price" (multiple similar items)
+
+Example 3 - CSP Agricultural Data:
+- Schema Fields: "Country Code", "Intervention Description" (document-level info)
+- Collections: Usually none for CSP data unless extracting multiple interventions per document
 
 RESPONSE FORMAT:
 Return ONLY a valid JSON object with proper double-quoted property names. Do NOT include any markdown formatting, explanatory text, or comments. Return ONLY the JSON with this exact structure:
