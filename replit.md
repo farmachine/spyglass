@@ -11,6 +11,12 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **July 30, 2025 (Latest Update)**
+- ✓ **AUTOMATED EXTRACTION FLOW COMPLETELY FIXED**: Resolved critical Python script mismatch and database format errors that prevented automated extraction
+- ✓ Fixed gemini-extraction endpoint to call correct `ai_extraction_simplified.py` script instead of wrong script
+- ✓ Removed duplicate endpoint using placeholder data instead of real AI processing
+- ✓ Updated AI script to generate proper field_validations JSON format with field_id (UUID), field_type, field_name with indexing
+- ✓ Enhanced save-validations endpoint to handle new field validation format with backwards compatibility
+- ✓ Fixed Python script syntax errors and cleaned up duplicate code sections for reliable automated extraction
 - ✓ **AUTOMATED EXTRACTION FLOW IMPLEMENTATION COMPLETED**: Successfully moved complete extraction process from schema debug view to upload page
 - ✓ Added comprehensive AI prompt generation using identical logic as SchemaView with choice options and extraction rules included
 - ✓ Integrated automated mode that runs full extraction pipeline directly on upload page: text extraction → AI processing → database save → redirect to session view
