@@ -24,7 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCreateExtractionSession } from "@/hooks/useExtractionSessions";
 import { useProcessExtraction } from "@/hooks/useAIExtraction";
 import { useProjectSchemaFields, useObjectCollections } from "@/hooks/useSchema";
-import { useExtractionRules } from "@/hooks/useKnowledge";
+import { useExtractionRules, useKnowledgeDocuments } from "@/hooks/useKnowledge";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -77,6 +77,7 @@ export default function NewUpload({ project }: NewUploadProps) {
   const { data: schemaFields = [] } = useProjectSchemaFields(project.id);
   const { data: collections = [] } = useObjectCollections(project.id);
   const { data: extractionRules = [] } = useExtractionRules(project.id);
+  const { data: knowledgeDocuments = [] } = useKnowledgeDocuments(project.id);
   
 
 
@@ -276,29 +277,192 @@ export default function NewUpload({ project }: NewUploadProps) {
 
       setProcessingProgress(100);
 
-      // Step 4: Complete
-      setProcessingStep('complete');
+      if (mode === 'automated') {
+        // Step 4: AI Extraction (Automated Mode Only)
+        setProcessingStep('extracting');
+        setProcessingProgress(0);
 
-      // Mark files as completed
-      setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
+        // Generate the comprehensive prompt using same logic as SchemaView
+        const schemaData = {
+          schema_fields: schemaFields,
+          collections: collections,
+          extraction_rules: extractionRules,
+          knowledge_documents: knowledgeDocuments,
+          project: project
+        };
 
-      // Show success briefly before redirect
-      await new Promise(resolve => setTimeout(resolve, 1000));
+        const generateSchemaMarkdown = (schemaData: any, extractedText: string, documentCount: number) => {
+          let prompt = `You are an AI data extraction specialist. Extract data from the provided documents according to the schema configuration below.\n\n`;
+          
+          // Document content
+          prompt += `DOCUMENT CONTENT (${documentCount} document(s)):\n${extractedText}\n\n`;
+          
+          // Schema fields section
+          prompt += `PROJECT SCHEMA FIELDS (${schemaData.schema_fields.length} fields):\n`;
+          schemaData.schema_fields.forEach((field: any, index: number) => {
+            prompt += `${index + 1}. Field Name: ${field.fieldName}\n`;
+            prompt += `   Field Type: ${field.fieldType}\n`;
+            prompt += `   Description: ${field.description || 'No description'}\n`;
+            if (field.fieldType === 'CHOICE' && field.choiceOptions) {
+              const choices = field.choiceOptions.map((opt: any) => opt.value || opt).join('; ');
+              prompt += `   Choice Options: The output should be one of the following choices: ${choices}.\n`;
+            }
+            prompt += `   Auto Verification: ${field.autoVerificationConfidence || 80}%\n`;
+            
+            // Add extraction rules for this field
+            const fieldRules = schemaData.extraction_rules.filter((rule: any) => 
+              !rule.targetPropertyIds || rule.targetPropertyIds.length === 0 || rule.targetPropertyIds.includes(field.id)
+            );
+            if (fieldRules.length > 0) {
+              prompt += `   Extraction Rules: ${fieldRules.map((rule: any) => rule.ruleContent).join('; ')}\n`;
+            } else {
+              prompt += `   Extraction Rules: None\n`;
+            }
+            prompt += `\n`;
+          });
+          
+          // Collections section
+          prompt += `\nCOLLECTIONS (${schemaData.collections.length} collections):\n`;
+          schemaData.collections.forEach((collection: any, collIndex: number) => {
+            prompt += `${collIndex + 1}. Collection Name: ${collection.collectionName}\n`;
+            prompt += `   Description: ${collection.description || 'No description'}\n`;
+            prompt += `   Properties (${collection.properties?.length || 0}):\n`;
+            
+            collection.properties?.forEach((prop: any, propIndex: number) => {
+              prompt += `   ${propIndex + 1}. Property Name: ${prop.propertyName}\n`;
+              prompt += `      Property Type: ${prop.propertyType}\n`;  
+              prompt += `      Description: ${prop.description || 'No description'}\n`;
+              if (prop.propertyType === 'CHOICE' && prop.choiceOptions) {
+                const choices = prop.choiceOptions.map((opt: any) => opt.value || opt).join('; ');
+                prompt += `      Choice Options: The output should be one of the following choices: ${choices}.\n`;
+              }
+              prompt += `      Auto Verification: ${prop.autoVerificationConfidence || 80}%\n`;
+              
+              // Add extraction rules for this property
+              const propRules = schemaData.extraction_rules.filter((rule: any) => 
+                !rule.targetPropertyIds || rule.targetPropertyIds.length === 0 || rule.targetPropertyIds.includes(prop.id)
+              );
+              if (propRules.length > 0) {
+                prompt += `      Extraction Rules: ${propRules.map((rule: any) => rule.ruleContent).join('; ')}\n`;
+              } else {
+                prompt += `      Extraction Rules: None\n`;
+              }
+              prompt += `\n`;
+            });
+            prompt += `\n`;
+          });
+          
+          // Knowledge documents
+          prompt += `\nKNOWLEDGE DOCUMENTS (${schemaData.knowledge_documents.length}):\n`;
+          if (schemaData.knowledge_documents.length > 0) {
+            schemaData.knowledge_documents.forEach((doc: any, index: number) => {
+              prompt += `${index + 1}. Document: ${doc.title}\n`;
+              prompt += `   Content: ${doc.content || 'No content'}\n\n`;
+            });
+          } else {
+            prompt += `No knowledge documents configured\n\n`;
+          }
+          
+          // AI Processing Instructions
+          prompt += `AI PROCESSING INSTRUCTIONS:\n`;
+          prompt += `CORE EXTRACTION PROCESS:\n`;
+          prompt += `1. Extract data according to schema structure above\n`;
+          prompt += `2. Count ALL instances across ALL documents accurately\n`;
+          prompt += `3. Apply extraction rules to modify confidence scores as specified\n`;
+          prompt += `4. Use knowledge documents for validation and conflict detection\n\n`;
+          
+          prompt += `CHOICE FIELD HANDLING:\n`;
+          prompt += `- For CHOICE fields, ONLY return values from the specified choice options\n`;
+          prompt += `- If extracted text doesn't match any choice exactly, return null for extracted_value\n`;
+          prompt += `- Do not force extraction into choices - null values are acceptable\n`;
+          prompt += `- This allows database writes to continue without blocking\n\n`;
+          
+          prompt += `CONFIDENCE SCORING (confidence_score 0-100):\n`;
+          prompt += `• Base: High confidence (85-95) for clear extractions\n`;
+          prompt += `• Apply extraction rule adjustments per rule content\n`;
+          prompt += `• Reduce confidence for knowledge document conflicts\n`;
+          prompt += `• Use each field's Auto Verification threshold for validation_status\n\n`;
+          
+          prompt += `OUTPUT: Return only valid JSON matching this exact schema:\n`;
+          prompt += `{\n  "field_validations": [\n`;
+          prompt += `    // Schema fields and collection properties with:\n`;
+          prompt += `    // field_type, field_id, extracted_value, confidence_score, ai_reasoning, document_source, validation_status, record_index\n`;
+          prompt += `  ]\n}\n`;
+          
+          return prompt;
+        };
 
-      if (textExtractionResult && session?.id) {
-        toast({
-          title: "Text extraction complete",
-          description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
+        const fullPrompt = generateSchemaMarkdown(schemaData, textExtractionResult.extractedText || '', selectedFiles.length);
+
+        const aiResponse = await apiRequest(`/api/sessions/${session.id}/gemini-extraction`, {
+          method: 'POST',
+          body: JSON.stringify({ 
+            prompt: fullPrompt,
+            projectId: session.projectId 
+          }),
+          headers: { 'Content-Type': 'application/json' }
         });
 
-        // Close dialog and redirect to schema view with mode parameter
-        setShowProcessingDialog(false);
-        const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
-        const urlWithMode = `${redirectUrl}?mode=${mode}`;
+        setProcessingProgress(50);
 
-        setLocation(urlWithMode);
+        if (!aiResponse.success) {
+          throw new Error(`AI extraction failed: ${aiResponse.error}`);
+        }
+
+        // Step 5: Save to Database (Automated Mode Only)
+        setProcessingStep('validating');
+        setProcessingProgress(75);
+
+        const saveResponse = await apiRequest(`/api/sessions/${session.id}/save-validations`, {
+          method: 'POST',
+          body: JSON.stringify({ 
+            extractedData: aiResponse.extractedData || aiResponse.result 
+          }),
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!saveResponse.success) {
+          throw new Error(`Database save failed: ${saveResponse.error}`);
+        }
+
+        setProcessingProgress(100);
+        
+        // Step 6: Complete and redirect to session view
+        setProcessingStep('complete');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        toast({
+          title: "Extraction complete",
+          description: `${selectedFiles.length} file(s) processed and data extracted successfully.`,
+        });
+
+        setShowProcessingDialog(false);
+        setLocation(`/projects/${project.id}/sessions/${session.id}`);
       } else {
-        throw new Error("Text extraction completed but session data is missing");
+        // Debug mode - redirect to schema view as before
+        setProcessingStep('complete');
+        
+        // Mark files as completed
+        setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
+
+        // Show success briefly before redirect
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        if (textExtractionResult && session?.id) {
+          toast({
+            title: "Text extraction complete",
+            description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
+          });
+
+          // Close dialog and redirect to schema view with mode parameter
+          setShowProcessingDialog(false);
+          const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
+          const urlWithMode = `${redirectUrl}?mode=${mode}`;
+
+          setLocation(urlWithMode);
+        } else {
+          throw new Error("Text extraction completed but session data is missing");
+        }
       }
       
       // Reset form
