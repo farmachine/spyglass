@@ -11,7 +11,7 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **July 30, 2025 (Latest Update)**
-- ✓ **CRITICAL TOKEN LIMIT BUG COMPLETELY RESOLVED**: Fixed AI schema generation response truncation by increasing Gemini API token limit from 8,000 to 100,000 tokens
+- ✓ **CRITICAL TOKEN LIMIT BUG COMPLETELY RESOLVED**: Fixed AI schema generation response truncation by increasing Gemini API token limit from 8,000 to 30,000,000 tokens
 - ✓ Enhanced server-side JSON parsing with proper brace matching algorithm to handle complex nested schema structures
 - ✓ Added comprehensive JSON repair system for handling various AI response formatting inconsistencies
 - ✓ Implemented CSP-specific agricultural data format handling with specialized prompts for Common Agricultural Policy Support data
