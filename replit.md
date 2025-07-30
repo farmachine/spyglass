@@ -11,6 +11,15 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **July 30, 2025 (Latest Update)**
+- ✓ **CHOICE FIELD AI PROMPT ENHANCEMENT COMPLETED**: Fixed critical issue where AI didn't receive explicit choice option constraints
+- ✓ Enhanced SchemaView.tsx to include choice options in "Extraction Rules" section for AI prompts using format: "The output should be one of the following choices: Yes; No."
+- ✓ Added comprehensive CHOICE FIELD HANDLING instructions to AI processing guidelines explaining null value behavior and choice validation
+- ✓ Updated both schema fields and collection properties to include choice options in extraction rules sent to AI
+- ✓ **CHOICE FIELD DROPDOWN FUNCTIONALITY COMPLETED**: Fixed missing dropdown menus when editing collection property values
+- ✓ Enhanced EditFieldValueDialog to properly receive schemaField and collectionProperty props with choice options
+- ✓ Added findSchemaField and findCollectionProperty helper functions to SessionView for proper data lookup
+- ✓ CHOICE fields now display dropdown selection menus with user-defined options instead of text input fields
+- ✓ AI now properly constrained to extract only values from specified choice options, returning null for unmatched values without blocking database writes
 - ✓ **EXTRACTION RULE CREATION ISSUE COMPLETELY RESOLVED**: Fixed critical type mismatch preventing extraction rule creation
 - ✓ Updated useKnowledge hooks to use string UUIDs instead of number types for projectId parameters
 - ✓ Fixed KnowledgeRules component to handle string rule IDs correctly for create/update/delete operations

@@ -312,11 +312,20 @@ ${error instanceof Error ? error.message : 'Unknown error'}
           .map(rule => rule.ruleContent);
         const allRules = [...specificRules, ...globalRules];
         
+        // Build extraction rules with choice options for CHOICE fields
+        let extractionRulesText = allRules.length > 0 ? allRules.join(' | ') : "";
+        
+        // Add choice options to extraction rules for CHOICE fields
+        if (field.fieldType === 'CHOICE' && field.choiceOptions) {
+          const choiceText = `The output should be one of the following choices: ${field.choiceOptions.join('; ')}.`;
+          extractionRulesText = extractionRulesText ? `${extractionRulesText} | ${choiceText}` : choiceText;
+        }
+
         return {
           field_name: field.fieldName,
           type: field.fieldType,
           "AI guidance": field.description,
-          "Extraction Rules": allRules.length > 0 ? allRules.join(' | ') : "No rules",
+          "Extraction Rules": extractionRulesText || "No rules",
           "Knowledge Documents": data.knowledge_documents.length > 0 ? 
             data.knowledge_documents.map(doc => doc.displayName).join(', ') : 
             "None",
@@ -348,11 +357,20 @@ ${error instanceof Error ? error.message : 'Unknown error'}
             .map(rule => rule.ruleContent);
           const allRules = [...specificRules, ...globalRules];
           
+          // Build extraction rules with choice options for CHOICE fields
+          let extractionRulesText = allRules.length > 0 ? allRules.join(' | ') : "";
+          
+          // Add choice options to extraction rules for CHOICE fields
+          if (prop.propertyType === 'CHOICE' && prop.choiceOptions) {
+            const choiceText = `The output should be one of the following choices: ${prop.choiceOptions.join('; ')}.`;
+            extractionRulesText = extractionRulesText ? `${extractionRulesText} | ${choiceText}` : choiceText;
+          }
+
           return {
             property_name: prop.propertyName,
             type: prop.propertyType,
             "AI guidance": prop.description,
-            "Extraction Rules": allRules.length > 0 ? allRules.join(' | ') : "No rules",
+            "Extraction Rules": extractionRulesText || "No rules",
             "Knowledge Documents": data.knowledge_documents.length > 0 ? 
               data.knowledge_documents.map(doc => doc.displayName).join(', ') : 
               "None",
@@ -438,6 +456,13 @@ ${error instanceof Error ? error.message : 'Unknown error'}
     markdown += `- Auto Verification 50%, confidence_score 27 → "unverified"\n`;
     markdown += `- Auto Verification 0%, confidence_score 0 → "unverified"\n`;
     markdown += `- Any field with 0% confidence → "unverified"\n\n`;
+    
+    markdown += `### CHOICE FIELD HANDLING:\n`;
+    markdown += `- For CHOICE fields, extract values from the specified choice options only\n`;
+    markdown += `- If the document contains values not in the choice options, return null (do not block processing)\n`;
+    markdown += `- Choice options are specified in Extraction Rules as "The output should be one of the following choices: ..."\n`;
+    markdown += `- Example: For Yes/No choice, only return "Yes" or "No", never "true", "false", "1", "0", etc.\n`;
+    markdown += `- Null choice values should have confidence_score: 0 and validation_status: "unverified"\n\n`;
     
     markdown += `### OUTPUT:\n`;
     markdown += `JSON format below with confidence_score, ai_reasoning, and validation_status for each field.\n\n`;

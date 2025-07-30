@@ -278,6 +278,31 @@ export default function SessionView() {
     validation: FieldValidation | null;
   }>({ open: false, validation: null });
 
+  // Helper function to find schema field data
+  const findSchemaField = (validation: FieldValidation) => {
+    if (validation.fieldType !== 'schema_field' || !project?.schemaFields) return null;
+    const field = project.schemaFields.find(f => f.id === validation.fieldId);
+    return field ? {
+      fieldType: field.fieldType,
+      choiceOptions: field.choiceOptions
+    } : null;
+  };
+
+  // Helper function to find collection property data
+  const findCollectionProperty = (validation: FieldValidation) => {
+    if (validation.fieldType !== 'collection_property' || !project?.collections) return null;
+    for (const collection of project.collections) {
+      const property = collection.properties?.find(p => p.id === validation.fieldId);
+      if (property) {
+        return {
+          propertyType: property.propertyType,
+          choiceOptions: property.choiceOptions
+        };
+      }
+    }
+    return null;
+  };
+
   // Handler to open edit dialog
   const handleEditField = (validation: FieldValidation) => {
     setEditFieldDialog({ open: true, validation });
@@ -2417,6 +2442,8 @@ Thank you for your assistance.`;
           onClose={() => setEditFieldDialog({ open: false, validation: null })}
           onSave={handleSaveFieldEdit}
           onVerificationToggle={handleVerificationToggle}
+          schemaField={findSchemaField(editFieldDialog.validation)}
+          collectionProperty={findCollectionProperty(editFieldDialog.validation)}
         />
       )}
     </div>
