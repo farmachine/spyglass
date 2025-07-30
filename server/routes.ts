@@ -491,7 +491,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         try {
-          const result = JSON.parse(output);
+          console.log('Raw Python output:', output);
+          console.log('Raw Python output length:', output.length);
+          
+          // Extract JSON from output (may contain logging information)
+          let jsonContent = output.trim();
+          
+          // Find the last complete JSON object in the output
+          const jsonStart = jsonContent.lastIndexOf('{');
+          const jsonEnd = jsonContent.lastIndexOf('}');
+          
+          if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+            jsonContent = jsonContent.substring(jsonStart, jsonEnd + 1);
+          }
+          
+          console.log('Extracted JSON content:', jsonContent.substring(0, 500) + '...');
+          
+          const result = JSON.parse(jsonContent);
           
           if (!result.success) {
             return res.status(500).json({ 
