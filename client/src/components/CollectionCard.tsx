@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { Edit, Trash2, Plus, GripVertical, ChevronDown, ChevronRight } from "lucide-react";
+import { Edit, Trash2, Plus, GripVertical, ChevronDown, ChevronRight, Check, X } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useCollectionProperties } from "@/hooks/useSchema";
+import { useCollectionProperties, useUpdateProperty } from "@/hooks/useSchema";
 import type { ObjectCollection, CollectionProperty } from "@shared/schema";
 
 interface CollectionCardProps {
@@ -42,12 +42,18 @@ export default function CollectionCard({
   const { data: properties = [], isLoading } = useCollectionProperties(String(collection.id));
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const updateProperty = useUpdateProperty();
 
   // Sort properties by orderIndex for consistent ordering
   const safeProperties = properties ? [...properties].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0)) : [];
   
   // Lists should be collapsed by default if they have properties, expanded if no properties
   const [isExpanded, setIsExpanded] = useState(safeProperties.length === 0);
+  
+  // Inline editing state
+  const [editingProperty, setEditingProperty] = useState<string | null>(null);
+  const [editingField, setEditingField] = useState<'propertyName' | 'description' | null>(null);
+  const [editValue, setEditValue] = useState("");
   
   // Update collapse state when properties are first added to an empty list
   // useEffect(() => {
@@ -66,6 +72,44 @@ export default function CollectionCard({
       }),
     // No onSuccess invalidation - rely on optimistic updates only
   });
+
+  // Inline editing handlers
+  const startEditing = (propertyId: string, field: 'propertyName' | 'description', currentValue: string) => {
+    setEditingProperty(propertyId);
+    setEditingField(field);
+    setEditValue(currentValue || "");
+  };
+
+  const cancelEditing = () => {
+    setEditingProperty(null);
+    setEditingField(null);
+    setEditValue("");
+  };
+
+  const saveEdit = async () => {
+    if (!editingProperty || !editingField) return;
+    
+    try {
+      await updateProperty.mutateAsync({
+        id: editingProperty,
+        property: { [editingField]: editValue },
+        collectionId: collection.id
+      });
+      
+      toast({
+        title: "Property updated",
+        description: "Property has been updated successfully.",
+      });
+      
+      cancelEditing();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update property. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Drag and drop handler for reordering collection properties
   const handlePropertyDragEnd = async (result: any) => {
@@ -218,14 +262,69 @@ export default function CollectionCard({
                                     <GripVertical className="h-4 w-4 text-gray-400" />
                                   </div>
                                 </TableCell>
-                                <TableCell className="font-medium">{property.propertyName}</TableCell>
+                                <TableCell className="font-medium">
+                                  {editingProperty === property.id && editingField === 'propertyName' ? (
+                                    <div className="flex items-center gap-2">
+                                      <Input
+                                        value={editValue}
+                                        onChange={(e) => setEditValue(e.target.value)}
+                                        className="h-8"
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') saveEdit();
+                                          if (e.key === 'Escape') cancelEditing();
+                                        }}
+                                        autoFocus
+                                      />
+                                      <Button size="sm" variant="ghost" onClick={saveEdit} className="h-8 w-8 p-0">
+                                        <Check className="h-4 w-4 text-green-600" />
+                                      </Button>
+                                      <Button size="sm" variant="ghost" onClick={cancelEditing} className="h-8 w-8 p-0">
+                                        <X className="h-4 w-4 text-gray-500" />
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <span 
+                                      className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
+                                      onClick={() => startEditing(property.id, 'propertyName', property.propertyName)}
+                                    >
+                                      {property.propertyName}
+                                    </span>
+                                  )}
+                                </TableCell>
                                 <TableCell>
                                   <Badge className={fieldTypeColors[property.propertyType as keyof typeof fieldTypeColors]}>
                                     {property.propertyType}
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="text-gray-600">
-                                  {property.description || "-"}
+                                  {editingProperty === property.id && editingField === 'description' ? (
+                                    <div className="flex items-center gap-2">
+                                      <Input
+                                        value={editValue}
+                                        onChange={(e) => setEditValue(e.target.value)}
+                                        className="h-8"
+                                        placeholder="Enter description..."
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') saveEdit();
+                                          if (e.key === 'Escape') cancelEditing();
+                                        }}
+                                        autoFocus
+                                      />
+                                      <Button size="sm" variant="ghost" onClick={saveEdit} className="h-8 w-8 p-0">
+                                        <Check className="h-4 w-4 text-green-600" />
+                                      </Button>
+                                      <Button size="sm" variant="ghost" onClick={cancelEditing} className="h-8 w-8 p-0">
+                                        <X className="h-4 w-4 text-gray-500" />
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <span 
+                                      className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded block"
+                                      onClick={() => startEditing(property.id, 'description', property.description || "")}
+                                    >
+                                      {property.description || "Click to add description"}
+                                    </span>
+                                  )}
                                 </TableCell>
                                 <TableCell>
                                   <Badge variant="outline" className="text-xs">

@@ -61,6 +61,11 @@ export default function DefineData({ project }: DefineDataProps) {
   const [aiQuery, setAiQuery] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // Inline editing state for schema fields
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [editingFieldType, setEditingFieldType] = useState<'fieldName' | 'description' | null>(null);
+  const [editValue, setEditValue] = useState("");
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -231,8 +236,7 @@ export default function DefineData({ project }: DefineDataProps) {
     try {
       await updateCollection.mutateAsync({ 
         id: collectionDialog.collection.id, 
-        collection: data,
-        projectId: project.id // Pass the current project ID for cache invalidation
+        collection: data
       });
       setCollectionDialog({ open: false });
       toast({
