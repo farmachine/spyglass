@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,14 +20,16 @@ export function EditFieldValueDialog({
   validation, 
   onSave 
 }: EditFieldValueDialogProps) {
-  const [value, setValue] = useState(validation?.extractedValue || "");
-  const [status, setStatus] = useState(validation?.validationStatus || "manual");
+  const [value, setValue] = useState("");
+  const [status, setStatus] = useState("manual");
 
-  // Reset form when validation changes
-  if (validation && value !== validation.extractedValue) {
-    setValue(validation.extractedValue || "");
-    setStatus(validation.validationStatus || "manual");
-  }
+  // Reset form when validation changes or dialog opens
+  useEffect(() => {
+    if (validation) {
+      setValue(validation.extractedValue || "");
+      setStatus(validation.validationStatus || "manual");
+    }
+  }, [validation, open]);
 
   const handleSave = () => {
     if (!validation) return;
@@ -89,6 +91,8 @@ export function EditFieldValueDialog({
                 placeholder="Enter value..."
                 className="mt-1"
                 rows={3}
+                autoFocus
+                disabled={false}
               />
             ) : (
               <Input
@@ -98,6 +102,8 @@ export function EditFieldValueDialog({
                 onChange={(e) => setValue(e.target.value)}
                 placeholder="Enter value..."
                 className="mt-1"
+                autoFocus
+                disabled={false}
               />
             )}
           </div>
