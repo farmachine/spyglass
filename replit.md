@@ -21,6 +21,9 @@ Preferred communication style: Simple, everyday language.
 - ✓ Added field count analysis - many comma-separated fields (>5) now triggers collection structure instead of individual schema fields
 - ✓ Improved CSP prompt template with clear collection vs schema field guidance and examples
 - ✓ AI now properly creates collections when users mention "list of CSPs" or provide many column names for agricultural data
+- ✓ **ENHANCED FIELD PRESERVATION**: Updated AI prompt to include ALL user-specified column names as collection properties
+- ✓ Added explicit field naming rules to convert snake_case to proper capitalization while preserving all user-provided field names
+- ✓ AI now recognizes when users provide specific column lists and includes every field instead of summarizing or grouping them
 
 **July 30, 2025 (Previous Update)**
 - ✓ **CRITICAL TOKEN LIMIT BUG COMPLETELY RESOLVED**: Fixed AI schema generation response truncation by increasing Gemini API token limit from 8,000 to 30,000,000 tokens

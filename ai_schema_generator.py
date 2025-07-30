@@ -47,8 +47,13 @@ WHEN TO USE COLLECTIONS FOR CSP DATA:
 - If extracting multiple agricultural activities as separate items  
 - If there are lists of countries, regions, or intervention types
 - If the data contains repeated structures like multiple rows or records
-- If user provides column names that suggest multiple data points (many field names indicate a collection structure)
+- If user provides many column names (>5 fields) - CREATE A COLLECTION with ALL provided column names as properties
 - If user mentions extracting CSP interventions, activities, or entries as individual items
+
+FIELD NAMING RULES:
+- When user provides specific column names (like "Soft_wheat_production_activity", "Barley_production_activity"), include ALL of them as collection properties
+- Convert snake_case to proper naming (e.g., "Soft_wheat_production_activity" → "Soft Wheat Production Activity")
+- Do not summarize or group user-specified fields - include each one individually
 
 WHEN TO USE SCHEMA FIELDS FOR CSP DATA:
 - Single country code per document
@@ -61,15 +66,17 @@ For CHOICE fields, include "choice_options" array with possible values.
 
 CRITICAL: If the user mentions "list" or provides many column names, you should create a COLLECTION structure, not individual schema fields.
 
+IMPORTANT: When users provide specific column/field names in their query, you MUST include ALL of them as properties in the collection. Do not rename or exclude any user-specified fields. Use the exact names provided by the user, converting only the formatting (e.g., snake_case to proper capitalization).
+
 RESPONSE FORMAT:
 Return ONLY a valid JSON object following the standard schema format with both schema_fields AND collections when appropriate.
 
-Example for CSP list extraction:
+Example for CSP list extraction with user-specified columns:
 {
-  "main_object_name": "CSP_Data",
+  "main_object_name": "CSP_Data", 
   "schema_fields": [
     {
-      "field_name": "Country_Code",
+      "field_name": "Country",
       "field_type": "TEXT",
       "description": "Country code for the document",
       "auto_verification_confidence": 90
@@ -77,21 +84,22 @@ Example for CSP list extraction:
   ],
   "collections": [
     {
-      "collection_name": "CSP_Interventions",
-      "description": "List of CSP agricultural interventions",
+      "collection_name": "Agricultural Activities",
+      "description": "List of agricultural production activities and their applicability", 
       "properties": [
         {
-          "property_name": "Intervention_Code",
-          "field_type": "TEXT",
-          "description": "Code for the intervention",
-          "auto_verification_confidence": 85
+          "property_name": "Soft Wheat Production Activity",
+          "field_type": "CHOICE",
+          "description": "Applicability for soft wheat production",
+          "auto_verification_confidence": 85,
+          "choice_options": ["Yes", "No", "1", "0"]
         },
         {
-          "property_name": "Activity_Type",
+          "property_name": "Barley Production Activity", 
           "field_type": "CHOICE",
-          "description": "Type of agricultural activity",
-          "auto_verification_confidence": 80,
-          "choice_options": ["Yes", "No"]
+          "description": "Applicability for barley production",
+          "auto_verification_confidence": 85,
+          "choice_options": ["Yes", "No", "1", "0"]
         }
       ]
     }
