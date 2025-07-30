@@ -1785,7 +1785,7 @@ Thank you for your assistance.`;
                           
                           return (
                             <div key={field.id} className="space-y-2">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-start gap-2">
                                 <div className="flex flex-col items-center gap-1 w-4">
                                   {(() => {
                                     const fieldName = field.fieldName;
@@ -1872,7 +1872,7 @@ Thank you for your assistance.`;
                                     return <div className="w-4 h-4"></div>; // Empty space for alignment
                                   })()}
                                 </div>
-                                <Label className="text-sm font-medium text-gray-700">
+                                <Label className="text-sm font-medium text-gray-700 mt-0.5">
                                   {field.fieldName}
                                 </Label>
                               </div>
