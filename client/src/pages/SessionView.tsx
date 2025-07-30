@@ -2294,27 +2294,22 @@ Thank you for your assistance.`;
                 const isVerified = validation?.validationStatus === 'verified' || validation?.validationStatus === 'valid';
                 
                 return (
-                  <div className="flex gap-2 pt-4 border-t">
-                    <Button
-                      onClick={() => {
-                        handleFieldVerification(selectedReasoning.fieldName, !isVerified);
-                        setSelectedReasoning(null);
-                      }}
-                      variant={isVerified ? "outline" : "default"}
-                      className="flex items-center gap-2"
-                    >
-                      {isVerified ? (
-                        <>
-                          <X className="h-4 w-4" />
-                          Mark as Unverified
-                        </>
-                      ) : (
-                        <>
-                          <Check className="h-4 w-4" />
-                          Mark as Verified
-                        </>
-                      )}
-                    </Button>
+                  <div className="flex items-center justify-between pt-4 border-t">
+                    <div className="flex items-center gap-4">
+                      <button
+                        onClick={() => {
+                          handleFieldVerification(selectedReasoning.fieldName, !isVerified);
+                        }}
+                        className="flex items-center justify-center hover:bg-gray-100 px-3 py-2 rounded transition-colors"
+                        title={isVerified ? "Click to mark as unverified" : "Click to mark as verified"}
+                      >
+                        {isVerified ? (
+                          <CheckCircle className="h-6 w-6 text-green-600" />
+                        ) : (
+                          <CheckCircle className="h-6 w-6 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
                     <Button
                       onClick={() => setSelectedReasoning(null)}
                       variant="outline"
@@ -2398,6 +2393,7 @@ Thank you for your assistance.`;
           validation={editFieldDialog.validation}
           onClose={() => setEditFieldDialog({ open: false, validation: null })}
           onSave={handleSaveFieldEdit}
+          onVerificationToggle={handleVerificationToggle}
         />
       )}
     </div>

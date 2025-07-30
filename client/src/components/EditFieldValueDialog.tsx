@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { CheckCircle } from "lucide-react";
 import type { FieldValidation, FieldValidationWithName } from "@shared/schema";
 
 interface EditFieldValueDialogProps {
@@ -12,13 +13,15 @@ interface EditFieldValueDialogProps {
   onClose: () => void;
   validation: FieldValidationWithName | null;
   onSave: (validationId: string, newValue: string, newStatus: string) => void;
+  onVerificationToggle?: (fieldName: string, isVerified: boolean) => void;
 }
 
 export function EditFieldValueDialog({ 
   open, 
   onClose, 
   validation, 
-  onSave 
+  onSave,
+  onVerificationToggle
 }: EditFieldValueDialogProps) {
   const [value, setValue] = useState("");
   const [status, setStatus] = useState("manual");
@@ -128,20 +131,39 @@ export function EditFieldValueDialog({
             </div>
           )}
 
-          <div className="flex gap-2 pt-4">
-            <Button
-              onClick={handleSave}
-              className="flex-1 bg-primary hover:bg-primary/90"
-            >
-              Save Changes
-            </Button>
-            <Button
-              variant="outline"
-              onClick={onClose}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
+          <div className="flex items-center justify-between pt-4 border-t">
+            <div className="flex items-center gap-4">
+              {onVerificationToggle && validation && (
+                <button
+                  onClick={() => {
+                    const isVerified = validation.validationStatus === 'verified' || validation.validationStatus === 'valid';
+                    onVerificationToggle(validation.fieldName, !isVerified);
+                  }}
+                  className="flex items-center justify-center hover:bg-gray-100 px-3 py-2 rounded transition-colors"
+                  title={validation.validationStatus === 'verified' || validation.validationStatus === 'valid' ? "Click to mark as unverified" : "Click to mark as verified"}
+                >
+                  {validation.validationStatus === 'verified' || validation.validationStatus === 'valid' ? (
+                    <CheckCircle className="h-6 w-6 text-green-600" />
+                  ) : (
+                    <CheckCircle className="h-6 w-6 text-gray-400" />
+                  )}
+                </button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleSave}
+                className="bg-primary hover:bg-primary/90"
+              >
+                Save Changes
+              </Button>
+              <Button
+                variant="outline"
+                onClick={onClose}
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>
