@@ -74,8 +74,6 @@
 
 /* Additional utility classes for Flow Capture theme */
 
-/* Removed old positioning - using flex layout instead */
-
 /* Folder-like Tab Styling */
 .folder-tabs {
   position: relative;
