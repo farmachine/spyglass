@@ -123,7 +123,7 @@ export function EditFieldValueDialog({
             </Button>
             <Button
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={onClose}
               className="flex-1"
             >
               Cancel
