@@ -74,6 +74,15 @@
 
 /* Additional utility classes for Flow Capture theme */
 
+/* Info icon positioning at cell border intersection */
+.table-cell-info-icon {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  transform: translate(50%, 50%);
+  z-index: 10;
+}
+
 /* Folder-like Tab Styling */
 .folder-tabs {
   position: relative;
