@@ -28,7 +28,14 @@ def generate_schema_from_query(user_query: str, project_id: str) -> dict:
     # Check if this is a CSP (Common Agricultural Policy Support) related query
     is_csp_query = any(keyword in user_query.lower() for keyword in ['csp', 'wheat', 'barley', 'maize', 'agriculture', 'malta', 'countrycode', 'intervention'])
     
-    if is_csp_query:
+    # Check if user is requesting lists/collections (stronger indicator than CSP detection)
+    has_list_keywords = any(keyword in user_query.lower() for keyword in ['list', 'multiple', 'each', 'all', 'various', 'several', 'many', 'collection'])
+    
+    # Count potential field names (commas suggest multiple fields that should be in a collection)
+    field_count = user_query.count(',') + user_query.count('\n')
+    suggests_collection = field_count > 5  # Many fields suggest a collection structure
+    
+    if is_csp_query and (has_list_keywords or suggests_collection):
         system_prompt = """You are an AI assistant specializing in Common Agricultural Policy Support (CSP) data extraction schemas.
 
 Create a schema for extracting CSP data. The output must be structured to handle:
@@ -36,10 +43,12 @@ Create a schema for extracting CSP data. The output must be structured to handle
 2. Multiple CSP interventions, activities, or repeated data items (use collections when appropriate)
 
 WHEN TO USE COLLECTIONS FOR CSP DATA:
-- If the user mentions multiple CSP interventions per document
+- If the user mentions "list", "multiple", "each", "all", "various" with CSP items
 - If extracting multiple agricultural activities as separate items  
 - If there are lists of countries, regions, or intervention types
 - If the data contains repeated structures like multiple rows or records
+- If user provides column names that suggest multiple data points (many field names indicate a collection structure)
+- If user mentions extracting CSP interventions, activities, or entries as individual items
 
 WHEN TO USE SCHEMA FIELDS FOR CSP DATA:
 - Single country code per document
@@ -50,8 +59,70 @@ WHEN TO USE SCHEMA FIELDS FOR CSP DATA:
 Use the same field types as regular schemas: TEXT, NUMBER, DATE, CHOICE
 For CHOICE fields, include "choice_options" array with possible values.
 
+CRITICAL: If the user mentions "list" or provides many column names, you should create a COLLECTION structure, not individual schema fields.
+
 RESPONSE FORMAT:
 Return ONLY a valid JSON object following the standard schema format with both schema_fields AND collections when appropriate.
+
+Example for CSP list extraction:
+{
+  "main_object_name": "CSP_Data",
+  "schema_fields": [
+    {
+      "field_name": "Country_Code",
+      "field_type": "TEXT",
+      "description": "Country code for the document",
+      "auto_verification_confidence": 90
+    }
+  ],
+  "collections": [
+    {
+      "collection_name": "CSP_Interventions",
+      "description": "List of CSP agricultural interventions",
+      "properties": [
+        {
+          "property_name": "Intervention_Code",
+          "field_type": "TEXT",
+          "description": "Code for the intervention",
+          "auto_verification_confidence": 85
+        },
+        {
+          "property_name": "Activity_Type",
+          "field_type": "CHOICE",
+          "description": "Type of agricultural activity",
+          "auto_verification_confidence": 80,
+          "choice_options": ["Yes", "No"]
+        }
+      ]
+    }
+  ]
+}
+
+User Query: """
+    elif is_csp_query:
+        # CSP query without list keywords - use simplified schema
+        system_prompt = """You are an AI assistant specializing in Common Agricultural Policy Support (CSP) data extraction schemas.
+
+Create a simple schema for extracting CSP data with document-level fields only.
+
+RESPONSE FORMAT:
+Return ONLY a valid JSON object with schema_fields (no collections):
+
+{
+  "main_object_name": "CSP_Data",
+  "schema_fields": [
+    {
+      "field_name": "Country_Code",
+      "field_type": "TEXT",
+      "description": "Country code for the CSP data",
+      "auto_verification_confidence": 85,
+      "ai_guidance": "Extract the country code from the data",
+      "extraction_rules": "Look for 2-letter country codes",
+      "knowledge_documents": "CSP Guidelines"
+    }
+  ],
+  "collections": []
+}
 
 User Query: """
     else:
