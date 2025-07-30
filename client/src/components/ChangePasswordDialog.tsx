@@ -46,7 +46,7 @@ export default function ChangePasswordDialog({ open, onClose, onSuccess }: Chang
       });
     },
     onSuccess: () => {
-      toast({ title: "Password changed successfully" });
+
       form.reset();
       onSuccess();
     },

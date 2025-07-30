@@ -285,6 +285,21 @@ export default function SessionView() {
 
   // Handler to save edited field value
   const handleSaveFieldEdit = async (validationId: string, newValue: string, newStatus: string) => {
+    // Optimistic update: Update cache immediately
+    queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (old: any) => 
+      old ? old.map((v: any) => 
+        v.id === validationId 
+          ? { 
+              ...v, 
+              extractedValue: newValue, 
+              validationStatus: newStatus,
+              manuallyUpdated: true,
+              aiReasoning: `Value manually updated by user to: ${newValue}`
+            }
+          : v
+      ) : []
+    );
+
     try {
       await updateValidationMutation.mutateAsync({
         id: validationId,
@@ -295,12 +310,9 @@ export default function SessionView() {
           aiReasoning: `Value manually updated by user to: ${newValue}`
         }
       });
-
-      toast({
-        title: "Field updated",
-        description: "The field value has been updated successfully.",
-      });
     } catch (error) {
+      // Revert optimistic update on error
+      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
       toast({
         title: "Update failed",
         description: "Failed to update field value. Please try again.",
@@ -542,10 +554,7 @@ export default function SessionView() {
         }
       }, 100);
       
-      toast({
-        title: "Field updated",
-        description: "The field verification has been updated.",
-      });
+
     },
     onError: (error: any) => {
       console.error('Failed to update field:', error);
@@ -640,6 +649,29 @@ export default function SessionView() {
       ? Math.max(...collectionValidations.map(v => v.recordIndex || 0))
       : -1;
     const newIndex = maxIndex + 1;
+
+    // Optimistic update: Create temporary validation records
+    const tempValidations = collection.properties.map(property => ({
+      id: `temp-${Date.now()}-${property.id}`,
+      sessionId: session.id,
+      fieldType: 'collection_property' as const,
+      fieldId: property.id,
+      fieldName: `${collectionName}.${property.propertyName}[${newIndex}]`,
+      collectionName: collectionName,
+      recordIndex: newIndex,
+      extractedValue: '',
+      confidenceScore: 0,
+      validationStatus: 'unverified' as const,
+      manuallyUpdated: true,
+      aiReasoning: 'New item added by user',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }));
+
+    // Optimistically update the cache
+    queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (old: any) => 
+      old ? [...old, ...tempValidations] : tempValidations
+    );
     
     try {
       // Create validation records for each property in the collection
@@ -662,14 +694,11 @@ export default function SessionView() {
       
       await Promise.all(createPromises);
       
-      // Invalidate queries to refresh the UI
+      // Invalidate queries to refresh the UI with real data
       await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
-      
-      toast({
-        title: "Item added",
-        description: `New ${collectionName.toLowerCase()} item added successfully.`,
-      });
     } catch (error) {
+      // Revert optimistic update on error
+      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
       toast({
         title: "Failed to add item",
         description: "An error occurred while adding the new item.",
@@ -680,13 +709,18 @@ export default function SessionView() {
 
   // Handler for deleting collection item
   const handleDeleteCollectionItem = async (collectionName: string, recordIndex: number) => {
+    // Find all validations for this collection item
+    const itemValidations = validations.filter(v => 
+      v.collectionName === collectionName && 
+      v.recordIndex === recordIndex
+    );
+
+    // Optimistic update: Remove items from cache
+    queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (old: any) => 
+      old ? old.filter((v: any) => !(v.collectionName === collectionName && v.recordIndex === recordIndex)) : []
+    );
+    
     try {
-      // Find all validations for this collection item
-      const itemValidations = validations.filter(v => 
-        v.collectionName === collectionName && 
-        v.recordIndex === recordIndex
-      );
-      
       // Delete all validation records for this item
       const deletePromises = itemValidations.map(validation => 
         apiRequest(`/api/validations/${validation.id}`, {
@@ -698,12 +732,9 @@ export default function SessionView() {
       
       // Invalidate queries to refresh the UI
       await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
-      
-      toast({
-        title: "Item deleted",
-        description: `${collectionName} item deleted successfully.`,
-      });
     } catch (error) {
+      // Revert optimistic update on error
+      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
       toast({
         title: "Failed to delete item",
         description: "An error occurred while deleting the item.",
@@ -1969,7 +2000,7 @@ Thank you for your assistance.`;
                                 </TableHead>
                               ))}
                               <TableHead className="w-24 border-r border-gray-300" style={{ width: '96px', minWidth: '96px', maxWidth: '96px' }}>
-                                <div className="flex items-center justify-center gap-2">
+                                <div className="flex items-center justify-center gap-4">
                                   {(() => {
                                     // Calculate if all items in this collection are verified
                                     const allItemsVerified = Array.from({ length: maxRecordIndex + 1 }, (_, index) => {
@@ -2155,7 +2186,7 @@ Thank you for your assistance.`;
                                     );
                                   })}
                                   <TableCell className="border-r border-gray-300">
-                                    <div className="flex items-center justify-center gap-2">
+                                    <div className="flex items-center justify-center gap-4">
                                       {(() => {
                                         // Calculate verification status for this item
                                         const itemValidations = collection.properties.map(property => {

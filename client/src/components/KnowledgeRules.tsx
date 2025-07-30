@@ -49,10 +49,10 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
       
       if (editingDocument) {
         await updateKnowledgeDocument.mutateAsync({ id: editingDocument.id, ...data });
-        toast({ title: "Document updated successfully" });
+
       } else {
         await createKnowledgeDocument.mutateAsync(data);
-        toast({ title: "Document added successfully" });
+
       }
       setEditingDocument(null);
       setKnowledgeDialogOpen(false);
@@ -67,7 +67,7 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
     setDeletingDocId(id);
     try {
       await deleteKnowledgeDocument.mutateAsync(id);
-      toast({ title: "Document deleted successfully" });
+
     } catch (error) {
       toast({ title: "Failed to delete document", variant: "destructive" });
     } finally {
@@ -80,10 +80,10 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
       
       if (editingRule) {
         await updateExtractionRule.mutateAsync({ id: editingRule.id, ...data });
-        toast({ title: "Rule updated successfully" });
+
       } else {
         await createExtractionRule.mutateAsync(data);
-        toast({ title: "Rule created successfully" });
+
       }
       setEditingRule(null);
     } catch (error) {
@@ -97,7 +97,7 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
     setDeletingRuleId(id);
     try {
       await deleteExtractionRule.mutateAsync(id);
-      toast({ title: "Rule deleted successfully" });
+
     } catch (error) {
       toast({ title: "Failed to delete rule", variant: "destructive" });
     } finally {

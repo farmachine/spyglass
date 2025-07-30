@@ -43,7 +43,7 @@ export default function AdminPanel() {
       queryClient.invalidateQueries({ queryKey: ["/api/organizations"] });
       setCreateOrgOpen(false);
       orgForm.reset();
-      toast({ title: "Organization created successfully" });
+
     },
   });
 
