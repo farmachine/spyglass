@@ -291,7 +291,7 @@ export default function SessionView() {
         data: {
           extractedValue: newValue,
           validationStatus: newStatus as ValidationStatus,
-          manuallyVerified: true,
+          manuallyUpdated: true,
           aiReasoning: `Value manually updated by user to: ${newValue}`
         }
       });
