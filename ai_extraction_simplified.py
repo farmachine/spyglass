@@ -155,6 +155,11 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
                         if prop_rules:
                             prop_instruction += " | " + " | ".join(prop_rules)
                             logging.info(f"RULE MATCH: {collection_name} --> {prop_name} matched rules: {[rule.get('ruleName') for rule in extraction_rules if arrow_notation in str(rule.get('targetField', []))]}")
+                        
+                        # Add choice options for CHOICE fields
+                        if prop_type == 'CHOICE' and prop.get('choiceOptions'):
+                            choice_text = f"The output should be one of the following choices: {'; '.join(prop['choiceOptions'])}."
+                            prop_instruction = prop_instruction + " | " + choice_text if prop_instruction else choice_text
                             
                         prompt += f"\n  * **{prop_name}** ({prop_type}): {prop_instruction}"
         
@@ -194,6 +199,9 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
                         output_format = '"2024-01-15"'
                     elif field_type == 'BOOLEAN':
                         output_format = 'true'
+                    elif field_type == 'CHOICE' and field.get('choiceOptions'):
+                        # Use the first choice option as example
+                        output_format = f'"{field["choiceOptions"][0]}"'
                     else:  # TEXT
                         output_format = '"Extracted Text Value"'
                     
@@ -241,6 +249,9 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
                             output_format = '"2024-01-15"'
                         elif prop_type == 'BOOLEAN':
                             output_format = 'true'
+                        elif prop_type == 'CHOICE' and prop.get('choiceOptions'):
+                            # Use the first choice option as example
+                            output_format = f'"{prop["choiceOptions"][0]}"'
                         else:  # TEXT
                             output_format = '"Real Extracted Value"'
                         
@@ -276,6 +287,12 @@ CRITICAL COUNTING INSTRUCTIONS:
 - **NDA COUNTING**: Count individual contracts/agreements/NDAs, not parties. If you see 8 separate contracts, return 8.
 - **COMPREHENSIVE SCAN**: Process every document in this {len(documents)}-document set. Do not miss any documents.
 - **FOLLOW DESCRIPTIONS**: Schema field descriptions are mandatory instructions for what to count and extract.
+
+CHOICE FIELD HANDLING:
+- For CHOICE fields, extract values from the specified choice options only
+- If the document contains values not in the choice options, return null (do not block processing)
+- Choice options are specified as "The output should be one of the following choices: ..."
+- Example: For Yes/No choice, only return "Yes" or "No", never "true", "false", "1", "0", etc.
 
 DOCUMENT VERIFICATION: Confirm you processed all {len(documents)} documents: {[doc.get('file_name', 'Unknown') for doc in documents]}
 
