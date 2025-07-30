@@ -497,15 +497,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Extract JSON from output (may contain logging information)
           let jsonContent = output.trim();
           
-          // Find the last complete JSON object in the output
-          const jsonStart = jsonContent.lastIndexOf('{');
-          const jsonEnd = jsonContent.lastIndexOf('}');
+          // Find the JSON object by looking for complete braces
+          let braceCount = 0;
+          let jsonStart = -1;
+          let jsonEnd = -1;
           
-          if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+          // Find the first opening brace
+          for (let i = 0; i < jsonContent.length; i++) {
+            if (jsonContent[i] === '{') {
+              if (jsonStart === -1) {
+                jsonStart = i;
+              }
+              braceCount++;
+            } else if (jsonContent[i] === '}') {
+              braceCount--;
+              if (braceCount === 0 && jsonStart !== -1) {
+                jsonEnd = i;
+                break;
+              }
+            }
+          }
+          
+          if (jsonStart !== -1 && jsonEnd !== -1) {
             jsonContent = jsonContent.substring(jsonStart, jsonEnd + 1);
           }
           
           console.log('Extracted JSON content:', jsonContent.substring(0, 500) + '...');
+          console.log('Raw output:', output);
           
           const result = JSON.parse(jsonContent);
           
