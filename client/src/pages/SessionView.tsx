@@ -1999,8 +1999,6 @@ Thank you for your assistance.`;
                                                 const score = Math.round(validation.confidenceScore || 0);
 
                                                 if (wasManuallyUpdated) {
-
-                                                  
                                                   return (
                                                     <div className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center">
                                                       <User className="h-3 w-3 text-slate-700" />

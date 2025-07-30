@@ -5,12 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type { FieldValidation } from "@shared/schema";
+import type { FieldValidation, FieldValidationWithName } from "@shared/schema";
 
 interface EditFieldValueDialogProps {
   open: boolean;
   onClose: () => void;
-  validation: FieldValidation | null;
+  validation: FieldValidationWithName | null;
   onSave: (validationId: string, newValue: string, newStatus: string) => void;
 }
 
@@ -38,25 +38,38 @@ export function EditFieldValueDialog({
     onClose();
   };
 
-  const getFieldDisplayName = (validation: FieldValidation) => {
+  const getFieldDisplayName = (validation: FieldValidationWithName) => {
     if (validation.fieldType === "schema_field") {
-      return `Schema Field ${validation.fieldId}`;
+      // For schema fields, extract the field name from fieldName property
+      const parts = validation.fieldName?.split('.');
+      return parts?.[parts.length - 1] || validation.fieldId || "Schema Field";
     } else {
       // For collection properties, show a cleaner name
-      const collectionName = validation.collectionName || "Collection";
-      const index = validation.recordIndex !== null ? validation.recordIndex + 1 : "";
-      return `${collectionName} ${index ? `#${index}` : ""} - Field`;
+      const parts = validation.fieldName?.split('.');
+      if (parts && parts.length >= 2) {
+        const collectionName = parts[0];
+        const propertyName = parts[1].replace(/\[\d+\]$/, ""); // Remove index like [0]
+        const index = validation.recordIndex !== null && validation.recordIndex !== undefined ? validation.recordIndex + 1 : "";
+        return `${collectionName} ${index ? `#${index}` : ""} - ${propertyName}`;
+      }
+      return validation.fieldId || "Collection Property";
     }
   };
 
-  const getFieldType = (validation: FieldValidation) => {
+  const getFieldType = (validation: FieldValidationWithName) => {
     // This would ideally come from the schema, but for now we'll detect from field name
-    const fieldName = validation.fieldId?.toLowerCase() || "";
+    const fieldName = validation.fieldName?.toLowerCase() || "";
+    const extractedValue = validation.extractedValue || "";
+    
     if (fieldName.includes("date") || fieldName.includes("time")) return "date";
     if (fieldName.includes("email")) return "email";
     if (fieldName.includes("phone") || fieldName.includes("tel")) return "tel";
     if (fieldName.includes("url") || fieldName.includes("website")) return "url";
     if (fieldName.includes("description") || fieldName.includes("notes") || fieldName.includes("comment")) return "textarea";
+    
+    // Check if the extracted value is long enough to warrant a textarea
+    if (extractedValue.length > 50 || extractedValue.includes('\n')) return "textarea";
+    
     return "text";
   };
 
