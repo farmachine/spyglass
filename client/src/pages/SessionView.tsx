@@ -626,6 +626,15 @@ export default function SessionView() {
     
     const newStatus: ValidationStatus = isVerified ? 'verified' : 'unverified';
     
+    // Optimistic updates for all item validations
+    queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
+      if (!oldData) return oldData;
+      return oldData.map((v: any) => {
+        const shouldUpdate = itemValidations.some(iv => iv.id === v.id);
+        return shouldUpdate ? { ...v, validationStatus: newStatus, manuallyVerified: isVerified } : v;
+      });
+    });
+    
     // Update all fields for this item
     itemValidations.forEach(validation => {
       updateValidationMutation.mutate({
@@ -1187,18 +1196,39 @@ Thank you for your assistance.`;
   const handleVerificationToggle = async (fieldName: string, isVerified: boolean) => {
     const validation = getValidation(fieldName);
     if (validation) {
+      // Preserve manual status when verifying manually entered fields
+      const wasManuallyEntered = validation.validationStatus === 'manual';
+      const newStatus = wasManuallyEntered ? "manual" : (isVerified ? "valid" : "pending");
+      
+      // Optimistic update
+      queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
+        if (!oldData) return oldData;
+        return oldData.map((v: any) => 
+          v.id === validation.id 
+            ? { ...v, validationStatus: newStatus, manuallyVerified: isVerified }
+            : v
+        );
+      });
+      
       try {
-        // Preserve manual status when verifying manually entered fields
-        const wasManuallyEntered = validation.validationStatus === 'manual';
-        
         await updateValidationMutation.mutateAsync({
           id: validation.id,
           data: {
-            validationStatus: wasManuallyEntered ? "manual" : (isVerified ? "valid" : "pending"),
+            validationStatus: newStatus,
             manuallyVerified: isVerified
           }
         });
       } catch (error) {
+        // Revert optimistic update on error
+        queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
+          if (!oldData) return oldData;
+          return oldData.map((v: any) => 
+            v.id === validation.id 
+              ? { ...v, validationStatus: validation.validationStatus, manuallyVerified: validation.manuallyVerified }
+              : v
+          );
+        });
+        
         console.error('Failed to toggle verification:', error);
         toast({
           title: "Failed to update verification",
@@ -2000,7 +2030,7 @@ Thank you for your assistance.`;
                                 </TableHead>
                               ))}
                               <TableHead className="w-24 border-r border-gray-300" style={{ width: '96px', minWidth: '96px', maxWidth: '96px' }}>
-                                <div className="flex items-center justify-center gap-4">
+                                <div className="flex items-center justify-center gap-3 px-2">
                                   {(() => {
                                     // Calculate if all items in this collection are verified
                                     const allItemsVerified = Array.from({ length: maxRecordIndex + 1 }, (_, index) => {
@@ -2186,7 +2216,7 @@ Thank you for your assistance.`;
                                     );
                                   })}
                                   <TableCell className="border-r border-gray-300">
-                                    <div className="flex items-center justify-center gap-4">
+                                    <div className="flex items-center justify-center gap-3 px-2">
                                       {(() => {
                                         // Calculate verification status for this item
                                         const itemValidations = collection.properties.map(property => {
