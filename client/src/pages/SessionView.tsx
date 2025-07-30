@@ -1872,7 +1872,7 @@ Thank you for your assistance.`;
                                     return <div className="w-4 h-4"></div>; // Empty space for alignment
                                   })()}
                                 </div>
-                                <Label className="text-sm font-medium text-gray-700 mt-0.5">
+                                <Label className="text-sm font-medium text-gray-700 leading-4">
                                   {field.fieldName}
                                 </Label>
                               </div>
