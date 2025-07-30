@@ -1932,7 +1932,7 @@ Thank you for your assistance.`;
                         <Table className="session-table">
                           <TableHeader>
                             <TableRow>
-                              <TableHead className="w-24 border-r border-gray-300">Item #</TableHead>
+
                               {collection.properties
                                 .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
                                 .map((property) => (
@@ -2011,14 +2011,13 @@ Thank you for your assistance.`;
                                 originalIndex: index
                               }));
                               
-                              // Apply sorting if configured
+                              // Apply sorting if configured, but reverse to show newest (highest index) first
                               const sortedItems = sortConfig && sortConfig.collectionId === collection.id 
                                 ? sortCollectionData(itemsWithIndices, collection, sortConfig)
-                                : itemsWithIndices;
+                                : itemsWithIndices.reverse(); // Show newest items first
                               
-                              return sortedItems.map(({ item, originalIndex }, displayIndex) => (
+                              return sortedItems.map(({ item, originalIndex }) => (
                                 <TableRow key={originalIndex} className="border-b border-gray-300">
-                                  <TableCell className="font-medium border-r border-gray-300">{displayIndex + 1}</TableCell>
                                   {collection.properties
                                     .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
                                     .map((property) => {
