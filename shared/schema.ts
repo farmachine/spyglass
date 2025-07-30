@@ -48,9 +48,10 @@ export const projectSchemaFields = pgTable("project_schema_fields", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   fieldName: text("field_name").notNull(),
-  fieldType: text("field_type").notNull(), // TEXT, NUMBER, DATE, BOOLEAN
+  fieldType: text("field_type").notNull(), // TEXT, NUMBER, DATE, CHOICE
   description: text("description"),
   autoVerificationConfidence: integer("auto_verification_confidence").default(80), // 0-100 threshold for auto verification
+  choiceOptions: jsonb("choice_options"), // Array of choice options for CHOICE type fields
   orderIndex: integer("order_index").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -68,9 +69,10 @@ export const collectionProperties = pgTable("collection_properties", {
   id: uuid("id").defaultRandom().primaryKey(),
   collectionId: uuid("collection_id").notNull().references(() => objectCollections.id, { onDelete: "cascade" }),
   propertyName: text("property_name").notNull(),
-  propertyType: text("property_type").notNull(), // TEXT, NUMBER, DATE, BOOLEAN
+  propertyType: text("property_type").notNull(), // TEXT, NUMBER, DATE, CHOICE
   description: text("description"),
   autoVerificationConfidence: integer("auto_verification_confidence").default(80), // 0-100 threshold for auto verification
+  choiceOptions: jsonb("choice_options"), // Array of choice options for CHOICE type fields
   orderIndex: integer("order_index").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

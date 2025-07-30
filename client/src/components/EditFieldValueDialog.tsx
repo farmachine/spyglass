@@ -14,6 +14,8 @@ interface EditFieldValueDialogProps {
   validation: FieldValidationWithName | null;
   onSave: (validationId: string, newValue: string, newStatus: string) => void;
   onVerificationToggle?: (fieldName: string, isVerified: boolean) => void;
+  schemaField?: { fieldType: string; choiceOptions?: string[] } | null;
+  collectionProperty?: { propertyType: string; choiceOptions?: string[] } | null;
 }
 
 export function EditFieldValueDialog({ 
@@ -21,7 +23,9 @@ export function EditFieldValueDialog({
   onClose, 
   validation, 
   onSave,
-  onVerificationToggle
+  onVerificationToggle,
+  schemaField,
+  collectionProperty
 }: EditFieldValueDialogProps) {
   const [value, setValue] = useState("");
   const [status, setStatus] = useState("manual");
@@ -64,7 +68,13 @@ export function EditFieldValueDialog({
   };
 
   const getFieldType = (validation: FieldValidationWithName) => {
-    // This would ideally come from the schema, but for now we'll detect from field name
+    // Check if we have schema field or collection property data
+    const fieldType = schemaField?.fieldType || collectionProperty?.propertyType;
+    if (fieldType === "CHOICE") return "choice";
+    if (fieldType === "DATE") return "date";
+    if (fieldType === "NUMBER") return "number";
+    
+    // Fallback to detection from field name for legacy data
     const fieldName = validation.fieldName?.toLowerCase() || "";
     const extractedValue = validation.extractedValue || "";
     
@@ -103,7 +113,20 @@ export function EditFieldValueDialog({
             <Label htmlFor="field-value" className="text-sm font-medium">
               Value
             </Label>
-            {fieldType === "textarea" ? (
+            {fieldType === "choice" ? (
+              <Select value={value} onValueChange={setValue}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select an option..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {(schemaField?.choiceOptions || collectionProperty?.choiceOptions || []).map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : fieldType === "textarea" ? (
               <Textarea
                 id="field-value"
                 value={value}

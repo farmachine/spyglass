@@ -87,7 +87,8 @@ IMPORTANT GUIDELINES:
 - Create meaningful AI guidance for each field that helps with extraction
 - Generate relevant extraction rules when patterns are obvious (e.g., "Inc" companies, capitalization rules)
 - Suggest appropriate knowledge documents that would help with validation
-- Use appropriate field types: TEXT, NUMBER, DATE, BOOLEAN
+- Use appropriate field types: TEXT, NUMBER, DATE, CHOICE (replaces BOOLEAN)
+- For CHOICE fields, include a "choice_options" array with possible values like ["Yes", "No"], ["Approved", "Rejected", "Pending"], etc.
 - Make collection and property names descriptive and user-friendly
 - Include realistic descriptions that explain what each field should contain
 
@@ -134,6 +135,16 @@ Return ONLY a valid JSON object with proper double-quoted property names. Do NOT
           "ai_guidance": "Extract the legal name of each party from the contract header or signature section",
           "extraction_rules": "Parties with names containing 'Inc' should be flagged with lower confidence for manual review",
           "knowledge_documents": "Contract Review Playbook"
+        },
+        {
+          "property_name": "Role",
+          "field_type": "CHOICE",
+          "description": "The role of the party in the contract",
+          "auto_verification_confidence": 85,
+          "ai_guidance": "Determine the party's role based on contract terms and definitions",
+          "extraction_rules": "Look for role definitions in party sections or signature blocks",
+          "knowledge_documents": "Contract Review Playbook",
+          "choice_options": ["Buyer", "Seller", "Vendor", "Client", "Lessor", "Lessee", "Licensor", "Licensee"]
         }
       ]
     }

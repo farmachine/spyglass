@@ -28,15 +28,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Plus, X } from "lucide-react";
 import type { ProjectSchemaField } from "@shared/schema";
 
-const fieldTypes = ["TEXT", "NUMBER", "DATE", "BOOLEAN"] as const;
+const fieldTypes = ["TEXT", "NUMBER", "DATE", "CHOICE"] as const;
 
 const schemaFieldFormSchema = z.object({
   fieldName: z.string().min(1, "Field name is required"),
   fieldType: z.enum(fieldTypes),
   description: z.string().min(1, "Description is required - this helps the AI understand what to extract"),
   autoVerificationConfidence: z.number().min(0).max(100).default(80),
+  choiceOptions: z.array(z.string()).optional(),
   orderIndex: z.number().default(0),
 });
 
@@ -64,6 +67,7 @@ export default function SchemaFieldDialog({
       fieldType: "TEXT",
       description: "",
       autoVerificationConfidence: 80,
+      choiceOptions: [],
       orderIndex: 0,
     },
   });
@@ -76,6 +80,7 @@ export default function SchemaFieldDialog({
         fieldType: (field?.fieldType as typeof fieldTypes[number]) || "TEXT",
         description: field?.description || "",
         autoVerificationConfidence: field?.autoVerificationConfidence || 80,
+        choiceOptions: field?.choiceOptions as string[] || [],
         orderIndex: field?.orderIndex || 0,
       });
     }
@@ -135,13 +140,80 @@ export default function SchemaFieldDialog({
                       <SelectItem value="TEXT">Text</SelectItem>
                       <SelectItem value="NUMBER">Number</SelectItem>
                       <SelectItem value="DATE">Date</SelectItem>
-                      <SelectItem value="BOOLEAN">Boolean</SelectItem>
+                      <SelectItem value="CHOICE">Choice</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            
+            {/* Choice Options - only show for CHOICE field type */}
+            {form.watch("fieldType") === "CHOICE" && (
+              <FormField
+                control={form.control}
+                name="choiceOptions"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Choice Options</FormLabel>
+                    <FormControl>
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap gap-2">
+                          {field.value?.map((option, index) => (
+                            <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                              {option}
+                              <X 
+                                className="h-3 w-3 cursor-pointer" 
+                                onClick={() => {
+                                  const newOptions = [...(field.value || [])];
+                                  newOptions.splice(index, 1);
+                                  field.onChange(newOptions);
+                                }}
+                              />
+                            </Badge>
+                          ))}
+                        </div>
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Add choice option..."
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                const input = e.target as HTMLInputElement;
+                                const newOption = input.value.trim();
+                                if (newOption && !field.value?.includes(newOption)) {
+                                  field.onChange([...(field.value || []), newOption]);
+                                  input.value = '';
+                                }
+                              }
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              const input = (e.target as HTMLElement).previousElementSibling as HTMLInputElement;
+                              const newOption = input?.value.trim();
+                              if (newOption && !field.value?.includes(newOption)) {
+                                field.onChange([...(field.value || []), newOption]);
+                                input.value = '';
+                              }
+                            }}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </FormControl>
+                    <p className="text-sm text-muted-foreground">
+                      Define the possible values for this choice field. Press Enter or click + to add options.
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             
             <FormField
               control={form.control}
