@@ -42,7 +42,7 @@ IMPORTANT GUIDELINES:
 - Include realistic descriptions that explain what each field should contain
 
 RESPONSE FORMAT:
-Return ONLY a JSON object with this exact structure:
+Return ONLY a valid JSON object with proper double-quoted property names. Do NOT include any markdown formatting, explanatory text, or comments. Return ONLY the JSON with this exact structure:
 
 {
   "main_object_name": "Contract",
@@ -76,17 +76,22 @@ Return ONLY a JSON object with this exact structure:
   ]
 }
 
-Now process this user query and generate an appropriate schema structure:"""
+Now process this user query and generate an appropriate schema structure.
+
+CRITICAL: Your response must be ONLY valid JSON with properly quoted property names. Do not include any explanations, markdown, or other text outside the JSON object.
+
+User Query:"""
 
     try:
         response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=[
-                types.Content(role="user", parts=[types.Part(text=f"{system_prompt}\n\nUser Query: {user_query}")])
+                types.Content(role="user", parts=[types.Part(text=f"{system_prompt}\n\n{user_query}")])
             ],
             config=types.GenerateContentConfig(
                 max_output_tokens=8000,
-                temperature=0.3,
+                temperature=0.1,  # Lower temperature for more consistent JSON
+                response_mime_type="application/json",  # Force JSON output
             ),
         )
 
@@ -107,8 +112,48 @@ Now process this user query and generate an appropriate schema structure:"""
             
         response_text = response_text.strip()
         
-        # Parse JSON response
-        schema_data = json.loads(response_text)
+        # Log the raw response for debugging
+        logger.info(f"Raw AI response (first 500 chars): {response_text[:500]}...")
+        
+        # Try to parse JSON response with error recovery
+        try:
+            schema_data = json.loads(response_text)
+        except json.JSONDecodeError as json_error:
+            # Try to fix common JSON issues
+            logger.warning(f"Initial JSON parse failed: {json_error}. Attempting to fix...")
+            
+            # Try to fix common JSON issues
+            import re
+            fixed_text = response_text
+            
+            # Fix unquoted property names like: field_name: "value" -> "field_name": "value"
+            fixed_text = re.sub(r'(\w+):\s*"', r'"\1": "', fixed_text)
+            fixed_text = re.sub(r'(\w+):\s*(\d+)', r'"\1": \2', fixed_text)
+            fixed_text = re.sub(r'(\w+):\s*(true|false)', r'"\1": \2', fixed_text)
+            fixed_text = re.sub(r'(\w+):\s*\[', r'"\1": [', fixed_text)
+            fixed_text = re.sub(r'(\w+):\s*\{', r'"\1": {', fixed_text)
+            
+            # Fix malformed string arrays like: "value1", "value2" -> ["value1", "value2"]
+            # This specifically handles the knowledge_documents field
+            fixed_text = re.sub(r'"knowledge_documents":\s*"([^"]+)",\s*"([^"]+)"', r'"knowledge_documents": ["\1", "\2"]', fixed_text)
+            fixed_text = re.sub(r'"extraction_rules":\s*"([^"]+)",\s*"([^"]+)"', r'"extraction_rules": ["\1", "\2"]', fixed_text)
+            
+            # Try parsing again
+            try:
+                schema_data = json.loads(fixed_text)
+                logger.info("Successfully fixed JSON formatting")
+            except json.JSONDecodeError:
+                # Last resort: try to extract JSON from the response using regex
+                json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+                if json_match:
+                    json_content = json_match.group(0)
+                    try:
+                        schema_data = json.loads(json_content)
+                        logger.info("Successfully extracted JSON using regex")
+                    except json.JSONDecodeError:
+                        raise json_error
+                else:
+                    raise json_error
         
         logger.info(f"Generated schema for project {project_id}: {len(schema_data.get('schema_fields', []))} fields, {len(schema_data.get('collections', []))} collections")
         
