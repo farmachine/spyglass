@@ -1910,54 +1910,36 @@ Thank you for your assistance.`;
                                     );
                                   } else {
                                     return (
-                                      <div className="flex items-center gap-2 relative">
-                                        <div className="flex-1">
+                                      <div className="flex items-center gap-2 relative min-h-[32px]">
+                                        <div className="flex-1 relative">
                                           {fieldType === 'TEXTAREA' ? (
-                                            <div className="whitespace-pre-wrap text-sm text-gray-900 p-2 bg-gray-50 border rounded-md min-h-[60px] relative pr-8">
+                                            <div className="whitespace-pre-wrap text-sm text-gray-900 p-2 bg-gray-50 border rounded-md min-h-[60px] pr-8">
                                               {formatValueForDisplay(displayValue, fieldType)}
-                                              {/* Information icon for AI reasoning - always visible, pinned to bottom-right */}
-                                              {validation && validation.aiReasoning && (
-                                                <Button
-                                                  size="sm"
-                                                  variant="ghost"
-                                                  onClick={() => {
-                                                    setSelectedReasoning({
-                                                      reasoning: validation.aiReasoning,
-                                                      fieldName: getFieldDisplayName(field.fieldName),
-                                                      confidenceScore: validation.confidenceScore || 0
-                                                    });
-                                                  }}
-                                                  className="absolute bottom-1 right-1 h-4 w-4 p-0 text-gray-400 hover:text-gray-600 transition-colors"
-                                                  title="View AI analysis"
-                                                >
-                                                  <Info className="h-2.5 w-2.5" />
-                                                </Button>
-                                              )}
                                             </div>
                                           ) : (
-                                            <div className="relative">
+                                            <div className="min-h-[24px] flex items-start">
                                               <span className="text-sm text-gray-900">
                                                 {formatValueForDisplay(displayValue, fieldType)}
                                               </span>
-                                              {/* Information icon for AI reasoning - always visible, pinned to bottom-right */}
-                                              {validation && validation.aiReasoning && (
-                                                <Button
-                                                  size="sm"
-                                                  variant="ghost"
-                                                  onClick={() => {
-                                                    setSelectedReasoning({
-                                                      reasoning: validation.aiReasoning,
-                                                      fieldName: getFieldDisplayName(field.fieldName),
-                                                      confidenceScore: validation.confidenceScore || 0
-                                                    });
-                                                  }}
-                                                  className="absolute -bottom-1 -right-1 h-4 w-4 p-0 text-gray-400 hover:text-gray-600 transition-colors"
-                                                  title="View AI analysis"
-                                                >
-                                                  <Info className="h-2.5 w-2.5" />
-                                                </Button>
-                                              )}
                                             </div>
+                                          )}
+                                          {/* Information icon for AI reasoning - always visible, pinned to bottom-right of container */}
+                                          {validation && validation.aiReasoning && (
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              onClick={() => {
+                                                setSelectedReasoning({
+                                                  reasoning: validation.aiReasoning,
+                                                  fieldName: getFieldDisplayName(field.fieldName),
+                                                  confidenceScore: validation.confidenceScore || 0
+                                                });
+                                              }}
+                                              className="absolute bottom-0 right-0 h-4 w-4 p-0 text-gray-400 hover:text-gray-600 transition-colors"
+                                              title="View AI analysis"
+                                            >
+                                              <Info className="h-2.5 w-2.5" />
+                                            </Button>
                                           )}
                                         </div>
                                         <Button
@@ -2145,11 +2127,11 @@ Thank you for your assistance.`;
                                           minWidth: '80px'
                                         }}
                                       >
-                                        <div className="relative w-full">
+                                        <div className="relative w-full h-full">
                                           {/* Content */}
                                           <div className={`table-cell-content w-full pl-6 pr-8 ${
                                             property.fieldType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
-                                          } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed group relative`}>
+                                          } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed group relative h-full min-h-[40px]`}>
                                             {formatValueForDisplay(displayValue, property.fieldType)}
                                             
                                             {/* Edit button */}
@@ -2158,32 +2140,32 @@ Thank you for your assistance.`;
                                                 size="sm"
                                                 variant="ghost"
                                                 onClick={() => handleEditField(validation)}
-                                                className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                                                 title="Edit field value"
                                               >
                                                 <Edit3 className="h-3 w-3" />
                                               </Button>
                                             )}
-                                            
-                                            {/* Information icon for AI reasoning - always visible, pinned to bottom-right */}
-                                            {validation && validation.aiReasoning && (
-                                              <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                onClick={() => {
-                                                  setSelectedReasoning({
-                                                    reasoning: validation.aiReasoning,
-                                                    fieldName: `${collection.collectionName} #${originalIndex + 1} - ${property.propertyName}`,
-                                                    confidenceScore: validation.confidenceScore || 0
-                                                  });
-                                                }}
-                                                className="absolute bottom-1 right-1 h-4 w-4 p-0 text-gray-400 hover:text-gray-600 transition-colors"
-                                                title="View AI analysis"
-                                              >
-                                                <Info className="h-2.5 w-2.5" />
-                                              </Button>
-                                            )}
                                           </div>
+                                          
+                                          {/* Information icon for AI reasoning - always visible, pinned to bottom-right of cell */}
+                                          {validation && validation.aiReasoning && (
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              onClick={() => {
+                                                setSelectedReasoning({
+                                                  reasoning: validation.aiReasoning,
+                                                  fieldName: `${collection.collectionName} #${originalIndex + 1} - ${property.propertyName}`,
+                                                  confidenceScore: validation.confidenceScore || 0
+                                                });
+                                              }}
+                                              className="absolute bottom-1 right-1 h-4 w-4 p-0 text-gray-400 hover:text-gray-600 transition-colors z-5"
+                                              title="View AI analysis"
+                                            >
+                                              <Info className="h-2.5 w-2.5" />
+                                            </Button>
+                                          )}
                                           
                                           {/* Combined confidence/verification indicator on top-left corner */}
                                           {validation && (
