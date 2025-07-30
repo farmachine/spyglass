@@ -8,14 +8,14 @@ import type {
 } from "@shared/schema";
 
 // Knowledge Documents
-export function useKnowledgeDocuments(projectId: number) {
+export function useKnowledgeDocuments(projectId: string) {
   return useQuery({
     queryKey: ["/api/projects", projectId, "knowledge"],
     queryFn: () => apiRequest(`/api/projects/${projectId}/knowledge`),
   });
 }
 
-export function useCreateKnowledgeDocument(projectId: number) {
+export function useCreateKnowledgeDocument(projectId: string) {
   const queryClient = useQueryClient();
   
   return useMutation({
@@ -63,14 +63,14 @@ export function useDeleteKnowledgeDocument() {
 }
 
 // Extraction Rules
-export function useExtractionRules(projectId: number) {
+export function useExtractionRules(projectId: string) {
   return useQuery({
     queryKey: ["/api/projects", projectId, "rules"],
     queryFn: () => apiRequest(`/api/projects/${projectId}/rules`),
   });
 }
 
-export function useCreateExtractionRule(projectId: number) {
+export function useCreateExtractionRule(projectId: string) {
   const queryClient = useQueryClient();
   
   return useMutation({
@@ -90,7 +90,7 @@ export function useUpdateExtractionRule() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, ...data }: { id: number } & Partial<InsertExtractionRule>) =>
+    mutationFn: ({ id, ...data }: { id: string } & Partial<InsertExtractionRule>) =>
       apiRequest(`/api/rules/${id}`, {
         method: "PATCH",
         body: JSON.stringify(data),
@@ -106,7 +106,7 @@ export function useDeleteExtractionRule() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (id: number) =>
+    mutationFn: (id: string) =>
       apiRequest(`/api/rules/${id}`, {
         method: "DELETE",
       }),

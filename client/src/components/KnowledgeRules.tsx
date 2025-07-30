@@ -29,7 +29,7 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
   const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState<KnowledgeDocument | null>(null);
   const [editingRule, setEditingRule] = useState<ExtractionRule | null>(null);
-  const [deletingRuleId, setDeletingRuleId] = useState<number | null>(null);
+  const [deletingRuleId, setDeletingRuleId] = useState<string | null>(null);
   const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
 
   // Knowledge Documents
@@ -91,7 +91,7 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
     }
   };
 
-  const handleDeleteExtractionRule = async (id: number) => {
+  const handleDeleteExtractionRule = async (id: string) => {
     if (deletingRuleId === id) return; // Prevent double-click
     
     setDeletingRuleId(id);
