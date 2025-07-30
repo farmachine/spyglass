@@ -1832,21 +1832,9 @@ Thank you for your assistance.`;
                                     
                                     return (
                                       <button
-                                        onClick={() => {
-                                          if (validation.aiReasoning) {
-                                            setSelectedReasoning({
-                                              reasoning: validation.aiReasoning,
-                                              fieldName: getFieldDisplayName(fieldName),
-                                              confidenceScore: validation.confidenceScore || 0,
-                                              getFieldDisplayName,
-                                              validation,
-                                              onVerificationChange: (isVerified) => handleFieldVerification(fieldName, isVerified),
-                                              isVerified: validation.validationStatus === 'verified' || validation.validationStatus === 'valid'
-                                            });
-                                          }
-                                        }}
+                                        onClick={() => handleFieldVerification(fieldName, true)}
                                         className={`w-3 h-3 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0`}
-                                        title={`${score}% confidence - Click for AI analysis`}
+                                        title={`${score}% confidence - Click to verify`}
                                       />
                                     );
                                   } else if (!hasValue) {
@@ -1922,16 +1910,54 @@ Thank you for your assistance.`;
                                     );
                                   } else {
                                     return (
-                                      <div className="flex items-center gap-2">
+                                      <div className="flex items-center gap-2 relative">
                                         <div className="flex-1">
                                           {fieldType === 'TEXTAREA' ? (
-                                            <div className="whitespace-pre-wrap text-sm text-gray-900 p-2 bg-gray-50 border rounded-md min-h-[60px]">
+                                            <div className="whitespace-pre-wrap text-sm text-gray-900 p-2 bg-gray-50 border rounded-md min-h-[60px] relative pr-8">
                                               {formatValueForDisplay(displayValue, fieldType)}
+                                              {/* Information icon for AI reasoning - always visible, pinned to bottom-right */}
+                                              {validation && validation.aiReasoning && (
+                                                <Button
+                                                  size="sm"
+                                                  variant="ghost"
+                                                  onClick={() => {
+                                                    setSelectedReasoning({
+                                                      reasoning: validation.aiReasoning,
+                                                      fieldName: getFieldDisplayName(field.fieldName),
+                                                      confidenceScore: validation.confidenceScore || 0
+                                                    });
+                                                  }}
+                                                  className="absolute bottom-1 right-1 h-4 w-4 p-0 text-gray-400 hover:text-gray-600 transition-colors"
+                                                  title="View AI analysis"
+                                                >
+                                                  <Info className="h-2.5 w-2.5" />
+                                                </Button>
+                                              )}
                                             </div>
                                           ) : (
-                                            <span className="text-sm text-gray-900">
-                                              {formatValueForDisplay(displayValue, fieldType)}
-                                            </span>
+                                            <div className="relative">
+                                              <span className="text-sm text-gray-900">
+                                                {formatValueForDisplay(displayValue, fieldType)}
+                                              </span>
+                                              {/* Information icon for AI reasoning - always visible, pinned to bottom-right */}
+                                              {validation && validation.aiReasoning && (
+                                                <Button
+                                                  size="sm"
+                                                  variant="ghost"
+                                                  onClick={() => {
+                                                    setSelectedReasoning({
+                                                      reasoning: validation.aiReasoning,
+                                                      fieldName: getFieldDisplayName(field.fieldName),
+                                                      confidenceScore: validation.confidenceScore || 0
+                                                    });
+                                                  }}
+                                                  className="absolute -bottom-1 -right-1 h-4 w-4 p-0 text-gray-400 hover:text-gray-600 transition-colors"
+                                                  title="View AI analysis"
+                                                >
+                                                  <Info className="h-2.5 w-2.5" />
+                                                </Button>
+                                              )}
+                                            </div>
                                           )}
                                         </div>
                                         <Button
@@ -2139,7 +2165,7 @@ Thank you for your assistance.`;
                                               </Button>
                                             )}
                                             
-                                            {/* Information icon for AI reasoning */}
+                                            {/* Information icon for AI reasoning - always visible, pinned to bottom-right */}
                                             {validation && validation.aiReasoning && (
                                               <Button
                                                 size="sm"
@@ -2151,7 +2177,7 @@ Thank you for your assistance.`;
                                                     confidenceScore: validation.confidenceScore || 0
                                                   });
                                                 }}
-                                                className="absolute bottom-1 right-1 h-4 w-4 p-0 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="absolute bottom-1 right-1 h-4 w-4 p-0 text-gray-400 hover:text-gray-600 transition-colors"
                                                 title="View AI analysis"
                                               >
                                                 <Info className="h-2.5 w-2.5" />
