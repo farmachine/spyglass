@@ -13,35 +13,27 @@ interface EditFieldValueDialogProps {
   onClose: () => void;
   validation: FieldValidationWithName | null;
   onSave: (validationId: string, newValue: string, newStatus: string) => void;
-  onVerificationToggle?: (fieldName: string, isVerified: boolean) => void;
 }
 
 export function EditFieldValueDialog({ 
   open, 
   onClose, 
   validation, 
-  onSave,
-  onVerificationToggle
+  onSave
 }: EditFieldValueDialogProps) {
   const [value, setValue] = useState("");
-  const [status, setStatus] = useState("manual");
-  const [isVerified, setIsVerified] = useState(false);
 
   // Reset form when validation changes or dialog opens
   useEffect(() => {
     if (validation) {
       setValue(validation.extractedValue || "");
-      setStatus(validation.validationStatus || "manual");
-      setIsVerified(validation.validationStatus === 'verified' || validation.validationStatus === 'valid');
     }
   }, [validation, open]);
 
   const handleSave = () => {
     if (!validation) return;
     
-    // Determine status based on verification toggle state
-    const finalStatus = isVerified ? "verified" : "manual";
-    onSave(validation.id, value, finalStatus);
+    onSave(validation.id, value, "manual");
     onClose();
   };
 
@@ -135,34 +127,20 @@ export function EditFieldValueDialog({
             </div>
           )}
 
-          <div className="flex items-center justify-between pt-4 border-t">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setIsVerified(!isVerified)}
-                className="flex items-center justify-center hover:bg-gray-100 px-3 py-2 rounded transition-colors"
-                title={isVerified ? "Click to mark as unverified" : "Click to mark as verified"}
-              >
-                {isVerified ? (
-                  <CheckCircle className="h-6 w-6 text-green-600" />
-                ) : (
-                  <CheckCircle className="h-6 w-6 text-gray-400" />
-                )}
-              </button>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={handleSave}
-                className="bg-primary hover:bg-primary/90"
-              >
-                Save Changes
-              </Button>
-              <Button
-                variant="outline"
-                onClick={onClose}
-              >
-                Cancel
-              </Button>
-            </div>
+          <div className="flex gap-2 pt-4">
+            <Button
+              onClick={handleSave}
+              className="flex-1 bg-primary hover:bg-primary/90"
+            >
+              Save Changes
+            </Button>
+            <Button
+              variant="outline"
+              onClick={onClose}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
           </div>
         </div>
       </DialogContent>

@@ -2138,6 +2138,25 @@ Thank you for your assistance.`;
                                                 <Edit3 className="h-3 w-3" />
                                               </Button>
                                             )}
+                                            
+                                            {/* Information icon for AI reasoning */}
+                                            {validation && validation.aiReasoning && (
+                                              <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => {
+                                                  setSelectedReasoning({
+                                                    reasoning: validation.aiReasoning,
+                                                    fieldName: `${collection.collectionName} #${originalIndex + 1} - ${property.propertyName}`,
+                                                    confidenceScore: validation.confidenceScore || 0
+                                                  });
+                                                }}
+                                                className="absolute bottom-1 right-1 h-4 w-4 p-0 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                title="View AI analysis"
+                                              >
+                                                <Info className="h-2.5 w-2.5" />
+                                              </Button>
+                                            )}
                                           </div>
                                           
                                           {/* Combined confidence/verification indicator on top-left corner */}
@@ -2180,23 +2199,15 @@ Thank you for your assistance.`;
                                                     </TooltipProvider>
                                                   );
                                                 } else if (hasValue && validation.confidenceScore) {
-                                                  // Show colored confidence dot when not verified
+                                                  // Show colored confidence dot when not verified - click to verify
                                                   const colorClass = score >= 80 ? 'bg-green-500' : 
                                                                    score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
                                                   
                                                   return (
                                                     <button
-                                                      onClick={() => {
-                                                        if (validation.aiReasoning) {
-                                                          setSelectedReasoning({
-                                                            reasoning: validation.aiReasoning,
-                                                            fieldName,
-                                                            confidenceScore: validation.confidenceScore || 0
-                                                          });
-                                                        }
-                                                      }}
+                                                      onClick={() => handleFieldVerification(fieldName, true)}
                                                       className={`absolute top-2 left-1 w-3 h-3 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity`}
-                                                      title={`${score}% confidence - Click for AI analysis`}
+                                                      title={`${score}% confidence - Click to verify`}
                                                     />
                                                   );
                                                 } else if (!hasValue) {
@@ -2289,36 +2300,14 @@ Thank you for your assistance.`;
                 </div>
               </div>
               
-              {(() => {
-                const validation = getValidation(selectedReasoning.fieldName);
-                const isVerified = validation?.validationStatus === 'verified' || validation?.validationStatus === 'valid';
-                
-                return (
-                  <div className="flex items-center justify-between pt-4 border-t">
-                    <div className="flex items-center gap-4">
-                      <button
-                        onClick={() => {
-                          handleFieldVerification(selectedReasoning.fieldName, !isVerified);
-                        }}
-                        className="flex items-center justify-center hover:bg-gray-100 px-3 py-2 rounded transition-colors"
-                        title={isVerified ? "Click to mark as unverified" : "Click to mark as verified"}
-                      >
-                        {isVerified ? (
-                          <CheckCircle className="h-6 w-6 text-green-600" />
-                        ) : (
-                          <CheckCircle className="h-6 w-6 text-gray-400" />
-                        )}
-                      </button>
-                    </div>
-                    <Button
-                      onClick={() => setSelectedReasoning(null)}
-                      variant="outline"
-                    >
-                      Close
-                    </Button>
-                  </div>
-                );
-              })()}
+              <div className="flex justify-end pt-4 border-t">
+                <Button
+                  onClick={() => setSelectedReasoning(null)}
+                  variant="outline"
+                >
+                  Close
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
@@ -2393,7 +2382,6 @@ Thank you for your assistance.`;
           validation={editFieldDialog.validation}
           onClose={() => setEditFieldDialog({ open: false, validation: null })}
           onSave={handleSaveFieldEdit}
-          onVerificationToggle={handleVerificationToggle}
         />
       )}
     </div>
