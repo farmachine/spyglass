@@ -610,9 +610,32 @@ export default function SessionView() {
     if (!validation) return;
     
     const newStatus: ValidationStatus = isVerified ? 'verified' : 'unverified';
+    
+    // Optimistic update: immediately update the UI
+    queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
+      if (!oldData) return oldData;
+      return oldData.map((v: any) => 
+        v.id === validation.id 
+          ? { ...v, validationStatus: newStatus }
+          : v
+      );
+    });
+    
     updateValidationMutation.mutate({
       id: validation.id,
       data: { validationStatus: newStatus }
+    }, {
+      onError: () => {
+        // Revert optimistic update on error
+        queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
+          if (!oldData) return oldData;
+          return oldData.map((v: any) => 
+            v.id === validation.id 
+              ? { ...v, validationStatus: validation.validationStatus }
+              : v
+          );
+        });
+      }
     });
   };
 
