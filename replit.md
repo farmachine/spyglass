@@ -11,6 +11,16 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **July 30, 2025 (Latest Update)**
+- ✓ **COMPLETE CHOICE FIELD IMPLEMENTATION**: Successfully replaced BOOLEAN field type with customizable CHOICE fields throughout the entire system
+- ✓ Updated database schema with choiceOptions JSON field for both projectSchemaFields and collectionProperties tables
+- ✓ Enhanced SchemaFieldDialog and PropertyDialog components to support choice options configuration with proper UI
+- ✓ Updated EditFieldValueDialog to display dropdown selection for CHOICE fields with user-defined options
+- ✓ Modified AI schema generation prompts to create CHOICE fields with custom options instead of BOOLEAN
+- → **IDENTIFIED CSP LIST GENERATION ISSUE**: AI schema generator has overly restrictive CSP detection that prevents collection creation
+- → Fixed CSP prompt template to allow collections when user mentions multiple CSP interventions or repeated data structures
+- → User reported expectation of lists not being generated for CSP agricultural data extraction
+
+**July 30, 2025 (Previous Update)**
 - ✓ **CRITICAL TOKEN LIMIT BUG COMPLETELY RESOLVED**: Fixed AI schema generation response truncation by increasing Gemini API token limit from 8,000 to 30,000,000 tokens
 - ✓ Enhanced server-side JSON parsing with proper brace matching algorithm to handle complex nested schema structures
 - ✓ Added comprehensive JSON repair system for handling various AI response formatting inconsistencies

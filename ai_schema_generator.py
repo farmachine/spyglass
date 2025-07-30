@@ -31,31 +31,27 @@ def generate_schema_from_query(user_query: str, project_id: str) -> dict:
     if is_csp_query:
         system_prompt = """You are an AI assistant specializing in Common Agricultural Policy Support (CSP) data extraction schemas.
 
-Create a schema for extracting CSP data in the specific format shown. The output must be structured to handle:
-1. Country codes
-2. Intervention descriptions 
-3. Binary activity status strings (series of 1s and 0s representing different agricultural activities)
+Create a schema for extracting CSP data. The output must be structured to handle:
+1. Country codes, intervention descriptions, and other document-level fields (use schema_fields)
+2. Multiple CSP interventions, activities, or repeated data items (use collections when appropriate)
 
-Keep the schema simple and focused on the CSP format. Use only a few essential fields to capture this structured data.
+WHEN TO USE COLLECTIONS FOR CSP DATA:
+- If the user mentions multiple CSP interventions per document
+- If extracting multiple agricultural activities as separate items  
+- If there are lists of countries, regions, or intervention types
+- If the data contains repeated structures like multiple rows or records
+
+WHEN TO USE SCHEMA FIELDS FOR CSP DATA:
+- Single country code per document
+- Overall intervention description for the whole document
+- Summary fields or totals across all interventions
+- Binary activity strings that represent a single intervention's status
+
+Use the same field types as regular schemas: TEXT, NUMBER, DATE, CHOICE
+For CHOICE fields, include "choice_options" array with possible values.
 
 RESPONSE FORMAT:
-Return ONLY a valid JSON object. Example:
-
-{
-  "main_object_name": "CSP_Data",
-  "schema_fields": [
-    {
-      "field_name": "Country_Code",
-      "field_type": "TEXT",
-      "description": "Country code for the CSP data",
-      "auto_verification_confidence": 85,
-      "ai_guidance": "Extract the country code from the data",
-      "extraction_rules": "Look for 2-letter country codes",
-      "knowledge_documents": "CSP Guidelines"
-    }
-  ],
-  "collections": []
-}
+Return ONLY a valid JSON object following the standard schema format with both schema_fields AND collections when appropriate.
 
 User Query: """
     else:
