@@ -1784,99 +1784,102 @@ Thank you for your assistance.`;
                           }
                           
                           return (
-                            <div key={field.id} className="relative mb-6">
-                              {/* Icons positioned absolutely at top-left */}
-                              <div className="absolute top-0 left-0 flex flex-col items-center gap-1">
-                                {(() => {
-                                  const fieldName = field.fieldName;
-                                  const validation = getValidation(fieldName);
-                                  const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
-                                  const wasManuallyUpdated = validation && validation.manuallyUpdated;
-                                  const isVerified = validation?.validationStatus === 'verified' || validation?.validationStatus === 'valid';
-                                  const score = Math.round(validation?.confidenceScore || 0);
+                            <div key={field.id} className="mb-6">
+                              {/* Field container with minimal top padding */}
+                              <div className="relative pt-0.5">
+                                {/* Icons positioned absolutely at top-left */}
+                                <div className="absolute top-0 left-0 flex flex-col items-center gap-1">
+                                  {(() => {
+                                    const fieldName = field.fieldName;
+                                    const validation = getValidation(fieldName);
+                                    const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
+                                    const wasManuallyUpdated = validation && validation.manuallyUpdated;
+                                    const isVerified = validation?.validationStatus === 'verified' || validation?.validationStatus === 'valid';
+                                    const score = Math.round(validation?.confidenceScore || 0);
 
-                                  // Render confidence indicator/verification status to the left of field name
-                                  if (wasManuallyUpdated) {
-                                    // Show blue user icon for manually updated fields - highest priority
-                                    return (
-                                      <div className="w-4 h-4 flex items-center justify-center">
-                                        <User className="h-4 w-4 text-slate-700" />
-                                      </div>
-                                    );
-                                  } else if (isVerified) {
-                                    // Show green tick when verified - clicking unverifies
-                                    return (
-                                      <TooltipProvider>
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <button
-                                              onClick={() => handleFieldVerification(fieldName, false)}
-                                              className="w-4 h-4 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors flex-shrink-0"
-                                              aria-label="Click to unverify"
-                                            >
-                                              <span className="text-sm font-bold">✓</span>
-                                            </button>
-                                          </TooltipTrigger>
-                                          <TooltipContent>
-                                            Verified with {score}% confidence
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      </TooltipProvider>
-                                    );
-                                  } else if (hasValue && validation) {
-                                    // Show colored confidence dot when not verified - clicking opens AI analysis modal
-                                    const colorClass = score >= 80 ? 'bg-green-500' : 
-                                                     score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
-                                    
-                                    return (
-                                      <button
-                                        onClick={() => handleFieldVerification(fieldName, true)}
-                                        className={`w-4 h-4 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0`}
-                                        title={`${score}% confidence - Click to verify`}
-                                      />
-                                    );
-                                  } else if (!hasValue) {
-                                    // Show red exclamation mark for missing fields
-                                    return (
-                                      <div className="w-4 h-4 flex items-center justify-center text-red-500 font-bold text-xs flex-shrink-0" title="Missing data">
-                                        !
-                                      </div>
-                                    );
-                                  }
-                                  // Return empty div to maintain consistent spacing
-                                  return <div className="w-4 h-4 flex-shrink-0"></div>;
-                                })()}
+                                    // Render confidence indicator/verification status to the left of field name
+                                    if (wasManuallyUpdated) {
+                                      // Show blue user icon for manually updated fields - highest priority
+                                      return (
+                                        <div className="w-4 h-4 flex items-center justify-center">
+                                          <User className="h-4 w-4 text-slate-700" />
+                                        </div>
+                                      );
+                                    } else if (isVerified) {
+                                      // Show green tick when verified - clicking unverifies
+                                      return (
+                                        <TooltipProvider>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <button
+                                                onClick={() => handleFieldVerification(fieldName, false)}
+                                                className="w-4 h-4 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors flex-shrink-0"
+                                                aria-label="Click to unverify"
+                                              >
+                                                <span className="text-sm font-bold">✓</span>
+                                              </button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                              Verified with {score}% confidence
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        </TooltipProvider>
+                                      );
+                                    } else if (hasValue && validation) {
+                                      // Show colored confidence dot when not verified - clicking opens AI analysis modal
+                                      const colorClass = score >= 80 ? 'bg-green-500' : 
+                                                       score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
+                                      
+                                      return (
+                                        <button
+                                          onClick={() => handleFieldVerification(fieldName, true)}
+                                          className={`w-4 h-4 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0`}
+                                          title={`${score}% confidence - Click to verify`}
+                                        />
+                                      );
+                                    } else if (!hasValue) {
+                                      // Show red exclamation mark for missing fields
+                                      return (
+                                        <div className="w-4 h-4 flex items-center justify-center text-red-500 font-bold text-xs flex-shrink-0" title="Missing data">
+                                          !
+                                        </div>
+                                      );
+                                    }
+                                    // Return empty div to maintain consistent spacing
+                                    return <div className="w-4 h-4 flex-shrink-0"></div>;
+                                  })()}
+                                  
+                                  {/* Information icon positioned directly below confidence/verification icon */}
+                                  {(() => {
+                                    const validation = getValidation(field.fieldName);
+                                    if (validation && validation.aiReasoning) {
+                                      return (
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => {
+                                            setSelectedReasoning({
+                                              reasoning: validation.aiReasoning,
+                                              fieldName: getFieldDisplayName(field.fieldName),
+                                              confidenceScore: validation.confidenceScore || 0
+                                            });
+                                          }}
+                                          className="h-4 w-4 p-0 text-gray-400 hover:text-gray-600 transition-colors"
+                                          title="View AI analysis"
+                                        >
+                                          <Info className="h-3 w-3" />
+                                        </Button>
+                                      );
+                                    }
+                                    return <div className="w-4 h-4"></div>; // Empty space for alignment
+                                  })()}
+                                </div>
                                 
-                                {/* Information icon positioned directly below confidence/verification icon */}
-                                {(() => {
-                                  const validation = getValidation(field.fieldName);
-                                  if (validation && validation.aiReasoning) {
-                                    return (
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => {
-                                          setSelectedReasoning({
-                                            reasoning: validation.aiReasoning,
-                                            fieldName: getFieldDisplayName(field.fieldName),
-                                            confidenceScore: validation.confidenceScore || 0
-                                          });
-                                        }}
-                                        className="h-4 w-4 p-0 text-gray-400 hover:text-gray-600 transition-colors"
-                                        title="View AI analysis"
-                                      >
-                                        <Info className="h-3 w-3" />
-                                      </Button>
-                                    );
-                                  }
-                                  return <div className="w-4 h-4"></div>; // Empty space for alignment
-                                })()}
+                                {/* Label positioned flush with top, offset by icon width */}
+                                <Label className="text-sm font-medium text-gray-700 pl-6 block leading-none">
+                                  {field.fieldName}
+                                </Label>
                               </div>
-                              
-                              {/* Label positioned flush with top, offset by icon width */}
-                              <Label className="text-sm font-medium text-gray-700 pl-6 block leading-4">
-                                {field.fieldName}
-                              </Label>
                               <div>
                                 {(() => {
                                   const validation = getValidation(field.fieldName);
