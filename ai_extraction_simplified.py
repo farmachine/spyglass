@@ -163,124 +163,109 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
                             
                         prompt += f"\n  * **{prop_name}** ({prop_type}): {prop_instruction}"
         
-        # Generate dynamic JSON example based on actual schema and extraction rules
-        def generate_dynamic_json_example():
-            json_lines = [f'{{"']
-            json_lines.append(f'  "{session_name}": {{')
+        # Generate field validation JSON structure
+        def generate_field_validation_example():
+            json_lines = ['{"field_validations": [']
             
-            # Add schema fields with descriptions and applicable rules
+            # Add schema fields with proper field validation structure
             if project_schema.get("schema_fields"):
-                for field in project_schema["schema_fields"]:
+                for i, field in enumerate(project_schema["schema_fields"]):
+                    field_id = field['id']
                     field_name = field['fieldName']
                     field_type = field['fieldType']
                     field_description = field.get('description', '')
-                    camel_case_name = field_name.replace(' ', '').replace('of', 'Of')
                     
-                    # Find applicable extraction rules
-                    applicable_rules = []
-                    if extraction_rules:
-                        for rule in extraction_rules:
-                            rule_target = rule.get('targetField', [])
-                            if isinstance(rule_target, list):
-                                if field_name in rule_target or 'All Fields' in rule_target:
-                                    applicable_rules.append(rule.get('ruleContent', ''))
-                            elif field_name == rule_target or rule_target == 'All Fields':
-                                applicable_rules.append(rule.get('ruleContent', ''))
-                    
-                    # Determine output format based on field type
+                    # Determine example value based on field type
                     if field_type == 'NUMBER':
                         if 'parties' in field_name.lower():
-                            output_format = '33'  # Example showing high party count
+                            example_value = '33'
                         elif 'nda' in field_name.lower():
-                            output_format = '8'
+                            example_value = '8'
                         else:
-                            output_format = '42'
+                            example_value = '42'
                     elif field_type == 'DATE':
-                        output_format = '"2024-01-15"'
-                    elif field_type == 'BOOLEAN':
-                        output_format = 'true'
+                        example_value = '2024-01-15'
                     elif field_type == 'CHOICE' and field.get('choiceOptions'):
-                        # Use the first choice option as example
-                        output_format = f'"{field["choiceOptions"][0]}"'
+                        example_value = field["choiceOptions"][0]
                     else:  # TEXT
-                        output_format = '"Extracted Text Value"'
+                        example_value = 'Extracted Text Value'
                     
-                    # Build comment with description and rules
-                    comment_parts = []
+                    # Build AI reasoning
+                    reasoning = f"Extracted from document analysis"
                     if field_description:
-                        comment_parts.append(field_description)
-                    if applicable_rules:
-                        comment_parts.extend(applicable_rules)
-                    comment = ' + '.join(comment_parts) if comment_parts else 'Extract this field from documents'
+                        reasoning += f" - {field_description}"
                     
-                    json_lines.append(f'    "{camel_case_name}": {output_format}, // {comment}')
+                    json_lines.append('  {')
+                    json_lines.append(f'    "field_id": "{field_id}",')
+                    json_lines.append(f'    "field_type": "schema_field",')
+                    json_lines.append(f'    "field_name": "{field_name}",')
+                    json_lines.append(f'    "extracted_value": "{example_value}",')
+                    json_lines.append(f'    "confidence_score": 0.95,')
+                    json_lines.append(f'    "validation_status": "unverified",')
+                    json_lines.append(f'    "ai_reasoning": "{reasoning}"')
+                    json_lines.append('  }' + (',' if i < len(project_schema["schema_fields"]) - 1 or project_schema.get("collections") else ''))
             
-            # Add collections with properties and applicable rules
+            # Add collection properties with proper field validation structure
             if project_schema.get("collections"):
                 for collection in project_schema["collections"]:
                     collection_name = collection.get('collectionName', collection.get('objectName', ''))
-                    collection_description = collection.get('description', '')
-                    
-                    json_lines.append(f'    "{collection_name}": [ // {collection_description or "Extract array of these objects"}')
-                    json_lines.append('      {')
-                    
                     properties = collection.get("properties", [])
-                    for i, prop in enumerate(properties):
-                        prop_name = prop.get('propertyName', '')
-                        prop_type = prop.get('propertyType', 'TEXT')
-                        prop_description = prop.get('description', '')
-                        
-                        # Find applicable extraction rules for this property
-                        applicable_rules = []
-                        if extraction_rules:
-                            for rule in extraction_rules:
-                                rule_target = rule.get('targetField', [])
-                                full_prop_name = f"{collection_name}.{prop_name}"
-                                if isinstance(rule_target, list):
-                                    if full_prop_name in rule_target or prop_name in rule_target or 'All Fields' in rule_target:
-                                        applicable_rules.append(rule.get('ruleContent', ''))
-                                elif full_prop_name == rule_target or prop_name == rule_target or rule_target == 'All Fields':
-                                    applicable_rules.append(rule.get('ruleContent', ''))
-                        
-                        # Determine output format based on property type
-                        if prop_type == 'NUMBER':
-                            output_format = '100'
-                        elif prop_type == 'DATE':
-                            output_format = '"2024-01-15"'
-                        elif prop_type == 'BOOLEAN':
-                            output_format = 'true'
-                        elif prop_type == 'CHOICE' and prop.get('choiceOptions'):
-                            # Use the first choice option as example
-                            output_format = f'"{prop["choiceOptions"][0]}"'
-                        else:  # TEXT
-                            output_format = '"Real Extracted Value"'
-                        
-                        # Build comment with description and rules
-                        comment_parts = []
-                        if prop_description:
-                            comment_parts.append(prop_description)
-                        if applicable_rules:
-                            comment_parts.extend(applicable_rules)
-                        comment = ' + '.join(comment_parts) if comment_parts else 'Extract this property'
-                        
-                        comma = ',' if i < len(properties) - 1 else ''
-                        json_lines.append(f'        "{prop_name}": {output_format}{comma} // {comment}')
                     
-                    json_lines.append('      }')
-                    json_lines.append('    ],')
+                    for record_index in range(2):  # Example with 2 records
+                        for prop_index, prop in enumerate(properties):
+                            prop_id = prop['id']
+                            prop_name = prop['propertyName']
+                            prop_type = prop['propertyType']
+                            
+                            # Determine example value
+                            if prop_type == 'CHOICE' and prop.get('choiceOptions'):
+                                example_value = prop["choiceOptions"][0]
+                            elif prop_type == 'NUMBER':
+                                example_value = '100'
+                            elif prop_type == 'DATE':
+                                example_value = '2024-01-15'
+                            else:
+                                example_value = 'Extracted Value'
+                            
+                            field_name_with_index = f"{collection_name}.{prop_name}[{record_index}]"
+                            
+                            json_lines.append('  {')
+                            json_lines.append(f'    "field_id": "{prop_id}",')
+                            json_lines.append(f'    "field_type": "collection_property",')
+                            json_lines.append(f'    "field_name": "{field_name_with_index}",')
+                            json_lines.append(f'    "extracted_value": "{example_value}",')
+                            json_lines.append(f'    "confidence_score": 0.95,')
+                            json_lines.append(f'    "validation_status": "unverified",')
+                            json_lines.append(f'    "ai_reasoning": "Extracted from document analysis",')
+                            json_lines.append(f'    "record_index": {record_index}')
+                            
+                            # Check if this is the last item
+                            is_last = (collection == project_schema["collections"][-1] and 
+                                     record_index == 1 and 
+                                     prop_index == len(properties) - 1)
+                            json_lines.append('  }' + ('' if is_last else ','))
             
-            json_lines.append('  }')
-            json_lines.append('}')
+            json_lines.append(']}')
             return '\n'.join(json_lines)
         
-        dynamic_example = generate_dynamic_json_example()
-        logging.info(f"Generated dynamic JSON example with {len(extraction_rules or [])} extraction rules")
+        dynamic_example = generate_field_validation_example()
+        logging.info(f"Generated field validation example with {len(extraction_rules or [])} extraction rules")
         logging.info(f"Dynamic example preview (first 500 chars): {dynamic_example[:500]}...")
         
         prompt += f"""
 
-DYNAMIC EXAMPLE OUTPUT FORMAT (based on your actual schema configuration):
+REQUIRED OUTPUT FORMAT - Field Validation JSON Structure:
 {dynamic_example}
+
+CRITICAL: Return ONLY this exact JSON format with field_validations array containing objects with:
+- field_id: The exact UUID from schema
+- field_type: "schema_field" or "collection_property" 
+- field_name: For collections, use format "CollectionName.PropertyName[index]"
+- extracted_value: The actual extracted value from documents
+- confidence_score: Number between 0.0 and 1.0
+- validation_status: "unverified" (let validation system handle verification)
+- ai_reasoning: Brief explanation of extraction
+- record_index: For collection properties only (0, 1, 2, etc.)
 
 CRITICAL COUNTING INSTRUCTIONS:
 - **PARTY COUNTING**: Scan ALL {len(documents)} documents and count EVERY unique company, organization, subsidiary, or entity. Include parties mentioned but not fully detailed.
@@ -530,11 +515,16 @@ RETURN: Complete readable content from this document."""
             # If empty response, create default structure
             if not response_text:
                 logging.warning("Empty response from AI, creating default structure")
-                extracted_data = {session_name: {}}
+                extracted_data = {"field_validations": []}
             else:
                 extracted_data = json.loads(response_text)
                 
-            logging.info(f"STEP 1: Successfully extracted data with keys: {list(extracted_data.keys())}")
+            # Validate that we have the expected field_validations structure
+            if "field_validations" not in extracted_data:
+                logging.warning("AI response missing field_validations key, creating default structure")
+                extracted_data = {"field_validations": []}
+                
+            logging.info(f"STEP 1: Successfully extracted {len(extracted_data.get('field_validations', []))} field validations")
             return ExtractionResult(success=True, extracted_data=extracted_data)
             
         except json.JSONDecodeError as e:
