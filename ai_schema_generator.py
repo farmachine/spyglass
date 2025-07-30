@@ -119,7 +119,7 @@ User Query: """
                 types.Content(role="user", parts=[types.Part(text=f"{system_prompt}{user_query}")])
             ],
             config=types.GenerateContentConfig(
-                max_output_tokens=8000,
+                max_output_tokens=100000,  # Increased for complex schemas
                 temperature=0.1,  # Lower temperature for more consistent JSON
                 response_mime_type="application/json",  # Force JSON output
             ),
