@@ -2045,11 +2045,18 @@ print(json.dumps(result))
   app.post("/api/sessions/:sessionId/gemini-extraction", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
-      const { prompt, projectId } = req.body;
+      const { extractedTexts, schemaFields, collections, extractionRules, knowledgeDocuments } = req.body;
       
       console.log(`GEMINI EXTRACTION: Starting for session ${sessionId}`);
+      console.log(`GEMINI EXTRACTION: Received ${extractedTexts?.length || 0} documents`);
       
-      // Call the existing Python script for AI extraction
+      // Get session to find project
+      const session = await storage.getSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ success: false, error: 'Session not found' });
+      }
+      
+      // Call the Python script for AI extraction
       const { spawn } = await import('child_process');
       let output = '';
       let error = '';
@@ -2058,11 +2065,23 @@ print(json.dumps(result))
         cwd: process.cwd()
       });
 
-      // Send the prompt data to Python
+      // Convert extracted texts to document format expected by Python script
+      const documents = (extractedTexts || []).map((extracted: any, index: number) => ({
+        file_name: extracted.file_name || `document_${index + 1}.pdf`,
+        file_content: extracted.text_content || extracted.content || '',
+        mime_type: extracted.mime_type || 'application/pdf'
+      }));
+
+      // Send the data to Python script in correct format
       const pythonInput = JSON.stringify({
-        prompt: prompt,
-        projectId: projectId,
-        sessionId: sessionId
+        documents: documents,
+        project_schema: {
+          schema_fields: schemaFields || [],
+          collections: collections || []
+        },
+        extraction_rules: extractionRules || [],
+        knowledge_documents: knowledgeDocuments || [],
+        session_id: sessionId
       });
       
       python.stdin.write(pythonInput);
