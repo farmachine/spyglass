@@ -880,7 +880,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
             // Combine all applicable rules
             const allRules = [...specificRules, ...globalRules];
             
-            return {
+            const baseObj: any = {
               field_name: field.fieldName,
               type: field.fieldType,
               "AI guidance": field.description,
@@ -889,6 +889,13 @@ ${error instanceof Error ? error.message : 'Unknown error'}
                 schemaData.knowledge_documents.map(doc => doc.displayName).join(', ') : 
                 "None"
             };
+            
+            // Add choice options for CHOICE fields
+            if (field.fieldType === 'CHOICE' && field.choiceOptions && field.choiceOptions.length > 0) {
+              baseObj["Choice Options"] = `The output should be one of the following choices: ${field.choiceOptions.join('; ')}.`;
+            }
+            
+            return baseObj;
           })
         }, null, 2)}
       </div>
@@ -938,7 +945,7 @@ ${error instanceof Error ? error.message : 'Unknown error'}
               // Combine all applicable rules
               const allRules = [...specificRules, ...globalRules];
               
-              return {
+              const baseObj: any = {
                 property_name: prop.propertyName,
                 type: prop.propertyType,
                 "AI guidance": prop.description,
@@ -947,6 +954,13 @@ ${error instanceof Error ? error.message : 'Unknown error'}
                   schemaData.knowledge_documents.map(doc => doc.displayName).join(', ') : 
                   "None"
               };
+              
+              // Add choice options for CHOICE fields
+              if (prop.propertyType === 'CHOICE' && prop.choiceOptions && prop.choiceOptions.length > 0) {
+                baseObj["Choice Options"] = `The output should be one of the following choices: ${prop.choiceOptions.join('; ')}.`;
+              }
+              
+              return baseObj;
             }) || []
           }))
         }, null, 2)}
