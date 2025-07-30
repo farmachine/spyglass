@@ -199,12 +199,12 @@ export default function NewUpload({ project }: NewUploadProps) {
     }
   };
 
-  const handleSubmit = async (data: UploadForm, mode: 'automated' | 'debug' = 'automated') => {
+  const handleSubmit = async (data: UploadForm) => {
     if (selectedFiles.length === 0) {
       return;
     }
 
-    setExtractionMode(mode);
+    setExtractionMode(extractionMode);
     setIsProcessing(true);
     setShowProcessingDialog(true);
     setTotalDocuments(selectedFiles.length);
@@ -277,7 +277,7 @@ export default function NewUpload({ project }: NewUploadProps) {
 
       setProcessingProgress(100);
 
-      if (mode === 'automated') {
+      if (extractionMode === 'automated') {
         // Step 4: AI Extraction (Automated Mode Only)
         setProcessingStep('extracting');
         setProcessingProgress(0);
@@ -522,7 +522,7 @@ export default function NewUpload({ project }: NewUploadProps) {
           // Close dialog and redirect to schema view with mode parameter
           setShowProcessingDialog(false);
           const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
-          const urlWithMode = `${redirectUrl}?mode=${mode}`;
+          const urlWithMode = `${redirectUrl}?mode=${extractionMode}`;
 
           setLocation(urlWithMode);
         } else {
@@ -708,7 +708,7 @@ export default function NewUpload({ project }: NewUploadProps) {
                     type="submit" 
                     disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
                     className="w-full"
-                    onClick={form.handleSubmit((data) => handleSubmit(data, 'automated'))}
+                    onClick={() => setExtractionMode('automated')}
                   >
                     {isProcessing ? (
                       <>
@@ -729,7 +729,10 @@ export default function NewUpload({ project }: NewUploadProps) {
                     size="sm"
                     disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
                     className="w-full bg-white hover:bg-gray-50 text-gray-700 border-gray-300 mt-2"
-                    onClick={form.handleSubmit((data) => handleSubmit(data, 'debug'))}
+                    onClick={() => {
+                      setExtractionMode('debug');
+                      form.handleSubmit(handleSubmit)();
+                    }}
                   >
                     Run in debug mode
                   </Button>

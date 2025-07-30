@@ -11,6 +11,17 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **July 30, 2025 (Latest Update)**
+- ✓ **AUTOMATED EXTRACTION FLOW IMPLEMENTATION COMPLETED**: Successfully moved complete extraction process from schema debug view to upload page
+- ✓ Added comprehensive AI prompt generation using identical logic as SchemaView with choice options and extraction rules included
+- ✓ Integrated automated mode that runs full extraction pipeline directly on upload page: text extraction → AI processing → database save → redirect to session view
+- ✓ Maintained debug mode redirect to schema view for debugging needs while streamlining the automated workflow
+- ✓ Added all necessary data fetching (schema fields, collections, extraction rules, knowledge documents) to upload component
+- ✓ **JSON PARSING ERROR COMPLETELY RESOLVED**: Fixed critical issue in automated extraction where AI responses wrapped in markdown code blocks couldn't be parsed
+- ✓ Added comprehensive JSON extraction logic identical to SchemaView: handles ```json blocks and balanced brace matching algorithms
+- ✓ Implemented JSON cleaning to remove trailing commas, ellipsis, truncation markers, and malformed response artifacts
+- ✓ **TYPESCRIPT FORM SUBMISSION ERRORS FIXED**: Resolved all form handler type mismatches and parameter passing issues
+- ✓ Fixed button click handlers to properly set extraction mode state before form submission
+- ✓ Eliminated all LSP diagnostics and form submission type errors for clean automated extraction workflow
 - ✓ **CHOICE FIELD AI PROMPT ENHANCEMENT COMPLETED**: Fixed critical issue where AI didn't receive explicit choice option constraints
 - ✓ Enhanced SchemaView.tsx to include choice options in "Extraction Rules" section for AI prompts using format: "The output should be one of the following choices: Yes; No."
 - ✓ Added comprehensive CHOICE FIELD HANDLING instructions to AI processing guidelines explaining null value behavior and choice validation
