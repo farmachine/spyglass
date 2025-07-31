@@ -17,6 +17,8 @@ EXTRACTION_PROMPT = """You are an expert data extraction specialist. Extract dat
 9. Return JSON with real extracted values only
 10. If extraction rules specify formatting, apply that formatting to extracted values
 11. **ONLY CREATE RECORDS WHEN FOUND**: Only include field_validations for fields that actually exist in the document - do not create empty placeholder records
+12. **NUMBERED SECTION COMPLETENESS**: When you find numbered sections (like 2.3.1, 2.3.2, 2.3.3... 2.3.10), extract ALL of them as separate collection items - do not stop at 2 examples
+13. **SECTION NAME MATCHING**: If collection name matches document section name (e.g., "Increase Rates" collection and "2.3 Increase Rates" section), extract ALL numbered subsections within that section boundary
 
 ## SECTION-AWARE EXTRACTION RULES:
 
@@ -27,6 +29,12 @@ EXTRACTION_PROMPT = """You are an expert data extraction specialist. Extract dat
 - **Pattern Recognition**: If most items in a section match a collection type, include all items from that section
 - **Contextual Inference**: Items appearing in the same context as explicitly matching items should be included
 
+### Numbered Section Pattern Recognition:
+- **Hierarchical Numbering**: Look for patterns like 2.3.1, 2.3.2, 2.3.3... 2.3.10 where all items under the same parent section (2.3) should be extracted together
+- **Section Boundaries**: When you see numbered items like 2.3.1 through 2.3.10, extract ALL of them until the next major section (e.g., 2.4)
+- **Collection-Section Matching**: If a collection name (e.g., "Increase Rates") matches or relates to a document section name (e.g., "2.3 Increase Rates"), extract ALL numbered subsections within that boundary
+- **Complete Number Sequences**: Count how many numbered items exist in a sequence and extract every single one - do not stop at 2-3 examples
+
 ### Collection Identification Strategies:
 1. **Header Analysis**: Look for section headers, table titles, or list introductions that indicate content type
 2. **Table Processing**: In tables, extract ALL rows when the majority contain relevant data - DO NOT LIMIT TO 2-3 EXAMPLES
@@ -34,6 +42,8 @@ EXTRACTION_PROMPT = """You are an expert data extraction specialist. Extract dat
 4. **Grouped Content**: Items appearing together in formatted groups should be treated as related
 5. **Sequential Items**: Items in sequence (numbered, dated, or ordered) in relevant sections should all be included
 6. **COMPLETE TABLE EXTRACTION**: When you find a table containing collection items, extract EVERY ROW, not just examples
+7. **NUMBERED SECTION RECOGNITION**: Recognize numbered section patterns (e.g., 2.3.1, 2.3.2, 2.3.3... 2.3.10) as indicating a complete set of related items that should ALL be extracted
+8. **SECTION BOUNDARY DETECTION**: When collection name matches a section (e.g., "Increase Rates" and section "2.3 Increase Rates"), extract ALL numbered subsections until the next major section (e.g., 2.3.1 through 2.3.10 until section 2.4)
 
 ### Decision Framework:
 - **When in doubt, include**: If an item could potentially belong to a collection, include it
@@ -42,6 +52,8 @@ EXTRACTION_PROMPT = """You are an expert data extraction specialist. Extract dat
 - **Format consistency**: Items sharing the same format/structure as relevant items should be included
 - **EXHAUSTIVE EXTRACTION**: Find ALL instances - if you see 10 table rows, extract all 10, not just 2 examples
 - **COUNT VERIFICATION**: Double-check that you've found all items in tables, sections, and lists
+- **NUMBERED SECTION COMPLETENESS**: When you find numbered sections (like 2.3.1, 2.3.2, etc.), extract ALL of them until the numbering changes (e.g., 2.4)
+- **SECTION NAME MATCHING**: If a collection name matches or relates to a document section name, extract ALL items within that section's boundaries
 
 ## DOCUMENT SET ANALYSIS: 
 You are processing multiple documents simultaneously. Extract comprehensively from the entire document set.
@@ -101,6 +113,8 @@ Your ai_reasoning field must be an intelligent, context-specific explanation tha
 **Section Coherence**: "Part of section where 9 out of 10 items clearly match [collection criteria]. Included remaining item due to section coherence principle. Medium confidence."
 
 **Complete Table Extraction**: "Found table in Section 2 with 10 rows of escalation rate data (sections 2.3.1 through 2.3.10). Extracted all 10 rows as separate collection items with record_index 0-9. Each row represents a unique escalation rate scenario with different criteria and values."
+
+**Numbered Section Recognition**: "Identified section 2.3 'Increase Rates' containing numbered subsections 2.3.1 through 2.3.10. Since collection name 'Increase Rates' matches section name, extracted all 10 numbered entries as separate collection items. Section boundary clear at 2.4 where new topic begins."
 
 ## REQUIRED OUTPUT FORMAT - Field Validation JSON Structure:
 ```json
