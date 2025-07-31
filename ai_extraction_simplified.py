@@ -655,8 +655,19 @@ RETURN: Complete readable content from this document."""
                 break  # Success, exit retry loop
             except Exception as e:
                 error_str = str(e).lower()
-                if ("503" in error_str or "overloaded" in error_str or "unavailable" in error_str) and attempt < max_retries - 1:
-                    logging.warning(f"Data extraction API overloaded/unavailable (attempt {attempt + 1}/{max_retries}), retrying in {retry_delay}s...")
+                # Handle various API error conditions
+                is_retryable_error = (
+                    "503" in error_str or 
+                    "500" in error_str or  # Add 500 internal server errors as retryable
+                    "overloaded" in error_str or 
+                    "unavailable" in error_str or
+                    "internal error" in error_str or
+                    "quota exceeded" in error_str
+                )
+                
+                if is_retryable_error and attempt < max_retries - 1:
+                    logging.warning(f"Data extraction API error (attempt {attempt + 1}/{max_retries}): {str(e)}")
+                    logging.warning(f"Retrying in {retry_delay}s...")
                     import time
                     time.sleep(retry_delay)
                     retry_delay = min(retry_delay * 2, 60)  # Exponential backoff capped at 60s 
