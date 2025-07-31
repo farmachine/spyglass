@@ -510,6 +510,12 @@ RETURN: Complete readable content from this document."""
         # Parse JSON response - handle markdown code blocks
         response_text = response.text.strip()
         
+        # Log raw AI response for debugging
+        logging.info(f"STEP 2: Raw AI response length: {len(response_text)}")
+        logging.info(f"STEP 2: Raw AI response start: {response_text[:500]}...")
+        if len(response_text) > 500:
+            logging.info(f"STEP 2: Raw AI response end: ...{response_text[-500:]}")
+        
         # Remove markdown code blocks if present
         if response_text.startswith("```json"):
             response_text = response_text[7:]  # Remove ```json
