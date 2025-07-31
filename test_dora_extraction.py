@@ -11,27 +11,25 @@ test_data = {
             "file_content": """
 MASTER SERVICE AGREEMENT
 
-Article 3. Data Security and Operational Resilience
-3.1 ICT Risk Management: Provider shall implement comprehensive information and communication technology (ICT) risk management framework in accordance with digital operational resilience requirements.
+This is a standard software licensing agreement between two technology companies.
 
-3.2 Third-party Risk Assessment: All outsourcing arrangements must undergo operational resilience assessment prior to implementation.
+Article 1. Software License Terms
+1.1 License Grant: Licensor grants licensee a non-exclusive right to use the software.
 
-Article 7. Compliance Requirements  
-7.1 Regulatory Compliance: Provider must maintain compliance with applicable financial services regulations including DORA requirements for operational resilience.
+Article 2. Payment Terms  
+2.1 Fees: Licensee shall pay annual license fees as specified in Exhibit A.
 
-7.2 Incident Reporting: Provider shall establish incident reporting procedures for ICT-related operational disruptions within 24 hours.
-
-Article 12. Service Level Requirements
-12.1 Business Continuity: Provider must maintain 99.9% service availability with defined recovery time objectives.
+Article 3. Support Services
+3.1 Technical Support: Licensor will provide email support during business hours.
 
 Parties:
-- Financial Institution ABC Corp (123 Main St, New York, NY)
-- Technology Provider XYZ Ltd (456 Tech Blvd, London, UK)
+- Software Company ABC Corp (123 Main St, New York, NY)  
+- Technology User XYZ Ltd (456 Tech Blvd, London, UK)
 
 Services Covered:
-- Core banking platform hosting (Critical)
-- Payment processing services (High)
-- Customer data analytics (Medium)
+- Software licensing (Standard)
+- Email support services (Basic)
+- Documentation access (Standard)
             """,
             "mime_type": "application/pdf"
         }

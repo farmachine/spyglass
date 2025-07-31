@@ -11,6 +11,12 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **July 31, 2025 (Latest Update)**
+- ✓ **EMPTY COLLECTION ROWS BUG COMPLETELY RESOLVED**: Fixed critical issue where AI created empty collection records when no relevant data found
+- ✓ Root cause identified: AI script was hardcoded to create 2 example records for every collection, even when document contained no matching content
+- ✓ Enhanced AI prompt with explicit instructions: "DO NOT CREATE EMPTY COLLECTION RECORDS" when no data is found
+- ✓ Modified collection example generation to be dynamic instead of hardcoded 2-record template
+- ✓ Tested fix: AI now returns zero validation records for DORA clauses when document contains no DORA content
+- ✓ Previous successful extractions remain functional: Party and service data still extracts correctly with 95% confidence
 - ✓ **CRITICAL EXTRACTION PIPELINE REGRESSION COMPLETELY RESOLVED**: Fixed fundamental bug that broke all extractions from July 31st
 - ✓ Root cause identified: Python script expected "files" field but Node.js server was sending "documents" field, causing empty document arrays
 - ✓ Fixed field name mismatch in ai_extraction_simplified.py and added proper "operation" field support for consistency

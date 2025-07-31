@@ -74,7 +74,9 @@ SPECIAL INSTRUCTIONS FOR CLAUSE EXTRACTION:
 - For clause-related fields (titles, references, summaries): Look for specific contract sections, numbered clauses, paragraph headings, legal provisions
 - For DORA compliance: Look for terms like "operational resilience", "digital operational risk", "ICT risk management", "outsourcing", "third-party risk"
 - For remediation actions: Look for required actions, deadlines, compliance steps, reporting requirements
-- If specific clauses don't exist, extract related contractual provisions that address similar concepts
+- **CRITICAL FOR COLLECTIONS**: Only create collection records when you actually find relevant data in the documents
+- **DO NOT CREATE EMPTY COLLECTION RECORDS**: If no clauses/items are found, do not include any field_validations for that collection
+- **EXAMPLE**: If document has no DORA clauses, return zero DORA clause validation records - do not create placeholder records
 
 SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
         
@@ -217,7 +219,16 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
                     collection_name = collection.get('collectionName', collection.get('objectName', ''))
                     properties = collection.get("properties", [])
                     
-                    for record_index in range(2):  # Example with 2 records
+                    # Only show example if this collection should have data
+                    # For DORA clauses, only create examples if document likely contains clauses
+                    should_show_example = True
+                    if 'clause' in collection_name.lower() or 'dora' in collection_name.lower():
+                        # For clause collections, only show minimal example - let AI decide
+                        example_count = 1  # Just one example, not hardcoded 2
+                    else:
+                        example_count = 2  # Other collections can have 2 examples
+                    
+                    for record_index in range(example_count):
                         for prop_index, prop in enumerate(properties):
                             prop_id = prop['id']
                             prop_name = prop['propertyName']
@@ -231,7 +242,10 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
                             elif prop_type == 'DATE':
                                 example_value = '2024-01-15'
                             else:
-                                example_value = 'Extracted Value'
+                                if 'clause' in collection_name.lower():
+                                    example_value = 'Only if found in document'
+                                else:
+                                    example_value = 'Extracted Value'
                             
                             field_name_with_index = f"{collection_name}.{prop_name}[{record_index}]"
                             
@@ -247,7 +261,7 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
                             
                             # Check if this is the last item
                             is_last = (collection == project_schema["collections"][-1] and 
-                                     record_index == 1 and 
+                                     record_index == (example_count - 1) and 
                                      prop_index == len(properties) - 1)
                             json_lines.append('  }' + ('' if is_last else ','))
             
