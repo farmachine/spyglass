@@ -641,8 +641,19 @@ RETURN: Complete readable content from this document."""
                                     break  # Success, exit retry loop
                                 except Exception as e:
                                     error_str = str(e).lower()
-                                    if ("503" in error_str or "overloaded" in error_str or "unavailable" in error_str) and attempt < max_retries - 1:
-                                        logging.warning(f"API overloaded/unavailable (attempt {attempt + 1}/{max_retries}), retrying in {retry_delay}s...")
+                                    is_retryable = (
+                                        "503" in error_str or 
+                                        "500" in error_str or 
+                                        "504" in error_str or 
+                                        "overloaded" in error_str or 
+                                        "unavailable" in error_str or
+                                        "deadline exceeded" in error_str or
+                                        "timeout" in error_str or
+                                        "internal error" in error_str
+                                    )
+                                    if is_retryable and attempt < max_retries - 1:
+                                        logging.warning(f"API error (attempt {attempt + 1}/{max_retries}): {str(e)}")
+                                        logging.warning(f"Retrying in {retry_delay}s...")
                                         import time
                                         time.sleep(retry_delay)
                                         retry_delay = min(retry_delay * 2, 60)  # Exponential backoff capped at 60s
@@ -749,6 +760,14 @@ RETURN: Complete readable content from this document."""
         # Apply content filtering based on extraction rules targeting 'Uploaded Documents'
         filtered_content = filter_document_content(extracted_content_text, extraction_rules)
         
+        # CONTENT SIZE MANAGEMENT - Check if content is too large and truncate if necessary to avoid timeouts
+        MAX_CONTENT_SIZE = 800000  # 800K characters to stay well under token limits
+        if len(filtered_content) > MAX_CONTENT_SIZE:
+            logging.warning(f"Filtered content size ({len(filtered_content)} chars) exceeds limit ({MAX_CONTENT_SIZE} chars), truncating...")
+            filtered_content = filtered_content[:MAX_CONTENT_SIZE]
+            filtered_content += "\n\n[CONTENT TRUNCATED DUE TO SIZE LIMITS]"
+            logging.info(f"Content truncated to {len(filtered_content)} characters")
+        
         # Now proceed with data extraction using the filtered content
         final_prompt = prompt + f"\n\nEXTRACTED DOCUMENT CONTENT:\n{filtered_content}"
         
@@ -779,10 +798,13 @@ RETURN: Complete readable content from this document."""
                 is_retryable_error = (
                     "503" in error_str or 
                     "500" in error_str or  # Add 500 internal server errors as retryable
+                    "504" in error_str or  # Add 504 deadline exceeded as retryable
+                    "deadline exceeded" in error_str or
                     "overloaded" in error_str or 
                     "unavailable" in error_str or
                     "internal error" in error_str or
-                    "quota exceeded" in error_str
+                    "quota exceeded" in error_str or
+                    "timeout" in error_str
                 )
                 
                 if is_retryable_error and attempt < max_retries - 1:
