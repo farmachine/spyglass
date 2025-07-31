@@ -19,6 +19,8 @@ EXTRACTION_PROMPT = """You are an expert data extraction specialist. Extract dat
 11. **ONLY CREATE RECORDS WHEN FOUND**: Only include field_validations for fields that actually exist in the document - do not create empty placeholder records
 12. **NUMBERED SECTION COMPLETENESS**: When you find numbered sections (like 2.3.1, 2.3.2, 2.3.3... 2.3.10), extract ALL of them as separate collection items - do not stop at 2 examples
 13. **SECTION NAME MATCHING**: If collection name matches document section name (e.g., "Increase Rates" collection and "2.3 Increase Rates" section), extract ALL numbered subsections within that section boundary
+14. **CONTENT RELATIONSHIP**: If collection properties (escalation types, rate values) relate to table content, extract the ENTIRE section containing that content type
+15. **PIPE-SEPARATED DATA**: Recognize pipe (|) separated data as table structure even without proper markdown formatting
 
 ## SECTION-AWARE EXTRACTION RULES:
 
@@ -62,6 +64,7 @@ EXTRACTION_PROMPT = """You are an expert data extraction specialist. Extract dat
 - **COUNT VERIFICATION**: Double-check that you've found all items in tables, sections, and lists
 - **NUMBERED SECTION COMPLETENESS**: When you find numbered sections (like 2.3.1, 2.3.2, etc.), extract ALL of them until the numbering changes (e.g., 2.4)
 - **SECTION NAME MATCHING**: If a collection name matches or relates to a document section name, extract ALL items within that section's boundaries
+- **RELATED CONTENT EXTRACTION**: If collection properties relate to section content (e.g., "Escalation Type" collection property and section containing escalation data), extract ALL items in that section
 
 ## DOCUMENT SET ANALYSIS: 
 You are processing multiple documents simultaneously. Extract comprehensively from the entire document set.
@@ -128,13 +131,24 @@ Your ai_reasoning field must be an intelligent, context-specific explanation tha
 
 ### MARKDOWN TABLE FORMAT EXAMPLE:
 ```
-| Section | Description | Pensioners | Deferreds |
-|---------|-------------|------------|-----------|
-| 2.3.1   | Pre 6 April 1988 GMP | None | None |
-| 2.3.2   | Post 5 April 1988 GMP | CPI 0%-3% | CPI 0%-3% |
-| 2.3.3   | Pre 6 April 1997 pension | CPI 0%-2.5% | CPI 0%-2.5% |
+Section | Topic Name | Column A | Column B
+--------|------------|----------|----------
+2.3     | Increase Rates | Increase Rates | 
+2.3.1   | Pre 6 April 1988 GMP (All members) | None | None
+2.3.2   | Post 5 April 1988 GMP (All members) | CPI 0%-3% | CPI 0%-3%
+2.3.3   | Pre 6 April 1997 pension (Section A) | CPI 0%-2.5% | CPI 0%-2.5%
+2.3.4   | Pre 21 July 1997 pension (Former Section B) | Fixed 5% | Fixed 3%
+2.3.5   | Post 5 April 1997 pre 1 January 2008 (Section A) | RPI 0%-5% | RPI 0%-5%
+...continues through 2.3.10...
+2.4     | Different Topic | Different Topic |
 ```
-**EXTRACTION RULE**: Extract ALL data rows (2.3.1, 2.3.2, 2.3.3, etc.) as separate collection items - DO NOT stop at 2 examples!
+
+**CRITICAL EXTRACTION RULES:**
+1. **Section-Collection Matching**: If collection name ("Increase Rates") matches section topic (2.3 | Increase Rates), extract ALL numbered subsections (2.3.1 through 2.3.10)
+2. **Content Relationship**: If collection properties relate to table content (rate values, escalation types), extract ALL rows in that section
+3. **Section Boundaries**: Extract until section number changes (stop at 2.4, not before)
+4. **Complete Extraction**: Extract ALL 10 rows (2.3.1-2.3.10) as separate collection items, NOT just examples
+5. **Pipe-Separated Tables**: Recognize | as column separators even without perfect markdown formatting
 
 ## REQUIRED OUTPUT FORMAT - Field Validation JSON Structure:
 ```json
