@@ -1206,13 +1206,36 @@ export class MemStorage implements IStorage {
 
   // Field Validations
   async getFieldValidations(sessionId: string): Promise<FieldValidation[]> {
-    // Convert string to number for filtering in memory storage
-    const numericId = parseInt(sessionId);
-    if (isNaN(numericId)) return [];
-    
-    return Array.from(this.fieldValidations.values())
-      .filter(validation => validation.sessionId === numericId)
+    const validations = Array.from(this.fieldValidations.values())
+      .filter(validation => validation.sessionId === sessionId)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    
+    // Enhance results with field names (similar to database implementation)
+    const enhancedValidations = validations.map(validation => {
+      let fieldName = '';
+      
+      if (validation.fieldType === 'schema_field') {
+        // Get field name from project schema fields
+        const schemaField = Array.from(this.projectSchemaFields.values())
+          .find(field => field.id === validation.fieldId);
+        fieldName = schemaField?.fieldName || '';
+      } else if (validation.fieldType === 'collection_property') {
+        // Get property name from collection properties and build collection field name
+        const property = Array.from(this.collectionProperties.values())
+          .find(prop => prop.id === validation.fieldId);
+        
+        if (property && validation.collectionName && validation.recordIndex !== null) {
+          fieldName = `${validation.collectionName}.${property.propertyName}[${validation.recordIndex}]`;
+        }
+      }
+      
+      return {
+        ...validation,
+        fieldName
+      };
+    });
+    
+    return enhancedValidations;
   }
 
   async createFieldValidation(insertValidation: InsertFieldValidation): Promise<FieldValidation> {
@@ -1244,7 +1267,7 @@ export class MemStorage implements IStorage {
     return this.fieldValidations.delete(id);
   }
 
-  async getSessionWithValidations(sessionId: number): Promise<ExtractionSessionWithValidation | undefined> {
+  async getSessionWithValidations(sessionId: string): Promise<ExtractionSessionWithValidation | undefined> {
     const session = this.extractionSessions.get(sessionId);
     if (!session) return undefined;
 
@@ -1270,10 +1293,7 @@ export class MemStorage implements IStorage {
   }
 
   async getExtractionSessionWithValidations(sessionId: string): Promise<ExtractionSessionWithValidation | undefined> {
-    const numericId = parseInt(sessionId);
-    if (isNaN(numericId)) return undefined;
-    
-    return this.getSessionWithValidations(numericId);
+    return this.getSessionWithValidations(sessionId);
   }
 }
 
