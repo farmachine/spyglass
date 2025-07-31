@@ -588,7 +588,7 @@ RETURN: Complete readable content from this document."""
         response = model.generate_content(
             final_prompt,
             generation_config=genai.GenerationConfig(
-                max_output_tokens=100000,  # 100K tokens - stable limit that works reliably
+                max_output_tokens=20000,  # Drastically reduced to 20K tokens to prevent truncation
                 temperature=0.1,
                 response_mime_type="application/json"
             )

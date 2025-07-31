@@ -25,6 +25,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ Enhanced JSON repair to prioritize repair when truncation is detected rather than attempting direct parsing first
 - ✓ Optimized prompt structure to reduce response size: single collection examples, shorter AI reasoning, simplified placeholders
 - ✓ Added detailed logging for truncation debugging and recovery success rates to better understand API limits
+- ✓ **MINIMAL EXTRACTION APPROACH IMPLEMENTED**: Created ai_extraction_minimal.py to process only essential fields and prevent truncation
+- ✓ Reduced extraction scope to first 3 schema fields and first collection with 3 properties only
+- ✓ Lowered token limit to 10K tokens and simplified prompt structure to minimize response size
+- ✓ Updated server route to use minimal extraction script to test truncation resolution
 - ✓ **AI PROMPT GENERICIZED FOR BROAD USE CASES**: Removed use-case specific content (DORA, CSP interventions) from AI prompts
 - ✓ Simplified prompt structure to focus on generic field type definitions: TEXT, NUMBER, DATE, CHOICE, COLLECTION
 - ✓ Enhanced collection extraction instructions to be universally applicable for finding all list items

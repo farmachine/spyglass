@@ -2080,7 +2080,7 @@ print(json.dumps(result))
       let output = '';
       let error = '';
       
-      const python = spawn('python3', ['ai_extraction_simplified.py'], {
+      const python = spawn('python3', ['ai_extraction_minimal.py'], {
         cwd: process.cwd()
       });
 
