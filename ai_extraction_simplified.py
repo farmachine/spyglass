@@ -475,30 +475,11 @@ Your ai_reasoning field must be an intelligent, context-specific explanation tha
 4. **Missing Data Explanation**: For null/empty values, explain why (e.g., "No pricing information found in any document", "Document does not contain liability clauses")
 5. **Collection Context**: For collections, explain the grouping logic (e.g., "Found 3 separate intervention codes in different sections", "Each party listed in signature block")
 
-EXAMPLES OF GOOD AI REASONING:
-- "Found explicit company name 'ABC Corp' in document header and signature block. High confidence due to multiple consistent references."
-- "Counted 8 unique organizations mentioned across all 3 documents: 5 in main contract, 2 in appendix A, 1 in schedule B. Very confident in count accuracy."
-- "Selected 'Partially Compliant' because Section 4.2 addresses data security but lacks specific encryption requirements mentioned in field description."
-- "No DORA-related clauses found after comprehensive scan of all document sections. Document appears to be a standard service agreement without regulatory compliance provisions."
-
-EXAMPLES OF BAD AI REASONING (DO NOT USE):
-- "Extracted from document analysis"
-- "Found in document"
-- "Based on content review"
-- "Extracted value"
-
-CRITICAL INSTRUCTIONS:
-- **COMPREHENSIVE SCAN**: Process every document in this {len(documents)}-document set. Do not miss any documents.
-- **FOLLOW DESCRIPTIONS**: Schema field descriptions are mandatory instructions for what to count and extract.
-- **COUNT ACCURATELY**: For number fields, count all instances across all documents as specified in the field descriptions.
-
-CHOICE FIELD HANDLING:
-- For CHOICE fields, extract values from the specified choice options only
-- If the document contains values not in the choice options, return null (do not block processing)
-- Choice options are specified as "The output should be one of the following choices: ..."
-- Example: For Yes/No choice, only return "Yes" or "No", never "true", "false", "1", "0", etc.
-
-DOCUMENT VERIFICATION: Confirm you processed all {len(documents)} documents: {[doc.get('file_name', 'Unknown') for doc in documents]}
+EXTRACTION RULES:
+- Extract ONLY values present in the documents
+- Use exact schema field IDs and property names
+- For collections, create multiple records as found in document
+- Include specific source locations in ai_reasoning
 
 RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
         
@@ -760,24 +741,30 @@ RETURN: Complete readable content from this document."""
         # Apply content filtering based on extraction rules targeting 'Uploaded Documents'
         filtered_content = filter_document_content(extracted_content_text, extraction_rules)
         
-        # CONTENT SIZE MANAGEMENT - Check if content is too large and truncate if necessary to avoid timeouts
-        MAX_CONTENT_SIZE = 800000  # 800K characters to stay well under token limits
+        # AGGRESSIVE CONTENT SIZE MANAGEMENT - Significantly reduce size to avoid timeouts
+        MAX_CONTENT_SIZE = 50000  # Aggressive 50K character limit for reliable processing
         if len(filtered_content) > MAX_CONTENT_SIZE:
             logging.warning(f"Filtered content size ({len(filtered_content)} chars) exceeds limit ({MAX_CONTENT_SIZE} chars), truncating...")
-            filtered_content = filtered_content[:MAX_CONTENT_SIZE]
-            filtered_content += "\n\n[CONTENT TRUNCATED DUE TO SIZE LIMITS]"
-            logging.info(f"Content truncated to {len(filtered_content)} characters")
+            # Take first and last portions to preserve structure
+            half_size = MAX_CONTENT_SIZE // 2
+            filtered_content = (
+                filtered_content[:half_size] + 
+                "\n\n[... MIDDLE CONTENT TRUNCATED FOR SIZE LIMITS ...]\n\n" + 
+                filtered_content[-half_size:]
+            )
+            logging.info(f"Content truncated to approximately {len(filtered_content)} characters")
         
         # Now proceed with data extraction using the filtered content
         final_prompt = prompt + f"\n\nEXTRACTED DOCUMENT CONTENT:\n{filtered_content}"
         
         # STEP 2: DATA EXTRACTION FROM CONTENT
         logging.info(f"=== STEP 2: DATA EXTRACTION ===")
-        logging.info(f"Making data extraction call with {len(extracted_content_text)} characters of extracted content")
+        logging.info(f"Making data extraction call with {len(filtered_content)} characters of filtered content")
+        logging.info(f"Final prompt size: {len(final_prompt)} characters")
         
         # Enhanced retry logic for API overload situations with longer delays in data extraction  
-        max_retries = 5
-        retry_delay = 5  # Start with 5 seconds for better success rate
+        max_retries = 3  # Reduce retries to avoid long waits
+        retry_delay = 3  # Faster initial retry
         
         response = None
         for attempt in range(max_retries):
@@ -785,11 +772,11 @@ RETURN: Complete readable content from this document."""
                 response = model.generate_content(
                     final_prompt,
                     generation_config=genai.GenerationConfig(
-                        max_output_tokens=65536,  # Maximum output tokens for Gemini 2.5 Pro (64K)
+                        max_output_tokens=32768,  # Reduce output tokens to speed up processing
                         temperature=0.1,
                         response_mime_type="application/json"
                     ),
-                    request_options={"timeout": 120}  # 2 minute timeout
+                    request_options={"timeout": 60}  # 1 minute timeout for faster failure detection
                 )
                 break  # Success, exit retry loop
             except Exception as e:
