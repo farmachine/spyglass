@@ -596,9 +596,69 @@ export default function DefineData({ project }: DefineDataProps) {
           <TabsList className="w-full justify-start tabs-list">
             <TabsTrigger value="main-data" className="tabs-trigger">{project.mainObjectName || "Session"} Data</TabsTrigger>
             {safeCollections.map((collection) => (
-              <TabsTrigger key={collection.id} value={collection.collectionName} className="tabs-trigger">
-                {collection.collectionName}
-              </TabsTrigger>
+              <div key={collection.id} className="flex items-center gap-1">
+                {editingCollectionId === collection.id ? (
+                  <div className="flex items-center gap-1 bg-white border border-gray-200 rounded px-2 py-1">
+                    <Input
+                      value={editingCollectionName}
+                      onChange={(e) => setEditingCollectionName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleCollectionNameSave();
+                        if (e.key === "Escape") handleCollectionEditCancel();
+                      }}
+                      className="h-6 text-sm border-0 p-0 focus-visible:ring-0"
+                      style={{ minWidth: '80px', width: `${editingCollectionName.length * 8 + 20}px` }}
+                      autoFocus
+                    />
+                    <Button 
+                      size="sm" 
+                      onClick={handleCollectionNameSave}
+                      className="h-5 w-5 p-0"
+                    >
+                      <Check className="h-3 w-3" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={handleCollectionEditCancel}
+                      className="h-5 w-5 p-0"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center group">
+                    <TabsTrigger 
+                      value={collection.collectionName} 
+                      className="tabs-trigger pr-1"
+                      onDoubleClick={() => handleCollectionNameEdit(collection)}
+                    >
+                      {collection.collectionName}
+                    </TabsTrigger>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCollectionNameEdit(collection)}
+                      className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 transition-opacity ml-1"
+                    >
+                      <Edit3 className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDeleteDialog({ 
+                        open: true, 
+                        type: "collection", 
+                        id: collection.id, 
+                        name: collection.collectionName 
+                      })}
+                      className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 transition-opacity ml-1"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+              </div>
             ))}
             <Button
               variant="ghost"
@@ -609,6 +669,56 @@ export default function DefineData({ project }: DefineDataProps) {
               <Plus className="h-4 w-4" />
             </Button>
           </TabsList>
+
+          {/* Collection Description Section */}
+          {safeCollections.some(collection => activeTab === collection.collectionName) && (
+            <div className="mt-3 mb-2 px-4">
+              {safeCollections
+                .filter(collection => activeTab === collection.collectionName)
+                .map(collection => (
+                  <div key={collection.id}>
+                    {editingCollectionId === collection.id ? (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={editingCollectionDescription}
+                          onChange={(e) => setEditingCollectionDescription(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleCollectionDescriptionSave();
+                            if (e.key === "Escape") handleCollectionEditCancel();
+                          }}
+                          placeholder="Collection description..."
+                          className="text-sm border-dashed"
+                        />
+                        <Button 
+                          size="sm" 
+                          onClick={handleCollectionDescriptionSave}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 group">
+                        <p 
+                          className="text-sm text-gray-600 cursor-pointer hover:bg-gray-100 px-2 py-1 rounded flex-1 min-h-[2rem] flex items-center"
+                          onClick={() => handleCollectionNameEdit(collection)}
+                        >
+                          {collection.description || "Click to add description..."}
+                        </p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCollectionNameEdit(collection)}
+                          className="opacity-0 group-hover:opacity-100 h-8 w-8 p-0 transition-opacity"
+                        >
+                          <Edit3 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+            </div>
+          )}
 
           {/* Main Data Tab Content */}
           <TabsContent value="main-data" className="mt-0 px-0 ml-0">
@@ -846,110 +956,6 @@ export default function DefineData({ project }: DefineDataProps) {
           {safeCollections.map((collection) => (
             <TabsContent key={collection.id} value={collection.collectionName} className="mt-0 px-0 ml-0">
               <Card className="border-t-0 rounded-tl-none ml-0">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    {editingCollectionId === collection.id ? (
-                      <div className="flex items-center gap-2 flex-1">
-                        <Input
-                          value={editingCollectionName}
-                          onChange={(e) => setEditingCollectionName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") handleCollectionNameSave();
-                            if (e.key === "Escape") handleCollectionEditCancel();
-                          }}
-                          className="h-8 text-lg font-semibold"
-                          autoFocus
-                        />
-                        <Button 
-                          size="sm" 
-                          onClick={handleCollectionNameSave}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={handleCollectionEditCancel}
-                          className="h-8 w-8 p-0"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 flex-1 group">
-                        <span 
-                          className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded flex-1"
-                          onClick={() => handleCollectionNameEdit(collection)}
-                        >
-                          {collection.collectionName}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleCollectionNameEdit(collection)}
-                          className="opacity-0 group-hover:opacity-100 h-8 w-8 p-0 transition-opacity"
-                        >
-                          <Edit3 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
-                    <Badge variant="secondary" className="bg-gray-100 text-gray-600">
-                      {collection.properties?.length || 0} properties
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDeleteDialog({ 
-                        open: true, 
-                        type: "collection", 
-                        id: collection.id, 
-                        name: collection.collectionName 
-                      })}
-                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </CardTitle>
-                  {editingCollectionId === collection.id ? (
-                    <div className="flex items-center gap-2">
-                      <Input
-                        value={editingCollectionDescription}
-                        onChange={(e) => setEditingCollectionDescription(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleCollectionDescriptionSave();
-                          if (e.key === "Escape") handleCollectionEditCancel();
-                        }}
-                        placeholder="Collection description..."
-                        className="text-sm"
-                      />
-                      <Button 
-                        size="sm" 
-                        onClick={handleCollectionDescriptionSave}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Check className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 group">
-                      <p 
-                        className="text-sm text-gray-600 cursor-pointer hover:bg-gray-100 px-2 py-1 rounded flex-1"
-                        onClick={() => handleCollectionNameEdit(collection)}
-                      >
-                        {collection.description || "Click to add description..."}
-                      </p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleCollectionNameEdit(collection)}
-                        className="opacity-0 group-hover:opacity-100 h-8 w-8 p-0 transition-opacity"
-                      >
-                        <Edit3 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                </CardHeader>
                 <CardContent>
                   <CollectionCard
                     collection={collection}
