@@ -2091,6 +2091,7 @@ print(json.dumps(result))
 
       // Send the data to Python script in correct format
       const pythonInput = JSON.stringify({
+        operation: "extract",
         documents: documents,
         project_schema: {
           schema_fields: schemaFields || [],
@@ -2098,7 +2099,7 @@ print(json.dumps(result))
         },
         extraction_rules: extractionRules || [],
         knowledge_documents: knowledgeDocuments || [],
-        session_id: sessionId
+        session_name: sessionId
       });
       
       console.log(`GEMINI EXTRACTION: Sending ${documents.length} documents to Python script`);

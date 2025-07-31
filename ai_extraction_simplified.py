@@ -287,6 +287,8 @@ RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
         # Process documents in two phases: content extraction, then data extraction
         logging.info(f"=== STEP 1: DOCUMENT CONTENT EXTRACTION ===")
         logging.info(f"Processing {len(documents)} documents for content extraction")
+        logging.info(f"Documents received: {[doc.get('file_name', 'Unknown') for doc in documents]}")
+        logging.info(f"Documents data: {documents}")
         
         model = genai.GenerativeModel('gemini-1.5-flash')
         extracted_content_text = ""
@@ -753,12 +755,17 @@ if __name__ == "__main__":
     
     try:
         # Read input from stdin
-        input_data = json.loads(sys.stdin.read())
-        step = input_data.get("step", "extract")
+        raw_input = sys.stdin.read()
+        logging.info(f"RAW INPUT RECEIVED: {raw_input[:500]}...")
+        input_data = json.loads(raw_input)
         
-        if step == "extract":
+        # Log parsed data structure
+        logging.info(f"PARSED INPUT KEYS: {list(input_data.keys())}")
+        operation = input_data.get("operation", "extract")
+        
+        if operation == "extract":
             # STEP 1: Extract from documents
-            documents = input_data.get("files", [])
+            documents = input_data.get("documents", [])
             project_schema = input_data.get("project_schema", {})
             extraction_rules = input_data.get("extraction_rules", [])
             session_name = input_data.get("session_name", "contract")
