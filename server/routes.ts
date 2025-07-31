@@ -2055,18 +2055,27 @@ print(json.dumps(result))
       console.log(`GEMINI EXTRACTION: Collections: ${collections?.length || 0}`);
       console.log(`GEMINI EXTRACTION: Extraction rules: ${extractionRules?.length || 0}`);
       
-      // If no extracted texts provided, get them from the session
-      let finalExtractedTexts = extractedTexts;
-      if (!finalExtractedTexts || finalExtractedTexts.length === 0) {
+      // If no extracted texts provided, try to get them from the session
+      let finalExtractedTexts = extractedTexts || [];
+      
+      if (finalExtractedTexts.length === 0) {
+        console.log(`GEMINI EXTRACTION: No extracted texts provided, attempting to retrieve from database`);
         try {
-          const session = await storage.getSession(sessionId);
-          if (session?.extractedData) {
-            const sessionData = JSON.parse(session.extractedData);
+          // Use the existing getSession function that's available in this scope
+          const sessionResult = await new Promise((resolve, reject) => {
+            storage.db.get('SELECT extractedData FROM extraction_sessions WHERE id = ?', [sessionId], (err: any, row: any) => {
+              if (err) reject(err);
+              else resolve(row);
+            });
+          });
+          
+          if (sessionResult && (sessionResult as any).extractedData) {
+            const sessionData = JSON.parse((sessionResult as any).extractedData);
             finalExtractedTexts = sessionData.extracted_texts || [];
             console.log(`GEMINI EXTRACTION: Retrieved ${finalExtractedTexts.length} texts from session`);
           }
         } catch (error) {
-          console.log(`GEMINI EXTRACTION: Could not get session data: ${error.message}`);
+          console.log(`GEMINI EXTRACTION: Could not get session data: ${(error as any).message}`);
         }
       }
       
