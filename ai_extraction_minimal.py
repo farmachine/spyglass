@@ -66,6 +66,13 @@ def extract_data_minimal(documents, project_schema, extraction_rules=None, knowl
                         logging.info(f"Extracted {len(document_content)} characters from PDF {file_name}")
                     else:
                         document_content = "[PDF extraction failed]"
+                elif 'text' in mime_type or not mime_type:
+                    # Handle plain text documents
+                    if isinstance(file_content, bytes):
+                        document_content = file_content.decode('utf-8', errors='ignore')
+                    else:
+                        document_content = str(file_content)
+                    logging.info(f"Processed text document {file_name}: {len(document_content)} characters")
                 else:
                     document_content = f"[Unsupported format: {mime_type}]"
                 
