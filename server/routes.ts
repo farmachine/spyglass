@@ -2402,21 +2402,22 @@ print(json.dumps(result))
           let savedValidation;
           if (existingValidation) {
             // Update existing record with extracted data
-            savedValidation = await storage.updateFieldValidation(existingValidation.id, {
+            const updateData = {
               extractedValue: validation.extracted_value,
               confidenceScore: Math.round(parseFloat(validation.confidence_score) * 100), // Convert to integer percentage
               validationStatus: validation.validation_status === 'pending' ? 'unverified' : validation.validation_status,
               aiReasoning: validation.ai_reasoning,
               documentSource: validation.document_source || 'Unknown'
-            });
-            console.log(`SAVE VALIDATIONS: Updated existing field ${fieldName} (original: ${validation.field_name})`);
+            };
+            console.log(`SAVE VALIDATIONS: Updating ${fieldName} with data:`, updateData);
+            savedValidation = await storage.updateFieldValidation(existingValidation.id, updateData);
+            console.log(`SAVE VALIDATIONS: Updated existing field ${fieldName}, result:`, savedValidation);
           } else {
             // Create new record if none exists
-            savedValidation = await storage.createFieldValidation({
+            const createData = {
               sessionId: sessionId,
               fieldId: validation.field_id,
               fieldType: validation.field_type,
-              fieldName: fieldName,
               collectionName: collectionName,
               extractedValue: validation.extracted_value,
               confidenceScore: Math.round(parseFloat(validation.confidence_score) * 100), // Convert to integer percentage
@@ -2424,8 +2425,10 @@ print(json.dumps(result))
               aiReasoning: validation.ai_reasoning,
               documentSource: validation.document_source || 'Unknown',
               recordIndex: validation.record_index || 0
-            });
-            console.log(`SAVE VALIDATIONS: Created new field ${fieldName} (original: ${validation.field_name})`);
+            };
+            console.log(`SAVE VALIDATIONS: Creating new field ${fieldName} with data:`, createData);
+            savedValidation = await storage.createFieldValidation(createData);
+            console.log(`SAVE VALIDATIONS: Created new field ${fieldName}, result:`, savedValidation);
           }
           
           savedValidations.push(savedValidation);
