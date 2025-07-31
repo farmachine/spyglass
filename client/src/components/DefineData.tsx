@@ -784,13 +784,38 @@ export default function DefineData({ project }: DefineDataProps) {
             <TabsContent key={collection.id} value={collection.collectionName} className="mt-0 px-0 ml-0">
               <Card className="border-t-0 rounded-tl-none ml-0">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    {collection.collectionName}
-                    <Badge variant="secondary" className="bg-gray-100 text-gray-600">
-                      {collection.properties?.length || 0} properties
-                    </Badge>
-                  </CardTitle>
-                  <p className="text-sm text-gray-600">{collection.description}</p>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2 flex-1">
+                      <CardTitle className="text-xl">
+                        {collection.collectionName}
+                      </CardTitle>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        onClick={() => setCollectionDialog({ open: true, collection })}
+                        className="h-6 w-6 p-0"
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                      <Badge variant="secondary" className="bg-gray-100 text-gray-600">
+                        {collection.properties?.length || 0} properties
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-2">
+                    <p className="text-sm text-gray-600 flex-1">
+                      {collection.description || `List of items extracted from your ${project.mainObjectName || "Session"} documents.`}
+                    </p>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      onClick={() => setCollectionDialog({ open: true, collection })}
+                      className="h-6 w-6 p-0 flex-shrink-0"
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <CollectionCard
@@ -821,6 +846,7 @@ export default function DefineData({ project }: DefineDataProps) {
                       id, 
                       name 
                     })}
+                    hideHeader={true}
                   />
                 </CardContent>
               </Card>
