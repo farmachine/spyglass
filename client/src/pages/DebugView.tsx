@@ -16,24 +16,35 @@ export default function DebugView() {
 
   // Function to beautify JSON response
   const beautifyJson = (jsonString: string): string => {
+    console.log('Beautifying JSON, input length:', jsonString.length);
+    
     try {
       // Clean and sanitize the input
       let cleanJson = sanitizeJsonString(jsonString);
+      console.log('After sanitization, length:', cleanJson.length);
       
       // Try to find and extract valid JSON
       const jsonMatch = extractJsonFromString(cleanJson);
       if (!jsonMatch) {
+        console.log('No JSON found in cleaned string');
         return cleanJson; // Return cleaned input if no JSON found
       }
       
+      console.log('Extracted JSON length:', jsonMatch.length);
+      
       // Parse and format the JSON
       const parsed = JSON.parse(jsonMatch);
-      return JSON.stringify(parsed, null, 2);
+      const formatted = JSON.stringify(parsed, null, 2);
+      console.log('Successfully formatted JSON, output length:', formatted.length);
+      return formatted;
     } catch (error) {
       console.warn('JSON parsing failed:', error);
+      console.log('Error details:', error.message);
       
       // Final fallback - return sanitized input
-      return sanitizeJsonString(jsonString);
+      const fallback = sanitizeJsonString(jsonString);
+      console.log('Returning fallback, length:', fallback.length);
+      return fallback;
     }
   };
 
@@ -330,24 +341,30 @@ export default function DebugView() {
               </CardHeader>
               <CardContent>
                 {session.aiResponse ? (
-                  <ScrollArea className="h-[600px] w-full rounded-md border p-4">
-                    <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
-                      <pre className="text-sm whitespace-pre-wrap font-mono overflow-x-auto">
-                        <code 
-                          className="language-json text-gray-800 dark:text-gray-200"
-                          style={{
-                            color: '#1f2937',
-                            '--json-key-color': '#0f766e',
-                            '--json-string-color': '#dc2626', 
-                            '--json-number-color': '#1e40af',
-                            '--json-boolean-color': '#7c2d12'
-                          } as React.CSSProperties}
-                        >
-                          {showFormatted ? beautifyJson(session.aiResponse) : session.aiResponse}
-                        </code>
-                      </pre>
+                  <div className="space-y-2">
+                    <div className="text-xs text-muted-foreground">
+                      Mode: {showFormatted ? 'Formatted JSON' : 'Raw Response'} | 
+                      Length: {session.aiResponse.length.toLocaleString()} characters
                     </div>
-                  </ScrollArea>
+                    <ScrollArea className="h-[600px] w-full rounded-md border p-4">
+                      <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+                        <pre className="text-sm whitespace-pre-wrap font-mono overflow-x-auto">
+                          <code 
+                            className="language-json text-gray-800 dark:text-gray-200"
+                            style={{
+                              color: '#1f2937',
+                              '--json-key-color': '#0f766e',
+                              '--json-string-color': '#dc2626', 
+                              '--json-number-color': '#1e40af',
+                              '--json-boolean-color': '#7c2d12'
+                            } as React.CSSProperties}
+                          >
+                            {showFormatted ? beautifyJson(session.aiResponse) : session.aiResponse}
+                          </code>
+                        </pre>
+                      </div>
+                    </ScrollArea>
+                  </div>
                 ) : (
                   <div className="text-center py-12 text-muted-foreground">
                     <p>No AI response data available for this session.</p>
