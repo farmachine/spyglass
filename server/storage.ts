@@ -282,7 +282,7 @@ export class MemStorage implements IStorage {
     properties.forEach(prop => this.collectionProperties.set(prop.id, prop));
     
     // Add sample extraction session with deterministic UUID
-    const sessionId = "550e8400-e29b-41d4-a716-446655440040"; // Fixed UUID for sample session
+    const sessionId = "63f3c027-a7a2-4ce4-833b-596325529550"; // Match the actual session UUID being used
     const session = {
       id: sessionId,
       projectId: projectId,
@@ -505,10 +505,10 @@ export class MemStorage implements IStorage {
       },
       // Line Items Collection - Second Item
       {
-        id: 7,
-        sessionId: 1,
+        id: "550e8400-e29b-41d4-a716-446655440070", // Fixed UUID for Line Items Description validation
+        sessionId: sessionId,
         fieldType: "collection_property" as const,
-        fieldId: 1,
+        fieldId: "550e8400-e29b-41d4-a716-446655440030", // Description property
         fieldName: "Line Items.Description[1]",
         collectionName: "Line Items",
         recordIndex: 1,
@@ -519,10 +519,10 @@ export class MemStorage implements IStorage {
         confidenceScore: 94
       },
       {
-        id: 8,
-        sessionId: 1,
+        id: "550e8400-e29b-41d4-a716-446655440071", // Fixed UUID for Line Items Quantity validation
+        sessionId: sessionId,
         fieldType: "collection_property" as const,
-        fieldId: 2,
+        fieldId: "550e8400-e29b-41d4-a716-446655440031", // Quantity property
         fieldName: "Line Items.Quantity[1]",
         collectionName: "Line Items",
         recordIndex: 1,
@@ -533,10 +533,10 @@ export class MemStorage implements IStorage {
         confidenceScore: 91
       },
       {
-        id: 9,
-        sessionId: 1,
+        id: "550e8400-e29b-41d4-a716-446655440072", // Fixed UUID for Line Items Unit Price validation
+        sessionId: sessionId,
         fieldType: "collection_property" as const,
-        fieldId: 3,
+        fieldId: "550e8400-e29b-41d4-a716-446655440032", // Unit Price property
         fieldName: "Line Items.Unit Price[1]",
         collectionName: "Line Items",
         recordIndex: 1,
@@ -548,10 +548,10 @@ export class MemStorage implements IStorage {
       },
       // Line Items Collection - Third Item
       {
-        id: 10,
-        sessionId: 1,
+        id: "550e8400-e29b-41d4-a716-446655440073", // Fixed UUID for Line Items Description validation
+        sessionId: sessionId,
         fieldType: "collection_property" as const,
-        fieldId: 1,
+        fieldId: "550e8400-e29b-41d4-a716-446655440030", // Description property
         fieldName: "Line Items.Description[2]",
         collectionName: "Line Items",
         recordIndex: 2,
@@ -562,10 +562,10 @@ export class MemStorage implements IStorage {
         confidenceScore: 89
       },
       {
-        id: 11,
-        sessionId: 1,
+        id: "550e8400-e29b-41d4-a716-446655440074", // Fixed UUID for Line Items Quantity validation
+        sessionId: sessionId,
         fieldType: "collection_property" as const,
-        fieldId: 2,
+        fieldId: "550e8400-e29b-41d4-a716-446655440031", // Quantity property
         fieldName: "Line Items.Quantity[2]",
         collectionName: "Line Items",
         recordIndex: 2,
@@ -576,10 +576,10 @@ export class MemStorage implements IStorage {
         confidenceScore: 87
       },
       {
-        id: 12,
-        sessionId: 1,
+        id: "550e8400-e29b-41d4-a716-446655440075", // Fixed UUID for Line Items Unit Price validation
+        sessionId: sessionId,
         fieldType: "collection_property" as const,
-        fieldId: 3,
+        fieldId: "550e8400-e29b-41d4-a716-446655440032", // Unit Price property
         fieldName: "Line Items.Unit Price[2]",
         collectionName: "Line Items",
         recordIndex: 2,
