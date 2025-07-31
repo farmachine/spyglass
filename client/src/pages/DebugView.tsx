@@ -17,107 +17,107 @@ export default function DebugView() {
   // Function to beautify JSON response
   const beautifyJson = (jsonString: string): string => {
     try {
-      // Remove all markdown code blocks and clean the string
-      let cleanJson = jsonString.trim();
+      // Clean and sanitize the input
+      let cleanJson = sanitizeJsonString(jsonString);
       
-      // Handle various markdown formats - more aggressive cleaning
-      cleanJson = cleanJson.replace(/```json\s*/g, '');
-      cleanJson = cleanJson.replace(/```\s*/g, '');
-      cleanJson = cleanJson.replace(/^\s*```/gm, '');
-      cleanJson = cleanJson.replace(/```\s*$/gm, '');
-      
-      // Remove any extra whitespace and newlines at start/end
-      cleanJson = cleanJson.trim();
-      
-      // Try to find JSON content more intelligently
-      let jsonStart = cleanJson.indexOf('{');
-      let jsonEnd = -1;
-      
-      if (jsonStart !== -1) {
-        // Count braces to find the matching closing brace
-        let braceCount = 0;
-        for (let i = jsonStart; i < cleanJson.length; i++) {
-          if (cleanJson[i] === '{') braceCount++;
-          if (cleanJson[i] === '}') {
-            braceCount--;
-            if (braceCount === 0) {
-              jsonEnd = i;
-              break;
-            }
-          }
-        }
-        
-        if (jsonEnd !== -1) {
-          cleanJson = cleanJson.substring(jsonStart, jsonEnd + 1);
-        } else {
-          // JSON might be truncated - try to repair it
-          cleanJson = repairTruncatedJson(cleanJson.substring(jsonStart));
-        }
+      // Try to find and extract valid JSON
+      const jsonMatch = extractJsonFromString(cleanJson);
+      if (!jsonMatch) {
+        return cleanJson; // Return cleaned input if no JSON found
       }
       
-      // Parse and stringify with proper formatting
-      const parsed = JSON.parse(cleanJson);
+      // Parse and format the JSON
+      const parsed = JSON.parse(jsonMatch);
       return JSON.stringify(parsed, null, 2);
     } catch (error) {
-      console.warn('JSON parsing failed, attempting repair:', error);
+      console.warn('JSON parsing failed:', error);
       
-      // Try to repair truncated JSON
-      let fallback = jsonString.trim();
+      // Final fallback - return sanitized input
+      return sanitizeJsonString(jsonString);
+    }
+  };
+
+  // Sanitize JSON string by removing problematic characters and markdown
+  const sanitizeJsonString = (str: string): string => {
+    let cleaned = str.trim();
+    
+    // Remove markdown code blocks
+    cleaned = cleaned.replace(/```json\s*/g, '');
+    cleaned = cleaned.replace(/```\s*/g, '');
+    cleaned = cleaned.replace(/^\s*```/gm, '');
+    cleaned = cleaned.replace(/```\s*$/gm, '');
+    
+    // Remove control characters that cause JSON parsing issues
+    cleaned = cleaned.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+    
+    // Fix common JSON issues
+    cleaned = cleaned.replace(/\\n/g, '\\\\n'); // Escape newlines in strings
+    cleaned = cleaned.replace(/\\t/g, '\\\\t'); // Escape tabs in strings
+    cleaned = cleaned.replace(/\\r/g, '\\\\r'); // Escape carriage returns
+    
+    return cleaned.trim();
+  };
+
+  // Extract JSON content from a string
+  const extractJsonFromString = (str: string): string | null => {
+    const jsonStart = str.indexOf('{');
+    if (jsonStart === -1) return null;
+    
+    // Find the matching closing brace
+    let braceCount = 0;
+    let inString = false;
+    let escaped = false;
+    let jsonEnd = -1;
+    
+    for (let i = jsonStart; i < str.length; i++) {
+      const char = str[i];
       
-      // Remove markdown blocks
-      fallback = fallback.replace(/```json\s*/g, '');
-      fallback = fallback.replace(/```\s*/g, '');
+      if (!escaped && char === '"') {
+        inString = !inString;
+      }
       
-      // Find JSON start
-      const start = fallback.indexOf('{');
-      if (start !== -1) {
-        fallback = fallback.substring(start);
-        fallback = repairTruncatedJson(fallback);
-        
-        // Try parsing the repaired JSON
-        try {
-          const parsed = JSON.parse(fallback);
-          return JSON.stringify(parsed, null, 2);
-        } catch (repairError) {
-          console.warn('Repair failed, returning cleaned original');
+      if (!inString && !escaped) {
+        if (char === '{') braceCount++;
+        if (char === '}') {
+          braceCount--;
+          if (braceCount === 0) {
+            jsonEnd = i;
+            break;
+          }
         }
       }
       
-      return fallback;
+      escaped = !escaped && char === '\\' && inString;
     }
+    
+    if (jsonEnd === -1) {
+      // JSON is truncated, try to repair it
+      return repairTruncatedJson(str.substring(jsonStart));
+    }
+    
+    return str.substring(jsonStart, jsonEnd + 1);
   };
 
   // Helper function to repair truncated JSON
   const repairTruncatedJson = (jsonStr: string): string => {
     try {
-      // Remove any incomplete trailing content that might cause parsing issues
       let repaired = jsonStr.trim();
       
-      // Check for unterminated strings and fix them
+      // Remove incomplete final line if it looks malformed
       const lines = repaired.split('\n');
-      const repairedLines = [];
+      const lastLine = lines[lines.length - 1]?.trim();
       
-      for (let i = 0; i < lines.length; i++) {
-        let line = lines[i];
-        
-        // If we hit an incomplete line, stop processing
-        if (line.includes('"') && !isValidJsonLine(line)) {
-          // Try to complete the line
-          const quoteCount = (line.match(/"/g) || []).length;
-          if (quoteCount % 2 === 1) {
-            // Odd number of quotes - likely truncated string
-            const lastQuoteIndex = line.lastIndexOf('"');
-            line = line.substring(0, lastQuoteIndex + 1);
-          }
-          repairedLines.push(line);
-          break;
+      // If last line looks incomplete (unmatched quotes, no colon, etc.)
+      if (lastLine && lastLine.includes('"')) {
+        const quoteCount = (lastLine.match(/"/g) || []).length;
+        if (quoteCount % 2 === 1 || (!lastLine.includes(':') && !lastLine.endsWith('}'))) {
+          // Remove the incomplete last line
+          lines.pop();
+          repaired = lines.join('\n');
         }
-        repairedLines.push(line);
       }
       
-      repaired = repairedLines.join('\n');
-      
-      // Ensure proper JSON structure closure
+      // Count braces and add missing closing braces
       let braceCount = 0;
       let inString = false;
       let escaped = false;
@@ -129,15 +129,15 @@ export default function DebugView() {
           inString = !inString;
         }
         
-        if (!inString) {
+        if (!inString && !escaped) {
           if (char === '{') braceCount++;
           if (char === '}') braceCount--;
         }
         
-        escaped = !escaped && char === '\\';
+        escaped = !escaped && char === '\\' && inString;
       }
       
-      // Add missing closing braces
+      // Close any unclosed braces
       while (braceCount > 0) {
         repaired += '\n}';
         braceCount--;
@@ -147,31 +147,6 @@ export default function DebugView() {
     } catch (error) {
       return jsonStr;
     }
-  };
-
-  // Helper to check if a line has valid JSON structure
-  const isValidJsonLine = (line: string): boolean => {
-    const trimmed = line.trim();
-    if (trimmed === '' || trimmed === '{' || trimmed === '}' || trimmed === ',' || trimmed.endsWith(',')) {
-      return true;
-    }
-    
-    // Check for key-value pair pattern
-    const colonIndex = trimmed.indexOf(':');
-    if (colonIndex === -1) return false;
-    
-    const key = trimmed.substring(0, colonIndex).trim();
-    const value = trimmed.substring(colonIndex + 1).trim();
-    
-    // Key should be quoted
-    if (!key.startsWith('"') || !key.endsWith('"')) return false;
-    
-    // Value should be complete (not cut off mid-string)
-    if (value.startsWith('"') && !value.endsWith('"') && !value.endsWith('",')) {
-      return false;
-    }
-    
-    return true;
   };
 
   const { data: session, isLoading } = useQuery<ExtractionSession>({
