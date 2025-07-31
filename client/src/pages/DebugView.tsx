@@ -39,7 +39,7 @@ export default function DebugView() {
       return formatted;
     } catch (error) {
       console.warn('JSON parsing failed:', error);
-      console.log('Error details:', error.message);
+      console.log('Error details:', error instanceof Error ? error.message : String(error));
       
       // Final fallback - return sanitized input
       const fallback = sanitizeJsonString(jsonString);
@@ -71,8 +71,22 @@ export default function DebugView() {
 
   // Extract JSON content from a string
   const extractJsonFromString = (str: string): string | null => {
+    console.log('Looking for JSON in string. First 200 chars:', str.substring(0, 200));
+    console.log('Last 200 chars:', str.substring(str.length - 200));
+    
     const jsonStart = str.indexOf('{');
-    if (jsonStart === -1) return null;
+    console.log('JSON start position:', jsonStart);
+    
+    if (jsonStart === -1) {
+      console.log('No opening brace found, checking for alternative formats...');
+      // Try to find array start as well
+      const arrayStart = str.indexOf('[');
+      console.log('Array start position:', arrayStart);
+      if (arrayStart === -1) return null;
+      
+      // Handle array format
+      return extractArrayFromString(str, arrayStart);
+    }
     
     // Find the matching closing brace
     let braceCount = 0;
@@ -107,6 +121,42 @@ export default function DebugView() {
     }
     
     return str.substring(jsonStart, jsonEnd + 1);
+  };
+
+  // Helper function to extract JSON arrays
+  const extractArrayFromString = (str: string, startPos: number): string | null => {
+    let bracketCount = 0;
+    let inString = false;
+    let escaped = false;
+    let arrayEnd = -1;
+    
+    for (let i = startPos; i < str.length; i++) {
+      const char = str[i];
+      
+      if (!escaped && char === '"') {
+        inString = !inString;
+      }
+      
+      if (!inString && !escaped) {
+        if (char === '[') bracketCount++;
+        if (char === ']') {
+          bracketCount--;
+          if (bracketCount === 0) {
+            arrayEnd = i;
+            break;
+          }
+        }
+      }
+      
+      escaped = !escaped && char === '\\' && inString;
+    }
+    
+    if (arrayEnd === -1) {
+      console.log('Array is truncated, attempting repair...');
+      return repairTruncatedJson(str.substring(startPos));
+    }
+    
+    return str.substring(startPos, arrayEnd + 1);
   };
 
   // Helper function to repair truncated JSON
