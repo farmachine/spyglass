@@ -760,9 +760,9 @@ if __name__ == "__main__":
             result = step1_extract_from_documents(documents, project_schema, extraction_rules, session_name)
             
             if result.success:
-                print(json.dumps(result.extracted_data))
+                print(json.dumps({"success": True, "extracted_data": result.extracted_data, "field_validations": result.extracted_data.get("field_validations", [])}))
             else:
-                print(json.dumps({"error": result.error_message}), file=sys.stderr)
+                print(json.dumps({"success": False, "error": result.error_message}), file=sys.stderr)
                 sys.exit(1)
                 
         elif step == "validate":
