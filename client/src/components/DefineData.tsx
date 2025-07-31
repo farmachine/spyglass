@@ -364,13 +364,16 @@ export default function DefineData({ project }: DefineDataProps) {
   // Main object name and description handlers
   const handleMainObjectNameSave = async () => {
     try {
+      // Optimistically update the cache immediately
+      queryClient.setQueryData(["/api/projects", project.id], (oldData: any) => {
+        if (!oldData) return oldData;
+        return { ...oldData, mainObjectName };
+      });
+      
       await updateProject.mutateAsync({
         id: project.id,
         project: { mainObjectName }
       });
-      
-      // Force invalidate the specific project cache to ensure fresh data
-      queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id] });
       
       setIsEditingMainObjectName(false);
       toast({
@@ -378,6 +381,8 @@ export default function DefineData({ project }: DefineDataProps) {
         description: "The main object name has been updated successfully.",
       });
     } catch (error) {
+      // Revert the optimistic update on error
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id] });
       toast({
         title: "Error",
         description: "Failed to update main object name. Please try again.",
@@ -388,13 +393,16 @@ export default function DefineData({ project }: DefineDataProps) {
 
   const handleMainObjectDescriptionSave = async () => {
     try {
+      // Optimistically update the cache immediately
+      queryClient.setQueryData(["/api/projects", project.id], (oldData: any) => {
+        if (!oldData) return oldData;
+        return { ...oldData, mainObjectDescription };
+      });
+      
       await updateProject.mutateAsync({
         id: project.id,
         project: { mainObjectDescription }
       });
-      
-      // Force invalidate the specific project cache to ensure fresh data
-      queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id] });
       
       setIsEditingMainObjectDescription(false);
       toast({
@@ -402,6 +410,8 @@ export default function DefineData({ project }: DefineDataProps) {
         description: "The main object description has been updated successfully.",
       });
     } catch (error) {
+      // Revert the optimistic update on error
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id] });
       toast({
         title: "Error",
         description: "Failed to update description. Please try again.",
