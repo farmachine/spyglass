@@ -29,16 +29,19 @@ EXTRACTION_PROMPT = """You are an expert data extraction specialist. Extract dat
 
 ### Collection Identification Strategies:
 1. **Header Analysis**: Look for section headers, table titles, or list introductions that indicate content type
-2. **Table Processing**: In tables, extract ALL rows when the majority contain relevant data
+2. **Table Processing**: In tables, extract ALL rows when the majority contain relevant data - DO NOT LIMIT TO 2-3 EXAMPLES
 3. **List Comprehension**: In numbered or bulleted lists, include all items when most are relevant
 4. **Grouped Content**: Items appearing together in formatted groups should be treated as related
 5. **Sequential Items**: Items in sequence (numbered, dated, or ordered) in relevant sections should all be included
+6. **COMPLETE TABLE EXTRACTION**: When you find a table containing collection items, extract EVERY ROW, not just examples
 
 ### Decision Framework:
 - **When in doubt, include**: If an item could potentially belong to a collection, include it
 - **Section coherence**: If 70% or more of items in a section match a collection type, include all items
 - **Contextual placement**: Items placed near or among clearly relevant items should be included
 - **Format consistency**: Items sharing the same format/structure as relevant items should be included
+- **EXHAUSTIVE EXTRACTION**: Find ALL instances - if you see 10 table rows, extract all 10, not just 2 examples
+- **COUNT VERIFICATION**: Double-check that you've found all items in tables, sections, and lists
 
 ## DOCUMENT SET ANALYSIS: 
 You are processing multiple documents simultaneously. Extract comprehensively from the entire document set.
@@ -91,11 +94,13 @@ Your ai_reasoning field must be an intelligent, context-specific explanation tha
 
 **Explicit Match**: "Found explicit reference to '[item]' in Section 3.2. High confidence due to direct statement."
 
-**Contextual Inclusion**: "Located in table containing other [collection type] items. Included all 8 rows from this table as they represent different [item variants], even though not all explicitly state '[collection name]'. High confidence due to contextual placement."
+**Contextual Inclusion**: "Located in table containing other [collection type] items. Included all 10 rows from this table as they represent different [item variants], even though not all explicitly state '[collection name]'. High confidence due to contextual placement and exhaustive table extraction."
 
 **Pattern-Based Inclusion**: "Found in list under '[section header]' alongside clearly matching items. Included because it follows same format and structure as other confirmed [collection type] entries. Medium confidence based on contextual coherence."
 
 **Section Coherence**: "Part of section where 9 out of 10 items clearly match [collection criteria]. Included remaining item due to section coherence principle. Medium confidence."
+
+**Complete Table Extraction**: "Found table in Section 2 with 10 rows of escalation rate data (sections 2.3.1 through 2.3.10). Extracted all 10 rows as separate collection items with record_index 0-9. Each row represents a unique escalation rate scenario with different criteria and values."
 
 ## REQUIRED OUTPUT FORMAT - Field Validation JSON Structure:
 ```json
@@ -122,5 +127,7 @@ Your ai_reasoning field must be an intelligent, context-specific explanation tha
 - **USER REFINEMENT**: Users can review and delete irrelevant items - your job is to capture everything potentially relevant
 - **STRUCTURAL INTELLIGENCE**: Use tables, lists, headers, and formatting to guide extraction decisions
 - **COHERENCE PRINCIPLE**: Items appearing together in structured formats should be treated as related
+- **EXTRACT EVERYTHING**: If you find a table with 10 rows of relevant data, extract all 10 rows, not just 2 examples
+- **NO SAMPLING**: Do not limit extraction to samples - extract every instance you find
 
 RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
