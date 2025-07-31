@@ -2,12 +2,12 @@
 import json
 import subprocess
 
-# Create test data that includes DORA-relevant clauses
+# Test with contract content that should extract clauses
 test_data = {
     "operation": "extract",
     "documents": [
         {
-            "file_name": "test_msa.pdf",
+            "file_name": "test_contract.pdf",
             "file_content": """
 MASTER SERVICE AGREEMENT
 
@@ -73,14 +73,13 @@ Services Covered:
         ]
     },
     "extraction_rules": [],
-    "session_name": "test_dora"
+    "session_name": "test_contract"
 }
 
-print("=== TESTING DORA CLAUSE EXTRACTION ===")
-print(f"Document content preview: {test_data['documents'][0]['file_content'][:200]}...")
+print("=== TESTING CLAUSE DETECTION WITH RELEVANT CONTENT ===")
+print("This contract contains operational resilience content that should generate clauses...")
 
 try:
-    # Run the Python script
     process = subprocess.Popen(
         ['python3', 'ai_extraction_simplified.py'],
         stdin=subprocess.PIPE,
@@ -102,9 +101,18 @@ try:
             if result.get('field_validations'):
                 print(f"Extracted {len(result['field_validations'])} validations:")
                 for validation in result['field_validations']:
-                    print(f"  - {validation.get('field_name', 'Unknown')}: {validation.get('extracted_value', 'Not set')}")
+                    field_name = validation.get('field_name', 'Unknown')
+                    value = validation.get('extracted_value', 'Not set')
+                    print(f"  - {field_name}: {value}")
+                    
+                # Check for CHOICE field compliance
+                choice_fields = [v for v in result['field_validations'] if 'DORA Compliance Status' in v.get('field_name', '')]
+                if choice_fields:
+                    print(f"\nChoice field values:")
+                    for cf in choice_fields:
+                        print(f"  - {cf['field_name']}: {cf['extracted_value']}")
             else:
-                print("No field validations found")
+                print("No field validations found - this indicates the clause detection may not be working")
                 
         except json.JSONDecodeError as e:
             print(f"Failed to parse JSON: {e}")

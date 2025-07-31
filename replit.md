@@ -16,6 +16,8 @@ Preferred communication style: Simple, everyday language.
 - ✓ Enhanced AI prompt with explicit instructions: "DO NOT CREATE EMPTY COLLECTION RECORDS" when no data is found
 - ✓ Modified collection example generation to be dynamic instead of hardcoded 2-record template
 - ✓ Tested fix: AI now returns zero validation records for DORA clauses when document contains no DORA content
+- ✓ Verified clause extraction still works: AI successfully extracts 6 DORA-relevant clauses from contracts with operational resilience content
+- ✓ CHOICE field options preserved: AI properly respects defined choice options ("Compliant", "Partially Compliant", etc.)
 - ✓ Previous successful extractions remain functional: Party and service data still extracts correctly with 95% confidence
 - ✓ **CRITICAL EXTRACTION PIPELINE REGRESSION COMPLETELY RESOLVED**: Fixed fundamental bug that broke all extractions from July 31st
 - ✓ Root cause identified: Python script expected "files" field but Node.js server was sending "documents" field, causing empty document arrays

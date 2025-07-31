@@ -72,11 +72,11 @@ DOCUMENT SET ANALYSIS: You are processing {len(documents)} documents simultaneou
 
 SPECIAL INSTRUCTIONS FOR CLAUSE EXTRACTION:
 - For clause-related fields (titles, references, summaries): Look for specific contract sections, numbered clauses, paragraph headings, legal provisions
-- For DORA compliance: Look for terms like "operational resilience", "digital operational risk", "ICT risk management", "outsourcing", "third-party risk"
+- For DORA compliance: Look for terms like "operational resilience", "digital operational risk", "ICT risk management", "outsourcing", "third-party risk", "business continuity", "incident management", "service level agreements"
 - For remediation actions: Look for required actions, deadlines, compliance steps, reporting requirements
-- **CRITICAL FOR COLLECTIONS**: Only create collection records when you actually find relevant data in the documents
-- **DO NOT CREATE EMPTY COLLECTION RECORDS**: If no clauses/items are found, do not include any field_validations for that collection
-- **EXAMPLE**: If document has no DORA clauses, return zero DORA clause validation records - do not create placeholder records
+- **INTELLIGENT CLAUSE DETECTION**: Extract ANY contractual clauses that could be relevant to DORA compliance, even if not explicitly labeled as "DORA"
+- **BROAD INTERPRETATION**: Service level agreements, data security clauses, operational requirements, and compliance provisions may all be DORA-relevant
+- **ONLY CREATE RECORDS WHEN FOUND**: Only include field_validations for clauses that actually exist in the document - do not create empty placeholder records
 
 SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
         
