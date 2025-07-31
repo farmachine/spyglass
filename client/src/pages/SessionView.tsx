@@ -875,8 +875,23 @@ export default function SessionView() {
 
   // Get validation for a specific field
   const getValidation = (fieldName: string) => {
-    // Filter all validations for this field name
-    const fieldValidations = validations.filter(v => v.fieldName === fieldName);
+    // Try exact match first
+    let fieldValidations = validations.filter(v => v.fieldName === fieldName);
+    
+    // If no exact match found, try compressed version (remove spaces from property name)
+    if (fieldValidations.length === 0 && fieldName.includes('.') && fieldName.includes(' ')) {
+      // For collection properties like "EscalationRates.Rate Value[0]" -> "EscalationRates.RateValue[0]"
+      const compressedFieldName = fieldName.replace(/\.([^[]+)(\[[^\]]+\])/, (match, propertyName, index) => {
+        const compressedProperty = propertyName.replace(/\s+/g, '');
+        return `.${compressedProperty}${index}`;
+      });
+      
+      fieldValidations = validations.filter(v => v.fieldName === compressedFieldName);
+      
+      if (fieldValidations.length > 0) {
+        console.log(`Found validation with compressed field name: ${fieldName} -> ${compressedFieldName}`);
+      }
+    }
     
     if (fieldValidations.length === 0) {
       console.log(`No validation found for ${fieldName}, available validations:`, validations.map(v => v.fieldName));
