@@ -282,7 +282,7 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
                     json_lines.append(f'    "extracted_value": "{example_value}",')
                     json_lines.append(f'    "confidence_score": 0.95,')
                     json_lines.append(f'    "validation_status": "unverified",')
-                    json_lines.append(f'    "ai_reasoning": "{reasoning}"')
+                    json_lines.append(f'    "ai_reasoning": "AI extracted"')
                     json_lines.append('  }' + (',' if i < len(project_schema["schema_fields"]) - 1 or project_schema.get("collections") else ''))
             
             # Add collection properties with proper field validation structure
@@ -291,8 +291,8 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
                     collection_name = collection.get('collectionName', collection.get('objectName', ''))
                     properties = collection.get("properties", [])
                     
-                    # Show minimal examples for all collections - let AI decide actual count
-                    example_count = 2  # Standard example count for all collections
+                    # Show only 1 example to reduce prompt size and prevent truncation
+                    example_count = 1  # Minimal example count to reduce response size
                     
                     for record_index in range(example_count):
                         for prop_index, prop in enumerate(properties):
@@ -300,15 +300,8 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
                             prop_name = prop['propertyName']
                             prop_type = prop['propertyType']
                             
-                            # Determine example value based on field type
-                            if prop_type == 'CHOICE' and prop.get('choiceOptions'):
-                                example_value = prop["choiceOptions"][0]
-                            elif prop_type == 'NUMBER':
-                                example_value = '100'
-                            elif prop_type == 'DATE':
-                                example_value = '2024-01-15'
-                            else:  # TEXT
-                                example_value = 'Extracted Value'
+                            # Use simple placeholder for all types to reduce response size
+                            example_value = 'VALUE'
                             
                             field_name_with_index = f"{collection_name}.{prop_name}[{record_index}]"
                             
@@ -319,7 +312,7 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
                             json_lines.append(f'    "extracted_value": "{example_value}",')
                             json_lines.append(f'    "confidence_score": 0.95,')
                             json_lines.append(f'    "validation_status": "unverified",')
-                            json_lines.append(f'    "ai_reasoning": "Extracted from document analysis",')
+                            json_lines.append(f'    "ai_reasoning": "AI extracted",')
                             json_lines.append(f'    "record_index": {record_index}')
                             
                             # Check if this is the last item
@@ -488,10 +481,9 @@ RETURN: Complete readable content from this document."""
                                     extraction_prompt
                                 ],
                                 generation_config=genai.GenerationConfig(
-                                    max_output_tokens=30000000,  # 30M tokens to prevent truncation
+                                    max_output_tokens=100000,  # 100K tokens - stable limit
                                     temperature=0.1
-                                ),
-                                request_options={"timeout": None}  # Remove timeout constraints
+                                )
                             )
                         elif ('word' in mime_type or 
                               'vnd.openxmlformats-officedocument.wordprocessingml' in mime_type or
@@ -596,11 +588,10 @@ RETURN: Complete readable content from this document."""
         response = model.generate_content(
             final_prompt,
             generation_config=genai.GenerationConfig(
-                max_output_tokens=30000000,  # 30M tokens - maximum limit to prevent truncation
+                max_output_tokens=100000,  # 100K tokens - stable limit that works reliably
                 temperature=0.1,
                 response_mime_type="application/json"
-            ),
-            request_options={"timeout": None}  # Remove timeout constraints
+            )
         )
         
         if not response or not response.text:
@@ -615,14 +606,26 @@ RETURN: Complete readable content from this document."""
         if len(response_text) > 500:
             logging.info(f"STEP 2: Raw AI response end: ...{response_text[-500:]}")
             
-        # Check for potential truncation indicators
-        truncation_indicators = ['...', '...}', '"ai_reasoning": "Extracted from document analysis",']
-        if any(indicator in response_text[-100:] for indicator in truncation_indicators):
-            logging.warning("POTENTIAL RESPONSE TRUNCATION DETECTED - Response may be incomplete")
+        # Enhanced truncation detection
+        truncation_indicators = ['...', '...[Truncated]', '...}', '"ai_reasoning": "AI extracted",']
+        response_end = response_text[-200:] if len(response_text) > 200 else response_text
+        
+        is_truncated = False
+        if any(indicator in response_end for indicator in truncation_indicators):
+            logging.warning("TRUNCATION DETECTED: Found truncation indicators in response")
+            is_truncated = True
             
-        # Check if response appears to end abruptly
-        if len(response_text) > 10000 and not response_text.strip().endswith((']}', '}')):
-            logging.warning("RESPONSE APPEARS TRUNCATED - Does not end with expected JSON closing")
+        if len(response_text) > 10000 and not response_text.strip().endswith((']}', '}', ']}')):
+            logging.warning("TRUNCATION DETECTED: Response does not end with proper JSON closing")
+            is_truncated = True
+            
+        if '"[Truncated]"' in response_text:
+            logging.warning("TRUNCATION DETECTED: Found [Truncated] marker in response")
+            is_truncated = True
+            
+        if is_truncated:
+            logging.warning(f"TRUNCATION SUMMARY: Response length {len(response_text)}, ends with: '{response_text[-50:]}'")
+            logging.warning("Will attempt JSON repair to recover partial data")
         
         # Remove markdown code blocks if present
         if response_text.startswith("```json"):
@@ -640,25 +643,40 @@ RETURN: Complete readable content from this document."""
                 logging.warning("Empty response from AI, creating default structure")
                 extracted_data = {"field_validations": []}
             else:
-                # First attempt: direct JSON parsing
-                try:
-                    extracted_data = json.loads(response_text)
-                except json.JSONDecodeError as e:
-                    logging.warning(f"Direct JSON parsing failed: {e}")
-                    logging.warning("Attempting JSON repair for truncated response...")
-                    
-                    # Attempt to repair truncated JSON
+                # If truncation detected, go straight to repair
+                if is_truncated:
+                    logging.warning("Truncation detected - attempting JSON repair immediately")
                     repaired_json = repair_truncated_json(response_text)
                     if repaired_json:
                         try:
                             extracted_data = json.loads(repaired_json)
-                            logging.info("Successfully repaired and parsed truncated JSON response")
+                            logging.info(f"Successfully repaired truncated JSON - recovered {len(extracted_data.get('field_validations', []))} validations")
                         except json.JSONDecodeError:
                             logging.error("JSON repair failed, creating minimal structure")
                             extracted_data = {"field_validations": []}
                     else:
                         logging.error("Could not repair JSON, creating minimal structure")
                         extracted_data = {"field_validations": []}
+                else:
+                    # Normal parsing for non-truncated responses
+                    try:
+                        extracted_data = json.loads(response_text)
+                    except json.JSONDecodeError as e:
+                        logging.warning(f"Direct JSON parsing failed: {e}")
+                        logging.warning("Attempting JSON repair as fallback...")
+                        
+                        # Attempt to repair truncated JSON as fallback
+                        repaired_json = repair_truncated_json(response_text)
+                        if repaired_json:
+                            try:
+                                extracted_data = json.loads(repaired_json)
+                                logging.info("Successfully repaired and parsed JSON response")
+                            except json.JSONDecodeError:
+                                logging.error("JSON repair failed, creating minimal structure")
+                                extracted_data = {"field_validations": []}
+                        else:
+                            logging.error("Could not repair JSON, creating minimal structure")
+                            extracted_data = {"field_validations": []}
                 
             # Validate that we have the expected field_validations structure
             if "field_validations" not in extracted_data:
