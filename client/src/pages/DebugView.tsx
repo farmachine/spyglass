@@ -49,6 +49,9 @@ export default function DebugView() {
         
         if (jsonEnd !== -1) {
           cleanJson = cleanJson.substring(jsonStart, jsonEnd + 1);
+        } else {
+          // JSON might be truncated - try to repair it
+          cleanJson = repairTruncatedJson(cleanJson.substring(jsonStart));
         }
       }
       
@@ -56,24 +59,119 @@ export default function DebugView() {
       const parsed = JSON.parse(cleanJson);
       return JSON.stringify(parsed, null, 2);
     } catch (error) {
-      console.warn('JSON parsing failed:', error);
+      console.warn('JSON parsing failed, attempting repair:', error);
       
-      // Enhanced fallback - try to clean up common issues
+      // Try to repair truncated JSON
       let fallback = jsonString.trim();
       
       // Remove markdown blocks
       fallback = fallback.replace(/```json\s*/g, '');
       fallback = fallback.replace(/```\s*/g, '');
       
-      // Remove any leading/trailing non-JSON content
+      // Find JSON start
       const start = fallback.indexOf('{');
-      const end = fallback.lastIndexOf('}');
-      if (start !== -1 && end !== -1 && end > start) {
-        fallback = fallback.substring(start, end + 1);
+      if (start !== -1) {
+        fallback = fallback.substring(start);
+        fallback = repairTruncatedJson(fallback);
+        
+        // Try parsing the repaired JSON
+        try {
+          const parsed = JSON.parse(fallback);
+          return JSON.stringify(parsed, null, 2);
+        } catch (repairError) {
+          console.warn('Repair failed, returning cleaned original');
+        }
       }
       
       return fallback;
     }
+  };
+
+  // Helper function to repair truncated JSON
+  const repairTruncatedJson = (jsonStr: string): string => {
+    try {
+      // Remove any incomplete trailing content that might cause parsing issues
+      let repaired = jsonStr.trim();
+      
+      // Check for unterminated strings and fix them
+      const lines = repaired.split('\n');
+      const repairedLines = [];
+      
+      for (let i = 0; i < lines.length; i++) {
+        let line = lines[i];
+        
+        // If we hit an incomplete line, stop processing
+        if (line.includes('"') && !isValidJsonLine(line)) {
+          // Try to complete the line
+          const quoteCount = (line.match(/"/g) || []).length;
+          if (quoteCount % 2 === 1) {
+            // Odd number of quotes - likely truncated string
+            const lastQuoteIndex = line.lastIndexOf('"');
+            line = line.substring(0, lastQuoteIndex + 1);
+          }
+          repairedLines.push(line);
+          break;
+        }
+        repairedLines.push(line);
+      }
+      
+      repaired = repairedLines.join('\n');
+      
+      // Ensure proper JSON structure closure
+      let braceCount = 0;
+      let inString = false;
+      let escaped = false;
+      
+      for (let i = 0; i < repaired.length; i++) {
+        const char = repaired[i];
+        
+        if (!escaped && char === '"') {
+          inString = !inString;
+        }
+        
+        if (!inString) {
+          if (char === '{') braceCount++;
+          if (char === '}') braceCount--;
+        }
+        
+        escaped = !escaped && char === '\\';
+      }
+      
+      // Add missing closing braces
+      while (braceCount > 0) {
+        repaired += '\n}';
+        braceCount--;
+      }
+      
+      return repaired;
+    } catch (error) {
+      return jsonStr;
+    }
+  };
+
+  // Helper to check if a line has valid JSON structure
+  const isValidJsonLine = (line: string): boolean => {
+    const trimmed = line.trim();
+    if (trimmed === '' || trimmed === '{' || trimmed === '}' || trimmed === ',' || trimmed.endsWith(',')) {
+      return true;
+    }
+    
+    // Check for key-value pair pattern
+    const colonIndex = trimmed.indexOf(':');
+    if (colonIndex === -1) return false;
+    
+    const key = trimmed.substring(0, colonIndex).trim();
+    const value = trimmed.substring(colonIndex + 1).trim();
+    
+    // Key should be quoted
+    if (!key.startsWith('"') || !key.endsWith('"')) return false;
+    
+    // Value should be complete (not cut off mid-string)
+    if (value.startsWith('"') && !value.endsWith('"') && !value.endsWith('",')) {
+      return false;
+    }
+    
+    return true;
   };
 
   const { data: session, isLoading } = useQuery<ExtractionSession>({
