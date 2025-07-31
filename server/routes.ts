@@ -2366,7 +2366,7 @@ print(json.dumps(result))
         return res.status(404).json({ error: 'Session not found' });
       }
 
-      // Save each validation to the database
+      // Update existing validation records instead of creating duplicates
       const savedValidations = [];
       for (const validation of parsedValidations) {
         try {
@@ -2391,21 +2391,44 @@ print(json.dumps(result))
             }
           }
           
-          const savedValidation = await storage.createFieldValidation({
-            sessionId: sessionId,
-            fieldId: validation.field_id,
-            fieldType: validation.field_type,
-            fieldName: fieldName, // Use the properly indexed field name
-            collectionName: collectionName,
-            extractedValue: validation.extracted_value,
-            confidenceScore: validation.confidence_score,
-            validationStatus: validation.validation_status === 'pending' ? 'unverified' : validation.validation_status,
-            aiReasoning: validation.ai_reasoning,
-            documentSource: validation.document_source || 'Unknown',
-            recordIndex: validation.record_index || 0
-          });
+          // Find existing validation record for this field
+          const existingValidations = await storage.getFieldValidations(sessionId);
+          const existingValidation = existingValidations.find(v => 
+            v.fieldName === fieldName && 
+            v.fieldId === validation.field_id &&
+            v.recordIndex === (validation.record_index || 0)
+          );
+          
+          let savedValidation;
+          if (existingValidation) {
+            // Update existing record with extracted data
+            savedValidation = await storage.updateFieldValidation(existingValidation.id, {
+              extractedValue: validation.extracted_value,
+              confidenceScore: validation.confidence_score,
+              validationStatus: validation.validation_status === 'pending' ? 'unverified' : validation.validation_status,
+              aiReasoning: validation.ai_reasoning,
+              documentSource: validation.document_source || 'Unknown'
+            });
+            console.log(`SAVE VALIDATIONS: Updated existing field ${fieldName} (original: ${validation.field_name})`);
+          } else {
+            // Create new record if none exists
+            savedValidation = await storage.createFieldValidation({
+              sessionId: sessionId,
+              fieldId: validation.field_id,
+              fieldType: validation.field_type,
+              fieldName: fieldName,
+              collectionName: collectionName,
+              extractedValue: validation.extracted_value,
+              confidenceScore: validation.confidence_score,
+              validationStatus: validation.validation_status === 'pending' ? 'unverified' : validation.validation_status,
+              aiReasoning: validation.ai_reasoning,
+              documentSource: validation.document_source || 'Unknown',
+              recordIndex: validation.record_index || 0
+            });
+            console.log(`SAVE VALIDATIONS: Created new field ${fieldName} (original: ${validation.field_name})`);
+          }
+          
           savedValidations.push(savedValidation);
-          console.log(`SAVE VALIDATIONS: Saved field ${fieldName} (original: ${validation.field_name})`);
         } catch (error) {
           console.error(`SAVE VALIDATIONS: Failed to save field ${validation.field_name}:`, error);
         }
