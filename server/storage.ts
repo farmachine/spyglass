@@ -39,7 +39,7 @@ import {
 } from "@shared/schema";
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { eq, count, sql, and, or, inArray } from 'drizzle-orm';
+import { eq, count, sql, and, or } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface IStorage {
@@ -2055,61 +2055,31 @@ class PostgreSQLStorage implements IStorage {
     return result.rowCount > 0;
   }
   async getFieldValidations(sessionId: string): Promise<FieldValidation[]> { 
-    // Get all validations first
     const result = await this.db.select().from(fieldValidations).where(eq(fieldValidations.sessionId, sessionId));
     
-    if (result.length === 0) {
-      return [];
-    }
-    
-    // Collect unique field IDs for batch lookup to avoid too many connections
-    const schemaFieldIds = new Set<string>();
-    const collectionPropertyIds = new Set<string>();
-    
-    result.forEach(validation => {
-      if (validation.fieldType === 'schema_field') {
-        schemaFieldIds.add(validation.fieldId);
-      } else if (validation.fieldType === 'collection_property') {
-        collectionPropertyIds.add(validation.fieldId);
-      }
-    });
-    
-    // Batch fetch schema field names
-    const schemaFieldsMap = new Map<string, string>();
-    if (schemaFieldIds.size > 0) {
-      const schemaFields = await this.db
-        .select({ id: projectSchemaFields.id, fieldName: projectSchemaFields.fieldName })
-        .from(projectSchemaFields)
-        .where(inArray(projectSchemaFields.id, Array.from(schemaFieldIds)));
-      
-      schemaFields.forEach(field => {
-        schemaFieldsMap.set(field.id, field.fieldName);
-      });
-    }
-    
-    // Batch fetch collection property names
-    const collectionPropertiesMap = new Map<string, string>();
-    if (collectionPropertyIds.size > 0) {
-      const properties = await this.db
-        .select({ id: collectionProperties.id, propertyName: collectionProperties.propertyName })
-        .from(collectionProperties)
-        .where(inArray(collectionProperties.id, Array.from(collectionPropertyIds)));
-      
-      properties.forEach(property => {
-        collectionPropertiesMap.set(property.id, property.propertyName);
-      });
-    }
-    
-    // Build enhanced validations with field names
-    const enhancedValidations = result.map(validation => {
+    // Enhance results with field names
+    const enhancedValidations = await Promise.all(result.map(async (validation) => {
       let fieldName = '';
       
       if (validation.fieldType === 'schema_field') {
-        fieldName = schemaFieldsMap.get(validation.fieldId) || '';
+        // Get field name from project schema fields
+        const schemaField = await this.db
+          .select({ fieldName: projectSchemaFields.fieldName })
+          .from(projectSchemaFields)
+          .where(eq(projectSchemaFields.id, validation.fieldId))
+          .limit(1);
+        
+        fieldName = schemaField[0]?.fieldName || '';
       } else if (validation.fieldType === 'collection_property') {
-        const propertyName = collectionPropertiesMap.get(validation.fieldId);
-        if (propertyName && validation.collectionName && validation.recordIndex !== null) {
-          fieldName = `${validation.collectionName}.${propertyName}[${validation.recordIndex}]`;
+        // Get property name from collection properties and build collection field name
+        const property = await this.db
+          .select({ propertyName: collectionProperties.propertyName })
+          .from(collectionProperties)
+          .where(eq(collectionProperties.id, validation.fieldId))
+          .limit(1);
+        
+        if (property[0] && validation.collectionName && validation.recordIndex !== null) {
+          fieldName = `${validation.collectionName}.${property[0].propertyName}[${validation.recordIndex}]`;
         }
       }
       
@@ -2117,7 +2087,7 @@ class PostgreSQLStorage implements IStorage {
         ...validation,
         fieldName
       };
-    });
+    }));
     
     return enhancedValidations;
   }

@@ -739,7 +739,6 @@ export default function DefineData({ project }: DefineDataProps) {
                       id, 
                       name 
                     })}
-                    hideHeader={true}
                   />
                 </CardContent>
               </Card>

@@ -88,105 +88,6 @@ def repair_truncated_json(response_text: str) -> str:
         logging.error(f"JSON repair failed: {e}")
         return None
 
-def filter_document_content(content: str, extraction_rules: List[Dict[str, Any]]) -> str:
-    """
-    Filter document content based on extraction rules targeting 'Uploaded Documents'.
-    Uses standard text processing to find and extract specific sections.
-    
-    Args:
-        content: Full document text content
-        extraction_rules: List of extraction rules to apply
-        
-    Returns:
-        Filtered content or original content if no filtering rules apply
-    """
-    if not extraction_rules:
-        return content
-    
-    # Find rules that target 'Uploaded Documents'
-    document_filtering_rules = []
-    for rule in extraction_rules:
-        rule_target = rule.get('targetField', '')
-        
-        # Handle both string and list formats for targetField
-        if isinstance(rule_target, str):
-            target_fields = [f.strip() for f in rule_target.split(',') if f.strip()]
-        else:
-            target_fields = rule_target if isinstance(rule_target, list) else []
-            
-        if 'Uploaded Documents' in target_fields:
-            document_filtering_rules.append(rule.get('ruleContent', ''))
-    
-    if not document_filtering_rules:
-        logging.info("CONTENT FILTERING: No 'Uploaded Documents' rules found, using full content")
-        return content
-    
-    logging.info(f"CONTENT FILTERING: Found {len(document_filtering_rules)} document filtering rules")
-    
-    filtered_sections = []
-    original_length = len(content)
-    
-    for rule_content in document_filtering_rules:
-        rule_lower = rule_content.lower()
-        
-        # Pattern 1: Section-based filtering (e.g., "section 5.1", "only section 5")
-        import re
-        section_patterns = [
-            r'(?:only\s+)?section\s+(\d+(?:\.\d+)*)',
-            r'(?:only\s+)?(?:part|chapter)\s+(\d+(?:\.\d+)*)',
-            r'focus\s+on\s+section\s+(\d+(?:\.\d+)*)',
-            r'extract\s+from\s+section\s+(\d+(?:\.\d+)*)'
-        ]
-        
-        for pattern in section_patterns:
-            matches = re.finditer(pattern, rule_lower)
-            for match in matches:
-                section_num = match.group(1)
-                logging.info(f"CONTENT FILTERING: Looking for section {section_num}")
-                
-                # Find section in content
-                section_regex = rf'(?:^|\n)\s*{re.escape(section_num)}\s+[^\n]*(?:\n(?!\s*\d+(?:\.\d+)*\s)[^\n]*)*'
-                section_match = re.search(section_regex, content, re.MULTILINE | re.IGNORECASE)
-                
-                if section_match:
-                    section_content = section_match.group(0)
-                    filtered_sections.append(section_content)
-                    logging.info(f"CONTENT FILTERING: Found section {section_num} ({len(section_content)} chars)")
-        
-        # Pattern 2: Table-based filtering
-        if 'table' in rule_lower:
-            table_patterns = [
-                r'\|[^\n]*\|[^\n]*\n(?:\|[^\n]*\|[^\n]*\n)*',  # Markdown tables
-                r'(?:^|\n)[^\n]*\t[^\n]*(?:\n[^\n]*\t[^\n]*)*'   # Tab-separated tables
-            ]
-            
-            for table_pattern in table_patterns:
-                table_matches = re.finditer(table_pattern, content, re.MULTILINE)
-                for table_match in table_matches:
-                    table_content = table_match.group(0)
-                    filtered_sections.append(table_content)
-                    logging.info(f"CONTENT FILTERING: Found table ({len(table_content)} chars)")
-        
-        # Pattern 3: Keyword-based filtering
-        keywords = ['intervention', 'payment', 'fund', 'eagf', 'eafrd']
-        for keyword in keywords:
-            if keyword in rule_lower:
-                # Find paragraphs containing the keyword
-                paragraphs = content.split('\n\n')
-                for paragraph in paragraphs:
-                    if keyword.lower() in paragraph.lower() and len(paragraph) > 50:
-                        filtered_sections.append(paragraph)
-                        logging.info(f"CONTENT FILTERING: Found {keyword} paragraph ({len(paragraph)} chars)")
-    
-    if filtered_sections:
-        # Combine and deduplicate filtered sections
-        filtered_content = '\n\n=== FILTERED CONTENT ===\n\n' + '\n\n'.join(set(filtered_sections))
-        logging.info(f"CONTENT FILTERING: Reduced content from {original_length} to {len(filtered_content)} chars ({100 - (len(filtered_content)/original_length)*100:.1f}% reduction)")
-        return filtered_content
-    else:
-        logging.info("CONTENT FILTERING: No matching sections found, using full content")
-        return content
-
 def step1_extract_from_documents(
     documents: List[Dict[str, Any]], 
     project_schema: Dict[str, Any],
@@ -215,7 +116,7 @@ def step1_extract_from_documents(
         genai.configure(api_key=api_key)
         
         # Configure with no timeout constraints for large responses
-        model = genai.GenerativeModel('gemini-2.5-pro')
+        model = genai.GenerativeModel('gemini-2.0-flash-exp')
         
         logging.info(f"STEP 1: Starting extraction for {len(documents)} documents")
         
@@ -255,24 +156,15 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
                 field_description = field.get('description', '')
                 camel_case_name = field_name.replace(' ', '').replace('of', 'Of')
                 
-                # Find applicable extraction rules for this field (excluding Uploaded Documents rules)
+                # Find applicable extraction rules for this field
                 applicable_rules = []
                 if extraction_rules:
                     for rule in extraction_rules:
-                        rule_target = rule.get('targetField', '')
-                        
-                        # Handle both string and list formats for targetField
-                        if isinstance(rule_target, str):
-                            target_fields = [f.strip() for f in rule_target.split(',') if f.strip()]
-                        else:
-                            target_fields = rule_target if isinstance(rule_target, list) else []
-                        
-                        # Skip Uploaded Documents rules for field processing
-                        if 'Uploaded Documents' in target_fields:
-                            continue
-                            
-                        # Apply rule if it targets this field or all fields
-                        if field_name in target_fields or 'All Fields' in target_fields or len(target_fields) == 0:
+                        rule_target = rule.get('targetField', [])
+                        if isinstance(rule_target, list):
+                            if field_name in rule_target or 'All Fields' in rule_target:
+                                applicable_rules.append(f"RULE: {rule.get('ruleContent', '')}")
+                        elif field_name == rule_target or rule_target == 'All Fields':
                             applicable_rules.append(f"RULE: {rule.get('ruleContent', '')}")
                 
                 # Combine description with rules
@@ -290,24 +182,15 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
                 collection_name = collection.get('collectionName', collection.get('objectName', ''))
                 collection_description = collection.get('description', '')
                 
-                # Find applicable extraction rules for this collection (excluding Uploaded Documents rules)
+                # Find applicable extraction rules for this collection
                 applicable_rules = []
                 if extraction_rules:
                     for rule in extraction_rules:
-                        rule_target = rule.get('targetField', '')
-                        
-                        # Handle both string and list formats for targetField
-                        if isinstance(rule_target, str):
-                            target_fields = [f.strip() for f in rule_target.split(',') if f.strip()]
-                        else:
-                            target_fields = rule_target if isinstance(rule_target, list) else []
-                        
-                        # Skip Uploaded Documents rules for collection processing
-                        if 'Uploaded Documents' in target_fields:
-                            continue
-                            
-                        # Apply rule if it targets this collection or all fields
-                        if collection_name in target_fields or 'All Fields' in target_fields or len(target_fields) == 0:
+                        rule_target = rule.get('targetField', [])
+                        if isinstance(rule_target, list):
+                            if collection_name in rule_target or 'All Fields' in rule_target:
+                                applicable_rules.append(f"RULE: {rule.get('ruleContent', '')}")
+                        elif collection_name == rule_target or rule_target == 'All Fields':
                             applicable_rules.append(f"RULE: {rule.get('ruleContent', '')}")
                 
                 full_instruction = collection_description or 'Extract array of these objects'
@@ -475,11 +358,30 @@ Your ai_reasoning field must be an intelligent, context-specific explanation tha
 4. **Missing Data Explanation**: For null/empty values, explain why (e.g., "No pricing information found in any document", "Document does not contain liability clauses")
 5. **Collection Context**: For collections, explain the grouping logic (e.g., "Found 3 separate intervention codes in different sections", "Each party listed in signature block")
 
-EXTRACTION RULES:
-- Extract ONLY values present in the documents
-- Use exact schema field IDs and property names
-- For collections, create multiple records as found in document
-- Include specific source locations in ai_reasoning
+EXAMPLES OF GOOD AI REASONING:
+- "Found explicit company name 'ABC Corp' in document header and signature block. High confidence due to multiple consistent references."
+- "Counted 8 unique organizations mentioned across all 3 documents: 5 in main contract, 2 in appendix A, 1 in schedule B. Very confident in count accuracy."
+- "Selected 'Partially Compliant' because Section 4.2 addresses data security but lacks specific encryption requirements mentioned in field description."
+- "No DORA-related clauses found after comprehensive scan of all document sections. Document appears to be a standard service agreement without regulatory compliance provisions."
+
+EXAMPLES OF BAD AI REASONING (DO NOT USE):
+- "Extracted from document analysis"
+- "Found in document"
+- "Based on content review"
+- "Extracted value"
+
+CRITICAL INSTRUCTIONS:
+- **COMPREHENSIVE SCAN**: Process every document in this {len(documents)}-document set. Do not miss any documents.
+- **FOLLOW DESCRIPTIONS**: Schema field descriptions are mandatory instructions for what to count and extract.
+- **COUNT ACCURATELY**: For number fields, count all instances across all documents as specified in the field descriptions.
+
+CHOICE FIELD HANDLING:
+- For CHOICE fields, extract values from the specified choice options only
+- If the document contains values not in the choice options, return null (do not block processing)
+- Choice options are specified as "The output should be one of the following choices: ..."
+- Example: For Yes/No choice, only return "Yes" or "No", never "true", "false", "1", "0", etc.
+
+DOCUMENT VERIFICATION: Confirm you processed all {len(documents)} documents: {[doc.get('file_name', 'Unknown') for doc in documents]}
 
 RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
         
@@ -490,7 +392,7 @@ RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
         logging.info(f"Documents received: {[doc.get('file_name', 'Unknown') for doc in documents]}")
         logging.info(f"Documents data: {documents}")
         
-        model = genai.GenerativeModel('gemini-2.5-pro')
+        model = genai.GenerativeModel('gemini-1.5-flash')
         extracted_content_text = ""
         processed_docs = 0
         
@@ -598,11 +500,10 @@ RETURN: Complete readable content from this document."""
                             # PDF files are fully supported by Gemini API
                             logging.info(f"STEP 1: Using Gemini API for PDF extraction from {file_name}")
                             
-                            # Enhanced retry logic for API overload situations with longer delays
-                            max_retries = 5
-                            retry_delay = 5  # Start with 5 seconds for better success rate
+                            # Retry logic for API overload situations
+                            max_retries = 3
+                            retry_delay = 2  # Start with 2 seconds
                             
-                            content_response = None
                             for attempt in range(max_retries):
                                 try:
                                     content_response = model.generate_content(
@@ -614,36 +515,21 @@ RETURN: Complete readable content from this document."""
                                             extraction_prompt
                                         ],
                                         generation_config=genai.GenerationConfig(
-                                            max_output_tokens=65536,  # Maximum output tokens for Gemini 2.5 Pro
+                                            max_output_tokens=30000000,  # 30M tokens to prevent truncation
                                             temperature=0.1
                                         ),
-                                        request_options={"timeout": 120}  # 2 minute timeout
+                                        request_options={"timeout": None}  # Remove timeout constraints
                                     )
                                     break  # Success, exit retry loop
                                 except Exception as e:
-                                    error_str = str(e).lower()
-                                    is_retryable = (
-                                        "503" in error_str or 
-                                        "500" in error_str or 
-                                        "504" in error_str or 
-                                        "overloaded" in error_str or 
-                                        "unavailable" in error_str or
-                                        "deadline exceeded" in error_str or
-                                        "timeout" in error_str or
-                                        "internal error" in error_str
-                                    )
-                                    if is_retryable and attempt < max_retries - 1:
-                                        logging.warning(f"API error (attempt {attempt + 1}/{max_retries}): {str(e)}")
-                                        logging.warning(f"Retrying in {retry_delay}s...")
+                                    if "503" in str(e) and "overloaded" in str(e).lower() and attempt < max_retries - 1:
+                                        logging.warning(f"API overloaded (attempt {attempt + 1}/{max_retries}), retrying in {retry_delay}s...")
                                         import time
                                         time.sleep(retry_delay)
-                                        retry_delay = min(retry_delay * 2, 60)  # Exponential backoff capped at 60s
+                                        retry_delay *= 2  # Exponential backoff
                                         continue
                                     else:
-                                        # Log the error but don't fail completely - use extracted content from session
-                                        logging.error(f"PDF extraction failed after {max_retries} attempts: {e}")
-                                        content_response = None
-                                        break
+                                        raise e  # Re-raise if not overload error or final attempt
                         elif ('word' in mime_type or 
                               'vnd.openxmlformats-officedocument.wordprocessingml' in mime_type or
                               'application/msword' in mime_type or
@@ -738,74 +624,38 @@ RETURN: Complete readable content from this document."""
         
         logging.info(f"STEP 1 COMPLETE: Processed {processed_docs} documents, extracted total of {len(extracted_content_text)} characters from all documents")
         
-        # Apply content filtering based on extraction rules targeting 'Uploaded Documents'
-        filtered_content = filter_document_content(extracted_content_text, extraction_rules)
-        
-        # AGGRESSIVE CONTENT SIZE MANAGEMENT - Significantly reduce size to avoid timeouts
-        MAX_CONTENT_SIZE = 50000  # Aggressive 50K character limit for reliable processing
-        if len(filtered_content) > MAX_CONTENT_SIZE:
-            logging.warning(f"Filtered content size ({len(filtered_content)} chars) exceeds limit ({MAX_CONTENT_SIZE} chars), truncating...")
-            # Take first and last portions to preserve structure
-            half_size = MAX_CONTENT_SIZE // 2
-            filtered_content = (
-                filtered_content[:half_size] + 
-                "\n\n[... MIDDLE CONTENT TRUNCATED FOR SIZE LIMITS ...]\n\n" + 
-                filtered_content[-half_size:]
-            )
-            logging.info(f"Content truncated to approximately {len(filtered_content)} characters")
-        
-        # Now proceed with data extraction using the filtered content
-        final_prompt = prompt + f"\n\nEXTRACTED DOCUMENT CONTENT:\n{filtered_content}"
+        # Now proceed with data extraction using the extracted content
+        final_prompt = prompt + f"\n\nEXTRACTED DOCUMENT CONTENT:\n{extracted_content_text}"
         
         # STEP 2: DATA EXTRACTION FROM CONTENT
         logging.info(f"=== STEP 2: DATA EXTRACTION ===")
-        logging.info(f"Making data extraction call with {len(filtered_content)} characters of filtered content")
-        logging.info(f"Final prompt size: {len(final_prompt)} characters")
+        logging.info(f"Making data extraction call with {len(extracted_content_text)} characters of extracted content")
         
-        # Enhanced retry logic for API overload situations with longer delays in data extraction  
-        max_retries = 3  # Reduce retries to avoid long waits
-        retry_delay = 3  # Faster initial retry
+        # Retry logic for API overload situations in data extraction
+        max_retries = 3
+        retry_delay = 2  # Start with 2 seconds
         
-        response = None
         for attempt in range(max_retries):
             try:
                 response = model.generate_content(
                     final_prompt,
                     generation_config=genai.GenerationConfig(
-                        max_output_tokens=32768,  # Reduce output tokens to speed up processing
+                        max_output_tokens=30000000,  # 30M tokens - maximum limit to prevent truncation
                         temperature=0.1,
                         response_mime_type="application/json"
                     ),
-                    request_options={"timeout": 60}  # 1 minute timeout for faster failure detection
+                    request_options={"timeout": None}  # Remove timeout constraints
                 )
                 break  # Success, exit retry loop
             except Exception as e:
-                error_str = str(e).lower()
-                # Handle various API error conditions
-                is_retryable_error = (
-                    "503" in error_str or 
-                    "500" in error_str or  # Add 500 internal server errors as retryable
-                    "504" in error_str or  # Add 504 deadline exceeded as retryable
-                    "deadline exceeded" in error_str or
-                    "overloaded" in error_str or 
-                    "unavailable" in error_str or
-                    "internal error" in error_str or
-                    "quota exceeded" in error_str or
-                    "timeout" in error_str
-                )
-                
-                if is_retryable_error and attempt < max_retries - 1:
-                    logging.warning(f"Data extraction API error (attempt {attempt + 1}/{max_retries}): {str(e)}")
-                    logging.warning(f"Retrying in {retry_delay}s...")
+                if "503" in str(e) and "overloaded" in str(e).lower() and attempt < max_retries - 1:
+                    logging.warning(f"Data extraction API overloaded (attempt {attempt + 1}/{max_retries}), retrying in {retry_delay}s...")
                     import time
                     time.sleep(retry_delay)
-                    retry_delay = min(retry_delay * 2, 60)  # Exponential backoff capped at 60s 
+                    retry_delay *= 2  # Exponential backoff
                     continue
                 else:
-                    return ExtractionResult(success=False, error_message=f"API failed after {max_retries} attempts: {str(e)}")
-                    
-        if not response:
-            return ExtractionResult(success=False, error_message=f"No response received after {max_retries} API attempts")
+                    raise e  # Re-raise if not overload error or final attempt
         
         if not response or not response.text:
             return ExtractionResult(success=False, error_message="No response from AI")
@@ -1031,7 +881,7 @@ REQUIRED OUTPUT FORMAT (apply extraction rules to confidence and reasoning):
 RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
         
         # Make AI validation call
-        model = genai.GenerativeModel('gemini-2.5-pro')
+        model = genai.GenerativeModel('gemini-1.5-flash')
         logging.info(f"Making AI validation call with {len(prompt)} character prompt")
         response = model.generate_content(prompt)
         
