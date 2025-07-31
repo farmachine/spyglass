@@ -14,6 +14,7 @@ import SchemaView from "@/pages/SchemaView";
 import GeminiResults from "@/pages/GeminiResults";
 import AdminPanel from "@/pages/AdminPanel";
 import OrganizationConfig from "@/pages/OrganizationConfig";
+import DebugView from "@/pages/DebugView";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/not-found";
 
@@ -55,6 +56,11 @@ function Router() {
       <Route path="/sessions/:sessionId/gemini-results">
         <ProtectedRoute>
           <GeminiResults />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/sessions/:sessionId/debug">
+        <ProtectedRoute>
+          <DebugView />
         </ProtectedRoute>
       </Route>
       <Route path="/sessions/:sessionId">
