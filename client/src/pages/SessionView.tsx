@@ -875,8 +875,11 @@ export default function SessionView() {
 
   // Get validation for a specific field
   const getValidation = (fieldName: string) => {
+    console.log(`Looking for validation: ${fieldName}`);
+    
     // Try exact match first
     let fieldValidations = validations.filter(v => v.fieldName === fieldName);
+    console.log(`Exact match found: ${fieldValidations.length} validations`);
     
     // If no exact match found, try compressed version (remove spaces from property name)
     if (fieldValidations.length === 0 && fieldName.includes('.') && fieldName.includes(' ')) {
@@ -886,10 +889,12 @@ export default function SessionView() {
         return `.${compressedProperty}${index}`;
       });
       
+      console.log(`Trying compressed field name: ${fieldName} -> ${compressedFieldName}`);
       fieldValidations = validations.filter(v => v.fieldName === compressedFieldName);
+      console.log(`Compressed match found: ${fieldValidations.length} validations`);
       
       if (fieldValidations.length > 0) {
-        console.log(`Found validation with compressed field name: ${fieldName} -> ${compressedFieldName}`);
+        console.log(`SUCCESS: Found validation with compressed field name: ${fieldName} -> ${compressedFieldName}`);
       }
     }
     
