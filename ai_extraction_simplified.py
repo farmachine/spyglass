@@ -70,6 +70,12 @@ CRITICAL INSTRUCTIONS:
 
 DOCUMENT SET ANALYSIS: You are processing {len(documents)} documents simultaneously. Extract comprehensively from the entire set.
 
+SPECIAL INSTRUCTIONS FOR CLAUSE EXTRACTION:
+- For clause-related fields (titles, references, summaries): Look for specific contract sections, numbered clauses, paragraph headings, legal provisions
+- For DORA compliance: Look for terms like "operational resilience", "digital operational risk", "ICT risk management", "outsourcing", "third-party risk"
+- For remediation actions: Look for required actions, deadlines, compliance steps, reporting requirements
+- If specific clauses don't exist, extract related contractual provisions that address similar concepts
+
 SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
         
         # Add schema fields with descriptions for AI guidance  
