@@ -2133,6 +2133,19 @@ print(json.dumps(result))
             const result = JSON.parse(output);
             console.log('GEMINI EXTRACTION result:', result.success ? 'Success' : 'Failed');
             
+            // Save extraction prompt and AI response to database if available
+            if (result.success && (result.extraction_prompt || result.ai_response)) {
+              try {
+                await storage.updateExtractionSession(sessionId, {
+                  extractionPrompt: result.extraction_prompt,
+                  aiResponse: result.ai_response
+                });
+                console.log('GEMINI EXTRACTION: Saved prompt and AI response to database');
+              } catch (saveError) {
+                console.error('GEMINI EXTRACTION: Failed to save prompt/response:', saveError);
+              }
+            }
+            
             res.json({
               success: result.success,
               extractedData: result.extractedData || result.result || result.field_validations,

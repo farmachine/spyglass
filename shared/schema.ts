@@ -85,6 +85,8 @@ export const extractionSessions = pgTable("extraction_sessions", {
   documentCount: integer("document_count").notNull().default(0),
   status: text("status").default("in_progress").notNull(), // in_progress, completed, verified, error
   extractedData: text("extracted_data"), // Store AI extraction results as JSON string
+  extractionPrompt: text("extraction_prompt"), // Store the complete AI prompt used for extraction
+  aiResponse: text("ai_response"), // Store the raw AI response before parsing
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

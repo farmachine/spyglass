@@ -11,6 +11,11 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **July 31, 2025 (Latest Update)**
+- ✓ **AI EXTRACTION DEBUGGING CAPABILITIES FULLY IMPLEMENTED**: Added comprehensive logging system to capture complete AI prompts and responses for troubleshooting
+- ✓ Extended database schema with extraction_prompt and ai_response columns in extraction_sessions table for complete AI interaction logging
+- ✓ Enhanced Python extraction script to return full prompt and AI response data alongside extracted field validations
+- ✓ Updated server routes to automatically save AI prompts and responses to database during successful extractions
+- ✓ Storage interface fully supports saving/retrieving prompt and response data through updateExtractionSession method
 - ✓ **MULTIPLE COLLECTION ITEM EXTRACTION ISSUE RESOLVED**: Fixed critical AI prompt issue where only one collection item was extracted instead of multiple instances
 - ✓ Root cause identified: AI was combining multiple CSP intervention codes (DP BISS, DP BISS SF, DP CIS-YF, etc.) into single collection item instead of creating separate items
 - ✓ Enhanced AI prompts with explicit instructions: "Create SEPARATE collection items for each unique instance found"
