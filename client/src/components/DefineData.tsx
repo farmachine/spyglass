@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Settings, Database, Tag, GripVertical, Sparkles } from "lucide-react";
+import { Plus, Edit, Trash2, Settings, Database, Tag, GripVertical, Sparkles, Edit3, Check, X } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -58,6 +58,11 @@ export default function DefineData({ project }: DefineDataProps) {
   const [isEditingMainObjectName, setIsEditingMainObjectName] = useState(false);
   const [isEditingMainObjectDescription, setIsEditingMainObjectDescription] = useState(false);
   const [activeTab, setActiveTab] = useState('main-data');
+  
+  // Collection editing states
+  const [editingCollectionId, setEditingCollectionId] = useState<string | null>(null);
+  const [editingCollectionName, setEditingCollectionName] = useState("");
+  const [editingCollectionDescription, setEditingCollectionDescription] = useState("");
   
   // Update local state when project prop changes (needed for database updates)
   useEffect(() => {
@@ -424,6 +429,64 @@ export default function DefineData({ project }: DefineDataProps) {
     }
   };
 
+  // Collection editing handlers
+  const handleCollectionNameEdit = (collection: any) => {
+    setEditingCollectionId(collection.id);
+    setEditingCollectionName(collection.collectionName);
+    setEditingCollectionDescription(collection.description || "");
+  };
+
+  const handleCollectionNameSave = async () => {
+    if (!editingCollectionId) return;
+    
+    try {
+      await updateCollection.mutateAsync({
+        id: editingCollectionId,
+        collection: { collectionName: editingCollectionName }
+      });
+      
+      setEditingCollectionId(null);
+      toast({
+        title: "Collection name updated",
+        description: "The collection name has been updated successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update collection name. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCollectionDescriptionSave = async () => {
+    if (!editingCollectionId) return;
+    
+    try {
+      await updateCollection.mutateAsync({
+        id: editingCollectionId,
+        collection: { description: editingCollectionDescription }
+      });
+      
+      toast({
+        title: "Collection description updated",
+        description: "The collection description has been updated successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update collection description. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCollectionEditCancel = () => {
+    setEditingCollectionId(null);
+    setEditingCollectionName("");
+    setEditingCollectionDescription("");
+  };
+
   // Delete handler
   const handleDelete = async () => {
     if (!deleteDialog.id || !deleteDialog.type) return;
@@ -785,12 +848,107 @@ export default function DefineData({ project }: DefineDataProps) {
               <Card className="border-t-0 rounded-tl-none ml-0">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    {collection.collectionName}
+                    {editingCollectionId === collection.id ? (
+                      <div className="flex items-center gap-2 flex-1">
+                        <Input
+                          value={editingCollectionName}
+                          onChange={(e) => setEditingCollectionName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleCollectionNameSave();
+                            if (e.key === "Escape") handleCollectionEditCancel();
+                          }}
+                          className="h-8 text-lg font-semibold"
+                          autoFocus
+                        />
+                        <Button 
+                          size="sm" 
+                          onClick={handleCollectionNameSave}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={handleCollectionEditCancel}
+                          className="h-8 w-8 p-0"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 flex-1 group">
+                        <span 
+                          className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded flex-1"
+                          onClick={() => handleCollectionNameEdit(collection)}
+                        >
+                          {collection.collectionName}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCollectionNameEdit(collection)}
+                          className="opacity-0 group-hover:opacity-100 h-8 w-8 p-0 transition-opacity"
+                        >
+                          <Edit3 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
                     <Badge variant="secondary" className="bg-gray-100 text-gray-600">
                       {collection.properties?.length || 0} properties
                     </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDeleteDialog({ 
+                        open: true, 
+                        type: "collection", 
+                        id: collection.id, 
+                        name: collection.collectionName 
+                      })}
+                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </CardTitle>
-                  <p className="text-sm text-gray-600">{collection.description}</p>
+                  {editingCollectionId === collection.id ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={editingCollectionDescription}
+                        onChange={(e) => setEditingCollectionDescription(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleCollectionDescriptionSave();
+                          if (e.key === "Escape") handleCollectionEditCancel();
+                        }}
+                        placeholder="Collection description..."
+                        className="text-sm"
+                      />
+                      <Button 
+                        size="sm" 
+                        onClick={handleCollectionDescriptionSave}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 group">
+                      <p 
+                        className="text-sm text-gray-600 cursor-pointer hover:bg-gray-100 px-2 py-1 rounded flex-1"
+                        onClick={() => handleCollectionNameEdit(collection)}
+                      >
+                        {collection.description || "Click to add description..."}
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleCollectionNameEdit(collection)}
+                        className="opacity-0 group-hover:opacity-100 h-8 w-8 p-0 transition-opacity"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                 </CardHeader>
                 <CardContent>
                   <CollectionCard
