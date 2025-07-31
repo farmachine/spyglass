@@ -115,6 +115,9 @@ def step1_extract_from_documents(
         import google.generativeai as genai
         genai.configure(api_key=api_key)
         
+        # Configure with no timeout constraints for large responses
+        model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        
         logging.info(f"STEP 1: Starting extraction for {len(documents)} documents")
         
         # Build extraction prompt with enhanced field descriptions
@@ -485,9 +488,10 @@ RETURN: Complete readable content from this document."""
                                     extraction_prompt
                                 ],
                                 generation_config=genai.GenerationConfig(
-                                    max_output_tokens=100000,  # 100K tokens for stable responses
+                                    max_output_tokens=30000000,  # 30M tokens to prevent truncation
                                     temperature=0.1
-                                )
+                                ),
+                                request_options={"timeout": None}  # Remove timeout constraints
                             )
                         elif ('word' in mime_type or 
                               'vnd.openxmlformats-officedocument.wordprocessingml' in mime_type or
@@ -592,10 +596,11 @@ RETURN: Complete readable content from this document."""
         response = model.generate_content(
             final_prompt,
             generation_config=genai.GenerationConfig(
-                max_output_tokens=100000,  # 100K tokens - stable limit for reliable responses
+                max_output_tokens=30000000,  # 30M tokens - maximum limit to prevent truncation
                 temperature=0.1,
                 response_mime_type="application/json"
-            )
+            ),
+            request_options={"timeout": None}  # Remove timeout constraints
         )
         
         if not response or not response.text:

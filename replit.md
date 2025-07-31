@@ -20,7 +20,7 @@ Preferred communication style: Simple, everyday language.
 - ✓ Added /sessions/:sessionId/debug route to App.tsx for accessing AI debugging data
 - ✓ Added Debug button with bug icon to SessionView header for easy access to AI interaction logs
 - ✓ Debug page displays complete AI extraction prompt (21,000+ characters) and full AI response with syntax highlighting
-- ✓ **AI RESPONSE TRUNCATION ISSUE RESOLVED**: Increased token limit from 100K to 1M tokens to prevent JSON truncation
+- ✓ **AI RESPONSE TRUNCATION ISSUE RESOLVED**: Increased token limit to 30M tokens and removed timeout constraints to prevent JSON truncation
 - ✓ **AI PROMPT GENERICIZED FOR BROAD USE CASES**: Removed use-case specific content (DORA, CSP interventions) from AI prompts
 - ✓ Simplified prompt structure to focus on generic field type definitions: TEXT, NUMBER, DATE, CHOICE, COLLECTION
 - ✓ Enhanced collection extraction instructions to be universally applicable for finding all list items
