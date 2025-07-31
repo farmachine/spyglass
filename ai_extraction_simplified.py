@@ -175,6 +175,8 @@ def step1_extract_from_documents(
                 collections_text += f"\n  **TABLE EXTRACTION**: If {collection_name} items appear in a table, extract EVERY ROW from that table, not just 2-3 examples. Count all rows and extract all data."
                 collections_text += f"\n  **NUMBERED SECTIONS**: If {collection_name} matches a document section name, find ALL numbered subsections (e.g., 2.3.1, 2.3.2, 2.3.3, etc.) and extract each one as a separate collection item."
                 collections_text += f"\n  **MARKDOWN TABLES**: Recognize markdown table format with | separators. Extract ALL data rows (excluding headers) as separate collection items - if table has 10 rows, extract all 10."
+                collections_text += f"\n  **COUNT ALL ITEMS**: If you see numbered items 2.3.1, 2.3.2, 2.3.3... keep going until you reach the end (e.g., 2.3.10) and extract EVERY SINGLE ONE as separate collection items."
+                collections_text += f"\n  **NO TRUNCATION**: Include ALL found items in your JSON response - do not truncate or limit the output even if there are many items."
                 
                 properties = collection.get("properties", [])
                 if properties:
@@ -618,6 +620,19 @@ RETURN: Complete readable content from this document."""
         truncation_indicators = ['...', '...}', '"ai_reasoning": "Extracted from document analysis",']
         if any(indicator in response_text[-100:] for indicator in truncation_indicators):
             logging.warning("POTENTIAL RESPONSE TRUNCATION DETECTED - Response may be incomplete")
+            
+        # Count field_validations objects to detect truncation
+        field_validation_count = response_text.count('"field_id":')
+        logging.info(f"TRUNCATION CHECK: Found {field_validation_count} field_validation objects in response")
+        
+        # Check for session-specific troubleshooting
+        if "0db04e6a-006b-48af-b9bb-b1dc88edaae5" in str(session_name):
+            logging.info("DEBUGGING SESSION 0db04e6a: Checking for collection extraction completeness")
+            increase_rates_count = response_text.count('"collection_name": "Increase Rates"')
+            logging.info(f"DEBUGGING SESSION 0db04e6a: Found {increase_rates_count} Increase Rates collection items")
+            if increase_rates_count < 10:
+                logging.warning(f"DEBUGGING SESSION 0db04e6a: Only found {increase_rates_count} Increase Rates items, expected 10!")
+                logging.warning("DEBUGGING SESSION 0db04e6a: This may indicate response truncation or incomplete extraction")
             
         # Check if response appears to end abruptly
         if len(response_text) > 10000 and not response_text.strip().endswith((']}', '}')):

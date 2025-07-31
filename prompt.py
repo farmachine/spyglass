@@ -149,6 +149,10 @@ Section | Topic Name | Column A | Column B
 3. **Section Boundaries**: Extract until section number changes (stop at 2.4, not before)
 4. **Complete Extraction**: Extract ALL 10 rows (2.3.1-2.3.10) as separate collection items, NOT just examples
 5. **Pipe-Separated Tables**: Recognize | as column separators even without perfect markdown formatting
+6. **COUNT VERIFICATION**: When you see numbered items like 2.3.1, 2.3.2, 2.3.3, keep counting until you reach the end of that section (e.g., 2.3.10) and extract EVERY SINGLE ONE
+7. **NO TRUNCATION**: Do not truncate your response - if you find 10 items, output all 10 field validation objects in the JSON response
+6. **COUNT VERIFICATION**: When you see numbered items like 2.3.1, 2.3.2, 2.3.3, keep counting until you reach the end of that section (e.g., 2.3.10) and extract EVERY SINGLE ONE
+7. **NO TRUNCATION**: Do not truncate your response - if you find 10 items, output all 10 field validation objects in the JSON response
 
 ## REQUIRED OUTPUT FORMAT - Field Validation JSON Structure:
 ```json
