@@ -2404,7 +2404,7 @@ print(json.dumps(result))
             // Update existing record with extracted data
             savedValidation = await storage.updateFieldValidation(existingValidation.id, {
               extractedValue: validation.extracted_value,
-              confidenceScore: validation.confidence_score,
+              confidenceScore: Math.round(parseFloat(validation.confidence_score) * 100), // Convert to integer percentage
               validationStatus: validation.validation_status === 'pending' ? 'unverified' : validation.validation_status,
               aiReasoning: validation.ai_reasoning,
               documentSource: validation.document_source || 'Unknown'
@@ -2419,7 +2419,7 @@ print(json.dumps(result))
               fieldName: fieldName,
               collectionName: collectionName,
               extractedValue: validation.extracted_value,
-              confidenceScore: validation.confidence_score,
+              confidenceScore: Math.round(parseFloat(validation.confidence_score) * 100), // Convert to integer percentage
               validationStatus: validation.validation_status === 'pending' ? 'unverified' : validation.validation_status,
               aiReasoning: validation.ai_reasoning,
               documentSource: validation.document_source || 'Unknown',
