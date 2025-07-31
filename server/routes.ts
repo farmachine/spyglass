@@ -2101,6 +2101,9 @@ print(json.dumps(result))
         session_id: sessionId
       });
       
+      console.log(`GEMINI EXTRACTION: Sending ${documents.length} documents to Python script`);
+      console.log(`GEMINI EXTRACTION: First document preview:`, documents[0] ? documents[0].file_name : 'No documents');
+      
       python.stdin.write(pythonInput);
       python.stdin.end();
 
@@ -2114,6 +2117,10 @@ print(json.dumps(result))
 
       await new Promise((resolve, reject) => {
         python.on('close', async (code: any) => {
+          console.log(`GEMINI EXTRACTION: Python exit code: ${code}`);
+          console.log(`GEMINI EXTRACTION: Python stdout: ${output.substring(0, 500)}...`);
+          if (error) console.log(`GEMINI EXTRACTION: Python stderr: ${error}`);
+          
           if (code !== 0) {
             console.error('GEMINI EXTRACTION error:', error);
             return reject(new Error(`Gemini extraction failed: ${error}`));
@@ -2125,7 +2132,7 @@ print(json.dumps(result))
             
             res.json({
               success: result.success,
-              extractedData: result.extractedData || result.result,
+              extractedData: result.extractedData || result.result || result.field_validations,
               error: result.error
             });
             

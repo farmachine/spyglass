@@ -298,8 +298,14 @@ RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
             
             logging.info(f"STEP 1: Processing document: {file_name} ({mime_type})")
             
-            # Handle different document types
-            if mime_type.startswith("text/"):
+            # Handle document content - prioritize already extracted text content
+            if isinstance(file_content, str) and not file_content.startswith('data:'):
+                # This is already extracted text content from the session
+                content_text = file_content
+                extracted_content_text += f"\n\n=== DOCUMENT: {file_name} ===\n{content_text}"
+                logging.info(f"STEP 1: Using pre-extracted content from {file_name} ({len(content_text)} characters)")
+                
+            elif mime_type.startswith("text/"):
                 # Handle plain text content
                 if isinstance(file_content, str):
                     if file_content.startswith('data:'):
