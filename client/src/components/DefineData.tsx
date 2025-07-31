@@ -61,6 +61,10 @@ export default function DefineData({ project }: DefineDataProps) {
   
   // Update local state when project prop changes (needed for database updates)
   useEffect(() => {
+    console.log("DefineData: Project prop changed", { 
+      mainObjectName: project.mainObjectName, 
+      mainObjectDescription: project.mainObjectDescription 
+    });
     setMainObjectName(project.mainObjectName || "Session");
     setMainObjectDescription(project.mainObjectDescription || "");
   }, [project.mainObjectName, project.mainObjectDescription]);
