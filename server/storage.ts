@@ -107,8 +107,8 @@ export interface IStorage {
   // Extraction Rules
   getExtractionRules(projectId: string): Promise<ExtractionRule[]>;
   createExtractionRule(rule: InsertExtractionRule): Promise<ExtractionRule>;
-  updateExtractionRule(id: number, rule: Partial<InsertExtractionRule>): Promise<ExtractionRule | undefined>;
-  deleteExtractionRule(id: number): Promise<boolean>;
+  updateExtractionRule(id: string, rule: Partial<InsertExtractionRule>): Promise<ExtractionRule | undefined>;
+  deleteExtractionRule(id: string): Promise<boolean>;
 
   // Field Validations
   getFieldValidations(sessionId: string): Promise<FieldValidation[]>;
@@ -592,7 +592,7 @@ export class MemStorage implements IStorage {
     ];
     
     validations.forEach(validation => this.fieldValidations.set(validation.id, validation));
-    this.currentValidationId = 13;
+    // Removed currentValidationId as we now use UUIDs for all validations
     
     // Add extraction rule for contract project with deterministic UUID
     const contractExtractionRuleId = "19f92612-0c5c-4463-a746-d7ef82781b1a"; // Fixed UUID for Inc. rule
@@ -621,7 +621,7 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async getOrganization(id: number): Promise<Organization | undefined> {
+  async getOrganization(id: string): Promise<Organization | undefined> {
     return this.organizations.get(id);
   }
 
@@ -886,7 +886,7 @@ export class MemStorage implements IStorage {
     
     for (const field of originalSchemaFields) {
       const duplicatedField: ProjectSchemaField = {
-        id: this.currentFieldId++,
+        id: this.generateUUID(),
         name: field.name,
         fieldType: field.fieldType,
         description: field.description,
@@ -904,7 +904,7 @@ export class MemStorage implements IStorage {
     
     for (const collection of originalCollections) {
       const duplicatedCollection: ObjectCollection = {
-        id: this.currentCollectionId++,
+        id: this.generateUUID(),
         name: collection.name,
         description: collection.description,
         projectId: duplicatedProject.id,
@@ -918,7 +918,7 @@ export class MemStorage implements IStorage {
       
       for (const property of originalProperties) {
         const duplicatedProperty: CollectionProperty = {
-          id: this.currentPropertyId++,
+          id: this.generateUUID(),
           name: property.name,
           fieldType: property.fieldType,
           description: property.description,
@@ -937,7 +937,7 @@ export class MemStorage implements IStorage {
     
     for (const rule of originalRules) {
       const duplicatedRule: ExtractionRule = {
-        id: this.currentRuleId++,
+        id: this.generateUUID(),
         projectId: duplicatedProject.id,
         title: rule.title,
         description: rule.description,
@@ -1011,7 +1011,7 @@ export class MemStorage implements IStorage {
   }
 
   // Object Collections
-  async getObjectCollections(projectId: number): Promise<(ObjectCollection & { properties: CollectionProperty[] })[]> {
+  async getObjectCollections(projectId: string): Promise<(ObjectCollection & { properties: CollectionProperty[] })[]> {
     const collections = Array.from(this.objectCollections.values())
       .filter(collection => collection.projectId === projectId)
       .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
@@ -1024,7 +1024,7 @@ export class MemStorage implements IStorage {
     }));
   }
 
-  async getObjectCollection(id: number): Promise<ObjectCollection | undefined> {
+  async getObjectCollection(id: string): Promise<ObjectCollection | undefined> {
     return this.objectCollections.get(id);
   }
 
@@ -1060,7 +1060,7 @@ export class MemStorage implements IStorage {
   }
 
   // Collection Properties
-  async getCollectionProperties(collectionId: number): Promise<CollectionProperty[]> {
+  async getCollectionProperties(collectionId: string): Promise<CollectionProperty[]> {
     return Array.from(this.collectionProperties.values())
       .filter(prop => prop.collectionId === collectionId)
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
@@ -1093,13 +1093,13 @@ export class MemStorage implements IStorage {
   }
 
   // Extraction Sessions
-  async getExtractionSessions(projectId: number): Promise<ExtractionSession[]> {
+  async getExtractionSessions(projectId: string): Promise<ExtractionSession[]> {
     return Array.from(this.extractionSessions.values())
       .filter(session => session.projectId === projectId)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
-  async getExtractionSession(id: number): Promise<ExtractionSession | undefined> {
+  async getExtractionSession(id: string): Promise<ExtractionSession | undefined> {
     return this.extractionSessions.get(id);
   }
 
@@ -1119,7 +1119,7 @@ export class MemStorage implements IStorage {
     return session;
   }
 
-  async updateExtractionSession(id: number, updateData: any): Promise<ExtractionSession | undefined> {
+  async updateExtractionSession(id: string, updateData: any): Promise<ExtractionSession | undefined> {
     const session = this.extractionSessions.get(id);
     if (!session) return undefined;
 
@@ -1129,14 +1129,14 @@ export class MemStorage implements IStorage {
   }
 
   // Knowledge Documents
-  async getKnowledgeDocuments(projectId: number): Promise<KnowledgeDocument[]> {
+  async getKnowledgeDocuments(projectId: string): Promise<KnowledgeDocument[]> {
     return Array.from(this.knowledgeDocuments.values())
       .filter(doc => doc.projectId === projectId)
       .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
   }
 
   async createKnowledgeDocument(insertDocument: InsertKnowledgeDocument): Promise<KnowledgeDocument> {
-    const id = this.currentDocumentId++;
+    const id = this.generateUUID();
     const document: KnowledgeDocument = {
       ...insertDocument,
       id,
@@ -1147,31 +1147,27 @@ export class MemStorage implements IStorage {
   }
 
   async updateKnowledgeDocument(id: string, updateData: Partial<InsertKnowledgeDocument>): Promise<KnowledgeDocument | undefined> {
-    // MemStorage still uses numbers internally, convert for compatibility
-    const numId = parseInt(id);
-    const existingDocument = this.knowledgeDocuments.get(numId);
+    const existingDocument = this.knowledgeDocuments.get(id);
     if (!existingDocument) return undefined;
 
     const updatedDocument = { ...existingDocument, ...updateData };
-    this.knowledgeDocuments.set(numId, updatedDocument);
+    this.knowledgeDocuments.set(id, updatedDocument);
     return updatedDocument;
   }
 
   async deleteKnowledgeDocument(id: string): Promise<boolean> {
-    // MemStorage still uses numbers internally, convert for compatibility
-    const numId = parseInt(id);
-    return this.knowledgeDocuments.delete(numId);
+    return this.knowledgeDocuments.delete(id);
   }
 
   // Extraction Rules
-  async getExtractionRules(projectId: number): Promise<ExtractionRule[]> {
+  async getExtractionRules(projectId: string): Promise<ExtractionRule[]> {
     return Array.from(this.extractionRules.values())
       .filter(rule => rule.projectId === projectId)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
   async createExtractionRule(insertRule: InsertExtractionRule): Promise<ExtractionRule> {
-    const id = this.currentRuleId++;
+    const id = this.generateUUID();
     const rule: ExtractionRule = {
       ...insertRule,
       id,
@@ -1184,24 +1180,16 @@ export class MemStorage implements IStorage {
   }
 
   async updateExtractionRule(id: string, updateData: Partial<InsertExtractionRule>): Promise<ExtractionRule | undefined> {
-    // Convert string ID to number for in-memory storage lookup
-    const numericId = parseInt(id);
-    if (isNaN(numericId)) return undefined;
-    
-    const existingRule = this.extractionRules.get(numericId);
+    const existingRule = this.extractionRules.get(id);
     if (!existingRule) return undefined;
 
     const updatedRule = { ...existingRule, ...updateData };
-    this.extractionRules.set(numericId, updatedRule);
+    this.extractionRules.set(id, updatedRule);
     return updatedRule;
   }
 
   async deleteExtractionRule(id: string): Promise<boolean> {
-    // Convert string ID to number for in-memory storage lookup
-    const numericId = parseInt(id);
-    if (isNaN(numericId)) return false;
-    
-    return this.extractionRules.delete(numericId);
+    return this.extractionRules.delete(id);
   }
 
   // Field Validations
@@ -1279,11 +1267,7 @@ export class MemStorage implements IStorage {
   }
 
   async getSession(sessionId: string): Promise<ExtractionSession | undefined> {
-    // Convert string ID to number for in-memory storage lookup
-    const numericId = parseInt(sessionId);
-    if (isNaN(numericId)) return undefined;
-    
-    return this.extractionSessions.get(numericId);
+    return this.extractionSessions.get(sessionId);
   }
 
   async getProjectCollections(projectId: string): Promise<ObjectCollection[]> {
