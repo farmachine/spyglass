@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, Settings, Database, Tag, GripVertical, Sparkles } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -58,6 +58,12 @@ export default function DefineData({ project }: DefineDataProps) {
   const [isEditingMainObjectName, setIsEditingMainObjectName] = useState(false);
   const [isEditingMainObjectDescription, setIsEditingMainObjectDescription] = useState(false);
   const [activeTab, setActiveTab] = useState('main-data');
+  
+  // Update local state when project prop changes (needed for database updates)
+  useEffect(() => {
+    setMainObjectName(project.mainObjectName || "Session");
+    setMainObjectDescription(project.mainObjectDescription || "");
+  }, [project.mainObjectName, project.mainObjectDescription]);
   
   // AI Query state
   const [aiQuery, setAiQuery] = useState("");
