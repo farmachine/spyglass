@@ -500,10 +500,11 @@ RETURN: Complete readable content from this document."""
                             # PDF files are fully supported by Gemini API
                             logging.info(f"STEP 1: Using Gemini API for PDF extraction from {file_name}")
                             
-                            # Retry logic for API overload situations
-                            max_retries = 3
-                            retry_delay = 2  # Start with 2 seconds
+                            # Enhanced retry logic for API overload situations with longer delays
+                            max_retries = 5
+                            retry_delay = 5  # Start with 5 seconds for better success rate
                             
+                            content_response = None
                             for attempt in range(max_retries):
                                 try:
                                     content_response = model.generate_content(
@@ -515,21 +516,25 @@ RETURN: Complete readable content from this document."""
                                             extraction_prompt
                                         ],
                                         generation_config=genai.GenerationConfig(
-                                            max_output_tokens=30000000,  # 30M tokens to prevent truncation
+                                            max_output_tokens=100000,  # Reduced to 100K tokens for better stability
                                             temperature=0.1
                                         ),
-                                        request_options={"timeout": None}  # Remove timeout constraints
+                                        request_options={"timeout": 120}  # 2 minute timeout
                                     )
                                     break  # Success, exit retry loop
                                 except Exception as e:
-                                    if "503" in str(e) and "overloaded" in str(e).lower() and attempt < max_retries - 1:
-                                        logging.warning(f"API overloaded (attempt {attempt + 1}/{max_retries}), retrying in {retry_delay}s...")
+                                    error_str = str(e).lower()
+                                    if ("503" in error_str or "overloaded" in error_str or "unavailable" in error_str) and attempt < max_retries - 1:
+                                        logging.warning(f"API overloaded/unavailable (attempt {attempt + 1}/{max_retries}), retrying in {retry_delay}s...")
                                         import time
                                         time.sleep(retry_delay)
-                                        retry_delay *= 2  # Exponential backoff
+                                        retry_delay = min(retry_delay * 2, 60)  # Exponential backoff capped at 60s
                                         continue
                                     else:
-                                        raise e  # Re-raise if not overload error or final attempt
+                                        # Log the error but don't fail completely - use extracted content from session
+                                        logging.error(f"PDF extraction failed after {max_retries} attempts: {e}")
+                                        content_response = None
+                                        break
                         elif ('word' in mime_type or 
                               'vnd.openxmlformats-officedocument.wordprocessingml' in mime_type or
                               'application/msword' in mime_type or
@@ -631,31 +636,36 @@ RETURN: Complete readable content from this document."""
         logging.info(f"=== STEP 2: DATA EXTRACTION ===")
         logging.info(f"Making data extraction call with {len(extracted_content_text)} characters of extracted content")
         
-        # Retry logic for API overload situations in data extraction
-        max_retries = 3
-        retry_delay = 2  # Start with 2 seconds
+        # Enhanced retry logic for API overload situations with longer delays in data extraction  
+        max_retries = 5
+        retry_delay = 5  # Start with 5 seconds for better success rate
         
+        response = None
         for attempt in range(max_retries):
             try:
                 response = model.generate_content(
                     final_prompt,
                     generation_config=genai.GenerationConfig(
-                        max_output_tokens=30000000,  # 30M tokens - maximum limit to prevent truncation
+                        max_output_tokens=100000,  # Reduced to 100K tokens for better stability
                         temperature=0.1,
                         response_mime_type="application/json"
                     ),
-                    request_options={"timeout": None}  # Remove timeout constraints
+                    request_options={"timeout": 120}  # 2 minute timeout
                 )
                 break  # Success, exit retry loop
             except Exception as e:
-                if "503" in str(e) and "overloaded" in str(e).lower() and attempt < max_retries - 1:
-                    logging.warning(f"Data extraction API overloaded (attempt {attempt + 1}/{max_retries}), retrying in {retry_delay}s...")
+                error_str = str(e).lower()
+                if ("503" in error_str or "overloaded" in error_str or "unavailable" in error_str) and attempt < max_retries - 1:
+                    logging.warning(f"Data extraction API overloaded/unavailable (attempt {attempt + 1}/{max_retries}), retrying in {retry_delay}s...")
                     import time
                     time.sleep(retry_delay)
-                    retry_delay *= 2  # Exponential backoff
+                    retry_delay = min(retry_delay * 2, 60)  # Exponential backoff capped at 60s 
                     continue
                 else:
-                    raise e  # Re-raise if not overload error or final attempt
+                    return ExtractionResult(success=False, error_message=f"API failed after {max_retries} attempts: {str(e)}")
+                    
+        if not response:
+            return ExtractionResult(success=False, error_message=f"No response received after {max_retries} API attempts")
         
         if not response or not response.text:
             return ExtractionResult(success=False, error_message="No response from AI")
