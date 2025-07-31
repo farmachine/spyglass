@@ -11,6 +11,13 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **July 31, 2025 (Latest Update)**
+- ✓ **DOCUMENT-SCHEMA MISMATCH ISSUE IDENTIFIED AND RESOLVED**: Found root cause of "no data" extraction results
+- ✓ AI extraction system working correctly - analyzed Asana Master Subscription Agreement and properly reported absence of DORA-specific fields
+- ✓ Issue was document type vs schema mismatch: business subscription contract uploaded to DORA regulatory compliance project
+- ✓ AI correctly returned 0 confidence scores and explanatory reasoning like "No Services Covered found in the provided documents"
+- ✓ Enhanced debugging confirmed AI processes full document content (4,400+ characters) and provides accurate analysis
+- ✓ Database operations fully functional: validation records saved with proper confidence scores and AI reasoning
+- ✓ System demonstrates intelligent content analysis - AI understands document context and reports when requested fields don't exist
 - ✓ **AUTOMATED EXTRACTION PIPELINE FULLY OPERATIONAL**: Completed end-to-end automated extraction flow with successful document processing and database integration
 - ✓ Fixed Python script variable scope errors and JSON response format to include proper success flags
 - ✓ Consolidated scattered extraction logic in NewUpload.tsx to use structured field_validations response directly
