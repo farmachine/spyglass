@@ -13,6 +13,30 @@ export default function DebugView() {
   const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [copiedResponse, setCopiedResponse] = useState(false);
 
+  // Function to beautify JSON response
+  const beautifyJson = (jsonString: string): string => {
+    try {
+      // Remove markdown code blocks if present
+      let cleanJson = jsonString.trim();
+      if (cleanJson.startsWith("```json")) {
+        cleanJson = cleanJson.substring(7);
+      }
+      if (cleanJson.startsWith("```")) {
+        cleanJson = cleanJson.substring(3);
+      }
+      if (cleanJson.endsWith("```")) {
+        cleanJson = cleanJson.substring(0, cleanJson.length - 3);
+      }
+      
+      // Parse and stringify with proper formatting
+      const parsed = JSON.parse(cleanJson.trim());
+      return JSON.stringify(parsed, null, 2);
+    } catch (error) {
+      // If parsing fails, return original with basic formatting
+      return jsonString;
+    }
+  };
+
   const { data: session, isLoading } = useQuery<ExtractionSession>({
     queryKey: ['/api/sessions', sessionId],
     enabled: !!sessionId
@@ -185,9 +209,22 @@ export default function DebugView() {
               <CardContent>
                 {session.aiResponse ? (
                   <ScrollArea className="h-[600px] w-full rounded-md border p-4">
-                    <pre className="text-sm whitespace-pre-wrap font-mono">
-                      {session.aiResponse}
-                    </pre>
+                    <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+                      <pre className="text-sm whitespace-pre-wrap font-mono overflow-x-auto">
+                        <code 
+                          className="language-json text-gray-800 dark:text-gray-200"
+                          style={{
+                            color: '#1f2937',
+                            '--json-key-color': '#0f766e',
+                            '--json-string-color': '#dc2626', 
+                            '--json-number-color': '#1e40af',
+                            '--json-boolean-color': '#7c2d12'
+                          } as React.CSSProperties}
+                        >
+                          {beautifyJson(session.aiResponse)}
+                        </code>
+                      </pre>
+                    </div>
                   </ScrollArea>
                 ) : (
                   <div className="text-center py-12 text-muted-foreground">
