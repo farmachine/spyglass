@@ -397,7 +397,7 @@ export default function NewUpload({ project }: NewUploadProps) {
         const aiResponse = await apiRequest(`/api/sessions/${session.id}/gemini-extraction`, {
           method: 'POST',
           body: JSON.stringify({ 
-            extractedTexts: textExtractionResult.extracted_texts || [],
+            extractedTexts: textExtractionResult.extracted_texts || textExtractionResult.result?.extracted_texts || [],
             schemaFields: schemaData.schema_fields || [],
             collections: schemaData.collections || [],
             extractionRules: schemaData.extraction_rules || [],

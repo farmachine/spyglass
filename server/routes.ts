@@ -2050,10 +2050,24 @@ print(json.dumps(result))
       console.log(`GEMINI EXTRACTION: Starting for session ${sessionId}`);
       console.log(`GEMINI EXTRACTION: Received ${extractedTexts?.length || 0} documents`);
       
-      // Get session to find project
-      const session = await storage.getSession(sessionId);
-      if (!session) {
-        return res.status(404).json({ success: false, error: 'Session not found' });
+      // Log the received data for debugging
+      console.log(`GEMINI EXTRACTION: Schema fields: ${schemaFields?.length || 0}`);
+      console.log(`GEMINI EXTRACTION: Collections: ${collections?.length || 0}`);
+      console.log(`GEMINI EXTRACTION: Extraction rules: ${extractionRules?.length || 0}`);
+      
+      // If no extracted texts provided, get them from the session
+      let finalExtractedTexts = extractedTexts;
+      if (!finalExtractedTexts || finalExtractedTexts.length === 0) {
+        try {
+          const session = await storage.getSession(sessionId);
+          if (session?.extractedData) {
+            const sessionData = JSON.parse(session.extractedData);
+            finalExtractedTexts = sessionData.extracted_texts || [];
+            console.log(`GEMINI EXTRACTION: Retrieved ${finalExtractedTexts.length} texts from session`);
+          }
+        } catch (error) {
+          console.log(`GEMINI EXTRACTION: Could not get session data: ${error.message}`);
+        }
       }
       
       // Call the Python script for AI extraction
@@ -2066,7 +2080,7 @@ print(json.dumps(result))
       });
 
       // Convert extracted texts to document format expected by Python script
-      const documents = (extractedTexts || []).map((extracted: any, index: number) => ({
+      const documents = (finalExtractedTexts || []).map((extracted: any, index: number) => ({
         file_name: extracted.file_name || `document_${index + 1}.pdf`,
         file_content: extracted.text_content || extracted.content || '',
         mime_type: extracted.mime_type || 'application/pdf'
