@@ -485,7 +485,7 @@ RETURN: Complete readable content from this document."""
                                     extraction_prompt
                                 ],
                                 generation_config=genai.GenerationConfig(
-                                    max_output_tokens=1000000,  # 1M tokens for large documents
+                                    max_output_tokens=100000,  # 100K tokens for stable responses
                                     temperature=0.1
                                 )
                             )
@@ -592,7 +592,7 @@ RETURN: Complete readable content from this document."""
         response = model.generate_content(
             final_prompt,
             generation_config=genai.GenerationConfig(
-                max_output_tokens=1000000,  # 1M tokens - higher limit to prevent truncation
+                max_output_tokens=100000,  # 100K tokens - stable limit for reliable responses
                 temperature=0.1,
                 response_mime_type="application/json"
             )
