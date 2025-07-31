@@ -423,13 +423,19 @@ RETURN: Complete readable content from this document."""
                         if 'pdf' in mime_type or file_name.lower().endswith('.pdf'):
                             # PDF files are fully supported by Gemini API
                             logging.info(f"STEP 1: Using Gemini API for PDF extraction from {file_name}")
-                            content_response = model.generate_content([
-                                {
-                                    "mime_type": mime_type,
-                                    "data": binary_content
-                                },
-                                extraction_prompt
-                            ])
+                            content_response = model.generate_content(
+                                [
+                                    {
+                                        "mime_type": mime_type,
+                                        "data": binary_content
+                                    },
+                                    extraction_prompt
+                                ],
+                                generation_config=genai.GenerationConfig(
+                                    max_output_tokens=30000000,  # 30 million tokens for large documents
+                                    temperature=0.1
+                                )
+                            )
                         elif ('word' in mime_type or 
                               'vnd.openxmlformats-officedocument.wordprocessingml' in mime_type or
                               'application/msword' in mime_type or
@@ -530,7 +536,14 @@ RETURN: Complete readable content from this document."""
         # STEP 2: DATA EXTRACTION FROM CONTENT
         logging.info(f"=== STEP 2: DATA EXTRACTION ===")
         logging.info(f"Making data extraction call with {len(extracted_content_text)} characters of extracted content")
-        response = model.generate_content(final_prompt)
+        response = model.generate_content(
+            final_prompt,
+            generation_config=genai.GenerationConfig(
+                max_output_tokens=30000000,  # 30 million tokens for comprehensive extractions
+                temperature=0.1,
+                response_mime_type="application/json"
+            )
+        )
         
         if not response or not response.text:
             return ExtractionResult(success=False, error_message="No response from AI")

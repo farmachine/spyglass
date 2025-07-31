@@ -11,6 +11,9 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **July 31, 2025 (Latest Update)**
+- ✓ **TOKEN LIMIT INCREASED TO 30 MILLION**: Enhanced Gemini API configuration to use 30,000,000 max_output_tokens for comprehensive extractions
+- ✓ Applied to both PDF content extraction and data extraction phases to prevent truncation issues
+- ✓ Fixed configuration in ai_extraction_simplified.py with proper GenerationConfig parameters including temperature=0.1 and response_mime_type="application/json"
 - ✓ **EMPTY COLLECTION ROWS BUG COMPLETELY RESOLVED**: Fixed critical issue where AI created empty collection records when no relevant data found
 - ✓ Root cause identified: AI script was hardcoded to create 2 example records for every collection, even when document contained no matching content
 - ✓ Enhanced AI prompt with explicit instructions: "DO NOT CREATE EMPTY COLLECTION RECORDS" when no data is found
