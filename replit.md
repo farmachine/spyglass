@@ -49,6 +49,10 @@ Preferred communication style: Simple, everyday language.
 - ✓ Replaced individual field validation queries with efficient batch lookups using inArray() operations
 - ✓ Consolidated multiple database calls into 2-3 batch queries to prevent connection pool exhaustion
 - ✓ Enhanced field name mapping performance while maintaining complete functionality
+- ✓ **MAXIMUM TOKEN LIMITS IMPLEMENTED**: Updated to use Gemini 2.5 Pro's full capacity with official limits
+- ✓ Input token limit: 1,048,576 tokens (1M tokens) - maximum context window for processing large documents
+- ✓ Output token limit: 65,536 tokens (64K tokens) - maximum response size for comprehensive extractions
+- ✓ Token configuration optimized for highest throughput while maintaining API stability
 - ✓ **MULTIPLE COLLECTION ITEM EXTRACTION ISSUE RESOLVED**: Fixed critical AI prompt issue where only one collection item was extracted instead of multiple instances
 - ✓ Root cause identified: AI was combining multiple CSP intervention codes (DP BISS, DP BISS SF, DP CIS-YF, etc.) into single collection item instead of creating separate items
 - ✓ Enhanced AI prompts with explicit instructions: "Create SEPARATE collection items for each unique instance found"

@@ -516,7 +516,7 @@ RETURN: Complete readable content from this document."""
                                             extraction_prompt
                                         ],
                                         generation_config=genai.GenerationConfig(
-                                            max_output_tokens=100000,  # Reduced to 100K tokens for better stability
+                                            max_output_tokens=65536,  # Maximum output tokens for Gemini 2.5 Pro
                                             temperature=0.1
                                         ),
                                         request_options={"timeout": 120}  # 2 minute timeout
@@ -646,7 +646,7 @@ RETURN: Complete readable content from this document."""
                 response = model.generate_content(
                     final_prompt,
                     generation_config=genai.GenerationConfig(
-                        max_output_tokens=100000,  # Reduced to 100K tokens for better stability
+                        max_output_tokens=65536,  # Maximum output tokens for Gemini 2.5 Pro (64K)
                         temperature=0.1,
                         response_mime_type="application/json"
                     ),
