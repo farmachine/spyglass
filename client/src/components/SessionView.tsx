@@ -39,6 +39,12 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
     }
   });
 
+  // Get schema data to determine property order
+  const { data: schemaData } = useQuery({
+    queryKey: [`/api/projects/${project.id}/schema-data`],
+    enabled: !!project.id,
+  });
+
   const updateValidationMutation = useMutation({
     mutationFn: async (params: { id: string; data: Partial<FieldValidation> }) => {
       return apiRequest(`/api/validations/${params.id}`, {
@@ -213,13 +219,48 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
   const schemaFieldValidations = validations.filter(v => v.fieldType === 'schema_field');
   const collectionValidations = validations.filter(v => v.fieldType === 'collection_property');
 
-  // Group collection validations by collection name
+  // Group collection validations by collection name and sort by schema property order
   const collectionGroups = collectionValidations.reduce((acc, validation) => {
     const collectionName = validation.collectionName || 'Unknown Collection';
     if (!acc[collectionName]) acc[collectionName] = [];
     acc[collectionName].push(validation);
     return acc;
   }, {} as Record<string, FieldValidation[]>);
+
+  // Sort validations within each collection by property order from schema
+  Object.keys(collectionGroups).forEach(collectionName => {
+    const collection = schemaData?.collections?.find((c: any) => c.collectionName === collectionName);
+    if (collection && collection.properties) {
+      // Create a property order map from schema
+      const propertyOrderMap = new Map();
+      collection.properties
+        .sort((a: any, b: any) => (a.orderIndex || 0) - (b.orderIndex || 0))
+        .forEach((prop: any, index: number) => {
+          propertyOrderMap.set(prop.propertyName, index);
+        });
+
+      // Sort validations by property order, then by record index
+      collectionGroups[collectionName].sort((a, b) => {
+        // Extract property name from field name (e.g., "Escalation Rates.Rate Value[0]" -> "Rate Value")
+        const getPropertyName = (fieldName: string) => {
+          const match = fieldName?.match(/\.([^.\[]+)/);
+          return match ? match[1] : fieldName || '';
+        };
+
+        const propA = getPropertyName((a as FieldValidationWithName).fieldName);
+        const propB = getPropertyName((b as FieldValidationWithName).fieldName);
+        
+        const orderA = propertyOrderMap.get(propA) ?? 999;
+        const orderB = propertyOrderMap.get(propB) ?? 999;
+        
+        // First sort by property order, then by record index
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
+        return (a.recordIndex ?? 0) - (b.recordIndex ?? 0);
+      });
+    }
+  });
 
   return (
     <div className="p-8 space-y-6">
