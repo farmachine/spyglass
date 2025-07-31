@@ -60,7 +60,7 @@ export default function CollectionCard({
   // Create a mutation that doesn't invalidate any queries for reordering
   const updatePropertyForReorder = useMutation({
     mutationFn: ({ id, property }: { id: string; property: Partial<any> }) =>
-      apiRequest(`/api/collection-properties/${id}`, {
+      apiRequest(`/api/properties/${id}`, {
         method: "PUT",
         body: JSON.stringify(property),
       }),
