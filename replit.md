@@ -19,12 +19,7 @@ Preferred communication style: Simple, everyday language.
 - ✓ **DEBUG PAGE IMPLEMENTATION COMPLETED**: Created complete debugging interface with DebugView.tsx component
 - ✓ Added /sessions/:sessionId/debug route to App.tsx for accessing AI debugging data
 - ✓ Added Debug button with bug icon to SessionView header for easy access to AI interaction logs
-- ✓ Debug page displays complete AI extraction prompt (21,000+ characters) and full AI response with toggle between raw and beautified JSON formatting
-- ✓ **CONTROL CHARACTER HANDLING ENHANCED**: Implemented comprehensive JSON sanitization to handle control characters that cause parsing failures
-- ✓ Added control character removal ([\x00-\x1F\x7F-\x9F]) to prevent "Bad control character in string literal" errors
-- ✓ Enhanced string escape handling for newlines, tabs, and carriage returns in JSON responses
-- ✓ Improved truncated JSON repair with intelligent line-by-line validation and incomplete content removal
-- ✓ Multiple fallback layers ensure debug view always shows readable content even with malformed AI responses
+- ✓ Debug page displays complete AI extraction prompt (21,000+ characters) and full AI response with syntax highlighting
 - ✓ **AI RESPONSE TRUNCATION ISSUE RESOLVED**: Increased token limit to 30M tokens and removed timeout constraints to prevent JSON truncation
 - ✓ **AI PROMPT GENERICIZED FOR BROAD USE CASES**: Removed use-case specific content (DORA, CSP interventions) from AI prompts
 - ✓ Simplified prompt structure to focus on generic field type definitions: TEXT, NUMBER, DATE, CHOICE, COLLECTION

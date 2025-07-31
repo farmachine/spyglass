@@ -12,208 +12,6 @@ export default function DebugView() {
   const { sessionId } = useParams();
   const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [copiedResponse, setCopiedResponse] = useState(false);
-  const [showFormatted, setShowFormatted] = useState(true);
-
-  // Function to beautify JSON response
-  const beautifyJson = (jsonString: string): string => {
-    console.log('Beautifying JSON, input length:', jsonString.length);
-    
-    try {
-      // Clean and sanitize the input
-      let cleanJson = sanitizeJsonString(jsonString);
-      console.log('After sanitization, length:', cleanJson.length);
-      
-      // Try to find and extract valid JSON
-      const jsonMatch = extractJsonFromString(cleanJson);
-      console.log('JSON extraction result:', jsonMatch ? `Found ${jsonMatch.length} chars` : 'null');
-      if (!jsonMatch) {
-        console.log('No JSON found in cleaned string');
-        return cleanJson; // Return cleaned input if no JSON found
-      }
-      
-      console.log('Extracted JSON length:', jsonMatch.length);
-      
-      // Parse and format the JSON
-      const parsed = JSON.parse(jsonMatch);
-      const formatted = JSON.stringify(parsed, null, 2);
-      console.log('Successfully formatted JSON, output length:', formatted.length);
-      return formatted;
-    } catch (error) {
-      console.warn('JSON parsing failed:', error);
-      console.log('Error details:', error instanceof Error ? error.message : String(error));
-      
-      // Final fallback - return sanitized input
-      const fallback = sanitizeJsonString(jsonString);
-      console.log('Returning fallback, length:', fallback.length);
-      return fallback;
-    }
-  };
-
-  // Sanitize JSON string by removing problematic characters and markdown
-  const sanitizeJsonString = (str: string): string => {
-    let cleaned = str.trim();
-    
-    // Remove markdown code blocks
-    cleaned = cleaned.replace(/```json\s*/g, '');
-    cleaned = cleaned.replace(/```\s*/g, '');
-    cleaned = cleaned.replace(/^\s*```/gm, '');
-    cleaned = cleaned.replace(/```\s*$/gm, '');
-    
-    // Remove control characters that cause JSON parsing issues
-    cleaned = cleaned.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
-    
-    // Fix common JSON issues
-    cleaned = cleaned.replace(/\\n/g, '\\\\n'); // Escape newlines in strings
-    cleaned = cleaned.replace(/\\t/g, '\\\\t'); // Escape tabs in strings
-    cleaned = cleaned.replace(/\\r/g, '\\\\r'); // Escape carriage returns
-    
-    return cleaned.trim();
-  };
-
-  // Extract JSON content from a string
-  const extractJsonFromString = (str: string): string | null => {
-    console.log('Looking for JSON in string. First 200 chars:', str.substring(0, 200));
-    console.log('Last 200 chars:', str.substring(str.length - 200));
-    
-    const jsonStart = str.indexOf('{');
-    console.log('JSON start position:', jsonStart);
-    
-    if (jsonStart === -1) {
-      console.log('No opening brace found, checking for alternative formats...');
-      // Try to find array start as well
-      const arrayStart = str.indexOf('[');
-      console.log('Array start position:', arrayStart);
-      if (arrayStart === -1) return null;
-      
-      // Handle array format
-      return extractArrayFromString(str, arrayStart);
-    }
-    
-    // Find the matching closing brace
-    let braceCount = 0;
-    let inString = false;
-    let escaped = false;
-    let jsonEnd = -1;
-    
-    for (let i = jsonStart; i < str.length; i++) {
-      const char = str[i];
-      
-      if (!escaped && char === '"') {
-        inString = !inString;
-      }
-      
-      if (!inString && !escaped) {
-        if (char === '{') braceCount++;
-        if (char === '}') {
-          braceCount--;
-          if (braceCount === 0) {
-            jsonEnd = i;
-            break;
-          }
-        }
-      }
-      
-      escaped = !escaped && char === '\\' && inString;
-    }
-    
-    console.log('Brace counting completed. jsonEnd:', jsonEnd, 'braceCount:', braceCount);
-    
-    if (jsonEnd === -1) {
-      console.log('JSON appears truncated, attempting repair...');
-      // JSON is truncated, try to repair it
-      return repairTruncatedJson(str.substring(jsonStart));
-    }
-    
-    console.log('Found complete JSON from', jsonStart, 'to', jsonEnd);
-    return str.substring(jsonStart, jsonEnd + 1);
-  };
-
-  // Helper function to extract JSON arrays
-  const extractArrayFromString = (str: string, startPos: number): string | null => {
-    let bracketCount = 0;
-    let inString = false;
-    let escaped = false;
-    let arrayEnd = -1;
-    
-    for (let i = startPos; i < str.length; i++) {
-      const char = str[i];
-      
-      if (!escaped && char === '"') {
-        inString = !inString;
-      }
-      
-      if (!inString && !escaped) {
-        if (char === '[') bracketCount++;
-        if (char === ']') {
-          bracketCount--;
-          if (bracketCount === 0) {
-            arrayEnd = i;
-            break;
-          }
-        }
-      }
-      
-      escaped = !escaped && char === '\\' && inString;
-    }
-    
-    if (arrayEnd === -1) {
-      console.log('Array is truncated, attempting repair...');
-      return repairTruncatedJson(str.substring(startPos));
-    }
-    
-    return str.substring(startPos, arrayEnd + 1);
-  };
-
-  // Helper function to repair truncated JSON
-  const repairTruncatedJson = (jsonStr: string): string => {
-    try {
-      let repaired = jsonStr.trim();
-      
-      // Remove incomplete final line if it looks malformed
-      const lines = repaired.split('\n');
-      const lastLine = lines[lines.length - 1]?.trim();
-      
-      // If last line looks incomplete (unmatched quotes, no colon, etc.)
-      if (lastLine && lastLine.includes('"')) {
-        const quoteCount = (lastLine.match(/"/g) || []).length;
-        if (quoteCount % 2 === 1 || (!lastLine.includes(':') && !lastLine.endsWith('}'))) {
-          // Remove the incomplete last line
-          lines.pop();
-          repaired = lines.join('\n');
-        }
-      }
-      
-      // Count braces and add missing closing braces
-      let braceCount = 0;
-      let inString = false;
-      let escaped = false;
-      
-      for (let i = 0; i < repaired.length; i++) {
-        const char = repaired[i];
-        
-        if (!escaped && char === '"') {
-          inString = !inString;
-        }
-        
-        if (!inString && !escaped) {
-          if (char === '{') braceCount++;
-          if (char === '}') braceCount--;
-        }
-        
-        escaped = !escaped && char === '\\' && inString;
-      }
-      
-      // Close any unclosed braces
-      while (braceCount > 0) {
-        repaired += '\n}';
-        braceCount--;
-      }
-      
-      return repaired;
-    } catch (error) {
-      return jsonStr;
-    }
-  };
 
   const { data: session, isLoading } = useQuery<ExtractionSession>({
     queryKey: ['/api/sessions', sessionId],
@@ -230,8 +28,7 @@ export default function DebugView() {
 
   const handleCopyResponse = async () => {
     if (session?.aiResponse) {
-      const textToCopy = showFormatted ? beautifyJson(session.aiResponse) : session.aiResponse;
-      await navigator.clipboard.writeText(textToCopy);
+      await navigator.clipboard.writeText(session.aiResponse);
       setCopiedResponse(true);
       setTimeout(() => setCopiedResponse(false), 2000);
     }
@@ -369,57 +166,29 @@ export default function DebugView() {
                 <div className="flex items-center justify-between">
                   <CardTitle>AI Response</CardTitle>
                   {session.aiResponse && (
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant={showFormatted ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setShowFormatted(!showFormatted)}
-                      >
-                        {showFormatted ? 'Show Raw' : 'Show Formatted'}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleCopyResponse}
-                        className="flex items-center gap-2"
-                      >
-                        {copiedResponse ? (
-                          <Check className="h-4 w-4" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                        {copiedResponse ? 'Copied!' : 'Copy'}
-                      </Button>
-                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCopyResponse}
+                      className="flex items-center gap-2"
+                    >
+                      {copiedResponse ? (
+                        <Check className="h-4 w-4" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                      {copiedResponse ? 'Copied!' : 'Copy'}
+                    </Button>
                   )}
                 </div>
               </CardHeader>
               <CardContent>
                 {session.aiResponse ? (
-                  <div className="space-y-2">
-                    <div className="text-xs text-muted-foreground">
-                      Mode: {showFormatted ? 'Formatted JSON' : 'Raw Response'} | 
-                      Length: {session.aiResponse.length.toLocaleString()} characters
-                    </div>
-                    <ScrollArea className="h-[600px] w-full rounded-md border p-4">
-                      <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
-                        <pre className="text-sm whitespace-pre-wrap font-mono overflow-x-auto">
-                          <code 
-                            className="language-json text-gray-800 dark:text-gray-200"
-                            style={{
-                              color: '#1f2937',
-                              '--json-key-color': '#0f766e',
-                              '--json-string-color': '#dc2626', 
-                              '--json-number-color': '#1e40af',
-                              '--json-boolean-color': '#7c2d12'
-                            } as React.CSSProperties}
-                          >
-                            {showFormatted ? beautifyJson(session.aiResponse) : session.aiResponse}
-                          </code>
-                        </pre>
-                      </div>
-                    </ScrollArea>
-                  </div>
+                  <ScrollArea className="h-[600px] w-full rounded-md border p-4">
+                    <pre className="text-sm whitespace-pre-wrap font-mono">
+                      {session.aiResponse}
+                    </pre>
+                  </ScrollArea>
                 ) : (
                   <div className="text-center py-12 text-muted-foreground">
                     <p>No AI response data available for this session.</p>
