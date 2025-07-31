@@ -12,28 +12,41 @@ export default function DebugView() {
   const { sessionId } = useParams();
   const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [copiedResponse, setCopiedResponse] = useState(false);
+  const [showFormatted, setShowFormatted] = useState(true);
 
   // Function to beautify JSON response
   const beautifyJson = (jsonString: string): string => {
     try {
-      // Remove markdown code blocks if present
+      // Remove all markdown code blocks and clean the string
       let cleanJson = jsonString.trim();
-      if (cleanJson.startsWith("```json")) {
-        cleanJson = cleanJson.substring(7);
-      }
-      if (cleanJson.startsWith("```")) {
-        cleanJson = cleanJson.substring(3);
-      }
-      if (cleanJson.endsWith("```")) {
-        cleanJson = cleanJson.substring(0, cleanJson.length - 3);
+      
+      // Handle various markdown formats
+      cleanJson = cleanJson.replace(/^```json\s*/gm, '');
+      cleanJson = cleanJson.replace(/^```\s*/gm, '');
+      cleanJson = cleanJson.replace(/```\s*$/gm, '');
+      
+      // Remove any extra whitespace
+      cleanJson = cleanJson.trim();
+      
+      // Find JSON content - look for opening brace
+      const jsonStart = cleanJson.indexOf('{');
+      const jsonEnd = cleanJson.lastIndexOf('}');
+      
+      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+        cleanJson = cleanJson.substring(jsonStart, jsonEnd + 1);
       }
       
       // Parse and stringify with proper formatting
-      const parsed = JSON.parse(cleanJson.trim());
+      const parsed = JSON.parse(cleanJson);
       return JSON.stringify(parsed, null, 2);
     } catch (error) {
-      // If parsing fails, return original with basic formatting
-      return jsonString;
+      console.warn('Failed to parse JSON, returning original:', error);
+      // If parsing fails, try to remove markdown blocks only
+      let fallback = jsonString.trim();
+      fallback = fallback.replace(/^```json\s*/gm, '');
+      fallback = fallback.replace(/^```\s*/gm, '');
+      fallback = fallback.replace(/```\s*$/gm, '');
+      return fallback;
     }
   };
 
@@ -52,7 +65,8 @@ export default function DebugView() {
 
   const handleCopyResponse = async () => {
     if (session?.aiResponse) {
-      await navigator.clipboard.writeText(session.aiResponse);
+      const textToCopy = showFormatted ? beautifyJson(session.aiResponse) : session.aiResponse;
+      await navigator.clipboard.writeText(textToCopy);
       setCopiedResponse(true);
       setTimeout(() => setCopiedResponse(false), 2000);
     }
@@ -190,19 +204,28 @@ export default function DebugView() {
                 <div className="flex items-center justify-between">
                   <CardTitle>AI Response</CardTitle>
                   {session.aiResponse && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleCopyResponse}
-                      className="flex items-center gap-2"
-                    >
-                      {copiedResponse ? (
-                        <Check className="h-4 w-4" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                      {copiedResponse ? 'Copied!' : 'Copy'}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowFormatted(!showFormatted)}
+                      >
+                        {showFormatted ? 'Raw' : 'Formatted'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCopyResponse}
+                        className="flex items-center gap-2"
+                      >
+                        {copiedResponse ? (
+                          <Check className="h-4 w-4" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                        {copiedResponse ? 'Copied!' : 'Copy'}
+                      </Button>
+                    </div>
                   )}
                 </div>
               </CardHeader>
@@ -221,7 +244,7 @@ export default function DebugView() {
                             '--json-boolean-color': '#7c2d12'
                           } as React.CSSProperties}
                         >
-                          {beautifyJson(session.aiResponse)}
+                          {showFormatted ? beautifyJson(session.aiResponse) : session.aiResponse}
                         </code>
                       </pre>
                     </div>
