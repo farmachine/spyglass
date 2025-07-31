@@ -282,7 +282,7 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
                     json_lines.append(f'    "extracted_value": "{example_value}",')
                     json_lines.append(f'    "confidence_score": 0.95,')
                     json_lines.append(f'    "validation_status": "unverified",')
-                    json_lines.append(f'    "ai_reasoning": "{reasoning}"')
+                    json_lines.append(f'    "ai_reasoning": "Provide intelligent extraction reasoning here"')
                     json_lines.append('  }' + (',' if i < len(project_schema["schema_fields"]) - 1 or project_schema.get("collections") else ''))
             
             # Add collection properties with proper field validation structure
@@ -319,7 +319,7 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
                             json_lines.append(f'    "extracted_value": "{example_value}",')
                             json_lines.append(f'    "confidence_score": 0.95,')
                             json_lines.append(f'    "validation_status": "unverified",')
-                            json_lines.append(f'    "ai_reasoning": "Extracted from document analysis",')
+                            json_lines.append(f'    "ai_reasoning": "Provide intelligent extraction reasoning here",')
                             json_lines.append(f'    "record_index": {record_index}')
                             
                             # Check if this is the last item
@@ -345,10 +345,30 @@ CRITICAL: Return ONLY this exact JSON format with field_validations array contai
 - field_type: "schema_field" or "collection_property" 
 - field_name: For collections, use format "CollectionName.PropertyName[index]"
 - extracted_value: The actual extracted value from documents
-- confidence_score: Number between 0.0 and 1.0
+- confidence_score: Number between 0.0 and 1.0 based on extraction certainty
 - validation_status: "unverified" (let validation system handle verification)
-- ai_reasoning: Brief explanation of extraction
+- ai_reasoning: INTELLIGENT analysis explaining your extraction decision
 - record_index: For collection properties only (0, 1, 2, etc.)
+
+AI REASONING REQUIREMENTS:
+Your ai_reasoning field must be an intelligent, context-specific explanation that includes:
+1. **Source Location**: Where you found this information (e.g., "Found in Section 3.2", "Located in table on page 2", "Mentioned in header")
+2. **Extraction Logic**: Why you chose this value (e.g., "Selected 'Compliant' because clause meets all GDPR requirements", "Counted 5 unique companies across all documents")
+3. **Confidence Rationale**: Why this confidence level (e.g., "High confidence due to explicit statement", "Lower confidence due to ambiguous wording")
+4. **Missing Data Explanation**: For null/empty values, explain why (e.g., "No pricing information found in any document", "Document does not contain liability clauses")
+5. **Collection Context**: For collections, explain the grouping logic (e.g., "Found 3 separate intervention codes in different sections", "Each party listed in signature block")
+
+EXAMPLES OF GOOD AI REASONING:
+- "Found explicit company name 'ABC Corp' in document header and signature block. High confidence due to multiple consistent references."
+- "Counted 8 unique organizations mentioned across all 3 documents: 5 in main contract, 2 in appendix A, 1 in schedule B. Very confident in count accuracy."
+- "Selected 'Partially Compliant' because Section 4.2 addresses data security but lacks specific encryption requirements mentioned in field description."
+- "No DORA-related clauses found after comprehensive scan of all document sections. Document appears to be a standard service agreement without regulatory compliance provisions."
+
+EXAMPLES OF BAD AI REASONING (DO NOT USE):
+- "Extracted from document analysis"
+- "Found in document"
+- "Based on content review"
+- "Extracted value"
 
 CRITICAL INSTRUCTIONS:
 - **COMPREHENSIVE SCAN**: Process every document in this {len(documents)}-document set. Do not miss any documents.

@@ -25,6 +25,11 @@ Preferred communication style: Simple, everyday language.
 - ✓ Simplified prompt structure to focus on generic field type definitions: TEXT, NUMBER, DATE, CHOICE, COLLECTION
 - ✓ Enhanced collection extraction instructions to be universally applicable for finding all list items
 - ✓ Maintained critical choice field options and explicit multiple instance extraction guidance
+- ✓ **INTELLIGENT AI REASONING IMPLEMENTED**: Replaced hardcoded "Extracted from document analysis" with comprehensive reasoning requirements
+- ✓ Enhanced AI prompt with detailed reasoning instructions: source location, extraction logic, confidence rationale, missing data explanations
+- ✓ Added specific examples of good vs bad reasoning to guide AI toward meaningful, context-specific analysis
+- ✓ Token limit increased to 30M tokens with timeout removal to prevent response truncation
+- ✓ AI now provides intelligent explanations like "Found explicit company name 'ABC Corp' in document header and signature block"
 - ✓ **MULTIPLE COLLECTION ITEM EXTRACTION ISSUE RESOLVED**: Fixed critical AI prompt issue where only one collection item was extracted instead of multiple instances
 - ✓ Root cause identified: AI was combining multiple CSP intervention codes (DP BISS, DP BISS SF, DP CIS-YF, etc.) into single collection item instead of creating separate items
 - ✓ Enhanced AI prompts with explicit instructions: "Create SEPARATE collection items for each unique instance found"
