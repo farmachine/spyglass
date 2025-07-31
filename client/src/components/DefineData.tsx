@@ -368,6 +368,10 @@ export default function DefineData({ project }: DefineDataProps) {
         id: project.id,
         project: { mainObjectName }
       });
+      
+      // Force invalidate the specific project cache to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id] });
+      
       setIsEditingMainObjectName(false);
       toast({
         title: "Main object name updated",
@@ -388,6 +392,10 @@ export default function DefineData({ project }: DefineDataProps) {
         id: project.id,
         project: { mainObjectDescription }
       });
+      
+      // Force invalidate the specific project cache to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id] });
+      
       setIsEditingMainObjectDescription(false);
       toast({
         title: "Description updated",
