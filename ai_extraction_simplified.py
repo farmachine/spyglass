@@ -290,6 +290,7 @@ RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
         
         model = genai.GenerativeModel('gemini-1.5-flash')
         extracted_content_text = ""
+        processed_docs = 0
         
         for doc in documents:
             file_content = doc['file_content']
