@@ -37,6 +37,11 @@ Preferred communication style: Simple, everyday language.
 - **Interaction**: Icon-only UI system, comprehensive optimistic updates for immediate UI feedback, streamlined workflow from upload to review.
 - **Responsiveness**: Responsive design using Tailwind CSS.
 
+### Recent Critical Fixes (July 31, 2025)
+- **UUID/Integer Consistency Issue Resolved**: Fixed systematic data type mismatches in MemStorage where UUID session IDs were being parsed as integers using parseInt(), causing all field validation lookups to fail and collections to display "Not set" instead of actual extracted values.
+- **Storage Interface Standardization**: Updated all storage methods to consistently use string UUIDs instead of mixed integer/string types, resolving LSP diagnostics and enabling proper data retrieval.
+- **Sample Data Alignment**: Fixed sample validation data to use correct session UUIDs and field IDs, ensuring proper data relationships and display functionality.
+
 ### Technical Implementations
 - **Document Processing**: Supports PDF, DOCX, DOC, XLSX, XLS files. Uses Google Gemini API for text extraction from PDFs and images; `python-docx` for Word documents; `pandas` and `openpyxl` for Excel files.
 - **AI Integration**: Comprehensive AI-powered data extraction and validation using Google Gemini API. Includes intelligent reasoning, auto-verification based on confidence thresholds, and conflict detection against knowledge documents.
@@ -57,6 +62,7 @@ Preferred communication style: Simple, everyday language.
 - **React Query**: Manages server state, caching, and data synchronization.
 - **Zod Integration**: Ensures runtime validation matching TypeScript types for end-to-end type safety.
 - **Express + Vite**: Combines a robust backend framework with modern frontend tooling.
+- **UUID Consistency**: Full UUID string consistency across all storage interfaces, eliminating integer/string mismatches that caused data retrieval failures.
 
 ## External Dependencies
 
