@@ -116,7 +116,7 @@ def step1_extract_from_documents(
         genai.configure(api_key=api_key)
         
         # Configure with no timeout constraints for large responses
-        model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        model = genai.GenerativeModel('gemini-2.5-pro')
         
         logging.info(f"STEP 1: Starting extraction for {len(documents)} documents")
         
@@ -392,7 +392,7 @@ RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
         logging.info(f"Documents received: {[doc.get('file_name', 'Unknown') for doc in documents]}")
         logging.info(f"Documents data: {documents}")
         
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.5-pro')
         extracted_content_text = ""
         processed_docs = 0
         
@@ -881,7 +881,7 @@ REQUIRED OUTPUT FORMAT (apply extraction rules to confidence and reasoning):
 RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
         
         # Make AI validation call
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.5-pro')
         logging.info(f"Making AI validation call with {len(prompt)} character prompt")
         response = model.generate_content(prompt)
         
