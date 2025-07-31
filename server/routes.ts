@@ -2133,6 +2133,7 @@ print(json.dumps(result))
             res.json({
               success: result.success,
               extractedData: result.extractedData || result.result || result.field_validations,
+              field_validations: result.field_validations,
               error: result.error
             });
             

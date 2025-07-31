@@ -303,6 +303,7 @@ RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
                 # This is already extracted text content from the session
                 content_text = file_content
                 extracted_content_text += f"\n\n=== DOCUMENT: {file_name} ===\n{content_text}"
+                processed_docs += 1
                 logging.info(f"STEP 1: Using pre-extracted content from {file_name} ({len(content_text)} characters)")
                 
             elif mime_type.startswith("text/"):
@@ -318,6 +319,7 @@ RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
                     content_text = file_content.decode('utf-8', errors='ignore')
                 
                 extracted_content_text += f"\n\n=== DOCUMENT: {file_name} ===\n{content_text}"
+                processed_docs += 1
                 logging.info(f"STEP 1: Extracted {len(content_text)} characters from text file {file_name}")
                 
             else:
@@ -491,7 +493,7 @@ RETURN: Complete readable content from this document."""
                     extracted_content_text += f"\n\n=== DOCUMENT: {file_name} ===\n[Content extraction error: {e}]"
                     continue
         
-        logging.info(f"STEP 1 COMPLETE: Extracted total of {len(extracted_content_text)} characters from all documents")
+        logging.info(f"STEP 1 COMPLETE: Processed {processed_docs} documents, extracted total of {len(extracted_content_text)} characters from all documents")
         
         # Now proceed with data extraction using the extracted content
         final_prompt = prompt + f"\n\nEXTRACTED DOCUMENT CONTENT:\n{extracted_content_text}"
