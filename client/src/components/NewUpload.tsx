@@ -668,19 +668,7 @@ export default function NewUpload({ project }: NewUploadProps) {
                     )}
                   </Button>
 
-                  <Button 
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={!canStartExtraction || selectedFiles.length === 0 || isProcessing}
-                    className="w-full bg-white hover:bg-gray-50 text-gray-700 border-gray-300 mt-2"
-                    onClick={() => {
-                      setExtractionMode('debug');
-                      form.handleSubmit(handleSubmit)();
-                    }}
-                  >
-                    Run in debug mode
-                  </Button>
+                  {/* Debug mode disabled - debugging now available in session view */}
 
                   <div className="pt-4">
                     <h4 className="font-medium text-gray-900 mb-2">Extraction Schema</h4>

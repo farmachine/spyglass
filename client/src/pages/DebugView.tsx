@@ -146,8 +146,8 @@ export default function DebugView() {
               </CardHeader>
               <CardContent>
                 {session.extractionPrompt ? (
-                  <ScrollArea className="h-[600px] w-full rounded-md border p-4">
-                    <pre className="text-sm whitespace-pre-wrap font-mono">
+                  <ScrollArea className="h-[800px] w-full rounded-md border p-4">
+                    <pre className="text-sm whitespace-pre-wrap font-mono leading-relaxed">
                       {session.extractionPrompt}
                     </pre>
                   </ScrollArea>
@@ -184,8 +184,8 @@ export default function DebugView() {
               </CardHeader>
               <CardContent>
                 {session.aiResponse ? (
-                  <ScrollArea className="h-[600px] w-full rounded-md border p-4">
-                    <pre className="text-sm whitespace-pre-wrap font-mono">
+                  <ScrollArea className="h-[800px] w-full rounded-md border p-4">
+                    <pre className="text-sm whitespace-pre-wrap font-mono leading-relaxed">
                       {session.aiResponse}
                     </pre>
                   </ScrollArea>

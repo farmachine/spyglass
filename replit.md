@@ -30,6 +30,13 @@ Preferred communication style: Simple, everyday language.
 - ✓ Added specific examples of good vs bad reasoning to guide AI toward meaningful, context-specific analysis
 - ✓ Token limit increased to 30M tokens with timeout removal to prevent response truncation
 - ✓ AI now provides intelligent explanations like "Found explicit company name 'ABC Corp' in document header and signature block"
+- ✓ **API OVERLOAD HANDLING IMPLEMENTED**: Added robust retry logic with exponential backoff for Google Gemini API 503 overload errors
+- ✓ Automatic retry system: 3 attempts with 2s → 4s → 8s delays for both text extraction and data extraction calls
+- ✓ Intelligent error handling preserves other exceptions while specifically targeting overload situations
+- ✓ **DEBUG MODE UI IMPROVEMENTS COMPLETED**: Disabled legacy debug mode button and enhanced session debugger
+- ✓ Removed "Run in debug mode" button from upload form as debugging is now available in session view with Debug button
+- ✓ Enhanced debug view scrolling: increased height from 600px to 800px with improved line spacing for better readability
+- ✓ Streamlined workflow: users now have single extraction path with post-extraction debugging capabilities
 - ✓ **MULTIPLE COLLECTION ITEM EXTRACTION ISSUE RESOLVED**: Fixed critical AI prompt issue where only one collection item was extracted instead of multiple instances
 - ✓ Root cause identified: AI was combining multiple CSP intervention codes (DP BISS, DP BISS SF, DP CIS-YF, etc.) into single collection item instead of creating separate items
 - ✓ Enhanced AI prompts with explicit instructions: "Create SEPARATE collection items for each unique instance found"
