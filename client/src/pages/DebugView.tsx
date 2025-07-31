@@ -20,32 +20,58 @@ export default function DebugView() {
       // Remove all markdown code blocks and clean the string
       let cleanJson = jsonString.trim();
       
-      // Handle various markdown formats
-      cleanJson = cleanJson.replace(/^```json\s*/gm, '');
-      cleanJson = cleanJson.replace(/^```\s*/gm, '');
+      // Handle various markdown formats - more aggressive cleaning
+      cleanJson = cleanJson.replace(/```json\s*/g, '');
+      cleanJson = cleanJson.replace(/```\s*/g, '');
+      cleanJson = cleanJson.replace(/^\s*```/gm, '');
       cleanJson = cleanJson.replace(/```\s*$/gm, '');
       
-      // Remove any extra whitespace
+      // Remove any extra whitespace and newlines at start/end
       cleanJson = cleanJson.trim();
       
-      // Find JSON content - look for opening brace
-      const jsonStart = cleanJson.indexOf('{');
-      const jsonEnd = cleanJson.lastIndexOf('}');
+      // Try to find JSON content more intelligently
+      let jsonStart = cleanJson.indexOf('{');
+      let jsonEnd = -1;
       
-      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-        cleanJson = cleanJson.substring(jsonStart, jsonEnd + 1);
+      if (jsonStart !== -1) {
+        // Count braces to find the matching closing brace
+        let braceCount = 0;
+        for (let i = jsonStart; i < cleanJson.length; i++) {
+          if (cleanJson[i] === '{') braceCount++;
+          if (cleanJson[i] === '}') {
+            braceCount--;
+            if (braceCount === 0) {
+              jsonEnd = i;
+              break;
+            }
+          }
+        }
+        
+        if (jsonEnd !== -1) {
+          cleanJson = cleanJson.substring(jsonStart, jsonEnd + 1);
+        }
       }
       
       // Parse and stringify with proper formatting
       const parsed = JSON.parse(cleanJson);
       return JSON.stringify(parsed, null, 2);
     } catch (error) {
-      console.warn('Failed to parse JSON, returning original:', error);
-      // If parsing fails, try to remove markdown blocks only
+      console.warn('JSON parsing failed:', error);
+      
+      // Enhanced fallback - try to clean up common issues
       let fallback = jsonString.trim();
-      fallback = fallback.replace(/^```json\s*/gm, '');
-      fallback = fallback.replace(/^```\s*/gm, '');
-      fallback = fallback.replace(/```\s*$/gm, '');
+      
+      // Remove markdown blocks
+      fallback = fallback.replace(/```json\s*/g, '');
+      fallback = fallback.replace(/```\s*/g, '');
+      
+      // Remove any leading/trailing non-JSON content
+      const start = fallback.indexOf('{');
+      const end = fallback.lastIndexOf('}');
+      if (start !== -1 && end !== -1 && end > start) {
+        fallback = fallback.substring(start, end + 1);
+      }
+      
       return fallback;
     }
   };
@@ -208,10 +234,7 @@ export default function DebugView() {
                       <Button
                         variant={showFormatted ? "default" : "outline"}
                         size="sm"
-                        onClick={() => {
-                          console.log('Toggle clicked, current state:', showFormatted);
-                          setShowFormatted(!showFormatted);
-                        }}
+                        onClick={() => setShowFormatted(!showFormatted)}
                       >
                         {showFormatted ? 'Show Raw' : 'Show Formatted'}
                       </Button>
@@ -247,12 +270,7 @@ export default function DebugView() {
                             '--json-boolean-color': '#7c2d12'
                           } as React.CSSProperties}
                         >
-                          {(() => {
-                            const content = showFormatted ? beautifyJson(session.aiResponse) : session.aiResponse;
-                            console.log('Debug - showFormatted:', showFormatted);
-                            console.log('Debug - content preview:', content.substring(0, 200));
-                            return content;
-                          })()}
+                          {showFormatted ? beautifyJson(session.aiResponse) : session.aiResponse}
                         </code>
                       </pre>
                     </div>
