@@ -32,45 +32,55 @@ def repair_truncated_json(response_text: str) -> str:
     and properly closing the JSON structure.
     """
     try:
-        # Find the last complete field validation object
-        last_complete_bracket = response_text.rfind('}')
-        if last_complete_bracket == -1:
+        logging.info(f"Attempting to repair JSON response of length {len(response_text)}")
+        
+        # Check if response starts with field_validations structure
+        if not response_text.strip().startswith('{"field_validations":'):
+            logging.warning("Response doesn't start with expected field_validations structure")
             return None
             
-        # Try to find where field_validations array starts
-        field_validations_start = response_text.find('"field_validations":[')
-        if field_validations_start == -1:
+        # Find the last complete field validation object by looking for complete } patterns
+        # We need to find the last point where we have a complete object
+        
+        # Look for the pattern: "}," or "}]" which indicates end of an object
+        last_complete_object = -1
+        i = len(response_text) - 1
+        
+        while i >= 0:
+            if response_text[i] == '}':
+                # Check if this is followed by a comma or closing bracket
+                if i + 1 < len(response_text):
+                    next_char = response_text[i + 1]
+                    if next_char in [',', ']']:
+                        last_complete_object = i + 2  # Include the comma/bracket
+                        break
+                else:
+                    # This is the end of string, check if it's a complete object
+                    last_complete_object = i + 1
+                    break
+            i -= 1
+            
+        if last_complete_object == -1:
+            logging.warning("Could not find any complete objects in response")
             return None
             
-        # Extract everything up to the last complete bracket
-        truncated_at = last_complete_bracket + 1
-        partial_response = response_text[:truncated_at]
+        # Take everything up to the last complete object
+        partial_response = response_text[:last_complete_object]
         
-        # Count open and close brackets to balance the JSON
-        open_brackets = partial_response.count('{')
-        close_brackets = partial_response.count('}')
-        open_arrays = partial_response.count('[')
-        close_arrays = partial_response.count(']')
+        # Remove any trailing comma if present
+        if partial_response.endswith(','):
+            partial_response = partial_response[:-1]
+            
+        # Close the field_validations array and main object
+        if not partial_response.endswith(']'):
+            partial_response += ']'
+        if not partial_response.endswith('}'):
+            partial_response += '}'
+            
+        logging.info(f"JSON repair: Original {len(response_text)} chars -> Repaired {len(partial_response)} chars")
+        logging.info(f"Repaired JSON ends with: ...{partial_response[-50:]}")
         
-        # Add missing closing brackets and arrays
-        repaired = partial_response
-        
-        # Close any open field validation objects
-        bracket_diff = open_brackets - close_brackets
-        if bracket_diff > 1:  # Account for the main object wrapper
-            repaired += '}' * (bracket_diff - 1)
-            
-        # Close the field_validations array
-        array_diff = open_arrays - close_arrays
-        if array_diff > 0:
-            repaired += ']' * array_diff
-            
-        # Close the main object
-        if not repaired.endswith('}'):
-            repaired += '}'
-            
-        logging.info(f"JSON repair: Original length {len(response_text)}, repaired length {len(repaired)}")
-        return repaired
+        return partial_response
         
     except Exception as e:
         logging.error(f"JSON repair failed: {e}")
@@ -482,7 +492,7 @@ RETURN: Complete readable content from this document."""
                                     extraction_prompt
                                 ],
                                 generation_config=genai.GenerationConfig(
-                                    max_output_tokens=30000000,  # 30 million tokens for large documents
+                                    max_output_tokens=100000,  # 100K tokens for large documents
                                     temperature=0.1
                                 )
                             )
@@ -589,7 +599,7 @@ RETURN: Complete readable content from this document."""
         response = model.generate_content(
             final_prompt,
             generation_config=genai.GenerationConfig(
-                max_output_tokens=30000000,  # 30 million tokens for comprehensive extractions
+                max_output_tokens=100000,  # 100K tokens - more reasonable limit
                 temperature=0.1,
                 response_mime_type="application/json"
             )
