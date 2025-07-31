@@ -16,6 +16,15 @@ Preferred communication style: Simple, everyday language.
 - ✓ Enhanced Python extraction script to return full prompt and AI response data alongside extracted field validations
 - ✓ Updated server routes to automatically save AI prompts and responses to database during successful extractions
 - ✓ Storage interface fully supports saving/retrieving prompt and response data through updateExtractionSession method
+- ✓ **DEBUG PAGE IMPLEMENTATION COMPLETED**: Created complete debugging interface with DebugView.tsx component
+- ✓ Added /sessions/:sessionId/debug route to App.tsx for accessing AI debugging data
+- ✓ Added Debug button with bug icon to SessionView header for easy access to AI interaction logs
+- ✓ Debug page displays complete AI extraction prompt (21,000+ characters) and full AI response with syntax highlighting
+- ✓ **AI RESPONSE TRUNCATION ISSUE RESOLVED**: Increased token limit from 100K to 1M tokens to prevent JSON truncation
+- ✓ **AI PROMPT GENERICIZED FOR BROAD USE CASES**: Removed use-case specific content (DORA, CSP interventions) from AI prompts
+- ✓ Simplified prompt structure to focus on generic field type definitions: TEXT, NUMBER, DATE, CHOICE, COLLECTION
+- ✓ Enhanced collection extraction instructions to be universally applicable for finding all list items
+- ✓ Maintained critical choice field options and explicit multiple instance extraction guidance
 - ✓ **MULTIPLE COLLECTION ITEM EXTRACTION ISSUE RESOLVED**: Fixed critical AI prompt issue where only one collection item was extracted instead of multiple instances
 - ✓ Root cause identified: AI was combining multiple CSP intervention codes (DP BISS, DP BISS SF, DP CIS-YF, etc.) into single collection item instead of creating separate items
 - ✓ Enhanced AI prompts with explicit instructions: "Create SEPARATE collection items for each unique instance found"

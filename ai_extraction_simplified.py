@@ -125,31 +125,23 @@ CRITICAL INSTRUCTIONS:
 2. FOLLOW SCHEMA FIELD DESCRIPTIONS PRECISELY - Each description is your extraction instruction
 3. APPLY EXTRACTION RULES - Rules modify extraction behavior, formatting, and validation
 4. For NUMBER fields: Count ALL instances across ALL {len(documents)} documents as described
-5. For NDA counting: Count individual contracts/agreements, NOT just parties
-6. For collections: Extract EVERY instance mentioned across ALL documents
-7. **CRITICAL FOR COLLECTIONS**: Create SEPARATE collection items for each unique instance found
-   - If you find multiple CSP intervention codes (DP BISS, DP BISS SF, DP CIS-YF, etc.), create separate items for EACH code
-   - If you find multiple parties/companies, create separate items for EACH party  
-   - If you find multiple clauses/sections, create separate items for EACH clause
+5. For collections (lists): Extract EVERY instance mentioned across ALL documents
+6. **CRITICAL FOR COLLECTIONS**: Create SEPARATE collection items for each unique instance found
+   - Each unique item should be a SEPARATE collection record with its own record_index (0, 1, 2, etc.)
    - DO NOT combine multiple instances into a single collection item
-8. Return JSON with real extracted values only
-9. If extraction rules specify formatting, apply that formatting to extracted values
+   - Find ALL instances across ALL documents
+7. Return JSON with real extracted values only
+8. If extraction rules specify formatting, apply that formatting to extracted values
+9. **ONLY CREATE RECORDS WHEN FOUND**: Only include field_validations for fields that actually exist in the document - do not create empty placeholder records
 
 DOCUMENT SET ANALYSIS: You are processing {len(documents)} documents simultaneously. Extract comprehensively from the entire set.
 
-SPECIAL INSTRUCTIONS FOR CLAUSE EXTRACTION:
-- For clause-related fields (titles, references, summaries): Look for specific contract sections, numbered clauses, paragraph headings, legal provisions
-- **COMPREHENSIVE CLAUSE DETECTION**: Extract ALL contractual provisions that are substantive and meaningful, including:
-  * **Risk Management**: Risk allocation, liability provisions, indemnification, insurance requirements
-  * **Security & Data Protection**: Data security, confidentiality, access controls, privacy protections
-  * **Operational Provisions**: Service levels, performance standards, availability requirements, business continuity
-  * **Governance & Oversight**: Audit rights, compliance obligations, monitoring, reporting requirements
-  * **Service Management**: Service warranties, termination procedures, change management, dispute resolution
-  * **Third-party Relations**: Subcontractor management, vendor oversight, regulatory compliance
-  * **Commercial Terms**: Payment terms, pricing, intellectual property rights, licensing
-- **BROAD INTERPRETATION**: Extract any clause that establishes rights, obligations, standards, or procedures between the parties
-- **INCLUDE ALL RELEVANT CLAUSES**: Liability, termination, confidentiality, warranties, audit rights, incident management, subcontracting, and all other substantive contract provisions
-- **ONLY CREATE RECORDS WHEN FOUND**: Only include field_validations for clauses that actually exist in the document - do not create empty placeholder records
+FIELD TYPE DEFINITIONS:
+- **TEXT**: Extract text content as specified in the field description
+- **NUMBER**: Count or extract numeric values as described  
+- **DATE**: Extract dates in standard format (YYYY-MM-DD)
+- **CHOICE**: Select one of the predefined options (specified below for each field)
+- **COLLECTION**: Extract multiple instances - create separate records for each unique item found
 
 SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
         
@@ -204,9 +196,8 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
                 
                 prompt += f"\n- **{collection_name}**: {full_instruction}"
                 
-                # Add special instructions for CSP interventions
-                if "CSP" in collection_name or "intervention" in collection_name.lower():
-                    prompt += f"\n  **SPECIAL FOR {collection_name}**: Each DP code (DP BISS, DP BISS SF, DP CIS-YF, DP ECO-Biodeg Mulch, etc.) should be a SEPARATE item. Create one collection item per unique intervention code found."
+                # Add explicit instructions for list/collection items
+                prompt += f"\n  **CRITICAL FOR {collection_name}**: Find ALL instances in the documents. Create one collection item per unique instance found. Each item should have a separate record_index (0, 1, 2, etc.)."
                 
                 properties = collection.get("properties", [])
                 if properties:
@@ -297,14 +288,8 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
                     collection_name = collection.get('collectionName', collection.get('objectName', ''))
                     properties = collection.get("properties", [])
                     
-                    # Only show example if this collection should have data
-                    # For DORA clauses, only create examples if document likely contains clauses
-                    should_show_example = True
-                    if 'clause' in collection_name.lower() or 'dora' in collection_name.lower():
-                        # For clause collections, only show minimal example - let AI decide
-                        example_count = 1  # Just one example, not hardcoded 2
-                    else:
-                        example_count = 2  # Other collections can have 2 examples
+                    # Show minimal examples for all collections - let AI decide actual count
+                    example_count = 2  # Standard example count for all collections
                     
                     for record_index in range(example_count):
                         for prop_index, prop in enumerate(properties):
@@ -312,18 +297,15 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
                             prop_name = prop['propertyName']
                             prop_type = prop['propertyType']
                             
-                            # Determine example value
+                            # Determine example value based on field type
                             if prop_type == 'CHOICE' and prop.get('choiceOptions'):
                                 example_value = prop["choiceOptions"][0]
                             elif prop_type == 'NUMBER':
                                 example_value = '100'
                             elif prop_type == 'DATE':
                                 example_value = '2024-01-15'
-                            else:
-                                if 'clause' in collection_name.lower():
-                                    example_value = 'Only if found in document'
-                                else:
-                                    example_value = 'Extracted Value'
+                            else:  # TEXT
+                                example_value = 'Extracted Value'
                             
                             field_name_with_index = f"{collection_name}.{prop_name}[{record_index}]"
                             
@@ -365,11 +347,10 @@ CRITICAL: Return ONLY this exact JSON format with field_validations array contai
 - ai_reasoning: Brief explanation of extraction
 - record_index: For collection properties only (0, 1, 2, etc.)
 
-CRITICAL COUNTING INSTRUCTIONS:
-- **PARTY COUNTING**: Scan ALL {len(documents)} documents and count EVERY unique company, organization, subsidiary, or entity. Include parties mentioned but not fully detailed.
-- **NDA COUNTING**: Count individual contracts/agreements/NDAs, not parties. If you see 8 separate contracts, return 8.
+CRITICAL INSTRUCTIONS:
 - **COMPREHENSIVE SCAN**: Process every document in this {len(documents)}-document set. Do not miss any documents.
 - **FOLLOW DESCRIPTIONS**: Schema field descriptions are mandatory instructions for what to count and extract.
+- **COUNT ACCURATELY**: For number fields, count all instances across all documents as specified in the field descriptions.
 
 CHOICE FIELD HANDLING:
 - For CHOICE fields, extract values from the specified choice options only
@@ -504,7 +485,7 @@ RETURN: Complete readable content from this document."""
                                     extraction_prompt
                                 ],
                                 generation_config=genai.GenerationConfig(
-                                    max_output_tokens=100000,  # 100K tokens for large documents
+                                    max_output_tokens=1000000,  # 1M tokens for large documents
                                     temperature=0.1
                                 )
                             )
@@ -611,7 +592,7 @@ RETURN: Complete readable content from this document."""
         response = model.generate_content(
             final_prompt,
             generation_config=genai.GenerationConfig(
-                max_output_tokens=100000,  # 100K tokens - more reasonable limit
+                max_output_tokens=1000000,  # 1M tokens - higher limit to prevent truncation
                 temperature=0.1,
                 response_mime_type="application/json"
             )
