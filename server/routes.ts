@@ -683,9 +683,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/projects/:projectId/schema", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const projectId = req.params.projectId;
+      
+      // Get existing schema fields to determine the next orderIndex
+      const existingFields = await storage.getProjectSchemaFields(projectId);
+      const maxOrderIndex = existingFields.reduce((max, field) => {
+        return Math.max(max, field.orderIndex || 0);
+      }, 0);
+      
       const result = insertProjectSchemaFieldSchema.safeParse({
         ...req.body,
-        projectId
+        projectId,
+        orderIndex: req.body.orderIndex ?? (maxOrderIndex + 1) // Add to bottom if no orderIndex provided
       });
       if (!result.success) {
         return res.status(400).json({ message: "Invalid schema field data", errors: result.error.errors });
@@ -756,9 +764,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/projects/:projectId/collections", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const projectId = req.params.projectId;
+      
+      // Get existing collections to determine the next orderIndex
+      const existingCollections = await storage.getObjectCollections(projectId);
+      const maxOrderIndex = existingCollections.reduce((max, collection) => {
+        return Math.max(max, collection.orderIndex || 0);
+      }, 0);
+      
       const result = insertObjectCollectionSchema.safeParse({
         ...req.body,
-        projectId
+        projectId,
+        orderIndex: req.body.orderIndex ?? (maxOrderIndex + 1) // Add to bottom if no orderIndex provided
       });
       if (!result.success) {
         return res.status(400).json({ message: "Invalid collection data", errors: result.error.errors });
@@ -837,9 +853,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/collections/:collectionId/properties", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const collectionId = req.params.collectionId;
+      
+      // Get existing properties to determine the next orderIndex
+      const existingProperties = await storage.getCollectionProperties(collectionId);
+      const maxOrderIndex = existingProperties.reduce((max, prop) => {
+        return Math.max(max, prop.orderIndex || 0);
+      }, 0);
+      
       const result = insertCollectionPropertySchema.safeParse({
         ...req.body,
-        collectionId
+        collectionId,
+        orderIndex: req.body.orderIndex ?? (maxOrderIndex + 1) // Add to bottom if no orderIndex provided
       });
       if (!result.success) {
         return res.status(400).json({ message: "Invalid property data", errors: result.error.errors });
