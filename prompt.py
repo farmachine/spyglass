@@ -35,6 +35,13 @@ EXTRACTION_PROMPT = """You are an expert data extraction specialist. Extract dat
 - **Collection-Section Matching**: If a collection name (e.g., "Increase Rates") matches or relates to a document section name (e.g., "2.3 Increase Rates"), extract ALL numbered subsections within that boundary
 - **Complete Number Sequences**: Count how many numbered items exist in a sequence and extract every single one - do not stop at 2-3 examples
 
+### Markdown Table Recognition:
+- **Markdown Format**: Recognize markdown tables with pipes (|) separating columns and dashes (-) creating headers
+- **Table Structure**: Identify table headers, data rows, and understand that each row represents a separate collection item
+- **Row Extraction**: Extract EVERY data row from markdown tables - if you see 10 rows, extract all 10 as separate collection items
+- **Column Mapping**: Map table columns to collection properties based on header names and content patterns
+- **Table Boundaries**: Understand where tables start and end in markdown format
+
 ### Collection Identification Strategies:
 1. **Header Analysis**: Look for section headers, table titles, or list introductions that indicate content type
 2. **Table Processing**: In tables, extract ALL rows when the majority contain relevant data - DO NOT LIMIT TO 2-3 EXAMPLES
@@ -44,6 +51,7 @@ EXTRACTION_PROMPT = """You are an expert data extraction specialist. Extract dat
 6. **COMPLETE TABLE EXTRACTION**: When you find a table containing collection items, extract EVERY ROW, not just examples
 7. **NUMBERED SECTION RECOGNITION**: Recognize numbered section patterns (e.g., 2.3.1, 2.3.2, 2.3.3... 2.3.10) as indicating a complete set of related items that should ALL be extracted
 8. **SECTION BOUNDARY DETECTION**: When collection name matches a section (e.g., "Increase Rates" and section "2.3 Increase Rates"), extract ALL numbered subsections until the next major section (e.g., 2.3.1 through 2.3.10 until section 2.4)
+9. **MARKDOWN TABLE RECOGNITION**: Identify markdown tables (with | separators) and extract ALL data rows as separate collection items - count the rows and extract every single one
 
 ### Decision Framework:
 - **When in doubt, include**: If an item could potentially belong to a collection, include it
@@ -115,6 +123,18 @@ Your ai_reasoning field must be an intelligent, context-specific explanation tha
 **Complete Table Extraction**: "Found table in Section 2 with 10 rows of escalation rate data (sections 2.3.1 through 2.3.10). Extracted all 10 rows as separate collection items with record_index 0-9. Each row represents a unique escalation rate scenario with different criteria and values."
 
 **Numbered Section Recognition**: "Identified section 2.3 'Increase Rates' containing numbered subsections 2.3.1 through 2.3.10. Since collection name 'Increase Rates' matches section name, extracted all 10 numbered entries as separate collection items. Section boundary clear at 2.4 where new topic begins."
+
+**Markdown Table Extraction**: "Found markdown table with 10 data rows (excluding header). Recognized table structure with | separators and extracted all 10 rows as separate collection items with record_index 0-9. Each row mapped to collection properties based on column headers and content patterns."
+
+### MARKDOWN TABLE FORMAT EXAMPLE:
+```
+| Section | Description | Pensioners | Deferreds |
+|---------|-------------|------------|-----------|
+| 2.3.1   | Pre 6 April 1988 GMP | None | None |
+| 2.3.2   | Post 5 April 1988 GMP | CPI 0%-3% | CPI 0%-3% |
+| 2.3.3   | Pre 6 April 1997 pension | CPI 0%-2.5% | CPI 0%-2.5% |
+```
+**EXTRACTION RULE**: Extract ALL data rows (2.3.1, 2.3.2, 2.3.3, etc.) as separate collection items - DO NOT stop at 2 examples!
 
 ## REQUIRED OUTPUT FORMAT - Field Validation JSON Structure:
 ```json
