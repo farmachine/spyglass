@@ -31,6 +31,7 @@ export const projects = pgTable("projects", {
   organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   createdBy: uuid("created_by").notNull().references(() => users.id, { onDelete: "cascade" }),
   mainObjectName: text("main_object_name").default("Session"),
+  mainObjectDescription: text("main_object_description"),
   status: text("status", { enum: ["active", "inactive"] }).notNull().default("active"),
   isInitialSetupComplete: boolean("is_initial_setup_complete").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

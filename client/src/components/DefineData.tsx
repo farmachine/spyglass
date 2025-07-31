@@ -54,7 +54,9 @@ export default function DefineData({ project }: DefineDataProps) {
   const [propertyDialog, setPropertyDialog] = useState<{ open: boolean; property?: CollectionProperty | null; collectionId?: string; collectionName?: string }>({ open: false });
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type?: string; id?: string; name?: string }>({ open: false });
   const [mainObjectName, setMainObjectName] = useState(project.mainObjectName || "Session");
+  const [mainObjectDescription, setMainObjectDescription] = useState(project.mainObjectDescription || "");
   const [isEditingMainObjectName, setIsEditingMainObjectName] = useState(false);
+  const [isEditingMainObjectDescription, setIsEditingMainObjectDescription] = useState(false);
   const [activeTab, setActiveTab] = useState('main-data');
   
   // AI Query state
@@ -353,7 +355,7 @@ export default function DefineData({ project }: DefineDataProps) {
     await generateSchemaMutation.mutateAsync({ query: aiQuery.trim() });
   };
 
-  // Main object name handlers
+  // Main object name and description handlers
   const handleMainObjectNameSave = async () => {
     try {
       await updateProject.mutateAsync({
@@ -369,6 +371,26 @@ export default function DefineData({ project }: DefineDataProps) {
       toast({
         title: "Error",
         description: "Failed to update main object name. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleMainObjectDescriptionSave = async () => {
+    try {
+      await updateProject.mutateAsync({
+        id: project.id,
+        project: { mainObjectDescription }
+      });
+      setIsEditingMainObjectDescription(false);
+      toast({
+        title: "Description updated",
+        description: "The main object description has been updated successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update description. Please try again.",
         variant: "destructive",
       });
     }
@@ -477,71 +499,6 @@ export default function DefineData({ project }: DefineDataProps) {
         </div>
       )}
 
-      {/* Main Object Name Configuration */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Main Object Configuration</CardTitle>
-          <CardDescription>
-            The main entity type that your documents describe (e.g., Contract, Agreement, Session).
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <Database className="h-5 w-5 text-blue-600" />
-              <div className="flex-1">
-                <Label htmlFor="mainObjectName">Main Object Name</Label>
-              </div>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4">
-              {isEditingMainObjectName ? (
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={mainObjectName}
-                    onChange={(e) => setMainObjectName(e.target.value)}
-                    className="flex-1"
-                    placeholder="e.g., Contract, Agreement, Session"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleMainObjectNameSave();
-                      if (e.key === 'Escape') {
-                        setMainObjectName(project.mainObjectName || "Session");
-                        setIsEditingMainObjectName(false);
-                      }
-                    }}
-                  />
-                  <Button size="sm" onClick={handleMainObjectNameSave}>
-                    Save
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => {
-                      setMainObjectName(project.mainObjectName || "Session");
-                      setIsEditingMainObjectName(false);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-medium text-blue-600">
-                    {project.mainObjectName || "Session"}
-                  </span>
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    onClick={() => setIsEditingMainObjectName(true)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Tab-Based Data Structure Layout */}
       {allDataItems.length > 0 && (
         <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="main-data" className="w-full folder-tabs">
@@ -566,15 +523,112 @@ export default function DefineData({ project }: DefineDataProps) {
           <TabsContent value="main-data" className="mt-0 px-0 ml-0">
             <Card className="border-t-0 rounded-tl-none ml-0">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {project.mainObjectName || "Session"} Fields
-                  <Badge variant="secondary" className="bg-gray-100 text-gray-600">
-                    {safeSchemaFields.length} fields
-                  </Badge>
-                </CardTitle>
-                <p className="text-sm text-gray-600">
-                  Core fields extracted from your {project.mainObjectName || "Session"} documents.
-                </p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    {isEditingMainObjectName ? (
+                      <div className="flex items-center gap-2 flex-1">
+                        <Input
+                          value={mainObjectName}
+                          onChange={(e) => setMainObjectName(e.target.value)}
+                          className="text-lg font-semibold"
+                          placeholder="e.g., Contract, Agreement, Session"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleMainObjectNameSave();
+                            if (e.key === 'Escape') {
+                              setMainObjectName(project.mainObjectName || "Session");
+                              setIsEditingMainObjectName(false);
+                            }
+                          }}
+                        />
+                        <Button size="sm" onClick={handleMainObjectNameSave}>
+                          Save
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => {
+                            setMainObjectName(project.mainObjectName || "Session");
+                            setIsEditingMainObjectName(false);
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 flex-1">
+                        <CardTitle className="text-xl">
+                          {project.mainObjectName || "Session"} Fields
+                        </CardTitle>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          onClick={() => setIsEditingMainObjectName(true)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Badge variant="secondary" className="bg-gray-100 text-gray-600">
+                          {safeSchemaFields.length} fields
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div>
+                    {isEditingMainObjectDescription ? (
+                      <div className="flex items-center gap-2">
+                        <Textarea
+                          value={mainObjectDescription}
+                          onChange={(e) => setMainObjectDescription(e.target.value)}
+                          className="text-sm resize-none"
+                          placeholder="Describe the main object type (e.g., Legal contracts for service agreements)"
+                          rows={2}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              handleMainObjectDescriptionSave();
+                            }
+                            if (e.key === 'Escape') {
+                              setMainObjectDescription(project.mainObjectDescription || "");
+                              setIsEditingMainObjectDescription(false);
+                            }
+                          }}
+                        />
+                        <div className="flex flex-col gap-1">
+                          <Button size="sm" onClick={handleMainObjectDescriptionSave}>
+                            Save
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => {
+                              setMainObjectDescription(project.mainObjectDescription || "");
+                              setIsEditingMainObjectDescription(false);
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-start gap-2">
+                        <p className="text-sm text-gray-600 flex-1">
+                          {project.mainObjectDescription || 
+                            `Core fields extracted from your ${project.mainObjectName || "Session"} documents.`
+                          }
+                        </p>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          onClick={() => setIsEditingMainObjectDescription(true)}
+                          className="h-6 w-6 p-0 flex-shrink-0"
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 {schemaFieldsLoading ? (
