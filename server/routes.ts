@@ -837,9 +837,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/collections/:collectionId/properties", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const collectionId = req.params.collectionId;
+      
+      // Get existing properties to calculate next orderIndex
+      const existingProperties = await storage.getCollectionProperties(collectionId);
+      const maxOrderIndex = existingProperties.length > 0 
+        ? Math.max(...existingProperties.map(p => p.orderIndex || 0))
+        : -1;
+      const nextOrderIndex = maxOrderIndex + 1;
+      
       const result = insertCollectionPropertySchema.safeParse({
         ...req.body,
-        collectionId
+        collectionId,
+        orderIndex: nextOrderIndex
       });
       if (!result.success) {
         return res.status(400).json({ message: "Invalid property data", errors: result.error.errors });

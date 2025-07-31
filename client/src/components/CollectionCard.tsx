@@ -27,6 +27,7 @@ interface CollectionCardProps {
   onEditProperty: (property: CollectionProperty) => void;
   onDeleteProperty: (id: string, name: string) => void;
   dragHandleProps?: any;
+  hideHeader?: boolean; // Hide collection header when displayed in tab view
 }
 
 export default function CollectionCard({
@@ -38,6 +39,7 @@ export default function CollectionCard({
   onEditProperty,
   onDeleteProperty,
   dragHandleProps,
+  hideHeader = false,
 }: CollectionCardProps) {
   const { data: properties = [], isLoading } = useCollectionProperties(String(collection.id));
   const { toast } = useToast();
@@ -105,69 +107,71 @@ export default function CollectionCard({
 
   return (
     <div className="space-y-4">
-      {/* Collection Header */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3 flex-1">
-          {dragHandleProps && (
-            <div
-              {...dragHandleProps}
-              className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-200 mt-1"
-            >
-              <GripVertical className="h-4 w-4 text-gray-400" />
-            </div>
-          )}
-          <div className="flex-1 space-y-2">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="p-0 h-auto hover:bg-transparent"
+      {/* Collection Header - only show if not hidden */}
+      {!hideHeader && (
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 flex-1">
+            {dragHandleProps && (
+              <div
+                {...dragHandleProps}
+                className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-200 mt-1"
               >
-                {isExpanded ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </Button>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-medium text-gray-900">{collection.collectionName}</h3>
-                  <Badge className="bg-green-100 text-green-800 text-xs">List</Badge>
-                  <Badge variant="outline" className="text-xs bg-white">
-                    {properties.length} field{properties.length !== 1 ? 's' : ''}
-                  </Badge>
+                <GripVertical className="h-4 w-4 text-gray-400" />
+              </div>
+            )}
+            <div className="flex-1 space-y-2">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="p-0 h-auto hover:bg-transparent"
+                >
+                  {isExpanded ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                </Button>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-medium text-gray-900">{collection.collectionName}</h3>
+                    <Badge className="bg-green-100 text-green-800 text-xs">List</Badge>
+                    <Badge variant="outline" className="text-xs bg-white">
+                      {properties.length} field{properties.length !== 1 ? 's' : ''}
+                    </Badge>
+                  </div>
+                  {collection.description && (
+                    <p className="text-sm text-gray-600 mt-1">{collection.description}</p>
+                  )}
                 </div>
-                {collection.description && (
-                  <p className="text-sm text-gray-600 mt-1">{collection.description}</p>
-                )}
               </div>
             </div>
           </div>
+          <div className="flex gap-1">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => onEditCollection(collection)}
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={() => onDeleteCollection(collection.id, collection.collectionName)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-1">
-          <Button 
-            variant="ghost" 
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => onEditCollection(collection)}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-            onClick={() => onDeleteCollection(collection.id, collection.collectionName)}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+      )}
       
       {/* Expanded content - Clean table design like SessionView */}
-      {isExpanded && (
-        <div className="ml-6">
+      {(hideHeader || isExpanded) && (
+        <div className={hideHeader ? "" : "ml-6"}>
           {isLoading ? (
             <div className="text-center py-4">
               <div className="animate-spin h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-2" />
