@@ -479,13 +479,26 @@ export default function NewUpload({ project }: NewUploadProps) {
       form.reset();
       setSelectedFiles([]);
     } catch (error) {
-      console.error("Failed to extract text:", error);
+      console.error("Processing failed:", error);
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "error" as const })));
       
       setShowProcessingDialog(false);
+      
+      // Determine more specific error message based on processing step
+      let errorTitle = "Processing failed";
+      let errorDescription = "There was an error processing your documents. Please try again.";
+      
+      if (processingStep === 'extracting' && extractionMode === 'automated') {
+        errorTitle = "AI extraction failed";
+        errorDescription = "The AI analysis encountered an error. The text was extracted successfully, but data extraction failed. Try debug mode to see more details.";
+      } else if (processingStep === 'extracting') {
+        errorTitle = "Text extraction failed";
+        errorDescription = "There was an error extracting text from your files. Please try again.";
+      }
+      
       toast({
-        title: "Text extraction failed",
-        description: "There was an error extracting text from your files. Please try again.",
+        title: errorTitle,
+        description: errorDescription,
         variant: "destructive",
       });
       
