@@ -125,8 +125,13 @@ CRITICAL INSTRUCTIONS:
 4. For NUMBER fields: Count ALL instances across ALL {len(documents)} documents as described
 5. For NDA counting: Count individual contracts/agreements, NOT just parties
 6. For collections: Extract EVERY instance mentioned across ALL documents
-7. Return JSON with real extracted values only
-8. If extraction rules specify formatting, apply that formatting to extracted values
+7. **CRITICAL FOR COLLECTIONS**: Create SEPARATE collection items for each unique instance found
+   - If you find multiple CSP intervention codes (DP BISS, DP BISS SF, DP CIS-YF, etc.), create separate items for EACH code
+   - If you find multiple parties/companies, create separate items for EACH party  
+   - If you find multiple clauses/sections, create separate items for EACH clause
+   - DO NOT combine multiple instances into a single collection item
+8. Return JSON with real extracted values only
+9. If extraction rules specify formatting, apply that formatting to extracted values
 
 DOCUMENT SET ANALYSIS: You are processing {len(documents)} documents simultaneously. Extract comprehensively from the entire set.
 
@@ -175,6 +180,7 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
         # Add collections with descriptions for AI guidance
         if project_schema.get("collections"):
             prompt += "\n\nCOLLECTIONS TO EXTRACT (extract ALL instances across ALL documents):"
+            prompt += "\n\n**IMPORTANT**: Each unique instance found should be a SEPARATE collection item with its own record_index (0, 1, 2, etc.)"
             for collection in project_schema["collections"]:
                 collection_name = collection.get('collectionName', collection.get('objectName', ''))
                 collection_description = collection.get('description', '')
@@ -195,6 +201,10 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
                     full_instruction += " | " + " | ".join(applicable_rules)
                 
                 prompt += f"\n- **{collection_name}**: {full_instruction}"
+                
+                # Add special instructions for CSP interventions
+                if "CSP" in collection_name or "intervention" in collection_name.lower():
+                    prompt += f"\n  **SPECIAL FOR {collection_name}**: Each DP code (DP BISS, DP BISS SF, DP CIS-YF, DP ECO-Biodeg Mulch, etc.) should be a SEPARATE item. Create one collection item per unique intervention code found."
                 
                 properties = collection.get("properties", [])
                 if properties:

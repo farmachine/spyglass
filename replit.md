@@ -11,6 +11,12 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **July 31, 2025 (Latest Update)**
+- ✓ **MULTIPLE COLLECTION ITEM EXTRACTION ISSUE RESOLVED**: Fixed critical AI prompt issue where only one collection item was extracted instead of multiple instances
+- ✓ Root cause identified: AI was combining multiple CSP intervention codes (DP BISS, DP BISS SF, DP CIS-YF, etc.) into single collection item instead of creating separate items
+- ✓ Enhanced AI prompts with explicit instructions: "Create SEPARATE collection items for each unique instance found"
+- ✓ Added specific CSP intervention guidance: "Each DP code should be a SEPARATE item. Create one collection item per unique intervention code found"
+- ✓ Test confirmed: AI now correctly extracts 6 separate CSP intervention codes with proper record indexing (0-5) instead of combining into one item
+- ✓ Token limit (100,000 tokens) confirmed sufficient - issue was prompt clarity, not truncation
 - ✓ **CHOICE FIELD EDITING FUNCTIONALITY COMPLETELY RESTORED**: Fixed critical issue where AI schema generation wasn't saving choice options to database
 - ✓ Root cause identified: Schema generation route was missing choiceOptions field when creating schema fields and collection properties
 - ✓ Updated server/routes.ts to extract and save choice_options from AI-generated schema JSON to database
