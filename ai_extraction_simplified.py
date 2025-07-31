@@ -70,20 +70,23 @@ CRITICAL INSTRUCTIONS:
 
 DOCUMENT SET ANALYSIS: You are processing {len(documents)} documents simultaneously. Extract comprehensively from the entire set.
 
-SPECIAL INSTRUCTIONS FOR CLAUSE EXTRACTION:
-- For clause-related fields (titles, references, summaries): Look for specific contract sections, numbered clauses, paragraph headings, legal provisions
-- For DORA compliance: Look for ANY contractual provisions related to:
-  * **Risk Management**: ICT risk, operational risk, third-party risk, vendor management, subcontracting
-  * **Security & Data Protection**: data security, confidentiality, access controls, malicious code protection
-  * **Operational Resilience**: business continuity, incident management, disaster recovery, service availability
-  * **Governance & Oversight**: audit rights, compliance obligations, monitoring, reporting requirements
-  * **Service Management**: service warranties, termination procedures, liability limitations, indemnification
-  * **Third-party Relations**: subcontractor management, export controls, sanctions compliance
-- For remediation actions: Look for required actions, deadlines, compliance steps, reporting requirements
-- **COMPREHENSIVE CLAUSE DETECTION**: Extract ALL contractual provisions that relate to operational risk, security, compliance, or service management - these are ALL potentially DORA-relevant
-- **INCLUDE STANDARD CONTRACT CLAUSES**: Liability, termination, confidentiality, warranties, audit rights, incident management, and subcontracting provisions are DORA-relevant
-- **BROAD INTERPRETATION**: Any clause addressing operational aspects, risk management, security, or regulatory compliance should be extracted
-- **ONLY CREATE RECORDS WHEN FOUND**: Only include field_validations for clauses that actually exist in the document - do not create empty placeholder records
+SPECIAL INSTRUCTIONS FOR DORA CLAUSE EXTRACTION:
+- **DORA-SPECIFIC FOCUS**: Extract only clauses directly relevant to Digital Operational Resilience Act (DORA) compliance requirements:
+  * **ICT Risk Management**: Information and Communication Technology risk frameworks, operational risk management, ICT governance
+  * **Incident Management**: ICT incident detection, reporting, response procedures, communication protocols, escalation processes
+  * **Digital Operational Resilience Testing**: Testing frameworks, penetration testing, vulnerability assessments, resilience testing
+  * **ICT Third-party Risk Management**: Third-party provider oversight, due diligence, monitoring, contractual arrangements with ICT providers
+  * **Information Sharing**: Threat intelligence sharing, cyber threat information exchange, incident reporting to authorities
+- **SPECIFIC DORA TERMS**: Look for clauses containing: "operational resilience", "ICT risk", "cyber resilience", "business continuity", "incident response", "third-party ICT services", "critical functions", "outsourcing arrangements"
+- **DORA-RELEVANT ASSESSMENT**: Extract contract clauses that impact operational resilience for financial entities, including:
+  * ICT service arrangements and third-party provider management (subcontracting clauses)
+  * Security and data protection measures that ensure operational continuity
+  * Incident notification and reporting procedures
+  * Service availability and business continuity provisions
+  * Audit rights and monitoring capabilities for ICT services
+- **EXCLUDE PURELY COMMERCIAL TERMS**: Do NOT extract general liability caps, IP indemnification, or basic confidentiality unless they specifically impact ICT service delivery or operational resilience
+- **REMEDIATION FOCUS**: For compliance status, assess whether clauses meet DORA's specific requirements for financial entities' operational resilience
+- **ONLY CREATE RECORDS WHEN FOUND**: Only include field_validations for clauses that actually relate to DORA operational resilience requirements - do not create empty placeholder records
 
 SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
         
