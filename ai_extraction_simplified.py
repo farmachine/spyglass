@@ -23,11 +23,7 @@ class ExtractionResult:
     extraction_prompt: Optional[str] = None
     ai_response: Optional[str] = None
 
-@dataclass
-class ValidationResult:
-    success: bool
-    updated_validations: Optional[List[Dict[str, Any]]] = None
-    error_message: Optional[str] = None
+# ValidationResult dataclass removed - validation now occurs only during extraction
 
 def repair_truncated_json(response_text: str) -> str:
     """
@@ -682,201 +678,9 @@ RETURN: Complete readable content from this document."""
         logging.error(f"STEP 1 extraction failed: {e}")
         return ExtractionResult(success=False, error_message=str(e))
 
-def step2_validate_field_records(
-    field_validations: List[Dict[str, Any]],
-    extraction_rules: List[Dict[str, Any]] = None,
-    knowledge_documents: List[Dict[str, Any]] = None
-) -> ValidationResult:
-    """
-    STEP 2: Validate existing field records using AI
-    
-    Args:
-        field_validations: List of field validation records with UUIDs
-        extraction_rules: Optional extraction rules for context
-        knowledge_documents: Optional knowledge documents for context
-    
-    Returns:
-        ValidationResult with updated validation records
-    """
-    try:
-        # Check for API key
-        api_key = os.environ.get("GEMINI_API_KEY")
-        if not api_key:
-            return ValidationResult(success=False, error_message="GEMINI_API_KEY not found")
-        
-        # Import Google AI modules
-        import google.generativeai as genai
-        genai.configure(api_key=api_key)
-        
-        logging.info(f"STEP 2: Starting validation for {len(field_validations)} field records")
-        
-        # Build validation prompt with enhanced rule-based confidence adjustment
-        prompt = f"""You are an expert data validation specialist. Review field validation records and apply extraction rules for confidence adjustment and formatting.
+# Validation function removed - validation now occurs only during extraction process
 
-CRITICAL INSTRUCTIONS:
-1. APPLY EXTRACTION RULES: Use rules to adjust confidence levels and format values
-2. RULE-BASED CONFIDENCE: If rule specifies confidence (e.g., "27%", "50%"), apply that percentage
-3. KNOWLEDGE CONFLICTS: Lower confidence when values conflict with knowledge documents
-4. FORMAT TRANSFORMATION: If rules specify formatting, transform the extracted value accordingly
-5. Return JSON with fieldValidations array using EXACT UUIDs provided
-6. Provide clear AIReasoning explaining confidence adjustments and rule applications
-
-FIELD VALIDATION RECORDS TO PROCESS ({len(field_validations)} records):"""
-        
-        # Generate dynamic validation example based on actual fields and rules
-        def generate_validation_example():
-            if not field_validations:
-                return ""
-            
-            sample = field_validations[0]
-            uuid = sample.get('uuid', sample.get('id', 'uuid-example'))
-            field_name = sample.get('field_name', sample.get('fieldName', 'fieldName'))
-            field_value = sample.get('extracted_value', sample.get('fieldValue', 'extractedValue'))
-            field_type = sample.get('field_type', sample.get('fieldType', 'TEXT'))
-            
-            # Find applicable rules for this field
-            confidence = "0.95"
-            reasoning = "High confidence extraction"
-            
-            if extraction_rules:
-                for rule in extraction_rules:
-                    rule_content = rule.get('ruleContent', '')
-                    if any(keyword in rule_content.lower() for keyword in ['27%', '50%', 'confidence']):
-                        confidence = "0.27"
-                        reasoning = f"Confidence adjusted by rule: {rule_content[:100]}..."
-                        break
-            
-            return f"""
-EXAMPLE OUTPUT:
-{{
-  "fieldValidations": [
-    {{
-      "uuid": "{uuid}",
-      "fieldName": "{field_name}",
-      "fieldType": "{field_type}",
-      "fieldValue": "{field_value}",
-      "collectionID": null,
-      "validationStatus": "valid",
-      "validationConfidence": {confidence},
-      "AIReasoning": "{reasoning}"
-    }}
-  ]
-}}"""
-
-        prompt += generate_validation_example()
-        
-        # Add field validation records
-        for fv in field_validations:
-            uuid = fv.get('uuid', fv.get('id', 'unknown'))
-            field_name = fv.get('field_name', fv.get('fieldName', 'unknown'))
-            field_value = fv.get('extracted_value', fv.get('fieldValue'))
-            field_type = fv.get('field_type', fv.get('fieldType', 'string'))
-            
-            prompt += f"\n- UUID: {uuid} | Field: {field_name} ({field_type}) | Value: {field_value}"
-        
-        # Add extraction rules with confidence instructions
-        if extraction_rules:
-            prompt += "\n\nEXTRACTION RULES TO APPLY:"
-            for rule in extraction_rules:
-                rule_name = rule.get('ruleName', 'Unknown Rule')
-                rule_content = rule.get('ruleContent', '')
-                target_field = rule.get('targetField', '')
-                if rule.get('isActive', True):
-                    prompt += f"\n- **{rule_name}**: {rule_content}"
-                    
-                    # Show which fields this rule applies to
-                    if isinstance(target_field, list):
-                        prompt += f" (applies to: {', '.join(target_field)})"
-                    else:
-                        prompt += f" (applies to: {target_field})"
-                    
-                    # Extract confidence percentage from rule content
-                    import re
-                    confidence_match = re.search(r'(\d{1,2})%', rule_content)
-                    if confidence_match:
-                        confidence_pct = confidence_match.group(1)
-                        prompt += f" [SET CONFIDENCE: 0.{confidence_pct.zfill(2)}]"
-        
-        # Add knowledge documents context
-        if knowledge_documents:
-            prompt += "\n\nKNOWLEDGE DOCUMENTS FOR CONTEXT:"
-            for doc in knowledge_documents:
-                doc_name = doc.get('displayName', doc.get('fileName', 'Unknown Document'))
-                content = doc.get('content', '')
-                if content:
-                    prompt += f"\n- {doc_name}: {content[:500]}..."
-        
-        prompt += """
-
-REQUIRED OUTPUT FORMAT (apply extraction rules to confidence and reasoning):
-{
-  "fieldValidations": [
-    {
-      "uuid": "exact-uuid-from-input",
-      "fieldName": "fieldName",
-      "fieldType": "fieldType", 
-      "fieldValue": "transformed-value-if-rule-specifies-formatting",
-      "collectionID": "collectionId-or-null",
-      "validationStatus": "valid|warning|invalid",
-      "validationConfidence": 0.27,  // Use rule-specified confidence (e.g. 27% = 0.27)
-      "AIReasoning": "Applied [RuleName]: confidence reduced to 27% due to rule specification"
-    }
-  ]
-}
-
-RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
-        
-        # Make AI validation call
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        logging.info(f"Making AI validation call with {len(prompt)} character prompt")
-        response = model.generate_content(prompt)
-        
-        if not response or not response.text:
-            return ValidationResult(success=False, error_message="No response from AI")
-        
-        # Parse JSON response
-        try:
-            validation_result = json.loads(response.text.strip())
-            updated_validations = validation_result.get('fieldValidations', [])
-            
-            logging.info(f"STEP 2: Successfully validated {len(updated_validations)} field records")
-            return ValidationResult(success=True, updated_validations=updated_validations)
-            
-        except json.JSONDecodeError as e:
-            logging.error(f"Failed to parse validation response as JSON: {e}")
-            logging.error(f"Raw response: {response.text}")
-            return ValidationResult(success=False, error_message=f"Invalid JSON response: {e}")
-            
-    except Exception as e:
-        logging.error(f"STEP 2 validation failed: {e}")
-        return ValidationResult(success=False, error_message=str(e))
-
-def extract_and_validate_chain(
-    documents: List[Dict[str, Any]], 
-    project_schema: Dict[str, Any],
-    extraction_rules: List[Dict[str, Any]] = None,
-    knowledge_documents: List[Dict[str, Any]] = None,
-    session_name: str = "contract"
-) -> tuple[ExtractionResult, Optional[ValidationResult]]:
-    """
-    CHAINED PROCESS: Run both extraction and validation steps together
-    
-    Returns:
-        Tuple of (extraction_result, validation_result)
-    """
-    logging.info("Starting chained extraction and validation process")
-    
-    # Step 1: Extract
-    extraction_result = step1_extract_from_documents(documents, project_schema, extraction_rules, session_name)
-    
-    if not extraction_result.success:
-        return extraction_result, None
-    
-    # Convert extraction data to field validation format (this would be done by the API)
-    # For now, return just the extraction result
-    # The API layer will handle creating field validation records and calling step2
-    
-    return extraction_result, None
+# Chain function removed - only extraction is needed, validation occurs during extraction
 
 if __name__ == "__main__":
     import sys
@@ -913,22 +717,8 @@ if __name__ == "__main__":
                 print(json.dumps({"success": False, "error": result.error_message}), file=sys.stderr)
                 sys.exit(1)
                 
-        elif step == "validate":
-            # STEP 2: Validate field records
-            field_validations = input_data.get("field_validations", [])
-            extraction_rules = input_data.get("extraction_rules", [])
-            knowledge_documents = input_data.get("knowledge_documents", [])
-            
-            result = step2_validate_field_records(field_validations, extraction_rules, knowledge_documents)
-            
-            if result.success:
-                print(json.dumps(result.updated_validations))
-            else:
-                print(json.dumps({"error": result.error_message}), file=sys.stderr)
-                sys.exit(1)
-                
         else:
-            print(json.dumps({"error": f"Unknown step: {step}"}), file=sys.stderr)
+            print(json.dumps({"error": f"Unknown operation: {operation}"}), file=sys.stderr)
             sys.exit(1)
             
     except Exception as e:
