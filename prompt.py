@@ -154,6 +154,10 @@ Section | Topic Name | Column A | Column B
 6. **COUNT VERIFICATION**: When you see numbered items like 2.3.1, 2.3.2, 2.3.3, keep counting until you reach the end of that section (e.g., 2.3.10) and extract EVERY SINGLE ONE
 7. **NO TRUNCATION**: Do not truncate your response - if you find 10 items, output all 10 field validation objects in the JSON response
 
+**CRITICAL**: 
+1. Use the EXACT field_id values provided in the schema above. Do not generate your own field IDs.
+2. For collection properties, you MUST include the "collection_name" field in EVERY field validation object.
+
 ## REQUIRED OUTPUT FORMAT - Field Validation JSON Structure:
 ```json
 {{"field_validations": [

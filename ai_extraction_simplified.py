@@ -298,6 +298,7 @@ def step1_extract_from_documents(
                             json_lines.append(f'    "field_id": "{prop_id}",')
                             json_lines.append(f'    "field_type": "collection_property",')
                             json_lines.append(f'    "field_name": "{field_name_with_index}",')
+                            json_lines.append(f'    "collection_name": "{collection_name}",')
                             json_lines.append(f'    "extracted_value": "{example_value}",')
                             json_lines.append(f'    "confidence_score": 0.95,')
                             json_lines.append(f'    "validation_status": "unverified",')
@@ -328,6 +329,10 @@ CHOICE FIELD HANDLING:
 - If the document contains values not in the choice options, return null (do not block processing)
 - Choice options are specified as "The output should be one of the following choices: ..."
 - Example: For Yes/No choice, only return "Yes" or "No", never "true", "false", "1", "0", etc.
+
+**CRITICAL FIELD ID REQUIREMENT**: Use the EXACT field_id values provided in the schema above. Do not generate your own field IDs like "IncreaseRatesSection0". Use the actual IDs from the schema.
+
+**CRITICAL COLLECTION NAME REQUIREMENT**: For collection properties, you MUST include the "collection_name" field in each field validation object. Use the exact collection name from the schema (e.g., "Increase Rates").
 
 REQUIRED OUTPUT FORMAT - Field Validation JSON Structure:
 {dynamic_example}"""
