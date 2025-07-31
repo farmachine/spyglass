@@ -25,6 +25,7 @@ export default function DebugView() {
       
       // Try to find and extract valid JSON
       const jsonMatch = extractJsonFromString(cleanJson);
+      console.log('JSON extraction result:', jsonMatch ? `Found ${jsonMatch.length} chars` : 'null');
       if (!jsonMatch) {
         console.log('No JSON found in cleaned string');
         return cleanJson; // Return cleaned input if no JSON found
@@ -115,11 +116,15 @@ export default function DebugView() {
       escaped = !escaped && char === '\\' && inString;
     }
     
+    console.log('Brace counting completed. jsonEnd:', jsonEnd, 'braceCount:', braceCount);
+    
     if (jsonEnd === -1) {
+      console.log('JSON appears truncated, attempting repair...');
       // JSON is truncated, try to repair it
       return repairTruncatedJson(str.substring(jsonStart));
     }
     
+    console.log('Found complete JSON from', jsonStart, 'to', jsonEnd);
     return str.substring(jsonStart, jsonEnd + 1);
   };
 

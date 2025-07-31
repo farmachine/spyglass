@@ -1,0 +1,21 @@
+Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+ProjectLayout.tsx:143 Project ec512970-2fbe-4130-9198-d2f66bec311e DEBUG - hasDataItems: true, hasUserInteracted: false, activeTab: upload, initialTabSet: false
+ProjectLayout.tsx:147 Project ec512970-2fbe-4130-9198-d2f66bec311e - fields: 1, collections: 1 - marking as interacted
+DebugView.tsx:19 Beautifying JSON, input length: 22616
+DebugView.tsx:24 After sanitization, length: 22616
+DebugView.tsx:74 Looking for JSON in string. First 200 chars: {"field_validations": [{"field_id": "c9f51565-a1e2-474e-a2dc-901d22920072", "field_type": "schema_field", "field_name": "Country", "extracted_value": "MT", "confidence_score": 0.95, "validation_status
+DebugView.tsx:75 Last 200 chars: ysis", "record_index": 0}, {"field_id": "40d82dec-3ff2-4762-b1be-254f8f29050b", "field_type": "collection_property", "field_name": "CSP Interventions.Landscape Features[0]", "extracted_value": "No", "
+DebugView.tsx:78 JSON start position: 0
+DebugView.tsx:29 No JSON found in cleaned string
+DebugView.tsx:19 Beautifying JSON, input length: 22616
+DebugView.tsx:24 After sanitization, length: 22616
+DebugView.tsx:74 Looking for JSON in string. First 200 chars: {"field_validations": [{"field_id": "c9f51565-a1e2-474e-a2dc-901d22920072", "field_type": "schema_field", "field_name": "Country", "extracted_value": "MT", "confidence_score": 0.95, "validation_status
+DebugView.tsx:75 Last 200 chars: ysis", "record_index": 0}, {"field_id": "40d82dec-3ff2-4762-b1be-254f8f29050b", "field_type": "collection_property", "field_name": "CSP Interventions.Landscape Features[0]", "extracted_value": "No", "
+DebugView.tsx:78 JSON start position: 0
+DebugView.tsx:29 No JSON found in cleaned string
+DebugView.tsx:19 Beautifying JSON, input length: 22616
+DebugView.tsx:24 After sanitization, length: 22616
+DebugView.tsx:74 Looking for JSON in string. First 200 chars: {"field_validations": [{"field_id": "c9f51565-a1e2-474e-a2dc-901d22920072", "field_type": "schema_field", "field_name": "Country", "extracted_value": "MT", "confidence_score": 0.95, "validation_status
+DebugView.tsx:75 Last 200 chars: ysis", "record_index": 0}, {"field_id": "40d82dec-3ff2-4762-b1be-254f8f29050b", "field_type": "collection_property", "field_name": "CSP Interventions.Landscape Features[0]", "extracted_value": "No", "
+DebugView.tsx:78 JSON start position: 0
+DebugView.tsx:29 No JSON found in cleaned string
