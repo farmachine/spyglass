@@ -561,6 +561,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 fieldType: field.field_type,
                 description: field.description,
                 autoVerificationConfidence: field.auto_verification_confidence || 80,
+                choiceOptions: field.choice_options || null,
                 orderIndex: i
               };
               
@@ -602,6 +603,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     propertyType: property.field_type,
                     description: property.description,
                     autoVerificationConfidence: property.auto_verification_confidence || 80,
+                    choiceOptions: property.choice_options || null,
                     orderIndex: j
                   };
                   

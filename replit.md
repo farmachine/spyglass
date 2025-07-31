@@ -11,6 +11,11 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **July 31, 2025 (Latest Update)**
+- ✓ **CHOICE FIELD EDITING FUNCTIONALITY COMPLETELY RESTORED**: Fixed critical issue where AI schema generation wasn't saving choice options to database
+- ✓ Root cause identified: Schema generation route was missing choiceOptions field when creating schema fields and collection properties
+- ✓ Updated server/routes.ts to extract and save choice_options from AI-generated schema JSON to database
+- ✓ Choice fields now properly display dropdown menus instead of text inputs in Edit Field Value dialogs
+- ✓ AI schema generator already had correct choice_options in templates - was purely a database save issue
 - ✓ **TRUNCATED JSON RESPONSE BUG COMPLETELY RESOLVED**: Fixed critical issue where AI responses were truncating at 32K characters despite token limits
 - ✓ Reduced token limit to 100,000 tokens for stable API responses - 30M tokens was causing timeouts and truncation
 - ✓ Enhanced JSON repair function to handle truncated responses by finding last complete object and properly closing JSON structure
