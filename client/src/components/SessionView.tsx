@@ -229,7 +229,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
 
   // Sort validations within each collection by property order from schema
   Object.keys(collectionGroups).forEach(collectionName => {
-    const collection = schemaData?.collections?.find((c: any) => c.collectionName === collectionName);
+    const collection = (schemaData as any)?.collections?.find((c: any) => c.collectionName === collectionName);
     if (collection && collection.properties) {
       // Create a property order map from schema
       const propertyOrderMap = new Map();

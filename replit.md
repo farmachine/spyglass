@@ -41,6 +41,7 @@ Preferred communication style: Simple, everyday language.
 - **UUID/Integer Consistency Issue Resolved**: Fixed systematic data type mismatches in MemStorage where UUID session IDs were being parsed as integers using parseInt(), causing all field validation lookups to fail and collections to display "Not set" instead of actual extracted values.
 - **Storage Interface Standardization**: Updated all storage methods to consistently use string UUIDs instead of mixed integer/string types, resolving LSP diagnostics and enabling proper data retrieval.
 - **Sample Data Alignment**: Fixed sample validation data to use correct session UUIDs and field IDs, ensuring proper data relationships and display functionality.
+- **Column Ordering Synchronization**: Implemented automatic synchronization between Define Data tab and Session View column ordering. SessionView now fetches schema data and sorts collection validations by property orderIndex, ensuring existing sessions reflect current schema column order when properties are reordered via drag-and-drop.
 
 ### Technical Implementations
 - **Document Processing**: Supports PDF, DOCX, DOC, XLSX, XLS files. Uses Google Gemini API for text extraction from PDFs and images; `python-docx` for Word documents; `pandas` and `openpyxl` for Excel files.
