@@ -2,7 +2,7 @@ import React, { useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Upload, X, FileText, AlertCircle, Play, CheckCircle, Clock, TrendingUp } from "lucide-react";
+import { Upload, X, FileText, AlertCircle, Play, CheckCircle, Clock, TrendingUp, FileSearch } from "lucide-react";
 import { WaveIcon, DropletIcon, FlowIcon, StreamIcon } from "@/components/SeaIcons";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCreateExtractionSession } from "@/hooks/useExtractionSessions";
 import { useProcessExtraction } from "@/hooks/useAIExtraction";
 import { useProjectSchemaFields, useObjectCollections } from "@/hooks/useSchema";
@@ -34,6 +35,10 @@ const uploadFormSchema = z.object({
   sessionName: z.string().min(1, "Session name is required"),
   description: z.string().optional(),
   files: z.any().optional(),
+  extractionRangeType: z.enum(["all", "pages", "sections"]).default("all"),
+  pageRangeStart: z.string().optional(),
+  pageRangeEnd: z.string().optional(),
+  sectionKeywords: z.string().optional(),
 });
 
 type UploadForm = z.infer<typeof uploadFormSchema>;
@@ -86,6 +91,10 @@ export default function NewUpload({ project }: NewUploadProps) {
     defaultValues: {
       sessionName: "",
       description: "",
+      extractionRangeType: "all",
+      pageRangeStart: "",
+      pageRangeEnd: "",
+      sectionKeywords: "",
     },
   });
 
@@ -394,6 +403,14 @@ export default function NewUpload({ project }: NewUploadProps) {
 
         const fullPrompt = generateSchemaMarkdown(schemaData, textExtractionResult.extractedText || '', selectedFiles.length);
 
+        // Prepare extraction range parameters
+        const extractionRange = form.getValues("extractionRangeType") !== "all" ? {
+          type: form.getValues("extractionRangeType"),
+          pageStart: form.getValues("pageRangeStart"),
+          pageEnd: form.getValues("pageRangeEnd"),
+          sectionKeywords: form.getValues("sectionKeywords")
+        } : null;
+
         const aiResponse = await apiRequest(`/api/sessions/${session.id}/gemini-extraction`, {
           method: 'POST',
           body: JSON.stringify({ 
@@ -401,7 +418,8 @@ export default function NewUpload({ project }: NewUploadProps) {
             schemaFields: schemaData.schema_fields || [],
             collections: schemaData.collections || [],
             extractionRules: schemaData.extraction_rules || [],
-            knowledgeDocuments: schemaData.knowledge_documents || []
+            knowledgeDocuments: schemaData.knowledge_documents || [],
+            extractionRange: extractionRange
           }),
           headers: { 'Content-Type': 'application/json' }
         });
@@ -647,7 +665,106 @@ export default function NewUpload({ project }: NewUploadProps) {
                     )}
                   />
 
+                  {/* Range Selection Section */}
+                  <div className="border-t pt-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <FileSearch className="h-4 w-4 text-gray-600" />
+                      <h4 className="font-medium text-gray-900">Extraction Range (Optional)</h4>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-4">
+                      For large documents, specify which pages or sections to extract to avoid truncation issues.
+                    </p>
 
+                    <FormField
+                      control={form.control}
+                      name="extractionRangeType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Range Type</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select extraction range type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="all">Extract Entire Document</SelectItem>
+                              <SelectItem value="pages">Extract Specific Pages</SelectItem>
+                              <SelectItem value="sections">Extract Sections by Keywords</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {form.watch("extractionRangeType") === "pages" && (
+                      <div className="grid grid-cols-2 gap-4 mt-4">
+                        <FormField
+                          control={form.control}
+                          name="pageRangeStart"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Start Page</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  placeholder="1"
+                                  min="1"
+                                  {...field}
+                                  disabled={isProcessing}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="pageRangeEnd"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>End Page</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  placeholder="10"
+                                  min="1"
+                                  {...field}
+                                  disabled={isProcessing}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    )}
+
+                    {form.watch("extractionRangeType") === "sections" && (
+                      <FormField
+                        control={form.control}
+                        name="sectionKeywords"
+                        render={({ field }) => (
+                          <FormItem className="mt-4">
+                            <FormLabel>Section Keywords</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Enter keywords to find sections (e.g., 'terms and conditions, liability, payment terms')"
+                                className="min-h-[80px]"
+                                {...field}
+                                disabled={isProcessing}
+                              />
+                            </FormControl>
+                            <p className="text-sm text-gray-500 mt-1">
+                              Comma-separated keywords to identify relevant sections in the document.
+                            </p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                  </div>
 
                   <Button 
                     type="submit" 

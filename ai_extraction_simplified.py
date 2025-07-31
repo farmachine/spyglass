@@ -8,6 +8,7 @@ import os
 import json
 import logging
 import base64
+import re
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 
@@ -27,6 +28,119 @@ class ValidationResult:
     success: bool
     updated_validations: Optional[List[Dict[str, Any]]] = None
     error_message: Optional[str] = None
+
+def apply_extraction_range(text: str, extraction_range: Dict[str, Any]) -> str:
+    """
+    Filter document content based on extraction range specifications.
+    
+    Args:
+        text: The full document text content
+        extraction_range: Dictionary containing range specifications
+        
+    Returns:
+        Filtered text content based on range criteria
+    """
+    if not extraction_range:
+        return text
+        
+    range_type = extraction_range.get('type', 'all')
+    logging.info(f"Applying range filter type: {range_type}")
+    
+    if range_type == 'all':
+        return text
+    
+    elif range_type == 'pages':
+        # For page range extraction, we need to identify page boundaries
+        page_start = extraction_range.get('pageStart', 1)
+        page_end = extraction_range.get('pageEnd')
+        
+        logging.info(f"Extracting pages {page_start} to {page_end}")
+        
+        # Look for page indicators in the text
+        # Common patterns: "Page 1", "- 1 -", "[Page 1]", etc.
+        page_pattern = r'(?i)(?:page\s*|p\.\s*|^|\n)(\d+)(?:\s*of\s*\d+)?(?:\s*[-–—]\s*)?'
+        pages = re.finditer(page_pattern, text)
+        
+        page_positions = []
+        for match in pages:
+            page_num = int(match.group(1))
+            page_positions.append((page_num, match.start()))
+        
+        if not page_positions:
+            # No page markers found, try to split by document sections
+            logging.warning("No page markers found, returning full content")
+            return text
+        
+        # Sort by page number
+        page_positions.sort(key=lambda x: x[0])
+        
+        # Find start and end positions
+        start_pos = 0
+        end_pos = len(text)
+        
+        for page_num, pos in page_positions:
+            if page_num == page_start:
+                start_pos = pos
+            if page_end and page_num == page_end + 1:
+                end_pos = pos
+                break
+        
+        filtered_text = text[start_pos:end_pos]
+        logging.info(f"Page range filtering: extracted {len(filtered_text)} characters from pages {page_start}-{page_end}")
+        return filtered_text
+    
+    elif range_type == 'sections':
+        # For section-based extraction, look for section keywords
+        section_keywords = extraction_range.get('sectionKeywords', '')
+        
+        if not section_keywords:
+            logging.warning("No section keywords provided, returning full content")
+            return text
+        
+        logging.info(f"Extracting sections matching keywords: {section_keywords}")
+        
+        # Split keywords and create search patterns
+        keywords = [kw.strip() for kw in section_keywords.split(',') if kw.strip()]
+        
+        # Find sections that contain any of the keywords
+        sections = []
+        
+        # Split text into potential sections (by headers, line breaks, etc.)
+        section_pattern = r'\n\s*(?:[A-Z][^a-z\n]*|[0-9]+\.?\s*[A-Z][^\n]*|\w+:)\s*\n'
+        section_boundaries = list(re.finditer(section_pattern, text))
+        
+        if not section_boundaries:
+            # No clear section boundaries, search in paragraphs
+            paragraphs = text.split('\n\n')
+            for i, paragraph in enumerate(paragraphs):
+                for keyword in keywords:
+                    if re.search(re.escape(keyword), paragraph, re.IGNORECASE):
+                        sections.append(paragraph)
+                        break
+        else:
+            # Search within identified sections
+            for i, boundary in enumerate(section_boundaries):
+                start_pos = boundary.start()
+                end_pos = section_boundaries[i + 1].start() if i + 1 < len(section_boundaries) else len(text)
+                
+                section_content = text[start_pos:end_pos]
+                
+                for keyword in keywords:
+                    if re.search(re.escape(keyword), section_content, re.IGNORECASE):
+                        sections.append(section_content)
+                        break
+        
+        if sections:
+            filtered_text = '\n\n'.join(sections)
+            logging.info(f"Section filtering: extracted {len(filtered_text)} characters from {len(sections)} matching sections")
+            return filtered_text
+        else:
+            logging.warning("No sections found matching keywords, returning full content")
+            return text
+    
+    else:
+        logging.warning(f"Unknown range type: {range_type}, returning full content")
+        return text
 
 def repair_truncated_json(response_text: str) -> str:
     """
@@ -606,6 +720,13 @@ RETURN: Complete readable content from this document."""
                     continue
         
         logging.info(f"STEP 1 COMPLETE: Processed {processed_docs} documents, extracted total of {len(extracted_content_text)} characters from all documents")
+        
+        # Apply extraction range filtering if specified
+        extraction_range = data.get('extraction_range')
+        if extraction_range:
+            logging.info(f"Applying extraction range filtering: {extraction_range}")
+            extracted_content_text = apply_extraction_range(extracted_content_text, extraction_range)
+            logging.info(f"After range filtering: {len(extracted_content_text)} characters remaining")
         
         # Now proceed with data extraction using the extracted content
         final_prompt = prompt + f"\n\nEXTRACTED DOCUMENT CONTENT:\n{extracted_content_text}"

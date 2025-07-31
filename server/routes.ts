@@ -2047,7 +2047,7 @@ print(json.dumps(result))
   app.post("/api/sessions/:sessionId/gemini-extraction", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
-      const { extractedTexts, schemaFields, collections, extractionRules, knowledgeDocuments } = req.body;
+      const { extractedTexts, schemaFields, collections, extractionRules, knowledgeDocuments, extractionRange } = req.body;
       
       console.log(`GEMINI EXTRACTION: Starting for session ${sessionId}`);
       console.log(`GEMINI EXTRACTION: Received ${extractedTexts?.length || 0} documents`);
@@ -2101,7 +2101,8 @@ print(json.dumps(result))
         },
         extraction_rules: extractionRules || [],
         knowledge_documents: knowledgeDocuments || [],
-        session_name: sessionId
+        session_name: sessionId,
+        extraction_range: extractionRange || null
       });
       
       console.log(`GEMINI EXTRACTION: Sending ${documents.length} documents to Python script`);
