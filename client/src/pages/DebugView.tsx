@@ -206,11 +206,14 @@ export default function DebugView() {
                   {session.aiResponse && (
                     <div className="flex items-center gap-2">
                       <Button
-                        variant="outline"
+                        variant={showFormatted ? "default" : "outline"}
                         size="sm"
-                        onClick={() => setShowFormatted(!showFormatted)}
+                        onClick={() => {
+                          console.log('Toggle clicked, current state:', showFormatted);
+                          setShowFormatted(!showFormatted);
+                        }}
                       >
-                        {showFormatted ? 'Raw' : 'Formatted'}
+                        {showFormatted ? 'Show Raw' : 'Show Formatted'}
                       </Button>
                       <Button
                         variant="outline"
@@ -244,7 +247,12 @@ export default function DebugView() {
                             '--json-boolean-color': '#7c2d12'
                           } as React.CSSProperties}
                         >
-                          {showFormatted ? beautifyJson(session.aiResponse) : session.aiResponse}
+                          {(() => {
+                            const content = showFormatted ? beautifyJson(session.aiResponse) : session.aiResponse;
+                            console.log('Debug - showFormatted:', showFormatted);
+                            console.log('Debug - content preview:', content.substring(0, 200));
+                            return content;
+                          })()}
                         </code>
                       </pre>
                     </div>
