@@ -26,6 +26,56 @@ class ValidationResult:
     updated_validations: Optional[List[Dict[str, Any]]] = None
     error_message: Optional[str] = None
 
+def repair_truncated_json(response_text: str) -> str:
+    """
+    Attempt to repair truncated JSON responses by finding the last complete object
+    and properly closing the JSON structure.
+    """
+    try:
+        # Find the last complete field validation object
+        last_complete_bracket = response_text.rfind('}')
+        if last_complete_bracket == -1:
+            return None
+            
+        # Try to find where field_validations array starts
+        field_validations_start = response_text.find('"field_validations":[')
+        if field_validations_start == -1:
+            return None
+            
+        # Extract everything up to the last complete bracket
+        truncated_at = last_complete_bracket + 1
+        partial_response = response_text[:truncated_at]
+        
+        # Count open and close brackets to balance the JSON
+        open_brackets = partial_response.count('{')
+        close_brackets = partial_response.count('}')
+        open_arrays = partial_response.count('[')
+        close_arrays = partial_response.count(']')
+        
+        # Add missing closing brackets and arrays
+        repaired = partial_response
+        
+        # Close any open field validation objects
+        bracket_diff = open_brackets - close_brackets
+        if bracket_diff > 1:  # Account for the main object wrapper
+            repaired += '}' * (bracket_diff - 1)
+            
+        # Close the field_validations array
+        array_diff = open_arrays - close_arrays
+        if array_diff > 0:
+            repaired += ']' * array_diff
+            
+        # Close the main object
+        if not repaired.endswith('}'):
+            repaired += '}'
+            
+        logging.info(f"JSON repair: Original length {len(response_text)}, repaired length {len(repaired)}")
+        return repaired
+        
+    except Exception as e:
+        logging.error(f"JSON repair failed: {e}")
+        return None
+
 def step1_extract_from_documents(
     documents: List[Dict[str, Any]], 
     project_schema: Dict[str, Any],
@@ -556,6 +606,15 @@ RETURN: Complete readable content from this document."""
         logging.info(f"STEP 2: Raw AI response start: {response_text[:500]}...")
         if len(response_text) > 500:
             logging.info(f"STEP 2: Raw AI response end: ...{response_text[-500:]}")
+            
+        # Check for potential truncation indicators
+        truncation_indicators = ['...', '...}', '"ai_reasoning": "Extracted from document analysis",']
+        if any(indicator in response_text[-100:] for indicator in truncation_indicators):
+            logging.warning("POTENTIAL RESPONSE TRUNCATION DETECTED - Response may be incomplete")
+            
+        # Check if response appears to end abruptly
+        if len(response_text) > 10000 and not response_text.strip().endswith((']}', '}')):
+            logging.warning("RESPONSE APPEARS TRUNCATED - Does not end with expected JSON closing")
         
         # Remove markdown code blocks if present
         if response_text.startswith("```json"):
@@ -573,7 +632,25 @@ RETURN: Complete readable content from this document."""
                 logging.warning("Empty response from AI, creating default structure")
                 extracted_data = {"field_validations": []}
             else:
-                extracted_data = json.loads(response_text)
+                # First attempt: direct JSON parsing
+                try:
+                    extracted_data = json.loads(response_text)
+                except json.JSONDecodeError as e:
+                    logging.warning(f"Direct JSON parsing failed: {e}")
+                    logging.warning("Attempting JSON repair for truncated response...")
+                    
+                    # Attempt to repair truncated JSON
+                    repaired_json = repair_truncated_json(response_text)
+                    if repaired_json:
+                        try:
+                            extracted_data = json.loads(repaired_json)
+                            logging.info("Successfully repaired and parsed truncated JSON response")
+                        except json.JSONDecodeError:
+                            logging.error("JSON repair failed, creating minimal structure")
+                            extracted_data = {"field_validations": []}
+                    else:
+                        logging.error("Could not repair JSON, creating minimal structure")
+                        extracted_data = {"field_validations": []}
                 
             # Validate that we have the expected field_validations structure
             if "field_validations" not in extracted_data:
