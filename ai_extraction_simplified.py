@@ -10,6 +10,7 @@ import logging
 import base64
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
+from prompt import EXTRACTION_PROMPT
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -120,33 +121,8 @@ def step1_extract_from_documents(
         
         logging.info(f"STEP 1: Starting extraction for {len(documents)} documents")
         
-        # Build extraction prompt with enhanced field descriptions
-        prompt = f"""You are an expert data extraction specialist. Extract data from the provided documents and return a JSON object with the exact structure specified below.
-
-CRITICAL INSTRUCTIONS:
-1. PROCESS ALL {len(documents)} DOCUMENTS: {[doc.get('file_name', 'Unknown') for doc in documents]}
-2. FOLLOW SCHEMA FIELD DESCRIPTIONS PRECISELY - Each description is your extraction instruction
-3. APPLY EXTRACTION RULES - Rules modify extraction behavior, formatting, and validation
-4. For NUMBER fields: Count ALL instances across ALL {len(documents)} documents as described
-5. For collections (lists): Extract EVERY instance mentioned across ALL documents
-6. **CRITICAL FOR COLLECTIONS**: Create SEPARATE collection items for each unique instance found
-   - Each unique item should be a SEPARATE collection record with its own record_index (0, 1, 2, etc.)
-   - DO NOT combine multiple instances into a single collection item
-   - Find ALL instances across ALL documents
-7. Return JSON with real extracted values only
-8. If extraction rules specify formatting, apply that formatting to extracted values
-9. **ONLY CREATE RECORDS WHEN FOUND**: Only include field_validations for fields that actually exist in the document - do not create empty placeholder records
-
-DOCUMENT SET ANALYSIS: You are processing {len(documents)} documents simultaneously. Extract comprehensively from the entire set.
-
-FIELD TYPE DEFINITIONS:
-- **TEXT**: Extract text content as specified in the field description
-- **NUMBER**: Count or extract numeric values as described  
-- **DATE**: Extract dates in standard format (YYYY-MM-DD)
-- **CHOICE**: Select one of the predefined options (specified below for each field)
-- **COLLECTION**: Extract multiple instances - create separate records for each unique item found
-
-SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
+        # Build schema fields section for the imported prompt
+        schema_fields_text = ""
         
         # Add schema fields with descriptions for AI guidance  
         if project_schema.get("schema_fields"):
@@ -172,12 +148,11 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
                 if applicable_rules:
                     full_instruction += " | " + " | ".join(applicable_rules)
                 
-                prompt += f"\n- **{camel_case_name}** ({field_type}): {full_instruction}"
+                schema_fields_text += f"\n- **{camel_case_name}** ({field_type}): {full_instruction}"
         
-        # Add collections with descriptions for AI guidance
+        # Build collections section for the imported prompt
+        collections_text = ""
         if project_schema.get("collections"):
-            prompt += "\n\nCOLLECTIONS TO EXTRACT (extract ALL instances across ALL documents):"
-            prompt += "\n\n**IMPORTANT**: Each unique instance found should be a SEPARATE collection item with its own record_index (0, 1, 2, etc.)"
             for collection in project_schema["collections"]:
                 collection_name = collection.get('collectionName', collection.get('objectName', ''))
                 collection_description = collection.get('description', '')
@@ -197,14 +172,14 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
                 if applicable_rules:
                     full_instruction += " | " + " | ".join(applicable_rules)
                 
-                prompt += f"\n- **{collection_name}**: {full_instruction}"
+                collections_text += f"\n- **{collection_name}**: {full_instruction}"
                 
                 # Add explicit instructions for list/collection items
-                prompt += f"\n  **CRITICAL FOR {collection_name}**: Find ALL instances in the documents. Create one collection item per unique instance found. Each item should have a separate record_index (0, 1, 2, etc.)."
+                collections_text += f"\n  **CRITICAL FOR {collection_name}**: Find ALL instances in the documents. Create one collection item per unique instance found. Each item should have a separate record_index (0, 1, 2, etc.)."
                 
                 properties = collection.get("properties", [])
                 if properties:
-                    prompt += f"\n  Properties for each {collection_name} item:"
+                    collections_text += f"\n  Properties for each {collection_name} item:"
                     for prop in properties:
                         prop_name = prop.get('propertyName', '')
                         prop_type = prop.get('propertyType', 'TEXT')
@@ -241,7 +216,13 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
                             choice_text = f"The output should be one of the following choices: {'; '.join(prop['choiceOptions'])}."
                             prop_instruction = prop_instruction + " | " + choice_text if prop_instruction else choice_text
                             
-                        prompt += f"\n  * **{prop_name}** ({prop_type}): {prop_instruction}"
+                        collections_text += f"\n  * **{prop_name}** ({prop_type}): {prop_instruction}"
+        
+        # Use the imported prompt template with our schema and collections
+        prompt = EXTRACTION_PROMPT.format(
+            schema_fields=schema_fields_text,
+            collections=collections_text
+        )
         
         # Generate field validation JSON structure
         def generate_field_validation_example():
@@ -335,45 +316,11 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
         logging.info(f"Generated field validation example with {len(extraction_rules or [])} extraction rules")
         logging.info(f"Dynamic example preview (first 500 chars): {dynamic_example[:500]}...")
         
+        # The imported prompt already contains all the necessary instructions
+        # Just add document verification and choice field handling specific to this run
         prompt += f"""
 
-REQUIRED OUTPUT FORMAT - Field Validation JSON Structure:
-{dynamic_example}
-
-CRITICAL: Return ONLY this exact JSON format with field_validations array containing objects with:
-- field_id: The exact UUID from schema
-- field_type: "schema_field" or "collection_property" 
-- field_name: For collections, use format "CollectionName.PropertyName[index]"
-- extracted_value: The actual extracted value from documents
-- confidence_score: Number between 0.0 and 1.0 based on extraction certainty
-- validation_status: "unverified" (let validation system handle verification)
-- ai_reasoning: INTELLIGENT analysis explaining your extraction decision
-- record_index: For collection properties only (0, 1, 2, etc.)
-
-AI REASONING REQUIREMENTS:
-Your ai_reasoning field must be an intelligent, context-specific explanation that includes:
-1. **Source Location**: Where you found this information (e.g., "Found in Section 3.2", "Located in table on page 2", "Mentioned in header")
-2. **Extraction Logic**: Why you chose this value (e.g., "Selected 'Compliant' because clause meets all GDPR requirements", "Counted 5 unique companies across all documents")
-3. **Confidence Rationale**: Why this confidence level (e.g., "High confidence due to explicit statement", "Lower confidence due to ambiguous wording")
-4. **Missing Data Explanation**: For null/empty values, explain why (e.g., "No pricing information found in any document", "Document does not contain liability clauses")
-5. **Collection Context**: For collections, explain the grouping logic (e.g., "Found 3 separate intervention codes in different sections", "Each party listed in signature block")
-
-EXAMPLES OF GOOD AI REASONING:
-- "Found explicit company name 'ABC Corp' in document header and signature block. High confidence due to multiple consistent references."
-- "Counted 8 unique organizations mentioned across all 3 documents: 5 in main contract, 2 in appendix A, 1 in schedule B. Very confident in count accuracy."
-- "Selected 'Partially Compliant' because Section 4.2 addresses data security but lacks specific encryption requirements mentioned in field description."
-- "No DORA-related clauses found after comprehensive scan of all document sections. Document appears to be a standard service agreement without regulatory compliance provisions."
-
-EXAMPLES OF BAD AI REASONING (DO NOT USE):
-- "Extracted from document analysis"
-- "Found in document"
-- "Based on content review"
-- "Extracted value"
-
-CRITICAL INSTRUCTIONS:
-- **COMPREHENSIVE SCAN**: Process every document in this {len(documents)}-document set. Do not miss any documents.
-- **FOLLOW DESCRIPTIONS**: Schema field descriptions are mandatory instructions for what to count and extract.
-- **COUNT ACCURATELY**: For number fields, count all instances across all documents as specified in the field descriptions.
+DOCUMENT VERIFICATION: Confirm you processed all {len(documents)} documents: {[doc.get('file_name', 'Unknown') for doc in documents]}
 
 CHOICE FIELD HANDLING:
 - For CHOICE fields, extract values from the specified choice options only
@@ -381,9 +328,8 @@ CHOICE FIELD HANDLING:
 - Choice options are specified as "The output should be one of the following choices: ..."
 - Example: For Yes/No choice, only return "Yes" or "No", never "true", "false", "1", "0", etc.
 
-DOCUMENT VERIFICATION: Confirm you processed all {len(documents)} documents: {[doc.get('file_name', 'Unknown') for doc in documents]}
-
-RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
+REQUIRED OUTPUT FORMAT - Field Validation JSON Structure:
+{dynamic_example}"""
         
         # STEP 1: ENHANCED DOCUMENT CONTENT EXTRACTION
         # Process documents in two phases: content extraction, then data extraction

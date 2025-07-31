@@ -42,6 +42,7 @@ Preferred communication style: Simple, everyday language.
 - **Storage Interface Standardization**: Updated all storage methods to consistently use string UUIDs instead of mixed integer/string types, resolving LSP diagnostics and enabling proper data retrieval.
 - **Sample Data Alignment**: Fixed sample validation data to use correct session UUIDs and field IDs, ensuring proper data relationships and display functionality.
 - **Column Ordering Synchronization**: Implemented automatic synchronization between Define Data tab and Session View column ordering. SessionView now fetches schema data and sorts collection validations by property orderIndex, ensuring existing sessions reflect current schema column order when properties are reordered via drag-and-drop.
+- **Modular AI Prompt System**: Moved AI extraction prompt from hardcoded strings in `ai_extraction_simplified.py` to dedicated `prompt.py` file. This enables easier customization and maintenance of extraction instructions while maintaining all existing functionality including section-aware extraction, inclusive collection detection, and intelligent AI reasoning requirements.
 
 ### Technical Implementations
 - **Document Processing**: Supports PDF, DOCX, DOC, XLSX, XLS files. Uses Google Gemini API for text extraction from PDFs and images; `python-docx` for Word documents; `pandas` and `openpyxl` for Excel files.
