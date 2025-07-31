@@ -416,75 +416,17 @@ export default function NewUpload({ project }: NewUploadProps) {
         setProcessingStep('validating');
         setProcessingProgress(75);
 
-        // Extract and clean JSON from AI response (same logic as SchemaView)
-        const rawResponse = aiResponse.extractedData || aiResponse.result;
-        let jsonText = null;
-        
-        // Pattern 1: Look for ```json blocks
-        let jsonMatch = rawResponse.match(/```json\s*\n([\s\S]*?)\n```/);
-        if (jsonMatch) {
-          jsonText = jsonMatch[1].trim();
-        } else {
-          // Pattern 2: Look for object starting with { and ending with } (balanced braces)
-          const lines = rawResponse.split('\n');
-          let objectStart = -1;
-          let objectEnd = -1;
-          let braceCount = 0;
-          
-          for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].trim();
-            if (line.startsWith('{') && objectStart === -1) {
-              objectStart = i;
-              braceCount = 1;
-              // Count braces in the same line
-              for (let j = 1; j < line.length; j++) {
-                if (line[j] === '{') braceCount++;
-                if (line[j] === '}') braceCount--;
-              }
-              if (braceCount === 0) {
-                objectEnd = i;
-                break;
-              }
-            } else if (objectStart !== -1) {
-              // Count braces to find the end
-              for (let j = 0; j < line.length; j++) {
-                if (line[j] === '{') braceCount++;
-                if (line[j] === '}') braceCount--;
-              }
-              if (braceCount === 0) {
-                objectEnd = i;
-                break;
-              }
-            }
-          }
-          
-          if (objectStart !== -1 && objectEnd !== -1) {
-            jsonText = lines.slice(objectStart, objectEnd + 1).join('\n').trim();
-          }
-        }
+        // Use the field_validations directly from the Python script response
+        const fieldValidations = aiResponse.field_validations || aiResponse.extractedData?.field_validations || [];
 
-        if (!jsonText) {
-          throw new Error('No valid JSON found in AI extraction results');
-        }
-
-        // Clean JSON text to handle malformed responses
-        let cleanedJsonText = jsonText
-          .replace(/\n\s*\n/g, '\n') // Remove empty lines
-          .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
-          .replace(/\.\.\./g, '') // Remove ellipsis
-          .replace(/…\[TRUNCATED\]/g, '') // Remove truncation markers
-          .trim();
-        
-        // Find the last complete closing brace
-        let lastClosingBrace = cleanedJsonText.lastIndexOf('}');
-        if (lastClosingBrace > 0) {
-          cleanedJsonText = cleanedJsonText.substring(0, lastClosingBrace + 1);
+        if (!fieldValidations || fieldValidations.length === 0) {
+          throw new Error('No field validations found in AI extraction results');
         }
 
         const saveResponse = await apiRequest(`/api/sessions/${session.id}/save-validations`, {
           method: 'POST',
           body: JSON.stringify({ 
-            extractedData: cleanedJsonText 
+            extractedData: JSON.stringify({ field_validations: fieldValidations })
           }),
           headers: { 'Content-Type': 'application/json' }
         });
