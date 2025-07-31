@@ -1804,8 +1804,19 @@ Thank you for your assistance.`;
                 <TabsTrigger value="info" className="tabs-trigger">{project.mainObjectName || "Session"} Information</TabsTrigger>
                 {project.collections.map((collection) => {
                   const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
-                  const validationIndices = collectionValidations.length > 0 ? collectionValidations.map(v => v.recordIndex) : [];
+                  const validationIndices = collectionValidations.length > 0 ? 
+                    collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null && idx !== undefined) : [];
                   const maxRecordIndex = validationIndices.length > 0 ? Math.max(...validationIndices) : -1;
+                  
+                  // Debug logging for missing collection tabs issue
+                  if (collection.collectionName === 'EscalationRates') {
+                    console.log(`EscalationRates Tab Debug:`, {
+                      collectionValidations: collectionValidations.length,
+                      validationIndices,
+                      maxRecordIndex,
+                      sampleValidations: collectionValidations.slice(0, 3).map(v => ({ fieldName: v.fieldName, recordIndex: v.recordIndex, extractedValue: v.extractedValue }))
+                    });
+                  }
                   
                   if (maxRecordIndex < 0) return null;
                   
@@ -2032,8 +2043,19 @@ Thank you for your assistance.`;
               {project.collections.map((collection) => {
                 const collectionData = extractedData[collection.collectionName];
                 const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
-                const validationIndices = collectionValidations.length > 0 ? collectionValidations.map(v => v.recordIndex) : [];
+                const validationIndices = collectionValidations.length > 0 ? 
+                  collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null && idx !== undefined) : [];
                 const maxRecordIndex = validationIndices.length > 0 ? Math.max(...validationIndices) : -1;
+                
+                // Debug logging for missing collection items issue
+                if (collection.collectionName === 'EscalationRates') {
+                  console.log(`EscalationRates Debug:`, {
+                    collectionValidations: collectionValidations.length,
+                    validationIndices,
+                    maxRecordIndex,
+                    sampleValidations: collectionValidations.slice(0, 3).map(v => ({ fieldName: v.fieldName, recordIndex: v.recordIndex, extractedValue: v.extractedValue }))
+                  });
+                }
                 
                 if (maxRecordIndex < 0) return null;
 
