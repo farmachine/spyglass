@@ -90,6 +90,11 @@ export default function ExtractionRuleDialog({
 
   // Build target field options from project schema and collection properties
   const targetFieldOptions = useMemo(() => [
+    // Special option for document content filtering
+    {
+      value: "Uploaded Documents",
+      label: "Uploaded Documents (Content Filtering)",
+    },
     // Project schema fields
     ...schemaFields.map(field => ({
       value: field.fieldName,
@@ -205,7 +210,7 @@ export default function ExtractionRuleDialog({
                     </Select>
                   </div>
                   <FormDescription>
-                    Choose specific fields this rule applies to, or leave empty for all fields
+                    Choose specific fields this rule applies to, or leave empty for all fields. Use "Uploaded Documents" for content filtering rules (e.g., "only section 5.1").
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

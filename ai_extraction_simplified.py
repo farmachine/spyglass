@@ -88,6 +88,105 @@ def repair_truncated_json(response_text: str) -> str:
         logging.error(f"JSON repair failed: {e}")
         return None
 
+def filter_document_content(content: str, extraction_rules: List[Dict[str, Any]]) -> str:
+    """
+    Filter document content based on extraction rules targeting 'Uploaded Documents'.
+    Uses standard text processing to find and extract specific sections.
+    
+    Args:
+        content: Full document text content
+        extraction_rules: List of extraction rules to apply
+        
+    Returns:
+        Filtered content or original content if no filtering rules apply
+    """
+    if not extraction_rules:
+        return content
+    
+    # Find rules that target 'Uploaded Documents'
+    document_filtering_rules = []
+    for rule in extraction_rules:
+        rule_target = rule.get('targetField', '')
+        
+        # Handle both string and list formats for targetField
+        if isinstance(rule_target, str):
+            target_fields = [f.strip() for f in rule_target.split(',') if f.strip()]
+        else:
+            target_fields = rule_target if isinstance(rule_target, list) else []
+            
+        if 'Uploaded Documents' in target_fields:
+            document_filtering_rules.append(rule.get('ruleContent', ''))
+    
+    if not document_filtering_rules:
+        logging.info("CONTENT FILTERING: No 'Uploaded Documents' rules found, using full content")
+        return content
+    
+    logging.info(f"CONTENT FILTERING: Found {len(document_filtering_rules)} document filtering rules")
+    
+    filtered_sections = []
+    original_length = len(content)
+    
+    for rule_content in document_filtering_rules:
+        rule_lower = rule_content.lower()
+        
+        # Pattern 1: Section-based filtering (e.g., "section 5.1", "only section 5")
+        import re
+        section_patterns = [
+            r'(?:only\s+)?section\s+(\d+(?:\.\d+)*)',
+            r'(?:only\s+)?(?:part|chapter)\s+(\d+(?:\.\d+)*)',
+            r'focus\s+on\s+section\s+(\d+(?:\.\d+)*)',
+            r'extract\s+from\s+section\s+(\d+(?:\.\d+)*)'
+        ]
+        
+        for pattern in section_patterns:
+            matches = re.finditer(pattern, rule_lower)
+            for match in matches:
+                section_num = match.group(1)
+                logging.info(f"CONTENT FILTERING: Looking for section {section_num}")
+                
+                # Find section in content
+                section_regex = rf'(?:^|\n)\s*{re.escape(section_num)}\s+[^\n]*(?:\n(?!\s*\d+(?:\.\d+)*\s)[^\n]*)*'
+                section_match = re.search(section_regex, content, re.MULTILINE | re.IGNORECASE)
+                
+                if section_match:
+                    section_content = section_match.group(0)
+                    filtered_sections.append(section_content)
+                    logging.info(f"CONTENT FILTERING: Found section {section_num} ({len(section_content)} chars)")
+        
+        # Pattern 2: Table-based filtering
+        if 'table' in rule_lower:
+            table_patterns = [
+                r'\|[^\n]*\|[^\n]*\n(?:\|[^\n]*\|[^\n]*\n)*',  # Markdown tables
+                r'(?:^|\n)[^\n]*\t[^\n]*(?:\n[^\n]*\t[^\n]*)*'   # Tab-separated tables
+            ]
+            
+            for table_pattern in table_patterns:
+                table_matches = re.finditer(table_pattern, content, re.MULTILINE)
+                for table_match in table_matches:
+                    table_content = table_match.group(0)
+                    filtered_sections.append(table_content)
+                    logging.info(f"CONTENT FILTERING: Found table ({len(table_content)} chars)")
+        
+        # Pattern 3: Keyword-based filtering
+        keywords = ['intervention', 'payment', 'fund', 'eagf', 'eafrd']
+        for keyword in keywords:
+            if keyword in rule_lower:
+                # Find paragraphs containing the keyword
+                paragraphs = content.split('\n\n')
+                for paragraph in paragraphs:
+                    if keyword.lower() in paragraph.lower() and len(paragraph) > 50:
+                        filtered_sections.append(paragraph)
+                        logging.info(f"CONTENT FILTERING: Found {keyword} paragraph ({len(paragraph)} chars)")
+    
+    if filtered_sections:
+        # Combine and deduplicate filtered sections
+        filtered_content = '\n\n=== FILTERED CONTENT ===\n\n' + '\n\n'.join(set(filtered_sections))
+        logging.info(f"CONTENT FILTERING: Reduced content from {original_length} to {len(filtered_content)} chars ({100 - (len(filtered_content)/original_length)*100:.1f}% reduction)")
+        return filtered_content
+    else:
+        logging.info("CONTENT FILTERING: No matching sections found, using full content")
+        return content
+
 def step1_extract_from_documents(
     documents: List[Dict[str, Any]], 
     project_schema: Dict[str, Any],
@@ -156,15 +255,24 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
                 field_description = field.get('description', '')
                 camel_case_name = field_name.replace(' ', '').replace('of', 'Of')
                 
-                # Find applicable extraction rules for this field
+                # Find applicable extraction rules for this field (excluding Uploaded Documents rules)
                 applicable_rules = []
                 if extraction_rules:
                     for rule in extraction_rules:
-                        rule_target = rule.get('targetField', [])
-                        if isinstance(rule_target, list):
-                            if field_name in rule_target or 'All Fields' in rule_target:
-                                applicable_rules.append(f"RULE: {rule.get('ruleContent', '')}")
-                        elif field_name == rule_target or rule_target == 'All Fields':
+                        rule_target = rule.get('targetField', '')
+                        
+                        # Handle both string and list formats for targetField
+                        if isinstance(rule_target, str):
+                            target_fields = [f.strip() for f in rule_target.split(',') if f.strip()]
+                        else:
+                            target_fields = rule_target if isinstance(rule_target, list) else []
+                        
+                        # Skip Uploaded Documents rules for field processing
+                        if 'Uploaded Documents' in target_fields:
+                            continue
+                            
+                        # Apply rule if it targets this field or all fields
+                        if field_name in target_fields or 'All Fields' in target_fields or len(target_fields) == 0:
                             applicable_rules.append(f"RULE: {rule.get('ruleContent', '')}")
                 
                 # Combine description with rules
@@ -182,15 +290,24 @@ SCHEMA FIELDS TO EXTRACT (descriptions are mandatory instructions):"""
                 collection_name = collection.get('collectionName', collection.get('objectName', ''))
                 collection_description = collection.get('description', '')
                 
-                # Find applicable extraction rules for this collection
+                # Find applicable extraction rules for this collection (excluding Uploaded Documents rules)
                 applicable_rules = []
                 if extraction_rules:
                     for rule in extraction_rules:
-                        rule_target = rule.get('targetField', [])
-                        if isinstance(rule_target, list):
-                            if collection_name in rule_target or 'All Fields' in rule_target:
-                                applicable_rules.append(f"RULE: {rule.get('ruleContent', '')}")
-                        elif collection_name == rule_target or rule_target == 'All Fields':
+                        rule_target = rule.get('targetField', '')
+                        
+                        # Handle both string and list formats for targetField
+                        if isinstance(rule_target, str):
+                            target_fields = [f.strip() for f in rule_target.split(',') if f.strip()]
+                        else:
+                            target_fields = rule_target if isinstance(rule_target, list) else []
+                        
+                        # Skip Uploaded Documents rules for collection processing
+                        if 'Uploaded Documents' in target_fields:
+                            continue
+                            
+                        # Apply rule if it targets this collection or all fields
+                        if collection_name in target_fields or 'All Fields' in target_fields or len(target_fields) == 0:
                             applicable_rules.append(f"RULE: {rule.get('ruleContent', '')}")
                 
                 full_instruction = collection_description or 'Extract array of these objects'
@@ -629,8 +746,11 @@ RETURN: Complete readable content from this document."""
         
         logging.info(f"STEP 1 COMPLETE: Processed {processed_docs} documents, extracted total of {len(extracted_content_text)} characters from all documents")
         
-        # Now proceed with data extraction using the extracted content
-        final_prompt = prompt + f"\n\nEXTRACTED DOCUMENT CONTENT:\n{extracted_content_text}"
+        # Apply content filtering based on extraction rules targeting 'Uploaded Documents'
+        filtered_content = filter_document_content(extracted_content_text, extraction_rules)
+        
+        # Now proceed with data extraction using the filtered content
+        final_prompt = prompt + f"\n\nEXTRACTED DOCUMENT CONTENT:\n{filtered_content}"
         
         # STEP 2: DATA EXTRACTION FROM CONTENT
         logging.info(f"=== STEP 2: DATA EXTRACTION ===")
