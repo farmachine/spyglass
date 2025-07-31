@@ -16,7 +16,9 @@ Preferred communication style: Simple, everyday language.
 - ✓ Enhanced AI prompt with explicit instructions: "DO NOT CREATE EMPTY COLLECTION RECORDS" when no data is found
 - ✓ Modified collection example generation to be dynamic instead of hardcoded 2-record template
 - ✓ Tested fix: AI now returns zero validation records for DORA clauses when document contains no DORA content
-- ✓ Verified clause extraction still works: AI successfully extracts 6 DORA-relevant clauses from contracts with operational resilience content
+- ✓ **ENHANCED CLAUSE DETECTION IMPLEMENTED**: Expanded AI prompt to recognize comprehensive DORA-relevant provisions including risk management, security, governance, and service management clauses
+- ✓ Verified comprehensive extraction: AI now successfully extracts 13 DORA-relevant clauses from Asana MSA content (was previously missing standard contract clauses)
+- ✓ Enhanced scope includes: subcontracting, data security, confidentiality, liability, termination, warranties, export controls, and incident management provisions
 - ✓ CHOICE field options preserved: AI properly respects defined choice options ("Compliant", "Partially Compliant", etc.)
 - ✓ Previous successful extractions remain functional: Party and service data still extracts correctly with 95% confidence
 - ✓ **CRITICAL EXTRACTION PIPELINE REGRESSION COMPLETELY RESOLVED**: Fixed fundamental bug that broke all extractions from July 31st

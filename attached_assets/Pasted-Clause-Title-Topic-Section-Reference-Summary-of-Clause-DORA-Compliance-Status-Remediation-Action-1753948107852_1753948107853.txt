@@ -1,0 +1,261 @@
+Clause Title/Topic
+
+Section Reference
+
+Summary of Clause
+
+DORA Compliance Status
+
+Remediation Action Required
+
+Incident Management and Reporting
+
+✓
+2.5, 2.6
+
+✓
+Customer is responsible for notifying Asana of unauthorized use or access. Asana maintains security standards and the DPA applies to personal data. However, the MSA lacks detailed provisions for Asana's incident management and reporting to the customer for broader operational incidents.
+
+✓
+Requires Remediation
+
+✓
+Add a new clause or amend existing ones to detail incident management and reporting procedures, including types of incidents, reporting timelines, communication protocols, and responsibilities, in line with DORA requirements.
+
+✓
+
+
+Subcontracting
+
+✓
+1.6, 6.2
+
+✓
+Asana may use subcontractors for Professional Services, and may disclose Confidential Information to them, provided they are obligated to maintain confidentiality. The agreement lacks detailed provisions on subcontractor oversight or approval rights.
+
+✓
+Requires Remediation
+
+✓
+Amend clauses to include specific provisions on subcontracting, including notification, approval rights for critical subcontractors, and flow-down of DORA-relevant obligations to subcontractors.
+
+✓
+
+
+Audit Rights
+
+✓
+N/A
+
+✓
+The Master Subscription Agreement does not contain an explicit clause granting the customer audit rights over Asana's systems, security measures, or compliance with the agreement.
+
+✓
+Requires Remediation
+
+✓
+Add a new clause granting the customer explicit audit rights, including the right to conduct on-site audits or request third-party audit reports, in line with DORA requirements for critical ICT third-party providers.
+
+✓
+
+
+Access to Non-Production Versions of the Service
+
+✓
+11.6
+
+✓
+Non-production versions of the Service are provided 'as is' without warranties, are not for production use, are not supported, and are not subject to availability or security obligations. Asana disclaims liability for harm arising from their use.
+
+✓
+Compliant
+
+✓
+No action
+
+✓
+
+
+Export Control and Economic Sanctions Compliance
+
+✓
+10
+
+✓
+Each party represents that it is not on any U.S. government prohibited or restricted parties list and agrees not to access or use the Service in a manner that would violate U.S. or international embargoes, economic sanctions, or export controls laws.
+
+✓
+Compliant
+
+✓
+No action
+
+✓
+
+
+Liability
+
+✓
+9
+
+✓
+Each party's aggregate liability is capped at the total amount paid by Customer in the preceding 12 months, excluding special, incidental, exemplary, or indirect damages, lost profits, etc. Exceptions to these limitations include breaches of confidentiality and indemnification payments.
+
+✓
+Requires Remediation
+
+✓
+Review liability caps and exclusions to ensure alignment with DORA's requirements for critical ICT third-party providers, particularly concerning operational failures and data breaches.
+
+✓
+
+
+Indemnification (IP Infringement)
+
+✓
+8
+
+✓
+Each party agrees to defend and indemnify the other against third-party claims that the Service or Customer Data infringes a patent or copyright, provided certain conditions for notification and cooperation are met.
+
+✓
+Not Applicable
+
+✓
+No action
+
+✓
+
+
+Confidentiality (Protection & Sensitive Data)
+
+✓
+6
+
+✓
+The clause defines confidential information, outlines protection obligations for the receiving party, and prohibits the use of the Service to send or store sensitive personal information.
+
+✓
+Compliant
+
+✓
+No action
+
+✓
+
+
+Treatment of Customer Data Following Expiration or Termination
+
+✓
+5.4
+
+✓
+Following termination, Asana may deactivate accounts. Customer Data is available for export for 30 days. After 30 days, Asana may delete data, but Customer can request secure destruction within 180 days, with backups deleted within 30 days thereafter.
+
+✓
+Compliant
+
+✓
+No action
+
+✓
+
+
+Effect of Termination
+
+✓
+5.3
+
+✓
+Upon termination or expiration, all customer rights and subscriptions cease. Customer remains obligated to pay accrued fees. If Asana terminates for cause, a prorated refund of prepaid, unused fees is provided.
+
+✓
+Compliant
+
+✓
+No action
+
+✓
+
+
+Termination for Cause
+
+✓
+5.2
+
+✓
+Either party may terminate the agreement with 30 days' written notice for material breach if not cured, or immediately for breach of acceptable use terms, or if the other party ceases business operations or enters insolvency proceedings not dismissed within 60 days.
+
+✓
+Compliant
+
+✓
+No action
+
+✓
+
+
+Malicious Code
+
+✓
+3.2.3
+
+✓
+Asana warrants that the Service is free from, and Asana will not introduce, software viruses, worms, logic bombs, Trojan horses, or other harmful code.
+
+✓
+Compliant
+
+✓
+No action
+
+✓
+
+
+Service Warranties (Functionality)
+
+✓
+3.2.1(b)
+
+✓
+Asana warrants that it will not materially decrease the functionality of the Service. If a breach occurs and is not corrected, the customer may terminate the Order Form and receive a refund of prepaid, unused fees.
+
+✓
+Compliant
+
+✓
+No action
+
+✓
+
+
+Customer's Use of Third Party Services
+
+✓
+2.7
+
+✓
+Customer may integrate third-party services with the Service, and these third-party providers may access Customer Data. Asana disclaims responsibility for any use, disclosure, modification, or deletion of Customer Data by such third parties.
+
+✓
+Requires Remediation
+
+✓
+Clarify scope of responsibility for third-party services and data access, ensuring alignment with DORA's requirements for managing ICT third-party risk.
+
+✓
+
+
+Security; Protection of Customer Data
+
+✓
+2.5
+
+✓
+Asana implements and maintains reasonable administrative, organizational, and technical safeguards for the protection, confidentiality, and integrity of Customer Data, as described in their Data Security Standards and Data Processing Addendum (DPA).
+
+✓
+Compliant
+
+✓
+No action

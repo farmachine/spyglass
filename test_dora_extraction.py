@@ -9,29 +9,35 @@ test_data = {
         {
             "file_name": "test_msa.pdf",
             "file_content": """
-MASTER SERVICE AGREEMENT
+ASANA MASTER SUBSCRIPTION AGREEMENT
 
-This agreement governs the provision of technology services.
+1.6 Subcontractors: Asana may use subcontractors for Professional Services, and may disclose Confidential Information to them, provided they are obligated to maintain confidentiality.
 
-Article 3. Service Level Requirements
-3.1 Availability: Provider must maintain 99.9% system availability with maximum 4 hours downtime per month.
-3.2 Response Time: All critical incidents must be addressed within 2 hours of notification.
+2.5 Security; Protection of Customer Data: Asana implements and maintains reasonable administrative, organizational, and technical safeguards for the protection, confidentiality, and integrity of Customer Data, as described in their Data Security Standards and Data Processing Addendum (DPA).
 
-Article 5. Data Security and Compliance  
-5.1 Security Standards: Provider shall implement industry-standard security controls including encryption, access controls, and monitoring.
-5.2 Regulatory Compliance: Services must comply with applicable financial regulations and operational risk management requirements.
+2.6 Customer is responsible for notifying Asana of unauthorized use or access. Asana maintains security standards and the DPA applies to personal data.
 
-Article 8. Business Continuity
-8.1 Disaster Recovery: Provider must maintain comprehensive disaster recovery procedures with 4-hour recovery time objective.
-8.2 Incident Management: All operational disruptions must be reported within 24 hours with detailed remediation plans.
+2.7 Customer's Use of Third Party Services: Customer may integrate third-party services with the Service, and these third-party providers may access Customer Data. Asana disclaims responsibility for any use, disclosure, modification, or deletion of Customer Data by such third parties.
 
-Parties:
-- Financial Services Corp (New York)
-- Tech Provider Ltd (California)
+3.2.1(b) Service Warranties (Functionality): Asana warrants that it will not materially decrease the functionality of the Service. If a breach occurs and is not corrected, the customer may terminate the Order Form and receive a refund of prepaid, unused fees.
 
-Services Covered:
-- Core banking platform (Critical)
-- Payment processing (High)
+3.2.3 Malicious Code: Asana warrants that the Service is free from, and Asana will not introduce, software viruses, worms, logic bombs, Trojan horses, or other harmful code.
+
+5.2 Termination for Cause: Either party may terminate the agreement with 30 days' written notice for material breach if not cured, or immediately for breach of acceptable use terms.
+
+5.3 Effect of Termination: Upon termination or expiration, all customer rights and subscriptions cease. Customer remains obligated to pay accrued fees.
+
+5.4 Treatment of Customer Data Following Expiration or Termination: Following termination, Asana may deactivate accounts. Customer Data is available for export for 30 days. After 30 days, Asana may delete data.
+
+6 Confidentiality (Protection & Sensitive Data): The clause defines confidential information, outlines protection obligations for the receiving party, and prohibits the use of the Service to send or store sensitive personal information.
+
+8 Indemnification (IP Infringement): Each party agrees to defend and indemnify the other against third-party claims that the Service or Customer Data infringes a patent or copyright.
+
+9 Liability: Each party's aggregate liability is capped at the total amount paid by Customer in the preceding 12 months, excluding special, incidental, exemplary, or indirect damages, lost profits, etc.
+
+10 Export Control and Economic Sanctions Compliance: Each party represents that it is not on any U.S. government prohibited or restricted parties list and agrees not to access or use the Service in a manner that would violate U.S. or international embargoes, economic sanctions, or export controls laws.
+
+11.6 Access to Non-Production Versions of the Service: Non-production versions of the Service are provided 'as is' without warranties, are not for production use, are not supported, and are not subject to availability or security obligations.
             """,
             "mime_type": "application/pdf"
         }
