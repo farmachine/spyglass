@@ -1403,9 +1403,17 @@ except Exception as e:
         collections: {}
       };
 
-      // Group collection validations by collection name
+      // Group collection validations by collection name with improved logic
       const collectionGroups = collectionValidations.reduce((acc, validation) => {
-        const collectionName = validation.collectionName || 'Unknown Collection';
+        let collectionName = validation.collectionName;
+        
+        // If collectionName is null/empty, extract from fieldName
+        if (collectionName === null || collectionName === undefined || collectionName === 'null' || !collectionName) {
+          const fieldName = validation.fieldName || '';
+          const match = fieldName.match(/^([^.]+)\./);
+          collectionName = match ? match[1] : 'Unknown Collection';
+        }
+        
         if (!acc[collectionName]) acc[collectionName] = [];
         acc[collectionName].push(validation);
         return acc;
