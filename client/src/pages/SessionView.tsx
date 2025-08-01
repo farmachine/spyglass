@@ -2313,6 +2313,7 @@ Thank you for your assistance.`;
                       <button
                         onClick={() => {
                           handleFieldVerification(selectedReasoning.fieldName, !isVerified);
+                          setSelectedReasoning(null); // Close dialog after validation change
                         }}
                         className="flex items-center justify-center hover:bg-gray-100 px-3 py-2 rounded transition-colors"
                         title={isVerified ? "Click to mark as unverified" : "Click to mark as verified"}
