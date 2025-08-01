@@ -455,10 +455,10 @@ export default function SessionView() {
       let bValue = bValidation?.extractedValue || b.item[property.propertyName] || '';
       
       // Handle different field types
-      if (property.fieldType === 'NUMBER') {
+      if (property.propertyType === 'NUMBER') {
         aValue = parseFloat(aValue) || 0;
         bValue = parseFloat(bValue) || 0;
-      } else if (property.fieldType === 'DATE') {
+      } else if (property.propertyType === 'DATE') {
         aValue = new Date(aValue).getTime() || 0;
         bValue = new Date(bValue).getTime() || 0;
       } else {
