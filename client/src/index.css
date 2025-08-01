@@ -74,6 +74,15 @@
 
 /* Additional utility classes for Flow Capture theme */
 
+/* Smooth dialog transitions */
+.dialog-overlay-fade-out {
+  transition: opacity 0.5s ease-out;
+}
+
+.dialog-content-fade-out {
+  transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+}
+
 /* Folder-like Tab Styling */
 .folder-tabs {
   position: relative;
