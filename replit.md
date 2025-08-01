@@ -50,6 +50,7 @@ Preferred communication style: Simple, everyday language.
 - **Collection Name Field Integration**: Fixed missing collection_name field in AI-generated field validation objects, enabling proper collection item filtering and display in the UI. System now correctly identifies and groups collection items by their collection names.
 - **Enhanced Value Extraction**: Implemented comprehensive extracted value enhancement requirements. AI now expands technical abbreviations (GMP → Guaranteed Minimum Pension, CPI → Consumer Price Index) and provides rich, contextual descriptions rather than abbreviated summaries for improved readability and understanding.
 - **Raw AI Response Debugging**: Session debugger already captures and displays raw AI responses alongside parsed JSON for comprehensive debugging capabilities, providing full visibility into AI extraction process and response quality.
+- **Token Limit Truncation Fix**: Identified and resolved critical response truncation issue. Reduced max_output_tokens from unrealistic 30M to practical 8000 tokens limit for Gemini 2.5 Flash. Implemented enhanced truncation detection with pattern matching and comprehensive error reporting. Added large document handling with simplified extraction approach for documents exceeding token limits.
 
 ### Technical Implementations
 - **Document Processing**: Supports PDF, DOCX, DOC, XLSX, XLS files. Uses Google Gemini API for text extraction from PDFs and images; `python-docx` for Word documents; `pandas` and `openpyxl` for Excel files.
