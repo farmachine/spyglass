@@ -2066,7 +2066,7 @@ class PostgreSQLStorage implements IStorage {
     const enhancedValidations = await Promise.all(result.map(async (validation) => {
       let fieldName = '';
       
-      if (validation.fieldType === 'schema_field') {
+      if (validation.validationType === 'schema_field') {
         // Get field name from project schema fields
         const schemaField = await this.db
           .select({ fieldName: projectSchemaFields.fieldName })
@@ -2075,7 +2075,8 @@ class PostgreSQLStorage implements IStorage {
           .limit(1);
         
         fieldName = schemaField[0]?.fieldName || '';
-      } else if (validation.fieldType === 'collection_property') {
+        console.log(`Field lookup for ${validation.fieldId}: found field name "${fieldName}"`);
+      } else if (validation.validationType === 'collection_property') {
         // Get property name from collection properties and build collection field name
         const property = await this.db
           .select({ propertyName: collectionProperties.propertyName })

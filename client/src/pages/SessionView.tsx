@@ -276,7 +276,7 @@ export default function SessionView() {
 
   // Helper function to find schema field data
   const findSchemaField = (validation: FieldValidation) => {
-    if (validation.fieldType !== 'schema_field' || !project?.schemaFields) return null;
+    if (validation.validationType !== 'schema_field' || !project?.schemaFields) return null;
     const field = project.schemaFields.find(f => f.id === validation.fieldId);
     return field ? {
       fieldType: field.fieldType,
@@ -286,7 +286,7 @@ export default function SessionView() {
 
   // Helper function to find collection property data
   const findCollectionProperty = (validation: FieldValidation) => {
-    if (validation.fieldType !== 'collection_property' || !project?.collections) return null;
+    if (validation.validationType !== 'collection_property' || !project?.collections) return null;
     for (const collection of project.collections) {
       const property = collection.properties?.find(p => p.id === validation.fieldId);
       if (property) {
@@ -671,7 +671,7 @@ export default function SessionView() {
     const tempValidations = collection.properties.map(property => ({
       id: `temp-${Date.now()}-${property.id}`,
       sessionId: session.id,
-      fieldType: 'collection_property' as const,
+      validationType: 'collection_property' as const,
       fieldId: property.id,
       fieldName: `${collectionName}.${property.propertyName}[${newIndex}]`,
       collectionName: collectionName,
@@ -696,7 +696,7 @@ export default function SessionView() {
         return apiRequest(`/api/sessions/${session.id}/validations`, {
           method: 'POST',
           body: JSON.stringify({
-            fieldType: 'collection_property',
+            validationType: 'collection_property',
             fieldId: property.id,
             collectionName: collectionName,
             recordIndex: newIndex,
