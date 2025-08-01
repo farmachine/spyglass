@@ -451,7 +451,7 @@ INSTRUCTIONS:
 RETURN: Complete text content from all sheets in this Excel file."""
 
                         elif 'pdf' in mime_type or file_name.lower().endswith('.pdf'):
-                            # PDF file - extract all text content
+                            # PDF file - extract all text content with enhanced retry logic
                             extraction_prompt = f"""Extract ALL text content from this PDF document ({file_name}).
 
 INSTRUCTIONS:
@@ -459,6 +459,7 @@ INSTRUCTIONS:
 - Preserve document structure and formatting where possible
 - Include headers, body text, tables, lists, and any other textual content
 - Maintain logical flow and organization of information
+- Focus on key data points and structured information
 
 RETURN: Complete text content from this PDF document."""
 
@@ -496,12 +497,14 @@ RETURN: Complete readable content from this document."""
                             # PDF files are fully supported by Gemini API
                             logging.info(f"STEP 1: Using Gemini API for PDF extraction from {file_name}")
                             
-                            # Retry logic for API overload situations
-                            max_retries = 3
-                            retry_delay = 2  # Start with 2 seconds
+                            # Enhanced retry logic for API overload situations (especially for large PDFs)
+                            max_retries = 8  # Increased retries for large documents
+                            retry_delay = 3  # Start with 3 seconds
+                            content_response = None
                             
                             for attempt in range(max_retries):
                                 try:
+                                    logging.info(f"STEP 1: PDF processing attempt {attempt + 1}/{max_retries} for {file_name}")
                                     content_response = model.generate_content(
                                         [
                                             {
@@ -516,16 +519,20 @@ RETURN: Complete readable content from this document."""
                                         ),
                                         request_options={"timeout": None}  # Remove timeout constraints
                                     )
+                                    logging.info(f"STEP 1: Successfully processed PDF {file_name} on attempt {attempt + 1}")
                                     break  # Success, exit retry loop
                                 except Exception as e:
-                                    if "503" in str(e) and "overloaded" in str(e).lower() and attempt < max_retries - 1:
-                                        logging.warning(f"API overloaded (attempt {attempt + 1}/{max_retries}), retrying in {retry_delay}s...")
+                                    error_str = str(e).lower()
+                                    if ("503" in str(e) or "overloaded" in error_str or "unavailable" in error_str) and attempt < max_retries - 1:
+                                        logging.warning(f"STEP 1: API overloaded/unavailable (attempt {attempt + 1}/{max_retries}) for {file_name}, retrying in {retry_delay}s...")
                                         import time
                                         time.sleep(retry_delay)
-                                        retry_delay *= 2  # Exponential backoff
+                                        retry_delay = min(retry_delay * 1.5, 30)  # Exponential backoff with cap
                                         continue
                                     else:
-                                        raise e  # Re-raise if not overload error or final attempt
+                                        logging.error(f"STEP 1: Final PDF processing failure for {file_name} after {attempt + 1} attempts: {e}")
+                                        content_response = None
+                                        break  # Exit retry loop on final failure
                         elif ('word' in mime_type or 
                               'vnd.openxmlformats-officedocument.wordprocessingml' in mime_type or
                               'application/msword' in mime_type or
