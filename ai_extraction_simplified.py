@@ -28,93 +28,96 @@ class ExtractionResult:
 def repair_truncated_json(response_text: str) -> str:
     """
     Enhanced repair for truncated JSON responses.
-    Handles common truncation patterns and attempts to salvage as much data as possible.
+    Uses regex-based approach to find complete objects.
     """
+    import re
     try:
         logging.info(f"Attempting to repair JSON response of length {len(response_text)}")
         
         # Check if response starts with field_validations structure
         if not response_text.strip().startswith('{"field_validations":'):
             logging.warning("Response doesn't start with expected field_validations structure")
-            return None
+            return '{"field_validations": []}'
         
-        # Handle different truncation scenarios
+        # Extract the content between field_validations array
+        start_marker = '"field_validations": ['
+        start_pos = response_text.find(start_marker)
+        if start_pos == -1:
+            return '{"field_validations": []}'
         
-        # Scenario 1: Response ends abruptly in the middle of a field
-        if response_text.endswith('"'):
-            # Find the last complete field validation object
-            last_bracket_index = response_text.rfind('}')
-            if last_bracket_index > 0:
-                # Check if there's a comma after the bracket
-                next_char_index = last_bracket_index + 1
-                if next_char_index < len(response_text) and response_text[next_char_index] == ',':
-                    truncated_at = next_char_index
-                else:
-                    truncated_at = last_bracket_index + 1
-                    
-                partial_response = response_text[:truncated_at]
-                if partial_response.endswith(','):
-                    partial_response = partial_response[:-1]
-                partial_response += ']}'
+        array_start = start_pos + len(start_marker)
+        array_content = response_text[array_start:]
+        
+        # Use regex to find complete field_validation objects
+        # Pattern matches complete objects with all required fields
+        object_pattern = r'\{"field_id":\s*"[^"]+",\s*"field_type":\s*"[^"]+",.*?"record_index":\s*(?:null|\d+)\s*\}'
+        
+        # Find all complete objects
+        complete_objects = []
+        for match in re.finditer(object_pattern, array_content, re.DOTALL):
+            obj_text = match.group(0)
+            # Validate this is a complete object by trying to parse it
+            try:
+                json.loads(obj_text)
+                complete_objects.append(obj_text)
+            except json.JSONDecodeError:
+                continue
+        
+        if complete_objects:
+            repaired_content = ', '.join(complete_objects)
+            repaired_json = '{"field_validations": [' + repaired_content + ']}'
+            logging.info(f"Regex repair: Found {len(complete_objects)} complete objects, repaired to {len(repaired_json)} chars")
+            
+            # Validate the repaired JSON
+            try:
+                json.loads(repaired_json)
+                return repaired_json
+            except json.JSONDecodeError as e:
+                logging.warning(f"Repaired JSON failed validation: {e}")
+        
+        # Fallback: Try to salvage individual fields with simpler pattern
+        simple_pattern = r'\{"field_id":\s*"[^"]+",.*?\}'
+        simple_objects = []
+        
+        for match in re.finditer(simple_pattern, array_content, re.DOTALL):
+            obj_text = match.group(0)
+            # Try to make this a valid object by adding missing fields
+            try:
+                obj = json.loads(obj_text)
+                # Ensure required fields exist
+                if 'field_type' not in obj:
+                    obj['field_type'] = 'schema_field'
+                if 'validation_status' not in obj:
+                    obj['validation_status'] = 'unverified'
+                if 'record_index' not in obj:
+                    obj['record_index'] = None
+                if 'confidence_score' not in obj:
+                    obj['confidence_score'] = 0.8
+                if 'ai_reasoning' not in obj:
+                    obj['ai_reasoning'] = 'Extracted from document (recovered from truncation)'
                 
-                logging.info(f"Scenario 1 repair: Truncated at field, recovered {len(partial_response)} chars")
-                return partial_response
+                simple_objects.append(json.dumps(obj))
+            except:
+                continue
         
-        # Scenario 2: Response ends with incomplete object
-        brace_count = response_text.count('{') - response_text.count('}')
-        bracket_count = response_text.count('[') - response_text.count(']')
-        
-        # Find the last complete validation object
-        last_complete_object = -1
-        brace_depth = 0
-        
-        for i in range(len(response_text) - 1, -1, -1):
-            char = response_text[i]
-            if char == '}':
-                brace_depth += 1
-            elif char == '{':
-                brace_depth -= 1
-                if brace_depth == 1:  # We're at the start of a field validation object
-                    # Check if this object appears complete
-                    next_i = i
-                    while next_i < len(response_text) and response_text[next_i] != '}':
-                        next_i += 1
-                    if next_i < len(response_text):  # Found closing brace
-                        last_complete_object = next_i + 1
-                        break
-        
-        if last_complete_object > 0:
-            partial_response = response_text[:last_complete_object]
-            # Remove trailing comma if present
-            if partial_response.endswith(','):
-                partial_response = partial_response[:-1]
+        if simple_objects:
+            repaired_content = ', '.join(simple_objects)
+            repaired_json = '{"field_validations": [' + repaired_content + ']}'
+            logging.info(f"Fallback repair: Found {len(simple_objects)} salvageable objects")
             
-            # Close the array and object
-            if not partial_response.endswith(']'):
-                partial_response += ']'
-            if not partial_response.endswith('}'):
-                partial_response += '}'
-            
-            logging.info(f"Scenario 2 repair: Found last complete object, recovered {len(partial_response)} chars")
-            return partial_response
-            
-        # Scenario 3: Fallback - just close whatever we have
-        partial_response = response_text.rstrip()
-        if partial_response.endswith(','):
-            partial_response = partial_response[:-1]
+            try:
+                json.loads(repaired_json)
+                return repaired_json
+            except json.JSONDecodeError:
+                pass
         
-        # Add missing closing brackets/braces
-        if not partial_response.endswith(']'):
-            partial_response += ']'
-        if not partial_response.endswith('}'):
-            partial_response += '}'
-            
-        logging.info(f"Scenario 3 fallback repair: Basic closure, recovered {len(partial_response)} chars")
-        return partial_response
+        # Final fallback
+        logging.warning("All repair attempts failed, returning empty structure")
+        return '{"field_validations": []}'
         
     except Exception as e:
-        logging.error(f"JSON repair failed: {e}")
-        return None
+        logging.error(f"JSON repair exception: {e}")
+        return '{"field_validations": []}'
 
 def step1_extract_from_documents(
     documents: List[Dict[str, Any]], 
@@ -620,11 +623,11 @@ RETURN: Complete readable content from this document."""
         
         for attempt in range(max_retries):
             try:
-                # Try with a more realistic token limit first (Gemini may have undocumented limits)
+                # Start with smaller token limit to avoid truncation
                 response = model.generate_content(
                     final_prompt,
                     generation_config=genai.GenerationConfig(
-                        max_output_tokens=8192,  # More realistic limit to avoid truncation
+                        max_output_tokens=4096,  # Smaller limit to avoid hitting API constraints
                         temperature=0.1,
                         response_mime_type="application/json"
                     ),
@@ -667,10 +670,14 @@ RETURN: Complete readable content from this document."""
         field_validation_count = response_text.count('"field_id":')
         logging.info(f"TRUNCATION CHECK: Found {field_validation_count} field_validation objects in response")
         
-        # Enhanced truncation detection
+        # Enhanced truncation detection with 23k character limit detection
         truncation_indicators = ['...', '...}', '"ai_reasoning": "Extracted from document analysis",']
         response_ends_abruptly = not response_text.strip().endswith((']}', '}'))
         response_too_short = len(response_text) < 50000 and field_validation_count > 50  # Heuristic for large extractions
+        
+        # Specific detection for the 23k character limit
+        if len(response_text) >= 22000 and len(response_text) <= 24000:
+            logging.warning(f"DETECTED LIKELY 23K TRUNCATION - Response length: {len(response_text)} chars")
         
         if any(indicator in response_text[-100:] for indicator in truncation_indicators):
             logging.warning("POTENTIAL RESPONSE TRUNCATION DETECTED - Response may be incomplete")
@@ -725,9 +732,16 @@ RETURN: Complete readable content from this document."""
                     if repaired_json:
                         try:
                             extracted_data = json.loads(repaired_json)
-                            logging.info("Successfully repaired and parsed truncated JSON response")
-                        except json.JSONDecodeError:
-                            logging.error("JSON repair failed, creating minimal structure")
+                            validation_count = len(extracted_data.get('field_validations', []))
+                            logging.info(f"Successfully repaired and parsed JSON response with {validation_count} validations")
+                            
+                            # If we got some results but appear truncated, that's still better than nothing
+                            if validation_count > 0:
+                                logging.info(f"Partial extraction successful: recovered {validation_count} field validations from truncated response")
+                            
+                        except json.JSONDecodeError as repair_error:
+                            logging.error(f"JSON repair failed: {repair_error}")
+                            logging.error(f"Repaired JSON: {repaired_json[:500]}...")
                             extracted_data = {"field_validations": []}
                     else:
                         logging.error("Could not repair JSON, creating minimal structure")
