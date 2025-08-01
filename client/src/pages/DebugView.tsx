@@ -69,7 +69,7 @@ export default function DebugView() {
 
   // Helper function to format token count
   const formatTokenCount = (count: number | null | undefined) => {
-    if (!count) return "N/A";
+    if (count === null || count === undefined) return "No data";
     return count.toLocaleString();
   };
 
@@ -117,11 +117,9 @@ export default function DebugView() {
                   <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
                     {Math.round(session.extractionPrompt.length / 1000)}K chars
                   </span>
-                  {session.inputTokenCount && (
-                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                      {formatTokenCount(session.inputTokenCount)} tokens
-                    </span>
-                  )}
+                  <span className={`text-xs px-2 py-1 rounded ${session.inputTokenCount ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
+                    {formatTokenCount(session.inputTokenCount)} tokens
+                  </span>
                 </div>
               )}
             </TabsTrigger>
@@ -132,11 +130,9 @@ export default function DebugView() {
                   <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
                     {Math.round(session.aiResponse.length / 1000)}K chars
                   </span>
-                  {session.outputTokenCount && (
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
-                      {formatTokenCount(session.outputTokenCount)} tokens
-                    </span>
-                  )}
+                  <span className={`text-xs px-2 py-1 rounded ${session.outputTokenCount ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                    {formatTokenCount(session.outputTokenCount)} tokens
+                  </span>
                 </div>
               )}
             </TabsTrigger>
@@ -206,19 +202,17 @@ export default function DebugView() {
                 {session.aiResponse ? (
                   <div className="space-y-4">
                     {/* Token usage summary */}
-                    {(session.inputTokenCount || session.outputTokenCount) && (
-                      <div className="flex gap-4 p-3 bg-gray-50 rounded-lg">
-                        <div className="text-sm">
-                          <span className="font-medium">Input:</span> {formatTokenCount(session.inputTokenCount)} tokens
-                        </div>
-                        <div className="text-sm">
-                          <span className="font-medium">Output:</span> {formatTokenCount(session.outputTokenCount)} tokens
-                        </div>
-                        <div className="text-sm">
-                          <span className="font-medium">Total:</span> {formatTokenCount((session.inputTokenCount || 0) + (session.outputTokenCount || 0))} tokens
-                        </div>
+                    <div className="flex gap-4 p-3 bg-gray-50 rounded-lg">
+                      <div className="text-sm">
+                        <span className="font-medium">Input:</span> {formatTokenCount(session.inputTokenCount)} tokens
                       </div>
-                    )}
+                      <div className="text-sm">
+                        <span className="font-medium">Output:</span> {formatTokenCount(session.outputTokenCount)} tokens
+                      </div>
+                      <div className="text-sm">
+                        <span className="font-medium">Total:</span> {formatTokenCount((session.inputTokenCount || 0) + (session.outputTokenCount || 0))} tokens
+                      </div>
+                    </div>
                     
                     {/* Raw AI response */}
                     <ScrollArea className="h-[800px] w-full rounded-md border p-4">
