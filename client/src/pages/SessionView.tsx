@@ -2219,7 +2219,11 @@ Thank you for your assistance.`;
                                                           setSelectedReasoning({
                                                             reasoning: validation.aiReasoning,
                                                             fieldName,
-                                                            confidenceScore: validation.confidenceScore || 0
+                                                            confidenceScore: validation.confidenceScore || 0,
+                                                            getFieldDisplayName,
+                                                            validation,
+                                                            onVerificationChange: (isVerified) => handleFieldVerification(fieldName, isVerified),
+                                                            isVerified: validation.validationStatus === 'valid'
                                                           });
                                                         }
                                                       }}
