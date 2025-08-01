@@ -37,7 +37,7 @@ Preferred communication style: Simple, everyday language.
 - **Interaction**: Icon-only UI system, comprehensive optimistic updates for immediate UI feedback, streamlined workflow from upload to review.
 - **Responsiveness**: Responsive design using Tailwind CSS.
 
-### Recent Critical Fixes (August 1, 2025)
+### Recent Critical Fixes (July 31, 2025)
 - **UUID/Integer Consistency Issue Resolved**: Fixed systematic data type mismatches in MemStorage where UUID session IDs were being parsed as integers using parseInt(), causing all field validation lookups to fail and collections to display "Not set" instead of actual extracted values.
 - **Storage Interface Standardization**: Updated all storage methods to consistently use string UUIDs instead of mixed integer/string types, resolving LSP diagnostics and enabling proper data retrieval.
 - **Sample Data Alignment**: Fixed sample validation data to use correct session UUIDs and field IDs, ensuring proper data relationships and display functionality.
@@ -46,10 +46,6 @@ Preferred communication style: Simple, everyday language.
 - **Simplified Validation Architecture**: Removed separate validation functions (`step2_validate_field_records`, `ValidationResult` dataclass, and `extract_and_validate_chain`) from the AI extraction system. Validation now occurs exclusively during the extraction process, eliminating redundant validation steps and simplifying the codebase while maintaining all validation functionality within the extraction workflow.
 - **Enhanced Numbered Section Recognition**: Improved AI extraction prompt to recognize numbered section patterns (e.g., 2.3.1 through 2.3.10) and extract ALL items within section boundaries. Added specific instructions for section-collection matching where collection names correspond to document sections, ensuring complete extraction of all numbered subsections rather than limiting to sample items.
 - **Markdown Table Recognition**: Added comprehensive markdown table parsing instructions to AI extraction prompt. System now recognizes markdown table format with pipe separators, distinguishes headers from data rows, and extracts ALL table rows as separate collection items rather than limiting to examples.
-- **Critical Field ID Mapping Fix**: Resolved systematic field ID mismatch issue where AI generated custom field IDs instead of using exact schema field IDs, causing collection item filtering to fail. Added explicit instructions requiring exact field ID usage from schema definitions.
-- **Collection Name Field Integration**: Fixed missing collection_name field in AI-generated field validation objects, enabling proper collection item filtering and display in the UI. System now correctly identifies and groups collection items by their collection names.
-- **Enhanced Value Extraction**: Implemented comprehensive extracted value enhancement requirements. AI now expands technical abbreviations (GMP → Guaranteed Minimum Pension, CPI → Consumer Price Index) and provides rich, contextual descriptions rather than abbreviated summaries for improved readability and understanding.
-- **Raw AI Response Debugging**: Session debugger already captures and displays raw AI responses alongside parsed JSON for comprehensive debugging capabilities, providing full visibility into AI extraction process and response quality.
 
 ### Technical Implementations
 - **Document Processing**: Supports PDF, DOCX, DOC, XLSX, XLS files. Uses Google Gemini API for text extraction from PDFs and images; `python-docx` for Word documents; `pandas` and `openpyxl` for Excel files.

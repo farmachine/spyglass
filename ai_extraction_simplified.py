@@ -112,8 +112,7 @@ def step1_extract_from_documents(
         import google.generativeai as genai
         genai.configure(api_key=api_key)
         
-        # Configure model with correct token limits for gemini-2.0-flash
-        # Maximum input tokens: 1,048,576, Maximum output tokens: 8,192
+        # Configure with no timeout constraints for large responses
         model = genai.GenerativeModel('gemini-2.0-flash-exp')
         
         logging.info(f"STEP 1: Starting extraction for {len(documents)} documents")
@@ -593,7 +592,7 @@ RETURN: Complete readable content from this document."""
                 response = model.generate_content(
                     final_prompt,
                     generation_config=genai.GenerationConfig(
-                        max_output_tokens=8192,  # Gemini 2.0 Flash maximum output tokens
+                        max_output_tokens=30000000,  # 30M tokens - maximum limit to prevent truncation
                         temperature=0.1,
                         response_mime_type="application/json"
                     ),
@@ -686,13 +685,6 @@ RETURN: Complete readable content from this document."""
                 extracted_data = {"field_validations": []}
                 
             logging.info(f"STEP 1: Successfully extracted {len(extracted_data.get('field_validations', []))} field validations")
-            
-            # Enhanced logging for debugging raw AI response storage
-            ai_response_length = len(response.text)
-            logging.info(f"RAW AI RESPONSE STORAGE: Total length = {ai_response_length} characters")
-            logging.info(f"RAW AI RESPONSE STORAGE: First 200 chars = {response.text[:200]}")
-            logging.info(f"RAW AI RESPONSE STORAGE: Last 200 chars = {response.text[-200:]}")
-            
             return ExtractionResult(
                 success=True, 
                 extracted_data=extracted_data,

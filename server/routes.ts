@@ -2145,9 +2145,7 @@ print(json.dumps(result))
       await new Promise((resolve, reject) => {
         python.on('close', async (code: any) => {
           console.log(`GEMINI EXTRACTION: Python exit code: ${code}`);
-          console.log(`GEMINI EXTRACTION: Python stdout length: ${output.length} characters`);
-          console.log(`GEMINI EXTRACTION: Python stdout preview: ${output.substring(0, 500)}...`);
-          console.log(`GEMINI EXTRACTION: Python stdout end: ...${output.substring(output.length - 500)}`);
+          console.log(`GEMINI EXTRACTION: Python stdout: ${output.substring(0, 500)}...`);
           if (error) console.log(`GEMINI EXTRACTION: Python stderr: ${error}`);
           
           if (code !== 0) {
@@ -2162,15 +2160,11 @@ print(json.dumps(result))
             // Save extraction prompt and AI response to database if available
             if (result.success && (result.extraction_prompt || result.ai_response)) {
               try {
-                console.log(`GEMINI EXTRACTION: Saving AI response of ${result.ai_response?.length || 0} characters to database`);
-                console.log(`GEMINI EXTRACTION: AI response preview: ${result.ai_response?.substring(0, 200) || 'No response'}...`);
-                console.log(`GEMINI EXTRACTION: AI response end: ...${result.ai_response?.substring(result.ai_response.length - 200) || 'No response'}`);
-                
                 await storage.updateExtractionSession(sessionId, {
                   extractionPrompt: result.extraction_prompt,
                   aiResponse: result.ai_response
                 });
-                console.log('GEMINI EXTRACTION: Successfully saved prompt and AI response to database');
+                console.log('GEMINI EXTRACTION: Saved prompt and AI response to database');
               } catch (saveError) {
                 console.error('GEMINI EXTRACTION: Failed to save prompt/response:', saveError);
               }
