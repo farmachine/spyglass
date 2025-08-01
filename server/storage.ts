@@ -2075,17 +2075,25 @@ class PostgreSQLStorage implements IStorage {
           .limit(1);
         
         fieldName = schemaField[0]?.fieldName || '';
-        console.log(`Field lookup for ${validation.fieldId}: found field name "${fieldName}"`);
       } else if (validation.validationType === 'collection_property') {
-        // Get property name from collection properties and build collection field name
-        const property = await this.db
-          .select({ propertyName: collectionProperties.propertyName })
-          .from(collectionProperties)
-          .where(eq(collectionProperties.id, validation.fieldId))
-          .limit(1);
-        
-        if (property[0] && validation.collectionName && validation.recordIndex !== null) {
-          fieldName = `${validation.collectionName}.${property[0].propertyName}[${validation.recordIndex}]`;
+        try {
+          // Get property name and collection name in one query
+          const propertyWithCollection = await this.db
+            .select({ 
+              propertyName: collectionProperties.propertyName,
+              collectionName: objectCollections.collectionName 
+            })
+            .from(collectionProperties)
+            .innerJoin(objectCollections, eq(collectionProperties.collectionId, objectCollections.id))
+            .where(eq(collectionProperties.id, validation.fieldId))
+            .limit(1);
+          
+          if (propertyWithCollection[0] && validation.recordIndex !== null) {
+            fieldName = `${propertyWithCollection[0].collectionName}.${propertyWithCollection[0].propertyName}[${validation.recordIndex}]`;
+          }
+        } catch (error) {
+          console.error(`Error processing collection property ${validation.fieldId}:`, error);
+          // Skip this validation if there's an error
         }
       }
       

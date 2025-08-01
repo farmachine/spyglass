@@ -2814,7 +2814,8 @@ print(json.dumps(result))
       const validations = await storage.getFieldValidations(sessionId);
       res.json(validations);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch field validations" });
+      console.error("Field validations error:", error);
+      res.status(500).json({ message: "Failed to fetch field validations", error: error instanceof Error ? error.message : String(error) });
     }
   });
 
