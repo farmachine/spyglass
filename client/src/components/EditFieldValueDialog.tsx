@@ -151,10 +151,22 @@ export function EditFieldValueDialog({
             )}
           </div>
 
-          {validation.aiReasoning && (
+          {validation.aiReasoning ? (
             <div className="p-3 bg-blue-50 rounded-lg">
               <Label className="text-xs font-medium text-blue-800">AI Analysis</Label>
               <p className="text-xs text-blue-700 mt-1">{validation.aiReasoning}</p>
+            </div>
+          ) : (
+            <div className="p-3 bg-amber-50 rounded-lg">
+              <Label className="text-xs font-medium text-amber-800">Why wasn't this extracted?</Label>
+              <p className="text-xs text-amber-700 mt-1">
+                The AI couldn't find this information in the document. This could be because:
+                • The data isn't present in the source document
+                • The information is in a format the AI couldn't recognize
+                • The field name doesn't match the document content
+                
+                You can manually enter the correct value if you know it.
+              </p>
             </div>
           )}
 
