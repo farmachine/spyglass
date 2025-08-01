@@ -1202,12 +1202,12 @@ export class MemStorage implements IStorage {
     const enhancedValidations = validations.map(validation => {
       let fieldName = '';
       
-      if (validation.fieldType === 'schema_field') {
+      if (validation.validationType === 'schema_field') {
         // Get field name from project schema fields
         const schemaField = Array.from(this.projectSchemaFields.values())
           .find(field => field.id === validation.fieldId);
         fieldName = schemaField?.fieldName || '';
-      } else if (validation.fieldType === 'collection_property') {
+      } else if (validation.validationType === 'collection_property') {
         // Get property name from collection properties and build collection field name
         const property = Array.from(this.collectionProperties.values())
           .find(prop => prop.id === validation.fieldId);

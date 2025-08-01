@@ -163,7 +163,8 @@ Section | Topic Name | Column A | Column B
 {{"field_validations": [
   {{
     "field_id": "uuid-from-schema",
-    "field_type": "schema_field|collection_property",
+    "validation_type": "schema_field|collection_property",
+    "data_type": "TEXT|DATE|NUMBER|CHOICE",
     "field_name": "FieldName|CollectionName.PropertyName[index]",
     "extracted_value": "Actual extracted value",
     "confidence_score": 0.0-1.0,

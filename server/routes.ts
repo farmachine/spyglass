@@ -1370,12 +1370,12 @@ except Exception as e:
       
       // Log all validations for debugging
       allValidations.forEach((validation, index) => {
-        console.log(`${index}: ${validation.fieldName} [${validation.recordIndex}] = "${validation.extractedValue}" (${validation.fieldType})`);
+        console.log(`${index}: ${validation.fieldName} [${validation.recordIndex}] = "${validation.extractedValue}" (${validation.validationType})`);
       });
 
       // Separate schema fields and collection properties
-      const schemaValidations = allValidations.filter(v => v.fieldType === 'schema_field');
-      const collectionValidations = allValidations.filter(v => v.fieldType === 'collection_property');
+      const schemaValidations = allValidations.filter(v => v.validationType === 'schema_field');
+      const collectionValidations = allValidations.filter(v => v.validationType === 'collection_property');
       
       console.log(`Schema validations: ${schemaValidations.length}`);
       console.log(`Collection validations: ${collectionValidations.length}`);
@@ -1510,9 +1510,9 @@ except Exception as e:
       for (const field of project.schemaFields) {
         await storage.createFieldValidation({
           sessionId,
-          fieldType: 'schema_field',
+          validationType: 'schema_field',
+          dataType: field.fieldType,
           fieldId: field.id,
-          fieldName: field.fieldName,
           collectionName: null,
           recordIndex: 0,
           extractedValue: null,
@@ -1532,7 +1532,8 @@ except Exception as e:
           // Create at least one instance for each collection property
           await storage.createFieldValidation({
             sessionId,
-            fieldType: 'collection_property',
+            validationType: 'collection_property',
+            dataType: property.propertyType,
             fieldId: property.id,
             fieldName: `${collection.collectionName}.${property.propertyName}[0]`,
             collectionName: collection.collectionName,
@@ -2595,7 +2596,8 @@ print(json.dumps(result))
               if (schemaField) {
                 return {
                   fieldId: schemaField.id,
-                  fieldType: 'schema_field',
+                  validationType: 'schema_field',
+                  dataType: schemaField.fieldType || 'TEXT',
                   collectionName: null,
                   recordIndex: null
                 };
@@ -2615,7 +2617,8 @@ print(json.dumps(result))
                   if (property) {
                     return {
                       fieldId: property.id,
-                      fieldType: 'collection_property',
+                      validationType: 'collection_property',
+                      dataType: property.propertyType || 'TEXT',
                       collectionName: collectionName,
                       recordIndex: recordIndex
                     };
@@ -2639,7 +2642,8 @@ print(json.dumps(result))
                 await storage.createFieldValidation({
                   sessionId: validation.session_id,
                   fieldId: fieldMapping.fieldId,
-                  fieldType: fieldMapping.fieldType,
+                  validationType: fieldMapping.validationType,
+                  dataType: fieldMapping.dataType,
                   collectionName: fieldMapping.collectionName,
                   recordIndex: fieldMapping.recordIndex,
                   extractedValue: validation.extracted_value,
@@ -2710,9 +2714,9 @@ print(json.dumps(result))
         
         await storage.createFieldValidation({
           sessionId,
-          fieldType: 'schema_field',
+          validationType: 'schema_field',
+          dataType: field.fieldType,
           fieldId: field.id,
-          fieldName: field.fieldName,
           collectionName: null,
           recordIndex: 0,
           extractedValue: fieldValue !== undefined ? fieldValue?.toString() : null,
@@ -2777,9 +2781,9 @@ print(json.dumps(result))
               
               await storage.createFieldValidation({
                 sessionId,
-                fieldType: 'collection_property',
+                validationType: 'collection_property',
+                dataType: property.propertyType,
                 fieldId: property.id,
-                fieldName,
                 collectionName,
                 recordIndex: index,
                 extractedValue: propertyValue !== undefined ? propertyValue : null,

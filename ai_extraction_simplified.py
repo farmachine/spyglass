@@ -290,7 +290,8 @@ def step1_extract_from_documents(
                     
                     json_lines.append('  {')
                     json_lines.append(f'    "field_id": "{field_id}",')
-                    json_lines.append(f'    "field_type": "schema_field",')
+                    json_lines.append(f'    "validation_type": "schema_field",')
+                    json_lines.append(f'    "data_type": "{field_type}",')
                     json_lines.append(f'    "field_name": "{field_name}",')
                     json_lines.append(f'    "extracted_value": "{example_value}",')
                     json_lines.append(f'    "confidence_score": 0.95,')
@@ -327,7 +328,8 @@ def step1_extract_from_documents(
                             
                             json_lines.append('  {')
                             json_lines.append(f'    "field_id": "{prop_id}",')
-                            json_lines.append(f'    "field_type": "collection_property",')
+                            json_lines.append(f'    "validation_type": "collection_property",')
+                            json_lines.append(f'    "data_type": "{prop_type}",')
                             json_lines.append(f'    "field_name": "{field_name_with_index}",')
                             json_lines.append(f'    "collection_name": "{collection_name}",')
                             json_lines.append(f'    "extracted_value": "{example_value}",')
