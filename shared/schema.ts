@@ -88,8 +88,8 @@ export const extractionSessions = pgTable("extraction_sessions", {
   extractedData: text("extracted_data"), // Store AI extraction results as JSON string
   extractionPrompt: text("extraction_prompt"), // Store the complete AI prompt used for extraction
   aiResponse: text("ai_response"), // Store the raw AI response before parsing
-  inputTokenCount: integer("input_token_count"), // Number of input tokens used
-  outputTokenCount: integer("output_token_count"), // Number of output tokens generated
+  inputTokenCount: integer("input_tokens"), // Number of input tokens used
+  outputTokenCount: integer("output_tokens"), // Number of output tokens generated
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
