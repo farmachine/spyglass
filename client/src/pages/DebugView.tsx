@@ -67,6 +67,12 @@ export default function DebugView() {
 
   const hasDebugData = session.extractionPrompt || session.aiResponse;
 
+  // Helper function to format token count
+  const formatTokenCount = (count: number | null | undefined) => {
+    if (!count) return "N/A";
+    return count.toLocaleString();
+  };
+
   return (
     <div className="container mx-auto px-6 py-8">
       {/* Header */}
@@ -107,17 +113,31 @@ export default function DebugView() {
             <TabsTrigger value="prompt" className="flex items-center gap-2">
               AI Prompt
               {session.extractionPrompt && (
-                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                  {Math.round(session.extractionPrompt.length / 1000)}K chars
-                </span>
+                <div className="flex gap-1">
+                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                    {Math.round(session.extractionPrompt.length / 1000)}K chars
+                  </span>
+                  {session.inputTokenCount && (
+                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                      {formatTokenCount(session.inputTokenCount)} tokens
+                    </span>
+                  )}
+                </div>
               )}
             </TabsTrigger>
             <TabsTrigger value="response" className="flex items-center gap-2">
               AI Response
               {session.aiResponse && (
-                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                  {Math.round(session.aiResponse.length / 1000)}K chars
-                </span>
+                <div className="flex gap-1">
+                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                    {Math.round(session.aiResponse.length / 1000)}K chars
+                  </span>
+                  {session.outputTokenCount && (
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                      {formatTokenCount(session.outputTokenCount)} tokens
+                    </span>
+                  )}
+                </div>
               )}
             </TabsTrigger>
           </TabsList>
@@ -184,11 +204,29 @@ export default function DebugView() {
               </CardHeader>
               <CardContent>
                 {session.aiResponse ? (
-                  <ScrollArea className="h-[800px] w-full rounded-md border p-4">
-                    <pre className="text-sm whitespace-pre-wrap font-mono leading-relaxed">
-                      {session.aiResponse}
-                    </pre>
-                  </ScrollArea>
+                  <div className="space-y-4">
+                    {/* Token usage summary */}
+                    {(session.inputTokenCount || session.outputTokenCount) && (
+                      <div className="flex gap-4 p-3 bg-gray-50 rounded-lg">
+                        <div className="text-sm">
+                          <span className="font-medium">Input:</span> {formatTokenCount(session.inputTokenCount)} tokens
+                        </div>
+                        <div className="text-sm">
+                          <span className="font-medium">Output:</span> {formatTokenCount(session.outputTokenCount)} tokens
+                        </div>
+                        <div className="text-sm">
+                          <span className="font-medium">Total:</span> {formatTokenCount((session.inputTokenCount || 0) + (session.outputTokenCount || 0))} tokens
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Raw AI response */}
+                    <ScrollArea className="h-[800px] w-full rounded-md border p-4">
+                      <pre className="text-sm whitespace-pre-wrap font-mono leading-relaxed">
+                        {session.aiResponse}
+                      </pre>
+                    </ScrollArea>
+                  </div>
                 ) : (
                   <div className="text-center py-12 text-muted-foreground">
                     <p>No AI response data available for this session.</p>

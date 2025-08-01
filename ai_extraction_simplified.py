@@ -22,6 +22,8 @@ class ExtractionResult:
     error_message: Optional[str] = None
     extraction_prompt: Optional[str] = None
     ai_response: Optional[str] = None
+    input_token_count: Optional[int] = None
+    output_token_count: Optional[int] = None
 
 # ValidationResult dataclass removed - validation now occurs only during extraction
 
@@ -612,6 +614,14 @@ RETURN: Complete readable content from this document."""
         if not response or not response.text:
             return ExtractionResult(success=False, error_message="No response from AI")
         
+        # Extract token usage information
+        input_token_count = None
+        output_token_count = None
+        if hasattr(response, 'usage_metadata') and response.usage_metadata:
+            input_token_count = getattr(response.usage_metadata, 'prompt_token_count', None)
+            output_token_count = getattr(response.usage_metadata, 'candidates_token_count', None)
+            logging.info(f"TOKEN USAGE: Input tokens: {input_token_count}, Output tokens: {output_token_count}")
+        
         # Parse JSON response - handle markdown code blocks
         response_text = response.text.strip()
         
@@ -689,7 +699,9 @@ RETURN: Complete readable content from this document."""
                 success=True, 
                 extracted_data=extracted_data,
                 extraction_prompt=final_prompt,
-                ai_response=response.text
+                ai_response=response.text,
+                input_token_count=input_token_count,
+                output_token_count=output_token_count
             )
             
         except json.JSONDecodeError as e:
@@ -734,7 +746,9 @@ if __name__ == "__main__":
                     "extracted_data": result.extracted_data, 
                     "field_validations": result.extracted_data.get("field_validations", []),
                     "extraction_prompt": result.extraction_prompt,
-                    "ai_response": result.ai_response
+                    "ai_response": result.ai_response,
+                    "input_token_count": result.input_token_count,
+                    "output_token_count": result.output_token_count
                 }))
             else:
                 print(json.dumps({"success": False, "error": result.error_message}), file=sys.stderr)

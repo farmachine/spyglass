@@ -1675,10 +1675,14 @@ except Exception as e:
           const extractedData = JSON.parse(output);
           console.log('STEP 1 extracted data:', JSON.stringify(extractedData, null, 2));
           
-          // Store extracted data in session
+          // Store extracted data in session along with token usage and AI response
           await storage.updateExtractionSession(sessionId, {
             status: "extracted",
-            extractedData: JSON.stringify(extractedData)
+            extractedData: JSON.stringify(extractedData.extracted_data || extractedData),
+            extractionPrompt: extractedData.extraction_prompt,
+            aiResponse: extractedData.ai_response,
+            inputTokenCount: extractedData.input_token_count,
+            outputTokenCount: extractedData.output_token_count
           });
           
           // Create field validation records from extracted data
