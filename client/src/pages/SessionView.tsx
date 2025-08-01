@@ -54,7 +54,7 @@ const AIReasoningModal = ({
   onVerificationChange: (isVerified: boolean) => void;
 }) => {
   const { toast } = useToast();
-  const isVerified = validation?.validationStatus === 'valid' || validation?.validationStatus === 'verified';
+  const isVerified = validation?.validationStatus === 'valid';
 
   const copyToClipboard = async () => {
     try {
@@ -227,7 +227,7 @@ const ValidationToggle = ({ fieldName, validation, onToggle }: {
     return <div className="text-xs text-gray-400">No validation data</div>;
   }
 
-  const isVerified = validation.validationStatus === 'valid' || validation.validationStatus === 'verified';
+  const isVerified = validation.validationStatus === 'valid';
 
   return (
     <div className="flex items-center gap-2">
@@ -491,20 +491,22 @@ export default function SessionView() {
 
   const { data: validations = [], isLoading: validationsLoading } = useQuery<FieldValidation[]>({
     queryKey: ['/api/sessions', sessionId, 'validations'],
-    queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`),
-    onSuccess: (data) => {
-      console.log(`Session ${sessionId} - Validations loaded:`, data.length);
-      if (data.length > 0) {
-        console.log('Sample validation:', data[0]);
-        console.log('All field names:', data.map(v => v.fieldName));
-        console.log('Validations with extracted values:', data.filter(v => v.extractedValue).map(v => ({
-          fieldName: v.fieldName, 
-          extractedValue: v.extractedValue, 
-          confidenceScore: v.confidenceScore
-        })));
-      }
-    }
+    queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`)
   });
+
+  // Log validations data when it changes (replacement for onSuccess)
+  useEffect(() => {
+    if (validations.length > 0) {
+      console.log(`Session ${sessionId} - Validations loaded:`, validations.length);
+      console.log('Sample validation:', validations[0]);
+      console.log('All field names:', validations.map(v => v.fieldName));
+      console.log('Validations with extracted values:', validations.filter(v => v.extractedValue).map(v => ({
+        fieldName: v.fieldName, 
+        extractedValue: v.extractedValue, 
+        confidenceScore: v.confidenceScore
+      })));
+    }
+  }, [validations, sessionId]);
 
   // Fetch project-level validations for statistics cards
   const { data: projectValidations = [] } = useQuery<FieldValidation[]>({
@@ -594,7 +596,7 @@ export default function SessionView() {
     const validation = getValidation(fieldName);
     if (!validation) return;
     
-    const newStatus: ValidationStatus = isVerified ? 'verified' : 'unverified';
+    const newStatus: ValidationStatus = isVerified ? 'valid' : 'pending';
     
     // Optimistic update: immediately update the UI
     queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
@@ -632,7 +634,7 @@ export default function SessionView() {
       v.fieldName.includes(`[${recordIndex}]`)
     );
     
-    const newStatus: ValidationStatus = isVerified ? 'verified' : 'unverified';
+    const newStatus: ValidationStatus = isVerified ? 'valid' : 'pending';
     
     // Optimistic updates for all item validations
     queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
@@ -678,7 +680,7 @@ export default function SessionView() {
       recordIndex: newIndex,
       extractedValue: '',
       confidenceScore: 0,
-      validationStatus: 'unverified' as const,
+      validationStatus: 'pending' as const,
       manuallyUpdated: true,
       aiReasoning: 'New item added by user',
       createdAt: new Date(),
@@ -702,7 +704,7 @@ export default function SessionView() {
             recordIndex: newIndex,
             extractedValue: '',
             confidenceScore: 0,
-            validationStatus: 'unverified',
+            validationStatus: 'pending',
             manuallyUpdated: true,
             aiReasoning: 'New item added by user'
           })
@@ -865,13 +867,13 @@ export default function SessionView() {
   // Get session status based on field verification
   const getSessionStatus = () => {
     if (validations.length === 0) return 'in_progress';
-    const allVerified = validations.every(v => v.validationStatus === 'valid' || v.validationStatus === 'verified');
+    const allVerified = validations.every(v => v.validationStatus === 'valid');
     return allVerified ? 'verified' : 'in_progress';
   };
 
   // Get verification count helpers
   const getVerifiedCount = () => {
-    return validations.filter(v => v.validationStatus === 'valid' || v.validationStatus === 'verified').length;
+    return validations.filter(v => v.validationStatus === 'valid').length;
   };
 
   const getTotalFieldCount = () => {
@@ -890,7 +892,7 @@ export default function SessionView() {
   const getCollectionVerificationProgress = (collectionName: string) => {
     const collectionValidations = validations.filter(v => v.collectionName === collectionName);
     const totalFields = collectionValidations.length;
-    const verifiedFields = collectionValidations.filter(v => v.validationStatus === 'verified' || v.validationStatus === 'valid').length;
+    const verifiedFields = collectionValidations.filter(v => v.validationStatus === 'valid').length;
     const percentage = totalFields > 0 ? Math.round((verifiedFields / totalFields) * 100) : 0;
     
     return {
@@ -902,7 +904,7 @@ export default function SessionView() {
 
   // Get all unverified fields for consolidated reasoning
   const getUnverifiedFields = () => {
-    return validations.filter(v => v.validationStatus !== 'valid' && v.validationStatus !== 'verified');
+    return validations.filter(v => v.validationStatus !== 'valid');
   };
 
   // Generate human-readable field names for reports, using meaningful identifiers for list items  
@@ -1546,7 +1548,7 @@ Thank you for your assistance.`;
     const sessionValidations = projectValidations.filter(v => v.sessionId === sessionId);
     if (sessionValidations.length === 0) return 'pending';
     
-    const allVerified = sessionValidations.every(v => v.validationStatus === 'valid' || v.validationStatus === 'verified');
+    const allVerified = sessionValidations.every(v => v.validationStatus === 'valid');
     return allVerified ? 'verified' : 'in_progress';
   };
 
@@ -1799,7 +1801,7 @@ Thank you for your assistance.`;
                                   const validation = getValidation(fieldName);
                                   const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
                                   const wasManuallyUpdated = validation && validation.manuallyUpdated;
-                                  const isVerified = validation?.validationStatus === 'verified' || validation?.validationStatus === 'valid';
+                                  const isVerified = validation?.validationStatus === 'valid';
                                   const score = Math.round(validation?.confidenceScore || 0);
 
 
@@ -1849,7 +1851,7 @@ Thank you for your assistance.`;
                                               getFieldDisplayName,
                                               validation,
                                               onVerificationChange: (isVerified) => handleFieldVerification(fieldName, isVerified),
-                                              isVerified: validation.validationStatus === 'verified' || validation.validationStatus === 'valid'
+                                              isVerified: validation.validationStatus === 'valid'
                                             });
                                           }
                                         }}
@@ -2054,7 +2056,7 @@ Thank you for your assistance.`;
                                       }).filter(Boolean);
                                       
                                       return itemValidations.length > 0 && 
-                                        itemValidations.every(v => v?.validationStatus === 'valid' || v?.validationStatus === 'verified');
+                                        itemValidations.every(v => v?.validationStatus === 'valid');
                                     }).every(isVerified => isVerified);
                                     
                                     return (
@@ -2164,7 +2166,7 @@ Thank you for your assistance.`;
                                                                validation.extractedValue !== "" && 
                                                                validation.extractedValue !== "null" && 
                                                                validation.extractedValue !== "undefined";
-                                                const isVerified = validation.validationStatus === 'verified' || validation.validationStatus === 'valid';
+                                                const isVerified = validation.validationStatus === 'valid';
                                                 const score = Math.round(validation.confidenceScore || 0);
 
                                                 if (wasManuallyUpdated) {
@@ -2239,7 +2241,7 @@ Thank you for your assistance.`;
                                         }).filter(Boolean);
                                         
                                         const allVerified = itemValidations.length > 0 && 
-                                          itemValidations.every(v => v?.validationStatus === 'valid' || v?.validationStatus === 'verified');
+                                          itemValidations.every(v => v?.validationStatus === 'valid');
                                         
                                         return (
                                           <button
@@ -2305,7 +2307,7 @@ Thank you for your assistance.`;
               
               {(() => {
                 const validation = getValidation(selectedReasoning.fieldName);
-                const isVerified = validation?.validationStatus === 'verified' || validation?.validationStatus === 'valid';
+                const isVerified = validation?.validationStatus === 'valid';
                 
                 return (
                   <div className="flex items-center justify-between pt-4 border-t">
