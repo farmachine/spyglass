@@ -593,26 +593,38 @@ export default function SessionView() {
 
   // Handler for field verification changes
   const handleFieldVerification = (fieldName: string, isVerified: boolean) => {
+    console.log(`Verifying field: ${fieldName}, isVerified: ${isVerified}`);
     const validation = getValidation(fieldName);
-    if (!validation) return;
+    if (!validation) {
+      console.error(`No validation found for field: ${fieldName}`);
+      return;
+    }
     
+    console.log(`Found validation:`, validation);
     const newStatus: ValidationStatus = isVerified ? 'valid' : 'pending';
+    console.log(`Updating status from ${validation.validationStatus} to ${newStatus}`);
     
     // Optimistic update: immediately update the UI
     queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
       if (!oldData) return oldData;
-      return oldData.map((v: any) => 
+      const updated = oldData.map((v: any) => 
         v.id === validation.id 
           ? { ...v, validationStatus: newStatus }
           : v
       );
+      console.log('Optimistic update applied');
+      return updated;
     });
     
     updateValidationMutation.mutate({
       id: validation.id,
       data: { validationStatus: newStatus }
     }, {
-      onError: () => {
+      onSuccess: (result) => {
+        console.log('Mutation successful:', result);
+      },
+      onError: (error) => {
+        console.error('Mutation failed:', error);
         // Revert optimistic update on error
         queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
           if (!oldData) return oldData;
