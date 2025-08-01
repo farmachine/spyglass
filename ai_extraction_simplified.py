@@ -346,7 +346,7 @@ REQUIRED OUTPUT FORMAT - Field Validation JSON Structure:
         logging.info(f"Documents received: {[doc.get('file_name', 'Unknown') for doc in documents]}")
         logging.info(f"Documents data: {documents}")
         
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.5-pro')
         extracted_content_text = ""
         processed_docs = 0
         
@@ -469,7 +469,7 @@ RETURN: Complete readable content from this document."""
                                             extraction_prompt
                                         ],
                                         generation_config=genai.GenerationConfig(
-                                            max_output_tokens=30000000,  # 30M tokens to prevent truncation
+                                            max_output_tokens=65536,  # Gemini 2.5 Pro max output limit
                                             temperature=0.1
                                         ),
                                         request_options={"timeout": None}  # Remove timeout constraints
@@ -594,7 +594,7 @@ RETURN: Complete readable content from this document."""
                 response = model.generate_content(
                     final_prompt,
                     generation_config=genai.GenerationConfig(
-                        max_output_tokens=30000000,  # 30M tokens - maximum limit to prevent truncation
+                        max_output_tokens=65536,  # Gemini 2.5 Pro max output limit
                         temperature=0.1,
                         response_mime_type="application/json"
                     ),
