@@ -617,10 +617,37 @@ RETURN: Complete readable content from this document."""
         # Extract token usage information
         input_token_count = None
         output_token_count = None
+        
+        # Check for different possible token usage structures in Gemini API response
+        logging.info(f"RESPONSE DEBUG: Response type: {type(response)}")
+        logging.info(f"RESPONSE DEBUG: Response attributes: {dir(response)}")
+        
         if hasattr(response, 'usage_metadata') and response.usage_metadata:
+            logging.info(f"TOKEN DEBUG: Found usage_metadata: {response.usage_metadata}")
+            logging.info(f"TOKEN DEBUG: usage_metadata attributes: {dir(response.usage_metadata)}")
             input_token_count = getattr(response.usage_metadata, 'prompt_token_count', None)
             output_token_count = getattr(response.usage_metadata, 'candidates_token_count', None)
+            
+            # Try alternative attribute names if the primary ones don't exist
+            if input_token_count is None:
+                input_token_count = getattr(response.usage_metadata, 'input_token_count', None)
+                input_token_count = getattr(response.usage_metadata, 'prompt_tokens', input_token_count)
+            if output_token_count is None:
+                output_token_count = getattr(response.usage_metadata, 'output_token_count', None) 
+                output_token_count = getattr(response.usage_metadata, 'candidates_tokens', output_token_count)
+                output_token_count = getattr(response.usage_metadata, 'completion_tokens', output_token_count)
+            
             logging.info(f"TOKEN USAGE: Input tokens: {input_token_count}, Output tokens: {output_token_count}")
+        else:
+            logging.warning("TOKEN DEBUG: No usage_metadata found in response")
+            
+        # Fallback: try to find usage information in other response attributes
+        if input_token_count is None and hasattr(response, '_result') and hasattr(response._result, 'usage_metadata'):
+            usage = response._result.usage_metadata
+            logging.info(f"TOKEN DEBUG: Found _result.usage_metadata: {usage}")
+            input_token_count = getattr(usage, 'prompt_token_count', None)
+            output_token_count = getattr(usage, 'candidates_token_count', None)
+            logging.info(f"TOKEN USAGE (fallback): Input tokens: {input_token_count}, Output tokens: {output_token_count}")
         
         # Parse JSON response - handle markdown code blocks
         response_text = response.text.strip()
