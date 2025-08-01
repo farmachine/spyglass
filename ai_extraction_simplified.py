@@ -29,8 +29,8 @@ class ExtractionResult:
 
 def repair_truncated_json(response_text: str) -> str:
     """
-    Attempt to repair truncated JSON responses by finding the last complete object
-    and properly closing the JSON structure.
+    Attempt to repair truncated JSON responses by finding complete field validation objects
+    and properly closing the JSON structure to preserve as much data as possible.
     """
     try:
         logging.info(f"Attempting to repair JSON response of length {len(response_text)}")
@@ -39,49 +39,78 @@ def repair_truncated_json(response_text: str) -> str:
         if not response_text.strip().startswith('{"field_validations":'):
             logging.warning("Response doesn't start with expected field_validations structure")
             return None
-            
-        # Find the last complete field validation object by looking for complete } patterns
-        # We need to find the last point where we have a complete object
         
-        # Look for the pattern: "}," or "}]" which indicates end of an object
-        last_complete_object = -1
-        i = len(response_text) - 1
+        # Find all complete field validation objects by parsing line by line
+        import re
         
-        while i >= 0:
-            if response_text[i] == '}':
-                # Check if this is followed by a comma or closing bracket
-                if i + 1 < len(response_text):
-                    next_char = response_text[i + 1]
-                    if next_char in [',', ']']:
-                        last_complete_object = i + 2  # Include the comma/bracket
-                        break
-                else:
-                    # This is the end of string, check if it's a complete object
-                    last_complete_object = i + 1
-                    break
-            i -= 1
+        lines = response_text.split('\n')
+        field_validations = []
+        current_object_lines = []
+        brace_count = 0
+        inside_validation = False
+        
+        for line_num, line in enumerate(lines):
+            # Check if this line starts a new field validation object
+            if '"field_id"' in line and brace_count == 0:
+                # Start of a new field validation object
+                current_object_lines = [line]
+                inside_validation = True
+                brace_count += line.count('{') - line.count('}')
+            elif inside_validation:
+                current_object_lines.append(line)
+                brace_count += line.count('{') - line.count('}')
+                
+                # Check if we've completed this object (brace_count back to 0)
+                if brace_count == 0 and (line.strip().endswith('}') or line.strip().endswith('},')):
+                    # We have a complete field validation object
+                    complete_object = '\n'.join(current_object_lines)
+                    try:
+                        # Try to parse this individual object to ensure it's valid
+                        obj_json = complete_object.strip()
+                        if obj_json.endswith(','):
+                            obj_json = obj_json[:-1]  # Remove trailing comma
+                        
+                        # Wrap in a test structure to validate
+                        test_json = '{"test": ' + obj_json + '}'
+                        json.loads(test_json)
+                        field_validations.append(complete_object.strip())
+                        logging.info(f"Found complete field validation object #{len(field_validations)}")
+                    except json.JSONDecodeError as e:
+                        logging.warning(f"Skipping invalid field validation object: {str(e)[:100]}...")
+                    
+                    # Reset for next object
+                    current_object_lines = []
+                    inside_validation = False
+                    brace_count = 0
+        
+        if field_validations:
+            # Build a proper JSON structure with all complete field validations
+            repaired = '{\n  "field_validations": [\n'
             
-        if last_complete_object == -1:
-            logging.warning("Could not find any complete objects in response")
+            for i, validation in enumerate(field_validations):
+                # Clean up the validation object
+                clean_validation = validation.strip()
+                if clean_validation.endswith(','):
+                    clean_validation = clean_validation[:-1]
+                
+                # Add proper indentation
+                indented_validation = '\n'.join('    ' + line for line in clean_validation.split('\n'))
+                repaired += indented_validation
+                
+                # Add comma if not the last item
+                if i < len(field_validations) - 1:
+                    repaired += ','
+                repaired += '\n'
+            
+            repaired += '  ]\n}'
+            
+            # Test if the repair worked
+            json.loads(repaired)
+            logging.info(f"Successfully repaired truncated JSON - preserved {len(field_validations)} complete field validations")
+            return repaired
+        else:
+            logging.warning("No complete field validation objects found in truncated response")
             return None
-            
-        # Take everything up to the last complete object
-        partial_response = response_text[:last_complete_object]
-        
-        # Remove any trailing comma if present
-        if partial_response.endswith(','):
-            partial_response = partial_response[:-1]
-            
-        # Close the field_validations array and main object
-        if not partial_response.endswith(']'):
-            partial_response += ']'
-        if not partial_response.endswith('}'):
-            partial_response += '}'
-            
-        logging.info(f"JSON repair: Original {len(response_text)} chars -> Repaired {len(partial_response)} chars")
-        logging.info(f"Repaired JSON ends with: ...{partial_response[-50:]}")
-        
-        return partial_response
         
     except Exception as e:
         logging.error(f"JSON repair failed: {e}")
