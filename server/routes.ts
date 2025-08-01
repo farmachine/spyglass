@@ -2160,6 +2160,14 @@ print(json.dumps(result))
             // Save extraction prompt and AI response to database if available
             if (result.success && (result.extraction_prompt || result.ai_response)) {
               try {
+                // Log what we're about to save
+                const ai_response_length = result.ai_response ? result.ai_response.length : 0;
+                console.log(`GEMINI EXTRACTION: About to save AI response with length: ${ai_response_length}`);
+                if (result.ai_response) {
+                  console.log(`GEMINI EXTRACTION: AI response first 200 chars: ${result.ai_response.substring(0, 200)}...`);
+                  console.log(`GEMINI EXTRACTION: AI response last 200 chars: ...${result.ai_response.substring(Math.max(0, result.ai_response.length - 200))}`);
+                }
+                
                 await storage.updateExtractionSession(sessionId, {
                   extractionPrompt: result.extraction_prompt,
                   aiResponse: result.ai_response

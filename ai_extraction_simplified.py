@@ -652,6 +652,16 @@ RETURN: Complete readable content from this document."""
         logging.info(f"STEP 2: Raw AI response start: {response_text[:500]}...")
         if len(response_text) > 500:
             logging.info(f"STEP 2: Raw AI response end: ...{response_text[-500:]}")
+        
+        # Log the ACTUAL raw response object for comparison
+        actual_raw_response = response.text
+        logging.info(f"STEP 2: ACTUAL raw response length: {len(actual_raw_response)}")
+        logging.info(f"STEP 2: ACTUAL raw response == processed response: {actual_raw_response == response_text}")
+        if actual_raw_response != response_text:
+            logging.warning("STEP 2: MISMATCH - Raw response differs from processed response!")
+            logging.info(f"STEP 2: ACTUAL raw response start: {actual_raw_response[:500]}...")
+            if len(actual_raw_response) > 500:
+                logging.info(f"STEP 2: ACTUAL raw response end: ...{actual_raw_response[-500:]}")
             
         # Count field_validations objects to detect truncation
         field_validation_count = response_text.count('"field_id":')
@@ -729,11 +739,16 @@ RETURN: Complete readable content from this document."""
                 extracted_data = {"field_validations": []}
                 
             logging.info(f"STEP 1: Successfully extracted {len(extracted_data.get('field_validations', []))} field validations")
+            
+            # Ensure we're storing the ACTUAL raw response, not processed version
+            raw_response_to_store = response.text
+            logging.info(f"STEP 1: Storing raw AI response length: {len(raw_response_to_store)}")
+            
             return ExtractionResult(
                 success=True, 
                 extracted_data=extracted_data,
                 extraction_prompt=final_prompt,
-                ai_response=response.text
+                ai_response=raw_response_to_store  # Store the actual raw response
             )
             
         except json.JSONDecodeError as e:
@@ -773,6 +788,13 @@ if __name__ == "__main__":
             result = step1_extract_from_documents(documents, project_schema, extraction_rules, session_name)
             
             if result.success:
+                # Log what we're about to output
+                ai_response_length = len(result.ai_response) if result.ai_response else 0
+                logging.info(f"OUTPUT: Returning ai_response with length: {ai_response_length}")
+                if result.ai_response:
+                    logging.info(f"OUTPUT: ai_response first 200 chars: {result.ai_response[:200]}...")
+                    logging.info(f"OUTPUT: ai_response last 200 chars: ...{result.ai_response[-200:]}")
+                
                 print(json.dumps({
                     "success": True, 
                     "extracted_data": result.extracted_data, 
