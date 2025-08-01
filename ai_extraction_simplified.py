@@ -686,6 +686,13 @@ RETURN: Complete readable content from this document."""
                 extracted_data = {"field_validations": []}
                 
             logging.info(f"STEP 1: Successfully extracted {len(extracted_data.get('field_validations', []))} field validations")
+            
+            # Enhanced logging for debugging raw AI response storage
+            ai_response_length = len(response.text)
+            logging.info(f"RAW AI RESPONSE STORAGE: Total length = {ai_response_length} characters")
+            logging.info(f"RAW AI RESPONSE STORAGE: First 200 chars = {response.text[:200]}")
+            logging.info(f"RAW AI RESPONSE STORAGE: Last 200 chars = {response.text[-200:]}")
+            
             return ExtractionResult(
                 success=True, 
                 extracted_data=extracted_data,
