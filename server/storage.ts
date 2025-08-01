@@ -39,7 +39,7 @@ import {
 } from "@shared/schema";
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { eq, count, sql, and, or } from 'drizzle-orm';
+import { eq, count, sql, and, or, inArray } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface IStorage {
@@ -2062,38 +2062,54 @@ class PostgreSQLStorage implements IStorage {
   async getFieldValidations(sessionId: string): Promise<FieldValidation[]> { 
     const result = await this.db.select().from(fieldValidations).where(eq(fieldValidations.sessionId, sessionId));
     
-    // Enhance results with field names
-    const enhancedValidations = await Promise.all(result.map(async (validation) => {
+    // Get all unique field IDs for batch processing
+    const schemaFieldIds = [...new Set(result.filter(v => v.validationType === 'schema_field').map(v => v.fieldId))];
+    const collectionPropertyIds = [...new Set(result.filter(v => v.validationType === 'collection_property').map(v => v.fieldId))];
+    
+    // Batch fetch schema field names
+    const schemaFieldsMap = new Map<string, string>();
+    if (schemaFieldIds.length > 0) {
+      const schemaFields = await this.db
+        .select({ id: projectSchemaFields.id, fieldName: projectSchemaFields.fieldName })
+        .from(projectSchemaFields)
+        .where(inArray(projectSchemaFields.id, schemaFieldIds));
+      
+      schemaFields.forEach(field => {
+        schemaFieldsMap.set(field.id, field.fieldName);
+      });
+    }
+    
+    // Batch fetch collection property names with collection names
+    const collectionPropertiesMap = new Map<string, { propertyName: string, collectionName: string }>();
+    if (collectionPropertyIds.length > 0) {
+      const propertiesWithCollections = await this.db
+        .select({ 
+          id: collectionProperties.id,
+          propertyName: collectionProperties.propertyName,
+          collectionName: objectCollections.collectionName 
+        })
+        .from(collectionProperties)
+        .innerJoin(objectCollections, eq(collectionProperties.collectionId, objectCollections.id))
+        .where(inArray(collectionProperties.id, collectionPropertyIds));
+      
+      propertiesWithCollections.forEach(prop => {
+        collectionPropertiesMap.set(prop.id, { 
+          propertyName: prop.propertyName, 
+          collectionName: prop.collectionName 
+        });
+      });
+    }
+    
+    // Enhance results with field names using the cached data
+    const enhancedValidations = result.map(validation => {
       let fieldName = '';
       
       if (validation.validationType === 'schema_field') {
-        // Get field name from project schema fields
-        const schemaField = await this.db
-          .select({ fieldName: projectSchemaFields.fieldName })
-          .from(projectSchemaFields)
-          .where(eq(projectSchemaFields.id, validation.fieldId))
-          .limit(1);
-        
-        fieldName = schemaField[0]?.fieldName || '';
+        fieldName = schemaFieldsMap.get(validation.fieldId) || '';
       } else if (validation.validationType === 'collection_property') {
-        try {
-          // Get property name and collection name in one query
-          const propertyWithCollection = await this.db
-            .select({ 
-              propertyName: collectionProperties.propertyName,
-              collectionName: objectCollections.collectionName 
-            })
-            .from(collectionProperties)
-            .innerJoin(objectCollections, eq(collectionProperties.collectionId, objectCollections.id))
-            .where(eq(collectionProperties.id, validation.fieldId))
-            .limit(1);
-          
-          if (propertyWithCollection[0] && validation.recordIndex !== null) {
-            fieldName = `${propertyWithCollection[0].collectionName}.${propertyWithCollection[0].propertyName}[${validation.recordIndex}]`;
-          }
-        } catch (error) {
-          console.error(`Error processing collection property ${validation.fieldId}:`, error);
-          // Skip this validation if there's an error
+        const propInfo = collectionPropertiesMap.get(validation.fieldId);
+        if (propInfo && validation.recordIndex !== null) {
+          fieldName = `${propInfo.collectionName}.${propInfo.propertyName}[${validation.recordIndex}]`;
         }
       }
       
@@ -2101,7 +2117,7 @@ class PostgreSQLStorage implements IStorage {
         ...validation,
         fieldName
       };
-    }));
+    });
     
     return enhancedValidations;
   }

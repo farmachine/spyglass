@@ -1745,7 +1745,10 @@ Thank you for your assistance.`;
               <TabsList className="w-full justify-start tabs-list">
                 <TabsTrigger value="info" className="tabs-trigger">{project.mainObjectName || "Session"} Information</TabsTrigger>
                 {project.collections.map((collection) => {
-                  const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
+                  const collectionValidations = validations.filter(v => 
+                    v.collectionName === collection.collectionName || 
+                    (v.fieldName && v.fieldName.startsWith(collection.collectionName + '.'))
+                  );
                   const validationIndices = collectionValidations.length > 0 ? 
                     collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null && idx !== undefined) : [];
                   const maxRecordIndex = validationIndices.length > 0 ? Math.max(...validationIndices) : -1;
@@ -1976,7 +1979,10 @@ Thank you for your assistance.`;
               {/* Individual Collection Tabs */}
               {project.collections.map((collection) => {
                 const collectionData = extractedData[collection.collectionName];
-                const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
+                const collectionValidations = validations.filter(v => 
+                  v.collectionName === collection.collectionName || 
+                  (v.fieldName && v.fieldName.startsWith(collection.collectionName + '.'))
+                );
                 const validationIndices = collectionValidations.length > 0 ? 
                   collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null && idx !== undefined) : [];
                 const maxRecordIndex = validationIndices.length > 0 ? Math.max(...validationIndices) : -1;
