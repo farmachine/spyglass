@@ -84,6 +84,17 @@ You are processing multiple documents simultaneously. Extract comprehensively fr
 
 **IMPORTANT**: Each unique instance found should be a SEPARATE collection item with its own record_index (0, 1, 2, etc.)
 
+## EXTRACTED VALUE REQUIREMENTS:
+When extracting descriptions, rates, or other content, be comprehensive and detailed. Expand abbreviations and provide full context rather than abbreviated summaries. For example:
+- Instead of: "Pre 6 April 1988 GMP"
+- Provide: "Pre 6 April 1988 Guaranteed Minimum Pension benefits for all members"
+- Instead of: "CPI 0%-3%"
+- Provide: "Consumer Price Index increases capped between 0% and 3% per annum"
+- Instead of: "Post 5 April 1988 GMP" 
+- Provide: "Post 5 April 1988 Guaranteed Minimum Pension benefits with annual escalation"
+
+**CRITICAL**: Always expand technical abbreviations (GMP, CPI, RPI, etc.) and provide meaningful context. Your extracted values should be informative and self-explanatory to someone unfamiliar with pension terminology.
+
 ## AI REASONING REQUIREMENTS:
 Your ai_reasoning field must be an intelligent, context-specific explanation that includes:
 
