@@ -50,7 +50,7 @@ export function EditFieldValueDialog({
   };
 
   const getFieldDisplayName = (validation: FieldValidationWithName) => {
-    if (validation.fieldType === "schema_field") {
+    if (validation.validationType === "schema_field") {
       // For schema fields, extract the field name from fieldName property
       const parts = validation.fieldName?.split('.');
       return parts?.[parts.length - 1] || validation.fieldId || "Schema Field";
@@ -62,6 +62,14 @@ export function EditFieldValueDialog({
         const propertyName = parts[1].replace(/\[\d+\]$/, ""); // Remove index like [0]
         const index = validation.recordIndex !== null && validation.recordIndex !== undefined ? validation.recordIndex + 1 : "";
         return `${collectionName} ${index ? `#${index}` : ""} - ${propertyName}`;
+      }
+      // Fallback: if fieldName is available, use it; otherwise construct from validation info
+      if (validation.fieldName) {
+        return validation.fieldName.replace(/\[\d+\]$/, ""); // Remove array indices
+      }
+      // If we have collection name and record index, construct a meaningful name
+      if (validation.collectionName && validation.recordIndex !== null) {
+        return `${validation.collectionName} #${validation.recordIndex + 1}`;
       }
       return validation.fieldId || "Collection Property";
     }
