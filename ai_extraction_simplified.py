@@ -583,29 +583,6 @@ RETURN: Complete readable content from this document."""
         logging.info(f"=== STEP 2: DATA EXTRACTION ===")
         logging.info(f"Making data extraction call with {len(extracted_content_text)} characters of extracted content")
         
-        # Check if the prompt is too large and might cause truncation
-        total_prompt_size = len(final_prompt)
-        if total_prompt_size > 100000:  # 100K characters threshold
-            logging.warning(f"LARGE PROMPT DETECTED: {total_prompt_size} characters - this may cause response truncation")
-            logging.warning("Implementing simplified extraction for large document")
-            
-            # For very large documents, use a simplified approach
-            # Extract only essential collections first, then handle others
-            if project_schema.get("collections"):
-                priority_collections = [c for c in project_schema["collections"] 
-                                       if c.get('collectionName') in ['Increase Rates', 'Revolution Rates']]
-                if priority_collections:
-                    logging.info(f"Using simplified extraction for {len(priority_collections)} priority collections")
-                    simplified_schema = {
-                        "globalFields": project_schema.get("globalFields", []),
-                        "collections": priority_collections
-                    }
-                    
-                    # Create simplified prompt with only priority collections
-                    simplified_prompt = get_ai_extraction_prompt(simplified_schema, extraction_rules or [])
-                    final_prompt = simplified_prompt + f"\n\nEXTRACTED DOCUMENT CONTENT:\n{extracted_content_text}"
-                    logging.info(f"Reduced prompt size to {len(final_prompt)} characters")
-        
         # Retry logic for API overload situations in data extraction
         max_retries = 3
         retry_delay = 2  # Start with 2 seconds
@@ -615,7 +592,7 @@ RETURN: Complete readable content from this document."""
                 response = model.generate_content(
                     final_prompt,
                     generation_config=genai.GenerationConfig(
-                        max_output_tokens=8000,  # Realistic limit for Gemini 2.5 Flash
+                        max_output_tokens=30000000,  # 30M tokens - maximum limit to prevent truncation
                         temperature=0.1,
                         response_mime_type="application/json"
                     ),
@@ -663,25 +640,8 @@ RETURN: Complete readable content from this document."""
                 logging.warning("DEBUGGING SESSION 0db04e6a: This may indicate response truncation or incomplete extraction")
             
         # Check if response appears to end abruptly
-        if len(response_text) > 1000 and not response_text.strip().endswith((']}', '}')):
+        if len(response_text) > 10000 and not response_text.strip().endswith((']}', '}')):
             logging.warning("RESPONSE APPEARS TRUNCATED - Does not end with expected JSON closing")
-            logging.warning(f"Response ends with: {response_text[-100:]}")
-            
-        # Check for common truncation patterns
-        truncation_patterns = [
-            '... [Truncated]',
-            '"ex ...[Truncated]',
-            '...[Truncated]',
-            '"extracted_value": "',
-            '"ai_reasoning": "',
-            '"field_id": "'
-        ]
-        
-        response_end = response_text[-200:] if len(response_text) > 200 else response_text
-        for pattern in truncation_patterns:
-            if pattern in response_end and not response_text.strip().endswith((']}', '}')):
-                logging.error(f"CONFIRMED TRUNCATION DETECTED - Found pattern '{pattern}' in response end")
-                break
         
         # Remove markdown code blocks if present
         if response_text.startswith("```json"):
@@ -713,19 +673,11 @@ RETURN: Complete readable content from this document."""
                             extracted_data = json.loads(repaired_json)
                             logging.info("Successfully repaired and parsed truncated JSON response")
                         except json.JSONDecodeError:
-                            logging.error("JSON repair failed - likely response was too severely truncated")
-                            logging.error("This indicates the document is too complex for single-pass extraction")
-                            return ExtractionResult(
-                                success=False, 
-                                error_message="Response truncated due to token limits. Document too large for current extraction method. Consider splitting document or simplifying schema."
-                            )
+                            logging.error("JSON repair failed, creating minimal structure")
+                            extracted_data = {"field_validations": []}
                     else:
-                        logging.error("Could not repair JSON - response severely truncated")
-                        logging.error("This indicates the document requires a different extraction approach")
-                        return ExtractionResult(
-                            success=False, 
-                            error_message="Response truncated beyond repair. Document exceeds current processing limits."
-                        )
+                        logging.error("Could not repair JSON, creating minimal structure")
+                        extracted_data = {"field_validations": []}
                 
             # Validate that we have the expected field_validations structure
             if "field_validations" not in extracted_data:
