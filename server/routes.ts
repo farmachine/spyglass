@@ -2164,14 +2164,17 @@ print(json.dumps(result))
             // Save extraction prompt, AI response, and token counts to database if available
             if (result.success && (result.extraction_prompt || result.ai_response)) {
               try {
+                // Use the repaired extracted_data as a properly formatted JSON string for debugging
+                const repairedResponse = result.extracted_data ? JSON.stringify(result.extracted_data, null, 2) : result.ai_response;
+                
                 await storage.updateExtractionSession(sessionId, {
                   status: "extracted",
                   extractionPrompt: result.extraction_prompt,
-                  aiResponse: result.ai_response,
+                  aiResponse: repairedResponse, // Save the repaired JSON instead of truncated raw response
                   inputTokenCount: result.input_token_count,
                   outputTokenCount: result.output_token_count
                 });
-                console.log(`GEMINI EXTRACTION: Saved prompt, AI response, and token counts to database (Input: ${result.input_token_count}, Output: ${result.output_token_count})`);
+                console.log(`GEMINI EXTRACTION: Saved prompt, repaired AI response, and token counts to database (Input: ${result.input_token_count}, Output: ${result.output_token_count})`);
               } catch (saveError) {
                 console.error('GEMINI EXTRACTION: Failed to save extraction data:', saveError);
               }
