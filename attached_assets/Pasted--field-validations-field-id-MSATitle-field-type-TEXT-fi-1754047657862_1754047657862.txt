@@ -1,0 +1,38 @@
+{
+  "field_validations": [
+    {
+      "field_id": "MSATitle",
+      "field_type": "TEXT",
+      "field_name": "MSATitle",
+      "extracted_value": "HubSpot Customer Terms of Service",
+      "confidence_score": 1,
+      "validation_status": "unverified",
+      "ai_reasoning": "The document title 'HubSpot Customer Terms of Service' is explicitly stated multiple times on page 1. High confidence due to direct extraction from the document's title section."
+    },
+    {
+      "field_id": "EffectiveDate",
+      "field_type": "DATE",
+      "field_name": "EffectiveDate",
+      "extracted_value": "2022-11-15",
+      "confidence_score": 1,
+      "validation_status": "unverified",
+      "ai_reasoning": "Extracted from the footer on multiple pages which states 'Version Last Modified: November 15, 2022'. This date is also referenced on page 1 as the last modification date for the Product Specific Terms and Jurisdiction Specific Terms included in this PDF copy. High confidence as this is the most recent date associated with this version of the agreement."
+    },
+    {
+      "field_id": "MSAID",
+      "field_type": "TEXT",
+      "field_name": "MSAID",
+      "extracted_value": null,
+      "confidence_score": 0.99,
+      "validation_status": "unverified",
+      "ai_reasoning": "No unique identifier or reference number for the Master Service Agreement was found in the document. The document is a general terms of service template, which typically does not have a unique ID. High confidence in its absence."
+    },
+    {
+      "field_id": "OverallDORAComplianceAssessment",
+      "field_type": "CHOICE",
+      "field_name": "OverallDORAComplianceAssessment",
+      "extracted_value": null,
+      "confidence_score": 0.95,
+      "validation_status": "unverified",
+      "ai_reasoning": "The document is a standard Terms of Service and does not mention DORA or contain provisions specifically designed to comply with it. An overall assessment would require a legal review of this document in conjunction with its referenced addendums (like the DPA), which are not fully provided. Therefore, no assessment can be made from the document alone."
+    }
