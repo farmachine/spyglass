@@ -27,8 +27,8 @@ class ExtractionResult:
 
 def repair_truncated_json(response_text: str) -> str:
     """
-    Attempt to repair truncated JSON responses by finding the last complete object
-    and properly closing the JSON structure.
+    Enhanced repair for truncated JSON responses.
+    Handles common truncation patterns and attempts to salvage as much data as possible.
     """
     try:
         logging.info(f"Attempting to repair JSON response of length {len(response_text)}")
@@ -37,48 +37,79 @@ def repair_truncated_json(response_text: str) -> str:
         if not response_text.strip().startswith('{"field_validations":'):
             logging.warning("Response doesn't start with expected field_validations structure")
             return None
-            
-        # Find the last complete field validation object by looking for complete } patterns
-        # We need to find the last point where we have a complete object
         
-        # Look for the pattern: "}," or "}]" which indicates end of an object
-        last_complete_object = -1
-        i = len(response_text) - 1
+        # Handle different truncation scenarios
         
-        while i >= 0:
-            if response_text[i] == '}':
-                # Check if this is followed by a comma or closing bracket
-                if i + 1 < len(response_text):
-                    next_char = response_text[i + 1]
-                    if next_char in [',', ']']:
-                        last_complete_object = i + 2  # Include the comma/bracket
-                        break
+        # Scenario 1: Response ends abruptly in the middle of a field
+        if response_text.endswith('"'):
+            # Find the last complete field validation object
+            last_bracket_index = response_text.rfind('}')
+            if last_bracket_index > 0:
+                # Check if there's a comma after the bracket
+                next_char_index = last_bracket_index + 1
+                if next_char_index < len(response_text) and response_text[next_char_index] == ',':
+                    truncated_at = next_char_index
                 else:
-                    # This is the end of string, check if it's a complete object
-                    last_complete_object = i + 1
-                    break
-            i -= 1
-            
-        if last_complete_object == -1:
-            logging.warning("Could not find any complete objects in response")
-            return None
-            
-        # Take everything up to the last complete object
-        partial_response = response_text[:last_complete_object]
+                    truncated_at = last_bracket_index + 1
+                    
+                partial_response = response_text[:truncated_at]
+                if partial_response.endswith(','):
+                    partial_response = partial_response[:-1]
+                partial_response += ']}'
+                
+                logging.info(f"Scenario 1 repair: Truncated at field, recovered {len(partial_response)} chars")
+                return partial_response
         
-        # Remove any trailing comma if present
+        # Scenario 2: Response ends with incomplete object
+        brace_count = response_text.count('{') - response_text.count('}')
+        bracket_count = response_text.count('[') - response_text.count(']')
+        
+        # Find the last complete validation object
+        last_complete_object = -1
+        brace_depth = 0
+        
+        for i in range(len(response_text) - 1, -1, -1):
+            char = response_text[i]
+            if char == '}':
+                brace_depth += 1
+            elif char == '{':
+                brace_depth -= 1
+                if brace_depth == 1:  # We're at the start of a field validation object
+                    # Check if this object appears complete
+                    next_i = i
+                    while next_i < len(response_text) and response_text[next_i] != '}':
+                        next_i += 1
+                    if next_i < len(response_text):  # Found closing brace
+                        last_complete_object = next_i + 1
+                        break
+        
+        if last_complete_object > 0:
+            partial_response = response_text[:last_complete_object]
+            # Remove trailing comma if present
+            if partial_response.endswith(','):
+                partial_response = partial_response[:-1]
+            
+            # Close the array and object
+            if not partial_response.endswith(']'):
+                partial_response += ']'
+            if not partial_response.endswith('}'):
+                partial_response += '}'
+            
+            logging.info(f"Scenario 2 repair: Found last complete object, recovered {len(partial_response)} chars")
+            return partial_response
+            
+        # Scenario 3: Fallback - just close whatever we have
+        partial_response = response_text.rstrip()
         if partial_response.endswith(','):
             partial_response = partial_response[:-1]
-            
-        # Close the field_validations array and main object
+        
+        # Add missing closing brackets/braces
         if not partial_response.endswith(']'):
             partial_response += ']'
         if not partial_response.endswith('}'):
             partial_response += '}'
             
-        logging.info(f"JSON repair: Original {len(response_text)} chars -> Repaired {len(partial_response)} chars")
-        logging.info(f"Repaired JSON ends with: ...{partial_response[-50:]}")
-        
+        logging.info(f"Scenario 3 fallback repair: Basic closure, recovered {len(partial_response)} chars")
         return partial_response
         
     except Exception as e:
@@ -589,10 +620,11 @@ RETURN: Complete readable content from this document."""
         
         for attempt in range(max_retries):
             try:
+                # Try with a more realistic token limit first (Gemini may have undocumented limits)
                 response = model.generate_content(
                     final_prompt,
                     generation_config=genai.GenerationConfig(
-                        max_output_tokens=30000000,  # 30M tokens - maximum limit to prevent truncation
+                        max_output_tokens=8192,  # More realistic limit to avoid truncation
                         temperature=0.1,
                         response_mime_type="application/json"
                     ),
@@ -621,14 +653,26 @@ RETURN: Complete readable content from this document."""
         if len(response_text) > 500:
             logging.info(f"STEP 2: Raw AI response end: ...{response_text[-500:]}")
             
-        # Check for potential truncation indicators
-        truncation_indicators = ['...', '...}', '"ai_reasoning": "Extracted from document analysis",']
-        if any(indicator in response_text[-100:] for indicator in truncation_indicators):
-            logging.warning("POTENTIAL RESPONSE TRUNCATION DETECTED - Response may be incomplete")
-            
         # Count field_validations objects to detect truncation
         field_validation_count = response_text.count('"field_id":')
         logging.info(f"TRUNCATION CHECK: Found {field_validation_count} field_validation objects in response")
+        
+        # Enhanced truncation detection
+        truncation_indicators = ['...', '...}', '"ai_reasoning": "Extracted from document analysis",']
+        response_ends_abruptly = not response_text.strip().endswith((']}', '}'))
+        response_too_short = len(response_text) < 50000 and field_validation_count > 50  # Heuristic for large extractions
+        
+        if any(indicator in response_text[-100:] for indicator in truncation_indicators):
+            logging.warning("POTENTIAL RESPONSE TRUNCATION DETECTED - Response may be incomplete")
+            
+        if response_ends_abruptly and len(response_text) > 10000:
+            logging.warning(f"RESPONSE TRUNCATION DETECTED - Response length: {len(response_text)} chars, ends abruptly")
+        
+        # Enhanced truncation detection for 23k character limit
+        if len(response_text) >= 23000 and len(response_text) <= 24000:
+            logging.warning(f"SUSPECTED GEMINI API LIMIT HIT - Response length: {len(response_text)} chars (around 23k limit)")
+            if response_ends_abruptly:
+                logging.error("CONFIRMED TRUNCATION - Response was cut off by API limits")
         
         # Check for session-specific troubleshooting
         if "0db04e6a-006b-48af-b9bb-b1dc88edaae5" in str(session_name):
