@@ -390,11 +390,22 @@ REQUIRED OUTPUT FORMAT - Field Validation JSON Structure:
             
             # Handle document content - prioritize already extracted text content
             if isinstance(file_content, str) and not file_content.startswith('data:'):
-                # This is already extracted text content from the session
-                content_text = file_content
-                extracted_content_text += f"\n\n=== DOCUMENT: {file_name} ===\n{content_text}"
-                processed_docs += 1
-                logging.info(f"STEP 1: Using pre-extracted content from {file_name} ({len(content_text)} characters)")
+                # Check if this is actually an error message from failed extraction
+                if ("503 UNAVAILABLE" in file_content or 
+                    "Error extracting text" in file_content or 
+                    "overloaded" in file_content.lower() or
+                    len(file_content) < 500):  # Very short content is likely an error
+                    logging.warning(f"STEP 1: Detected failed extraction content for {file_name}, content: {file_content[:100]}...")
+                    # Skip this document and log the issue
+                    extracted_content_text += f"\n\n=== DOCUMENT: {file_name} ===\n[DOCUMENT CONTENT EXTRACTION FAILED - PDF processing overloaded. Please retry the extraction to process this {file_name} document properly.]"
+                    processed_docs += 1
+                    continue
+                else:
+                    # This is legitimate pre-extracted text content from the session
+                    content_text = file_content
+                    extracted_content_text += f"\n\n=== DOCUMENT: {file_name} ===\n{content_text}"
+                    processed_docs += 1
+                    logging.info(f"STEP 1: Using pre-extracted content from {file_name} ({len(content_text)} characters)")
                 
             elif mime_type.startswith("text/"):
                 # Handle plain text content
