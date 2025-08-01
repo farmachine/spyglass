@@ -493,17 +493,52 @@ RETURN: Complete readable content from this document."""
                         
                         # Check if this is a supported file type for Gemini API
                         if 'pdf' in mime_type or file_name.lower().endswith('.pdf'):
-                            # PDF files are fully supported by Gemini API
-                            logging.info(f"STEP 1: Using Gemini API for PDF extraction from {file_name}")
+                            # PDF files - use chunked extraction for large files
+                            logging.info(f"STEP 1: Using chunked PDF extraction for {file_name}")
                             
-                            # Enhanced retry logic for API overload situations (especially for large PDFs)
-                            max_retries = 8  # Increased retries for large documents
-                            retry_delay = 3  # Start with 3 seconds
-                            content_response = None
-                            
-                            for attempt in range(max_retries):
+                            try:
+                                # Import chunked extractor
+                                from chunked_pdf_extractor import ChunkedPDFExtractor
+                                
+                                # Initialize extractor
+                                extractor = ChunkedPDFExtractor()
+                                
+                                # Estimate PDF size and determine processing approach
+                                pdf_info = extractor.estimate_pdf_size(binary_content)
+                                logging.info(f"STEP 1: PDF analysis for {file_name}: {pdf_info}")
+                                
+                                if pdf_info["needs_chunking"]:
+                                    logging.info(f"STEP 1: Large PDF detected, using chunked extraction for {file_name}")
+                                    # Use chunked extraction
+                                    import base64 as b64
+                                    base64_data = f"data:application/pdf;base64,{b64.b64encode(binary_content).decode()}"
+                                    chunk_result = extractor.extract_pdf_chunked(base64_data, file_name)
+                                    
+                                    if chunk_result["success"]:
+                                        document_content = chunk_result["extracted_text"]
+                                        logging.info(f"STEP 1: Chunked extraction successful for {file_name} - {chunk_result['successful_chunks']}/{chunk_result['chunks_processed']} chunks processed")
+                                    else:
+                                        logging.error(f"STEP 1: Chunked extraction failed for {file_name}: {chunk_result.get('error', 'Unknown error')}")
+                                        document_content = f"[ERROR EXTRACTING PDF WITH CHUNKING: {file_name}]\nError: {chunk_result.get('error', 'Unknown error')}"
+                                else:
+                                    logging.info(f"STEP 1: Small PDF, using single-pass extraction for {file_name}")
+                                    # Use single-pass extraction for small PDFs
+                                    single_result = extractor.extract_single_pdf(binary_content, file_name)
+                                    
+                                    if single_result["success"]:
+                                        document_content = single_result["extracted_text"]
+                                        logging.info(f"STEP 1: Single-pass extraction successful for {file_name}")
+                                    else:
+                                        logging.error(f"STEP 1: Single-pass extraction failed for {file_name}: {single_result.get('error', 'Unknown error')}")
+                                        document_content = f"[ERROR EXTRACTING PDF: {file_name}]\nError: {single_result.get('error', 'Unknown error')}"
+                                
+                                # Set content_response to None since we handled extraction directly
+                                content_response = None
+                                
+                            except ImportError:
+                                logging.warning("STEP 1: Chunked extractor not available, falling back to direct Gemini API")
+                                # Fallback to original direct extraction
                                 try:
-                                    logging.info(f"STEP 1: PDF processing attempt {attempt + 1}/{max_retries} for {file_name}")
                                     content_response = model.generate_content(
                                         [
                                             {
@@ -513,25 +548,19 @@ RETURN: Complete readable content from this document."""
                                             extraction_prompt
                                         ],
                                         generation_config=genai.GenerationConfig(
-                                            max_output_tokens=65536,  # Gemini 2.5 Pro max output limit
+                                            max_output_tokens=65536,
                                             temperature=0.1
                                         ),
-                                        request_options={"timeout": None}  # Remove timeout constraints
+                                        request_options={"timeout": 300}
                                     )
-                                    logging.info(f"STEP 1: Successfully processed PDF {file_name} on attempt {attempt + 1}")
-                                    break  # Success, exit retry loop
+                                    logging.info(f"STEP 1: Fallback extraction successful for {file_name}")
                                 except Exception as e:
-                                    error_str = str(e).lower()
-                                    if ("503" in str(e) or "overloaded" in error_str or "unavailable" in error_str) and attempt < max_retries - 1:
-                                        logging.warning(f"STEP 1: API overloaded/unavailable (attempt {attempt + 1}/{max_retries}) for {file_name}, retrying in {retry_delay}s...")
-                                        import time
-                                        time.sleep(retry_delay)
-                                        retry_delay = min(retry_delay * 1.5, 30)  # Exponential backoff with cap
-                                        continue
-                                    else:
-                                        logging.error(f"STEP 1: Final PDF processing failure for {file_name} after {attempt + 1} attempts: {e}")
-                                        content_response = None
-                                        break  # Exit retry loop on final failure
+                                    logging.error(f"STEP 1: Fallback extraction failed for {file_name}: {e}")
+                                    content_response = None
+                            except Exception as e:
+                                logging.error(f"STEP 1: Chunked extraction system error for {file_name}: {e}")
+                                document_content = f"[ERROR IN CHUNKED EXTRACTION SYSTEM: {file_name}]\nError: {str(e)}"
+                                content_response = None
                         elif ('word' in mime_type or 
                               'vnd.openxmlformats-officedocument.wordprocessingml' in mime_type or
                               'application/msword' in mime_type or
