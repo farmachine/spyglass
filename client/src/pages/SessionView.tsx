@@ -593,38 +593,26 @@ export default function SessionView() {
 
   // Handler for field verification changes
   const handleFieldVerification = (fieldName: string, isVerified: boolean) => {
-    console.log(`Verifying field: ${fieldName}, isVerified: ${isVerified}`);
     const validation = getValidation(fieldName);
-    if (!validation) {
-      console.error(`No validation found for field: ${fieldName}`);
-      return;
-    }
+    if (!validation) return;
     
-    console.log(`Found validation:`, validation);
     const newStatus: ValidationStatus = isVerified ? 'valid' : 'pending';
-    console.log(`Updating status from ${validation.validationStatus} to ${newStatus}`);
     
     // Optimistic update: immediately update the UI
     queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
       if (!oldData) return oldData;
-      const updated = oldData.map((v: any) => 
+      return oldData.map((v: any) => 
         v.id === validation.id 
           ? { ...v, validationStatus: newStatus }
           : v
       );
-      console.log('Optimistic update applied');
-      return updated;
     });
     
     updateValidationMutation.mutate({
       id: validation.id,
       data: { validationStatus: newStatus }
     }, {
-      onSuccess: (result) => {
-        console.log('Mutation successful:', result);
-      },
-      onError: (error) => {
-        console.error('Mutation failed:', error);
+      onError: () => {
         // Revert optimistic update on error
         queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
           if (!oldData) return oldData;
@@ -1872,11 +1860,15 @@ Thank you for your assistance.`;
                                       />
                                     );
                                   } else if (!hasValue) {
-                                    // Show red exclamation mark for missing fields
+                                    // Show red exclamation mark for missing fields - clicking allows verification
                                     return (
-                                      <div className="w-3 h-3 flex items-center justify-center text-red-500 font-bold text-xs flex-shrink-0" title="Missing data">
+                                      <button
+                                        onClick={() => handleFieldVerification(fieldName, true)}
+                                        className="w-3 h-3 flex items-center justify-center text-red-500 font-bold text-xs flex-shrink-0 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                                        title="Missing data - Click to mark as verified anyway"
+                                      >
                                         !
-                                      </div>
+                                      </button>
                                     );
                                   }
                                   // Return empty div to maintain consistent spacing
@@ -2232,11 +2224,15 @@ Thank you for your assistance.`;
                                                     />
                                                   );
                                                 } else if (!hasValue) {
-                                                  // Show red exclamation mark for missing fields
+                                                  // Show red exclamation mark for missing fields - clicking allows verification
                                                   return (
-                                                    <div className="absolute top-2 left-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
+                                                    <button
+                                                      onClick={() => handleFieldVerification(fieldName, true)}
+                                                      className="absolute top-2 left-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors cursor-pointer"
+                                                      title="Missing data - Click to mark as verified anyway"
+                                                    >
                                                       <span className="text-white text-xs font-bold leading-none">!</span>
-                                                    </div>
+                                                    </button>
                                                   );
                                                 }
                                                 return null;
