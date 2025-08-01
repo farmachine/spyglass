@@ -22,6 +22,8 @@ class ExtractionResult:
     error_message: Optional[str] = None
     extraction_prompt: Optional[str] = None
     ai_response: Optional[str] = None
+    input_tokens: Optional[int] = None
+    output_tokens: Optional[int] = None
 
 # ValidationResult dataclass removed - validation now occurs only during extraction
 
@@ -647,6 +649,17 @@ RETURN: Complete readable content from this document."""
         if not response or not response.text:
             return ExtractionResult(success=False, error_message="No response from AI")
         
+        # Extract token usage information if available
+        input_tokens = None
+        output_tokens = None
+        try:
+            if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                input_tokens = getattr(response.usage_metadata, 'prompt_token_count', None)
+                output_tokens = getattr(response.usage_metadata, 'candidates_token_count', None)
+                logging.info(f"TOKEN USAGE: Input tokens: {input_tokens}, Output tokens: {output_tokens}")
+        except Exception as e:
+            logging.warning(f"Failed to extract token usage: {e}")
+        
         # Parse JSON response - handle markdown code blocks
         response_text = response.text.strip()
         
@@ -762,7 +775,9 @@ RETURN: Complete readable content from this document."""
                 success=True, 
                 extracted_data=extracted_data,
                 extraction_prompt=final_prompt,
-                ai_response=raw_response_to_store  # Store the actual raw response
+                ai_response=raw_response_to_store,  # Store the actual raw response
+                input_tokens=input_tokens,
+                output_tokens=output_tokens
             )
             
         except json.JSONDecodeError as e:
@@ -814,7 +829,9 @@ if __name__ == "__main__":
                     "extracted_data": result.extracted_data, 
                     "field_validations": result.extracted_data.get("field_validations", []),
                     "extraction_prompt": result.extraction_prompt,
-                    "ai_response": result.ai_response
+                    "ai_response": result.ai_response,
+                    "input_tokens": result.input_tokens,
+                    "output_tokens": result.output_tokens
                 }))
             else:
                 print(json.dumps({"success": False, "error": result.error_message}), file=sys.stderr)

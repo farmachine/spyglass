@@ -126,7 +126,15 @@ export default function DebugView() {
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Extraction Prompt</CardTitle>
+                  <div className="flex items-center gap-4">
+                    <CardTitle>Extraction Prompt</CardTitle>
+                    {session.inputTokens && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">Input Tokens:</span>
+                        <span className="text-sm font-semibold text-blue-600">{session.inputTokens.toLocaleString()}</span>
+                      </div>
+                    )}
+                  </div>
                   {session.extractionPrompt && (
                     <Button
                       variant="outline"
@@ -164,7 +172,15 @@ export default function DebugView() {
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>AI Response</CardTitle>
+                  <div className="flex items-center gap-4">
+                    <CardTitle>AI Response</CardTitle>
+                    {session.outputTokens && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">Output Tokens:</span>
+                        <span className="text-sm font-semibold text-green-600">{session.outputTokens.toLocaleString()}</span>
+                      </div>
+                    )}
+                  </div>
                   {session.aiResponse && (
                     <Button
                       variant="outline"
