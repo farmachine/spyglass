@@ -2468,7 +2468,8 @@ print(json.dumps(result))
             const createData = {
               sessionId: sessionId,
               fieldId: validation.field_id,
-              fieldType: validation.field_type,
+              validationType: validation.validation_type,
+              dataType: validation.data_type,
               collectionName: collectionName,
               extractedValue: validation.extracted_value,
               confidenceScore: Math.round(parseFloat(validation.confidence_score) * 100), // Convert to integer percentage
@@ -3138,9 +3139,9 @@ print(json.dumps(result))
               for (const validation of extractionResults.field_validations) {
                 await storage.createFieldValidation({
                   sessionId: sessionId,
-                  fieldType: validation.field_type || 'schema_field',
+                  validationType: validation.validation_type || 'schema_field',
+                  dataType: validation.data_type || 'TEXT',
                   fieldId: validation.field_id,
-                  fieldName: validation.field_name,
                   collectionName: validation.collection_name || null,
                   recordIndex: validation.record_index || 0,
                   extractedValue: validation.extracted_value,
