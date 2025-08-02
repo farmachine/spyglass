@@ -27,12 +27,16 @@ export function EditFieldValueDialog({
 }: EditFieldValueDialogProps) {
   const [value, setValue] = useState("");
   const [status, setStatus] = useState("manual");
+  const [currentReasoning, setCurrentReasoning] = useState("");
+  const [hasRevertedToAI, setHasRevertedToAI] = useState(false);
 
   // Reset form when validation changes or dialog opens
   useEffect(() => {
     if (validation) {
       setValue(validation.extractedValue || "");
       setStatus(validation.validationStatus || "manual");
+      setCurrentReasoning(validation.aiReasoning || validation.originalAiReasoning || "");
+      setHasRevertedToAI(false);
     }
   }, [validation, open]);
 
@@ -48,12 +52,11 @@ export function EditFieldValueDialog({
   const handleRevertToAI = () => {
     if (!validation || !validation.originalExtractedValue) return;
     
-    // Revert to original AI values without closing dialog
+    // Revert to original AI values immediately in the UI
     setValue(validation.originalExtractedValue);
     setStatus("verified");
-    
-    // Note: The actual revert of AI reasoning and removal of manual update flag 
-    // will happen when the user saves, handled by the backend
+    setCurrentReasoning(validation.originalAiReasoning || "");
+    setHasRevertedToAI(true);
   };
 
   const getFieldDisplayName = (validation: FieldValidationWithName) => {
@@ -166,12 +169,12 @@ export function EditFieldValueDialog({
             )}
           </div>
 
-          {/* Show current AI reasoning or original reasoning */}
-          {validation.aiReasoning || validation.originalAiReasoning ? (
+          {/* Show current AI reasoning */}
+          {currentReasoning ? (
             <div className="p-3 bg-blue-50 rounded-lg">
               <Label className="text-xs font-medium text-blue-800">AI Analysis</Label>
               <p className="text-xs text-blue-700 mt-1">
-                {validation.aiReasoning || validation.originalAiReasoning}
+                {currentReasoning}
               </p>
             </div>
           ) : (
@@ -188,8 +191,8 @@ export function EditFieldValueDialog({
             </div>
           )}
 
-          {/* Show manual update notice when field was manually edited */}
-          {validation.manuallyUpdated && (
+          {/* Show manual update notice when field was manually edited AND not reverted */}
+          {validation.manuallyUpdated && !hasRevertedToAI && (
             <div className="p-3 bg-slate-50 rounded-lg">
               <Label className="text-xs font-medium text-slate-800">
                 Value manually updated by user to: {validation.extractedValue}
