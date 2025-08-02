@@ -1777,10 +1777,9 @@ Thank you for your assistance.`;
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {(project.schemaFields && project.schemaFields.length > 0) ? (
-                        project.schemaFields
-                          .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-                          .map((field) => {
+                      {project.schemaFields
+                        .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+                        .map((field) => {
                         const originalValue = extractedData[field.fieldName];
                         const validation = getValidation(field.fieldName);
                         
@@ -1971,11 +1970,7 @@ Thank you for your assistance.`;
                           );
                         }
                         return null;
-                      })) : (
-                        <div className="text-center py-8 text-gray-500">
-                          No main fields defined for this project.
-                        </div>
-                      )}
+                      })}
                     </div>
                   </CardContent>
                 </Card>

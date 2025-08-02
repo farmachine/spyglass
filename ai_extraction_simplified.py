@@ -175,7 +175,9 @@ def step1_extract_from_documents(
                 if applicable_rules:
                     full_instruction += " | " + " | ".join(applicable_rules)
                 
-                schema_fields_text += f"\n- **{camel_case_name}** ({field_type}): {full_instruction}"
+                # Include field ID in the prompt for AI reference
+                field_id = field['id']
+                schema_fields_text += f"\n- **{field_name}** (ID: {field_id}, {field_type}): {full_instruction}"
         
         # Build collections section for the imported prompt
         collections_text = ""
@@ -248,7 +250,9 @@ def step1_extract_from_documents(
                             choice_text = f"The output should be one of the following choices: {'; '.join(prop['choiceOptions'])}."
                             prop_instruction = prop_instruction + " | " + choice_text if prop_instruction else choice_text
                             
-                        collections_text += f"\n  * **{prop_name}** ({prop_type}): {prop_instruction}"
+                        # Include property ID in the prompt for AI reference
+                        prop_id = prop['id']
+                        collections_text += f"\n  * **{prop_name}** (ID: {prop_id}, {prop_type}): {prop_instruction}"
         
         # Use the imported prompt template with our schema and collections
         prompt = EXTRACTION_PROMPT.format(
@@ -261,7 +265,7 @@ def step1_extract_from_documents(
             json_lines = ['{"field_validations": [']
             
             # Add schema fields with proper field validation structure
-            if project_schema.get("schema_fields") and len(project_schema["schema_fields"]) > 0:
+            if project_schema.get("schema_fields"):
                 for i, field in enumerate(project_schema["schema_fields"]):
                     field_id = field['id']
                     field_name = field['fieldName']
@@ -296,11 +300,11 @@ def step1_extract_from_documents(
                     json_lines.append(f'    "extracted_value": "{example_value}",')
                     json_lines.append(f'    "confidence_score": 0.95,')
                     json_lines.append(f'    "validation_status": "unverified",')
-                    json_lines.append(f'    "ai_reasoning": "Provide intelligent extraction reasoning here"')
+                    json_lines.append(f'    "ai_reasoning": "Found in document section X - {field_description}"')
                     json_lines.append('  }' + (',' if i < len(project_schema["schema_fields"]) - 1 or project_schema.get("collections") else ''))
             
             # Add collection properties with proper field validation structure
-            if project_schema.get("collections") and len(project_schema["collections"]) > 0:
+            if project_schema.get("collections"):
                 for collection in project_schema["collections"]:
                     collection_name = collection.get('collectionName', collection.get('objectName', ''))
                     properties = collection.get("properties", [])
@@ -335,7 +339,7 @@ def step1_extract_from_documents(
                             json_lines.append(f'    "extracted_value": "{example_value}",')
                             json_lines.append(f'    "confidence_score": 0.95,')
                             json_lines.append(f'    "validation_status": "unverified",')
-                            json_lines.append(f'    "ai_reasoning": "Provide intelligent extraction reasoning here",')
+                            json_lines.append(f'    "ai_reasoning": "Found {collection_name} item {record_index + 1} with {prop_name} value in document",')
                             json_lines.append(f'    "record_index": {record_index}')
                             
                             # Check if this is the last item
@@ -351,19 +355,6 @@ def step1_extract_from_documents(
         logging.info(f"Generated field validation example with {len(extraction_rules or [])} extraction rules")
         logging.info(f"Dynamic example preview (first 500 chars): {dynamic_example[:500]}...")
         
-        # Create field ID mapping for verification
-        field_id_mapping = {}
-        if project_schema.get("schema_fields"):
-            for field in project_schema["schema_fields"]:
-                field_id_mapping[field['fieldName']] = field['id']
-        if project_schema.get("collections"):
-            for collection in project_schema["collections"]:
-                for prop in collection.get("properties", []):
-                    prop_name = f"{collection.get('collectionName', '')}.{prop['propertyName']}"
-                    field_id_mapping[prop_name] = prop['id']
-        
-        logging.info(f"Field ID mapping for validation: {field_id_mapping}")
-        
         # The imported prompt already contains all the necessary instructions
         # Just add document verification and choice field handling specific to this run
         prompt += f"""
@@ -376,12 +367,7 @@ CHOICE FIELD HANDLING:
 - Choice options are specified as "The output should be one of the following choices: ..."
 - Example: For Yes/No choice, only return "Yes" or "No", never "true", "false", "1", "0", etc.
 
-**CRITICAL FIELD ID REQUIREMENT**: 
-- Use ONLY the EXACT field_id values from the JSON example above
-- Field IDs are UUIDs like "585ace35-b5b3-4361-857a-c1d7cea5141e" 
-- NEVER use field names like "Product/ServiceSpecificationsMet" as field_id
-- NEVER generate your own field IDs
-- Copy the exact UUID field_id from the example structure
+**CRITICAL FIELD ID REQUIREMENT**: Use the EXACT field_id values provided in the schema above (the UUID values after "ID: "). For example, if you see "Product/Service Specifications Met (ID: c3056038-5b32-4335-8772-a95c9bef307a, CHOICE)", use "c3056038-5b32-4335-8772-a95c9bef307a" as the field_id. Do not use field names, camelCase versions, or generate your own IDs.
 
 **CRITICAL COLLECTION NAME REQUIREMENT**: For collection properties, you MUST include the "collection_name" field in each field validation object. Use the exact collection name from the schema (e.g., "Increase Rates").
 

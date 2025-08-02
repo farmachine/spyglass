@@ -2473,16 +2473,9 @@ print(json.dumps(result))
             console.log(`SAVE VALIDATIONS: Updated existing field ${fieldName}, result:`, savedValidation);
           } else {
             // Create new record if none exists
-            // Validate that field_id is a proper UUID, not a field name
-            const fieldId = validation.field_id;
-            if (!fieldId || typeof fieldId !== 'string' || fieldId.length !== 36 || !fieldId.includes('-')) {
-              console.error(`SAVE VALIDATIONS: Invalid field_id format for ${fieldName}: "${fieldId}" (type: ${typeof fieldId}). Expected UUID format. Skipping this validation.`);
-              continue; // Skip this validation instead of throwing error
-            }
-            
             const createData = {
               sessionId: sessionId,
-              fieldId: fieldId,
+              fieldId: validation.field_id,
               validationType: validation.validation_type,
               dataType: validation.data_type,
               collectionName: collectionName,
@@ -2870,19 +2863,15 @@ print(json.dumps(result))
     }
   });
 
-  app.delete("/api/validations/:id", authenticateToken, async (req: AuthRequest, res) => {
+  app.delete("/api/validations/:id", async (req, res) => {
     try {
       const id = req.params.id; // UUID string, not integer
-      console.log(`DELETE VALIDATION: Attempting to delete validation ${id}`);
       const deleted = await storage.deleteFieldValidation(id);
       if (!deleted) {
-        console.log(`DELETE VALIDATION: Validation ${id} not found`);
         return res.status(404).json({ message: "Validation not found" });
       }
-      console.log(`DELETE VALIDATION: Successfully deleted validation ${id}`);
       res.status(204).send();
     } catch (error) {
-      console.error("DELETE VALIDATION error:", error);
       res.status(500).json({ message: "Failed to delete field validation" });
     }
   });
