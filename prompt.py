@@ -6,21 +6,22 @@ EXTRACTION_PROMPT = """You are an expert data extraction specialist. Extract dat
 1. PROCESS ALL DOCUMENTS: Process every document provided in the document set
 2. FOLLOW SCHEMA FIELD DESCRIPTIONS PRECISELY - Each description is your extraction instruction
 3. APPLY EXTRACTION RULES - Rules modify extraction behavior, formatting, and validation
-4. **SECTION-AWARE EXTRACTION**: When extracting collections, include ALL items found in relevant sections, even if they don't explicitly match the collection name
-5. **INCLUSIVE APPROACH**: It's better to include potentially relevant items than to miss them - users can delete irrelevant items later
-6. For NUMBER fields: Count ALL instances across ALL documents as described
-7. For collections (lists): Extract EVERY instance mentioned across ALL documents
-8. **CRITICAL FOR COLLECTIONS**: Create SEPARATE collection items for each unique instance found
+4. **USE KNOWLEDGE DOCUMENTS**: When knowledge_documents are provided for a field, use their content for validation and context understanding - they contain reference information to help you extract correctly
+5. **SECTION-AWARE EXTRACTION**: When extracting collections, include ALL items found in relevant sections, even if they don't explicitly match the collection name
+6. **INCLUSIVE APPROACH**: It's better to include potentially relevant items than to miss them - users can delete irrelevant items later
+7. For NUMBER fields: Count ALL instances across ALL documents as described
+8. For collections (lists): Extract EVERY instance mentioned across ALL documents
+9. **CRITICAL FOR COLLECTIONS**: Create SEPARATE collection items for each unique instance found
    - Each unique item should be a SEPARATE collection record with its own record_index (0, 1, 2, etc.)
    - DO NOT combine multiple instances into a single collection item
    - Find ALL instances across ALL documents
-9. Return JSON with real extracted values only
-10. If extraction rules specify formatting, apply that formatting to extracted values
-11. **ONLY CREATE RECORDS WHEN FOUND**: Only include field_validations for fields that actually exist in the document - do not create empty placeholder records
-12. **NUMBERED SECTION COMPLETENESS**: When you find numbered sections (like 2.3.1, 2.3.2, 2.3.3... 2.3.10), extract ALL of them as separate collection items - do not stop at 2 examples
-13. **SECTION NAME MATCHING**: If collection name matches document section name (e.g., "Increase Rates" collection and "2.3 Increase Rates" section), extract ALL numbered subsections within that section boundary
-14. **CONTENT RELATIONSHIP**: If collection properties (escalation types, rate values) relate to table content, extract the ENTIRE section containing that content type
-15. **PIPE-SEPARATED DATA**: Recognize pipe (|) separated data as table structure even without proper markdown formatting
+10. Return JSON with real extracted values only
+11. If extraction rules specify formatting, apply that formatting to extracted values
+12. **ONLY CREATE RECORDS WHEN FOUND**: Only include field_validations for fields that actually exist in the document - do not create empty placeholder records
+13. **NUMBERED SECTION COMPLETENESS**: When you find numbered sections (like 2.3.1, 2.3.2, 2.3.3... 2.3.10), extract ALL of them as separate collection items - do not stop at 2 examples
+14. **SECTION NAME MATCHING**: If collection name matches document section name (e.g., "Increase Rates" collection and "2.3 Increase Rates" section), extract ALL numbered subsections within that section boundary
+15. **CONTENT RELATIONSHIP**: If collection properties (escalation types, rate values) relate to table content, extract the ENTIRE section containing that content type
+16. **PIPE-SEPARATED DATA**: Recognize pipe (|) separated data as table structure even without proper markdown formatting
 
 ## SECTION-AWARE EXTRACTION RULES:
 

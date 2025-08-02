@@ -1,0 +1,817 @@
+
+## SCHEMA FIELDS JSON FORMAT:
+```json
+{
+  "schema_fields": [
+    {
+      "field_id": "377f12df-a43e-4726-8dbd-83d529b8ac5d",
+      "field_name": "Effective Date",
+      "field_type": "DATE",
+      "description": "The date on which the Non-Disclosure Agreement (NDA) officially becomes effective. | RULE: Prioritize dates explicitly labeled as 'Effective Date'. Format as YYYY-MM-DD.",
+      "extraction_rules": ["Prioritize dates explicitly labeled as 'Effective Date'. Format as YYYY-MM-DD."],
+      "knowledge_documents": []
+    },
+    {
+      "field_id": "4f7e7032-f7b2-4f77-a1fe-94fcc6750839",
+      "field_name": "Governing Law",
+      "field_type": "TEXT",
+      "description": "The jurisdiction (e.g., state, country) whose laws will govern the interpretation and enforcement of the NDA. | RULE: Extract the full name of the state or country. Ignore phrases like 'without regard to its conflict of laws principles'.",
+      "extraction_rules": ["Extract the full name of the state or country. Ignore phrases like 'without regard to its conflict of laws principles'."],
+      "knowledge_documents": []
+    },
+    {
+      "field_id": "07231c4c-fadc-4525-ad5c-229196309c61",
+      "field_name": "Term (Months)",
+      "field_type": "NUMBER",
+      "description": "The duration, in months, for which the confidentiality obligations under the NDA remain in effect. | RULE: Look for phrases like 'for a period of X years/months', 'expires X years/months from'. Convert years to months (1 year = 12 months).",
+      "extraction_rules": ["Look for phrases like 'for a period of X years/months', 'expires X years/months from'. Convert years to months (1 year = 12 months)."],
+      "knowledge_documents": []
+    },
+    {
+      "field_id": "0c2dd605-be27-47fb-a9b5-344d1bd72dac",
+      "field_name": "Purpose of Disclosure",
+      "field_type": "TEXT",
+      "description": "The stated reason or specific business purpose for which confidential information is being disclosed under the NDA. | RULE: Capture the primary sentence or phrase describing the mutual or unilateral purpose of the disclosure.",
+      "extraction_rules": ['Capture the primary sentence or phrase describing the mutual or unilateral purpose of the disclosure.'],
+      "knowledge_documents": []
+    },
+    {
+      "field_id": "ccf4d04b-26e4-40f9-a2b1-e043e133dbb3",
+      "field_name": "Return/Destruction Clause Present",
+      "field_type": "CHOICE",
+      "description": "Indicates whether the NDA contains a clause requiring the return or destruction of confidential information upon termination or request. | RULE: Look for keywords such as 'return', 'destroy', 'erase', 'deliver up' in relation to confidential information.",
+      "choices": ['Yes', 'No'],
+      "extraction_rules": ["Look for keywords such as 'return', 'destroy', 'erase', 'deliver up' in relation to confidential information."],
+      "knowledge_documents": []
+    }
+  ]
+}
+```
+
+## COLLECTIONS JSON FORMAT:
+```json
+{
+  "collections": [
+    {
+      "collection_name": "Parties",
+      "description": "The entities (individuals or organizations) involved in the Non-Disclosure Agreement.",
+      "extraction_rules": [],
+      "knowledge_documents": [],
+      "properties": [
+        {
+          "property_id": "0fccf9e9-ede3-4f80-a1f1-fcd57a71afa3",
+          "property_name": "Party Name",
+          "property_type": "TEXT",
+          "description": "The full legal name of the party involved in the NDA. | RULE: Ensure full legal names are captured, including suffixes like 'Inc.', 'LLC', 'Corp.', 'Ltd.'.",
+          "extraction_rules": ["Ensure full legal names are captured, including suffixes like 'Inc.', 'LLC', 'Corp.', 'Ltd.'."],
+          "knowledge_documents": []
+        },
+        {
+          "property_id": "37321472-e249-446d-89fc-ca0b8aee42e2",
+          "property_name": "Party Role",
+          "property_type": "CHOICE",
+          "description": "The specific role of the party within the NDA (e.g., Disclosing Party, Receiving Party). | RULE: Look for explicit definitions or consistent usage of terms like 'Disclosing Party', 'Receiving Party', 'Recipient', 'Owner'.",
+          "choices": ['Disclosing Party', 'Receiving Party', 'Affiliate', 'Other'],
+          "extraction_rules": ["Look for explicit definitions or consistent usage of terms like 'Disclosing Party', 'Receiving Party', 'Recipient', 'Owner'."],
+          "knowledge_documents": []
+        },
+        {
+          "property_id": "7eb88353-a9b7-4d43-90b7-d8cc3ae72a7f",
+          "property_name": "Party Address",
+          "property_type": "TEXT",
+          "description": "The address of the party",
+          "extraction_rules": [],
+          "knowledge_documents": []
+        }
+      ]
+    }
+  ]
+}
+```
+
+You are an expert data extraction specialist. Extract data from the provided documents and return a JSON object with the exact structure specified below.
+
+## CRITICAL INSTRUCTIONS:
+1. PROCESS ALL DOCUMENTS: Process every document provided in the document set
+2. FOLLOW SCHEMA FIELD DESCRIPTIONS PRECISELY - Each description is your extraction instruction
+3. APPLY EXTRACTION RULES - Rules modify extraction behavior, formatting, and validation
+4. **SECTION-AWARE EXTRACTION**: When extracting collections, include ALL items found in relevant sections, even if they don't explicitly match the collection name
+5. **INCLUSIVE APPROACH**: It's better to include potentially relevant items than to miss them - users can delete irrelevant items later
+6. For NUMBER fields: Count ALL instances across ALL documents as described
+7. For collections (lists): Extract EVERY instance mentioned across ALL documents
+8. **CRITICAL FOR COLLECTIONS**: Create SEPARATE collection items for each unique instance found
+   - Each unique item should be a SEPARATE collection record with its own record_index (0, 1, 2, etc.)
+   - DO NOT combine multiple instances into a single collection item
+   - Find ALL instances across ALL documents
+9. Return JSON with real extracted values only
+10. If extraction rules specify formatting, apply that formatting to extracted values
+11. **ONLY CREATE RECORDS WHEN FOUND**: Only include field_validations for fields that actually exist in the document - do not create empty placeholder records
+12. **NUMBERED SECTION COMPLETENESS**: When you find numbered sections (like 2.3.1, 2.3.2, 2.3.3... 2.3.10), extract ALL of them as separate collection items - do not stop at 2 examples
+13. **SECTION NAME MATCHING**: If collection name matches document section name (e.g., "Increase Rates" collection and "2.3 Increase Rates" section), extract ALL numbered subsections within that section boundary
+14. **CONTENT RELATIONSHIP**: If collection properties (escalation types, rate values) relate to table content, extract the ENTIRE section containing that content type
+15. **PIPE-SEPARATED DATA**: Recognize pipe (|) separated data as table structure even without proper markdown formatting
+
+## SECTION-AWARE EXTRACTION RULES:
+
+### General Collection Extraction:
+- **Context Analysis**: Identify document sections, tables, lists, or groups that contain items related to each collection type
+- **Inclusive Sectioning**: When you find a section containing items of a certain type, include ALL items from that section
+- **Structural Awareness**: Use document structure (headers, tables, lists, formatting) to identify related content
+- **Pattern Recognition**: If most items in a section match a collection type, include all items from that section
+- **Contextual Inference**: Items appearing in the same context as explicitly matching items should be included
+
+### Numbered Section Pattern Recognition:
+- **Hierarchical Numbering**: Look for patterns like 2.3.1, 2.3.2, 2.3.3... 2.3.10 where all items under the same parent section (2.3) should be extracted together
+- **Section Boundaries**: When you see numbered items like 2.3.1 through 2.3.10, extract ALL of them until the next major section (e.g., 2.4)
+- **Collection-Section Matching**: If a collection name (e.g., "Increase Rates") matches or relates to a document section name (e.g., "2.3 Increase Rates"), extract ALL numbered subsections within that boundary
+- **Complete Number Sequences**: Count how many numbered items exist in a sequence and extract every single one - do not stop at 2-3 examples
+
+### Markdown Table Recognition:
+- **Markdown Format**: Recognize markdown tables with pipes (|) separating columns and dashes (-) creating headers
+- **Table Structure**: Identify table headers, data rows, and understand that each row represents a separate collection item
+- **Row Extraction**: Extract EVERY data row from markdown tables - if you see 10 rows, extract all 10 as separate collection items
+- **Column Mapping**: Map table columns to collection properties based on header names and content patterns
+- **Table Boundaries**: Understand where tables start and end in markdown format
+
+### Collection Identification Strategies:
+1. **Header Analysis**: Look for section headers, table titles, or list introductions that indicate content type
+2. **Table Processing**: In tables, extract ALL rows when the majority contain relevant data - DO NOT LIMIT TO 2-3 EXAMPLES
+3. **List Comprehension**: In numbered or bulleted lists, include all items when most are relevant
+4. **Grouped Content**: Items appearing together in formatted groups should be treated as related
+5. **Sequential Items**: Items in sequence (numbered, dated, or ordered) in relevant sections should all be included
+6. **COMPLETE TABLE EXTRACTION**: When you find a table containing collection items, extract EVERY ROW, not just examples
+7. **NUMBERED SECTION RECOGNITION**: Recognize numbered section patterns (e.g., 2.3.1, 2.3.2, 2.3.3... 2.3.10) as indicating a complete set of related items that should ALL be extracted
+8. **SECTION BOUNDARY DETECTION**: When collection name matches a section (e.g., "Increase Rates" and section "2.3 Increase Rates"), extract ALL numbered subsections until the next major section (e.g., 2.3.1 through 2.3.10 until section 2.4)
+9. **MARKDOWN TABLE RECOGNITION**: Identify markdown tables (with | separators) and extract ALL data rows as separate collection items - count the rows and extract every single one
+
+### Decision Framework:
+- **When in doubt, include**: If an item could potentially belong to a collection, include it
+- **Section coherence**: If 70% or more of items in a section match a collection type, include all items
+- **Contextual placement**: Items placed near or among clearly relevant items should be included
+- **Format consistency**: Items sharing the same format/structure as relevant items should be included
+- **EXHAUSTIVE EXTRACTION**: Find ALL instances - if you see 10 table rows, extract all 10, not just 2 examples
+- **COUNT VERIFICATION**: Double-check that you've found all items in tables, sections, and lists
+- **NUMBERED SECTION COMPLETENESS**: When you find numbered sections (like 2.3.1, 2.3.2, etc.), extract ALL of them until the numbering changes (e.g., 2.4)
+- **SECTION NAME MATCHING**: If a collection name matches or relates to a document section name, extract ALL items within that section's boundaries
+- **RELATED CONTENT EXTRACTION**: If collection properties relate to section content (e.g., "Escalation Type" collection property and section containing escalation data), extract ALL items in that section
+
+## DOCUMENT SET ANALYSIS: 
+You are processing multiple documents simultaneously. Extract comprehensively from the entire document set.
+
+## FIELD TYPE DEFINITIONS:
+- **TEXT**: Extract text content as specified in the field description
+- **NUMBER**: Count or extract numeric values as described  
+- **DATE**: Extract dates in standard format (YYYY-MM-DD)
+- **CHOICE**: Select one of the predefined options (specified below for each field)
+- **COLLECTION**: Extract multiple instances - create separate records for each unique item found
+
+## EXAMPLE SCHEMA WITH RULES AND KNOWLEDGE DOCUMENTS:
+
+**EXAMPLE FIELD WITH RULE MAPPING:**
+- **Product/ServiceSpecificationsMet** (CHOICE): Verify that the contract includes detailed specifications for products or services. This should cover scope, standards, deliverables, and performance criteria. | RULE: For contracts involving software services, the product specification requirement is satisfied if the contract references technical documentation, service level agreements, or detailed scope descriptions.
+
+**EXAMPLE COLLECTION WITH RULE MAPPING:**
+- **Parties**: Extract all organizations or individuals who are parties to this agreement
+  **CRITICAL FOR Parties**: Find ALL instances in the documents. Create one collection item per unique instance found. Each item should have a separate record_index (0, 1, 2, etc.).
+  **TABLE EXTRACTION**: If Parties items appear in a table, extract EVERY ROW from that table, not just 2-3 examples. Count all rows and extract all data.
+  Properties for each Parties item:
+  * **Name** (TEXT): Full legal name of the party organization or individual | RULE: Extract the complete legal entity name as it appears in the signature section or party identification clauses
+  * **Type** (CHOICE): Organization or Individual. The output should be one of the following choices: Organization; Individual.
+  * **Role** (CHOICE): Customer, Vendor, Service Provider, etc. The output should be one of the following choices: Customer; Vendor; Service Provider; Contractor; Consultant; Other.
+
+**EXAMPLE FIELD WITH KNOWLEDGE DOCUMENT MAPPING:**
+- **RegulatoryandIndustryComplianceMet** (CHOICE): Verify compliance with relevant industry regulations (GDPR, SOX, HIPAA, etc.) | Knowledge Document "Compliance Standards Guide.pdf" contains acceptable compliance frameworks. Compare contract language against these standards.
+
+**EXAMPLE COLLECTION WITH KNOWLEDGE DOCUMENT MAPPING:**
+- **Compliance Requirements**: Extract specific regulatory or industry compliance requirements mentioned
+  Properties for each Compliance Requirements item:
+  * **Requirement Type** (TEXT): The specific type of compliance requirement (e.g., GDPR, SOX, HIPAA)
+  * **Description** (TEXT): Detailed description of the compliance requirement | Knowledge Document "Industry Regulations Database.xlsx" provides standard descriptions for comparison and validation
+
+## SCHEMA FIELDS TO EXTRACT:
+
+- **Effective Date** (ID: 377f12df-a43e-4726-8dbd-83d529b8ac5d, DATE): The date on which the Non-Disclosure Agreement (NDA) officially becomes effective. | RULE: Prioritize dates explicitly labeled as 'Effective Date'. Format as YYYY-MM-DD.
+- **Governing Law** (ID: 4f7e7032-f7b2-4f77-a1fe-94fcc6750839, TEXT): The jurisdiction (e.g., state, country) whose laws will govern the interpretation and enforcement of the NDA. | RULE: Extract the full name of the state or country. Ignore phrases like 'without regard to its conflict of laws principles'.
+- **Term (Months)** (ID: 07231c4c-fadc-4525-ad5c-229196309c61, NUMBER): The duration, in months, for which the confidentiality obligations under the NDA remain in effect. | RULE: Look for phrases like 'for a period of X years/months', 'expires X years/months from'. Convert years to months (1 year = 12 months).
+- **Purpose of Disclosure** (ID: 0c2dd605-be27-47fb-a9b5-344d1bd72dac, TEXT): The stated reason or specific business purpose for which confidential information is being disclosed under the NDA. | RULE: Capture the primary sentence or phrase describing the mutual or unilateral purpose of the disclosure.
+- **Return/Destruction Clause Present** (ID: ccf4d04b-26e4-40f9-a2b1-e043e133dbb3, CHOICE): Indicates whether the NDA contains a clause requiring the return or destruction of confidential information upon termination or request. | RULE: Look for keywords such as 'return', 'destroy', 'erase', 'deliver up' in relation to confidential information.
+
+## COLLECTIONS TO EXTRACT:
+
+- **Parties**: The entities (individuals or organizations) involved in the Non-Disclosure Agreement.
+  **CRITICAL FOR Parties**: Find ALL instances in the documents. Create one collection item per unique instance found. Each item should have a separate record_index (0, 1, 2, etc.).
+  **TABLE EXTRACTION**: If Parties items appear in a table, extract EVERY ROW from that table, not just 2-3 examples. Count all rows and extract all data.
+  **NUMBERED SECTIONS**: If Parties matches a document section name, find ALL numbered subsections (e.g., 2.3.1, 2.3.2, 2.3.3, etc.) and extract each one as a separate collection item.
+  **MARKDOWN TABLES**: Recognize markdown table format with | separators. Extract ALL data rows (excluding headers) as separate collection items - if table has 10 rows, extract all 10.
+  **COUNT ALL ITEMS**: If you see numbered items 2.3.1, 2.3.2, 2.3.3... keep going until you reach the end (e.g., 2.3.10) and extract EVERY SINGLE ONE as separate collection items.
+  **NO TRUNCATION**: Include ALL found items in your JSON response - do not truncate or limit the output even if there are many items.
+  Properties for each Parties item:
+  * **Party Name** (ID: 0fccf9e9-ede3-4f80-a1f1-fcd57a71afa3, TEXT): The full legal name of the party involved in the NDA. | RULE: Ensure full legal names are captured, including suffixes like 'Inc.', 'LLC', 'Corp.', 'Ltd.'.
+  * **Party Role** (ID: 37321472-e249-446d-89fc-ca0b8aee42e2, CHOICE): The specific role of the party within the NDA (e.g., Disclosing Party, Receiving Party). | RULE: Look for explicit definitions or consistent usage of terms like 'Disclosing Party', 'Receiving Party', 'Recipient', 'Owner'. | The output should be one of the following choices: Disclosing Party; Receiving Party; Affiliate; Other.
+  * **Party Address** (ID: 7eb88353-a9b7-4d43-90b7-d8cc3ae72a7f, TEXT): The address of the party
+
+**IMPORTANT**: Each unique instance found should be a SEPARATE collection item with its own record_index (0, 1, 2, etc.)
+
+## AI REASONING REQUIREMENTS:
+Your ai_reasoning field must be an intelligent, context-specific explanation that includes:
+
+1. **Source Location**: Where you found this information (e.g., "Found in Section X", "Located in table on page Y", "Listed under heading Z")
+
+2. **Section Context**: Explain your section-aware decisions:
+   - "Included because found in [section type] containing other [item type] items"
+   - "Part of [table/list/section] where majority of entries are [collection type]"
+   - "Contextually grouped with explicitly matching items"
+
+3. **Extraction Logic**: Why you chose this value:
+   - "Selected based on explicit statement in document"
+   - "Counted all instances across document sections"
+   - "Inferred from contextual placement and formatting"
+
+4. **Inclusion Rationale**: For section-aware inclusions:
+   - "Included due to placement in relevant section despite not explicitly stating [type]"
+   - "Part of coherent group where 80% of items clearly match collection criteria"
+   - "Follows same format/structure as other confirmed items"
+
+5. **Confidence Rationale**: Why this confidence level:
+   - "High confidence due to explicit statement"
+   - "Medium confidence due to contextual inference"
+   - "Lower confidence due to ambiguous wording but relevant placement"
+
+6. **Missing Data Explanation**: For null/empty values:
+   - "No [field type] information found in any document section"
+   - "Document does not contain [specific content type]"
+
+## EXAMPLES OF GOOD SECTION-AWARE AI REASONING:
+
+**Explicit Match**: "Found explicit reference to '[item]' in Section 3.2. High confidence due to direct statement."
+
+**Contextual Inclusion**: "Located in table containing other [collection type] items. Included all 10 rows from this table as they represent different [item variants], even though not all explicitly state '[collection name]'. High confidence due to contextual placement and exhaustive table extraction."
+
+**Pattern-Based Inclusion**: "Found in list under '[section header]' alongside clearly matching items. Included because it follows same format and structure as other confirmed [collection type] entries. Medium confidence based on contextual coherence."
+
+**Section Coherence**: "Part of section where 9 out of 10 items clearly match [collection criteria]. Included remaining item due to section coherence principle. Medium confidence."
+
+**Complete Table Extraction**: "Found table in Section 2 with 10 rows of escalation rate data (sections 2.3.1 through 2.3.10). Extracted all 10 rows as separate collection items with record_index 0-9. Each row represents a unique escalation rate scenario with different criteria and values."
+
+**Numbered Section Recognition**: "Identified section 2.3 'Increase Rates' containing numbered subsections 2.3.1 through 2.3.10. Since collection name 'Increase Rates' matches section name, extracted all 10 numbered entries as separate collection items. Section boundary clear at 2.4 where new topic begins."
+
+**Markdown Table Extraction**: "Found markdown table with 10 data rows (excluding header). Recognized table structure with | separators and extracted all 10 rows as separate collection items with record_index 0-9. Each row mapped to collection properties based on column headers and content patterns."
+
+### MARKDOWN TABLE FORMAT EXAMPLE:
+```
+Section | Topic Name | Column A | Column B
+--------|------------|----------|----------
+2.3     | Increase Rates | Increase Rates | 
+2.3.1   | Pre 6 April 1988 GMP (All members) | None | None
+2.3.2   | Post 5 April 1988 GMP (All members) | CPI 0%-3% | CPI 0%-3%
+2.3.3   | Pre 6 April 1997 pension (Section A) | CPI 0%-2.5% | CPI 0%-2.5%
+2.3.4   | Pre 21 July 1997 pension (Former Section B) | Fixed 5% | Fixed 3%
+2.3.5   | Post 5 April 1997 pre 1 January 2008 (Section A) | RPI 0%-5% | RPI 0%-5%
+...continues through 2.3.10...
+2.4     | Different Topic | Different Topic |
+```
+
+**CRITICAL EXTRACTION RULES:**
+1. **Section-Collection Matching**: If collection name ("Increase Rates") matches section topic (2.3 | Increase Rates), extract ALL numbered subsections (2.3.1 through 2.3.10)
+2. **Content Relationship**: If collection properties relate to table content (rate values, escalation types), extract ALL rows in that section
+3. **Section Boundaries**: Extract until section number changes (stop at 2.4, not before)
+4. **Complete Extraction**: Extract ALL 10 rows (2.3.1-2.3.10) as separate collection items, NOT just examples
+5. **Pipe-Separated Tables**: Recognize | as column separators even without perfect markdown formatting
+6. **COUNT VERIFICATION**: When you see numbered items like 2.3.1, 2.3.2, 2.3.3, keep counting until you reach the end of that section (e.g., 2.3.10) and extract EVERY SINGLE ONE
+7. **NO TRUNCATION**: Do not truncate your response - if you find 10 items, output all 10 field validation objects in the JSON response
+6. **COUNT VERIFICATION**: When you see numbered items like 2.3.1, 2.3.2, 2.3.3, keep counting until you reach the end of that section (e.g., 2.3.10) and extract EVERY SINGLE ONE
+7. **NO TRUNCATION**: Do not truncate your response - if you find 10 items, output all 10 field validation objects in the JSON response
+
+**CRITICAL**: 
+1. Use the EXACT field_id values provided in the schema above. Do not generate your own field IDs.
+2. For collection properties, you MUST include the "collection_name" field in EVERY field validation object.
+
+## REQUIRED OUTPUT FORMAT - Field Validation JSON Structure:
+```json
+{"field_validations": [
+  {
+    "field_id": "uuid-from-schema",
+    "validation_type": "schema_field|collection_property",
+    "data_type": "TEXT|DATE|NUMBER|CHOICE",
+    "field_name": "FieldName|CollectionName.PropertyName[index]",
+    "extracted_value": "Actual extracted value",
+    "confidence_score": 0.0-1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Intelligent context-specific explanation",
+    "record_index": 0 // For collection properties only
+  }
+]}
+```
+
+## CRITICAL REMINDERS:
+- **BE INCLUSIVE**: Include items that might be relevant rather than excluding them
+- **SECTION AWARENESS**: Use document structure and context to identify related items
+- **COMPREHENSIVE EXTRACTION**: Better to over-extract than under-extract
+- **CONTEXT CLUES**: Use document formatting, grouping, and placement as extraction signals
+- **PATTERN RECOGNITION**: If most items in a section are of a certain type, include ALL items from that section
+- **USER REFINEMENT**: Users can review and delete irrelevant items - your job is to capture everything potentially relevant
+- **STRUCTURAL INTELLIGENCE**: Use tables, lists, headers, and formatting to guide extraction decisions
+- **COHERENCE PRINCIPLE**: Items appearing together in structured formats should be treated as related
+- **EXTRACT EVERYTHING**: If you find a table with 10 rows of relevant data, extract all 10 rows, not just 2 examples
+- **NO SAMPLING**: Do not limit extraction to samples - extract every instance you find
+
+RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN
+
+DOCUMENT VERIFICATION: Confirm you processed all 1 documents: ['Fifth Street Management LLC - NDA.pdf']
+
+CHOICE FIELD HANDLING:
+- For CHOICE fields, extract values from the specified choice options only
+- If the document contains values not in the choice options, return null (do not block processing)
+- Choice options are specified as "The output should be one of the following choices: ..."
+- Example: For Yes/No choice, only return "Yes" or "No", never "true", "false", "1", "0", etc.
+
+**CRITICAL FIELD ID REQUIREMENT**: Use the EXACT field_id values provided in the schema above (the UUID values after "ID: "). For example, if you see "Product/Service Specifications Met (ID: c3056038-5b32-4335-8772-a95c9bef307a, CHOICE)", use "c3056038-5b32-4335-8772-a95c9bef307a" as the field_id. Do not use field names, camelCase versions, or generate your own IDs.
+
+**CRITICAL COLLECTION NAME REQUIREMENT**: For collection properties, you MUST include the "collection_name" field in each field validation object. Use the exact collection name from the schema (e.g., "Increase Rates").
+
+REQUIRED OUTPUT FORMAT - Field Validation JSON Structure:
+{"field_validations": [
+  {
+    "field_id": "377f12df-a43e-4726-8dbd-83d529b8ac5d",
+    "validation_type": "schema_field",
+    "data_type": "DATE",
+    "field_name": "Effective Date",
+    "extracted_value": "2024-01-15",
+    "confidence_score": 0.95,
+    "validation_status": "unverified",
+    "ai_reasoning": "Found in document section X - The date on which the Non-Disclosure Agreement (NDA) officially becomes effective."
+  },
+  {
+    "field_id": "4f7e7032-f7b2-4f77-a1fe-94fcc6750839",
+    "validation_type": "schema_field",
+    "data_type": "TEXT",
+    "field_name": "Governing Law",
+    "extracted_value": "Extracted Text Value",
+    "confidence_score": 0.95,
+    "validation_status": "unverified",
+    "ai_reasoning": "Found in document section X - The jurisdiction (e.g., state, country) whose laws will govern the interpretation and enforcement of the NDA."
+  },
+  {
+    "field_id": "07231c4c-fadc-4525-ad5c-229196309c61",
+    "validation_type": "schema_field",
+    "data_type": "NUMBER",
+    "field_name": "Term (Months)",
+    "extracted_value": "42",
+    "confidence_score": 0.95,
+    "validation_status": "unverified",
+    "ai_reasoning": "Found in document section X - The duration, in months, for which the confidentiality obligations under the NDA remain in effect."
+  },
+  {
+    "field_id": "0c2dd605-be27-47fb-a9b5-344d1bd72dac",
+    "validation_type": "schema_field",
+    "data_type": "TEXT",
+    "field_name": "Purpose of Disclosure",
+    "extracted_value": "Extracted Text Value",
+    "confidence_score": 0.95,
+    "validation_status": "unverified",
+    "ai_reasoning": "Found in document section X - The stated reason or specific business purpose for which confidential information is being disclosed under the NDA."
+  },
+  {
+    "field_id": "ccf4d04b-26e4-40f9-a2b1-e043e133dbb3",
+    "validation_type": "schema_field",
+    "data_type": "CHOICE",
+    "field_name": "Return/Destruction Clause Present",
+    "extracted_value": "Yes",
+    "confidence_score": 0.95,
+    "validation_status": "unverified",
+    "ai_reasoning": "Found in document section X - Indicates whether the NDA contains a clause requiring the return or destruction of confidential information upon termination or request."
+  },
+  {
+    "field_id": "0fccf9e9-ede3-4f80-a1f1-fcd57a71afa3",
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Parties.Party Name[0]",
+    "collection_name": "Parties",
+    "extracted_value": "Extracted Value",
+    "confidence_score": 0.95,
+    "validation_status": "unverified",
+    "ai_reasoning": "Found Parties item 1 with Party Name value in document",
+    "record_index": 0
+  },
+  {
+    "field_id": "37321472-e249-446d-89fc-ca0b8aee42e2",
+    "validation_type": "collection_property",
+    "data_type": "CHOICE",
+    "field_name": "Parties.Party Role[0]",
+    "collection_name": "Parties",
+    "extracted_value": "Disclosing Party",
+    "confidence_score": 0.95,
+    "validation_status": "unverified",
+    "ai_reasoning": "Found Parties item 1 with Party Role value in document",
+    "record_index": 0
+  },
+  {
+    "field_id": "7eb88353-a9b7-4d43-90b7-d8cc3ae72a7f",
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Parties.Party Address[0]",
+    "collection_name": "Parties",
+    "extracted_value": "Extracted Value",
+    "confidence_score": 0.95,
+    "validation_status": "unverified",
+    "ai_reasoning": "Found Parties item 1 with Party Address value in document",
+    "record_index": 0
+  },
+  {
+    "field_id": "0fccf9e9-ede3-4f80-a1f1-fcd57a71afa3",
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Parties.Party Name[1]",
+    "collection_name": "Parties",
+    "extracted_value": "Extracted Value",
+    "confidence_score": 0.95,
+    "validation_status": "unverified",
+    "ai_reasoning": "Found Parties item 2 with Party Name value in document",
+    "record_index": 1
+  },
+  {
+    "field_id": "37321472-e249-446d-89fc-ca0b8aee42e2",
+    "validation_type": "collection_property",
+    "data_type": "CHOICE",
+    "field_name": "Parties.Party Role[1]",
+    "collection_name": "Parties",
+    "extracted_value": "Disclosing Party",
+    "confidence_score": 0.95,
+    "validation_status": "unverified",
+    "ai_reasoning": "Found Parties item 2 with Party Role value in document",
+    "record_index": 1
+  },
+  {
+    "field_id": "7eb88353-a9b7-4d43-90b7-d8cc3ae72a7f",
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Parties.Party Address[1]",
+    "collection_name": "Parties",
+    "extracted_value": "Extracted Value",
+    "confidence_score": 0.95,
+    "validation_status": "unverified",
+    "ai_reasoning": "Found Parties item 2 with Party Address value in document",
+    "record_index": 1
+  }
+]}
+
+EXTRACTED DOCUMENT CONTENT:
+
+
+=== DOCUMENT: Fifth Street Management LLC - NDA.pdf ===
+FORM OF NON-COMPETITION, NON-SOLICITATION
+AND NON-DISCLOSURE AGREEMENT
+Exhibit 10.17
+[For Bernard D. Berman, Ivelin M. Dimitrov, Alexander C. Frank and Todd G. Owens]
+This Non-Competition, Non-Solicitation and Non-Disclosure Agreement (“Agreement”) is entered into between
+[NAME] (“Employee") and FSC CT, Inc. (“Fifth Street”), a Connecticut corporation, as of the () day of [MONTH], 2014.
+In this Agreement, Employee and Fifth Street are collectively referred to as the "parties". The term "Company” as used in
+this Agreement includes Fifth Street and all direct and indirect subsidiaries and affiliates of Fifth Street, including, without
+limitation, Fifth Street Management LLC (the “Advisor”), Fifth Street Asset Management Inc. (“FSAM”"), Fifth Street
+Holdings, L.P., Fifth Street Finance Corp. (the "BDC"), Fifth Street Senior Floating Rate Corp. (the "BDC II”), Fifth Street
+Senior Loan Fund I Operating Entity, LLC, Fifth Street Senior Loan Fund II Operating Entity, LLC, Fifth Street Credit
+Opportunities Fund, L.P., Fifth Street Mezzanine Partners II, L.P., Fifth Street Capital LLC, Fifth Street Capital West, Inc.,
+FSC, Inc., FSC Midwest, Inc. and any entities formed after the date hereof which engage the Company to provide
+services, and any affiliates of Fifth Street formed after the date hereof.
+1.
+Consideration. Employee acknowledges that he has been advised by Fifth Street that the restrictions
+and covenants contained in this Agreement, and Employee's agreement to such terms, are of the essence to this
+Agreement and constitute a material inducement to Fifth Street (i) to enter into this Agreement (including, without
+limitation, agreeing to the terms of Section 2) for the benefit of the Company, and (ii) to employ Employee [FOR
+MESSRS. BERMAN, DIMITROV AND FRANK: on the terms set forth in the Letter Agreement between the Employee
+and Fifth Street, dated as of ), 2014 (the “Letter Agreement”)]. Employee acknowledges that the Company will not
+employ Employee without Employee's agreement to comply with the restrictions and covenants contained in this
+Agreement and without Employee's execution of this Agreement. Employee acknowledges and agrees that the
+Company's providing employment to Employee is full and complete consideration for the promises and agreements
+made by Employee herein.
+2.
+Non-Compete.
+(a)
+Non-Competition Period. As used in this Agreement, the term “Non-Competition Period" shall mean the
+period of Employee's employment with the Company and the one-year period commencing on the date that Employee's
+employment with the Company terminates, regardless of the reason for such termination and regardless of whether the
+termination was voluntary or involuntary (or the three (3) month period commencing on the date that (i) Employee's
+employment with the Company is terminated by the Company other than for "Cause" (as defined in Exhibit A) within
+ninety (90) days prior to a “Change in Control” (as defined in Section (4) below), or (ii) Employee's employment is
+terminated at any time on or after a "Change in Control" (as defined in Section (4) below)); provided that in the event of a
+termination of Employee's employment for any reason other than for Cause (as defined on Exhibit A), the Company shall,
+subject to the following conditions, pay Employee during the Non-Competition Period the sum of (i) his base salary (or a
+pro rata portion, if the Non-Competition Period is less than one year in duration), pursuant to the Company's customary
+payroll policies, plus (ii) [FOR MR. OWENS ONLY: a bonus (or a pro rata portion, if the Non-Competition Period is less
+than one year in duration) equal to the average of the discretionary bonuses received by Employee over the preceding
+two years (but no less than $1.5 million with respect to any termination in 2014 or 2015]/[FOR MESSRS. BERMAN,
+DIMITROV AND FRANK: a bonus (or a pro rata portion, if the Non-Competition Period is less than one year in duration)
+equal to the average of the discretionary bonuses received by Employee over the preceding two years]; [FOR MESSRS.
+BERMAN, DIMITROV AND FRANK: provided, further, that solely in the event of a termination of Employee's
+employment by the Company without Cause or by the Employee for Good Reason, Employee shall be entitled to
+accelerated vesting of Options and RSUs as provided for in Annex A to the Letter Agreement]; provided that (I) the
+commencement of the foregoing payments are conditioned on the effectiveness (i.e., the expiration of any applicable
+revocation period without a revocation by Employee) of a release and waiver of all claims (the "Release") by Employee,
+in the form attached as exhibit B to the Letter Agreement [FOR MR. OWEN ONLY: in the form attached as Exhibit B to
+the Offer Letter from Fifth Street to Employee dated as of ), 2014 (the "Amended Offer Letter")], within 30 days
+from the date of termination; (II) the foregoing payments are conditioned on Employee's full compliance in all respects
+with the post-termination obligations set forth in this Agreement, (III) the post-termination obligations of Employee under
+this Agreement shall remain in full force and effect, and Employee shall remain bound in full by such obligations,
+regardless of whether Employee elects to accept payment of such amounts, (IV) if the Company, in its sole discretion,
+waives compliance with Section 2(a) of the Agreement in writing, the payments provided for in sub-clauses (a)(i) and (ii)
+shall no longer be paid from and after the effective date of such waiver (it being understood that no such waiver shall
+affect the Company's payment obligations under [the Letter Agreement]/[FOR MR. OWENS ONLY: the Amended Offer
+Letter] and in the event of such a waiver, the other covenants contained in this Agreement shall not be affected and will
+continue in full force and effect in accordance with the terms of this Agreement), [and] (V) if the termination occurs within
+90 days prior to, or at any time on or after a "Change in Control" (as defined in Section (4) below) the payment shall equal
+three (3) months of base salary and a pro rata portion of the applicable bonus equal to three (3) months [and FOR MR.
+OWENS ONLY: (VI) any payment obligations under this Agreement shall be reduced by all post-termination separation
+payments paid to the Employee under the Letter Agreement]. Employee covenants, during the one year period following
+the termination of his employment, to provide to the Company, as promptly as reasonably practicable prior to
+commencing employment, with advance written notice of the name of his new employer. For purposes of this Agreement,
+"base salary" shall mean an amount equal to the highest base salary ever paid to Employee during his employment by
+the Company.
+2
+(b)
+Non-Competition. In order to protect the Company's Confidential or Protected Information, Employee
+agrees that, during the Non-Competition Period, Employee shall not, directly or indirectly, own, manage, operate, control
+or participate in the ownership, management, operation or control of, or be connected as an officer, employee, director,
+consultant, advisor, agent, independent contractor, partner, member, stockholder, trustee, or otherwise with, or have any
+financial interests in, or aid or assist anyone else in the conduct of, or in any other capacity be engaged directly or
+indirectly in, any entity or business (i) that is in competition with the Company's business of arranging and/or providing
+financing solutions to sponsor-led, middle market acquisitions or (ii) that is in competition with any other type of business
+in which the Company is also engaged, or plans to be engaged (each, a "Competitive Business”). The ownership of less
+than two percent (2%) of any class of the outstanding securities of any corporation whose shares are traded on a U.S.
+national securities exchange or quoted on The Nasdaq Stock Market, even though such corporation may be a
+Competitive Business, shall not be deemed to constitute an interest in such competitor which violates this paragraph.
+Following the termination of Employee's employment, the foregoing shall not prevent Employee from providing services
+to any enterprise engaged in a Competitive Business to the extent that such services, or any supervisory responsibility of
+Employee associated with such position, are related only to the products or lines of business of such entity which,
+standing alone, would not constitute a Competitive Business, so long as the portion of the enterprise that is a Competitive
+Business does not represent more than fifty percent (50%) of the revenues of such enterprise at any time.
+(c)
+Timing of Payments. The payments described in Section 2(a) above shall be paid, minus applicable
+deductions, including deductions for tax withholding, in equal payments on the regular payroll dates during the
+Non-Competition Period following Employee's termination of employment. Commencement of payments described in
+Section 2(a) shall begin on the payroll date within 30 days of the effective date of the Release. The first payment shall
+include those payments that would have previously been paid if the payments described in Section 2(a) had begun on
+the first payroll date following Employee's termination of employment. This timing of the commencement of payments is
+subject to Section 22 below and Annex D to the Letter Agreement.
+(d) For purposes of this Agreement, "termination of employment" shall mean a "separation of service” as
+defined in Section 409A of the Internal Revenue Code of 1986, as amended, (the "Code") and Treasury Regulations
+Section 1.409A-1(h) without regard to the optional alternative definitions available thereunder.
+(e)
+The payments described in Section 2(a) shall be treated as a series of separate payments for purposes
+of Section 409A of the Code.
+(f)
+Any amounts payable to Employee by the Company under this Agreement or under any other plan or
+arrangement of the Company which are subject to Section 409A and are conditioned upon execution of a waiver and
+release that may be executed and/or revoked in a calendar year following the calendar year in which the payment event
+(such as termination of employment) occurs shall commence payment only in such following calendar year, to the extent
+necessary to comply with Section 409A.
+3
+3.
+Non-Solicitation Covenants.
+(a)
+Restricted Period.
+(b)
+i.
+ii.
+iii.
+As used in this Agreement, the term "Investor Restricted Period" shall mean (x) the term of Employee's
+employment with the Company, and (y) (I) the one-year period commencing on the date that
+Employee's employment with the Company terminates, regardless of the reason for such termination
+and regardless of whether the termination was voluntary or involuntary, or, if applicable, (II) the six (6)
+month period commencing on the date that Employee's employment with the Company terminates,
+provided that (i) such termination was by the Company other than for "Cause” (as defined in Exhibit A)
+and was within ninety (90) days prior to a "Change in Control" (as defined in Section (4) below) or (ii)
+such termination was on or after a "Change in Control" (as defined in Section (4) below).
+As used in this Agreement, the term “Customer Restricted Period" shall mean (x) the term of
+Employee's employment with the Company, and (y) (I) the one-year period commencing on the date
+that Employee's employment with the Company terminates, regardless of the reason for such
+termination and regardless of whether the termination was voluntary or involuntary, or, if applicable, (II)
+the six (6) month period commencing on the date that Employee's employment with the Company
+terminates, provided that (i) such termination was by the Company other than for "Cause" (as defined
+in Exhibit A) and was within ninety (90) days prior to a "Change in Control" (as defined in Section (4)
+below) or (ii) such termination was on or after a "Change in Control" (as defined in Section (4) below).
+As used in this Agreement, the term "Employee Restricted Period" shall mean (x) the term of
+Employee's employment with the Company, and (y) (I) the two-year period commencing on the date
+that Employee's employment with the Company terminates, regardless of the reason for such
+termination and regardless of whether the termination was voluntary or involuntary, or, if applicable, (II)
+the six (6) month period commencing on the date that Employee's employment with the Company
+terminates, provided that (i) such termination was by the Company other than for “Cause" (as defined
+in Exhibit A) and was within ninety (90) days prior to a "Change in Control" (as defined in Section (4)
+below) or (ii) such termination was on or after a "Change in Control" (as defined in Section (4) below).
+Non-Solicitation of Investors. Employee agrees that, during the Investor Restricted Period, Employee
+shall not, directly or indirectly, for himself or for any person or entity other than the Company: (i) solicit or accept any
+investment from any person or entity that was an Investor, at any time prior to the termination of Employee's employment
+with the Company; (ii) induce or influence any such Investor to discontinue, modify, or reduce its business relationship
+with the Company; or (iii) assist or cause any person or entity to engage in any of the actions in which Employee has
+agreed not to engage under this paragraph. The term "Investor” means investors (and their affiliates) that did business
+with the Company, or any account, fund or other entity for which the Advisor or any affiliate of the Advisor provided
+investment advisory or management services at any time during Employee's employment and all potential investors
+which, as of the last day of Employee's employment, the Company was soliciting or marketing (including, without
+limitation, any potential investor (or affiliate thereof) to which the Company delivered a PPM or similar offering
+memorandum within the 2 years preceding the termination of Employee's employment). Notwithstanding the foregoing,
+no person shall be deemed to be an Investor solely based on the fact that such person is or was a stockholder of the
+BDC or BDC II.
+4
+(c) Non-Solicitation of Customers. Employee agrees that, during the Customer Restricted Period, Employee
+shall not, directly or indirectly, for himself or for any person or entity other than the Company: (i) solicit business (unless
+such business is noncompetitive to the Company's business) from any customer or client of the Company (a “Covered
+Customer"); (ii) induce or influence any Covered Customer to discontinue, modify, or reduce its business relationship with
+the Company; (iii) solicit, induce or influence any entity to not accept a written term sheet or commitment letter that was
+issued in the six months prior to Employee's termination from the Company or discontinue a loan arrangement with the
+Company that that was in existence at the time of Employee's termination; or (iv) assist or cause any person or entity to
+engage in any of the actions in which Employee has agreed not to engage under this paragraph.
+(d)
+Non-Solicitation of Employees. Employee agrees that, during the Employee Restricted Period, Employee
+shall not, directly or indirectly, for himself or for any person or entity other than the Company: (i) induce, encourage, or
+solicit any individual who is employed by the Company as of the date of Employee's termination of employment, or within
+one year prior thereto, to leave such employment or to become employed by or provide services to any person or entity
+other than the Company, or (ii) assist or cause any person or entity to engage in any of the actions in which Employee
+has agreed not to engage under this paragraph.
+4.
+Definition of “Change in Control”. As used in this Agreement, the term “Change in Control” shall mean
+that Leonard Tannenbaum and his affiliated entities collectively cease to have beneficial voting control of FSAM (or, if an
+IPO has not occurred, of Fifth Street Holdings, LP).
+5.
+Confidential or Protected Information. As used in this Agreement, "Confidential or Protected
+Information" means:
+(a)
+confidential, proprietary or trade secret information (including, without limitation, all information as to
+which the Company has made efforts to maintain secrecy or that the law protects from disclosure) made available to
+Employee, or to which Employee has access, or of which Employee becomes aware during his employment, including,
+without limitation, information related to investments made by the Company, information related to the Company's or any
+other entity's businesses, systems, operations, finances, investments, transactions, negotiations, claims, potential claims,
+sales, marketing, plans, pricing, customers, prospective customers, policies, practices, procedures, products, services,
+finances, accounting practices or procedures, financial or investment performance (including, without limitation, any
+"track record" data or information), return on investment or capital, internal rate of return (“IRR”), relationships with third
+parties, ownership, investors, partners, employees, and management, as well as the Company's or any other entity's
+software (in any stage of development), programs (whether or not in final form), ideas, inventions, concepts, formulas,
+methods, development, research, designs, drawings, schematics, specifications, techniques, models, data, source code,
+object code, flow diagrams, and documentation; and
+5
+(b)
+all information concerning any Inventions or Copyright Works. The term "Invention” means any new or
+useful art, discovery, contribution, finding, or improvement, whether or not patentable. The term “Copyright Works”
+means materials for which copyright protection may be obtained, including, but not limited to, computer programs, artistic
+works (including designs, graphs, drawings, blueprints and other works), literary works, recordings, photographs, slides,
+motion pictures, and audiovisual works.
+The forgoing description of "Confidential or Protected Information" includes all such information in any and all
+forms, whether written, oral, on a computer, tape, chip, or disk, whether prepared by Employee, by the Company, or by
+others, whether or not fixed in tangible form, and includes all originals, summaries, portions, and copies of any and all
+such information.
+6.
+Nondisclosure of Confidential or Protected Information. Except as provided below in Paragraph 7,
+Employee agrees that during Employee's employment with the Company and after Employee's employment with the
+Company terminates, regardless of why such employment terminated and regardless of whether the termination was
+voluntary or involuntary, Employee will not disclose to anyone, publish, sell, assign, license, or attempt to do so, and will
+not use for Employee's own personal benefit or the benefit of anyone other than the Company, whether directly or
+indirectly, any Confidential or Protected Information. Employee also agrees to:
+(a)
+maintain in a confidential and protected manner all Confidential or Protected Information;
+(b)
+take all reasonable steps to ensure that persons and entities working for and with Employee maintain in
+a confidential and protected manner all Confidential or Protected Information;
+(c) take all reasonable steps to prevent unauthorized persons and entities from obtaining, disseminating, or
+using Confidential or Protected Information; and
+(d)
+promptly report to the Chief Executive Officer of Fifth Street whenever Employee learns it is likely that
+any unauthorized person or entity seeks or plans to obtain, disseminate, or use any Confidential or Protected Information.
+6
+7.
+Exceptions. The restrictions relating to Confidential or Protected Information set forth in Paragraph 6
+above do not apply:
+(a)
+where such disclosure or use is necessary for Employee to faithfully perform his duties as an employee
+for the Company or for other employees to faithfully perform their duties for the Company;
+(b) to information which is now or hereafter becomes known or generally available to the public at large,
+except if such knowledge results from a breach of this Agreement or another obligation of confidentiality owed to the
+Company;
+(c)
+where Employee has the prior written permission of the Chief Executive Officer of Fifth Street;
+(d)
+where necessary to comply with any legal obligation applicable to Employee; provided, however, that
+before disclosing or permitting disclosure of any Confidential or Protected Information pursuant to a legal obligation,
+Employee agrees to (i) promptly notify the Chief Executive Officer of Fifth Street of the legal obligation that Employee
+believes requires that he make or permit such disclosure, and (ii) delay, if and to the extent lawful to do so, making such
+disclosure to afford the Company a reasonable opportunity to oppose disclosure, or restrict, limit or condition such
+disclosure.
+8.
+Intellectual Property.
+(a)
+Ownership of Confidential or Protected Information, Inventions, and Copyright Works. Upon conception,
+all Confidential or Protected Information, Inventions, and Copyright Works shall become the exclusive property of Fifth
+Street whether or not patent or copyright applications are filed on the subject matter of the conception.
+(b)
+Rights in Copyrights. Unless otherwise agreed in writing by the Chief Executive Officer of Fifth Street,
+original works of authorship fixed in any tangible form that are or were prepared by Employee (alone or jointly with
+others) within the scope of Employee's employment with Fifth Street shall be deemed "works made for hire" under
+copyright laws and shall be owned by Fifth Street. Employee understands that any sale, assignment, license, or release
+of such works can only be made by Fifth Street. Employee will do everything reasonably necessary to enable Fifth Street
+or its nominee to protect its rights in such works, including, without limitation, assigning the copyright and all rights,
+throughout the world, in and to the work product to Fifth Street and hereby assigns to Fifth Street all such copyright and
+rights as of the date hereof.
+9.
+Company's Property. Upon termination of Employee's employment with the Company, regardless of
+the reason (whether voluntary or involuntary), Employee agrees immediately to surrender to Fifth Street all property of
+the Company in Employee's possession, control, or custody, including, but not limited to, the equipment, computers,
+software, credit cards, books, records, reports, files, manuals, literature, the work product of Employee and all other
+Company employees and all property containing Confidential or Protected Information (including all originals, summaries,
+portions, and copies).
+7
+10.
+Nondisparagement. Employee agrees that, during and at any time after Employee's employment with
+the Company, regardless of the reason (whether voluntary or involuntary), Employee will not, directly or indirectly,
+through any agent or affiliate, make any comments or criticisms (whether of a professional or personal nature) to any
+individual or other third party or entity regarding the Company (or the terms of any agreement or arrangement of the
+Company) or any of its respective affiliates, members, partners or employees, disparaging the business or reputation of
+the Company or any of its affiliates, members, partners or employees.
+11.
+Remedies. Employee acknowledges and agrees that monetary damages may not be a sufficient
+remedy for any breach of this Agreement, including, without limitation, a breach of the covenants contained in
+Paragraphs 2 and 3 or the unauthorized use or disclosure of Confidential or Protected Information, and that the Company
+shall be entitled, without waiving any other rights or remedies, to obtain injunctive or equitable relief as may be deemed
+proper by a court of competent jurisdiction, without obligation to post any bond. The periods of time during which
+Employee is in violation of the covenants set forth in this Agreement shall be added to the Investor Restricted Period, the
+Customer Restricted Period, the Employee Restricted Period and the Non-Competition Period, as applicable.
+12.
+Reasonableness. Employee acknowledges and agrees that the restrictions contained in this
+Agreement are reasonable and will not prevent him from finding other employment if his employment with the Company
+ends. Employee also acknowledges and agrees that if Employee uses the Company's confidential information, or
+competes with the Company in violation of the terms of this Agreement, that he will be causing the Company irreparable
+harm.
+13.
+Severability; Revision by Court. The provisions of this Agreement shall be deemed severable and the
+invalidity or unenforceability of any provision shall not affect the validity or enforceability of the other provisions hereof. If
+any provision in this Agreement is found by a court of competent jurisdiction to be unenforceable or unreasonable as
+written, Employee and Fifth Street hereby specifically and irrevocably authorize and request said court to revise the
+unenforceable or unreasonable provisions in a manner that shall result in the provision being enforceable while remaining
+as similar as legally possible to the purpose and intent of the original.
+14.
+Entire Agreement. This Agreement constitutes the entire agreement and understanding of the parties
+hereto with respect to the obligations addressed herein and supersedes all prior or contemporaneous oral or written
+agreements regarding the subject matter hereof.
+15.
+Amendments; Waivers. Any addition or modification to this Agreement, or waiver of any provision
+hereof, must be in writing and signed by the parties hereto.
+8
+16. Successors and Assigns. Employee understands and agrees that he cannot assign or otherwise
+transfer any of his obligations under this Agreement. Employee understands and agrees that Fifth Street may, at its
+option, assign or transfer its rights under this Agreement to another organization or individual. Employee understands
+and agrees that if there is an assignment or transfer of Fifth Street's rights under this Agreement, then this Agreement will
+continue to be effective, will continue to bind Employee, and will inure to the benefit of the organization or individual to
+whom the transfer or assignment is made.
+17.
+Choice of Law. This Agreement shall be governed by, construed, and enforced in accordance with the
+laws of the State of Connecticut, excluding its conflicts of laws principles.
+18.
+Jurisdiction. Any action or proceeding seeking to enforce any provision of, or based on any right
+arising out of, this Agreement may be brought against either party only in the courts of the State of Connecticut located in
+Fairfield County. Both parties hereby irrevocably consent to the jurisdiction of any such court in any such action or
+proceeding and waive any objection to venue laid in such courts.
+19.
+Counterparts. This Agreement may be executed in any number of counterparts, each of which shall be
+deemed an original but all of which together shall constitute one and the same instrument. This Agreement may be
+executed by facsimile signature.
+20.
+Employee's Acknowledgment of Voluntary Agreement. Employee acknowledges that he has
+carefully read this Agreement, that he has had the opportunity to receive advice with respect to this Agreement by
+counsel of his choice, that he understands its terms and its legal effect, and that Employee has entered into this
+Agreement voluntarily and not in reliance upon any promises or representations made by the Company other than those
+made in this Agreement itself.
+21.
+No Change in Status. Nothing contained in the Agreement shall affect or in any way change
+Employee's at-will employment status.
+22.
+Section 409A.
+(a)
+Potential Six-Month Delay. Notwithstanding any other provisions of the Agreement, any payment that
+may be provided under this Agreement that the Company reasonably determines is subject to Section 409A(a)(2)(B)(i) of
+the Code shall not be paid or payment commenced until six (6) months after the date of Employee's termination of
+employment (or, if earlier, Employee's death). On the earliest date on which such payments can be commenced without
+violating the requirements of Section 409A(a)(2)(B)(i) of the Code, Employee shall be paid, in a single cash lump sum, an
+amount equal to the aggregate amount of all payments delayed pursuant to the preceding sentence.
+9
+(b)
+Savings Clause. It is intended that any amounts payable under this Agreement shall either be exempt
+from or comply with Section 409A of the Code (including Treasury regulations and other published guidance related
+thereto) so as not to subject Employee to payment of any additional tax, penalty or interest imposed under Section 409A
+of the Code. The provisions of this Agreement shall be construed and interpreted to avoid the imputation of any such
+additional tax, penalty or interest under Section 409A of the Code yet preserve (to the nearest extent reasonably
+possible) the intended benefit payable to Employee. Notwithstanding the foregoing, the Company makes no
+representation or warranty and shall have no liability to Employee or to any other person if any of the provisions of this
+Agreement are determined to constitute deferred compensation subject to Section 409A, but that do not satisfy an
+exemption from, or the conditions of, that section.
+[Signature page follows]
+10
+By signing below, the Company and Employee, intending to be legally bound, agree to the terms of this
+Agreement as listed and stated above.
+Dated:
+Dated:
+FSC CT, Inc.
+By:
+Name:
+Title:
+Employee:
+11
+EXHIBIT A
+As used in this Agreement, "Cause” shall have the meaning ascribed to it in [the Letter Agreement]/[FOR MR.
+OWENS ONLY: the Amended Offer Letter].
+

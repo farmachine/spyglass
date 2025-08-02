@@ -284,18 +284,28 @@ def step1_extract_from_documents(
                 if knowledge_documents:
                     for doc in knowledge_documents:
                         doc_target = doc.get('targetField', '')
-                        if isinstance(doc_target, list):
+                        # If no target field specified, apply to all fields
+                        if not doc_target or doc_target == '' or doc_target is None:
+                            applicable_knowledge.append({
+                                'fileName': doc.get('fileName', ''),
+                                'displayName': doc.get('displayName', ''),
+                                'description': doc.get('description', ''),
+                                'content': doc.get('content', '')
+                            })
+                        elif isinstance(doc_target, list):
                             if field_name in doc_target or 'All Fields' in doc_target:
                                 applicable_knowledge.append({
                                     'fileName': doc.get('fileName', ''),
                                     'displayName': doc.get('displayName', ''),
-                                    'description': doc.get('description', '')
+                                    'description': doc.get('description', ''),
+                                    'content': doc.get('content', '')
                                 })
                         elif field_name == doc_target or doc_target == 'All Fields':
                             applicable_knowledge.append({
                                 'fileName': doc.get('fileName', ''),
                                 'displayName': doc.get('displayName', ''),
-                                'description': doc.get('description', '')
+                                'description': doc.get('description', ''),
+                                'content': doc.get('content', '')
                             })
                 
                 # Combine description with rules
@@ -354,18 +364,28 @@ def step1_extract_from_documents(
                 if knowledge_documents:
                     for doc in knowledge_documents:
                         doc_target = doc.get('targetField', '')
-                        if isinstance(doc_target, list):
+                        # If no target field specified, apply to all fields/collections
+                        if not doc_target or doc_target == '' or doc_target is None:
+                            applicable_coll_knowledge.append({
+                                'fileName': doc.get('fileName', ''),
+                                'displayName': doc.get('displayName', ''),
+                                'description': doc.get('description', ''),
+                                'content': doc.get('content', '')
+                            })
+                        elif isinstance(doc_target, list):
                             if collection_name in doc_target or 'All Fields' in doc_target:
                                 applicable_coll_knowledge.append({
                                     'fileName': doc.get('fileName', ''),
                                     'displayName': doc.get('displayName', ''),
-                                    'description': doc.get('description', '')
+                                    'description': doc.get('description', ''),
+                                    'content': doc.get('content', '')
                                 })
                         elif collection_name == doc_target or doc_target == 'All Fields':
                             applicable_coll_knowledge.append({
                                 'fileName': doc.get('fileName', ''),
                                 'displayName': doc.get('displayName', ''),
-                                'description': doc.get('description', '')
+                                'description': doc.get('description', ''),
+                                'content': doc.get('content', '')
                             })
                 
                 full_instruction = collection_description or 'Extract array of these objects'
@@ -426,7 +446,15 @@ def step1_extract_from_documents(
                             arrow_notation = f"{collection_name} --> {prop_name}"
                             full_prop_name = f"{collection_name}.{prop_name}"
                             
-                            if isinstance(doc_target, list):
+                            # If no target field specified, apply to all fields/properties
+                            if not doc_target or doc_target == '' or doc_target is None:
+                                prop_knowledge.append({
+                                    'fileName': doc.get('fileName', ''),
+                                    'displayName': doc.get('displayName', ''),
+                                    'description': doc.get('description', ''),
+                                    'content': doc.get('content', '')
+                                })
+                            elif isinstance(doc_target, list):
                                 if (arrow_notation in doc_target or 
                                     full_prop_name in doc_target or 
                                     prop_name in doc_target or 
@@ -434,7 +462,8 @@ def step1_extract_from_documents(
                                     prop_knowledge.append({
                                         'fileName': doc.get('fileName', ''),
                                         'displayName': doc.get('displayName', ''),
-                                        'description': doc.get('description', '')
+                                        'description': doc.get('description', ''),
+                                        'content': doc.get('content', '')
                                     })
                             elif (arrow_notation == doc_target or 
                                   full_prop_name == doc_target or 
@@ -443,7 +472,8 @@ def step1_extract_from_documents(
                                 prop_knowledge.append({
                                     'fileName': doc.get('fileName', ''),
                                     'displayName': doc.get('displayName', ''),
-                                    'description': doc.get('description', '')
+                                    'description': doc.get('description', ''),
+                                    'content': doc.get('content', '')
                                 })
                     
                     prop_instruction = prop_description or 'Extract this property'
