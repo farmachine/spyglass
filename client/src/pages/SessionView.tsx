@@ -1597,11 +1597,19 @@ Thank you for your assistance.`;
                 console.log(`INFO VIEW - MSA Field Rendering Blue User Icon - wasManuallyUpdated: ${wasManuallyUpdated}, validation:`, validation);
               }
               
+              // Check if manually updated field is also verified
+              const isVerified = validation.validationStatus === 'valid' || validation.validationStatus === 'verified';
+              
               return (
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
                     <User className="h-2 w-2 text-white" />
                   </div>
+                  {isVerified && (
+                    <div className="w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
+                      <Check className="h-2 w-2 text-white" />
+                    </div>
+                  )}
                   {validation.originalExtractedValue !== undefined && validation.originalExtractedValue !== null && (
                     <button
                       onClick={() => handleRevertToAI(fieldName)}
