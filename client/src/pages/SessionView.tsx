@@ -632,6 +632,56 @@ export default function SessionView() {
     });
   };
 
+  // Handler for collection-wide verification (header verification icon)
+  const handleCollectionVerification = (collectionName: string, shouldVerify: boolean) => {
+    console.log(`=== COLLECTION VERIFICATION ===`);
+    console.log(`Collection: ${collectionName}, shouldVerify: ${shouldVerify}`);
+    
+    // Find all validations for this collection
+    const collectionValidations = validations.filter(v => 
+      v.collectionName === collectionName || 
+      (v.fieldName && v.fieldName.startsWith(`${collectionName}.`))
+    );
+    
+    console.log(`Found ${collectionValidations.length} validations for collection ${collectionName}`);
+    
+    if (collectionValidations.length === 0) return;
+    
+    const newStatus: ValidationStatus = shouldVerify ? 'valid' : 'pending';
+    
+    // Optimistic update: immediately update all collection items in the UI
+    queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
+      if (!oldData) return oldData;
+      return oldData.map((v: any) => {
+        const isCollectionValidation = v.collectionName === collectionName || 
+          (v.fieldName && v.fieldName.startsWith(`${collectionName}.`));
+        return isCollectionValidation 
+          ? { ...v, validationStatus: newStatus }
+          : v;
+      });
+    });
+    
+    // Update all validations for this collection
+    collectionValidations.forEach(validation => {
+      updateValidationMutation.mutate({
+        id: validation.id,
+        data: { validationStatus: newStatus }
+      }, {
+        onError: () => {
+          // Revert optimistic update on error
+          queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
+            if (!oldData) return oldData;
+            return oldData.map((v: any) => 
+              v.id === validation.id 
+                ? { ...v, validationStatus: validation.validationStatus }
+                : v
+            );
+          });
+        }
+      });
+    });
+  };
+
   // Handler for bulk item verification (status column click)
   const handleItemVerification = (collectionName: string, recordIndex: number, isVerified: boolean) => {
     // Find all fields for this collection item
@@ -2057,7 +2107,16 @@ Thank you for your assistance.`;
                                     }).every(isVerified => isVerified);
                                     
                                     return (
-                                      <CheckCircle className={`h-5 w-5 ${allItemsVerified ? 'text-green-600' : 'text-gray-400'}`} />
+                                      <button
+                                        onClick={() => {
+                                          console.log(`Collection header verification clicked: ${collection.collectionName}, allItemsVerified: ${allItemsVerified}`);
+                                          handleCollectionVerification(collection.collectionName, !allItemsVerified);
+                                        }}
+                                        className={`h-5 w-5 hover:scale-110 transition-transform cursor-pointer ${allItemsVerified ? 'text-green-600 hover:text-green-700' : 'text-gray-400 hover:text-gray-600'}`}
+                                        title={allItemsVerified ? 'All items verified - Click to unverify collection' : 'Some items unverified - Click to verify all items in collection'}
+                                      >
+                                        <CheckCircle className="h-5 w-5" />
+                                      </button>
                                     );
                                   })()}
                                   <Button
