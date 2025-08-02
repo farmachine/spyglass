@@ -843,21 +843,49 @@ export default function SessionView() {
 
   // Handler for deleting collection item
   const handleDeleteCollectionItem = async (collectionName: string, recordIndex: number) => {
-    console.log(`Deleting collection item: ${collectionName}[${recordIndex}]`);
+    console.log(`=== DELETING COLLECTION ITEM ===`);
+    console.log(`Target: ${collectionName}[${recordIndex}]`);
+    console.log(`Available validations count: ${validations.length}`);
+    
+    // Debug: show all validations for this collection
+    const allCollectionValidations = validations.filter(v => 
+      v.collectionName === collectionName || 
+      (v.collectionName === null && v.fieldName && v.fieldName.startsWith(`${collectionName}.`))
+    );
+    console.log(`All validations for collection "${collectionName}":`, 
+      allCollectionValidations.map(v => ({ 
+        id: v.id, 
+        fieldName: v.fieldName, 
+        collectionName: v.collectionName, 
+        recordIndex: v.recordIndex,
+        extractedValue: v.extractedValue
+      })));
     
     // Find all validations for this collection item using improved filtering
     const itemValidations = validations.filter(v => {
+      console.log(`Checking validation:`, { 
+        id: v.id, 
+        fieldName: v.fieldName, 
+        collectionName: v.collectionName, 
+        recordIndex: v.recordIndex 
+      });
+      
       // Primary approach: match by collectionName and recordIndex
       if (v.collectionName === collectionName && v.recordIndex === recordIndex) {
+        console.log(`✓ Match by collectionName and recordIndex`);
         return true;
       }
       
       // Fallback approach: match by fieldName pattern for records with null collectionName
       if (v.collectionName === null && v.fieldName && v.fieldName.includes(`[${recordIndex}]`)) {
         // Check if fieldName starts with the collection name
-        return v.fieldName.startsWith(`${collectionName}.`);
+        if (v.fieldName.startsWith(`${collectionName}.`)) {
+          console.log(`✓ Match by fieldName pattern`);
+          return true;
+        }
       }
       
+      console.log(`✗ No match`);
       return false;
     });
 
@@ -866,6 +894,7 @@ export default function SessionView() {
 
     if (itemValidations.length === 0) {
       console.warn(`No validations found for ${collectionName}[${recordIndex}] - nothing to delete`);
+      console.log(`This usually means the records were already cleared or have different field names`);
       toast({
         title: "No data to delete",
         description: "No validation records found for this item.",
