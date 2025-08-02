@@ -626,11 +626,32 @@ export default function SessionView() {
 
   // Handler for bulk item verification (status column click)
   const handleItemVerification = (collectionName: string, recordIndex: number, isVerified: boolean) => {
-    // Find all fields for this collection item
-    const itemValidations = validations.filter(v => 
-      v.collectionName === collectionName && 
-      v.fieldName.includes(`[${recordIndex}]`)
-    );
+    console.log(`handleItemVerification called: ${collectionName}, index ${recordIndex}, verified: ${isVerified}`);
+    
+    // Find all fields for this collection item using multiple approaches
+    // Some records might have collectionName: null, so we use fieldName patterns too
+    const itemValidations = validations.filter(v => {
+      // Primary approach: match by collectionName and recordIndex
+      if (v.collectionName === collectionName && v.recordIndex === recordIndex) {
+        return true;
+      }
+      
+      // Fallback approach: match by fieldName pattern for records with null collectionName
+      if (v.collectionName === null && v.fieldName && v.fieldName.includes(`[${recordIndex}]`)) {
+        // Check if fieldName starts with the collection name
+        return v.fieldName.startsWith(`${collectionName}.`);
+      }
+      
+      return false;
+    });
+    
+    console.log(`Found ${itemValidations.length} validations for ${collectionName}[${recordIndex}]:`, 
+      itemValidations.map(v => ({ id: v.id, fieldName: v.fieldName, collectionName: v.collectionName, recordIndex: v.recordIndex })));
+    
+    if (itemValidations.length === 0) {
+      console.warn(`No validations found for ${collectionName}[${recordIndex}]`);
+      return;
+    }
     
     const newStatus: ValidationStatus = isVerified ? 'verified' : 'unverified';
     
@@ -645,6 +666,7 @@ export default function SessionView() {
     
     // Update all fields for this item
     itemValidations.forEach(validation => {
+      console.log(`Updating validation ${validation.id} to status: ${newStatus}`);
       updateValidationMutation.mutate({
         id: validation.id,
         data: { validationStatus: newStatus }
@@ -2232,18 +2254,37 @@ Thank you for your assistance.`;
                                   <TableCell className="border-r border-gray-300">
                                     <div className="flex items-center justify-center gap-3 px-2">
                                       {(() => {
-                                        // Calculate verification status for this item
-                                        const itemValidations = collection.properties.map(property => {
-                                          const fieldName = `${collection.collectionName}.${property.propertyName}[${originalIndex}]`;
-                                          return getValidation(fieldName);
-                                        }).filter(Boolean);
+                                        // Calculate verification status for this item using improved filtering
+                                        const itemValidations = validations.filter(v => {
+                                          // Primary approach: match by collectionName and recordIndex
+                                          if (v.collectionName === collection.collectionName && v.recordIndex === originalIndex) {
+                                            return true;
+                                          }
+                                          
+                                          // Fallback approach: match by fieldName pattern for records with null collectionName
+                                          if (v.collectionName === null && v.fieldName && v.fieldName.includes(`[${originalIndex}]`)) {
+                                            // Check if fieldName starts with the collection name
+                                            return v.fieldName.startsWith(`${collection.collectionName}.`);
+                                          }
+                                          
+                                          return false;
+                                        });
                                         
                                         const allVerified = itemValidations.length > 0 && 
                                           itemValidations.every(v => v?.validationStatus === 'valid' || v?.validationStatus === 'verified');
                                         
+                                        console.log(`Verification status for ${collection.collectionName}[${originalIndex}]:`, {
+                                          itemValidations: itemValidations.length,
+                                          allVerified,
+                                          validations: itemValidations.map(v => ({ id: v.id, fieldName: v.fieldName, status: v.validationStatus }))
+                                        });
+                                        
                                         return (
                                           <button
-                                            onClick={() => handleItemVerification(collection.collectionName, originalIndex, !allVerified)}
+                                            onClick={() => {
+                                              console.log(`Button clicked for ${collection.collectionName}[${originalIndex}], currently verified: ${allVerified}`);
+                                              handleItemVerification(collection.collectionName, originalIndex, !allVerified);
+                                            }}
                                             className="flex items-center justify-center hover:bg-gray-100 px-2 py-1 rounded transition-colors"
                                             title={allVerified ? "Click to mark all fields as unverified" : "Click to mark all fields as verified"}
                                           >
