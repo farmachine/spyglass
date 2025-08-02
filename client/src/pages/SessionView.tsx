@@ -507,15 +507,7 @@ export default function SessionView() {
         confidenceScore: v.confidenceScore
       })));
       
-      // Test if click handlers are being attached - add a simple test button
-      console.log("=== TESTING CLICK HANDLER ATTACHMENT ===");
-      setTimeout(() => {
-        const buttons = document.querySelectorAll('button[title*="confidence"]');
-        console.log(`Found ${buttons.length} confidence buttons in DOM`);
-        buttons.forEach((btn, i) => {
-          console.log(`Button ${i}:`, btn.className, btn.title);
-        });
-      }, 1000);
+
     }
   }, [validations, sessionId]);
 
@@ -604,9 +596,6 @@ export default function SessionView() {
 
   // Handler for field verification changes
   const handleFieldVerification = (fieldName: string, isVerified: boolean) => {
-    console.log(`=== VERIFICATION HANDLER CALLED ===`);
-    console.log(`Field: ${fieldName}, isVerified: ${isVerified}`);
-    console.log(`CLICK DETECTED: ${fieldName}, isVerified: ${isVerified}`);
     const validation = getValidation(fieldName);
     if (!validation) {
       console.log(`No validation found for: ${fieldName}`);
@@ -1836,10 +1825,7 @@ Thank you for your assistance.`;
                                     // Show green tick when verified - clicking unverifies
                                     return (
                                       <button
-                                        onClick={() => {
-                                          console.log("CLICK DETECTED: Green checkmark - unverifying field", fieldName);
-                                          handleFieldVerification(fieldName, false);
-                                        }}
+                                        onClick={() => handleFieldVerification(fieldName, false)}
                                         className="w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors flex-shrink-0 cursor-pointer"
                                         title={`Verified with ${score}% confidence - Click to unverify`}
                                       >
@@ -1854,7 +1840,6 @@ Thank you for your assistance.`;
                                     return (
                                       <button
                                         onClick={() => {
-                                          console.log("CLICK DETECTED: Confidence dot - opening AI analysis", fieldName);
                                           if (validation.aiReasoning) {
                                             setSelectedReasoning({
                                               reasoning: validation.aiReasoning,
@@ -1871,10 +1856,7 @@ Thank you for your assistance.`;
                                     // Show red exclamation mark for missing fields - clicking allows verification
                                     return (
                                       <button
-                                        onClick={() => {
-                                          console.log("CLICK DETECTED: Red exclamation - verifying missing field", fieldName);
-                                          handleFieldVerification(fieldName, true);
-                                        }}
+                                        onClick={() => handleFieldVerification(fieldName, true)}
                                         className="w-3 h-3 flex items-center justify-center text-red-500 font-bold text-xs flex-shrink-0 hover:bg-red-50 rounded transition-colors cursor-pointer"
                                         title="Missing data - Click to mark as verified anyway"
                                       >
