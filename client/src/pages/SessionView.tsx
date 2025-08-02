@@ -666,12 +666,33 @@ export default function SessionView() {
     const collection = project.collections.find(c => c.collectionName === collectionName);
     if (!collection) return;
     
-    // Find the highest existing record index for this collection
-    const collectionValidations = validations.filter(v => v.collectionName === collectionName);
-    const maxIndex = collectionValidations.length > 0 
-      ? Math.max(...collectionValidations.map(v => v.recordIndex || 0))
-      : -1;
+    // Find the highest existing record index for this collection using improved filtering
+    const collectionValidations = validations.filter(v => {
+      // Primary approach: match by collectionName
+      if (v.collectionName === collectionName) {
+        return true;
+      }
+      
+      // Fallback approach: match by fieldName pattern for records with null collectionName
+      if (v.collectionName === null && v.fieldName && v.fieldName.startsWith(`${collectionName}.`)) {
+        return true;
+      }
+      
+      return false;
+    });
+    
+    const existingIndices = collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null && idx !== undefined);
+    const maxIndex = existingIndices.length > 0 ? Math.max(...existingIndices) : -1;
     const newIndex = maxIndex + 1;
+    
+    console.log(`🔍 INDEX CALCULATION for ${collectionName}:`, {
+      totalValidations: validations.length,
+      collectionValidations: collectionValidations.length,
+      existingIndices,
+      maxIndex,
+      newIndex,
+      firstAdd: existingIndices.length === 0
+    });
 
     // Optimistic update: Create temporary validation records
     const tempValidations = collection.properties.map(property => ({
