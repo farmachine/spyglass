@@ -30,6 +30,7 @@ import type {
   ExtractionSession, 
   ProjectWithDetails, 
   FieldValidation,
+  FieldValidationWithName,
   ValidationStatus 
 } from "@shared/schema";
 
@@ -50,7 +51,7 @@ const AIReasoningModal = ({
   fieldName: string; 
   confidenceScore: number;
   getFieldDisplayName: (fieldName: string) => string;
-  validation: FieldValidation | undefined;
+  validation: FieldValidationWithName | undefined;
   onVerificationChange: (isVerified: boolean) => void;
 }) => {
   const { toast } = useToast();
@@ -489,7 +490,7 @@ export default function SessionView() {
     enabled: !!projectId // Only run this query when we have a projectId
   });
 
-  const { data: validations = [], isLoading: validationsLoading } = useQuery<FieldValidation[]>({
+  const { data: validations = [], isLoading: validationsLoading } = useQuery<FieldValidationWithName[]>({
     queryKey: ['/api/sessions', sessionId, 'validations'],
     queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`)
   });
@@ -509,7 +510,7 @@ export default function SessionView() {
   }, [validations, sessionId]);
 
   // Fetch project-level validations for statistics cards
-  const { data: projectValidations = [] } = useQuery<FieldValidation[]>({
+  const { data: projectValidations = [] } = useQuery<FieldValidationWithName[]>({
     queryKey: ['/api/validations/project', projectId],
     enabled: !!projectId
   });
