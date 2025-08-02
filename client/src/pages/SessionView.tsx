@@ -694,15 +694,22 @@ export default function SessionView() {
       id: `temp-${Date.now()}-${property.id}`,
       sessionId: session.id,
       validationType: 'collection_property' as const,
+      dataType: property.propertyType,
       fieldId: property.id,
       fieldName: `${collectionName}.${property.propertyName}[${newIndex}]`,
       collectionName: collectionName,
       recordIndex: newIndex,
-      extractedValue: '',
-      confidenceScore: 0,
-      validationStatus: 'unverified' as const,
-      manuallyUpdated: true,
+      extractedValue: null,
+      originalExtractedValue: null,
+      originalConfidenceScore: 0,
+      originalAiReasoning: null,
+      validationStatus: 'pending' as const,
       aiReasoning: 'New item added by user',
+      manuallyVerified: false,
+      manuallyUpdated: true,
+      confidenceScore: 0,
+      documentSource: 'Manual Entry',
+      documentSections: null,
       createdAt: new Date(),
       updatedAt: new Date()
     }));
@@ -715,19 +722,31 @@ export default function SessionView() {
     try {
       // Create validation records for each property in the collection
       const createPromises = collection.properties.map(property => {
+        const validationData = {
+          // sessionId is automatically added by the backend
+          validationType: 'collection_property',
+          dataType: property.propertyType, // TEXT, NUMBER, DATE, CHOICE
+          fieldId: property.id,
+          collectionName: collectionName,
+          recordIndex: newIndex,
+          extractedValue: null, // Use null instead of empty string for optional fields
+          originalExtractedValue: null,
+          originalConfidenceScore: 0,
+          originalAiReasoning: null,
+          validationStatus: 'pending', // Use 'pending' instead of 'unverified'
+          aiReasoning: 'New item added by user',
+          manuallyVerified: false,
+          manuallyUpdated: true,
+          confidenceScore: 0,
+          documentSource: 'Manual Entry',
+          documentSections: null
+        };
+        
+        console.log(`Creating validation for ${collectionName}.${property.propertyName}[${newIndex}]:`, validationData);
+        
         return apiRequest(`/api/sessions/${session.id}/validations`, {
           method: 'POST',
-          body: JSON.stringify({
-            validationType: 'collection_property',
-            fieldId: property.id,
-            collectionName: collectionName,
-            recordIndex: newIndex,
-            extractedValue: '',
-            confidenceScore: 0,
-            validationStatus: 'unverified',
-            manuallyUpdated: true,
-            aiReasoning: 'New item added by user'
-          })
+          body: JSON.stringify(validationData)
         });
       });
       
