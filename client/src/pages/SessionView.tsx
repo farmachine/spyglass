@@ -690,7 +690,7 @@ export default function SessionView() {
       validationStatus: 'pending' as const,
       aiReasoning: 'New item added by user',
       manuallyVerified: false,
-      manuallyUpdated: true,
+      manuallyUpdated: false, // Don't mark as manually updated until user actually edits
       confidenceScore: 0,
       documentSource: 'Manual Entry',
       documentSections: null,
@@ -720,7 +720,7 @@ export default function SessionView() {
           validationStatus: 'pending', // Use 'pending' instead of 'unverified'
           aiReasoning: 'New item added by user',
           manuallyVerified: false,
-          manuallyUpdated: true,
+          manuallyUpdated: false, // Don't mark as manually updated until user actually edits
           confidenceScore: 0,
           documentSource: 'Manual Entry',
           documentSections: null
