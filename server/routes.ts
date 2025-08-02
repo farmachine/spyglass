@@ -2463,12 +2463,38 @@ print(json.dumps(result))
           );
           
           let savedValidation;
+          // Get auto-verification threshold for this field
+          let autoVerifyThreshold = 80; // Default threshold
+          
+          try {
+            if (validation.validation_type === 'schema_field') {
+              const schemaField = await storage.getProjectSchemaFieldById(validation.field_id);
+              if (schemaField?.autoVerificationConfidence) {
+                autoVerifyThreshold = schemaField.autoVerificationConfidence;
+              }
+            } else if (validation.validation_type === 'collection_property') {
+              const collectionProperty = await storage.getCollectionPropertyById(validation.field_id);
+              if (collectionProperty?.autoVerificationConfidence) {
+                autoVerifyThreshold = collectionProperty.autoVerificationConfidence;
+              }
+            }
+          } catch (error) {
+            console.warn(`Could not get auto-verification threshold for field ${validation.field_id}, using default 80`);
+          }
+          
+          // Calculate confidence score and determine auto-verification
+          const confidenceScore = Math.round(parseFloat(validation.confidence_score) * 100); // Convert to integer percentage
+          const shouldAutoVerify = confidenceScore >= autoVerifyThreshold;
+          const validationStatus = shouldAutoVerify ? 'verified' : 'unverified';
+          
+          console.log(`Field ${fieldName}: confidence ${confidenceScore}% vs threshold ${autoVerifyThreshold}% = ${validationStatus}`);
+
           if (existingValidation) {
             // Update existing record with extracted data
             const updateData = {
               extractedValue: validation.extracted_value,
-              confidenceScore: Math.round(parseFloat(validation.confidence_score) * 100), // Convert to integer percentage
-              validationStatus: validation.validation_status === 'pending' ? 'unverified' : validation.validation_status,
+              confidenceScore: confidenceScore,
+              validationStatus: validationStatus,
               aiReasoning: validation.ai_reasoning,
               documentSource: validation.document_source || 'Unknown'
             };
@@ -2484,8 +2510,8 @@ print(json.dumps(result))
               dataType: validation.data_type,
               collectionName: collectionName,
               extractedValue: validation.extracted_value,
-              confidenceScore: Math.round(parseFloat(validation.confidence_score) * 100), // Convert to integer percentage
-              validationStatus: validation.validation_status === 'pending' ? 'unverified' : validation.validation_status,
+              confidenceScore: confidenceScore,
+              validationStatus: validationStatus,
               aiReasoning: validation.ai_reasoning,
               documentSource: validation.document_source || 'Unknown',
               recordIndex: validation.record_index || 0
