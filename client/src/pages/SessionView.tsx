@@ -913,7 +913,7 @@ export default function SessionView() {
   };
 
   // Generate human-readable field names for reports, using meaningful identifiers for list items  
-  const getHumanReadableFieldName = (validation: FieldValidation): string => {
+  const getHumanReadableFieldName = (validation: FieldValidationWithName): string => {
     // For schema fields, use the field name directly
     if (!validation.fieldName.includes('.')) {
       return validation.fieldName;
@@ -1824,7 +1824,10 @@ Thank you for your assistance.`;
                                     // Show green tick when verified - clicking unverifies
                                     return (
                                       <button
-                                        onClick={() => handleFieldVerification(fieldName, false)}
+                                        onClick={() => {
+                                          console.log("CLICK DETECTED: Green checkmark - unverifying field", fieldName);
+                                          handleFieldVerification(fieldName, false);
+                                        }}
                                         className="w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors flex-shrink-0 cursor-pointer"
                                         title={`Verified with ${score}% confidence - Click to unverify`}
                                       >
@@ -1839,15 +1842,12 @@ Thank you for your assistance.`;
                                     return (
                                       <button
                                         onClick={() => {
+                                          console.log("CLICK DETECTED: Confidence dot - opening AI analysis", fieldName);
                                           if (validation.aiReasoning) {
                                             setSelectedReasoning({
                                               reasoning: validation.aiReasoning,
                                               fieldName: getFieldDisplayName(fieldName),
-                                              confidenceScore: validation.confidenceScore || 0,
-                                              getFieldDisplayName,
-                                              validation,
-                                              onVerificationChange: (isVerified) => handleFieldVerification(fieldName, isVerified),
-                                              isVerified: validation.validationStatus === 'valid'
+                                              confidenceScore: validation.confidenceScore || 0
                                             });
                                           }
                                         }}
@@ -1859,7 +1859,10 @@ Thank you for your assistance.`;
                                     // Show red exclamation mark for missing fields - clicking allows verification
                                     return (
                                       <button
-                                        onClick={() => handleFieldVerification(fieldName, true)}
+                                        onClick={() => {
+                                          console.log("CLICK DETECTED: Red exclamation - verifying missing field", fieldName);
+                                          handleFieldVerification(fieldName, true);
+                                        }}
                                         className="w-3 h-3 flex items-center justify-center text-red-500 font-bold text-xs flex-shrink-0 hover:bg-red-50 rounded transition-colors cursor-pointer"
                                         title="Missing data - Click to mark as verified anyway"
                                       >
@@ -2198,11 +2201,7 @@ Thank you for your assistance.`;
                                                           setSelectedReasoning({
                                                             reasoning: validation.aiReasoning,
                                                             fieldName,
-                                                            confidenceScore: validation.confidenceScore || 0,
-                                                            getFieldDisplayName,
-                                                            validation,
-                                                            onVerificationChange: (isVerified) => handleFieldVerification(fieldName, isVerified),
-                                                            isVerified: validation.validationStatus === 'valid'
+                                                            confidenceScore: validation.confidenceScore || 0
                                                           });
                                                         }
                                                       }}
