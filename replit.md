@@ -42,12 +42,14 @@ Preferred communication style: Simple, everyday language.
 - **Multi-Tenancy**: Role-based access control with Admin/User roles and organization-level data isolation.
 - **UUID Migration**: Full migration to ISO UUIDs for all database entities and API parameters.
 - **Project Management**: Project creation, schema definition (global fields, object collections), knowledge base management, and session tracking.
-- **Data Validation**: Field-level validation with visual indicators, manual override, and progress tracking.
+- **Data Validation**: Comprehensive field-level validation with visual indicators, manual editing capabilities, field clearing functionality, revert-to-AI options, and smart status handling (empty fields = unverified, filled fields = verified).
 - **Dynamic Naming**: "Main Object Name" feature allows dynamic renaming of UI elements.
 - **Workflow**: Streamlined multi-step loading popups and automated extraction flow.
 - **Table Features**: Dynamic column resizing, drag-and-drop reordering of schema fields/properties.
 - **Excel Export**: Multi-sheet Excel export functionality for session validation data.
 - **Large PDF Handling**: Intelligent chunking system for processing large PDFs, splitting them into manageable chunks and reassembling after processing.
+- **Enhanced Field Editing**: Complete field editing system with inline clear icons, manual update tracking, AI reasoning display control, and comprehensive revert functionality.
+- **Collection Management**: Fixed "Add new +" functionality with proper index calculation and consistent validation filtering for both legacy and new records.
 
 ### Key Architectural Decisions
 - **Monorepo Structure**: Single repository with shared types.
