@@ -43,8 +43,8 @@ export function EditFieldValueDialog({
   const handleSave = () => {
     if (!validation) return;
     
-    // All manually edited fields are automatically verified
-    const finalStatus = "verified";
+    // Empty fields are unverified, non-empty manually edited fields are verified
+    const finalStatus = value.trim() === "" ? "unverified" : "verified";
     onSave(validation.id, value, finalStatus);
     onClose();
   };
@@ -60,8 +60,9 @@ export function EditFieldValueDialog({
   };
 
   const handleClear = () => {
-    // Clear the field value to empty
+    // Clear the field value to empty and set status to unverified
     setValue("");
+    setStatus("unverified");
     setHasRevertedToAI(false);
   };
 
@@ -208,15 +209,15 @@ export function EditFieldValueDialog({
             )}
           </div>
 
-          {/* Show current AI reasoning */}
-          {currentReasoning ? (
+          {/* Show current AI reasoning - only if field hasn't been manually updated or has been reverted to AI */}
+          {currentReasoning && (!validation.manuallyUpdated || hasRevertedToAI) ? (
             <div className="p-3 bg-blue-50 rounded-lg">
               <Label className="text-xs font-medium text-blue-800">AI Analysis</Label>
               <p className="text-xs text-blue-700 mt-1">
                 {currentReasoning}
               </p>
             </div>
-          ) : (
+          ) : !validation.manuallyUpdated && !currentReasoning ? (
             <div className="p-3 bg-amber-50 rounded-lg">
               <Label className="text-xs font-medium text-amber-800">Why wasn't this extracted?</Label>
               <p className="text-xs text-amber-700 mt-1">
@@ -228,7 +229,7 @@ export function EditFieldValueDialog({
                 You can manually enter the correct value if you know it.
               </p>
             </div>
-          )}
+          ) : null}
 
           {/* Show manual update notice when field was manually edited AND not reverted */}
           {validation.manuallyUpdated && !hasRevertedToAI && (
