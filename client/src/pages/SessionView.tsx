@@ -1996,7 +1996,7 @@ Thank you for your assistance.`;
                                   } else if (!hasValue) {
                                     // Show red exclamation mark for missing fields
                                     return (
-                                      <div className="w-3 h-3 flex items-center justify-center text-red-500 font-bold text-xs flex-shrink-0" title="Missing data">
+                                      <div className="w-3 h-3 flex items-center justify-center bg-white border border-red-500 rounded-full text-red-500 font-bold text-xs flex-shrink-0" title="Missing data">
                                         !
                                       </div>
                                     );
