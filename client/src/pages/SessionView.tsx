@@ -1915,15 +1915,12 @@ Thank you for your assistance.`;
                   );
                   const validationIndices = collectionValidations.length > 0 ? 
                     collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null && idx !== undefined) : [];
-                  const maxRecordIndex = validationIndices.length > 0 ? Math.max(...validationIndices) : -1;
+                  const uniqueIndices = [...new Set(validationIndices)].sort((a, b) => a - b);
                   
-
-                  
-                  if (maxRecordIndex < 0) return null;
-                  
+                  // Always show collection tabs even when empty, so users can add items
                   return (
                     <TabsTrigger key={collection.id} value={collection.collectionName} className="tabs-trigger">
-                      {collection.collectionName}
+                      {collection.collectionName} ({uniqueIndices.length})
                     </TabsTrigger>
                   );
                 })}
