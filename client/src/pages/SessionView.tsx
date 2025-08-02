@@ -1397,7 +1397,7 @@ Thank you for your assistance.`;
 
   const formatDateForDisplay = (value: any) => {
     if (!value || value === 'null' || value === 'undefined' || value === null) {
-      return 'Not set';
+      return 'Empty';
     }
     
     try {
@@ -1411,16 +1411,16 @@ Thank you for your assistance.`;
         });
       }
     } catch (error) {
-      // If parsing fails, return "Not set" for invalid dates
-      return 'Not set';
+      // If parsing fails, return "Empty" for invalid dates
+      return 'Empty';
     }
     
-    return 'Not set';
+    return 'Empty';
   };
 
   const formatValueForDisplay = (value: any, fieldType: string) => {
     if (!value || value === 'null' || value === 'undefined' || value === null) {
-      return 'Not set';
+      return 'Empty';
     }
     
     if (fieldType === 'DATE') {
@@ -2070,10 +2070,12 @@ Thank you for your assistance.`;
                                         <div className="flex-1">
                                           {fieldType === 'TEXTAREA' ? (
                                             <div className="whitespace-pre-wrap text-sm text-gray-900 p-2 bg-gray-50 border rounded-md min-h-[60px]">
-                                              {formatValueForDisplay(displayValue, fieldType)}
+                                              <span className={formatValueForDisplay(displayValue, fieldType) === 'Empty' ? 'text-gray-400 italic' : ''}>
+                                                {formatValueForDisplay(displayValue, fieldType)}
+                                              </span>
                                             </div>
                                           ) : (
-                                            <span className="text-sm text-gray-900">
+                                            <span className={`text-sm ${formatValueForDisplay(displayValue, fieldType) === 'Empty' ? 'text-gray-400 italic' : 'text-gray-900'}`}>
                                               {formatValueForDisplay(displayValue, fieldType)}
                                             </span>
                                           )}
@@ -2306,7 +2308,9 @@ Thank you for your assistance.`;
                                           <div className={`table-cell-content w-full pl-6 pr-8 ${
                                             property.fieldType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
                                           } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed group relative`}>
-                                            {formatValueForDisplay(displayValue, property.fieldType)}
+                                            <span className={formatValueForDisplay(displayValue, property.fieldType) === 'Empty' ? 'text-gray-400 italic' : ''}>
+                                              {formatValueForDisplay(displayValue, property.fieldType)}
+                                            </span>
                                             
                                             {/* Edit button */}
                                             {validation && (
