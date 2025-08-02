@@ -489,25 +489,27 @@ export default function SessionView() {
     enabled: !!projectId // Only run this query when we have a projectId
   });
 
-  const { data: validations = [], isLoading: validationsLoading } = useQuery<FieldValidation[]>({
+  const { data: validations = [], isLoading: validationsLoading } = useQuery<any[]>({
     queryKey: ['/api/sessions', sessionId, 'validations'],
-    queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`),
-    onSuccess: (data) => {
-      console.log(`Session ${sessionId} - Validations loaded:`, data.length);
-      if (data.length > 0) {
-        console.log('Sample validation:', data[0]);
-        console.log('All field names:', data.map(v => v.fieldName));
-        console.log('Validations with extracted values:', data.filter(v => v.extractedValue).map(v => ({
-          fieldName: v.fieldName, 
-          extractedValue: v.extractedValue, 
-          confidenceScore: v.confidenceScore
-        })));
-      }
-    }
+    queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`)
   });
 
+  // Log validations data when it changes
+  useEffect(() => {
+    if (validations.length > 0) {
+      console.log(`Session ${sessionId} - Validations loaded:`, validations.length);
+      console.log('Sample validation:', validations[0]);
+      console.log('All field names:', validations.map((v: any) => v.fieldName));
+      console.log('Validations with extracted values:', validations.filter((v: any) => v.extractedValue).map((v: any) => ({
+        fieldName: v.fieldName, 
+        extractedValue: v.extractedValue, 
+        confidenceScore: v.confidenceScore
+      })));
+    }
+  }, [validations, sessionId]);
+
   // Fetch project-level validations for statistics cards
-  const { data: projectValidations = [] } = useQuery<FieldValidation[]>({
+  const { data: projectValidations = [] } = useQuery<any[]>({
     queryKey: ['/api/validations/project', projectId],
     enabled: !!projectId
   });
@@ -520,7 +522,7 @@ export default function SessionView() {
       
       project.collections.forEach(collection => {
         // Check if collection has data
-        const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
+        const collectionValidations = validations.filter((v: any) => v.collectionName === collection.collectionName);
         const hasData = collectionValidations.length > 0 || 
           (extractedData && extractedData[collection.collectionName] && 
            Array.isArray(extractedData[collection.collectionName]) && 
@@ -594,7 +596,7 @@ export default function SessionView() {
     const validation = getValidation(fieldName);
     if (!validation) return;
     
-    const newStatus: ValidationStatus = isVerified ? 'verified' : 'unverified';
+    const newStatus = isVerified ? 'valid' : 'invalid';
     
     // Optimistic update: immediately update the UI
     queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
@@ -630,7 +632,7 @@ export default function SessionView() {
     
     // Find all fields for this collection item using multiple approaches
     // Some records might have collectionName: null, so we use fieldName patterns too
-    const itemValidations = validations.filter(v => {
+    const itemValidations = validations.filter((v: any) => {
       // Primary approach: match by collectionName and recordIndex
       if (v.collectionName === collectionName && v.recordIndex === recordIndex) {
         return true;
@@ -646,26 +648,26 @@ export default function SessionView() {
     });
     
     console.log(`Found ${itemValidations.length} validations for ${collectionName}[${recordIndex}]:`, 
-      itemValidations.map(v => ({ id: v.id, fieldName: v.fieldName, collectionName: v.collectionName, recordIndex: v.recordIndex })));
+      itemValidations.map((v: any) => ({ id: v.id, fieldName: v.fieldName, collectionName: v.collectionName, recordIndex: v.recordIndex })));
     
     if (itemValidations.length === 0) {
       console.warn(`No validations found for ${collectionName}[${recordIndex}]`);
       return;
     }
     
-    const newStatus: ValidationStatus = isVerified ? 'verified' : 'unverified';
+    const newStatus = isVerified ? 'valid' : 'invalid';
     
     // Optimistic updates for all item validations
     queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
       if (!oldData) return oldData;
       return oldData.map((v: any) => {
-        const shouldUpdate = itemValidations.some(iv => iv.id === v.id);
+        const shouldUpdate = itemValidations.some((iv: any) => iv.id === v.id);
         return shouldUpdate ? { ...v, validationStatus: newStatus, manuallyVerified: isVerified } : v;
       });
     });
     
     // Update all fields for this item
-    itemValidations.forEach(validation => {
+    itemValidations.forEach((validation: any) => {
       console.log(`Updating validation ${validation.id} to status: ${newStatus}`);
       updateValidationMutation.mutate({
         id: validation.id,
