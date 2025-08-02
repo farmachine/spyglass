@@ -263,19 +263,37 @@ export default function NewUpload({ project }: NewUploadProps) {
         }
       }));
 
-      // Step 3: Text Extraction Phase (NEW SIMPLIFIED APPROACH)
+      // Step 3: Text Extraction Phase with progressive loading
       setProcessingStep('extracting');
       setProcessingProgress(0);
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "processing" as const })));
 
-      // Call new text extraction endpoint
-      const textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
-        method: 'POST',
-        body: JSON.stringify({ files: filesData }),
-        headers: { 'Content-Type': 'application/json' }
-      });
+      // Calculate estimated processing time based on total file size
+      const totalSize = filesData.reduce((sum, file) => sum + file.size, 0);
+      const estimatedProcessingTime = Math.max(2000, Math.min(15000, totalSize / 10000)); // 2-15 seconds based on size
+      
+      // Start progressive loading simulation
+      const startTime = Date.now();
+      const progressInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(85, (elapsed / estimatedProcessingTime) * 85); // Cap at 85% until actual completion
+        setProcessingProgress(progress);
+      }, 200);
 
-      setProcessingProgress(100);
+      try {
+        // Call new text extraction endpoint
+        const textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
+          method: 'POST',
+          body: JSON.stringify({ files: filesData }),
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        clearInterval(progressInterval);
+        setProcessingProgress(100);
+      } catch (error) {
+        clearInterval(progressInterval);
+        throw error;
+      }
 
       if (extractionMode === 'automated') {
         // Step 4: AI Extraction (Automated Mode Only)
@@ -394,19 +412,39 @@ export default function NewUpload({ project }: NewUploadProps) {
 
         const fullPrompt = generateSchemaMarkdown(schemaData, textExtractionResult.extractedText || '', selectedFiles.length);
 
-        const aiResponse = await apiRequest(`/api/sessions/${session.id}/gemini-extraction`, {
-          method: 'POST',
-          body: JSON.stringify({ 
-            extractedTexts: textExtractionResult.extracted_texts || textExtractionResult.result?.extracted_texts || [],
-            schemaFields: schemaData.schema_fields || [],
-            collections: schemaData.collections || [],
-            extractionRules: schemaData.extraction_rules || [],
-            knowledgeDocuments: schemaData.knowledge_documents || []
-          }),
-          headers: { 'Content-Type': 'application/json' }
-        });
+        // Calculate AI processing time based on prompt size and number of fields
+        const promptSize = fullPrompt.length;
+        const fieldCount = schemaData.schema_fields.length + 
+          schemaData.collections.reduce((sum: number, col: any) => sum + (col.properties?.length || 0), 0);
+        const estimatedAITime = Math.max(3000, Math.min(20000, promptSize / 100 + fieldCount * 100)); // 3-20 seconds
+        
+        // Progressive loading for AI extraction
+        const aiStartTime = Date.now();
+        const aiProgressInterval = setInterval(() => {
+          const elapsed = Date.now() - aiStartTime;
+          const progress = Math.min(80, (elapsed / estimatedAITime) * 80); // Cap at 80% until completion
+          setProcessingProgress(progress);
+        }, 300);
 
-        setProcessingProgress(50);
+        try {
+          const aiResponse = await apiRequest(`/api/sessions/${session.id}/gemini-extraction`, {
+            method: 'POST',
+            body: JSON.stringify({ 
+              extractedTexts: textExtractionResult.extracted_texts || textExtractionResult.result?.extracted_texts || [],
+              schemaFields: schemaData.schema_fields || [],
+              collections: schemaData.collections || [],
+              extractionRules: schemaData.extraction_rules || [],
+              knowledgeDocuments: schemaData.knowledge_documents || []
+            }),
+            headers: { 'Content-Type': 'application/json' }
+          });
+
+          clearInterval(aiProgressInterval);
+          setProcessingProgress(90);
+        } catch (error) {
+          clearInterval(aiProgressInterval);
+          throw error;
+        }
 
         if (!aiResponse.success) {
           throw new Error(`AI extraction failed: ${aiResponse.error}`);
@@ -732,11 +770,6 @@ export default function NewUpload({ project }: NewUploadProps) {
             </div>
 
             <div className="text-center mb-6">
-              <div className="mb-2">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mb-2">
-                  {extractionMode === 'automated' ? 'Automated Mode' : 'Debug Mode'}
-                </span>
-              </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 {processingStep === 'uploading' && 'Processing Documents'}
                 {processingStep === 'extracting' && 'AI Data Extraction'}
