@@ -28,58 +28,35 @@ Preferred communication style: Simple, everyday language.
 - **ORM**: Drizzle ORM with TypeScript-first approach
 - **Migrations**: Drizzle Kit for schema management
 - **Driver**: Neon Database serverless driver
-- **Schema Location**: `shared/schema.ts`
 
 ### UI/UX Decisions
 - **Color Scheme**: Professional slate blue (`#4F63A4`) as primary color.
-- **Visual Consistency**: Unified borderless design for statistics cards; consistent tick-based verification icons across the application.
+- **Visual Consistency**: Unified borderless design for statistics cards; consistent tick-based verification icons.
 - **Layout**: Optimized dashboard and form layouts for better space utilization and visual hierarchy.
-- **Interaction**: Icon-only UI system, comprehensive optimistic updates for immediate UI feedback, streamlined workflow from upload to review.
+- **Interaction**: Icon-only UI system, comprehensive optimistic updates, streamlined workflow from upload to review.
 - **Responsiveness**: Responsive design using Tailwind CSS.
 
-### Recent Critical Fixes (August 1, 2025)
-- **UUID/Integer Consistency Issue Resolved**: Fixed systematic data type mismatches in MemStorage where UUID session IDs were being parsed as integers using parseInt(), causing all field validation lookups to fail and collections to display "Not set" instead of actual extracted values.
-- **Storage Interface Standardization**: Updated all storage methods to consistently use string UUIDs instead of mixed integer/string types, resolving LSP diagnostics and enabling proper data retrieval.
-- **Sample Data Alignment**: Fixed sample validation data to use correct session UUIDs and field IDs, ensuring proper data relationships and display functionality.
-- **Column Ordering Synchronization**: Implemented automatic synchronization between Define Data tab and Session View column ordering. SessionView now fetches schema data and sorts collection validations by property orderIndex, ensuring existing sessions reflect current schema column order when properties are reordered via drag-and-drop.
-- **Modular AI Prompt System**: Moved AI extraction prompt from hardcoded strings in `ai_extraction_simplified.py` to dedicated `prompt.py` file. This enables easier customization and maintenance of extraction instructions while maintaining all existing functionality including section-aware extraction, inclusive collection detection, and intelligent AI reasoning requirements.
-- **Simplified Validation Architecture**: Removed separate validation functions (`step2_validate_field_records`, `ValidationResult` dataclass, and `extract_and_validate_chain`) from the AI extraction system. Validation now occurs exclusively during the extraction process, eliminating redundant validation steps and simplifying the codebase while maintaining all validation functionality within the extraction workflow.
-- **Enhanced Numbered Section Recognition**: Improved AI extraction prompt to recognize numbered section patterns (e.g., 2.3.1 through 2.3.10) and extract ALL items within section boundaries. Added specific instructions for section-collection matching where collection names correspond to document sections, ensuring complete extraction of all numbered subsections rather than limiting to sample items.
-- **Markdown Table Recognition**: Added comprehensive markdown table parsing instructions to AI extraction prompt. System now recognizes markdown table format with pipe separators, distinguishes headers from data rows, and extracts ALL table rows as separate collection items rather than limiting to examples.
-- **Comprehensive Token Usage Tracking**: Implemented complete token tracking system capturing input_tokens and output_tokens from Gemini API responses. Enhanced debugger interface with conditional token badges (blue/green for sessions with data, gray "No data" for older sessions). System provides detailed cost monitoring and performance analysis for AI extraction operations with accurate token count display and database storage.
-- **Gemini 2.5 Pro Upgrade**: Upgraded AI extraction system from gemini-1.5-flash to gemini-2.5-pro with maximum token limits (1M input, 65,536 output tokens). Enhanced processing capabilities for complex reasoning, coding, STEM problems, and large dataset analysis. Fixed truncation repair system to save properly formatted JSON responses to database instead of raw truncated responses.
-- **Collection Record Display Fix**: Resolved critical issue where collections only displayed one row instead of all extracted records. Problem was caused by AI extraction not populating collectionName field for most validation records (114 out of 131 records had collectionName: "None"). Fixed SessionView filtering logic to use both collectionName exact matches and fieldName prefix matching (e.g., "Increase Rates.") to find all collection records. Optimized database queries with batch processing to prevent connection overload. Collections now correctly display all extracted records (e.g., 11 rows for Increase Rates collection instead of just 1).
-- **Chunked PDF Extraction System (August 1, 2025)**: Implemented intelligent chunking system for processing large PDFs that exceed token limits or cause timeouts. System automatically analyzes PDF size and page count to determine optimal processing strategy. Large PDFs are split into manageable chunks (10 pages or 4MB per chunk) and processed sequentially, then reassembled. Small PDFs continue using single-pass extraction. Features include page-based PDF splitting with PyPDF2, fallback size-based splitting, comprehensive error handling, and automatic recovery. Prevents API timeouts and token limit errors while maintaining extraction quality.
-- **Excel Export Collection Grouping Fix (August 1, 2025)**: Fixed critical Excel export issue where collection records with null collectionName were being separated into "Unknown Collection" instead of being grouped with their proper collections. Enhanced collection name detection logic to extract collection names from fieldName patterns when collectionName is null/undefined. Collections now properly display all records in single sheets (e.g., "Diversion Airports Along Route" shows 2 complete records instead of being split across multiple sheets).
-- **UUID Field ID Validation Fix (August 2, 2025)**: Resolved critical data type mismatch where AI extraction was using field names (e.g., "TerminationandTransitionMet") instead of proper UUID field IDs, causing PostgreSQL UUID validation errors during field validation creation. Enhanced AI extraction prompt to include field IDs in schema definitions and added explicit UUID usage instructions. System now correctly maps field names to their actual UUID identifiers preventing database constraint violations.
-- **Enhanced AI Prompt with Example Schema (August 2, 2025)**: Added comprehensive example schema with rule and knowledge document mapping to AI extraction prompt. Includes examples showing how extraction rules modify field behavior and how knowledge documents provide validation context. Enhanced prompt clarity for both schema fields and collections with proper rule integration examples, improving AI understanding of complex extraction requirements.
-- **Manual Collection Item Deletion Fix (August 2, 2025)**: Confirmed DELETE endpoint functionality for manual collection item removal. System properly deletes multiple field validation records simultaneously when removing collection items. Fixed any temporary issues with optimistic UI updates and error handling for proper user feedback during deletion operations.
-- **Knowledge Document Content Integration (August 2, 2025)**: Fixed critical issue where knowledge document content was missing from AI extraction prompts. Enhanced prompt generation to include actual document content (not just metadata) in JSON schema sections for fields, collections, and collection properties. Added proper handling for documents with no target fields (apply to all fields) versus targeted documents. Knowledge documents now provide full content context to AI for accurate extraction and validation. Updated extraction prompt with explicit instructions for using knowledge document content.
-- **Dedicated Knowledge Documents Section (August 2, 2025)**: Refactored AI prompt structure to use dedicated "Knowledge Documents" section instead of duplicating content across schema fields. Fields now reference knowledge documents by display name (e.g., "NDA Review Playbook") rather than embedding full content. Added explicit instructions for fields to ignore knowledge documents they don't reference (empty knowledge_documents array []). Enhanced prompt with Knowledge Document Targeting rules for selective application and context isolation between fields.
-- **Enhanced Prompt Structure with Dedicated Sections (August 2, 2025)**: Added comprehensive prompt organization with separate sections for Knowledge Documents, Extraction Rules, and JSON schema definitions. Fixed knowledge document references appearing in schema field definitions. Added auto-verification confidence thresholds to all schema fields and collection properties in JSON format. System now properly displays knowledge document names in field references and includes complete threshold information for AI-driven auto-verification decisions.
-- **Collection Item Deletion Fix (August 2, 2025)**: Fixed critical issue where delete button on extracted collection fields only cleared cell values instead of removing entire table rows. Enhanced `handleDeleteCollectionItem` function with improved filtering logic to find all validation records for an item, including those with null collectionName values using fieldName pattern matching. Added comprehensive logging, better error handling, and success feedback. Collection item deletion now properly removes all associated validation records and entire table rows.
-
 ### Technical Implementations
-- **Document Processing**: Supports PDF, DOCX, DOC, XLSX, XLS files. Uses Google Gemini API for text extraction from PDFs and images; `python-docx` for Word documents; `pandas` and `openpyxl` for Excel files.
-- **AI Integration**: Comprehensive AI-powered data extraction and validation using Google Gemini API. Includes intelligent reasoning, auto-verification based on confidence thresholds, and conflict detection against knowledge documents.
-- **Multi-Tenancy**: Role-based access control with Admin/User roles and organization-level data isolation. Primary organization protection.
-- **UUID Migration**: Full migration from auto-incrementing integers to ISO UUIDs for all database entities and API parameters.
-- **Project Management**: Project creation, schema definition (global fields, object collections), knowledge base management (documents, extraction rules), and session tracking.
-- **Data Validation**: Field-level validation with visual indicators (confidence scores, manual input badges), manual override, and progress tracking.
-- **Dynamic Naming**: "Main Object Name" feature allows dynamic renaming of UI elements based on user-defined object types (e.g., "Invoice", "Contract").
-- **Workflow**: Streamlined multi-step loading popups, automated extraction flow from upload to review, and seamless navigation.
-- **Column Resizing**: Implemented dynamic table column resizing with visual feedback.
-- **Drag-and-Drop**: Reordering of schema fields and collection properties with optimistic updates.
+- **Document Processing**: Supports PDF, DOCX, DOC, XLSX, XLS files.
+- **AI Integration**: Comprehensive AI-powered data extraction and validation using Google Gemini API, including intelligent reasoning, auto-verification, and conflict detection.
+- **Multi-Tenancy**: Role-based access control with Admin/User roles and organization-level data isolation.
+- **UUID Migration**: Full migration to ISO UUIDs for all database entities and API parameters.
+- **Project Management**: Project creation, schema definition (global fields, object collections), knowledge base management, and session tracking.
+- **Data Validation**: Field-level validation with visual indicators, manual override, and progress tracking.
+- **Dynamic Naming**: "Main Object Name" feature allows dynamic renaming of UI elements.
+- **Workflow**: Streamlined multi-step loading popups and automated extraction flow.
+- **Table Features**: Dynamic column resizing, drag-and-drop reordering of schema fields/properties.
 - **Excel Export**: Multi-sheet Excel export functionality for session validation data.
+- **Large PDF Handling**: Intelligent chunking system for processing large PDFs, splitting them into manageable chunks and reassembling after processing.
 
 ### Key Architectural Decisions
-- **Monorepo Structure**: Single repository with shared types between frontend and backend.
+- **Monorepo Structure**: Single repository with shared types.
 - **Drizzle ORM**: Chosen for TypeScript-first approach and strong type inference.
 - **shadcn/ui**: Provides consistent, accessible components with high customizability.
 - **React Query**: Manages server state, caching, and data synchronization.
 - **Zod Integration**: Ensures runtime validation matching TypeScript types for end-to-end type safety.
 - **Express + Vite**: Combines a robust backend framework with modern frontend tooling.
-- **UUID Consistency**: Full UUID string consistency across all storage interfaces, eliminating integer/string mismatches that caused data retrieval failures.
+- **UUID Consistency**: Full UUID string consistency across all storage interfaces.
 
 ## External Dependencies
 
@@ -91,7 +68,7 @@ Preferred communication style: Simple, everyday language.
 - **Backend Development**: tsx, esbuild
 - **Session Management**: connect-pg-simple
 - **AI/ML**: Google Gemini API
-- **Document Processing (Python)**: `python-docx`, `pandas`, `openpyxl`, `xlrd`
+- **Document Processing (Python)**: `python-docx`, `pandas`, `openpyxl`, `xlrd`, PyPDF2
 - **Drag-and-Drop**: `react-beautiful-dnd`
 - **Excel Export**: `xlsx` library
-- **Authentication**: `bcrypt` (for password hashing), `jsonwebtoken` (JWT)
+- **Authentication**: `bcrypt`, `jsonwebtoken`
