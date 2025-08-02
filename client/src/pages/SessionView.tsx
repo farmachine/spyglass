@@ -1600,6 +1600,11 @@ Thank you for your assistance.`;
               // Check if manually updated field is also verified
               const isVerified = validation.validationStatus === 'valid' || validation.validationStatus === 'verified';
               
+              // Debug logging for Document Date field  
+              if (fieldName.includes('Document Date') || fieldName === 'Document Date') {
+                console.log(`Document Date Verification Status - Field: ${fieldName}, validationStatus: ${validation.validationStatus}, isVerified: ${isVerified}, wasManuallyUpdated: ${wasManuallyUpdated}`, validation);
+              }
+              
               return (
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
