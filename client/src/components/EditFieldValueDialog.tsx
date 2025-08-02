@@ -45,6 +45,14 @@ export function EditFieldValueDialog({
     onClose();
   };
 
+  const handleRevertToAI = () => {
+    if (!validation || !validation.originalExtractedValue) return;
+    
+    // Revert to original AI values without closing dialog
+    setValue(validation.originalExtractedValue);
+    setStatus("verified");
+  };
+
   const getFieldDisplayName = (validation: FieldValidationWithName) => {
     if (validation.validationType === "schema_field") {
       // For schema fields, extract the field name from fieldName property
@@ -155,10 +163,13 @@ export function EditFieldValueDialog({
             )}
           </div>
 
-          {validation.aiReasoning ? (
+          {/* Show current AI reasoning or original reasoning */}
+          {validation.aiReasoning || validation.originalAiReasoning ? (
             <div className="p-3 bg-blue-50 rounded-lg">
               <Label className="text-xs font-medium text-blue-800">AI Analysis</Label>
-              <p className="text-xs text-blue-700 mt-1">{validation.aiReasoning}</p>
+              <p className="text-xs text-blue-700 mt-1">
+                {validation.aiReasoning || validation.originalAiReasoning}
+              </p>
             </div>
           ) : (
             <div className="p-3 bg-amber-50 rounded-lg">
@@ -174,20 +185,44 @@ export function EditFieldValueDialog({
             </div>
           )}
 
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button
-              onClick={handleSave}
-              className="bg-primary hover:bg-primary/90 flex items-center gap-2"
-            >
-              <CheckCircle className="h-4 w-4 text-white" />
-              Save
-            </Button>
-            <Button
-              variant="outline"
-              onClick={onClose}
-            >
-              Cancel
-            </Button>
+          {/* Show manual update notice when field was manually edited */}
+          {validation.manuallyUpdated && (
+            <div className="p-3 bg-slate-50 rounded-lg">
+              <Label className="text-xs font-medium text-slate-800">
+                Value manually updated by user to: {validation.extractedValue}
+              </Label>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center pt-4 border-t">
+            {/* Revert to AI Answer button - only show if there's an original value and the field was manually updated */}
+            {validation.manuallyUpdated && validation.originalExtractedValue ? (
+              <Button
+                variant="ghost"
+                onClick={handleRevertToAI}
+                className="text-slate-600 hover:text-slate-700 hover:bg-slate-50"
+              >
+                Revert to AI Answer
+              </Button>
+            ) : (
+              <div></div> // Spacer to maintain flex layout
+            )}
+            
+            <div className="flex gap-2">
+              <Button
+                onClick={handleSave}
+                className="bg-primary hover:bg-primary/90 flex items-center gap-2"
+              >
+                <CheckCircle className="h-4 w-4 text-white" />
+                Save
+              </Button>
+              <Button
+                variant="outline"
+                onClick={onClose}
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>

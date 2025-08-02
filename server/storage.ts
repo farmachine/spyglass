@@ -112,6 +112,7 @@ export interface IStorage {
 
   // Field Validations
   getFieldValidations(sessionId: string): Promise<FieldValidation[]>;
+  getFieldValidation(id: string): Promise<FieldValidation | undefined>;
   createFieldValidation(validation: InsertFieldValidation): Promise<FieldValidation>;
   updateFieldValidation(id: string, validation: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined>;
   deleteFieldValidation(id: string): Promise<boolean>;
@@ -1226,6 +1227,10 @@ export class MemStorage implements IStorage {
     return enhancedValidations;
   }
 
+  async getFieldValidation(id: string): Promise<FieldValidation | undefined> {
+    return this.fieldValidations.get(id);
+  }
+
   async createFieldValidation(insertValidation: InsertFieldValidation): Promise<FieldValidation> {
     const id = this.generateUUID();
     const validation: FieldValidation = {
@@ -2121,6 +2126,12 @@ class PostgreSQLStorage implements IStorage {
     
     return enhancedValidations;
   }
+
+  async getFieldValidation(id: string): Promise<FieldValidation | undefined> { 
+    const result = await this.db.select().from(fieldValidations).where(eq(fieldValidations.id, id));
+    return result[0];
+  }
+
   async createFieldValidation(validation: InsertFieldValidation): Promise<FieldValidation> { 
     const result = await this.db.insert(fieldValidations).values(validation).returning();
     return result[0];

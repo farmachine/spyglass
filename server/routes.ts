@@ -2857,12 +2857,33 @@ print(json.dumps(result))
         return res.status(400).json({ message: "Invalid validation data", errors: result.error.errors });
       }
       
-      const updatedValidation = await storage.updateFieldValidation(id, result.data);
+      // Get the current validation to preserve original values if this is the first manual edit
+      const currentValidation = await storage.getFieldValidation(id);
+      if (!currentValidation) {
+        return res.status(404).json({ message: "Validation not found" });
+      }
+      
+      let updateData = { ...result.data };
+      
+      // If this is a manual edit and we don't have original values stored yet, preserve them
+      if (result.data.extractedValue && result.data.extractedValue !== currentValidation.extractedValue) {
+        // Only preserve original values if they haven't been set yet (first manual edit)
+        if (!currentValidation.originalExtractedValue && currentValidation.extractedValue) {
+          updateData.originalExtractedValue = currentValidation.extractedValue;
+          updateData.originalConfidenceScore = currentValidation.confidenceScore;
+          updateData.originalAiReasoning = currentValidation.aiReasoning;
+        }
+        // Mark as manually updated
+        updateData.manuallyUpdated = true;
+      }
+      
+      const updatedValidation = await storage.updateFieldValidation(id, updateData);
       if (!updatedValidation) {
         return res.status(404).json({ message: "Validation not found" });
       }
       res.json(updatedValidation);
     } catch (error) {
+      console.error("Update validation error:", error);
       res.status(500).json({ message: "Failed to update field validation" });
     }
   });
