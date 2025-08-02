@@ -218,7 +218,9 @@ const ValidationToggle = ({ fieldName, validation, onToggle }: {
     return <div className="text-xs text-gray-400">No validation data</div>;
   }
 
-  const isVerified = validation.validationStatus === 'valid' || validation.validationStatus === 'verified';
+  const isVerified = validation.validationStatus === 'valid' || 
+                    validation.validationStatus === 'verified' || 
+                    (validation.validationStatus === 'manual' && validation.manuallyVerified);
 
   return (
     <div className="flex items-center gap-2">
@@ -2367,7 +2369,11 @@ Thank you for your assistance.`;
                                         });
                                         
                                         const allVerified = itemValidations.length > 0 && 
-                                          itemValidations.every(v => v?.validationStatus === 'valid' || v?.validationStatus === 'verified');
+                                          itemValidations.every(v => 
+                                            v?.validationStatus === 'valid' || 
+                                            v?.validationStatus === 'verified' || 
+                                            (v?.validationStatus === 'manual' && v?.manuallyVerified)
+                                          );
                                         
                                         console.log(`Verification status for ${collection.collectionName}[${originalIndex}]:`, {
                                           itemValidations: itemValidations.length,
