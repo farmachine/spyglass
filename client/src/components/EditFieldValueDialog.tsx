@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, X } from "lucide-react";
 import type { FieldValidation, FieldValidationWithName } from "@shared/schema";
 
 interface EditFieldValueDialogProps {
@@ -138,40 +138,73 @@ export function EditFieldValueDialog({
               Value
             </Label>
             {fieldType === "choice" ? (
-              <Select value={value} onValueChange={setValue}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select an option..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {(schemaField?.choiceOptions || collectionProperty?.choiceOptions || []).map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="relative">
+                <Select value={value} onValueChange={setValue}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select an option..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(schemaField?.choiceOptions || collectionProperty?.choiceOptions || []).map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {value && (
+                  <button
+                    type="button"
+                    onClick={handleClear}
+                    className="absolute right-8 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 z-10"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             ) : fieldType === "textarea" ? (
-              <Textarea
-                id="field-value"
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                placeholder="Enter value..."
-                className="mt-1"
-                rows={3}
-                autoFocus
-                disabled={false}
-              />
+              <div className="relative">
+                <Textarea
+                  id="field-value"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  placeholder="Enter value..."
+                  className="mt-1 pr-8"
+                  rows={3}
+                  autoFocus
+                  disabled={false}
+                />
+                {value && (
+                  <button
+                    type="button"
+                    onClick={handleClear}
+                    className="absolute right-2 top-3 text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             ) : (
-              <Input
-                id="field-value"
-                type={fieldType}
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                placeholder="Enter value..."
-                className="mt-1"
-                autoFocus
-                disabled={false}
-              />
+              <div className="relative">
+                <Input
+                  id="field-value"
+                  type={fieldType}
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  placeholder="Enter value..."
+                  className="mt-1 pr-8"
+                  autoFocus
+                  disabled={false}
+                />
+                {value && (
+                  <button
+                    type="button"
+                    onClick={handleClear}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             )}
           </div>
 
@@ -221,13 +254,6 @@ export function EditFieldValueDialog({
             )}
             
             <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                onClick={handleClear}
-                className="text-slate-600 hover:text-slate-700 hover:bg-slate-50"
-              >
-                Clear
-              </Button>
               <Button
                 onClick={handleSave}
                 className="bg-primary hover:bg-primary/90 flex items-center gap-2"
