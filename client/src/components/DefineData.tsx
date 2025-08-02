@@ -73,7 +73,6 @@ export default function DefineData({ project }: DefineDataProps) {
   const [aiQuery, setAiQuery] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Query for live data instead of using static props
