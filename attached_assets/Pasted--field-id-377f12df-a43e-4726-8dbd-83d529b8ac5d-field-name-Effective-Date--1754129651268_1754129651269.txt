@@ -1,0 +1,43 @@
+{
+      "field_id": "377f12df-a43e-4726-8dbd-83d529b8ac5d",
+      "field_name": "Effective Date",
+      "field_type": "DATE",
+      "description": "The date on which the Non-Disclosure Agreement (NDA) officially becomes effective. | RULE: Prioritize dates explicitly labeled as 'Effective Date'. Format as YYYY-MM-DD.",
+      "extraction_rules": ["Prioritize dates explicitly labeled as 'Effective Date'. Format as YYYY-MM-DD."],
+      "knowledge_documents": []
+    },
+    {
+      "field_id": "4f7e7032-f7b2-4f77-a1fe-94fcc6750839",
+      "field_name": "Governing Law",
+      "field_type": "TEXT",
+      "description": "The jurisdiction (e.g., state, country) whose laws will govern the interpretation and enforcement of the NDA. | RULE: Extract the full name of the state or country. Ignore phrases like 'without regard to its conflict of laws principles'.",
+      "extraction_rules": ["Extract the full name of the state or country. Ignore phrases like 'without regard to its conflict of laws principles'."],
+      "knowledge_documents": []
+    },
+    {
+      "field_id": "07231c4c-fadc-4525-ad5c-229196309c61",
+      "field_name": "Term (Months)",
+      "field_type": "NUMBER",
+      "description": "The duration, in months, for which the confidentiality obligations under the NDA remain in effect. | RULE: Look for phrases like 'for a period of X years/months', 'expires X years/months from'. Convert years to months (1 year = 12 months).",
+      "extraction_rules": ["Look for phrases like 'for a period of X years/months', 'expires X years/months from'. Convert years to months (1 year = 12 months)."],
+      "knowledge_documents": []
+    },
+    {
+      "field_id": "0c2dd605-be27-47fb-a9b5-344d1bd72dac",
+      "field_name": "Purpose of Disclosure",
+      "field_type": "TEXT",
+      "description": "The stated reason or specific business purpose for which confidential information is being disclosed under the NDA. | RULE: Capture the primary sentence or phrase describing the mutual or unilateral purpose of the disclosure.",
+      "extraction_rules": ['Capture the primary sentence or phrase describing the mutual or unilateral purpose of the disclosure.'],
+      "knowledge_documents": []
+    },
+    {
+      "field_id": "ccf4d04b-26e4-40f9-a2b1-e043e133dbb3",
+      "field_name": "Return/Destruction Clause Present",
+      "field_type": "CHOICE",
+      "description": "Indicates whether the NDA contains a clause requiring the return or destruction of confidential information upon termination or request. | RULE: Look for keywords such as 'return', 'destroy', 'erase', 'deliver up' in relation to confidential information.",
+      "choices": ['Yes', 'No'],
+      "extraction_rules": ["Look for keywords such as 'return', 'destroy', 'erase', 'deliver up' in relation to confidential information."],
+      "knowledge_documents": []
+    }
+  ]
+}
