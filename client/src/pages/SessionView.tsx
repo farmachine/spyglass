@@ -220,6 +220,7 @@ const ValidationToggle = ({ fieldName, validation, onToggle }: {
 
   const isVerified = validation.validationStatus === 'valid' || 
                     validation.validationStatus === 'verified' || 
+                    validation.validationStatus === 'manual-verified' ||
                     (validation.validationStatus === 'manual' && validation.manuallyVerified);
 
   return (
@@ -1291,9 +1292,16 @@ Thank you for your assistance.`;
   const handleVerificationToggle = async (fieldName: string, isVerified: boolean) => {
     const validation = getValidation(fieldName);
     if (validation) {
-      // Preserve manual status when verifying manually entered fields
-      const wasManuallyEntered = validation.validationStatus === 'manual';
-      const newStatus = wasManuallyEntered ? "manual" : (isVerified ? "valid" : "pending");
+      // Properly handle verification status for different field types
+      let newStatus: string;
+      
+      if (validation.manuallyUpdated) {
+        // For manually updated fields, use "manual-verified" when verified, "manual" when unverified
+        newStatus = isVerified ? "manual-verified" : "manual";
+      } else {
+        // For AI-extracted fields, use "verified" when verified, "pending" when unverified
+        newStatus = isVerified ? "verified" : "pending";
+      }
       
       // Optimistic update
       queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
@@ -1587,6 +1595,7 @@ Thank you for your assistance.`;
             // Check if field is verified (including manually verified fields)
             const isVerified = validation.validationStatus === 'valid' || 
                               validation.validationStatus === 'verified' || 
+                              validation.validationStatus === 'manual-verified' ||
                               validation.manuallyVerified === true;
             
             // Check if field has actual value - if it has a value, it should never show "Not Extracted"
