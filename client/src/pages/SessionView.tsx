@@ -149,7 +149,7 @@ const ConfidenceBadge = ({
   reasoning?: string; 
   fieldName: string;
   getFieldDisplayName: (fieldName: string) => string;
-  validation: FieldValidation | undefined;
+  validation: FieldValidationWithName | undefined;
   onVerificationChange: (isVerified: boolean) => void;
   isVerified: boolean;
 }) => {
@@ -221,7 +221,7 @@ const ManualInputBadge = () => (
 // Custom validation toggle component for SessionView
 const ValidationToggle = ({ fieldName, validation, onToggle }: { 
   fieldName: string; 
-  validation: FieldValidation | undefined; 
+  validation: FieldValidationWithName | undefined; 
   onToggle: (isVerified: boolean) => void;
 }) => {
   if (!validation) {
@@ -2018,12 +2018,12 @@ Thank you for your assistance.`;
                                   className="relative border-r border-gray-300"
                                   style={{ 
                                     width: `${columnWidths[`${collection.id}-${property.id}`] || (
-                                      property.fieldType === 'TEXTAREA' ? 400 : 
+                                      property.propertyType === 'TEXTAREA' ? 400 : 
                                       property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? 300 :
                                       property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? 280 :
-                                      property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 200 :
-                                      property.fieldType === 'TEXT' ? 120 : 
-                                      property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? 80 :
+                                      property.propertyType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 200 :
+                                      property.propertyType === 'TEXT' ? 120 : 
+                                      property.propertyType === 'NUMBER' || property.propertyType === 'DATE' ? 80 :
                                       property.propertyName.toLowerCase().includes('status') ? 100 :
                                       100
                                     )}px`,
@@ -2123,12 +2123,12 @@ Thank you for your assistance.`;
                                         className="relative border-r border-gray-300"
                                         style={{ 
                                           width: `${columnWidths[`${collection.id}-${property.id}`] || (
-                                            property.fieldType === 'TEXTAREA' ? 400 : 
+                                            property.propertyType === 'TEXTAREA' ? 400 : 
                                             property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? 300 :
                                             property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? 280 :
-                                            property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 200 :
-                                            property.fieldType === 'TEXT' ? 120 : 
-                                            property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? 80 :
+                                            property.propertyType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 200 :
+                                            property.propertyType === 'TEXT' ? 120 : 
+                                            property.propertyType === 'NUMBER' || property.propertyType === 'DATE' ? 80 :
                                             property.propertyName.toLowerCase().includes('status') ? 100 :
                                             100
                                           )}px`,
@@ -2138,9 +2138,9 @@ Thank you for your assistance.`;
                                         <div className="relative w-full">
                                           {/* Content */}
                                           <div className={`table-cell-content w-full pl-6 pr-8 ${
-                                            property.fieldType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
+                                            property.propertyType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
                                           } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed group relative`}>
-                                            {formatValueForDisplay(displayValue, property.fieldType)}
+                                            {formatValueForDisplay(displayValue, property.propertyType)}
                                             
                                             {/* Edit button */}
                                             {validation && (
