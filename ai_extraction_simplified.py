@@ -261,7 +261,7 @@ def step1_extract_from_documents(
             json_lines = ['{"field_validations": [']
             
             # Add schema fields with proper field validation structure
-            if project_schema.get("schema_fields"):
+            if project_schema.get("schema_fields") and len(project_schema["schema_fields"]) > 0:
                 for i, field in enumerate(project_schema["schema_fields"]):
                     field_id = field['id']
                     field_name = field['fieldName']
@@ -300,7 +300,7 @@ def step1_extract_from_documents(
                     json_lines.append('  }' + (',' if i < len(project_schema["schema_fields"]) - 1 or project_schema.get("collections") else ''))
             
             # Add collection properties with proper field validation structure
-            if project_schema.get("collections"):
+            if project_schema.get("collections") and len(project_schema["collections"]) > 0:
                 for collection in project_schema["collections"]:
                     collection_name = collection.get('collectionName', collection.get('objectName', ''))
                     properties = collection.get("properties", [])
