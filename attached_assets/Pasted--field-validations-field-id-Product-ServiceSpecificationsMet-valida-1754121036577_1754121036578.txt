@@ -1,0 +1,144 @@
+{
+  "field_validations": [
+    {
+      "field_id": "Product/ServiceSpecificationsMet",
+      "validation_type": "schema_field",
+      "data_type": "CHOICE",
+      "field_name": "Product/ServiceSpecificationsMet",
+      "extracted_value": "Yes",
+      "confidence_score": 0.95,
+      "validation_status": "unverified",
+      "ai_reasoning": "The agreement defines the 'Service' in Section 1.7 and details its provision in Section 2.1, which includes adherence to 'Documentation' (defined in 1.3) and performance standards set forth in the 'Service Level Addendum'. This provides a clear framework for the product specifications, meeting the requirement. High confidence due to explicit sections defining the service and its performance standards."
+    },
+    {
+      "field_id": "PricingandPaymentStructureMet",
+      "validation_type": "schema_field",
+      "data_type": "CHOICE",
+      "field_name": "PricingandPaymentStructureMet",
+      "extracted_value": "Yes",
+      "confidence_score": 1,
+      "validation_status": "unverified",
+      "ai_reasoning": "Section 4, 'Payment,' comprehensively details the pricing and payment structure. It covers payment due dates (4.1), the subscription model based on End User tiers and adding users (4.2), and the handling of taxes (4.3). The structure is explicitly and clearly defined. High confidence due to the dedicated and detailed 'Payment' section."
+    },
+    {
+      "field_id": "PurchaseOrderProcessMet",
+      "validation_type": "schema_field",
+      "data_type": "CHOICE",
+      "field_name": "PurchaseOrderProcessMet",
+      "extracted_value": "Yes",
+      "confidence_score": 1,
+      "validation_status": "unverified",
+      "ai_reasoning": "The process is clearly defined. Section 1.5 defines the 'Order Form' as the primary ordering document. Section 4.1 explicitly states the customer's responsibility to provide a 'purchase order number at the time of purchase if Customer requires one.' This directly addresses the PO process. High confidence due to direct statements in the agreement."
+    },
+    {
+      "field_id": "DeliveryandPerformanceTimelineMet",
+      "validation_type": "schema_field",
+      "data_type": "CHOICE",
+      "field_name": "DeliveryandPerformanceTimelineMet",
+      "extracted_value": "Yes",
+      "confidence_score": 0.9,
+      "validation_status": "unverified",
+      "ai_reasoning": "Section 2.1, 'Provision of the Service and Availability,' states that Asana will make the service available during the Subscription Term and references a 'Service Level Addendum' for performance standards. For a SaaS product, this is the equivalent of a delivery and performance timeline, establishing availability and service levels. High confidence as this is standard and sufficient for a SaaS agreement."
+    },
+    {
+      "field_id": "QualityStandardsandTestingMet",
+      "validation_type": "schema_field",
+      "data_type": "CHOICE",
+      "field_name": "QualityStandardsandTestingMet",
+      "extracted_value": "Yes",
+      "confidence_score": 0.95,
+      "validation_status": "unverified",
+      "ai_reasoning": "Quality standards are addressed through the warranty in Section 3.2.1, which guarantees the service will 'materially conform to the applicable Documentation.' Remedies for non-conformance are also provided (correct the service or terminate and refund). This, combined with the 'Service Level Addendum' mentioned in Section 2.1, provides clear quality standards and remedies. High confidence due to explicit warranty and remedy clauses."
+    },
+    {
+      "field_id": "WarrantiesandGuaranteesMet",
+      "validation_type": "schema_field",
+      "data_type": "CHOICE",
+      "field_name": "WarrantiesandGuaranteesMet",
+      "extracted_value": "Yes",
+      "confidence_score": 1,
+      "validation_status": "unverified",
+      "ai_reasoning": "Section 3, 'Representations and Warranties,' is dedicated to this topic. It provides explicit warranties for the Service (3.2.1), Professional Services (3.2.2), and against Malicious Code (3.2.3). It also clearly defines the remedies for any breach of these warranties. The coverage is comprehensive and clearly stated. High confidence due to the explicit and detailed warranty section."
+    },
+    {
+      "field_id": "LiabilityandIndemnificationMet",
+      "validation_type": "schema_field",
+      "data_type": "CHOICE",
+      "field_name": "LiabilityandIndemnificationMet",
+      "extracted_value": "Yes",
+      "confidence_score": 1,
+      "validation_status": "unverified",
+      "ai_reasoning": "The agreement contains dedicated and detailed sections for 'Indemnification' (Section 8) and 'Liability' (Section 9). These sections clearly define the scope of indemnification for IP claims, set liability caps, list exclusions for consequential damages, and specify exceptions to the liability caps. The provisions are clear and comprehensive. High confidence due to explicit, dedicated sections."
+    },
+    {
+      "field_id": "InsuranceandFinancialSecurityMet",
+      "validation_type": "schema_field",
+      "data_type": "CHOICE",
+      "field_name": "InsuranceandFinancialSecurityMet",
+      "extracted_value": "No",
+      "confidence_score": 1,
+      "validation_status": "unverified",
+      "ai_reasoning": "A thorough review of the entire document shows no mention of insurance requirements for either party. There are no clauses related to financial security, performance bonds, or other financial guarantees. Therefore, this requirement is not met by the agreement. High confidence based on the absence of relevant clauses."
+    },
+    {
+      "field_id": "ForceMajeureandBusinessContinuityMet",
+      "validation_type": "schema_field",
+      "data_type": "CHOICE",
+      "field_name": "ForceMajeureandBusinessContinuityMet",
+      "extracted_value": "Yes",
+      "confidence_score": 0.9,
+      "validation_status": "unverified",
+      "ai_reasoning": "The agreement includes an explicit 'Force Majeure' clause in Section 11.8. Business continuity for a SaaS platform is addressed through the 'Service Level Addendum' (referenced in Section 2.1) and the 'Data Security Standards' (referenced in Section 2.5), which cover service availability and data protection, respectively. These provisions sufficiently cover the requirement. High confidence due to the presence of these clauses."
+    },
+    {
+      "field_id": "RegulatoryandIndustryComplianceMet",
+      "validation_type": "schema_field",
+      "data_type": "CHOICE",
+      "field_name": "RegulatoryandIndustryComplianceMet",
+      "extracted_value": "Yes",
+      "confidence_score": 1,
+      "validation_status": "unverified",
+      "ai_reasoning": "This requirement is clearly met. Section 3.1, 'Mutual Warranties,' contains a clause where each party warrants it will 'comply with all laws, rules, and regulations.' Furthermore, Section 10 specifically addresses 'Export Control and Economic Sanctions Compliance.' High confidence due to explicit compliance clauses."
+    },
+    {
+      "field_id": "EthicalandSocialResponsibilityStandardsMet",
+      "validation_type": "schema_field",
+      "data_type": "CHOICE",
+      "field_name": "EthicalandSocialResponsibilityStandardsMet",
+      "extracted_value": "No",
+      "confidence_score": 1,
+      "validation_status": "unverified",
+      "ai_reasoning": "After reviewing the entire document, no clauses were found pertaining to a supplier code of conduct, ESG (Environmental, Social, and Governance) standards, anti-corruption policies (beyond general compliance with law), or other specific ethical standards. The 'Acceptable Use Terms' in Section 2.4 are functional, not corporate conduct-related. High confidence based on the absence of these specific provisions."
+    },
+    {
+      "field_id": "IntellectualPropertyProtectionMet",
+      "validation_type": "schema_field",
+      "data_type": "CHOICE",
+      "field_name": "IntellectualPropertyProtectionMet",
+      "extracted_value": "Yes",
+      "confidence_score": 1,
+      "validation_status": "unverified",
+      "ai_reasoning": "The agreement has a dedicated 'Intellectual Property Rights' section (Section 7) that clarifies ownership of customer data and the service. It is further supported by the 'Confidentiality' section (Section 6) and the 'Indemnification' section (Section 8), which covers IP infringement claims. These provisions provide comprehensive IP protection. High confidence due to multiple explicit sections addressing IP."
+    },
+    {
+      "field_id": "TerminationandTransitionMet",
+      "validation_type": "schema_field",
+      "data_type": "CHOICE",
+      "field_name": "TerminationandTransitionMet",
+      "extracted_value": "Yes",
+      "confidence_score": 1,
+      "validation_status": "unverified",
+      "ai_reasoning": "Section 5, 'Term and Termination,' clearly outlines termination rights for cause (5.2), the effects of termination (5.3), and a detailed transition plan for customer data. Section 5.4 specifies a 30-day period for data export post-termination, followed by data deletion procedures. The provisions are clear and favorable. High confidence due to the detailed and dedicated termination section."
+    },
+    {
+      "field_id": "AuditRightsandPerformanceMonitoringMet",
+      "validation_type": "schema_field",
+      "data_type": "CHOICE",
+      "field_name": "AuditRightsandPerformanceMonitoringMet",
+      "extracted_value": "No",
+      "confidence_score": 1,
+      "validation_status": "unverified",
+      "ai_reasoning": "While performance monitoring is addressed through the 'Service Level Addendum' referenced in Section 2.1, the agreement does not grant the Customer any audit rights. A full review of the document reveals no clauses allowing the customer to audit Asana's compliance, security, or other records. Therefore, this requirement is not met. High confidence based on the absence of an audit rights clause for the customer."
+    }
+  ]
+}
