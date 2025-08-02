@@ -421,269 +421,173 @@ export class MemStorage implements IStorage {
       {
         id: "550e8400-e29b-41d4-a716-446655440050", // Fixed UUID for Total Amount validation
         sessionId: sessionId,
-        validationType: "schema_field" as const,
-        dataType: "NUMBER" as const,
+        fieldType: "schema_field" as const,
         fieldId: "550e8400-e29b-41d4-a716-446655440010", // Reference to Total Amount field
+        fieldName: "Total Amount",
         collectionName: null,
         recordIndex: 0,
         extractedValue: "1250.75",
-        originalExtractedValue: "1250.75",
-        originalConfidenceScore: 95,
-        originalAiReasoning: "Successfully extracted numeric value from document total",
         validationStatus: "valid" as const,
         aiReasoning: "Successfully extracted numeric value from document total",
         manuallyVerified: false,
-        manuallyUpdated: false,
-        confidenceScore: 95,
-        documentSource: null,
-        documentSections: null,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        confidenceScore: 95
       },
       {
         id: "550e8400-e29b-41d4-a716-446655440051", // Fixed UUID for Invoice Date validation
         sessionId: sessionId,
-        validationType: "schema_field" as const,
-        dataType: "DATE" as const,
+        fieldType: "schema_field" as const,
         fieldId: "550e8400-e29b-41d4-a716-446655440011", // Reference to Invoice Date field
+        fieldName: "Invoice Date",
         collectionName: null,
         recordIndex: 0,
         extractedValue: "2024-01-15",
-        originalExtractedValue: "2024-01-15",
-        originalConfidenceScore: 98,
-        originalAiReasoning: "Date format is valid and matches expected pattern",
         validationStatus: "valid" as const,
         aiReasoning: "Date format is valid and matches expected pattern",
         manuallyVerified: false,
-        manuallyUpdated: false,
-        confidenceScore: 98,
-        documentSource: null,
-        documentSections: null,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        confidenceScore: 98
       },
       {
         id: "550e8400-e29b-41d4-a716-446655440052", // Fixed UUID for Vendor Name validation
         sessionId: sessionId,
-        validationType: "schema_field" as const,
-        dataType: "TEXT" as const,
+        fieldType: "schema_field" as const,
         fieldId: "550e8400-e29b-41d4-a716-446655440012", // Reference to Vendor Name field
+        fieldName: "Vendor Name",
         collectionName: null,
         recordIndex: 0,
         extractedValue: "ABC Supplies Inc.",
-        originalExtractedValue: "ABC Supplies Inc.",
-        originalConfidenceScore: 92,
-        originalAiReasoning: "Company name extracted from invoice header",
         validationStatus: "valid" as const,
         aiReasoning: "Company name extracted from invoice header",
         manuallyVerified: false,
-        manuallyUpdated: false,
-        confidenceScore: 92,
-        documentSource: null,
-        documentSections: null,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        confidenceScore: 92
       },
       // Line Items Collection - First Item
       {
         id: "550e8400-e29b-41d4-a716-446655440060", // Fixed UUID for Description validation
         sessionId: sessionId,
-        validationType: "collection_property" as const,
-        dataType: "TEXT" as const,
+        fieldType: "collection_property" as const,
         fieldId: "550e8400-e29b-41d4-a716-446655440030", // Reference to Description property
+        fieldName: "Line Items.Description[0]",
         collectionName: "Line Items",
         recordIndex: 0,
         extractedValue: "Office Supplies",
-        originalExtractedValue: "Office Supplies",
-        originalConfidenceScore: 90,
-        originalAiReasoning: "Item description clearly identified in line item",
         validationStatus: "valid" as const,
         aiReasoning: "Item description clearly identified in line item",
         manuallyVerified: false,
-        manuallyUpdated: false,
-        confidenceScore: 90,
-        documentSource: null,
-        documentSections: null,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        confidenceScore: 90
       },
       {
         id: "550e8400-e29b-41d4-a716-446655440061", // Fixed UUID for Quantity validation
         sessionId: sessionId,
-        validationType: "collection_property" as const,
-        dataType: "NUMBER" as const,
+        fieldType: "collection_property" as const,
         fieldId: "550e8400-e29b-41d4-a716-446655440031", // Reference to Quantity property
+        fieldName: "Line Items.Quantity[0]",
         collectionName: "Line Items",
         recordIndex: 0,
         extractedValue: "10",
-        originalExtractedValue: "10",
-        originalConfidenceScore: 88,
-        originalAiReasoning: "Numeric quantity value extracted correctly",
         validationStatus: "valid" as const,
         aiReasoning: "Numeric quantity value extracted correctly",
         manuallyVerified: false,
-        manuallyUpdated: false,
-        confidenceScore: 88,
-        documentSource: null,
-        documentSections: null,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        confidenceScore: 88
       },
       {
         id: "550e8400-e29b-41d4-a716-446655440062", // Fixed UUID for Unit Price validation
         sessionId: sessionId,
-        validationType: "collection_property" as const,
-        dataType: "NUMBER" as const,
+        fieldType: "collection_property" as const,
         fieldId: "550e8400-e29b-41d4-a716-446655440032", // Reference to Unit Price property
+        fieldName: "Line Items.Unit Price[0]",
         collectionName: "Line Items",
         recordIndex: 0,
         extractedValue: "25.5",
-        originalExtractedValue: "25.5",
-        originalConfidenceScore: 72,
-        originalAiReasoning: "Price format appears correct but may need verification against source document",
         validationStatus: "invalid" as const,
         aiReasoning: "Price format appears correct but may need verification against source document",
         manuallyVerified: false,
-        manuallyUpdated: false,
-        confidenceScore: 72,
-        documentSource: null,
-        documentSections: null,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        confidenceScore: 72
       },
       // Line Items Collection - Second Item
       {
         id: "550e8400-e29b-41d4-a716-446655440070", // Fixed UUID for Line Items Description validation
         sessionId: sessionId,
-        validationType: "collection_property" as const,
-        dataType: "TEXT" as const,
+        fieldType: "collection_property" as const,
         fieldId: "550e8400-e29b-41d4-a716-446655440030", // Description property
+        fieldName: "Line Items.Description[1]",
         collectionName: "Line Items",
         recordIndex: 1,
         extractedValue: "Printer Paper",
-        originalExtractedValue: "Printer Paper",
-        originalConfidenceScore: 94,
-        originalAiReasoning: "Item description clearly identified in line item",
         validationStatus: "valid" as const,
         aiReasoning: "Item description clearly identified in line item",
         manuallyVerified: false,
-        manuallyUpdated: false,
-        confidenceScore: 94,
-        documentSource: null,
-        documentSections: null,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        confidenceScore: 94
       },
       {
         id: "550e8400-e29b-41d4-a716-446655440071", // Fixed UUID for Line Items Quantity validation
         sessionId: sessionId,
-        validationType: "collection_property" as const,
-        dataType: "NUMBER" as const,
+        fieldType: "collection_property" as const,
         fieldId: "550e8400-e29b-41d4-a716-446655440031", // Quantity property
+        fieldName: "Line Items.Quantity[1]",
         collectionName: "Line Items",
         recordIndex: 1,
         extractedValue: "5",
-        originalExtractedValue: "5",
-        originalConfidenceScore: 91,
-        originalAiReasoning: "Numeric quantity value extracted correctly",
         validationStatus: "valid" as const,
         aiReasoning: "Numeric quantity value extracted correctly",
         manuallyVerified: false,
-        manuallyUpdated: false,
-        confidenceScore: 91,
-        documentSource: null,
-        documentSections: null,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        confidenceScore: 91
       },
       {
         id: "550e8400-e29b-41d4-a716-446655440072", // Fixed UUID for Line Items Unit Price validation
         sessionId: sessionId,
-        validationType: "collection_property" as const,
-        dataType: "NUMBER" as const,
+        fieldType: "collection_property" as const,
         fieldId: "550e8400-e29b-41d4-a716-446655440032", // Unit Price property
+        fieldName: "Line Items.Unit Price[1]",
         collectionName: "Line Items",
         recordIndex: 1,
         extractedValue: "45.15",
-        originalExtractedValue: "45.15",
-        originalConfidenceScore: 68,
-        originalAiReasoning: "Price value needs verification - format looks correct but confidence is low",
         validationStatus: "pending" as const,
         aiReasoning: "Price value needs verification - format looks correct but confidence is low",
         manuallyVerified: false,
-        manuallyUpdated: false,
-        confidenceScore: 68,
-        documentSource: null,
-        documentSections: null,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        confidenceScore: 68
       },
       // Line Items Collection - Third Item
       {
         id: "550e8400-e29b-41d4-a716-446655440073", // Fixed UUID for Line Items Description validation
         sessionId: sessionId,
-        validationType: "collection_property" as const,
-        dataType: "TEXT" as const,
+        fieldType: "collection_property" as const,
         fieldId: "550e8400-e29b-41d4-a716-446655440030", // Description property
+        fieldName: "Line Items.Description[2]",
         collectionName: "Line Items",
         recordIndex: 2,
         extractedValue: "Ink Cartridges",
-        originalExtractedValue: "Ink Cartridges",
-        originalConfidenceScore: 89,
-        originalAiReasoning: "Item description clearly identified in line item",
         validationStatus: "valid" as const,
         aiReasoning: "Item description clearly identified in line item",
         manuallyVerified: false,
-        manuallyUpdated: false,
-        confidenceScore: 89,
-        documentSource: null,
-        documentSections: null,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        confidenceScore: 89
       },
       {
         id: "550e8400-e29b-41d4-a716-446655440074", // Fixed UUID for Line Items Quantity validation
         sessionId: sessionId,
-        validationType: "collection_property" as const,
-        dataType: "NUMBER" as const,
+        fieldType: "collection_property" as const,
         fieldId: "550e8400-e29b-41d4-a716-446655440031", // Quantity property
+        fieldName: "Line Items.Quantity[2]",
         collectionName: "Line Items",
         recordIndex: 2,
         extractedValue: "3",
-        originalExtractedValue: "3",
-        originalConfidenceScore: 87,
-        originalAiReasoning: "Numeric quantity value extracted correctly",
         validationStatus: "valid" as const,
         aiReasoning: "Numeric quantity value extracted correctly",
         manuallyVerified: false,
-        manuallyUpdated: false,
-        confidenceScore: 87,
-        documentSource: null,
-        documentSections: null,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        confidenceScore: 87
       },
       {
         id: "550e8400-e29b-41d4-a716-446655440075", // Fixed UUID for Line Items Unit Price validation
         sessionId: sessionId,
-        validationType: "collection_property" as const,
-        dataType: "NUMBER" as const,
+        fieldType: "collection_property" as const,
         fieldId: "550e8400-e29b-41d4-a716-446655440032", // Unit Price property
+        fieldName: "Line Items.Unit Price[2]",
         collectionName: "Line Items",
         recordIndex: 2,
         extractedValue: "85.2",
-        originalExtractedValue: "85.2",
-        originalConfidenceScore: 71,
-        originalAiReasoning: "Price value needs verification - format looks correct but confidence is low",
         validationStatus: "pending" as const,
         aiReasoning: "Price value needs verification - format looks correct but confidence is low",
         manuallyVerified: false,
-        manuallyUpdated: false,
-        confidenceScore: 71,
-        documentSource: null,
-        documentSections: null,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        confidenceScore: 71
       }
     ];
     

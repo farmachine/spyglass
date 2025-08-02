@@ -30,7 +30,6 @@ import type {
   ExtractionSession, 
   ProjectWithDetails, 
   FieldValidation,
-  FieldValidationWithName,
   ValidationStatus 
 } from "@shared/schema";
 
@@ -51,11 +50,11 @@ const AIReasoningModal = ({
   fieldName: string; 
   confidenceScore: number;
   getFieldDisplayName: (fieldName: string) => string;
-  validation: FieldValidationWithName | undefined;
+  validation: FieldValidation | undefined;
   onVerificationChange: (isVerified: boolean) => void;
 }) => {
   const { toast } = useToast();
-  const isVerified = validation?.validationStatus === 'valid';
+  const isVerified = validation?.validationStatus === 'valid' || validation?.validationStatus === 'verified';
 
   const copyToClipboard = async () => {
     try {
@@ -149,7 +148,7 @@ const ConfidenceBadge = ({
   reasoning?: string; 
   fieldName: string;
   getFieldDisplayName: (fieldName: string) => string;
-  validation: FieldValidationWithName | undefined;
+  validation: FieldValidation | undefined;
   onVerificationChange: (isVerified: boolean) => void;
   isVerified: boolean;
 }) => {
@@ -221,14 +220,14 @@ const ManualInputBadge = () => (
 // Custom validation toggle component for SessionView
 const ValidationToggle = ({ fieldName, validation, onToggle }: { 
   fieldName: string; 
-  validation: FieldValidationWithName | undefined; 
+  validation: FieldValidation | undefined; 
   onToggle: (isVerified: boolean) => void;
 }) => {
   if (!validation) {
     return <div className="text-xs text-gray-400">No validation data</div>;
   }
 
-  const isVerified = validation.validationStatus === 'valid';
+  const isVerified = validation.validationStatus === 'valid' || validation.validationStatus === 'verified';
 
   return (
     <div className="flex items-center gap-2">
@@ -490,29 +489,25 @@ export default function SessionView() {
     enabled: !!projectId // Only run this query when we have a projectId
   });
 
-  const { data: validations = [], isLoading: validationsLoading } = useQuery<FieldValidationWithName[]>({
+  const { data: validations = [], isLoading: validationsLoading } = useQuery<FieldValidation[]>({
     queryKey: ['/api/sessions', sessionId, 'validations'],
-    queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`)
+    queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`),
+    onSuccess: (data) => {
+      console.log(`Session ${sessionId} - Validations loaded:`, data.length);
+      if (data.length > 0) {
+        console.log('Sample validation:', data[0]);
+        console.log('All field names:', data.map(v => v.fieldName));
+        console.log('Validations with extracted values:', data.filter(v => v.extractedValue).map(v => ({
+          fieldName: v.fieldName, 
+          extractedValue: v.extractedValue, 
+          confidenceScore: v.confidenceScore
+        })));
+      }
+    }
   });
 
-  // Log validations data when it changes (replacement for onSuccess)
-  useEffect(() => {
-    if (validations.length > 0) {
-      console.log(`Session ${sessionId} - Validations loaded:`, validations.length);
-      console.log('Sample validation:', validations[0]);
-      console.log('All field names:', validations.map(v => v.fieldName));
-      console.log('Validations with extracted values:', validations.filter(v => v.extractedValue).map(v => ({
-        fieldName: v.fieldName, 
-        extractedValue: v.extractedValue, 
-        confidenceScore: v.confidenceScore
-      })));
-      
-
-    }
-  }, [validations, sessionId]);
-
   // Fetch project-level validations for statistics cards
-  const { data: projectValidations = [] } = useQuery<FieldValidationWithName[]>({
+  const { data: projectValidations = [] } = useQuery<FieldValidation[]>({
     queryKey: ['/api/validations/project', projectId],
     enabled: !!projectId
   });
@@ -597,12 +592,9 @@ export default function SessionView() {
   // Handler for field verification changes
   const handleFieldVerification = (fieldName: string, isVerified: boolean) => {
     const validation = getValidation(fieldName);
-    if (!validation) {
-      console.log(`No validation found for: ${fieldName}`);
-      return;
-    }
+    if (!validation) return;
     
-    const newStatus: ValidationStatus = isVerified ? 'valid' : 'pending';
+    const newStatus: ValidationStatus = isVerified ? 'verified' : 'unverified';
     
     // Optimistic update: immediately update the UI
     queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
@@ -632,56 +624,6 @@ export default function SessionView() {
     });
   };
 
-  // Handler for collection-wide verification (header verification icon)
-  const handleCollectionVerification = (collectionName: string, shouldVerify: boolean) => {
-    console.log(`=== COLLECTION VERIFICATION ===`);
-    console.log(`Collection: ${collectionName}, shouldVerify: ${shouldVerify}`);
-    
-    // Find all validations for this collection
-    const collectionValidations = validations.filter(v => 
-      v.collectionName === collectionName || 
-      (v.fieldName && v.fieldName.startsWith(`${collectionName}.`))
-    );
-    
-    console.log(`Found ${collectionValidations.length} validations for collection ${collectionName}`);
-    
-    if (collectionValidations.length === 0) return;
-    
-    const newStatus: ValidationStatus = shouldVerify ? 'valid' : 'pending';
-    
-    // Optimistic update: immediately update all collection items in the UI
-    queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
-      if (!oldData) return oldData;
-      return oldData.map((v: any) => {
-        const isCollectionValidation = v.collectionName === collectionName || 
-          (v.fieldName && v.fieldName.startsWith(`${collectionName}.`));
-        return isCollectionValidation 
-          ? { ...v, validationStatus: newStatus }
-          : v;
-      });
-    });
-    
-    // Update all validations for this collection
-    collectionValidations.forEach(validation => {
-      updateValidationMutation.mutate({
-        id: validation.id,
-        data: { validationStatus: newStatus }
-      }, {
-        onError: () => {
-          // Revert optimistic update on error
-          queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
-            if (!oldData) return oldData;
-            return oldData.map((v: any) => 
-              v.id === validation.id 
-                ? { ...v, validationStatus: validation.validationStatus }
-                : v
-            );
-          });
-        }
-      });
-    });
-  };
-
   // Handler for bulk item verification (status column click)
   const handleItemVerification = (collectionName: string, recordIndex: number, isVerified: boolean) => {
     // Find all fields for this collection item
@@ -690,7 +632,7 @@ export default function SessionView() {
       v.fieldName.includes(`[${recordIndex}]`)
     );
     
-    const newStatus: ValidationStatus = isVerified ? 'valid' : 'pending';
+    const newStatus: ValidationStatus = isVerified ? 'verified' : 'unverified';
     
     // Optimistic updates for all item validations
     queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
@@ -736,7 +678,7 @@ export default function SessionView() {
       recordIndex: newIndex,
       extractedValue: '',
       confidenceScore: 0,
-      validationStatus: 'pending' as const,
+      validationStatus: 'unverified' as const,
       manuallyUpdated: true,
       aiReasoning: 'New item added by user',
       createdAt: new Date(),
@@ -760,7 +702,7 @@ export default function SessionView() {
             recordIndex: newIndex,
             extractedValue: '',
             confidenceScore: 0,
-            validationStatus: 'pending',
+            validationStatus: 'unverified',
             manuallyUpdated: true,
             aiReasoning: 'New item added by user'
           })
@@ -923,13 +865,13 @@ export default function SessionView() {
   // Get session status based on field verification
   const getSessionStatus = () => {
     if (validations.length === 0) return 'in_progress';
-    const allVerified = validations.every(v => v.validationStatus === 'valid');
+    const allVerified = validations.every(v => v.validationStatus === 'valid' || v.validationStatus === 'verified');
     return allVerified ? 'verified' : 'in_progress';
   };
 
   // Get verification count helpers
   const getVerifiedCount = () => {
-    return validations.filter(v => v.validationStatus === 'valid').length;
+    return validations.filter(v => v.validationStatus === 'valid' || v.validationStatus === 'verified').length;
   };
 
   const getTotalFieldCount = () => {
@@ -948,7 +890,7 @@ export default function SessionView() {
   const getCollectionVerificationProgress = (collectionName: string) => {
     const collectionValidations = validations.filter(v => v.collectionName === collectionName);
     const totalFields = collectionValidations.length;
-    const verifiedFields = collectionValidations.filter(v => v.validationStatus === 'valid').length;
+    const verifiedFields = collectionValidations.filter(v => v.validationStatus === 'verified' || v.validationStatus === 'valid').length;
     const percentage = totalFields > 0 ? Math.round((verifiedFields / totalFields) * 100) : 0;
     
     return {
@@ -960,11 +902,11 @@ export default function SessionView() {
 
   // Get all unverified fields for consolidated reasoning
   const getUnverifiedFields = () => {
-    return validations.filter(v => v.validationStatus !== 'valid');
+    return validations.filter(v => v.validationStatus !== 'valid' && v.validationStatus !== 'verified');
   };
 
   // Generate human-readable field names for reports, using meaningful identifiers for list items  
-  const getHumanReadableFieldName = (validation: FieldValidationWithName): string => {
+  const getHumanReadableFieldName = (validation: FieldValidation): string => {
     // For schema fields, use the field name directly
     if (!validation.fieldName.includes('.')) {
       return validation.fieldName;
@@ -1604,7 +1546,7 @@ Thank you for your assistance.`;
     const sessionValidations = projectValidations.filter(v => v.sessionId === sessionId);
     if (sessionValidations.length === 0) return 'pending';
     
-    const allVerified = sessionValidations.every(v => v.validationStatus === 'valid');
+    const allVerified = sessionValidations.every(v => v.validationStatus === 'valid' || v.validationStatus === 'verified');
     return allVerified ? 'verified' : 'in_progress';
   };
 
@@ -1857,7 +1799,7 @@ Thank you for your assistance.`;
                                   const validation = getValidation(fieldName);
                                   const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
                                   const wasManuallyUpdated = validation && validation.manuallyUpdated;
-                                  const isVerified = validation?.validationStatus === 'valid';
+                                  const isVerified = validation?.validationStatus === 'verified' || validation?.validationStatus === 'valid';
                                   const score = Math.round(validation?.confidenceScore || 0);
 
 
@@ -1874,13 +1816,22 @@ Thank you for your assistance.`;
                                   } else if (isVerified) {
                                     // Show green tick when verified - clicking unverifies
                                     return (
-                                      <button
-                                        onClick={() => handleFieldVerification(fieldName, false)}
-                                        className="w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors flex-shrink-0 cursor-pointer"
-                                        title={`Verified with ${score}% confidence - Click to unverify`}
-                                      >
-                                        <span className="text-xs font-bold">✓</span>
-                                      </button>
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <button
+                                              onClick={() => handleFieldVerification(fieldName, false)}
+                                              className="w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors flex-shrink-0"
+                                              aria-label="Click to unverify"
+                                            >
+                                              <span className="text-xs font-bold">✓</span>
+                                            </button>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            Verified with {score}% confidence
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
                                     );
                                   } else if (hasValue && validation) {
                                     // Show colored confidence dot when not verified - clicking opens AI analysis modal
@@ -1894,7 +1845,11 @@ Thank you for your assistance.`;
                                             setSelectedReasoning({
                                               reasoning: validation.aiReasoning,
                                               fieldName: getFieldDisplayName(fieldName),
-                                              confidenceScore: validation.confidenceScore || 0
+                                              confidenceScore: validation.confidenceScore || 0,
+                                              getFieldDisplayName,
+                                              validation,
+                                              onVerificationChange: (isVerified) => handleFieldVerification(fieldName, isVerified),
+                                              isVerified: validation.validationStatus === 'verified' || validation.validationStatus === 'valid'
                                             });
                                           }
                                         }}
@@ -1903,15 +1858,11 @@ Thank you for your assistance.`;
                                       />
                                     );
                                   } else if (!hasValue) {
-                                    // Show red exclamation mark for missing fields - clicking allows verification
+                                    // Show red exclamation mark for missing fields
                                     return (
-                                      <button
-                                        onClick={() => handleFieldVerification(fieldName, true)}
-                                        className="w-3 h-3 flex items-center justify-center text-red-500 font-bold text-xs flex-shrink-0 hover:bg-red-50 rounded transition-colors cursor-pointer"
-                                        title="Missing data - Click to mark as verified anyway"
-                                      >
+                                      <div className="w-3 h-3 flex items-center justify-center text-red-500 font-bold text-xs flex-shrink-0" title="Missing data">
                                         !
-                                      </button>
+                                      </div>
                                     );
                                   }
                                   // Return empty div to maintain consistent spacing
@@ -2065,12 +2016,12 @@ Thank you for your assistance.`;
                                   className="relative border-r border-gray-300"
                                   style={{ 
                                     width: `${columnWidths[`${collection.id}-${property.id}`] || (
-                                      property.propertyType === 'TEXTAREA' ? 400 : 
+                                      property.fieldType === 'TEXTAREA' ? 400 : 
                                       property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? 300 :
                                       property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? 280 :
-                                      property.propertyType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 200 :
-                                      property.propertyType === 'TEXT' ? 120 : 
-                                      property.propertyType === 'NUMBER' || property.propertyType === 'DATE' ? 80 :
+                                      property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 200 :
+                                      property.fieldType === 'TEXT' ? 120 : 
+                                      property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? 80 :
                                       property.propertyName.toLowerCase().includes('status') ? 100 :
                                       100
                                     )}px`,
@@ -2103,20 +2054,11 @@ Thank you for your assistance.`;
                                       }).filter(Boolean);
                                       
                                       return itemValidations.length > 0 && 
-                                        itemValidations.every(v => v?.validationStatus === 'valid');
+                                        itemValidations.every(v => v?.validationStatus === 'valid' || v?.validationStatus === 'verified');
                                     }).every(isVerified => isVerified);
                                     
                                     return (
-                                      <button
-                                        onClick={() => {
-                                          console.log(`Collection header verification clicked: ${collection.collectionName}, allItemsVerified: ${allItemsVerified}`);
-                                          handleCollectionVerification(collection.collectionName, !allItemsVerified);
-                                        }}
-                                        className={`h-5 w-5 hover:scale-110 transition-transform cursor-pointer ${allItemsVerified ? 'text-green-600 hover:text-green-700' : 'text-gray-400 hover:text-gray-600'}`}
-                                        title={allItemsVerified ? 'All items verified - Click to unverify collection' : 'Some items unverified - Click to verify all items in collection'}
-                                      >
-                                        <CheckCircle className="h-5 w-5" />
-                                      </button>
+                                      <CheckCircle className={`h-5 w-5 ${allItemsVerified ? 'text-green-600' : 'text-gray-400'}`} />
                                     );
                                   })()}
                                   <Button
@@ -2179,12 +2121,12 @@ Thank you for your assistance.`;
                                         className="relative border-r border-gray-300"
                                         style={{ 
                                           width: `${columnWidths[`${collection.id}-${property.id}`] || (
-                                            property.propertyType === 'TEXTAREA' ? 400 : 
+                                            property.fieldType === 'TEXTAREA' ? 400 : 
                                             property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? 300 :
                                             property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? 280 :
-                                            property.propertyType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 200 :
-                                            property.propertyType === 'TEXT' ? 120 : 
-                                            property.propertyType === 'NUMBER' || property.propertyType === 'DATE' ? 80 :
+                                            property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 200 :
+                                            property.fieldType === 'TEXT' ? 120 : 
+                                            property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? 80 :
                                             property.propertyName.toLowerCase().includes('status') ? 100 :
                                             100
                                           )}px`,
@@ -2194,9 +2136,9 @@ Thank you for your assistance.`;
                                         <div className="relative w-full">
                                           {/* Content */}
                                           <div className={`table-cell-content w-full pl-6 pr-8 ${
-                                            property.propertyType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
+                                            property.fieldType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
                                           } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed group relative`}>
-                                            {formatValueForDisplay(displayValue, property.propertyType)}
+                                            {formatValueForDisplay(displayValue, property.fieldType)}
                                             
                                             {/* Edit button */}
                                             {validation && (
@@ -2222,7 +2164,7 @@ Thank you for your assistance.`;
                                                                validation.extractedValue !== "" && 
                                                                validation.extractedValue !== "null" && 
                                                                validation.extractedValue !== "undefined";
-                                                const isVerified = validation.validationStatus === 'valid';
+                                                const isVerified = validation.validationStatus === 'verified' || validation.validationStatus === 'valid';
                                                 const score = Math.round(validation.confidenceScore || 0);
 
                                                 if (wasManuallyUpdated) {
@@ -2234,13 +2176,22 @@ Thank you for your assistance.`;
                                                 } else if (isVerified) {
                                                   // Show green tick when verified
                                                   return (
-                                                    <button
-                                                      onClick={() => handleFieldVerification(fieldName, false)}
-                                                      className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors cursor-pointer"
-                                                      title={`Verified with ${score}% confidence - Click to unverify`}
-                                                    >
-                                                      <span className="text-xs font-bold">✓</span>
-                                                    </button>
+                                                    <TooltipProvider>
+                                                      <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                          <button
+                                                            onClick={() => handleFieldVerification(fieldName, false)}
+                                                            className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors"
+                                                            aria-label="Click to unverify"
+                                                          >
+                                                            <span className="text-xs font-bold">✓</span>
+                                                          </button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                          Verified with {score}% confidence
+                                                        </TooltipContent>
+                                                      </Tooltip>
+                                                    </TooltipProvider>
                                                   );
                                                 } else if (hasValue && validation.confidenceScore) {
                                                   // Show colored confidence dot when not verified
@@ -2263,15 +2214,11 @@ Thank you for your assistance.`;
                                                     />
                                                   );
                                                 } else if (!hasValue) {
-                                                  // Show red exclamation mark for missing fields - clicking allows verification
+                                                  // Show red exclamation mark for missing fields
                                                   return (
-                                                    <button
-                                                      onClick={() => handleFieldVerification(fieldName, true)}
-                                                      className="absolute top-2 left-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors cursor-pointer"
-                                                      title="Missing data - Click to mark as verified anyway"
-                                                    >
+                                                    <div className="absolute top-2 left-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
                                                       <span className="text-white text-xs font-bold leading-none">!</span>
-                                                    </button>
+                                                    </div>
                                                   );
                                                 }
                                                 return null;
@@ -2292,7 +2239,7 @@ Thank you for your assistance.`;
                                         }).filter(Boolean);
                                         
                                         const allVerified = itemValidations.length > 0 && 
-                                          itemValidations.every(v => v?.validationStatus === 'valid');
+                                          itemValidations.every(v => v?.validationStatus === 'valid' || v?.validationStatus === 'verified');
                                         
                                         return (
                                           <button
@@ -2358,7 +2305,7 @@ Thank you for your assistance.`;
               
               {(() => {
                 const validation = getValidation(selectedReasoning.fieldName);
-                const isVerified = validation?.validationStatus === 'valid';
+                const isVerified = validation?.validationStatus === 'verified' || validation?.validationStatus === 'valid';
                 
                 return (
                   <div className="flex items-center justify-between pt-4 border-t">
