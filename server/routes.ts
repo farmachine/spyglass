@@ -2483,7 +2483,14 @@ print(json.dumps(result))
           }
           
           // Calculate confidence score and determine auto-verification
-          const confidenceScore = Math.round(parseFloat(validation.confidence_score) * 100); // Convert to integer percentage
+          // For empty fields, set confidence to 0%
+          let confidenceScore;
+          if (!validation.extracted_value || validation.extracted_value === "" || validation.extracted_value === "null") {
+            confidenceScore = 0;
+          } else {
+            confidenceScore = Math.round(parseFloat(validation.confidence_score) * 100); // Convert to integer percentage
+          }
+          
           const shouldAutoVerify = confidenceScore >= autoVerifyThreshold;
           const validationStatus = shouldAutoVerify ? 'verified' : 'unverified';
           
