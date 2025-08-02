@@ -1580,7 +1580,7 @@ Thank you for your assistance.`;
 
             
             // Check if field was manually updated by user (uses dedicated manually_updated flag)
-            const wasManuallyUpdated = validation.manuallyUpdated;
+            const wasManuallyUpdated = validation.manuallyUpdated === true || validation.manuallyUpdated === 't';
             
 
             
@@ -1592,18 +1592,11 @@ Thank you for your assistance.`;
                            validation.extractedValue !== "undefined";
             
             if (wasManuallyUpdated) {
-              // Debug logging for MSA field
-              if (fieldName === 'MSA ID/Number') {
-                console.log(`INFO VIEW - MSA Field Rendering Blue User Icon - wasManuallyUpdated: ${wasManuallyUpdated}, validation:`, validation);
-              }
-              
               // Check if manually updated field is also verified
-              const isVerified = validation.validationStatus === 'valid' || validation.validationStatus === 'verified';
+              const isVerified = validation.validationStatus === 'valid' || validation.validationStatus === 'verified' || validation.validationStatus === 'manual';
               
-              // Debug logging for Document Date field  
-              if (fieldName.includes('Document Date') || fieldName === 'Document Date') {
-                console.log(`Document Date Verification Status - Field: ${fieldName}, validationStatus: ${validation.validationStatus}, isVerified: ${isVerified}, wasManuallyUpdated: ${wasManuallyUpdated}`, validation);
-              }
+              // Debug logging for all manually updated fields to understand the issue
+              console.log(`MANUALLY UPDATED FIELD - Field: ${fieldName}, validationStatus: ${validation.validationStatus}, isVerified: ${isVerified}, wasManuallyUpdated: ${wasManuallyUpdated}`, validation);
               
               return (
                 <div className="flex items-center gap-2">
