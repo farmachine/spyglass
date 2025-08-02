@@ -59,6 +59,12 @@ export function EditFieldValueDialog({
     setHasRevertedToAI(true);
   };
 
+  const handleClear = () => {
+    // Clear the field value to empty
+    setValue("");
+    setHasRevertedToAI(false);
+  };
+
   const getFieldDisplayName = (validation: FieldValidationWithName) => {
     if (validation.validationType === "schema_field") {
       // For schema fields, extract the field name from fieldName property
@@ -215,6 +221,13 @@ export function EditFieldValueDialog({
             )}
             
             <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                onClick={handleClear}
+                className="text-slate-600 hover:text-slate-700 hover:bg-slate-50"
+              >
+                Clear
+              </Button>
               <Button
                 onClick={handleSave}
                 className="bg-primary hover:bg-primary/90 flex items-center gap-2"
