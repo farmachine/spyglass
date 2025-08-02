@@ -242,7 +242,7 @@ export function EditFieldValueDialog({
 
           <div className="flex justify-between items-center pt-4 border-t">
             {/* Revert to AI Answer button - only show if there's an original value and the field was manually updated */}
-            {validation.manuallyUpdated && validation.originalExtractedValue ? (
+            {validation.manuallyUpdated && validation.originalExtractedValue !== null && validation.originalExtractedValue !== undefined ? (
               <Button
                 variant="ghost"
                 onClick={handleRevertToAI}
