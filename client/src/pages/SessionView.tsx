@@ -765,6 +765,82 @@ export default function SessionView() {
     }
   };
 
+  // Handler for verifying all items in a collection
+  const handleVerifyAllCollectionItems = (collectionName: string, shouldVerify: boolean) => {
+    console.log(`${shouldVerify ? 'Verifying' : 'Unverifying'} all items in collection: ${collectionName}`);
+    
+    // Find the collection
+    const collection = project?.collections?.find(c => c.collectionName === collectionName);
+    if (!collection) {
+      console.error(`Collection not found: ${collectionName}`);
+      return;
+    }
+    
+    // Find all validation records for this collection using improved filtering
+    const collectionValidations = validations.filter(v => {
+      // Primary approach: match by collectionName
+      if (v.collectionName === collectionName) {
+        return true;
+      }
+      
+      // Fallback approach: match by fieldName pattern for records with null collectionName
+      if (v.collectionName === null && v.fieldName && v.fieldName.startsWith(`${collectionName}.`)) {
+        return true;
+      }
+      
+      return false;
+    });
+
+    console.log(`Found ${collectionValidations.length} validations to ${shouldVerify ? 'verify' : 'unverify'} for collection ${collectionName}:`, 
+      collectionValidations.map(v => ({ id: v.id, fieldName: v.fieldName, status: v.validationStatus })));
+
+    if (collectionValidations.length === 0) {
+      console.warn(`No validations found for collection: ${collectionName}`);
+      toast({
+        title: "No data to verify",
+        description: `No validation records found for collection ${collectionName}.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const newStatus: ValidationStatus = shouldVerify ? 'verified' : 'pending';
+    
+    // Optimistic updates for all collection validations
+    queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
+      if (!oldData) return oldData;
+      return oldData.map((v: any) => {
+        const shouldUpdate = collectionValidations.some(cv => cv.id === v.id);
+        return shouldUpdate ? { ...v, validationStatus: newStatus, manuallyVerified: shouldVerify } : v;
+      });
+    });
+    
+    // Update all validations for this collection
+    const updatePromises = collectionValidations.map(validation => {
+      console.log(`Updating validation ${validation.id} (${validation.fieldName}) to status: ${newStatus}`);
+      return updateValidationMutation.mutateAsync({
+        id: validation.id,
+        data: { validationStatus: newStatus, manuallyVerified: shouldVerify }
+      });
+    });
+
+    Promise.all(updatePromises).then(() => {
+      toast({
+        title: `Collection ${shouldVerify ? 'verified' : 'unverified'}`,
+        description: `Successfully ${shouldVerify ? 'verified' : 'unverified'} all ${collectionValidations.length} items in ${collectionName}`,
+      });
+    }).catch((error) => {
+      console.error('Error updating collection verification:', error);
+      // Revert optimistic update on error
+      queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+      toast({
+        title: "Failed to update verification",
+        description: "An error occurred while updating collection verification.",
+        variant: "destructive"
+      });
+    });
+  };
+
   // Handler for deleting collection item
   const handleDeleteCollectionItem = async (collectionName: string, recordIndex: number) => {
     console.log(`Deleting collection item: ${collectionName}[${recordIndex}]`);
@@ -2147,7 +2223,13 @@ Thank you for your assistance.`;
                                     }).every(isVerified => isVerified);
                                     
                                     return (
-                                      <CheckCircle className={`h-5 w-5 ${allItemsVerified ? 'text-green-600' : 'text-gray-400'}`} />
+                                      <button
+                                        onClick={() => handleVerifyAllCollectionItems(collection.collectionName, !allItemsVerified)}
+                                        className="flex items-center justify-center hover:bg-gray-100 px-2 py-1 rounded transition-colors"
+                                        title={allItemsVerified ? "Click to mark all items as unverified" : "Click to mark all items as verified"}
+                                      >
+                                        <CheckCircle className={`h-5 w-5 ${allItemsVerified ? 'text-green-600' : 'text-gray-400'}`} />
+                                      </button>
                                     );
                                   })()}
                                   <Button
