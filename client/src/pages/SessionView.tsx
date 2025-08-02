@@ -715,7 +715,7 @@ export default function SessionView() {
           validationType: 'collection_property',
           dataType: property.propertyType, // TEXT, NUMBER, DATE, CHOICE
           fieldId: property.id,
-          collectionName: collectionName,
+          collectionName: collectionName, // Explicitly set the collection name
           recordIndex: newIndex,
           extractedValue: null, // Use null instead of empty string for optional fields
           originalExtractedValue: null,

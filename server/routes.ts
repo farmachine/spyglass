@@ -2875,17 +2875,31 @@ print(json.dumps(result))
   app.post("/api/sessions/:sessionId/validations", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
+      console.log('CREATE VALIDATION - Raw request body:', JSON.stringify(req.body, null, 2));
+      
       const result = insertFieldValidationSchema.safeParse({
         ...req.body,
         sessionId
       });
+      
+      console.log('CREATE VALIDATION - Schema validation result:', {
+        success: result.success,
+        data: result.success ? result.data : null,
+        errors: result.success ? null : result.error.errors
+      });
+      
       if (!result.success) {
+        console.error('CREATE VALIDATION - Schema validation failed:', result.error.errors);
         return res.status(400).json({ message: "Invalid field validation data", errors: result.error.errors });
       }
       
+      console.log('CREATE VALIDATION - About to create validation with data:', JSON.stringify(result.data, null, 2));
       const validation = await storage.createFieldValidation(result.data);
+      console.log('CREATE VALIDATION - Created validation:', JSON.stringify(validation, null, 2));
+      
       res.status(201).json(validation);
     } catch (error) {
+      console.error('CREATE VALIDATION - Error:', error);
       res.status(500).json({ message: "Failed to create field validation" });
     }
   });
