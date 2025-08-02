@@ -489,27 +489,25 @@ export default function SessionView() {
     enabled: !!projectId // Only run this query when we have a projectId
   });
 
-  const { data: validations = [], isLoading: validationsLoading } = useQuery<any[]>({
+  const { data: validations = [], isLoading: validationsLoading } = useQuery<FieldValidation[]>({
     queryKey: ['/api/sessions', sessionId, 'validations'],
-    queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`)
+    queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`),
+    onSuccess: (data) => {
+      console.log(`Session ${sessionId} - Validations loaded:`, data.length);
+      if (data.length > 0) {
+        console.log('Sample validation:', data[0]);
+        console.log('All field names:', data.map(v => v.fieldName));
+        console.log('Validations with extracted values:', data.filter(v => v.extractedValue).map(v => ({
+          fieldName: v.fieldName, 
+          extractedValue: v.extractedValue, 
+          confidenceScore: v.confidenceScore
+        })));
+      }
+    }
   });
 
-  // Log validations data when it changes
-  useEffect(() => {
-    if (validations.length > 0) {
-      console.log(`Session ${sessionId} - Validations loaded:`, validations.length);
-      console.log('Sample validation:', validations[0]);
-      console.log('All field names:', validations.map((v: any) => v.fieldName));
-      console.log('Validations with extracted values:', validations.filter((v: any) => v.extractedValue).map((v: any) => ({
-        fieldName: v.fieldName, 
-        extractedValue: v.extractedValue, 
-        confidenceScore: v.confidenceScore
-      })));
-    }
-  }, [validations, sessionId]);
-
   // Fetch project-level validations for statistics cards
-  const { data: projectValidations = [] } = useQuery<any[]>({
+  const { data: projectValidations = [] } = useQuery<FieldValidation[]>({
     queryKey: ['/api/validations/project', projectId],
     enabled: !!projectId
   });
@@ -522,7 +520,7 @@ export default function SessionView() {
       
       project.collections.forEach(collection => {
         // Check if collection has data
-        const collectionValidations = validations.filter((v: any) => v.collectionName === collection.collectionName);
+        const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
         const hasData = collectionValidations.length > 0 || 
           (extractedData && extractedData[collection.collectionName] && 
            Array.isArray(extractedData[collection.collectionName]) && 
@@ -596,7 +594,7 @@ export default function SessionView() {
     const validation = getValidation(fieldName);
     if (!validation) return;
     
-    const newStatus = isVerified ? 'valid' : 'invalid';
+    const newStatus: ValidationStatus = isVerified ? 'verified' : 'unverified';
     
     // Optimistic update: immediately update the UI
     queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
@@ -632,7 +630,7 @@ export default function SessionView() {
     
     // Find all fields for this collection item using multiple approaches
     // Some records might have collectionName: null, so we use fieldName patterns too
-    const itemValidations = validations.filter((v: any) => {
+    const itemValidations = validations.filter(v => {
       // Primary approach: match by collectionName and recordIndex
       if (v.collectionName === collectionName && v.recordIndex === recordIndex) {
         return true;
@@ -648,26 +646,26 @@ export default function SessionView() {
     });
     
     console.log(`Found ${itemValidations.length} validations for ${collectionName}[${recordIndex}]:`, 
-      itemValidations.map((v: any) => ({ id: v.id, fieldName: v.fieldName, collectionName: v.collectionName, recordIndex: v.recordIndex })));
+      itemValidations.map(v => ({ id: v.id, fieldName: v.fieldName, collectionName: v.collectionName, recordIndex: v.recordIndex })));
     
     if (itemValidations.length === 0) {
       console.warn(`No validations found for ${collectionName}[${recordIndex}]`);
       return;
     }
     
-    const newStatus = isVerified ? 'valid' : 'invalid';
+    const newStatus: ValidationStatus = isVerified ? 'verified' : 'unverified';
     
     // Optimistic updates for all item validations
     queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
       if (!oldData) return oldData;
       return oldData.map((v: any) => {
-        const shouldUpdate = itemValidations.some((iv: any) => iv.id === v.id);
+        const shouldUpdate = itemValidations.some(iv => iv.id === v.id);
         return shouldUpdate ? { ...v, validationStatus: newStatus, manuallyVerified: isVerified } : v;
       });
     });
     
     // Update all fields for this item
-    itemValidations.forEach((validation: any) => {
+    itemValidations.forEach(validation => {
       console.log(`Updating validation ${validation.id} to status: ${newStatus}`);
       updateValidationMutation.mutate({
         id: validation.id,
@@ -2080,6 +2078,8 @@ Thank you for your assistance.`;
                 
 
                 
+                if (maxRecordIndex < 0) return null;
+
                 return (
                   <TabsContent key={collection.id} value={collection.collectionName} className="mt-0 px-0 ml-0">
                     <Card className="border-t-0 rounded-tl-none ml-0">
@@ -2087,7 +2087,7 @@ Thank you for your assistance.`;
                         <CardTitle className="flex items-center gap-2">
                           {collection.collectionName}
                           <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                            {maxRecordIndex < 0 ? '0 items' : `${maxRecordIndex + 1} ${maxRecordIndex === 0 ? 'item' : 'items'}`}
+                            {maxRecordIndex + 1} {maxRecordIndex === 0 ? 'item' : 'items'}
                           </span>
                         </CardTitle>
                         <p className="text-sm text-gray-600">{collection.description}</p>
@@ -2096,6 +2096,7 @@ Thank you for your assistance.`;
                         <Table className="session-table">
                           <TableHeader>
                             <TableRow>
+
                               {collection.properties
                                 .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
                                 .map((property) => (
@@ -2133,26 +2134,22 @@ Thank you for your assistance.`;
                               ))}
                               <TableHead className="w-24 border-r border-gray-300" style={{ width: '96px', minWidth: '96px', maxWidth: '96px' }}>
                                 <div className="flex items-center justify-center gap-3 px-2">
-                                  {maxRecordIndex >= 0 ? (
-                                    <>
-                                      {(() => {
-                                        // Calculate if all items in this collection are verified
-                                        const allItemsVerified = Array.from({ length: maxRecordIndex + 1 }, (_, index) => {
-                                          const itemValidations = collection.properties.map(property => {
-                                            const fieldName = `${collection.collectionName}.${property.propertyName}[${index}]`;
-                                            return getValidation(fieldName);
-                                          }).filter(Boolean);
-                                          
-                                          return itemValidations.length > 0 && 
-                                            itemValidations.every(v => v?.validationStatus === 'valid' || v?.validationStatus === 'verified');
-                                        }).every(isVerified => isVerified);
-                                        
-                                        return (
-                                          <CheckCircle className={`h-5 w-5 ${allItemsVerified ? 'text-green-600' : 'text-gray-400'}`} />
-                                        );
-                                      })()}
-                                    </>
-                                  ) : null}
+                                  {(() => {
+                                    // Calculate if all items in this collection are verified
+                                    const allItemsVerified = Array.from({ length: maxRecordIndex + 1 }, (_, index) => {
+                                      const itemValidations = collection.properties.map(property => {
+                                        const fieldName = `${collection.collectionName}.${property.propertyName}[${index}]`;
+                                        return getValidation(fieldName);
+                                      }).filter(Boolean);
+                                      
+                                      return itemValidations.length > 0 && 
+                                        itemValidations.every(v => v?.validationStatus === 'valid' || v?.validationStatus === 'verified');
+                                    }).every(isVerified => isVerified);
+                                    
+                                    return (
+                                      <CheckCircle className={`h-5 w-5 ${allItemsVerified ? 'text-green-600' : 'text-gray-400'}`} />
+                                    );
+                                  })()}
                                   <Button
                                     size="sm"
                                     variant="ghost"
@@ -2167,28 +2164,7 @@ Thank you for your assistance.`;
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {maxRecordIndex < 0 ? (
-                              <TableRow>
-                                <TableCell 
-                                  colSpan={collection.properties.length + 1} 
-                                  className="h-32 text-center"
-                                >
-                                  <div className="flex flex-col items-center justify-center gap-3 text-gray-500">
-                                    <div className="text-sm">No data available</div>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => handleAddCollectionItem(collection.collectionName)}
-                                      className="flex items-center gap-2 text-green-600 border-green-200 hover:bg-green-50"
-                                    >
-                                      <Plus className="h-4 w-4" />
-                                      Add first item
-                                    </Button>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            ) : (
-                            (() => {
+                            {(() => {
                               // Create array of items with original indices
                               const itemsWithIndices = Array.from({ length: maxRecordIndex + 1 }, (_, index) => ({
                                 item: collectionData?.[index] || {},
