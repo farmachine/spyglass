@@ -1587,7 +1587,7 @@ Thank you for your assistance.`;
             // Check if field is verified (including manually verified fields)
             const isVerified = validation.validationStatus === 'valid' || 
                               validation.validationStatus === 'verified' || 
-                              (validation.validationStatus === 'manual' && validation.manuallyVerified);
+                              validation.manuallyVerified === true;
             
             // Check if field has actual value - if it has a value, it should never show "Not Extracted"
             const hasValue = validation.extractedValue !== null && 
@@ -1596,15 +1596,18 @@ Thank you for your assistance.`;
                            validation.extractedValue !== "null" && 
                            validation.extractedValue !== "undefined";
             
-            // Force console logging to debug
-            console.log(`ICON LOGIC - Field: ${fieldName}`, {
-              wasManuallyUpdated,
-              isVerified,
-              validationStatus: validation.validationStatus,
-              manuallyVerified: validation.manuallyVerified,
-              willShowUserIcon: wasManuallyUpdated && !isVerified,
-              willShowGreenCheck: wasManuallyUpdated && isVerified
-            });
+            // Force console logging to debug - this will help us understand the issue
+            if (fieldName === 'Document Date') {
+              console.log(`🐛 ICON LOGIC DEBUG - Field: ${fieldName}`, {
+                wasManuallyUpdated,
+                isVerified,
+                validationStatus: validation.validationStatus,
+                manuallyVerified: validation.manuallyVerified,
+                willShowUserIcon: wasManuallyUpdated && !isVerified,
+                willShowGreenCheck: wasManuallyUpdated && isVerified,
+                currentTime: new Date().toISOString()
+              });
+            }
             
             // Only show user icon if manually updated AND not verified
             if (wasManuallyUpdated && !isVerified) {
