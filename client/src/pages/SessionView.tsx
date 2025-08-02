@@ -2384,8 +2384,8 @@ Thank you for your assistance.`;
                                                 } else if (!hasValue) {
                                                   // Show red exclamation mark for missing fields
                                                   return (
-                                                    <div className="absolute top-2 left-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
-                                                      <span className="text-white text-xs font-bold leading-none">!</span>
+                                                    <div className="absolute top-2 left-1 w-3 h-3 bg-white border border-red-500 rounded-full flex items-center justify-center">
+                                                      <span className="text-red-500 text-xs font-bold leading-none">!</span>
                                                     </div>
                                                   );
                                                 }
