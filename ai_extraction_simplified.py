@@ -277,6 +277,27 @@ def step1_extract_from_documents(
                     json_schema_section += f"**Applies to**: All fields\n"
                 json_schema_section += f"**Content**:\n```\n{content}\n```\n\n"
         
+        # Add dedicated Extraction Rules section
+        if extraction_rules:
+            json_schema_section += "\n## EXTRACTION RULES:\n"
+            json_schema_section += "The following extraction rules modify field behavior:\n\n"
+            for i, rule in enumerate(extraction_rules):
+                rule_name = rule.get('ruleName', f'Rule {i+1}')
+                rule_content = rule.get('ruleContent', '')
+                rule_target = rule.get('targetField', [])
+                
+                json_schema_section += f"### {rule_name}\n"
+                if rule_content:
+                    json_schema_section += f"**Rule**: {rule_content}\n"
+                if rule_target:
+                    if isinstance(rule_target, list):
+                        json_schema_section += f"**Applies to**: {', '.join(rule_target)}\n"
+                    else:
+                        json_schema_section += f"**Applies to**: {rule_target}\n"
+                else:
+                    json_schema_section += f"**Applies to**: All fields\n"
+                json_schema_section += "\n"
+        
         # Add schema fields JSON format
         if project_schema.get("schema_fields"):
             json_schema_section += "\n## SCHEMA FIELDS JSON FORMAT:\n"
@@ -286,6 +307,7 @@ def step1_extract_from_documents(
                 field_name = field['fieldName']
                 field_type = field['fieldType']
                 field_description = field.get('description', '')
+                auto_verify_threshold = field.get('autoVerificationConfidence', 80)
                 
                 # Find applicable extraction rules for this field
                 applicable_rules = []
@@ -322,7 +344,8 @@ def step1_extract_from_documents(
                 json_schema_section += f"      \"field_id\": \"{field_id}\",\n"
                 json_schema_section += f"      \"field_name\": \"{field_name}\",\n"
                 json_schema_section += f"      \"field_type\": \"{field_type}\",\n"
-                json_schema_section += f"      \"description\": \"{full_instruction}\""
+                json_schema_section += f"      \"description\": \"{full_instruction}\",\n"
+                json_schema_section += f"      \"auto_verification_confidence\": {auto_verify_threshold}"
                 if field_type == 'CHOICE' and field.get('choiceOptions'):
                     json_schema_section += f",\n      \"choices\": {field['choiceOptions']}"
                 
@@ -408,6 +431,7 @@ def step1_extract_from_documents(
                     prop_type = prop.get('propertyType', 'TEXT')
                     prop_description = prop.get('description', '')
                     prop_id = prop['id']
+                    prop_auto_verify_threshold = prop.get('autoVerificationConfidence', 80)
                     
                     # Find applicable extraction rules for this property
                     prop_rules = []
@@ -461,7 +485,8 @@ def step1_extract_from_documents(
                     json_schema_section += f"          \"property_id\": \"{prop_id}\",\n"
                     json_schema_section += f"          \"property_name\": \"{prop_name}\",\n"
                     json_schema_section += f"          \"property_type\": \"{prop_type}\",\n"
-                    json_schema_section += f"          \"description\": \"{prop_instruction}\""
+                    json_schema_section += f"          \"description\": \"{prop_instruction}\",\n"
+                    json_schema_section += f"          \"auto_verification_confidence\": {prop_auto_verify_threshold}"
                     if prop_type == 'CHOICE' and prop.get('choiceOptions'):
                         json_schema_section += f",\n          \"choices\": {prop['choiceOptions']}"
                     
