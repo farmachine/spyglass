@@ -254,8 +254,127 @@ def step1_extract_from_documents(
                         prop_id = prop['id']
                         collections_text += f"\n  * **{prop_name}** (ID: {prop_id}, {prop_type}): {prop_instruction}"
         
-        # Use the imported prompt template with our schema and collections
-        prompt = EXTRACTION_PROMPT.format(
+        # Generate JSON schema section showing exact field mappings
+        json_schema_section = ""
+        
+        # Add schema fields JSON format
+        if project_schema.get("schema_fields"):
+            json_schema_section += "\n## SCHEMA FIELDS JSON FORMAT:\n"
+            json_schema_section += "```json\n{\n  \"schema_fields\": [\n"
+            for i, field in enumerate(project_schema["schema_fields"]):
+                field_id = field['id']
+                field_name = field['fieldName']
+                field_type = field['fieldType']
+                field_description = field.get('description', '')
+                
+                # Find applicable extraction rules for this field
+                applicable_rules = []
+                if extraction_rules:
+                    for rule in extraction_rules:
+                        rule_target = rule.get('targetField', [])
+                        if isinstance(rule_target, list):
+                            if field_name in rule_target or 'All Fields' in rule_target:
+                                applicable_rules.append(rule.get('ruleContent', ''))
+                        elif field_name == rule_target or rule_target == 'All Fields':
+                            applicable_rules.append(rule.get('ruleContent', ''))
+                
+                # Combine description with rules
+                full_instruction = field_description or 'Extract this field from the documents'
+                if applicable_rules:
+                    full_instruction += " | RULE: " + " | RULE: ".join(applicable_rules)
+                
+                json_schema_section += f"    {{\n"
+                json_schema_section += f"      \"field_id\": \"{field_id}\",\n"
+                json_schema_section += f"      \"field_name\": \"{field_name}\",\n"
+                json_schema_section += f"      \"field_type\": \"{field_type}\",\n"
+                json_schema_section += f"      \"description\": \"{full_instruction}\""
+                if field_type == 'CHOICE' and field.get('choiceOptions'):
+                    json_schema_section += f",\n      \"choices\": {field['choiceOptions']}"
+                json_schema_section += "\n    }"
+                if i < len(project_schema["schema_fields"]) - 1:
+                    json_schema_section += ","
+                json_schema_section += "\n"
+            json_schema_section += "  ]\n}\n```\n"
+        
+        # Add collections JSON format
+        if project_schema.get("collections"):
+            json_schema_section += "\n## COLLECTIONS JSON FORMAT:\n"
+            json_schema_section += "```json\n{\n  \"collections\": [\n"
+            for i, collection in enumerate(project_schema["collections"]):
+                collection_name = collection.get('collectionName', collection.get('objectName', ''))
+                collection_description = collection.get('description', '')
+                
+                # Find applicable extraction rules for this collection
+                applicable_rules = []
+                if extraction_rules:
+                    for rule in extraction_rules:
+                        rule_target = rule.get('targetField', [])
+                        if isinstance(rule_target, list):
+                            if collection_name in rule_target or 'All Fields' in rule_target:
+                                applicable_rules.append(rule.get('ruleContent', ''))
+                        elif collection_name == rule_target or rule_target == 'All Fields':
+                            applicable_rules.append(rule.get('ruleContent', ''))
+                
+                full_instruction = collection_description or 'Extract array of these objects'
+                if applicable_rules:
+                    full_instruction += " | RULE: " + " | RULE: ".join(applicable_rules)
+                
+                json_schema_section += f"    {{\n"
+                json_schema_section += f"      \"collection_name\": \"{collection_name}\",\n"
+                json_schema_section += f"      \"description\": \"{full_instruction}\",\n"
+                json_schema_section += f"      \"properties\": [\n"
+                
+                properties = collection.get("properties", [])
+                for j, prop in enumerate(properties):
+                    prop_name = prop.get('propertyName', '')
+                    prop_type = prop.get('propertyType', 'TEXT')
+                    prop_description = prop.get('description', '')
+                    prop_id = prop['id']
+                    
+                    # Find applicable extraction rules for this property
+                    prop_rules = []
+                    if extraction_rules:
+                        for rule in extraction_rules:
+                            rule_target = rule.get('targetField', [])
+                            arrow_notation = f"{collection_name} --> {prop_name}"
+                            full_prop_name = f"{collection_name}.{prop_name}"
+                            
+                            if isinstance(rule_target, list):
+                                if (arrow_notation in rule_target or 
+                                    full_prop_name in rule_target or 
+                                    prop_name in rule_target or 
+                                    'All Fields' in rule_target):
+                                    prop_rules.append(rule.get('ruleContent', ''))
+                            elif (arrow_notation == rule_target or 
+                                  full_prop_name == rule_target or 
+                                  prop_name == rule_target or 
+                                  rule_target == 'All Fields'):
+                                prop_rules.append(rule.get('ruleContent', ''))
+                    
+                    prop_instruction = prop_description or 'Extract this property'
+                    if prop_rules:
+                        prop_instruction += " | RULE: " + " | RULE: ".join(prop_rules)
+                    
+                    json_schema_section += f"        {{\n"
+                    json_schema_section += f"          \"property_id\": \"{prop_id}\",\n"
+                    json_schema_section += f"          \"property_name\": \"{prop_name}\",\n"
+                    json_schema_section += f"          \"property_type\": \"{prop_type}\",\n"
+                    json_schema_section += f"          \"description\": \"{prop_instruction}\""
+                    if prop_type == 'CHOICE' and prop.get('choiceOptions'):
+                        json_schema_section += f",\n          \"choices\": {prop['choiceOptions']}"
+                    json_schema_section += "\n        }"
+                    if j < len(properties) - 1:
+                        json_schema_section += ","
+                    json_schema_section += "\n"
+                
+                json_schema_section += "      ]\n    }"
+                if i < len(project_schema["collections"]) - 1:
+                    json_schema_section += ","
+                json_schema_section += "\n"
+            json_schema_section += "  ]\n}\n```\n"
+        
+        # Use the imported prompt template with our schema, collections, and JSON schema
+        full_prompt = json_schema_section + "\n" + EXTRACTION_PROMPT.format(
             schema_fields=schema_fields_text,
             collections=collections_text
         )
@@ -357,7 +476,7 @@ def step1_extract_from_documents(
         
         # The imported prompt already contains all the necessary instructions
         # Just add document verification and choice field handling specific to this run
-        prompt += f"""
+        full_prompt += f"""
 
 DOCUMENT VERIFICATION: Confirm you processed all {len(documents)} documents: {[doc.get('file_name', 'Unknown') for doc in documents]}
 
@@ -660,7 +779,7 @@ RETURN: Complete readable content from this document."""
         logging.info(f"STEP 1 COMPLETE: Processed {processed_docs} documents, extracted total of {len(extracted_content_text)} characters from all documents")
         
         # Now proceed with data extraction using the extracted content
-        final_prompt = prompt + f"\n\nEXTRACTED DOCUMENT CONTENT:\n{extracted_content_text}"
+        final_prompt = full_prompt + f"\n\nEXTRACTED DOCUMENT CONTENT:\n{extracted_content_text}"
         
         # STEP 2: DATA EXTRACTION FROM CONTENT
         logging.info(f"=== STEP 2: DATA EXTRACTION ===")
