@@ -2127,10 +2127,16 @@ Thank you for your assistance.`;
                   v.collectionName === collection.collectionName || 
                   (v.fieldName && v.fieldName.startsWith(collection.collectionName + '.'))
                 );
+                
+                console.log(`Collection ${collection.collectionName} - found ${collectionValidations.length} validations:`, 
+                  collectionValidations.map(v => ({ fieldName: v.fieldName, recordIndex: v.recordIndex, collectionName: v.collectionName })));
+                
                 const validationIndices = collectionValidations.length > 0 ? 
                   collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null && idx !== undefined) : [];
                 const uniqueIndices = [...new Set(validationIndices)].sort((a, b) => a - b);
                 const maxRecordIndex = uniqueIndices.length > 0 ? Math.max(...uniqueIndices) : -1;
+                
+                console.log(`Collection ${collection.collectionName} - uniqueIndices:`, uniqueIndices);
                 
                 // Always show the table even when there are no records, so headers remain visible
 
