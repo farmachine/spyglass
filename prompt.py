@@ -6,7 +6,7 @@ EXTRACTION_PROMPT = """You are an expert data extraction specialist. Extract dat
 1. PROCESS ALL DOCUMENTS: Process every document provided in the document set
 2. FOLLOW SCHEMA FIELD DESCRIPTIONS PRECISELY - Each description is your extraction instruction
 3. APPLY EXTRACTION RULES - Rules modify extraction behavior, formatting, and validation
-4. **USE KNOWLEDGE DOCUMENTS**: When knowledge_documents are provided for a field, use their content for validation and context understanding - they contain reference information to help you extract correctly
+4. **USE KNOWLEDGE DOCUMENTS**: When knowledge_documents are listed for a field/collection/property, use ONLY those specific documents for validation and context. If a field has an empty knowledge_documents array [], ignore all knowledge documents for that field - only use knowledge documents that are explicitly referenced by name
 5. **SECTION-AWARE EXTRACTION**: When extracting collections, include ALL items found in relevant sections, even if they don't explicitly match the collection name
 6. **INCLUSIVE APPROACH**: It's better to include potentially relevant items than to miss them - users can delete irrelevant items later
 7. For NUMBER fields: Count ALL instances across ALL documents as described
@@ -22,6 +22,14 @@ EXTRACTION_PROMPT = """You are an expert data extraction specialist. Extract dat
 14. **SECTION NAME MATCHING**: If collection name matches document section name (e.g., "Increase Rates" collection and "2.3 Increase Rates" section), extract ALL numbered subsections within that section boundary
 15. **CONTENT RELATIONSHIP**: If collection properties (escalation types, rate values) relate to table content, extract the ENTIRE section containing that content type
 16. **PIPE-SEPARATED DATA**: Recognize pipe (|) separated data as table structure even without proper markdown formatting
+
+## KNOWLEDGE DOCUMENT TARGETING:
+- **Field-Specific Targeting**: Each field/collection/property has a knowledge_documents array listing which documents apply to it
+- **Explicit References Only**: If a field lists specific knowledge documents by name, use ONLY those documents for that field
+- **Empty Array Rule**: If a field has knowledge_documents: [], do NOT use any knowledge documents for that field - ignore all knowledge document content
+- **Document Name Matching**: Knowledge documents are referenced by their display names (e.g., "NDA Review Playbook")
+- **Selective Application**: Different fields may reference different knowledge documents - apply each document only where explicitly listed
+- **Context Isolation**: Do not cross-contaminate knowledge document guidance between fields that don't share the same document references
 
 ## SECTION-AWARE EXTRACTION RULES:
 
