@@ -1596,17 +1596,15 @@ Thank you for your assistance.`;
                            validation.extractedValue !== "null" && 
                            validation.extractedValue !== "undefined";
             
-            // Debug logging to understand the logic
-            if (fieldName === 'Document Date') {
-              console.log(`Field ${fieldName}:`, {
-                wasManuallyUpdated,
-                isVerified,
-                validationStatus: validation.validationStatus,
-                manuallyVerified: validation.manuallyVerified,
-                willShowUserIcon: wasManuallyUpdated && !isVerified,
-                willShowGreenCheck: wasManuallyUpdated && isVerified
-              });
-            }
+            // Force console logging to debug
+            console.log(`ICON LOGIC - Field: ${fieldName}`, {
+              wasManuallyUpdated,
+              isVerified,
+              validationStatus: validation.validationStatus,
+              manuallyVerified: validation.manuallyVerified,
+              willShowUserIcon: wasManuallyUpdated && !isVerified,
+              willShowGreenCheck: wasManuallyUpdated && isVerified
+            });
             
             // Only show user icon if manually updated AND not verified
             if (wasManuallyUpdated && !isVerified) {
