@@ -486,10 +486,10 @@ export default function SessionView() {
       if (data.length > 0) {
         console.log('Sample validation:', data[0]);
         console.log('All field names:', data.map(v => v.fieldName));
-        console.log('Validations with extracted values:', data.filter(v => v.extractedValue).map(v => ({
-          fieldName: v.fieldName, 
-          extractedValue: v.extractedValue, 
-          confidenceScore: v.confidenceScore
+        console.log('Collection validations:', data.filter(v => v.validationType === 'collection_property').map(v => ({
+          fieldName: v.fieldName,
+          recordIndex: v.recordIndex,
+          collectionName: v.collectionName
         })));
       }
     }
@@ -739,13 +739,15 @@ export default function SessionView() {
       });
       
       await Promise.all(createPromises);
+      console.log('All validation records created successfully');
       
-      // Invalidate queries to refresh the UI with real data
-      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+      // Force refetch instead of just invalidating to ensure UI updates
+      await queryClient.refetchQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+      console.log('Cache refetched after creating collection item');
     } catch (error) {
       // Revert optimistic update on error
-      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
       console.error('Failed to add item:', error);
+      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
     }
   };
 
