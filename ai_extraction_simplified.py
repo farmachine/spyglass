@@ -351,6 +351,19 @@ def step1_extract_from_documents(
         logging.info(f"Generated field validation example with {len(extraction_rules or [])} extraction rules")
         logging.info(f"Dynamic example preview (first 500 chars): {dynamic_example[:500]}...")
         
+        # Create field ID mapping for verification
+        field_id_mapping = {}
+        if project_schema.get("schema_fields"):
+            for field in project_schema["schema_fields"]:
+                field_id_mapping[field['fieldName']] = field['id']
+        if project_schema.get("collections"):
+            for collection in project_schema["collections"]:
+                for prop in collection.get("properties", []):
+                    prop_name = f"{collection.get('collectionName', '')}.{prop['propertyName']}"
+                    field_id_mapping[prop_name] = prop['id']
+        
+        logging.info(f"Field ID mapping for validation: {field_id_mapping}")
+        
         # The imported prompt already contains all the necessary instructions
         # Just add document verification and choice field handling specific to this run
         prompt += f"""
@@ -363,7 +376,12 @@ CHOICE FIELD HANDLING:
 - Choice options are specified as "The output should be one of the following choices: ..."
 - Example: For Yes/No choice, only return "Yes" or "No", never "true", "false", "1", "0", etc.
 
-**CRITICAL FIELD ID REQUIREMENT**: Use the EXACT field_id values provided in the schema above. Do not generate your own field IDs like "IncreaseRatesSection0". Use the actual IDs from the schema.
+**CRITICAL FIELD ID REQUIREMENT**: 
+- Use ONLY the EXACT field_id values from the JSON example above
+- Field IDs are UUIDs like "585ace35-b5b3-4361-857a-c1d7cea5141e" 
+- NEVER use field names like "Product/ServiceSpecificationsMet" as field_id
+- NEVER generate your own field IDs
+- Copy the exact UUID field_id from the example structure
 
 **CRITICAL COLLECTION NAME REQUIREMENT**: For collection properties, you MUST include the "collection_name" field in each field validation object. Use the exact collection name from the schema (e.g., "Increase Rates").
 
