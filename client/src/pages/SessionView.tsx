@@ -865,11 +865,6 @@ export default function SessionView() {
 
     if (itemValidations.length === 0) {
       console.warn(`No validations found for ${collectionName}[${recordIndex}] - nothing to delete`);
-      toast({
-        title: "No data to delete",
-        description: "No validation records found for this item.",
-        variant: "destructive"
-      });
       return;
     }
 
@@ -907,20 +902,10 @@ export default function SessionView() {
       
       // Invalidate queries to refresh the UI
       await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
-      
-      toast({
-        title: "Item deleted",
-        description: `Successfully deleted ${collectionName} item #${recordIndex + 1}`,
-      });
     } catch (error) {
       console.error('Error deleting collection item:', error);
       // Revert optimistic update on error
       await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
-      toast({
-        title: "Failed to delete item",
-        description: "An error occurred while deleting the item.",
-        variant: "destructive"
-      });
     }
   };
 
