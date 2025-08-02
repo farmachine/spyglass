@@ -767,30 +767,78 @@ export default function SessionView() {
 
   // Handler for deleting collection item
   const handleDeleteCollectionItem = async (collectionName: string, recordIndex: number) => {
-    // Find all validations for this collection item
-    const itemValidations = validations.filter(v => 
-      v.collectionName === collectionName && 
-      v.recordIndex === recordIndex
-    );
+    console.log(`Deleting collection item: ${collectionName}[${recordIndex}]`);
+    
+    // Find all validations for this collection item using improved filtering
+    const itemValidations = validations.filter(v => {
+      // Primary approach: match by collectionName and recordIndex
+      if (v.collectionName === collectionName && v.recordIndex === recordIndex) {
+        return true;
+      }
+      
+      // Fallback approach: match by fieldName pattern for records with null collectionName
+      if (v.collectionName === null && v.fieldName && v.fieldName.includes(`[${recordIndex}]`)) {
+        // Check if fieldName starts with the collection name
+        return v.fieldName.startsWith(`${collectionName}.`);
+      }
+      
+      return false;
+    });
 
-    // Optimistic update: Remove items from cache
-    queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (old: any) => 
-      old ? old.filter((v: any) => !(v.collectionName === collectionName && v.recordIndex === recordIndex)) : []
-    );
+    console.log(`Found ${itemValidations.length} validations to delete for ${collectionName}[${recordIndex}]:`, 
+      itemValidations.map(v => ({ id: v.id, fieldName: v.fieldName, collectionName: v.collectionName, recordIndex: v.recordIndex })));
+
+    if (itemValidations.length === 0) {
+      console.warn(`No validations found for ${collectionName}[${recordIndex}] - nothing to delete`);
+      toast({
+        title: "No data to delete",
+        description: "No validation records found for this item.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Optimistic update: Remove items from cache using the same filtering logic
+    queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (old: any) => {
+      if (!old) return old;
+      return old.filter((v: any) => {
+        // Keep items that don't match our delete criteria
+        if (v.collectionName === collectionName && v.recordIndex === recordIndex) {
+          return false; // Remove this item
+        }
+        
+        if (v.collectionName === null && v.fieldName && v.fieldName.includes(`[${recordIndex}]`)) {
+          if (v.fieldName.startsWith(`${collectionName}.`)) {
+            return false; // Remove this item
+          }
+        }
+        
+        return true; // Keep this item
+      });
+    });
     
     try {
       // Delete all validation records for this item
-      const deletePromises = itemValidations.map(validation => 
-        apiRequest(`/api/validations/${validation.id}`, {
+      const deletePromises = itemValidations.map(validation => {
+        console.log(`Deleting validation record: ${validation.id} (${validation.fieldName})`);
+        return apiRequest(`/api/validations/${validation.id}`, {
           method: 'DELETE'
-        })
-      );
+        });
+      });
       
       await Promise.all(deletePromises);
       
+      console.log(`Successfully deleted ${itemValidations.length} validation records for ${collectionName}[${recordIndex}]`);
+      
       // Invalidate queries to refresh the UI
       await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+      
+      toast({
+        title: "Item deleted",
+        description: `Successfully deleted ${collectionName} item #${recordIndex + 1}`,
+      });
     } catch (error) {
+      console.error('Error deleting collection item:', error);
       // Revert optimistic update on error
       await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
       toast({
