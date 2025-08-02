@@ -1313,6 +1313,16 @@ Thank you for your assistance.`;
         );
       });
       
+      // Debug logging to see what we're sending
+      console.log(`🔧 VERIFICATION UPDATE - Field: ${fieldName}`, {
+        fieldName,
+        currentStatus: validation.validationStatus,
+        currentManuallyUpdated: validation.manuallyUpdated,
+        newStatus,
+        isVerified,
+        validationId: validation.id
+      });
+      
       try {
         await updateValidationMutation.mutateAsync({
           id: validation.id,
