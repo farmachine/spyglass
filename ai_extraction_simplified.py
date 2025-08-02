@@ -275,10 +275,7 @@ def step1_extract_from_documents(
                     json_schema_section += f"**Applies to**: {target_field}\n"
                 else:
                     json_schema_section += f"**Applies to**: All fields\n"
-                
-                # Optimize knowledge document content for AI readability
-                optimized_content = optimize_knowledge_document_text(content)
-                json_schema_section += f"**Content**:\n```\n{optimized_content}\n```\n\n"
+                json_schema_section += f"**Content**:\n```\n{content}\n```\n\n"
         
         # Add schema fields JSON format
         if project_schema.get("schema_fields"):
