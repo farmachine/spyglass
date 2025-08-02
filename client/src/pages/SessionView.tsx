@@ -699,9 +699,13 @@ export default function SessionView() {
     }));
 
     // Optimistically update the cache
-    queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (old: any) => 
-      old ? [...old, ...tempValidations] : tempValidations
-    );
+    queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (old: any) => {
+      console.log('Adding collection item - current cache:', old);
+      console.log('Adding temp validations:', tempValidations);
+      const updated = old ? [...old, ...tempValidations] : tempValidations;
+      console.log('Updated cache:', updated);
+      return updated;
+    });
     
     try {
       // Create validation records for each property in the collection
