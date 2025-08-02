@@ -2725,6 +2725,14 @@ print(json.dumps(result))
         
         console.log(`Creating validation record for schema field: ${field.fieldName} = ${fieldValue} (looking for ${camelCaseFieldName})`);
         
+        // Determine validation status based on confidence score vs threshold
+        const confidenceScore = fieldValue ? 95 : 20;
+        const autoVerifyThreshold = field.autoVerificationConfidence || 80;
+        const shouldAutoVerify = confidenceScore >= autoVerifyThreshold;
+        const validationStatus = shouldAutoVerify ? 'verified' : 'unverified';
+        
+        console.log(`Schema field ${field.fieldName}: confidence ${confidenceScore}% vs threshold ${autoVerifyThreshold}% = ${validationStatus}`);
+        
         await storage.createFieldValidation({
           sessionId,
           validationType: 'schema_field',
@@ -2736,10 +2744,10 @@ print(json.dumps(result))
           originalExtractedValue: fieldValue !== undefined ? fieldValue?.toString() : null,
           originalConfidenceScore: fieldValue ? 95 : 20,
           originalAiReasoning: fieldValue ? "Calculated from extracted data" : "Not found in document",
-          validationStatus: "unverified",
+          validationStatus: validationStatus,
           aiReasoning: "Pending validation",
           manuallyVerified: false,
-          confidenceScore: fieldValue ? 95 : 20 // Set proper initial confidence
+          confidenceScore: confidenceScore
         });
         
         console.log(`Created validation record for schema field: ${field.fieldName} = ${fieldValue}`);
@@ -3182,6 +3190,32 @@ print(json.dumps(result))
             // Create field validations from results
             if (extractionResults.field_validations) {
               for (const validation of extractionResults.field_validations) {
+                // Get auto-verification threshold for this field
+                let autoVerifyThreshold = 80; // Default threshold
+                
+                try {
+                  if (validation.validation_type === 'schema_field') {
+                    const schemaField = await storage.getProjectSchemaFieldById(validation.field_id);
+                    if (schemaField?.autoVerificationConfidence) {
+                      autoVerifyThreshold = schemaField.autoVerificationConfidence;
+                    }
+                  } else if (validation.validation_type === 'collection_property') {
+                    const collectionProperty = await storage.getCollectionPropertyById(validation.field_id);
+                    if (collectionProperty?.autoVerificationConfidence) {
+                      autoVerifyThreshold = collectionProperty.autoVerificationConfidence;
+                    }
+                  }
+                } catch (error) {
+                  console.warn(`Could not get auto-verification threshold for field ${validation.field_id}, using default 80`);
+                }
+                
+                // Determine validation status based on confidence score vs threshold
+                const confidenceScore = validation.confidence_score || 0;
+                const shouldAutoVerify = confidenceScore >= autoVerifyThreshold;
+                const validationStatus = shouldAutoVerify ? 'verified' : 'unverified';
+                
+                console.log(`Field ${validation.field_id}: confidence ${confidenceScore}% vs threshold ${autoVerifyThreshold}% = ${validationStatus}`);
+                
                 await storage.createFieldValidation({
                   sessionId: sessionId,
                   validationType: validation.validation_type || 'schema_field',
@@ -3190,10 +3224,10 @@ print(json.dumps(result))
                   collectionName: validation.collection_name || null,
                   recordIndex: validation.record_index || 0,
                   extractedValue: validation.extracted_value,
-                  validationStatus: validation.validation_status || 'pending',
+                  validationStatus: validationStatus,
                   aiReasoning: validation.ai_reasoning || '',
                   manuallyVerified: false,
-                  confidenceScore: validation.confidence_score || 0
+                  confidenceScore: confidenceScore
                 });
               }
             }

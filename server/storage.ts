@@ -1011,6 +1011,10 @@ export class MemStorage implements IStorage {
     return this.projectSchemaFields.delete(id);
   }
 
+  async getProjectSchemaFieldById(id: string): Promise<ProjectSchemaField | undefined> {
+    return this.projectSchemaFields.get(id);
+  }
+
   // Object Collections
   async getObjectCollections(projectId: string): Promise<(ObjectCollection & { properties: CollectionProperty[] })[]> {
     const collections = Array.from(this.objectCollections.values())
@@ -1091,6 +1095,10 @@ export class MemStorage implements IStorage {
 
   async deleteCollectionProperty(id: string): Promise<boolean> {
     return this.collectionProperties.delete(id);
+  }
+
+  async getCollectionPropertyById(id: string): Promise<CollectionProperty | undefined> {
+    return this.collectionProperties.get(id);
   }
 
   // Extraction Sessions

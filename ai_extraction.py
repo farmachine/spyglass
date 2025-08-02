@@ -115,7 +115,7 @@ def ai_validate_batch(field_validations: List[Dict[str, Any]], extraction_rules:
         
         # Build fields summary for AI
         fields_summary = "FIELDS TO VALIDATE:\n"
-        for fv in valid_fields:
+        for fv in field_validations:
             fields_summary += f"- Field: {fv['field_name']} = '{fv['extracted_value']}'\n"
         
         # Add extraction rules context
@@ -159,17 +159,17 @@ For each field, use AI judgment to:
 4. Provide human-friendly reasoning
 
 CONFIDENCE GUIDELINES:
-- 95-100%: Clear, well-extracted values with high confidence
-- 80-94%: Good extraction with minor uncertainty
-- 50-79%: Reasonable extraction but some concerns
-- 0-49%: Poor extraction or significant issues
+- 90-100%: Clear, well-extracted values with high confidence
+- 75-89%: Good extraction with minor uncertainty
+- 60-74%: Reasonable extraction but some concerns
+- 40-59%: Medium confidence, some rule violations or policy conflicts
+- 20-39%: Low confidence, significant issues or conflicts
+- 1-19%: Very low confidence, major problems
 - 0%: No value found or null extraction
 
 CRITICAL: Use AI judgment only. Do not count collection items or apply programmatic calculations.
-- 50-79%: Medium confidence, some rule violations or policy conflicts
-- 25-49%: Low confidence, significant issues or conflicts
-- 1-24%: Very low confidence, major problems
-- 50%: Standard for knowledge document policy conflicts
+- Use 50% for knowledge document policy conflicts
+- Vary confidence scores realistically (avoid always using 100%)
 
 RESPONSE FORMAT:
 Return a JSON object with field names as keys and validation results as values:
@@ -193,7 +193,7 @@ Return a JSON object with field names as keys and validation results as values:
 
 Important: Process all fields efficiently. Apply rules like 'Inc.' entity ambiguity and jurisdiction conflicts from knowledge documents consistently."""
 
-        logging.info(f"AI_VALIDATE_BATCH: Sending batch validation request for {len(valid_fields)} fields")
+        logging.info(f"AI_VALIDATE_BATCH: Sending batch validation request for {len(field_validations)} fields")
         logging.info(f"AI_VALIDATE_BATCH: Prompt length: {len(validation_prompt)} characters")
         
         # Make AI request
