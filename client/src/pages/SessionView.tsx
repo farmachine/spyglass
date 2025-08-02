@@ -506,6 +506,16 @@ export default function SessionView() {
         extractedValue: v.extractedValue, 
         confidenceScore: v.confidenceScore
       })));
+      
+      // Test if click handlers are being attached - add a simple test button
+      console.log("=== TESTING CLICK HANDLER ATTACHMENT ===");
+      setTimeout(() => {
+        const buttons = document.querySelectorAll('button[title*="confidence"]');
+        console.log(`Found ${buttons.length} confidence buttons in DOM`);
+        buttons.forEach((btn, i) => {
+          console.log(`Button ${i}:`, btn.className, btn.title);
+        });
+      }, 1000);
     }
   }, [validations, sessionId]);
 
@@ -594,6 +604,8 @@ export default function SessionView() {
 
   // Handler for field verification changes
   const handleFieldVerification = (fieldName: string, isVerified: boolean) => {
+    console.log(`=== VERIFICATION HANDLER CALLED ===`);
+    console.log(`Field: ${fieldName}, isVerified: ${isVerified}`);
     console.log(`CLICK DETECTED: ${fieldName}, isVerified: ${isVerified}`);
     const validation = getValidation(fieldName);
     if (!validation) {
