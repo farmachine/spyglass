@@ -218,10 +218,7 @@ const ValidationToggle = ({ fieldName, validation, onToggle }: {
     return <div className="text-xs text-gray-400">No validation data</div>;
   }
 
-  const isVerified = validation.validationStatus === 'valid' || 
-                    validation.validationStatus === 'verified' || 
-                    validation.validationStatus === 'manual-verified' ||
-                    (validation.validationStatus === 'manual' && validation.manuallyVerified);
+  const isVerified = validation.validationStatus === 'valid' || validation.validationStatus === 'verified';
 
   return (
     <div className="flex items-center gap-2">
@@ -1292,16 +1289,9 @@ Thank you for your assistance.`;
   const handleVerificationToggle = async (fieldName: string, isVerified: boolean) => {
     const validation = getValidation(fieldName);
     if (validation) {
-      // Properly handle verification status for different field types
-      let newStatus: string;
-      
-      if (validation.manuallyUpdated) {
-        // For manually updated fields, use "manual-verified" when verified, "manual" when unverified
-        newStatus = isVerified ? "manual-verified" : "manual";
-      } else {
-        // For AI-extracted fields, use "verified" when verified, "pending" when unverified
-        newStatus = isVerified ? "verified" : "pending";
-      }
+      // Preserve manual status when verifying manually entered fields
+      const wasManuallyEntered = validation.validationStatus === 'manual';
+      const newStatus = wasManuallyEntered ? "manual" : (isVerified ? "valid" : "pending");
       
       // Optimistic update
       queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
@@ -1311,16 +1301,6 @@ Thank you for your assistance.`;
             ? { ...v, validationStatus: newStatus, manuallyVerified: isVerified }
             : v
         );
-      });
-      
-      // Debug logging to see what we're sending
-      console.log(`🔧 VERIFICATION UPDATE - Field: ${fieldName}`, {
-        fieldName,
-        currentStatus: validation.validationStatus,
-        currentManuallyUpdated: validation.manuallyUpdated,
-        newStatus,
-        isVerified,
-        validationId: validation.id
       });
       
       try {
@@ -1602,11 +1582,7 @@ Thank you for your assistance.`;
             // Check if field was manually updated by user (uses dedicated manually_updated flag)
             const wasManuallyUpdated = validation.manuallyUpdated;
             
-            // Check if field is verified (including manually verified fields)
-            const isVerified = validation.validationStatus === 'valid' || 
-                              validation.validationStatus === 'verified' || 
-                              validation.validationStatus === 'manual-verified' ||
-                              validation.manuallyVerified === true;
+
             
             // Check if field has actual value - if it has a value, it should never show "Not Extracted"
             const hasValue = validation.extractedValue !== null && 
@@ -1615,43 +1591,17 @@ Thank you for your assistance.`;
                            validation.extractedValue !== "null" && 
                            validation.extractedValue !== "undefined";
             
-            // Force console logging to debug - this will help us understand the issue
-            if (fieldName === 'Document Date') {
-              console.log(`🐛 ICON LOGIC DEBUG - Field: ${fieldName}`, {
-                wasManuallyUpdated,
-                isVerified,
-                validationStatus: validation.validationStatus,
-                manuallyVerified: validation.manuallyVerified,
-                willShowUserIcon: wasManuallyUpdated && !isVerified,
-                willShowGreenCheck: wasManuallyUpdated && isVerified,
-                currentTime: new Date().toISOString()
-              });
-            }
-            
-            // Only show user icon if manually updated AND not verified
-            if (wasManuallyUpdated && !isVerified) {
+            if (wasManuallyUpdated) {
+              // Debug logging for MSA field
+              if (fieldName === 'MSA ID/Number') {
+                console.log(`INFO VIEW - MSA Field Rendering Blue User Icon - wasManuallyUpdated: ${wasManuallyUpdated}, validation:`, validation);
+              }
               
               return (
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
                     <User className="h-2 w-2 text-white" />
                   </div>
-                  {validation.originalExtractedValue !== undefined && validation.originalExtractedValue !== null && (
-                    <button
-                      onClick={() => handleRevertToAI(fieldName)}
-                      className="inline-flex items-center justify-center w-5 h-5 rounded bg-white hover:bg-gray-50 transition-colors border border-gray-200"
-                      title="Revert to original AI extracted value"
-                    >
-                      <RotateCcw className="h-3 w-3 text-black" />
-                    </button>
-                  )}
-                </div>
-              );
-            } else if (wasManuallyUpdated && isVerified) {
-              // Show green checkmark for verified manually updated fields
-              return (
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
                   {validation.originalExtractedValue !== undefined && validation.originalExtractedValue !== null && (
                     <button
                       onClick={() => handleRevertToAI(fieldName)}
@@ -2417,11 +2367,7 @@ Thank you for your assistance.`;
                                         });
                                         
                                         const allVerified = itemValidations.length > 0 && 
-                                          itemValidations.every(v => 
-                                            v?.validationStatus === 'valid' || 
-                                            v?.validationStatus === 'verified' || 
-                                            (v?.validationStatus === 'manual' && v?.manuallyVerified)
-                                          );
+                                          itemValidations.every(v => v?.validationStatus === 'valid' || v?.validationStatus === 'verified');
                                         
                                         console.log(`Verification status for ${collection.collectionName}[${originalIndex}]:`, {
                                           itemValidations: itemValidations.length,
