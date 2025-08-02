@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
+import { useToast } from "@/hooks/use-toast";
 import {
   useProjectSchemaFields,
   useObjectCollections,
@@ -156,7 +156,16 @@ export default function DefineData({ project }: DefineDataProps) {
       sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
       
       setSchemaFieldDialog({ open: false });
+      toast({
+        title: "Field created",
+        description: "Schema field has been created successfully.",
+      });
     } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create field. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -168,7 +177,16 @@ export default function DefineData({ project }: DefineDataProps) {
         field: data 
       });
       setSchemaFieldDialog({ open: false });
+      toast({
+        title: "Field updated",
+        description: "Schema field has been updated successfully.",
+      });
     } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update field. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -179,7 +197,16 @@ export default function DefineData({ project }: DefineDataProps) {
       
       await deleteSchemaField.mutateAsync(id);
       setDeleteDialog({ open: false });
+      toast({
+        title: "Field deleted",
+        description: "Schema field has been deleted successfully.",
+      });
     } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete schema field. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -193,7 +220,16 @@ export default function DefineData({ project }: DefineDataProps) {
       sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
       
       setCollectionDialog({ open: false });
+      toast({
+        title: "List created",
+        description: "List has been created successfully.",
+      });
     } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create list. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -206,7 +242,16 @@ export default function DefineData({ project }: DefineDataProps) {
         projectId: project.id // Pass the current project ID for cache invalidation
       });
       setCollectionDialog({ open: false });
+      toast({
+        title: "List updated",
+        description: "List has been updated successfully.",
+      });
     } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update list. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -217,7 +262,16 @@ export default function DefineData({ project }: DefineDataProps) {
       
       await deleteCollection.mutateAsync(id);
       setDeleteDialog({ open: false });
+      toast({
+        title: "List deleted",
+        description: "List has been deleted successfully.",
+      });
     } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete list. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -239,7 +293,16 @@ export default function DefineData({ project }: DefineDataProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       
       setPropertyDialog({ open: false });
+      toast({
+        title: "Property created",
+        description: "Property has been created successfully.",
+      });
     } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create property. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -252,7 +315,16 @@ export default function DefineData({ project }: DefineDataProps) {
         collectionId: propertyDialog.property.collectionId // Pass the collection ID for cache invalidation
       });
       setPropertyDialog({ open: false });
+      toast({
+        title: "Property updated",
+        description: "Property has been updated successfully.",
+      });
     } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update property. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -260,14 +332,27 @@ export default function DefineData({ project }: DefineDataProps) {
     try {
       await deleteProperty.mutateAsync(id);
       setDeleteDialog({ open: false });
+      toast({
+        title: "Property deleted",
+        description: "Property has been deleted successfully.",
+      });
     } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete property. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
   // AI Schema Generation handler
   const handleGenerateSchema = async () => {
     if (!aiQuery.trim()) {
-      console.warn("Query required - Please describe what data you want to collect.");
+      toast({
+        title: "Query required",
+        description: "Please describe what data you want to collect.",
+        variant: "destructive",
+      });
       return;
     }
     
@@ -290,9 +375,18 @@ export default function DefineData({ project }: DefineDataProps) {
       });
       
       setIsEditingMainObjectName(false);
+      toast({
+        title: "Main object name updated",
+        description: "The main object name has been updated successfully.",
+      });
     } catch (error) {
       // Revert the optimistic update on error
       queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id] });
+      toast({
+        title: "Error",
+        description: "Failed to update main object name. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -310,9 +404,18 @@ export default function DefineData({ project }: DefineDataProps) {
       });
       
       setIsEditingMainObjectDescription(false);
+      toast({
+        title: "Description updated",
+        description: "The main object description has been updated successfully.",
+      });
     } catch (error) {
       // Revert the optimistic update on error
       queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id] });
+      toast({
+        title: "Error",
+        description: "Failed to update description. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
