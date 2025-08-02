@@ -2149,7 +2149,8 @@ Thank you for your assistance.`;
                 );
                 const validationIndices = collectionValidations.length > 0 ? 
                   collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null && idx !== undefined) : [];
-                const maxRecordIndex = validationIndices.length > 0 ? Math.max(...validationIndices) : -1;
+                const uniqueIndices = [...new Set(validationIndices)].sort((a, b) => a - b);
+                const maxRecordIndex = uniqueIndices.length > 0 ? Math.max(...uniqueIndices) : -1;
                 
                 // Always show the table even when there are no records, so headers remain visible
 
@@ -2160,7 +2161,7 @@ Thank you for your assistance.`;
                         <CardTitle className="flex items-center gap-2">
                           {collection.collectionName}
                           <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                            {maxRecordIndex >= 0 ? maxRecordIndex + 1 : 0} {maxRecordIndex === 0 ? 'item' : 'items'}
+                            {uniqueIndices.length} {uniqueIndices.length === 1 ? 'item' : 'items'}
                           </span>
                         </CardTitle>
                         <p className="text-sm text-gray-600">{collection.description}</p>
@@ -2209,7 +2210,7 @@ Thank you for your assistance.`;
                                 <div className="flex items-center justify-center gap-3 px-2">
                                   {(() => {
                                     // Handle empty collections
-                                    if (maxRecordIndex < 0) {
+                                    if (uniqueIndices.length === 0) {
                                       return (
                                         <button
                                           disabled
@@ -2221,8 +2222,8 @@ Thank you for your assistance.`;
                                       );
                                     }
                                     
-                                    // Calculate if all items in this collection are verified
-                                    const allItemsVerified = Array.from({ length: maxRecordIndex + 1 }, (_, index) => {
+                                    // Calculate if all items in this collection are verified (only for existing indices)
+                                    const allItemsVerified = uniqueIndices.every(index => {
                                       const itemValidations = collection.properties.map(property => {
                                         const fieldName = `${collection.collectionName}.${property.propertyName}[${index}]`;
                                         return getValidation(fieldName);
@@ -2230,7 +2231,7 @@ Thank you for your assistance.`;
                                       
                                       return itemValidations.length > 0 && 
                                         itemValidations.every(v => v?.validationStatus === 'valid' || v?.validationStatus === 'verified');
-                                    }).every(isVerified => isVerified);
+                                    });
                                     
                                     return (
                                       <button
@@ -2258,7 +2259,7 @@ Thank you for your assistance.`;
                           <TableBody>
                             {(() => {
                               // Handle empty collections by showing a placeholder row
-                              if (maxRecordIndex < 0) {
+                              if (uniqueIndices.length === 0) {
                                 return (
                                   <TableRow className="border-b border-gray-300">
                                     <TableCell 
@@ -2271,8 +2272,8 @@ Thank you for your assistance.`;
                                 );
                               }
                               
-                              // Create array of items with original indices
-                              const itemsWithIndices = Array.from({ length: maxRecordIndex + 1 }, (_, index) => ({
+                              // Create array of items only for indices that actually exist
+                              const itemsWithIndices = uniqueIndices.map(index => ({
                                 item: collectionData?.[index] || {},
                                 originalIndex: index
                               }));
