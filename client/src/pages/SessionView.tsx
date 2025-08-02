@@ -1596,12 +1596,18 @@ Thank you for your assistance.`;
                            validation.extractedValue !== "null" && 
                            validation.extractedValue !== "undefined";
             
+            // Debug logging for all fields to understand the logic
+            console.log(`Field ${fieldName}:`, {
+              wasManuallyUpdated,
+              isVerified,
+              validationStatus: validation.validationStatus,
+              manuallyVerified: validation.manuallyVerified,
+              willShowUserIcon: wasManuallyUpdated && !isVerified,
+              willShowGreenCheck: wasManuallyUpdated && isVerified
+            });
+            
             // Only show user icon if manually updated AND not verified
             if (wasManuallyUpdated && !isVerified) {
-              // Debug logging for MSA field
-              if (fieldName === 'MSA ID/Number') {
-                console.log(`INFO VIEW - MSA Field Rendering Blue User Icon - wasManuallyUpdated: ${wasManuallyUpdated}, validation:`, validation);
-              }
               
               return (
                 <div className="flex items-center gap-2">
