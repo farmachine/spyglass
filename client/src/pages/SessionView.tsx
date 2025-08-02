@@ -2151,9 +2151,7 @@ Thank you for your assistance.`;
                   collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null && idx !== undefined) : [];
                 const maxRecordIndex = validationIndices.length > 0 ? Math.max(...validationIndices) : -1;
                 
-
-                
-                if (maxRecordIndex < 0) return null;
+                // Always show the table even when there are no records, so headers remain visible
 
                 return (
                   <TabsContent key={collection.id} value={collection.collectionName} className="mt-0 px-0 ml-0">
@@ -2162,7 +2160,7 @@ Thank you for your assistance.`;
                         <CardTitle className="flex items-center gap-2">
                           {collection.collectionName}
                           <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                            {maxRecordIndex + 1} {maxRecordIndex === 0 ? 'item' : 'items'}
+                            {maxRecordIndex >= 0 ? maxRecordIndex + 1 : 0} {maxRecordIndex === 0 ? 'item' : 'items'}
                           </span>
                         </CardTitle>
                         <p className="text-sm text-gray-600">{collection.description}</p>
@@ -2210,6 +2208,19 @@ Thank you for your assistance.`;
                               <TableHead className="w-24 border-r border-gray-300" style={{ width: '96px', minWidth: '96px', maxWidth: '96px' }}>
                                 <div className="flex items-center justify-center gap-3 px-2">
                                   {(() => {
+                                    // Handle empty collections
+                                    if (maxRecordIndex < 0) {
+                                      return (
+                                        <button
+                                          disabled
+                                          className="flex items-center justify-center px-2 py-1 rounded transition-colors opacity-50 cursor-not-allowed"
+                                          title="No items to verify"
+                                        >
+                                          <CheckCircle className="h-5 w-5 text-gray-400" />
+                                        </button>
+                                      );
+                                    }
+                                    
                                     // Calculate if all items in this collection are verified
                                     const allItemsVerified = Array.from({ length: maxRecordIndex + 1 }, (_, index) => {
                                       const itemValidations = collection.properties.map(property => {
@@ -2246,6 +2257,20 @@ Thank you for your assistance.`;
                           </TableHeader>
                           <TableBody>
                             {(() => {
+                              // Handle empty collections by showing a placeholder row
+                              if (maxRecordIndex < 0) {
+                                return (
+                                  <TableRow className="border-b border-gray-300">
+                                    <TableCell 
+                                      colSpan={collection.properties.length + 1} 
+                                      className="text-center text-gray-500 py-8 italic"
+                                    >
+                                      No items yet. Click the + button to add the first item.
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              }
+                              
                               // Create array of items with original indices
                               const itemsWithIndices = Array.from({ length: maxRecordIndex + 1 }, (_, index) => ({
                                 item: collectionData?.[index] || {},
