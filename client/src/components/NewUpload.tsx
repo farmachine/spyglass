@@ -280,9 +280,10 @@ export default function NewUpload({ project }: NewUploadProps) {
         setProcessingProgress(progress);
       }, 200);
 
+      let textExtractionResult;
       try {
         // Call new text extraction endpoint
-        const textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
+        textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
           method: 'POST',
           body: JSON.stringify({ files: filesData }),
           headers: { 'Content-Type': 'application/json' }
@@ -426,8 +427,9 @@ export default function NewUpload({ project }: NewUploadProps) {
           setProcessingProgress(progress);
         }, 300);
 
+        let aiResponse;
         try {
-          const aiResponse = await apiRequest(`/api/sessions/${session.id}/gemini-extraction`, {
+          aiResponse = await apiRequest(`/api/sessions/${session.id}/gemini-extraction`, {
             method: 'POST',
             body: JSON.stringify({ 
               extractedTexts: textExtractionResult.extracted_texts || textExtractionResult.result?.extracted_texts || [],
