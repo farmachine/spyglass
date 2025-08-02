@@ -175,9 +175,7 @@ def step1_extract_from_documents(
                 if applicable_rules:
                     full_instruction += " | " + " | ".join(applicable_rules)
                 
-                # Include field ID in the prompt for AI reference
-                field_id = field['id']
-                schema_fields_text += f"\n- **{field_name}** (ID: {field_id}, {field_type}): {full_instruction}"
+                schema_fields_text += f"\n- **{camel_case_name}** ({field_type}): {full_instruction}"
         
         # Build collections section for the imported prompt
         collections_text = ""
@@ -250,9 +248,7 @@ def step1_extract_from_documents(
                             choice_text = f"The output should be one of the following choices: {'; '.join(prop['choiceOptions'])}."
                             prop_instruction = prop_instruction + " | " + choice_text if prop_instruction else choice_text
                             
-                        # Include property ID in the prompt for AI reference
-                        prop_id = prop['id']
-                        collections_text += f"\n  * **{prop_name}** (ID: {prop_id}, {prop_type}): {prop_instruction}"
+                        collections_text += f"\n  * **{prop_name}** ({prop_type}): {prop_instruction}"
         
         # Use the imported prompt template with our schema and collections
         prompt = EXTRACTION_PROMPT.format(
@@ -300,7 +296,7 @@ def step1_extract_from_documents(
                     json_lines.append(f'    "extracted_value": "{example_value}",')
                     json_lines.append(f'    "confidence_score": 0.95,')
                     json_lines.append(f'    "validation_status": "unverified",')
-                    json_lines.append(f'    "ai_reasoning": "Found in document section X - {field_description}"')
+                    json_lines.append(f'    "ai_reasoning": "Provide intelligent extraction reasoning here"')
                     json_lines.append('  }' + (',' if i < len(project_schema["schema_fields"]) - 1 or project_schema.get("collections") else ''))
             
             # Add collection properties with proper field validation structure
@@ -339,7 +335,7 @@ def step1_extract_from_documents(
                             json_lines.append(f'    "extracted_value": "{example_value}",')
                             json_lines.append(f'    "confidence_score": 0.95,')
                             json_lines.append(f'    "validation_status": "unverified",')
-                            json_lines.append(f'    "ai_reasoning": "Found {collection_name} item {record_index + 1} with {prop_name} value in document",')
+                            json_lines.append(f'    "ai_reasoning": "Provide intelligent extraction reasoning here",')
                             json_lines.append(f'    "record_index": {record_index}')
                             
                             # Check if this is the last item
@@ -367,7 +363,7 @@ CHOICE FIELD HANDLING:
 - Choice options are specified as "The output should be one of the following choices: ..."
 - Example: For Yes/No choice, only return "Yes" or "No", never "true", "false", "1", "0", etc.
 
-**CRITICAL FIELD ID REQUIREMENT**: Use the EXACT field_id values provided in the schema above (the UUID values after "ID: "). For example, if you see "Product/Service Specifications Met (ID: c3056038-5b32-4335-8772-a95c9bef307a, CHOICE)", use "c3056038-5b32-4335-8772-a95c9bef307a" as the field_id. Do not use field names, camelCase versions, or generate your own IDs.
+**CRITICAL FIELD ID REQUIREMENT**: Use the EXACT field_id values provided in the schema above. Do not generate your own field IDs like "IncreaseRatesSection0". Use the actual IDs from the schema.
 
 **CRITICAL COLLECTION NAME REQUIREMENT**: For collection properties, you MUST include the "collection_name" field in each field validation object. Use the exact collection name from the schema (e.g., "Increase Rates").
 

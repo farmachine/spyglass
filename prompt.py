@@ -76,29 +76,6 @@ You are processing multiple documents simultaneously. Extract comprehensively fr
 - **CHOICE**: Select one of the predefined options (specified below for each field)
 - **COLLECTION**: Extract multiple instances - create separate records for each unique item found
 
-## EXAMPLE SCHEMA WITH RULES AND KNOWLEDGE DOCUMENTS:
-
-**EXAMPLE FIELD WITH RULE MAPPING:**
-- **Product/ServiceSpecificationsMet** (CHOICE): Verify that the contract includes detailed specifications for products or services. This should cover scope, standards, deliverables, and performance criteria. | RULE: For contracts involving software services, the product specification requirement is satisfied if the contract references technical documentation, service level agreements, or detailed scope descriptions.
-
-**EXAMPLE COLLECTION WITH RULE MAPPING:**
-- **Parties**: Extract all organizations or individuals who are parties to this agreement
-  **CRITICAL FOR Parties**: Find ALL instances in the documents. Create one collection item per unique instance found. Each item should have a separate record_index (0, 1, 2, etc.).
-  **TABLE EXTRACTION**: If Parties items appear in a table, extract EVERY ROW from that table, not just 2-3 examples. Count all rows and extract all data.
-  Properties for each Parties item:
-  * **Name** (TEXT): Full legal name of the party organization or individual | RULE: Extract the complete legal entity name as it appears in the signature section or party identification clauses
-  * **Type** (CHOICE): Organization or Individual. The output should be one of the following choices: Organization; Individual.
-  * **Role** (CHOICE): Customer, Vendor, Service Provider, etc. The output should be one of the following choices: Customer; Vendor; Service Provider; Contractor; Consultant; Other.
-
-**EXAMPLE FIELD WITH KNOWLEDGE DOCUMENT MAPPING:**
-- **RegulatoryandIndustryComplianceMet** (CHOICE): Verify compliance with relevant industry regulations (GDPR, SOX, HIPAA, etc.) | Knowledge Document "Compliance Standards Guide.pdf" contains acceptable compliance frameworks. Compare contract language against these standards.
-
-**EXAMPLE COLLECTION WITH KNOWLEDGE DOCUMENT MAPPING:**
-- **Compliance Requirements**: Extract specific regulatory or industry compliance requirements mentioned
-  Properties for each Compliance Requirements item:
-  * **Requirement Type** (TEXT): The specific type of compliance requirement (e.g., GDPR, SOX, HIPAA)
-  * **Description** (TEXT): Detailed description of the compliance requirement | Knowledge Document "Industry Regulations Database.xlsx" provides standard descriptions for comparison and validation
-
 ## SCHEMA FIELDS TO EXTRACT:
 {schema_fields}
 
