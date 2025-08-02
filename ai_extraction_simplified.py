@@ -120,6 +120,7 @@ def step1_extract_from_documents(
     documents: List[Dict[str, Any]], 
     project_schema: Dict[str, Any],
     extraction_rules: List[Dict[str, Any]] = None,
+    knowledge_documents: List[Dict[str, Any]] = None,
     session_name: str = "contract"
 ) -> ExtractionResult:
     """
@@ -277,6 +278,25 @@ def step1_extract_from_documents(
                                 applicable_rules.append(rule.get('ruleContent', ''))
                         elif field_name == rule_target or rule_target == 'All Fields':
                             applicable_rules.append(rule.get('ruleContent', ''))
+
+                # Find applicable knowledge documents for this field
+                applicable_knowledge = []
+                if knowledge_documents:
+                    for doc in knowledge_documents:
+                        doc_target = doc.get('targetField', '')
+                        if isinstance(doc_target, list):
+                            if field_name in doc_target or 'All Fields' in doc_target:
+                                applicable_knowledge.append({
+                                    'fileName': doc.get('fileName', ''),
+                                    'displayName': doc.get('displayName', ''),
+                                    'description': doc.get('description', '')
+                                })
+                        elif field_name == doc_target or doc_target == 'All Fields':
+                            applicable_knowledge.append({
+                                'fileName': doc.get('fileName', ''),
+                                'displayName': doc.get('displayName', ''),
+                                'description': doc.get('description', '')
+                            })
                 
                 # Combine description with rules
                 full_instruction = field_description or 'Extract this field from the documents'
@@ -290,6 +310,20 @@ def step1_extract_from_documents(
                 json_schema_section += f"      \"description\": \"{full_instruction}\""
                 if field_type == 'CHOICE' and field.get('choiceOptions'):
                     json_schema_section += f",\n      \"choices\": {field['choiceOptions']}"
+                
+                # Add extraction rules section
+                if applicable_rules:
+                    rules_list = [rule.replace('"', '\\"') for rule in applicable_rules]
+                    json_schema_section += f",\n      \"extraction_rules\": {rules_list}"
+                else:
+                    json_schema_section += f",\n      \"extraction_rules\": []"
+                
+                # Add knowledge documents section
+                if applicable_knowledge:
+                    json_schema_section += f",\n      \"knowledge_documents\": {json.dumps(applicable_knowledge)}"
+                else:
+                    json_schema_section += f",\n      \"knowledge_documents\": []"
+                
                 json_schema_section += "\n    }"
                 if i < len(project_schema["schema_fields"]) - 1:
                     json_schema_section += ","
@@ -314,6 +348,25 @@ def step1_extract_from_documents(
                                 applicable_rules.append(rule.get('ruleContent', ''))
                         elif collection_name == rule_target or rule_target == 'All Fields':
                             applicable_rules.append(rule.get('ruleContent', ''))
+
+                # Find applicable knowledge documents for this collection
+                applicable_coll_knowledge = []
+                if knowledge_documents:
+                    for doc in knowledge_documents:
+                        doc_target = doc.get('targetField', '')
+                        if isinstance(doc_target, list):
+                            if collection_name in doc_target or 'All Fields' in doc_target:
+                                applicable_coll_knowledge.append({
+                                    'fileName': doc.get('fileName', ''),
+                                    'displayName': doc.get('displayName', ''),
+                                    'description': doc.get('description', '')
+                                })
+                        elif collection_name == doc_target or doc_target == 'All Fields':
+                            applicable_coll_knowledge.append({
+                                'fileName': doc.get('fileName', ''),
+                                'displayName': doc.get('displayName', ''),
+                                'description': doc.get('description', '')
+                            })
                 
                 full_instruction = collection_description or 'Extract array of these objects'
                 if applicable_rules:
@@ -322,6 +375,20 @@ def step1_extract_from_documents(
                 json_schema_section += f"    {{\n"
                 json_schema_section += f"      \"collection_name\": \"{collection_name}\",\n"
                 json_schema_section += f"      \"description\": \"{full_instruction}\",\n"
+                
+                # Add extraction rules section for collections
+                if applicable_rules:
+                    coll_rules_list = [rule.replace('"', '\\"') for rule in applicable_rules]
+                    json_schema_section += f"      \"extraction_rules\": {coll_rules_list},\n"
+                else:
+                    json_schema_section += f"      \"extraction_rules\": [],\n"
+                
+                # Add knowledge documents section for collections
+                if applicable_coll_knowledge:
+                    json_schema_section += f"      \"knowledge_documents\": {json.dumps(applicable_coll_knowledge)},\n"
+                else:
+                    json_schema_section += f"      \"knowledge_documents\": [],\n"
+                
                 json_schema_section += f"      \"properties\": [\n"
                 
                 properties = collection.get("properties", [])
@@ -350,6 +417,34 @@ def step1_extract_from_documents(
                                   prop_name == rule_target or 
                                   rule_target == 'All Fields'):
                                 prop_rules.append(rule.get('ruleContent', ''))
+
+                    # Find applicable knowledge documents for this property
+                    prop_knowledge = []
+                    if knowledge_documents:
+                        for doc in knowledge_documents:
+                            doc_target = doc.get('targetField', '')
+                            arrow_notation = f"{collection_name} --> {prop_name}"
+                            full_prop_name = f"{collection_name}.{prop_name}"
+                            
+                            if isinstance(doc_target, list):
+                                if (arrow_notation in doc_target or 
+                                    full_prop_name in doc_target or 
+                                    prop_name in doc_target or 
+                                    'All Fields' in doc_target):
+                                    prop_knowledge.append({
+                                        'fileName': doc.get('fileName', ''),
+                                        'displayName': doc.get('displayName', ''),
+                                        'description': doc.get('description', '')
+                                    })
+                            elif (arrow_notation == doc_target or 
+                                  full_prop_name == doc_target or 
+                                  prop_name == doc_target or 
+                                  doc_target == 'All Fields'):
+                                prop_knowledge.append({
+                                    'fileName': doc.get('fileName', ''),
+                                    'displayName': doc.get('displayName', ''),
+                                    'description': doc.get('description', '')
+                                })
                     
                     prop_instruction = prop_description or 'Extract this property'
                     if prop_rules:
@@ -362,6 +457,20 @@ def step1_extract_from_documents(
                     json_schema_section += f"          \"description\": \"{prop_instruction}\""
                     if prop_type == 'CHOICE' and prop.get('choiceOptions'):
                         json_schema_section += f",\n          \"choices\": {prop['choiceOptions']}"
+                    
+                    # Add extraction rules section for properties
+                    if prop_rules:
+                        prop_rules_list = [rule.replace('"', '\\"') for rule in prop_rules]
+                        json_schema_section += f",\n          \"extraction_rules\": {prop_rules_list}"
+                    else:
+                        json_schema_section += f",\n          \"extraction_rules\": []"
+                    
+                    # Add knowledge documents section for properties
+                    if prop_knowledge:
+                        json_schema_section += f",\n          \"knowledge_documents\": {json.dumps(prop_knowledge)}"
+                    else:
+                        json_schema_section += f",\n          \"knowledge_documents\": []"
+                    
                     json_schema_section += "\n        }"
                     if j < len(properties) - 1:
                         json_schema_section += ","
@@ -956,16 +1065,17 @@ if __name__ == "__main__":
         
         # Log parsed data structure
         logging.info(f"PARSED INPUT KEYS: {list(input_data.keys())}")
-        operation = input_data.get("operation", "extract")
+        operation = input_data.get("step", input_data.get("operation", "extract"))
         
         if operation == "extract":
             # STEP 1: Extract from documents
-            documents = input_data.get("documents", [])
+            documents = input_data.get("files", input_data.get("documents", []))  # Support both parameter names
             project_schema = input_data.get("project_schema", {})
             extraction_rules = input_data.get("extraction_rules", [])
+            knowledge_documents = input_data.get("knowledge_documents", [])
             session_name = input_data.get("session_name", "contract")
             
-            result = step1_extract_from_documents(documents, project_schema, extraction_rules, session_name)
+            result = step1_extract_from_documents(documents, project_schema, extraction_rules, knowledge_documents, session_name)
             
             if result.success:
                 print(json.dumps({

@@ -1638,6 +1638,9 @@ except Exception as e:
 
       // Get extraction rules for better AI guidance
       const extractionRules = projectId ? await storage.getExtractionRules(projectId) : [];
+      
+      // Get knowledge documents for better AI guidance
+      const knowledgeDocuments = projectId ? await storage.getKnowledgeDocuments(projectId) : [];
 
       // Prepare data for Python extraction script
       const extractionData = {
@@ -1649,6 +1652,7 @@ except Exception as e:
           collections: project_data?.collections || []
         },
         extraction_rules: extractionRules,
+        knowledge_documents: knowledgeDocuments,
         session_name: project_data?.mainObjectName || "contract"
       };
       
