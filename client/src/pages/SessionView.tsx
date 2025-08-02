@@ -1584,7 +1584,10 @@ Thank you for your assistance.`;
             // Check if field was manually updated by user (uses dedicated manually_updated flag)
             const wasManuallyUpdated = validation.manuallyUpdated;
             
-
+            // Check if field is verified (including manually verified fields)
+            const isVerified = validation.validationStatus === 'valid' || 
+                              validation.validationStatus === 'verified' || 
+                              (validation.validationStatus === 'manual' && validation.manuallyVerified);
             
             // Check if field has actual value - if it has a value, it should never show "Not Extracted"
             const hasValue = validation.extractedValue !== null && 
@@ -1593,7 +1596,8 @@ Thank you for your assistance.`;
                            validation.extractedValue !== "null" && 
                            validation.extractedValue !== "undefined";
             
-            if (wasManuallyUpdated) {
+            // Only show user icon if manually updated AND not verified
+            if (wasManuallyUpdated && !isVerified) {
               // Debug logging for MSA field
               if (fieldName === 'MSA ID/Number') {
                 console.log(`INFO VIEW - MSA Field Rendering Blue User Icon - wasManuallyUpdated: ${wasManuallyUpdated}, validation:`, validation);
@@ -1604,6 +1608,22 @@ Thank you for your assistance.`;
                   <div className="w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
                     <User className="h-2 w-2 text-white" />
                   </div>
+                  {validation.originalExtractedValue !== undefined && validation.originalExtractedValue !== null && (
+                    <button
+                      onClick={() => handleRevertToAI(fieldName)}
+                      className="inline-flex items-center justify-center w-5 h-5 rounded bg-white hover:bg-gray-50 transition-colors border border-gray-200"
+                      title="Revert to original AI extracted value"
+                    >
+                      <RotateCcw className="h-3 w-3 text-black" />
+                    </button>
+                  )}
+                </div>
+              );
+            } else if (wasManuallyUpdated && isVerified) {
+              // Show green checkmark for verified manually updated fields
+              return (
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
                   {validation.originalExtractedValue !== undefined && validation.originalExtractedValue !== null && (
                     <button
                       onClick={() => handleRevertToAI(fieldName)}
