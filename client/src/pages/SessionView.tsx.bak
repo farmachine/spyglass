@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
 import ExtractlyLogo from "@/components/ExtractlyLogo";
@@ -53,6 +53,7 @@ const AIReasoningModal = ({
   validation: FieldValidation | undefined;
   onVerificationChange: (isVerified: boolean) => void;
 }) => {
+  const { toast } = useToast();
   const isVerified = validation?.validationStatus === 'valid' || validation?.validationStatus === 'verified';
 
   const copyToClipboard = async () => {
@@ -337,6 +338,7 @@ export default function SessionView() {
   } | null>(null);
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
   const [resizing, setResizing] = useState<{ columnId: string; startX: number; startWidth: number } | null>(null);
+  const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -1280,6 +1282,11 @@ Thank you for your assistance.`;
         await queryClient.refetchQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
       } catch (error) {
         console.error('Failed to save field:', error);
+        toast({
+          title: "Failed to save field",
+          description: "An error occurred while saving the field value.",
+          variant: "destructive"
+        });
       }
     }
     setEditingField(null);
@@ -1323,6 +1330,11 @@ Thank you for your assistance.`;
         });
         
         console.error('Failed to toggle verification:', error);
+        toast({
+          title: "Failed to update verification",
+          description: "An error occurred while updating field verification.",
+          variant: "destructive"
+        });
       }
     }
   };
@@ -1345,8 +1357,17 @@ Thank you for your assistance.`;
           }
         });
         
+        toast({
+          title: "Reverted to AI value",
+          description: `${getFieldDisplayName(fieldName)} has been reverted to the original AI extracted value.`,
+        });
       } catch (error) {
         console.error('Failed to revert to AI value:', error);
+        toast({
+          title: "Failed to revert",
+          description: "An error occurred while reverting to the AI value.",
+          variant: "destructive"
+        });
       }
     }
   };
@@ -2510,7 +2531,16 @@ Thank you for your assistance.`;
               onClick={async () => {
                 try {
                   await navigator.clipboard.writeText(generateDataReport());
+                  toast({
+                    title: "Copied to clipboard",
+                    description: "Data report has been copied to your clipboard.",
+                  });
                 } catch (error) {
+                  toast({
+                    title: "Copy failed",
+                    description: "Failed to copy to clipboard. Please select and copy the text manually.",
+                    variant: "destructive"
+                  });
                 }
               }}
               className="flex items-center gap-2"
