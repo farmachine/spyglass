@@ -593,8 +593,12 @@ export default function SessionView() {
 
   // Handler for field verification changes
   const handleFieldVerification = (fieldName: string, isVerified: boolean) => {
+    console.log(`CLICK DETECTED: ${fieldName}, isVerified: ${isVerified}`);
     const validation = getValidation(fieldName);
-    if (!validation) return;
+    if (!validation) {
+      console.log(`No validation found for: ${fieldName}`);
+      return;
+    }
     
     const newStatus: ValidationStatus = isVerified ? 'valid' : 'pending';
     
@@ -1818,22 +1822,13 @@ Thank you for your assistance.`;
                                   } else if (isVerified) {
                                     // Show green tick when verified - clicking unverifies
                                     return (
-                                      <TooltipProvider>
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <button
-                                              onClick={() => handleFieldVerification(fieldName, false)}
-                                              className="w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors flex-shrink-0"
-                                              aria-label="Click to unverify"
-                                            >
-                                              <span className="text-xs font-bold">✓</span>
-                                            </button>
-                                          </TooltipTrigger>
-                                          <TooltipContent>
-                                            Verified with {score}% confidence
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      </TooltipProvider>
+                                      <button
+                                        onClick={() => handleFieldVerification(fieldName, false)}
+                                        className="w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors flex-shrink-0 cursor-pointer"
+                                        title={`Verified with ${score}% confidence - Click to unverify`}
+                                      >
+                                        <span className="text-xs font-bold">✓</span>
+                                      </button>
                                     );
                                   } else if (hasValue && validation) {
                                     // Show colored confidence dot when not verified - clicking opens AI analysis modal
@@ -2182,22 +2177,13 @@ Thank you for your assistance.`;
                                                 } else if (isVerified) {
                                                   // Show green tick when verified
                                                   return (
-                                                    <TooltipProvider>
-                                                      <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                          <button
-                                                            onClick={() => handleFieldVerification(fieldName, false)}
-                                                            className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors"
-                                                            aria-label="Click to unverify"
-                                                          >
-                                                            <span className="text-xs font-bold">✓</span>
-                                                          </button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                          Verified with {score}% confidence
-                                                        </TooltipContent>
-                                                      </Tooltip>
-                                                    </TooltipProvider>
+                                                    <button
+                                                      onClick={() => handleFieldVerification(fieldName, false)}
+                                                      className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors cursor-pointer"
+                                                      title={`Verified with ${score}% confidence - Click to unverify`}
+                                                    >
+                                                      <span className="text-xs font-bold">✓</span>
+                                                    </button>
                                                   );
                                                 } else if (hasValue && validation.confidenceScore) {
                                                   // Show colored confidence dot when not verified
