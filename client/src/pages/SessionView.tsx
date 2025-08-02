@@ -741,9 +741,16 @@ export default function SessionView() {
       await Promise.all(createPromises);
       console.log('All validation records created successfully');
       
+      // Add a small delay to ensure database consistency
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Force refetch instead of just invalidating to ensure UI updates
       await queryClient.refetchQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
       console.log('Cache refetched after creating collection item');
+      
+      // Double-check by logging the updated cache
+      const updatedValidations = queryClient.getQueryData(['/api/sessions', sessionId, 'validations']);
+      console.log('Updated validations count after refetch:', updatedValidations?.length);
     } catch (error) {
       // Revert optimistic update on error
       console.error('Failed to add item:', error);
