@@ -2588,7 +2588,6 @@ Thank you for your assistance.`;
           validation={editFieldDialog.validation}
           onClose={() => setEditFieldDialog({ open: false, validation: null })}
           onSave={handleSaveFieldEdit}
-          onVerificationToggle={handleVerificationToggle}
           schemaField={findSchemaField(editFieldDialog.validation)}
           collectionProperty={findCollectionProperty(editFieldDialog.validation)}
         />
