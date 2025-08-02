@@ -43,14 +43,10 @@ export function EditFieldValueDialog({
   const handleSave = () => {
     if (!validation) return;
     
-    // If value is empty/cleared, set status to unverified, otherwise verified
-    const finalStatus = value.trim() === "" ? "unverified" : "verified";
+    // All manually edited fields are automatically verified
+    const finalStatus = "verified";
     onSave(validation.id, value, finalStatus);
     onClose();
-  };
-
-  const handleClear = () => {
-    setValue("");
   };
 
   const handleRevertToAI = () => {
@@ -219,13 +215,6 @@ export function EditFieldValueDialog({
             )}
             
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={handleClear}
-                className="text-slate-600 hover:text-slate-700"
-              >
-                Clear
-              </Button>
               <Button
                 onClick={handleSave}
                 className="bg-primary hover:bg-primary/90 flex items-center gap-2"

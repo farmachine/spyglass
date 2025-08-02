@@ -1283,11 +1283,8 @@ Thank you for your assistance.`;
       let valueToStore = valueToUse;
       const fieldType = getFieldType(fieldName);
       
-      // Check if the value is empty/cleared
-      const isEmpty = !valueToUse || valueToUse.trim() === '';
-      
       if (fieldType === 'DATE') {
-        if (isEmpty) {
+        if (!valueToUse || valueToUse.trim() === '') {
           valueToStore = null;
         } else {
           // Validate the date format
@@ -1299,8 +1296,6 @@ Thank you for your assistance.`;
             valueToStore = null;
           }
         }
-      } else if (isEmpty) {
-        valueToStore = null;
       }
       
       try {
@@ -1308,8 +1303,8 @@ Thank you for your assistance.`;
           id: validation.id,
           data: {
             extractedValue: valueToStore,
-            validationStatus: isEmpty ? "unverified" : "verified", // Empty values are unverified
-            manuallyVerified: !isEmpty, // Only verify if not empty
+            validationStatus: "manual",
+            manuallyVerified: true,
             manuallyUpdated: true  // Mark as manually updated when user edits field
           }
         });
@@ -1565,19 +1560,9 @@ Thank you for your assistance.`;
             </div>
           ) : (
             <div className="flex items-center gap-2 mt-1">
-              {/* Show empty state with red ! icon */}
-              {(!value || value === 'null' || value === 'undefined' || value === null || value === '') ? (
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1 text-red-600">
-                    <AlertCircle className="h-4 w-4" />
-                    <span className="text-sm font-medium">Empty</span>
-                  </div>
-                </div>
-              ) : (
-                <span className="text-sm text-gray-900">
-                  {formatValueForDisplay(value, fieldType)}
-                </span>
-              )}
+              <span className="text-sm text-gray-900">
+                {formatValueForDisplay(value, fieldType)}
+              </span>
               <Button
                 size="sm"
                 variant="ghost"
@@ -2124,17 +2109,9 @@ Thank you for your assistance.`;
                                               </span>
                                             </div>
                                           ) : (
-                                            /* Show empty state with red ! icon */
-                                            formatValueForDisplay(displayValue, fieldType) === 'Empty' ? (
-                                              <div className="flex items-center gap-1 text-red-600">
-                                                <AlertCircle className="h-4 w-4" />
-                                                <span className="text-sm font-medium">Empty</span>
-                                              </div>
-                                            ) : (
-                                              <span className="text-sm text-gray-900">
-                                                {formatValueForDisplay(displayValue, fieldType)}
-                                              </span>
-                                            )
+                                            <span className={`text-sm ${formatValueForDisplay(displayValue, fieldType) === 'Empty' ? 'text-gray-400 italic' : 'text-gray-900'}`}>
+                                              {formatValueForDisplay(displayValue, fieldType)}
+                                            </span>
                                           )}
                                         </div>
                                         <Button
