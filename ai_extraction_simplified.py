@@ -258,6 +258,25 @@ def step1_extract_from_documents(
         # Generate JSON schema section showing exact field mappings
         json_schema_section = ""
         
+        # First, create a dedicated Knowledge Documents section
+        if knowledge_documents:
+            json_schema_section += "\n## KNOWLEDGE DOCUMENTS:\n"
+            json_schema_section += "Use the following knowledge documents for context and validation:\n\n"
+            for doc in knowledge_documents:
+                display_name = doc.get('displayName', doc.get('fileName', 'Unknown Document'))
+                description = doc.get('description', '')
+                content = doc.get('content', '')
+                target_field = doc.get('targetField', '')
+                
+                json_schema_section += f"### {display_name}\n"
+                if description:
+                    json_schema_section += f"**Description**: {description}\n"
+                if target_field:
+                    json_schema_section += f"**Applies to**: {target_field}\n"
+                else:
+                    json_schema_section += f"**Applies to**: All fields\n"
+                json_schema_section += f"**Content**:\n```\n{content}\n```\n\n"
+        
         # Add schema fields JSON format
         if project_schema.get("schema_fields"):
             json_schema_section += "\n## SCHEMA FIELDS JSON FORMAT:\n"
@@ -279,34 +298,20 @@ def step1_extract_from_documents(
                         elif field_name == rule_target or rule_target == 'All Fields':
                             applicable_rules.append(rule.get('ruleContent', ''))
 
-                # Find applicable knowledge documents for this field
-                applicable_knowledge = []
+                # Find applicable knowledge documents for this field (just names for reference)
+                applicable_knowledge_names = []
                 if knowledge_documents:
                     for doc in knowledge_documents:
                         doc_target = doc.get('targetField', '')
+                        display_name = doc.get('displayName', doc.get('fileName', 'Unknown Document'))
                         # If no target field specified, apply to all fields
                         if not doc_target or doc_target == '' or doc_target is None:
-                            applicable_knowledge.append({
-                                'fileName': doc.get('fileName', ''),
-                                'displayName': doc.get('displayName', ''),
-                                'description': doc.get('description', ''),
-                                'content': doc.get('content', '')
-                            })
+                            applicable_knowledge_names.append(display_name)
                         elif isinstance(doc_target, list):
                             if field_name in doc_target or 'All Fields' in doc_target:
-                                applicable_knowledge.append({
-                                    'fileName': doc.get('fileName', ''),
-                                    'displayName': doc.get('displayName', ''),
-                                    'description': doc.get('description', ''),
-                                    'content': doc.get('content', '')
-                                })
+                                applicable_knowledge_names.append(display_name)
                         elif field_name == doc_target or doc_target == 'All Fields':
-                            applicable_knowledge.append({
-                                'fileName': doc.get('fileName', ''),
-                                'displayName': doc.get('displayName', ''),
-                                'description': doc.get('description', ''),
-                                'content': doc.get('content', '')
-                            })
+                            applicable_knowledge_names.append(display_name)
                 
                 # Combine description with rules
                 full_instruction = field_description or 'Extract this field from the documents'
@@ -328,9 +333,9 @@ def step1_extract_from_documents(
                 else:
                     json_schema_section += f",\n      \"extraction_rules\": []"
                 
-                # Add knowledge documents section
-                if applicable_knowledge:
-                    json_schema_section += f",\n      \"knowledge_documents\": {json.dumps(applicable_knowledge)}"
+                # Add knowledge documents section (just document names)
+                if applicable_knowledge_names:
+                    json_schema_section += f",\n      \"knowledge_documents\": {json.dumps(applicable_knowledge_names)}"
                 else:
                     json_schema_section += f",\n      \"knowledge_documents\": []"
                 
@@ -359,34 +364,20 @@ def step1_extract_from_documents(
                         elif collection_name == rule_target or rule_target == 'All Fields':
                             applicable_rules.append(rule.get('ruleContent', ''))
 
-                # Find applicable knowledge documents for this collection
-                applicable_coll_knowledge = []
+                # Find applicable knowledge documents for this collection (just names for reference)
+                applicable_coll_knowledge_names = []
                 if knowledge_documents:
                     for doc in knowledge_documents:
                         doc_target = doc.get('targetField', '')
+                        display_name = doc.get('displayName', doc.get('fileName', 'Unknown Document'))
                         # If no target field specified, apply to all fields/collections
                         if not doc_target or doc_target == '' or doc_target is None:
-                            applicable_coll_knowledge.append({
-                                'fileName': doc.get('fileName', ''),
-                                'displayName': doc.get('displayName', ''),
-                                'description': doc.get('description', ''),
-                                'content': doc.get('content', '')
-                            })
+                            applicable_coll_knowledge_names.append(display_name)
                         elif isinstance(doc_target, list):
                             if collection_name in doc_target or 'All Fields' in doc_target:
-                                applicable_coll_knowledge.append({
-                                    'fileName': doc.get('fileName', ''),
-                                    'displayName': doc.get('displayName', ''),
-                                    'description': doc.get('description', ''),
-                                    'content': doc.get('content', '')
-                                })
+                                applicable_coll_knowledge_names.append(display_name)
                         elif collection_name == doc_target or doc_target == 'All Fields':
-                            applicable_coll_knowledge.append({
-                                'fileName': doc.get('fileName', ''),
-                                'displayName': doc.get('displayName', ''),
-                                'description': doc.get('description', ''),
-                                'content': doc.get('content', '')
-                            })
+                            applicable_coll_knowledge_names.append(display_name)
                 
                 full_instruction = collection_description or 'Extract array of these objects'
                 if applicable_rules:
@@ -403,9 +394,9 @@ def step1_extract_from_documents(
                 else:
                     json_schema_section += f"      \"extraction_rules\": [],\n"
                 
-                # Add knowledge documents section for collections
-                if applicable_coll_knowledge:
-                    json_schema_section += f"      \"knowledge_documents\": {json.dumps(applicable_coll_knowledge)},\n"
+                # Add knowledge documents section for collections (just document names)
+                if applicable_coll_knowledge_names:
+                    json_schema_section += f"      \"knowledge_documents\": {json.dumps(applicable_coll_knowledge_names)},\n"
                 else:
                     json_schema_section += f"      \"knowledge_documents\": [],\n"
                 
@@ -438,43 +429,29 @@ def step1_extract_from_documents(
                                   rule_target == 'All Fields'):
                                 prop_rules.append(rule.get('ruleContent', ''))
 
-                    # Find applicable knowledge documents for this property
-                    prop_knowledge = []
+                    # Find applicable knowledge documents for this property (just names for reference)
+                    prop_knowledge_names = []
                     if knowledge_documents:
                         for doc in knowledge_documents:
                             doc_target = doc.get('targetField', '')
                             arrow_notation = f"{collection_name} --> {prop_name}"
                             full_prop_name = f"{collection_name}.{prop_name}"
+                            display_name = doc.get('displayName', doc.get('fileName', 'Unknown Document'))
                             
                             # If no target field specified, apply to all fields/properties
                             if not doc_target or doc_target == '' or doc_target is None:
-                                prop_knowledge.append({
-                                    'fileName': doc.get('fileName', ''),
-                                    'displayName': doc.get('displayName', ''),
-                                    'description': doc.get('description', ''),
-                                    'content': doc.get('content', '')
-                                })
+                                prop_knowledge_names.append(display_name)
                             elif isinstance(doc_target, list):
                                 if (arrow_notation in doc_target or 
                                     full_prop_name in doc_target or 
                                     prop_name in doc_target or 
                                     'All Fields' in doc_target):
-                                    prop_knowledge.append({
-                                        'fileName': doc.get('fileName', ''),
-                                        'displayName': doc.get('displayName', ''),
-                                        'description': doc.get('description', ''),
-                                        'content': doc.get('content', '')
-                                    })
+                                    prop_knowledge_names.append(display_name)
                             elif (arrow_notation == doc_target or 
                                   full_prop_name == doc_target or 
                                   prop_name == doc_target or 
                                   doc_target == 'All Fields'):
-                                prop_knowledge.append({
-                                    'fileName': doc.get('fileName', ''),
-                                    'displayName': doc.get('displayName', ''),
-                                    'description': doc.get('description', ''),
-                                    'content': doc.get('content', '')
-                                })
+                                prop_knowledge_names.append(display_name)
                     
                     prop_instruction = prop_description or 'Extract this property'
                     if prop_rules:
@@ -495,9 +472,9 @@ def step1_extract_from_documents(
                     else:
                         json_schema_section += f",\n          \"extraction_rules\": []"
                     
-                    # Add knowledge documents section for properties
-                    if prop_knowledge:
-                        json_schema_section += f",\n          \"knowledge_documents\": {json.dumps(prop_knowledge)}"
+                    # Add knowledge documents section for properties (just document names)
+                    if prop_knowledge_names:
+                        json_schema_section += f",\n          \"knowledge_documents\": {json.dumps(prop_knowledge_names)}"
                     else:
                         json_schema_section += f",\n          \"knowledge_documents\": []"
                     
