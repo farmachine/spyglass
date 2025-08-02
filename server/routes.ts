@@ -2865,8 +2865,19 @@ print(json.dumps(result))
       
       let updateData = { ...result.data };
       
+      // Check if this is a revert to the original AI answer
+      if (result.data.extractedValue && 
+          currentValidation.originalExtractedValue && 
+          result.data.extractedValue === currentValidation.originalExtractedValue) {
+        // This is a revert - restore original AI state completely
+        updateData.extractedValue = currentValidation.originalExtractedValue;
+        updateData.aiReasoning = currentValidation.originalAiReasoning;
+        updateData.confidenceScore = currentValidation.originalConfidenceScore;
+        updateData.manuallyUpdated = false; // Clear manual update flag
+        // Keep original values for future potential reverts
+      } 
       // If this is a manual edit and we don't have original values stored yet, preserve them
-      if (result.data.extractedValue && result.data.extractedValue !== currentValidation.extractedValue) {
+      else if (result.data.extractedValue && result.data.extractedValue !== currentValidation.extractedValue) {
         // Only preserve original values if they haven't been set yet (first manual edit)
         if (!currentValidation.originalExtractedValue && currentValidation.extractedValue) {
           updateData.originalExtractedValue = currentValidation.extractedValue;

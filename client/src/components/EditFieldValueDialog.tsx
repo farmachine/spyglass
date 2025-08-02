@@ -51,6 +51,9 @@ export function EditFieldValueDialog({
     // Revert to original AI values without closing dialog
     setValue(validation.originalExtractedValue);
     setStatus("verified");
+    
+    // Note: The actual revert of AI reasoning and removal of manual update flag 
+    // will happen when the user saves, handled by the backend
   };
 
   const getFieldDisplayName = (validation: FieldValidationWithName) => {
