@@ -235,7 +235,7 @@ export function EditFieldValueDialog({
           {validation.manuallyUpdated && !hasRevertedToAI && (
             <div className="p-3 bg-slate-50 rounded-lg">
               <Label className="text-xs font-medium text-slate-800">
-                Value manually updated by user to: {validation.extractedValue}
+                Value manually updated by user to: {validation.extractedValue || "Empty"}
               </Label>
             </div>
           )}
