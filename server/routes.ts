@@ -2218,7 +2218,7 @@ print(json.dumps(result))
     }
   });
 
-  // Helper function to apply global rules to field descriptions
+  // Helper function to apply global rules to field descriptions and extraction_rules array
   function applyGlobalRulesToField(field: any, extractionRules: any[], fieldName: string): any {
     let enhancedDescription = field.description || "";
     
@@ -2235,9 +2235,21 @@ print(json.dumps(result))
       rule.targetField === fieldName
     );
     
-    // Append global rules to description
+    // Build combined extraction rules array (global + field-specific)
+    const combinedExtractionRules: string[] = [];
+    
+    // Start with existing field rules if they exist
+    if (field.extraction_rules && Array.isArray(field.extraction_rules)) {
+      combinedExtractionRules.push(...field.extraction_rules);
+    }
+    
+    // Add global rules first
     for (const rule of globalRules) {
       if (rule.ruleContent && rule.ruleContent.trim()) {
+        const ruleContent = rule.ruleContent.trim();
+        if (!combinedExtractionRules.includes(ruleContent)) {
+          combinedExtractionRules.push(ruleContent);
+        }
         const ruleText = ` | RULE: ${rule.ruleContent}`;
         if (!enhancedDescription.includes(ruleText)) {
           enhancedDescription += ruleText;
@@ -2245,9 +2257,13 @@ print(json.dumps(result))
       }
     }
     
-    // Append field-specific rules to description
+    // Add field-specific rules
     for (const rule of fieldSpecificRules) {
       if (rule.ruleContent && rule.ruleContent.trim()) {
+        const ruleContent = rule.ruleContent.trim();
+        if (!combinedExtractionRules.includes(ruleContent)) {
+          combinedExtractionRules.push(ruleContent);
+        }
         const ruleText = ` | RULE: ${rule.ruleContent}`;
         if (!enhancedDescription.includes(ruleText)) {
           enhancedDescription += ruleText;
@@ -2257,7 +2273,8 @@ print(json.dumps(result))
     
     return {
       ...field,
-      description: enhancedDescription
+      description: enhancedDescription,
+      extraction_rules: combinedExtractionRules.length > 0 ? combinedExtractionRules : []
     };
   }
 
@@ -2296,7 +2313,8 @@ print(json.dumps(result))
             fieldName: enhancedField.fieldName,
             fieldType: enhancedField.fieldType,
             description: enhancedField.description,
-            orderIndex: enhancedField.orderIndex
+            orderIndex: enhancedField.orderIndex,
+            extraction_rules: enhancedField.extraction_rules
           };
         }),
         collections: collections.map(collection => ({
@@ -2309,7 +2327,8 @@ print(json.dumps(result))
               id: enhancedProp.id,
               propertyName: enhancedProp.propertyName,
               propertyType: enhancedProp.propertyType,
-              description: enhancedProp.description
+              description: enhancedProp.description,
+              extraction_rules: enhancedProp.extraction_rules
             };
           })
         })),
@@ -2358,7 +2377,7 @@ print(json.dumps(result))
       // Get schema fields, collections, knowledge documents, and extraction rules
       const [schemaFields, collections, knowledgeDocuments, extractionRules] = await Promise.all([
         storage.getProjectSchemaFields(projectId),
-        storage.getProjectCollections(projectId),
+        storage.getObjectCollections(projectId),
         storage.getKnowledgeDocuments(projectId),
         storage.getExtractionRules(projectId)
       ]);
@@ -2388,7 +2407,8 @@ print(json.dumps(result))
             fieldName: enhancedField.fieldName,
             fieldType: enhancedField.fieldType,
             description: enhancedField.description,
-            orderIndex: enhancedField.orderIndex
+            orderIndex: enhancedField.orderIndex,
+            extraction_rules: enhancedField.extraction_rules
           };
         }),
         collections: collectionsWithProperties.map(collection => ({
@@ -2402,7 +2422,8 @@ print(json.dumps(result))
               propertyName: enhancedProp.propertyName,
               propertyType: enhancedProp.propertyType,
               description: enhancedProp.description,
-              orderIndex: enhancedProp.orderIndex
+              orderIndex: enhancedProp.orderIndex,
+              extraction_rules: enhancedProp.extraction_rules
             };
           })
         })),
