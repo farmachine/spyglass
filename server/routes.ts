@@ -2222,9 +2222,12 @@ print(json.dumps(result))
   function applyGlobalRulesToField(field: any, extractionRules: any[], fieldName: string): any {
     let enhancedDescription = field.description || "";
     
-    // Find global rules that apply to "All fields"
+    // Find global rules that apply to "All fields" or have empty/null targetField
     const globalRules = extractionRules.filter(rule => 
-      rule.targetField === "All fields" || rule.targetField === "All Fields"
+      rule.targetField === "All fields" || 
+      rule.targetField === "All Fields" ||
+      !rule.targetField || 
+      rule.targetField.trim() === ""
     );
     
     // Find field-specific rules
@@ -2278,9 +2281,6 @@ print(json.dumps(result))
       
       console.log('Schema fields for project:', projectId, '- Found', schemaFields.length, 'fields');
       console.log('DEBUG - Extraction rules found:', extractionRules.length);
-      extractionRules.forEach((rule, index) => {
-        console.log(`DEBUG - Rule ${index}:`, { id: rule.id, ruleName: rule.ruleName, ruleContent: rule.ruleContent?.substring(0, 50) + '...', targetField: rule.targetField });
-      });
       
       const responseData = {
         project: {
