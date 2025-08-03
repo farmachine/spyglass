@@ -2218,66 +2218,6 @@ print(json.dumps(result))
     }
   });
 
-  // Helper function to apply global rules to field descriptions and extraction_rules array
-  function applyGlobalRulesToField(field: any, extractionRules: any[], fieldName: string): any {
-    let enhancedDescription = field.description || "";
-    
-    // Find global rules that apply to "All fields" or have empty/null targetField
-    const globalRules = extractionRules.filter(rule => 
-      rule.targetField === "All fields" || 
-      rule.targetField === "All Fields" ||
-      !rule.targetField || 
-      rule.targetField.trim() === ""
-    );
-    
-    // Find field-specific rules
-    const fieldSpecificRules = extractionRules.filter(rule => 
-      rule.targetField === fieldName
-    );
-    
-    // Build combined extraction rules array (global + field-specific)
-    const combinedExtractionRules: string[] = [];
-    
-    // Start with existing field rules if they exist
-    if (field.extraction_rules && Array.isArray(field.extraction_rules)) {
-      combinedExtractionRules.push(...field.extraction_rules);
-    }
-    
-    // Add global rules first
-    for (const rule of globalRules) {
-      if (rule.ruleContent && rule.ruleContent.trim()) {
-        const ruleContent = rule.ruleContent.trim();
-        if (!combinedExtractionRules.includes(ruleContent)) {
-          combinedExtractionRules.push(ruleContent);
-        }
-        const ruleText = ` | RULE: ${rule.ruleContent}`;
-        if (!enhancedDescription.includes(ruleText)) {
-          enhancedDescription += ruleText;
-        }
-      }
-    }
-    
-    // Add field-specific rules
-    for (const rule of fieldSpecificRules) {
-      if (rule.ruleContent && rule.ruleContent.trim()) {
-        const ruleContent = rule.ruleContent.trim();
-        if (!combinedExtractionRules.includes(ruleContent)) {
-          combinedExtractionRules.push(ruleContent);
-        }
-        const ruleText = ` | RULE: ${rule.ruleContent}`;
-        if (!enhancedDescription.includes(ruleText)) {
-          enhancedDescription += ruleText;
-        }
-      }
-    }
-    
-    return {
-      ...field,
-      description: enhancedDescription,
-      extraction_rules: combinedExtractionRules.length > 0 ? combinedExtractionRules : []
-    };
-  }
-
   // Get project schema data for AI processing view
   app.get('/api/projects/:projectId/schema-data', async (req, res) => {
     try {
@@ -2298,6 +2238,9 @@ print(json.dumps(result))
       
       console.log('Schema fields for project:', projectId, '- Found', schemaFields.length, 'fields');
       console.log('DEBUG - Extraction rules found:', extractionRules.length);
+      extractionRules.forEach((rule, index) => {
+        console.log(`DEBUG - Rule ${index}:`, { id: rule.id, ruleName: rule.ruleName, ruleContent: rule.ruleContent?.substring(0, 50) + '...' });
+      });
       
       const responseData = {
         project: {
@@ -2306,31 +2249,23 @@ print(json.dumps(result))
           description: project.description,
           mainObjectName: project.mainObjectName
         },
-        schema_fields: schemaFields.map(field => {
-          const enhancedField = applyGlobalRulesToField(field, extractionRules, field.fieldName);
-          return {
-            id: enhancedField.id,
-            fieldName: enhancedField.fieldName,
-            fieldType: enhancedField.fieldType,
-            description: enhancedField.description,
-            orderIndex: enhancedField.orderIndex,
-            extraction_rules: enhancedField.extraction_rules
-          };
-        }),
+        schema_fields: schemaFields.map(field => ({
+          id: field.id,
+          fieldName: field.fieldName,
+          fieldType: field.fieldType,
+          description: field.description,
+          orderIndex: field.orderIndex
+        })),
         collections: collections.map(collection => ({
           id: collection.id,
           collectionName: collection.collectionName,
           description: collection.description,
-          properties: collection.properties.map(prop => {
-            const enhancedProp = applyGlobalRulesToField(prop, extractionRules, `${collection.collectionName}.${prop.propertyName}`);
-            return {
-              id: enhancedProp.id,
-              propertyName: enhancedProp.propertyName,
-              propertyType: enhancedProp.propertyType,
-              description: enhancedProp.description,
-              extraction_rules: enhancedProp.extraction_rules
-            };
-          })
+          properties: collection.properties.map(prop => ({
+            id: prop.id,
+            propertyName: prop.propertyName,
+            propertyType: prop.propertyType,
+            description: prop.description
+          }))
         })),
         knowledge_documents: knowledgeDocuments.map(doc => ({
           id: doc.id,
@@ -2377,7 +2312,7 @@ print(json.dumps(result))
       // Get schema fields, collections, knowledge documents, and extraction rules
       const [schemaFields, collections, knowledgeDocuments, extractionRules] = await Promise.all([
         storage.getProjectSchemaFields(projectId),
-        storage.getObjectCollections(projectId),
+        storage.getProjectCollections(projectId),
         storage.getKnowledgeDocuments(projectId),
         storage.getExtractionRules(projectId)
       ]);
@@ -2400,32 +2335,24 @@ print(json.dumps(result))
           description: project.description,
           mainObjectName: project.mainObjectName
         },
-        schema_fields: schemaFields.map(field => {
-          const enhancedField = applyGlobalRulesToField(field, extractionRules, field.fieldName);
-          return {
-            id: enhancedField.id,
-            fieldName: enhancedField.fieldName,
-            fieldType: enhancedField.fieldType,
-            description: enhancedField.description,
-            orderIndex: enhancedField.orderIndex,
-            extraction_rules: enhancedField.extraction_rules
-          };
-        }),
+        schema_fields: schemaFields.map(field => ({
+          id: field.id,
+          fieldName: field.fieldName,
+          fieldType: field.fieldType,
+          description: field.description,
+          orderIndex: field.orderIndex
+        })),
         collections: collectionsWithProperties.map(collection => ({
           id: collection.id,
           collectionName: collection.collectionName,
           description: collection.description,
-          properties: collection.properties.map((prop: any) => {
-            const enhancedProp = applyGlobalRulesToField(prop, extractionRules, `${collection.collectionName}.${prop.propertyName}`);
-            return {
-              id: enhancedProp.id,
-              propertyName: enhancedProp.propertyName,
-              propertyType: enhancedProp.propertyType,
-              description: enhancedProp.description,
-              orderIndex: enhancedProp.orderIndex,
-              extraction_rules: enhancedProp.extraction_rules
-            };
-          })
+          properties: collection.properties.map((prop: any) => ({
+            id: prop.id,
+            propertyName: prop.propertyName,
+            propertyType: prop.propertyType,
+            description: prop.description,
+            orderIndex: prop.orderIndex
+          }))
         })),
         knowledge_documents: knowledgeDocuments.map(doc => ({
           id: doc.id,

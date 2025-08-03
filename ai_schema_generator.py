@@ -13,98 +13,6 @@ logger = logging.getLogger(__name__)
 # Initialize Gemini client
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
-def apply_global_extraction_rules(schema_data: dict, project_id: str) -> dict:
-    """
-    Apply global extraction rules (those with no target field) to all fields in the schema.
-    This ensures that rules like "Language: Please provide all answers in English" 
-    are applied to every field's extraction_rules array.
-    """
-    try:
-        # Use subprocess to call the storage API to get extraction rules
-        import subprocess
-        import json
-        
-        # Make API call to get extraction rules
-        try:
-            result = subprocess.run([
-                'curl', '-s', f'http://localhost:5000/api/projects/{project_id}/rules'
-            ], capture_output=True, text=True, timeout=10)
-            
-            if result.returncode == 0:
-                api_response = result.stdout.strip()
-                logger.info(f"API response for extraction rules: {api_response}")
-                
-                if api_response:
-                    extraction_rules_response = json.loads(api_response)
-                    extraction_rules = extraction_rules_response if isinstance(extraction_rules_response, list) else []
-                else:
-                    logger.warning("Empty response from extraction rules API")
-                    return schema_data
-            else:
-                logger.warning(f"Failed to fetch extraction rules via API: {result.stderr}")
-                return schema_data
-        except json.JSONDecodeError as je:
-            logger.warning(f"Failed to parse extraction rules JSON: {je}, Response: {result.stdout}")
-            return schema_data
-        except Exception as e:
-            logger.warning(f"Could not load extraction rules for project {project_id}: {e}")
-            return schema_data
-        
-        # Find global rules (those with no target field or target field = "All fields")
-        global_rules = []
-        for rule in extraction_rules:
-            target_field = rule.get('targetField', '').strip()
-            if (not target_field or 
-                target_field == '' or
-                target_field == 'All fields' or
-                target_field == 'All Fields'):
-                rule_content = rule.get('ruleContent', '').strip()
-                if rule_content:
-                    global_rules.append(rule_content)
-        
-        if not global_rules:
-            logger.info(f"No global extraction rules found for project {project_id}")
-            return schema_data
-        
-        logger.info(f"Applying {len(global_rules)} global extraction rules to all fields: {global_rules}")
-        
-        # Helper function to enhance a field with global rules
-        def enhance_field_with_global_rules(field):
-            # Ensure extraction_rules exists and is a list
-            if 'extraction_rules' not in field:
-                field['extraction_rules'] = []
-            elif isinstance(field['extraction_rules'], str):
-                field['extraction_rules'] = [field['extraction_rules']] if field['extraction_rules'].strip() else []
-            elif not isinstance(field['extraction_rules'], list):
-                field['extraction_rules'] = []
-            
-            # Add global rules if they don't already exist
-            for global_rule in global_rules:
-                if global_rule not in field['extraction_rules']:
-                    field['extraction_rules'].insert(0, global_rule)  # Insert at beginning
-            
-            return field
-        
-        # Apply to schema_fields
-        if 'schema_fields' in schema_data:
-            for field in schema_data['schema_fields']:
-                enhance_field_with_global_rules(field)
-        
-        # Apply to collection properties
-        if 'collections' in schema_data:
-            for collection in schema_data['collections']:
-                if 'properties' in collection:
-                    for prop in collection['properties']:
-                        enhance_field_with_global_rules(prop)
-        
-        logger.info("Successfully applied global extraction rules to schema")
-        return schema_data
-        
-    except Exception as e:
-        logger.error(f"Error applying global extraction rules: {e}")
-        return schema_data  # Return original schema if enhancement fails
-
-
 def generate_schema_from_query(user_query: str, project_id: str) -> dict:
     """
     Generate project schema structure from user's natural language query
@@ -458,12 +366,9 @@ User Query: """
         
         logger.info(f"Generated schema for project {project_id}: {len(schema_data.get('schema_fields', []))} fields, {len(schema_data.get('collections', []))} collections")
         
-        # Apply global extraction rules to all fields
-        enhanced_schema = apply_global_extraction_rules(schema_data, project_id)
-        
         return {
             "success": True,
-            "schema": enhanced_schema
+            "schema": schema_data
         }
         
     except json.JSONDecodeError as e:

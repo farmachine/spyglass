@@ -50,7 +50,6 @@ Preferred communication style: Simple, everyday language.
 - **Large PDF Handling**: Intelligent chunking system for processing large PDFs, splitting them into manageable chunks and reassembling after processing.
 - **Enhanced Field Editing**: Complete field editing system with inline clear icons, manual update tracking, AI reasoning display control, and comprehensive revert functionality.
 - **Collection Management**: Fixed "Add new +" functionality with proper index calculation and consistent validation filtering for both legacy and new records.
-- **Global Extraction Rules**: Automatic application of global extraction rules (empty targetField) to all schema fields during generation, ensuring rules like "Language: Please provide all answers in English" are applied consistently across all fields and collection properties.
 
 ### Key Architectural Decisions
 - **Monorepo Structure**: Single repository with shared types.
