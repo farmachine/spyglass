@@ -43,7 +43,7 @@ interface NewUploadProps {
 }
 
 const ACCEPTED_FILE_TYPES = [
-  ".pdf", ".docx", ".doc", ".txt", ".xlsx", ".xls", ".csv"
+  ".pdf", ".docx", ".doc", ".xlsx", ".xls"
 ];
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
@@ -606,7 +606,7 @@ export default function NewUpload({ project }: NewUploadProps) {
                     </label>
                   </p>
                   <p className="text-sm text-gray-500 mt-2">
-                    Supports: PDF, Word, Excel, CSV, Text files (max {MAX_FILES} files, {MAX_FILE_SIZE / (1024 * 1024)}MB each)
+                    Supports: PDF, Word & Excel files only (max {MAX_FILES} files, {MAX_FILE_SIZE / (1024 * 1024)}MB each)
                   </p>
                 </div>
               </div>

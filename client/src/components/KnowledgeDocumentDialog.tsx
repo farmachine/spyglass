@@ -54,7 +54,7 @@ interface KnowledgeDocumentDialogProps {
 }
 
 const ACCEPTED_FILE_TYPES = [
-  ".pdf", ".docx", ".doc", ".txt", ".xlsx", ".xls", ".csv"
+  ".pdf"
 ];
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -282,7 +282,7 @@ export default function KnowledgeDocumentDialog({
                           </label>
                         </p>
                         <p className="text-sm text-gray-500 mt-2">
-                          Supports: PDF, Word, Excel, CSV, Text files (max 10MB)
+                          Supports: PDF files only (max 10MB)
                         </p>
                       </div>
                     </div>
