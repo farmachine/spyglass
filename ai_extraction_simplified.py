@@ -149,6 +149,30 @@ def step1_extract_from_documents(
         
         logging.info(f"STEP 1: Starting extraction for {len(documents)} documents")
         
+        # First, identify global extraction rules that apply to all fields
+        global_rules = []
+        field_specific_rules = {}
+        if extraction_rules:
+            for rule in extraction_rules:
+                rule_target = rule.get('targetField', '')
+                rule_content = rule.get('ruleContent', '')
+                
+                # Check if this is a global rule (empty targetField or 'All Fields')
+                if not rule_target or rule_target == '' or rule_target == 'All Fields':
+                    global_rules.append(rule_content)
+                else:
+                    # Handle multiple target fields (comma-separated)
+                    if ',' in rule_target:
+                        targets = [t.strip() for t in rule_target.split(',')]
+                        for target in targets:
+                            if target not in field_specific_rules:
+                                field_specific_rules[target] = []
+                            field_specific_rules[target].append(rule_content)
+                    else:
+                        if rule_target not in field_specific_rules:
+                            field_specific_rules[rule_target] = []
+                        field_specific_rules[rule_target].append(rule_content)
+        
         # Build schema fields section for the imported prompt
         schema_fields_text = ""
         
@@ -158,18 +182,16 @@ def step1_extract_from_documents(
                 field_name = field['fieldName']
                 field_type = field['fieldType']
                 field_description = field.get('description', '')
-                camel_case_name = field_name.replace(' ', '').replace('of', 'Of')
                 
-                # Find applicable extraction rules for this field
+                # Collect all applicable extraction rules for this field
                 applicable_rules = []
-                if extraction_rules:
-                    for rule in extraction_rules:
-                        rule_target = rule.get('targetField', [])
-                        if isinstance(rule_target, list):
-                            if field_name in rule_target or 'All Fields' in rule_target:
-                                applicable_rules.append(f"RULE: {rule.get('ruleContent', '')}")
-                        elif field_name == rule_target or rule_target == 'All Fields':
-                            applicable_rules.append(f"RULE: {rule.get('ruleContent', '')}")
+                
+                # Add global rules first (these apply to ALL fields)
+                applicable_rules.extend([f"RULE: {rule}" for rule in global_rules])
+                
+                # Add field-specific rules
+                if field_name in field_specific_rules:
+                    applicable_rules.extend([f"RULE: {rule}" for rule in field_specific_rules[field_name]])
                 
                 # Combine description with rules
                 full_instruction = field_description or 'Extract this field from the documents'
@@ -222,24 +244,18 @@ def step1_extract_from_documents(
                         
                         # Find applicable extraction rules for this property
                         prop_rules = []
-                        if extraction_rules:
-                            for rule in extraction_rules:
-                                rule_target = rule.get('targetField', [])
-                                # Handle arrow notation (e.g., "Parties --> Name")
-                                arrow_notation = f"{collection_name} --> {prop_name}"
-                                full_prop_name = f"{collection_name}.{prop_name}"
-                                
-                                if isinstance(rule_target, list):
-                                    if (arrow_notation in rule_target or 
-                                        full_prop_name in rule_target or 
-                                        prop_name in rule_target or 
-                                        'All Fields' in rule_target):
-                                        prop_rules.append(f"RULE: {rule.get('ruleContent', '')}")
-                                elif (arrow_notation == rule_target or 
-                                      full_prop_name == rule_target or 
-                                      prop_name == rule_target or 
-                                      rule_target == 'All Fields'):
-                                    prop_rules.append(f"RULE: {rule.get('ruleContent', '')}")
+                        
+                        # Add global rules first (these apply to ALL fields)
+                        prop_rules.extend([f"RULE: {rule}" for rule in global_rules])
+                        
+                        # Add property-specific rules
+                        arrow_notation = f"{collection_name} --> {prop_name}"
+                        full_prop_name = f"{collection_name}.{prop_name}"
+                        
+                        # Check field_specific_rules for various naming patterns
+                        for pattern in [arrow_notation, full_prop_name, prop_name]:
+                            if pattern in field_specific_rules:
+                                prop_rules.extend([f"RULE: {rule}" for rule in field_specific_rules[pattern]])
                         
                         prop_instruction = prop_description or 'Extract this property'
                         if prop_rules:
@@ -311,14 +327,13 @@ def step1_extract_from_documents(
                 
                 # Find applicable extraction rules for this field
                 applicable_rules = []
-                if extraction_rules:
-                    for rule in extraction_rules:
-                        rule_target = rule.get('targetField', [])
-                        if isinstance(rule_target, list):
-                            if field_name in rule_target or 'All Fields' in rule_target:
-                                applicable_rules.append(rule.get('ruleContent', ''))
-                        elif field_name == rule_target or rule_target == 'All Fields':
-                            applicable_rules.append(rule.get('ruleContent', ''))
+                
+                # Add global rules first (these apply to ALL fields)
+                applicable_rules.extend(global_rules)
+                
+                # Add field-specific rules
+                if field_name in field_specific_rules:
+                    applicable_rules.extend(field_specific_rules[field_name])
 
                 # Find applicable knowledge documents for this field (just names for reference)
                 applicable_knowledge_names = []
@@ -378,14 +393,13 @@ def step1_extract_from_documents(
                 
                 # Find applicable extraction rules for this collection
                 applicable_rules = []
-                if extraction_rules:
-                    for rule in extraction_rules:
-                        rule_target = rule.get('targetField', [])
-                        if isinstance(rule_target, list):
-                            if collection_name in rule_target or 'All Fields' in rule_target:
-                                applicable_rules.append(rule.get('ruleContent', ''))
-                        elif collection_name == rule_target or rule_target == 'All Fields':
-                            applicable_rules.append(rule.get('ruleContent', ''))
+                
+                # Add global rules first (these apply to ALL fields)
+                applicable_rules.extend(global_rules)
+                
+                # Add collection-specific rules
+                if collection_name in field_specific_rules:
+                    applicable_rules.extend(field_specific_rules[collection_name])
 
                 # Find applicable knowledge documents for this collection (just names for reference)
                 applicable_coll_knowledge_names = []
@@ -435,23 +449,18 @@ def step1_extract_from_documents(
                     
                     # Find applicable extraction rules for this property
                     prop_rules = []
-                    if extraction_rules:
-                        for rule in extraction_rules:
-                            rule_target = rule.get('targetField', [])
-                            arrow_notation = f"{collection_name} --> {prop_name}"
-                            full_prop_name = f"{collection_name}.{prop_name}"
-                            
-                            if isinstance(rule_target, list):
-                                if (arrow_notation in rule_target or 
-                                    full_prop_name in rule_target or 
-                                    prop_name in rule_target or 
-                                    'All Fields' in rule_target):
-                                    prop_rules.append(rule.get('ruleContent', ''))
-                            elif (arrow_notation == rule_target or 
-                                  full_prop_name == rule_target or 
-                                  prop_name == rule_target or 
-                                  rule_target == 'All Fields'):
-                                prop_rules.append(rule.get('ruleContent', ''))
+                    
+                    # Add global rules first (these apply to ALL fields)
+                    prop_rules.extend(global_rules)
+                    
+                    # Add property-specific rules
+                    arrow_notation = f"{collection_name} --> {prop_name}"
+                    full_prop_name = f"{collection_name}.{prop_name}"
+                    
+                    # Check field_specific_rules for various naming patterns
+                    for pattern in [arrow_notation, full_prop_name, prop_name]:
+                        if pattern in field_specific_rules:
+                            prop_rules.extend(field_specific_rules[pattern])
 
                     # Find applicable knowledge documents for this property (just names for reference)
                     prop_knowledge_names = []

@@ -293,6 +293,15 @@ def extract_data_from_document(
         prompt = f"Extract data from this document: {file_name}\n\n"
         prompt += "CRITICAL: Extract ONLY real data from the document. Do NOT generate sample or placeholder data.\n\n"
         
+        # First, identify global extraction rules that apply to all fields
+        global_rules = []
+        if extraction_rules:
+            for rule in extraction_rules:
+                # Check if rule applies to all fields
+                applies_to = rule.get('appliesTo', '')
+                if applies_to.lower() in ['all fields', 'all', '*']:
+                    global_rules.append(rule.get('rule', ''))
+        
         # Add schema fields
         if project_schema.get("schema_fields"):
             prompt += "Schema fields to extract:\n"
@@ -300,10 +309,34 @@ def extract_data_from_document(
                 field_name = field['fieldName']
                 field_type = field['fieldType']
                 field_description = field.get('description', '')
+                
+                # Collect all applicable extraction rules for this field
+                field_rules = []
+                
+                # Add global rules first
+                field_rules.extend(global_rules)
+                
+                # Add field-specific rules from extraction_rules parameter
+                if extraction_rules:
+                    for rule in extraction_rules:
+                        applies_to = rule.get('appliesTo', '')
+                        if applies_to == field_name:
+                            field_rules.append(rule.get('rule', ''))
+                
+                # Add field-specific rules from field's extraction_rules property
+                if field.get('extraction_rules'):
+                    field_rules.extend(field['extraction_rules'])
+                
+                # Build the field description with rules
+                prompt_line = f"- {field_name} ({field_type})"
                 if field_description:
-                    prompt += f"- {field_name} ({field_type}): {field_description}\n"
-                else:
-                    prompt += f"- {field_name} ({field_type})\n"
+                    prompt_line += f": {field_description}"
+                
+                if field_rules:
+                    rules_text = " | ".join(field_rules)
+                    prompt_line += f" | EXTRACTION RULES: {rules_text}"
+                
+                prompt += prompt_line + "\n"
         
         # Add collections
         if project_schema.get("collections"):
@@ -337,10 +370,34 @@ def extract_data_from_document(
                                 prop_name = prop.get('propertyName', '')
                                 prop_type = prop.get('propertyType', 'TEXT')
                                 prop_description = prop.get('description', '')
+                                
+                                # Collect all applicable extraction rules for this collection property
+                                prop_rules = []
+                                
+                                # Add global rules first
+                                prop_rules.extend(global_rules)
+                                
+                                # Add property-specific rules from extraction_rules parameter
+                                if extraction_rules:
+                                    for rule in extraction_rules:
+                                        applies_to = rule.get('appliesTo', '')
+                                        if applies_to == f"{collection_name}.{prop_name}":
+                                            prop_rules.append(rule.get('rule', ''))
+                                
+                                # Add property-specific rules from property's extraction_rules
+                                if prop.get('extraction_rules'):
+                                    prop_rules.extend(prop['extraction_rules'])
+                                
+                                # Build the property description with rules
+                                prompt_line = f"  * {prop_name} ({prop_type})"
                                 if prop_description:
-                                    prompt += f"  * {prop_name} ({prop_type}): {prop_description}\n"
-                                else:
-                                    prompt += f"  * {prop_name} ({prop_type})\n"
+                                    prompt_line += f": {prop_description}"
+                                
+                                if prop_rules:
+                                    rules_text = " | ".join(prop_rules)
+                                    prompt_line += f" | EXTRACTION RULES: {rules_text}"
+                                
+                                prompt += prompt_line + "\n"
                             except Exception as prop_error:
                                 logging.error(f"Error processing property: {prop_error}")
                                 continue

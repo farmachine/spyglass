@@ -68,38 +68,60 @@ CRITICAL: If the user mentions "list" or provides many column names, you should 
 
 IMPORTANT: When users provide specific column/field names in their query, you MUST include ALL of them as properties in the collection. Do not rename or exclude any user-specified fields. Use the exact names provided by the user, converting only the formatting (e.g., snake_case to proper capitalization).
 
+EXTRACTION RULES HANDLING:
+- Some extraction rules are GLOBAL and apply to ALL fields (e.g., "Please provide all answers in English")
+- Some extraction rules are FIELD-SPECIFIC and apply only to certain fields
+- When generating schemas, include ALL applicable rules in each field's "extraction_rules" array:
+  * Global rules (that apply to all fields) must be included in EVERY field and property
+  * Field-specific rules should only be included in their target fields
+- Global rules are typically language preferences, formatting instructions, or general data extraction guidelines
+
 RESPONSE FORMAT:
 Return ONLY a valid JSON object following the standard schema format with both schema_fields AND collections when appropriate.
 
-Example for CSP list extraction with user-specified columns:
+Example with extraction rules (including global rules that apply to all fields):
 {
-  "main_object_name": "CSP_Data", 
+  "main_object_name": "Insurance_Certificate_Data", 
   "schema_fields": [
     {
-      "field_name": "Country",
+      "field_name": "Policy Number",
       "field_type": "TEXT",
-      "description": "Country code for the document",
-      "auto_verification_confidence": 90
+      "description": "The unique identification number of the insurance policy",
+      "auto_verification_confidence": 95,
+      "extraction_rules": ["Look for labels like 'Policy No.', 'Policy #', 'Policy Number'.", "Please provide all answers in English"],
+      "knowledge_documents": ["Insurance Certificate Standards"]
+    },
+    {
+      "field_name": "Insurer Name",
+      "field_type": "TEXT", 
+      "description": "The legal name of the insurance company issuing the policy",
+      "auto_verification_confidence": 90,
+      "extraction_rules": ["Often found in the 'Producer' or 'Insurer' section, usually a prominent company name.", "Please provide all answers in English"],
+      "knowledge_documents": ["Insurance Certificate Standards"]
     }
   ],
   "collections": [
     {
-      "collection_name": "Agricultural Activities",
-      "description": "List of agricultural production activities and their applicability", 
+      "collection_name": "Coverages",
+      "description": "A list of individual insurance coverages provided by the policy",
+      "extraction_rules": ["Please provide all answers in English"],
+      "knowledge_documents": ["Insurance Certificate Standards"],
       "properties": [
         {
-          "property_name": "Soft Wheat Production Activity",
-          "field_type": "CHOICE",
-          "description": "Applicability for soft wheat production",
+          "property_name": "Coverage Type",
+          "property_type": "TEXT",
+          "description": "The specific type of insurance coverage (e.g., General Liability, Auto Liability)",
           "auto_verification_confidence": 85,
-          "choice_options": ["Yes", "No", "1", "0"]
+          "extraction_rules": ["Look for common coverage names in a table or list format.", "Please provide all answers in English"],
+          "knowledge_documents": ["Insurance Certificate Standards"]
         },
         {
-          "property_name": "Barley Production Activity", 
-          "field_type": "CHOICE",
-          "description": "Applicability for barley production",
-          "auto_verification_confidence": 85,
-          "choice_options": ["Yes", "No", "1", "0"]
+          "property_name": "Limit",
+          "property_type": "TEXT",
+          "description": "The maximum amount the insurer will pay for a covered loss",
+          "auto_verification_confidence": 80,
+          "extraction_rules": ["Often found in a column next to the coverage type, may include currency symbols.", "Please provide all answers in English"],
+          "knowledge_documents": ["Insurance Certificate Standards"]
         }
       ]
     }
