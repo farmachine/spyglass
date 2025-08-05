@@ -53,22 +53,22 @@ def detect_truncation(response_text: str, expected_field_count: int = None, proj
         })
         return detection_result
     
-    # Check 1.2: Look for abrupt ending patterns in response tail (more precise detection)
-    response_tail = stripped_response[-50:]  # Check last 50 characters for truncation signs
-    abrupt_patterns = [
-        ':"',               # Property started but incomplete (ends with just quote)
-        ',"field_',         # Started new field after comma but cut off
+    # Check 1.2: Look for abrupt ending patterns in response tail
+    response_tail = stripped_response[-100:]  # Check last 100 characters for context
+    incomplete_patterns = [
+        '"field_id"',        # Field started but incomplete
+        '"validation_type"', # Property name without value
+        ',"field_',         # Started new field after comma
         ':{',               # Object started but not closed
-        '},\n',             # Trailing comma and newline suggesting more content
-        '},"',              # Object closed but followed by incomplete property
+        ',"',               # Trailing comma suggesting more content
     ]
     
-    for pattern in abrupt_patterns:
-        if response_tail.endswith(pattern) or pattern in response_tail[-20:]:
+    for pattern in incomplete_patterns:
+        if pattern in response_tail:
             detection_result.update({
                 "is_truncated": True,
                 "detection_method": "json_structure", 
-                "reason": f"Response contains abrupt ending pattern: '{pattern}'"
+                "reason": f"Response contains incomplete pattern: '{pattern}'"
             })
             return detection_result
     
@@ -119,7 +119,6 @@ def detect_truncation(response_text: str, expected_field_count: int = None, proj
                 complete_items = 0
                 incomplete_items = 0
                 max_index = max(items_by_index.keys()) if items_by_index else -1
-                last_item_incomplete = False
                 
                 for idx in range(max_index + 1):
                     if idx in items_by_index:
@@ -130,35 +129,18 @@ def detect_truncation(response_text: str, expected_field_count: int = None, proj
                             complete_items += 1
                         else:
                             incomplete_items += 1
-                            # Special attention to the last item being incomplete
-                            if idx == max_index:
-                                last_item_incomplete = True
-                                
-                # Enhanced truncation detection logic:
-                # 1. If the last item is incomplete, it's likely truncation
-                # 2. Apply completeness threshold with different sensitivity levels
-                if complete_items > 0 and incomplete_items > 0:
+                            
+                # Apply 90% completeness threshold for truncation detection
+                if complete_items > 0:
                     completeness_ratio = complete_items / (complete_items + incomplete_items)
-                    
-                    # Strong indicator: Last item incomplete (likely truncation)
-                    if last_item_incomplete:
-                        detection_result.update({
-                            "is_truncated": True,
-                            "detection_method": "collection_completeness",
-                            "reason": f"Collection '{collection_name}' has incomplete final item (strong truncation indicator)",
-                            "missing_validations": incomplete_items * len(properties),
-                            "batch_size": min(50, incomplete_items * len(properties))
-                        })
-                        return detection_result
-                    
-                    # Secondary check: Overall completeness below threshold
-                    elif completeness_ratio < 0.85:  # Lower threshold for general completeness
+                    if completeness_ratio < 0.90:
+                        missing_items = incomplete_items
                         detection_result.update({
                             "is_truncated": True,
                             "detection_method": "collection_completeness",
                             "reason": f"Collection '{collection_name}' has {completeness_ratio:.1%} completeness ({complete_items}/{complete_items + incomplete_items} complete items)",
-                            "missing_validations": incomplete_items * len(properties),
-                            "batch_size": min(50, incomplete_items * len(properties))
+                            "missing_validations": missing_items * len(properties),
+                            "batch_size": min(50, missing_items * len(properties))  # Reasonable batch size
                         })
                         return detection_result
     
@@ -277,6 +259,42 @@ Focus on completing the extraction with all required validation properties.
             "batch_number": batch_number,
             "field_validations": []
         }
+                    
+                    # Additional check: Look for missing properties in the last items
+                    items_count = int(calculated_items)
+                    if items_count > 0:
+                        # Group validations by item index
+                        item_groups = {}
+                        for validation in collection_validations:
+                            item_index = validation.get('item_index', 0)
+                            if item_index not in item_groups:
+                                item_groups[item_index] = []
+                            item_groups[item_index].append(validation)
+                        
+                        # Check if the last few items have all properties
+                        max_item_index = max(item_groups.keys()) if item_groups else -1
+                        for check_index in range(max(0, max_item_index - 2), max_item_index + 1):
+                            if check_index in item_groups:
+                                item_validations = item_groups[check_index]
+                                if len(item_validations) < properties_per_item:
+                                    logging.info(f"TRUNCATION: Item {check_index} in collection {collection_name} "
+                                               f"has {len(item_validations)} properties, expected {properties_per_item}")
+                                    return True
+        
+        # TERTIARY: Expected count check (final fallback only if response structure looks complete)
+        if expected_field_count and expected_field_count > 10:  # Only use if reasonable estimate
+            threshold = expected_field_count * 0.9
+            if len(field_validations) < threshold:
+                logging.info(f"TRUNCATION: Field count suggests truncation. Found: {len(field_validations)}, "
+                           f"Expected: {expected_field_count}, Threshold: {threshold}")
+                return True
+            
+    except json.JSONDecodeError as e:
+        logging.info(f"TRUNCATION: JSON decode error: {e}")
+        return True
+    
+    logging.info("TRUNCATION: No truncation detected")
+    return False
 
 def generate_continuation_prompt(original_prompt: str, previous_validations: List[Dict], project_schema: Dict) -> str:
     """

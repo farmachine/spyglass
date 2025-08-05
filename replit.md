@@ -52,8 +52,11 @@ Preferred communication style: Simple, everyday language.
 - **Collection Management**: Fixed "Add new +" functionality with proper index calculation and consistent validation filtering for both legacy and new records.
 - **Empty Data Handling**: Robust session view loading that gracefully handles empty AI extraction results, displaying functional empty states without errors or crashes.
 - **Enhanced Truncation Repair**: Improved JSON repair functionality for truncated Gemini API responses, with comprehensive parsing logic that recovers complete field validation objects and maintains data integrity during AI extraction failures.
-- **Smart Truncation Detection**: Advanced truncation detection that analyzes collection completeness by checking if items have all expected properties, rather than relying on rough estimates. Uses 90% threshold for better sensitivity. Detects cases where AI response is cut off mid-collection, triggering batch continuation automatically.
-- **Batch Validation System**: Comprehensive batch processing system that triggers ONLY when truncation is detected. Uses AI response structure analysis as primary detection method (JSON completeness, incomplete collection items), with field count comparison as fallback. Performs follow-up calls to retrieve missing validations, saves them with batch tracking (batchNumber field), and displays combined results with debug screen toggle between batches. Enhanced continuation prompts ensure complete field validation objects with all required properties.
+- **Enhanced 3-Tier Truncation Detection**: Advanced multi-tiered truncation detection system that prioritizes AI response structure analysis over field counting for maximum accuracy:
+  - **Tier 1 (JSON Structure)**: Primary detection for malformed/incomplete JSON responses
+  - **Tier 2 (Collection Completeness)**: Analyzes collection item completeness with enhanced logic for incomplete final items (strong truncation indicator)
+  - **Tier 3 (Field Count)**: Fallback comparison of actual vs expected field counts with dynamic thresholds
+- **Smart Batch Validation System**: Intelligent batch processing system that triggers ONLY when truncation is detected through the 3-tier analysis. Uses AI response structure as primary detection method, performs follow-up calls to retrieve missing validations, saves them with batch tracking (batchNumber field), and displays combined results with debug capabilities. Enhanced continuation prompts ensure complete field validation objects with all required properties.
 
 ### Key Architectural Decisions
 - **Monorepo Structure**: Single repository with shared types.
