@@ -100,9 +100,11 @@ def detect_truncation(response_text: str, expected_field_count: int = None, proj
         
         # Fallback: Original expected count check (but only if realistic)
         if expected_field_count and expected_field_count > 10:  # Only use if reasonable estimate
-            if len(field_validations) < expected_field_count * 0.7:
+            # Use 90% threshold for better detection of partial truncation
+            threshold = expected_field_count * 0.9
+            if len(field_validations) < threshold:
                 logging.info(f"TRUNCATION: Field count check failed. Found: {len(field_validations)}, "
-                           f"Expected: {expected_field_count}, Threshold: {expected_field_count * 0.7}")
+                           f"Expected: {expected_field_count}, Threshold: {threshold}")
                 return True
             
     except json.JSONDecodeError as e:

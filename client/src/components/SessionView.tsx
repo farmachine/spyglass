@@ -61,7 +61,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
   // Get batch validation data for debug screen
   const { data: batchData } = useQuery<BatchData>({
     queryKey: [`/api/sessions/${sessionId}/validation-batches`],
-    enabled: showBatchDebug,
+    enabled: true, // Always fetch to determine if debug panel should show
   });
 
   const updateValidationMutation = useMutation({
