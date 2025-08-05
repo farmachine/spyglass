@@ -27,6 +27,43 @@ class ExtractionResult:
 
 # ValidationResult dataclass removed - validation now occurs only during extraction
 
+def clean_gemini_response(response_text: str) -> str:
+    """
+    Clean Gemini AI response to ensure it's pure JSON without markdown formatting.
+    """
+    if not response_text:
+        return response_text
+    
+    # Remove common markdown code block patterns
+    response_text = response_text.strip()
+    
+    # Remove ```json and ``` wrappers
+    if response_text.startswith('```json'):
+        response_text = response_text[7:]
+    elif response_text.startswith('```'):
+        response_text = response_text[3:]
+    
+    if response_text.endswith('```'):
+        response_text = response_text[:-3]
+    
+    # Remove any introductory text before the JSON
+    response_text = response_text.strip()
+    
+    # Find the actual JSON start
+    json_start_patterns = [
+        '{"field_validations":',
+        '{\n  "field_validations":',
+        '{ "field_validations":'
+    ]
+    
+    for pattern in json_start_patterns:
+        pos = response_text.find(pattern)
+        if pos != -1:
+            response_text = response_text[pos:]
+            break
+    
+    return response_text.strip()
+
 def repair_truncated_json(response_text: str) -> str:
     """
     Attempt to repair truncated JSON responses by finding complete field validation objects
@@ -34,6 +71,9 @@ def repair_truncated_json(response_text: str) -> str:
     """
     try:
         logging.info(f"Attempting to repair JSON response of length {len(response_text)}")
+        
+        # First, clean the response of any markdown formatting
+        response_text = clean_gemini_response(response_text)
         
         # Find the start of the JSON structure - it might not be at the beginning
         response_stripped = response_text.strip()
@@ -694,7 +734,15 @@ CHOICE FIELD HANDLING:
 **CRITICAL COLLECTION NAME REQUIREMENT**: For collection properties, you MUST include the "collection_name" field in each field validation object. Use the exact collection name from the schema (e.g., "Increase Rates").
 
 REQUIRED OUTPUT FORMAT - Field Validation JSON Structure:
-{dynamic_example}"""
+{dynamic_example}
+
+**CRITICAL OUTPUT REQUIREMENTS**:
+- Return ONLY the JSON response above - no markdown formatting, no code blocks, no explanations
+- Do not wrap the JSON in ```json or ``` markdown code blocks
+- Do not include any text before or after the JSON
+- Start your response directly with {{ and end with }}
+- The response must be valid JSON that can be parsed directly
+- Do not include any introductory text like "Here is the JSON response:" or similar"""
         
         # STEP 1: ENHANCED DOCUMENT CONTENT EXTRACTION
         # Process documents in two phases: content extraction, then data extraction
@@ -1061,6 +1109,10 @@ RETURN: Complete readable content from this document."""
         if len(response_text) > 500:
             logging.info(f"STEP 2: Raw AI response end: ...{response_text[-500:]}")
             
+        # Clean the response using our enhanced cleaning function
+        response_text = clean_gemini_response(response_text)
+        logging.info(f"STEP 2: Cleaned response length: {len(response_text)}")
+            
         # Check for potential truncation indicators
         truncation_indicators = ['...', '...}', '"ai_reasoning": "Extracted from document analysis",']
         if any(indicator in response_text[-100:] for indicator in truncation_indicators):
@@ -1082,16 +1134,6 @@ RETURN: Complete readable content from this document."""
         # Check if response appears to end abruptly
         if len(response_text) > 10000 and not response_text.strip().endswith((']}', '}')):
             logging.warning("RESPONSE APPEARS TRUNCATED - Does not end with expected JSON closing")
-        
-        # Remove markdown code blocks if present
-        if response_text.startswith("```json"):
-            response_text = response_text[7:]  # Remove ```json
-        if response_text.startswith("```"):
-            response_text = response_text[3:]   # Remove ```
-        if response_text.endswith("```"):
-            response_text = response_text[:-3]  # Remove trailing ```
-        
-        response_text = response_text.strip()
         
         try:
             # If empty response, create default structure

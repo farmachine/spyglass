@@ -52,6 +52,7 @@ Preferred communication style: Simple, everyday language.
 - **Collection Management**: Fixed "Add new +" functionality with proper index calculation and consistent validation filtering for both legacy and new records.
 - **Empty Data Handling**: Robust session view loading that gracefully handles empty AI extraction results, displaying functional empty states without errors or crashes.
 - **Gemini Token Limit Handling**: Advanced JSON truncation repair system that preserves partial extraction results when hitting Gemini API output token limits, converting complete failures into partial successes with 70%+ data recovery rates.
+- **Clean JSON Output**: Enhanced Gemini AI response processing that ensures pure JSON output without markdown formatting, code blocks, or introductory text, using explicit prompt instructions and robust response cleaning functions.
 
 ### Key Architectural Decisions
 - **Monorepo Structure**: Single repository with shared types.
