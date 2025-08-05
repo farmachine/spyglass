@@ -202,25 +202,149 @@ Provide field_validations in JSON format.
             'mime_type': 'text/plain'
         }]
         
-        # Perform continuation extraction
-        continuation_result = step1_extract_from_documents(
-            documents=documents,
-            project_schema=project_schema,
-            extraction_rules=extraction_rules,
-            knowledge_documents=knowledge_base,
-            custom_prompt=continuation_prompt
-        )
+        # Get already processed field IDs to explicitly skip them
+        processed_field_ids = set()
+        existing_validations = repaired_data.get('field_validations', [])
+        for validation in existing_validations:
+            field_id = validation.get('field_id', '')
+            if field_id:
+                processed_field_ids.add(field_id)
         
-        if continuation_result and continuation_result.success and continuation_result.extracted_data:
-            field_validations = continuation_result.extracted_data.get('field_validations', [])
-            logging.info(f"✅ Continuation extraction successful: {len(field_validations)} new validations")
+        logging.info(f"🔄 Processed field IDs to skip: {len(processed_field_ids)} items")
+        logging.info(f"🔄 First few processed IDs: {list(processed_field_ids)[:5]}")
+        
+        # Create list of fields/properties that still need processing
+        remaining_items = []
+        
+        # Add schema fields that haven't been processed
+        for field in schema_fields:
+            field_id = field.get('id', '')
+            if field_id and field_id not in processed_field_ids:
+                remaining_items.append({
+                    'type': 'schema_field',
+                    'id': field_id,
+                    'name': field.get('fieldName', ''),
+                    'data_type': field.get('fieldType', 'TEXT')
+                })
+        
+        # Add collection properties that haven't been processed  
+        for collection in collections:
+            collection_id = collection.get('id', '')
+            collection_name = collection.get('collectionName', '')
+            properties = collection.get('properties', [])
+            
+            for prop in properties:
+                prop_id = prop.get('id', '')
+                if prop_id and prop_id not in processed_field_ids:
+                    remaining_items.append({
+                        'type': 'collection_property',
+                        'id': prop_id,
+                        'name': prop.get('propertyName', ''),
+                        'data_type': prop.get('propertyType', 'TEXT'),
+                        'collection_id': collection_id,
+                        'collection_name': collection_name
+                    })
+        
+        if not remaining_items:
+            logging.info("✅ All items have been processed - no continuation needed")
             return {
-                'continuation_data': continuation_result.extracted_data,
+                'continuation_data': {'field_validations': []},
                 'continuation_info': continuation_info,
                 'success': True
             }
-        else:
-            logging.error("❌ Continuation extraction failed or returned no data")
+        
+        logging.info(f"🔄 Found {len(remaining_items)} items still needing extraction")
+        
+        # Create detailed continuation prompt with explicit skip instructions
+        skip_list = '\n'.join([f"- {field_id}" for field_id in sorted(processed_field_ids)])
+        remaining_list = '\n'.join([f"- {item['id']} ({item['type']}): {item['name']}" for item in remaining_items[:10]])
+        
+        enhanced_continuation_prompt = f"""
+CONTINUATION EXTRACTION - CRITICAL INSTRUCTIONS
+
+You are continuing a truncated AI extraction that processed {len(processed_field_ids)} validations.
+
+ALREADY PROCESSED - DO NOT EXTRACT THESE FIELD IDs AGAIN:
+{skip_list}
+
+REMAINING ITEMS TO EXTRACT ({len(remaining_items)} total):
+{remaining_list}
+{f"... and {len(remaining_items) - 10} more items" if len(remaining_items) > 10 else ""}
+
+STRICT RULES:
+1. ONLY extract validations for the REMAINING ITEMS listed above
+2. DO NOT re-extract any field_id from the ALREADY PROCESSED list
+3. Extract ALL remaining items, not just a subset
+4. Use the exact same JSON format as the original extraction
+5. Start response with {{"field_validations": [...]}}
+
+DOCUMENT CONTENT:
+{extracted_text}
+
+Extract field validations for the remaining unprocessed items only.
+"""
+        
+        # Perform continuation extraction with enhanced prompt
+        from ai_extraction_simplified import make_gemini_request
+        
+        continuation_response = make_gemini_request(enhanced_continuation_prompt)
+        
+        if not continuation_response or not continuation_response.get('success'):
+            logging.error("❌ Continuation request failed")
+            return None
+        
+        continuation_text = continuation_response.get('response', '')
+        if not continuation_text:
+            logging.error("❌ Empty continuation response")
+            return None
+        
+        # Parse continuation response
+        try:
+            import json
+            
+            if continuation_text.strip().startswith('{'):
+                continuation_data = json.loads(continuation_text)
+            else:
+                # Try to extract as array
+                import re
+                match = re.search(r'"field_validations":\s*\[(.*)\]', continuation_text, re.DOTALL)
+                if match:
+                    validations_text = '[' + match.group(1) + ']'
+                    validations_array = json.loads(validations_text)
+                    continuation_data = {"field_validations": validations_array}
+                else:
+                    if continuation_text.strip().startswith('['):
+                        validations_array = json.loads(continuation_text)
+                        continuation_data = {"field_validations": validations_array}
+                    else:
+                        raise json.JSONDecodeError("Could not parse continuation response", continuation_text, 0)
+                        
+            continuation_validations = continuation_data.get('field_validations', [])
+            
+            # Filter out any duplicates (safety check)
+            filtered_validations = []
+            for validation in continuation_validations:
+                field_id = validation.get('field_id', '')
+                if field_id and field_id not in processed_field_ids:
+                    filtered_validations.append(validation)
+                else:
+                    logging.warning(f"⚠️ Filtered duplicate field_id: {field_id}")
+            
+            continuation_data['field_validations'] = filtered_validations
+            
+            logging.info(f"✅ Continuation extraction successful: {len(filtered_validations)} new validations")
+            return {
+                'continuation_data': continuation_data,
+                'continuation_info': continuation_info,
+                'success': True,
+                'remaining_items_requested': len(remaining_items),
+                'validations_extracted': len(filtered_validations),
+                'duplicates_filtered': len(continuation_validations) - len(filtered_validations)
+            }
+            
+        except json.JSONDecodeError as e:
+            logging.error(f"❌ Failed to parse continuation JSON: {e}")
+            logging.error(f"❌ Response preview: {continuation_text[:500]}")
             return None
             
     except Exception as e:
