@@ -27,6 +27,58 @@ class ExtractionResult:
 
 # ValidationResult dataclass removed - validation now occurs only during extraction
 
+def sanitize_content_for_gemini(prompt_text: str) -> str:
+    """
+    Sanitize content to avoid Gemini content safety blocks.
+    Removes potentially problematic content while preserving data extraction context.
+    """
+    import re
+    
+    # Remove potential personally identifiable information patterns
+    # Social Security Numbers
+    prompt_text = re.sub(r'\b\d{3}-\d{2}-\d{4}\b', '[SSN]', prompt_text)
+    prompt_text = re.sub(r'\b\d{9}\b', '[ID_NUMBER]', prompt_text)
+    
+    # Credit card numbers
+    prompt_text = re.sub(r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b', '[CARD_NUMBER]', prompt_text)
+    
+    # Phone numbers with various formats
+    prompt_text = re.sub(r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b', '[PHONE]', prompt_text)
+    prompt_text = re.sub(r'\(\d{3}\)\s?\d{3}[-.]?\d{4}', '[PHONE]', prompt_text)
+    
+    # Email addresses
+    prompt_text = re.sub(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '[EMAIL]', prompt_text)
+    
+    # Remove excessive repeated characters that might trigger safety filters
+    prompt_text = re.sub(r'(.)\1{10,}', r'\1\1\1', prompt_text)
+    
+    # Remove potential sensitive financial terms in context that might trigger blocks
+    sensitive_patterns = [
+        r'\b(hack|hacking|illegal|fraud|money\s*laundering)\b',
+        r'\b(tax\s*evasion|embezzlement|bribery)\b'
+    ]
+    
+    for pattern in sensitive_patterns:
+        prompt_text = re.sub(pattern, '[REDACTED]', prompt_text, flags=re.IGNORECASE)
+    
+    # Limit extremely long content that might cause issues
+    if len(prompt_text) > 500000:  # 500K character limit
+        logging.warning(f"Content too long ({len(prompt_text)} chars), truncating to 500K")
+        # Keep the schema and instructions, truncate the document content
+        schema_end = prompt_text.find("EXTRACTED DOCUMENT CONTENT:")
+        if schema_end != -1:
+            schema_part = prompt_text[:schema_end + 27]  # Include the header
+            content_part = prompt_text[schema_end + 27:]
+            # Truncate content part to fit within limit
+            available_space = 500000 - len(schema_part)
+            if available_space > 0:
+                content_part = content_part[:available_space]
+                prompt_text = schema_part + content_part + "\n[CONTENT TRUNCATED FOR SAFETY]"
+            else:
+                prompt_text = schema_part + "\n[CONTENT TRUNCATED FOR SAFETY]"
+    
+    return prompt_text
+
 def clean_gemini_response(response_text: str) -> str:
     """
     Clean Gemini AI response to ensure it's pure JSON without markdown formatting.
@@ -1051,6 +1103,38 @@ RETURN: Complete readable content from this document."""
                     ),
                     request_options={"timeout": None}  # Remove timeout constraints
                 )
+                
+                # Check for content safety blocks or other finish reasons
+                if response.candidates and len(response.candidates) > 0:
+                    candidate = response.candidates[0]
+                    if hasattr(candidate, 'finish_reason') and candidate.finish_reason:
+                        finish_reason = candidate.finish_reason
+                        logging.warning(f"Gemini API finish reason: {finish_reason}")
+                        
+                        if finish_reason == 1:  # CONTENT_SAFETY
+                            logging.error("Content safety block triggered - attempting content sanitization")
+                            # Try to sanitize content and retry
+                            if attempt < max_retries - 1:
+                                sanitized_prompt = sanitize_content_for_gemini(final_prompt)
+                                if sanitized_prompt != final_prompt:
+                                    logging.info("Retrying with sanitized content")
+                                    final_prompt = sanitized_prompt
+                                    continue
+                            return ExtractionResult(
+                                success=False, 
+                                error_message="Content safety filter triggered. Document may contain sensitive information that cannot be processed. Please review document content."
+                            )
+                        elif finish_reason == 3:  # OTHER
+                            return ExtractionResult(
+                                success=False,
+                                error_message="Gemini API encountered an unspecified error. Please try again later."
+                            )
+                        elif finish_reason == 4:  # RECITATION
+                            return ExtractionResult(
+                                success=False,
+                                error_message="Content appears to contain copyrighted material. Please provide original documents."
+                            )
+                
                 break  # Success, exit retry loop
             except Exception as e:
                 if "503" in str(e) and "overloaded" in str(e).lower() and attempt < max_retries - 1:
