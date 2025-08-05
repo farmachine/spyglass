@@ -27,308 +27,6 @@ class ExtractionResult:
 
 # ValidationResult dataclass removed - validation now occurs only during extraction
 
-def get_field_types_from_schema(project_schema):
-    """
-    Extract all field types that are being requested in the extraction schema.
-    Returns a set of field types that should NOT be sanitized.
-    """
-    requested_types = set()
-    
-    # Check schema fields
-    for field in project_schema.get('schema_fields', []):
-        field_name = field.get('fieldName', '').lower()
-        field_desc = field.get('description', '').lower()
-        
-        # Map field names and descriptions to sensitive data types
-        if any(keyword in field_name + ' ' + field_desc for keyword in ['credit card', 'card number', 'payment']):
-            requested_types.add('credit_cards')
-        if any(keyword in field_name + ' ' + field_desc for keyword in ['ssn', 'social security', 'identification', 'id number', 'nie', 'nif']):
-            requested_types.add('id_numbers')
-        if any(keyword in field_name + ' ' + field_desc for keyword in ['phone', 'mobile', 'telephone']):
-            requested_types.add('phone_numbers')
-        if any(keyword in field_name + ' ' + field_desc for keyword in ['email', 'e-mail']):
-            requested_types.add('emails')
-        if any(keyword in field_name + ' ' + field_desc for keyword in ['name', 'person', 'customer', 'client']):
-            requested_types.add('names')
-        if any(keyword in field_name + ' ' + field_desc for keyword in ['address', 'street', 'location']):
-            requested_types.add('addresses')
-        if any(keyword in field_name + ' ' + field_desc for keyword in ['iban', 'account', 'bank']):
-            requested_types.add('bank_accounts')
-        if any(keyword in field_name + ' ' + field_desc for keyword in ['plate', 'registration', 'vehicle', 'license']):
-            requested_types.add('vehicle_plates')
-    
-    # Check collection properties
-    for collection in project_schema.get('collections', []):
-        for prop in collection.get('properties', []):
-            prop_name = prop.get('propertyName', '').lower()
-            prop_desc = prop.get('description', '').lower()
-            
-            if any(keyword in prop_name + ' ' + prop_desc for keyword in ['credit card', 'card number', 'payment']):
-                requested_types.add('credit_cards')
-            if any(keyword in prop_name + ' ' + prop_desc for keyword in ['ssn', 'social security', 'identification', 'id number', 'nie', 'nif']):
-                requested_types.add('id_numbers')
-            if any(keyword in prop_name + ' ' + prop_desc for keyword in ['phone', 'mobile', 'telephone']):
-                requested_types.add('phone_numbers')
-            if any(keyword in prop_name + ' ' + prop_desc for keyword in ['email', 'e-mail']):
-                requested_types.add('emails')
-            if any(keyword in prop_name + ' ' + prop_desc for keyword in ['name', 'person', 'customer', 'client']):
-                requested_types.add('names')
-            if any(keyword in prop_name + ' ' + prop_desc for keyword in ['address', 'street', 'location']):
-                requested_types.add('addresses')
-            if any(keyword in prop_name + ' ' + prop_desc for keyword in ['iban', 'account', 'bank']):
-                requested_types.add('bank_accounts')
-            if any(keyword in prop_name + ' ' + prop_desc for keyword in ['plate', 'registration', 'vehicle', 'license']):
-                requested_types.add('vehicle_plates')
-    
-    return requested_types
-
-def sanitize_content_for_gemini(prompt_text: str, project_schema=None) -> str:
-    """
-    Schema-aware content sanitization that only removes sensitive data types
-    that are NOT being requested in the extraction schema.
-    """
-    import re
-    
-    # Determine which data types are being requested
-    requested_types = set()
-    if project_schema:
-        requested_types = get_field_types_from_schema(project_schema)
-    
-    logging.info(f"Schema analysis: Requested data types = {requested_types}")
-    
-    # Only sanitize data types that are NOT being requested
-    if 'credit_cards' not in requested_types:
-        prompt_text = re.sub(r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b', '[CARD_NUMBER]', prompt_text)
-        logging.info("Sanitized credit card numbers (not requested in schema)")
-    
-    if 'id_numbers' not in requested_types:
-        prompt_text = re.sub(r'\b\d{3}-\d{2}-\d{4}\b', '[SSN]', prompt_text)
-        prompt_text = re.sub(r'\b[XYZ]\d{7}[A-Z]\b', '[NIE]', prompt_text)  # Spanish NIE
-        prompt_text = re.sub(r'\b\d{8}[A-Z]\b', '[NIF]', prompt_text)  # Spanish NIF
-        prompt_text = re.sub(r'\b\d{9}\b', '[ID_NUMBER]', prompt_text)
-        logging.info("Sanitized ID numbers (not requested in schema)")
-    
-    if 'phone_numbers' not in requested_types:
-        prompt_text = re.sub(r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b', '[PHONE]', prompt_text)
-        prompt_text = re.sub(r'\(\d{3}\)\s?\d{3}[-.]?\d{4}', '[PHONE]', prompt_text)
-        prompt_text = re.sub(r'\b\d{3}\s?\d{6}\b', '[PHONE]', prompt_text)  # Spanish format
-        prompt_text = re.sub(r'\b6\d{8}\b', '[MOBILE]', prompt_text)  # Spanish mobile
-        logging.info("Sanitized phone numbers (not requested in schema)")
-    
-    if 'emails' not in requested_types:
-        prompt_text = re.sub(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '[EMAIL]', prompt_text)
-        logging.info("Sanitized email addresses (not requested in schema)")
-    
-    if 'names' not in requested_types:
-        prompt_text = re.sub(r'\b[A-Z][a-z]+\s+[A-Z][a-z]+\s+[A-Z][a-z]+\b', '[FULL_NAME]', prompt_text)  # Three names
-        prompt_text = re.sub(r'\b[A-Z][A-Z\s]{10,50}\b', '[NAME]', prompt_text)  # All caps names
-        logging.info("Sanitized personal names (not requested in schema)")
-    
-    if 'addresses' not in requested_types:
-        prompt_text = re.sub(r'\bC[ALÓ]L*[EL]*\s+[A-ZÁÉÍÓÚÑÜ\s\d,.-]+\d{5}\s+[A-ZÁÉÍÓÚÑÜ\s]+\b', '[ADDRESS]', prompt_text, flags=re.IGNORECASE)
-        logging.info("Sanitized addresses (not requested in schema)")
-    
-    if 'bank_accounts' not in requested_types:
-        prompt_text = re.sub(r'\b[A-Z]{2}\d{2}[A-Z0-9]{4}\d{7}[A-Z0-9*]{10,}\b', '[IBAN]', prompt_text)
-        prompt_text = re.sub(r'\bES\d{2}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b', '[IBAN]', prompt_text)
-        prompt_text = re.sub(r'\bBSCH[A-Z0-9*]{4,20}\b', '[IBAN_CODE]', prompt_text)  # Bank codes
-        prompt_text = re.sub(r'\bES\d{2}[A-Z0-9*\s-]{20,}\b', '[IBAN_FULL]', prompt_text)  # Spanish IBAN
-        logging.info("Sanitized bank accounts (not requested in schema)")
-    
-    if 'vehicle_plates' not in requested_types:
-        prompt_text = re.sub(r'\b\d{4}[A-Z]{3}\b', '[PLATE]', prompt_text)  # Spanish format like 9131KXV
-        prompt_text = re.sub(r'\b[A-Z]{1,3}\d{1,4}[A-Z]{1,3}\b', '[PLATE]', prompt_text)  # General European
-        logging.info("Sanitized vehicle plates (not requested in schema)")
-    
-    # Always sanitize policy numbers as they're rarely the target and often trigger blocks
-    prompt_text = re.sub(r'\b\d{9,12}\b', '[POLICY_NUMBER]', prompt_text)
-    
-    # Remove excessive repeated characters that might trigger safety filters
-    prompt_text = re.sub(r'(.)\1{10,}', r'\1\1\1', prompt_text)
-    
-    # Remove potential sensitive financial terms in context that might trigger blocks
-    sensitive_patterns = [
-        r'\b(hack|hacking|illegal|fraud|money\s*laundering)\b',
-        r'\b(tax\s*evasion|embezzlement|bribery)\b'
-    ]
-    
-    for pattern in sensitive_patterns:
-        prompt_text = re.sub(pattern, '[REDACTED]', prompt_text, flags=re.IGNORECASE)
-    
-    # Limit extremely long content that might cause issues
-    if len(prompt_text) > 500000:  # 500K character limit
-        logging.warning(f"Content too long ({len(prompt_text)} chars), truncating to 500K")
-        # Keep the schema and instructions, truncate the document content
-        schema_end = prompt_text.find("EXTRACTED DOCUMENT CONTENT:")
-        if schema_end != -1:
-            schema_part = prompt_text[:schema_end + 27]  # Include the header
-            content_part = prompt_text[schema_end + 27:]
-            # Truncate content part to fit within limit
-            available_space = 500000 - len(schema_part)
-            if available_space > 0:
-                content_part = content_part[:available_space]
-                prompt_text = schema_part + content_part + "\n[CONTENT TRUNCATED FOR SAFETY]"
-            else:
-                prompt_text = schema_part + "\n[CONTENT TRUNCATED FOR SAFETY]"
-    
-    return prompt_text
-
-def apply_ultra_aggressive_sanitization(prompt_text: str, project_schema=None) -> str:
-    """
-    Ultra-aggressive sanitization that removes ALL PII regardless of schema requirements.
-    This is used when documents still trigger safety blocks after all other sanitization attempts.
-    Focuses on preserving only document structure and numeric data.
-    """
-    import re
-    
-    logging.info("Applying ultra-aggressive sanitization - removing ALL PII regardless of schema")
-    
-    # Always remove ALL names, regardless of schema requirements
-    prompt_text = re.sub(r'\b[A-Z][A-Z\s]{5,50}\b', '[PERSON]', prompt_text)  # All caps names
-    prompt_text = re.sub(r'\b[A-Z][a-z]+\s+[A-Z][a-z]+\s+[A-Z][a-z]+\b', '[FULL_NAME]', prompt_text)  # Three names
-    prompt_text = re.sub(r'\b[A-Z][a-z]+\s+[A-Z][a-z]+\b', '[NAME]', prompt_text)  # Two names
-    prompt_text = re.sub(r'\bJOSHUA\b|\bFREDERICK\b|\bFARMER\b', '[NAME]', prompt_text)  # Specific problematic names
-    
-    # Remove ALL ID numbers
-    prompt_text = re.sub(r'\b[XY]\d{7}[A-Z]\b', '[ID]', prompt_text)  # Spanish NIE
-    prompt_text = re.sub(r'\b\d{8}[A-Z]\b', '[DNI]', prompt_text)  # Spanish DNI
-    prompt_text = re.sub(r'\b[A-Z]\d{8}\b', '[NIF]', prompt_text)  # Spanish NIF
-    
-    # Remove ALL addresses
-    prompt_text = re.sub(r'\bC[ALÓ]L*[EL]*\s+[A-ZÁÉÍÓÚÑÜ\s\d,.-]+\d{5}\s+[A-ZÁÉÍÓÚÑÜ\s]+\b', '[ADDRESS]', prompt_text, flags=re.IGNORECASE)
-    prompt_text = re.sub(r'\b\d{5}\s+[A-ZÁÉÍÓÚÑÜ\s]+\b', '[LOCATION]', prompt_text)
-    
-    # Remove ALL bank/financial information
-    prompt_text = re.sub(r'\bIBAN:\s*[A-Z0-9*\s-]+\b', 'IBAN: [BANK_ACCOUNT]', prompt_text)
-    prompt_text = re.sub(r'\bBSCH[A-Z0-9*]{4,20}\b', '[BANK_CODE]', prompt_text)
-    prompt_text = re.sub(r'\bES\d{2}[A-Z0-9*\s-]{20,}\b', '[IBAN]', prompt_text)
-    
-    # Remove ALL phone numbers and emails
-    prompt_text = re.sub(r'\b\d{9}\b', '[PHONE]', prompt_text)  # 9-digit numbers
-    prompt_text = re.sub(r'\b6\d{8}\b', '[MOBILE]', prompt_text)  # Spanish mobile
-    prompt_text = re.sub(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '[EMAIL]', prompt_text)
-    
-    # Preserve only policy numbers and amounts
-    # Preserve dates in DD/MM/YYYY format (needed for policy dates)
-    prompt_text = re.sub(r'\b\d{1,2}/\d{1,2}/\d{4}\b', '[POLICY_DATE]', prompt_text)
-    
-    # Preserve amounts in euros (essential for insurance data)
-    prompt_text = re.sub(r'\b\d{1,3}[,.]\d{2}€\b', '[EURO_AMOUNT]', prompt_text)
-    
-    # Preserve vehicle plates only if specifically requested in schema
-    requested_types = set()
-    if project_schema:
-        requested_types = get_field_types_from_schema(project_schema)
-    
-    if 'vehicle_plates' not in requested_types:
-        prompt_text = re.sub(r'\b\d{4}[A-Z]{3}\b', '[PLATE]', prompt_text)  # Spanish format
-    
-    # Replace any remaining long alphanumeric sequences
-    prompt_text = re.sub(r'\b[A-Z0-9]{8,}\b', '[CODE]', prompt_text)
-    
-    # Preserve essential document structure
-    essential_markers = [
-        'Allianz', 'Seguros', 'Póliza', 'Policy', 'Insurance', 'Vehicle', 'Premium',
-        'Cobertura', 'Coverage', 'Total', 'Recibo', 'Período', 'ANUAL', 'EUR',
-        'Responsabilidad Civil', 'Vehículo Asegurado', 'Liquidación de Primas'
-    ]
-    
-    # Restore essential business terms that might have been over-sanitized
-    for marker in essential_markers:
-        # Don't over-sanitize these essential terms
-        prompt_text = re.sub(f'\\[NAME\\](?=.*{marker})', marker, prompt_text, flags=re.IGNORECASE)
-        prompt_text = re.sub(f'\\[ENTITY\\](?=.*{marker})', marker, prompt_text, flags=re.IGNORECASE)
-    
-    logging.info(f"Ultra-aggressive sanitization complete. Removed ALL PII. Length: {len(prompt_text)} chars")
-    return prompt_text
-
-def apply_aggressive_sanitization(prompt_text: str, project_schema=None) -> str:
-    """
-    Extremely aggressive sanitization for documents that still trigger safety blocks
-    after schema-aware sanitization. This is a last resort that maximally sanitizes
-    while preserving document structure for extraction.
-    """
-    import re
-    
-    # Get requested types to preserve minimal essential data
-    requested_types = set()
-    if project_schema:
-        requested_types = get_field_types_from_schema(project_schema)
-    
-    logging.info(f"Applying aggressive sanitization. Preserving: {requested_types}")
-    
-    # Replace all numeric sequences except currency amounts
-    prompt_text = re.sub(r'\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b', '[DATE]', prompt_text)  # Dates
-    prompt_text = re.sub(r'\b\d{1,3}[,.]?\d{0,3}[,.]?\d{2}\s*€?\b', '[AMOUNT]', prompt_text)  # Currency amounts
-    prompt_text = re.sub(r'\b\d{4,}\b', '[NUMBER]', prompt_text)  # Long numbers
-    
-    # Replace all proper nouns and capitalized words (likely names/places)
-    if 'names' not in requested_types:
-        prompt_text = re.sub(r'\b[A-Z][A-Z\s]{2,}\b', '[NAME]', prompt_text)
-        prompt_text = re.sub(r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b', '[ENTITY]', prompt_text)
-    
-    # Replace addresses and locations
-    if 'addresses' not in requested_types:
-        prompt_text = re.sub(r'\b\d{5}\s+[A-Z][A-Za-z\s]+\b', '[LOCATION]', prompt_text)
-        prompt_text = re.sub(r'\bC[ALÓ]L*[EL]*\s+[A-Za-z\s,.\d-]+\b', '[STREET]', prompt_text, flags=re.IGNORECASE)
-    
-    # Replace any remaining sensitive patterns
-    prompt_text = re.sub(r'\b[A-Z0-9*]{10,}\b', '[CODE]', prompt_text)  # Codes and IDs
-    prompt_text = re.sub(r'\b\w+@\w+\.\w+\b', '[EMAIL]', prompt_text)  # Emails
-    
-    # Preserve document structure markers
-    structure_markers = [
-        'Tomador del Seguro', 'Vehículo Asegurado', 'Datos del Conductor',
-        'Liquidación de Primas', 'Domicilio de Cobro', 'Cobertura',
-        'Policy', 'Vehicle', 'Insurance', 'Premium', 'Coverage'
-    ]
-    
-    for marker in structure_markers:
-        # Re-establish structure markers if they were accidentally sanitized
-        pattern = r'\[NAME\]|\[ENTITY\]'
-        if marker.upper() in prompt_text.upper():
-            prompt_text = re.sub(f'({pattern})(?=.*{marker.upper()})', marker, prompt_text, flags=re.IGNORECASE)
-    
-    logging.info(f"Aggressive sanitization complete. Length: {len(prompt_text)} chars")
-    return prompt_text
-
-def clean_gemini_response(response_text: str) -> str:
-    """
-    Clean Gemini AI response to ensure it's pure JSON without markdown formatting.
-    """
-    if not response_text:
-        return response_text
-    
-    # Remove common markdown code block patterns
-    response_text = response_text.strip()
-    
-    # Remove ```json and ``` wrappers
-    if response_text.startswith('```json'):
-        response_text = response_text[7:]
-    elif response_text.startswith('```'):
-        response_text = response_text[3:]
-    
-    if response_text.endswith('```'):
-        response_text = response_text[:-3]
-    
-    # Remove any introductory text before the JSON
-    response_text = response_text.strip()
-    
-    # Find the actual JSON start
-    json_start_patterns = [
-        '{"field_validations":',
-        '{\n  "field_validations":',
-        '{ "field_validations":'
-    ]
-    
-    for pattern in json_start_patterns:
-        pos = response_text.find(pattern)
-        if pos != -1:
-            response_text = response_text[pos:]
-            break
-    
-    return response_text.strip()
-
 def repair_truncated_json(response_text: str) -> str:
     """
     Attempt to repair truncated JSON responses by finding complete field validation objects
@@ -337,109 +35,53 @@ def repair_truncated_json(response_text: str) -> str:
     try:
         logging.info(f"Attempting to repair JSON response of length {len(response_text)}")
         
-        # First, clean the response of any markdown formatting
-        response_text = clean_gemini_response(response_text)
-        
-        # Find the start of the JSON structure - it might not be at the beginning
-        response_stripped = response_text.strip()
-        
-        # Look for field_validations JSON structure with flexible formatting
-        json_start = response_stripped.find('{"field_validations":')
-        if json_start == -1:
-            json_start = response_stripped.find('{\n  "field_validations":')
-        if json_start == -1:
-            json_start = response_stripped.find('{ "field_validations":')
-        
-        if json_start == -1:
-            logging.warning("Could not find field_validations structure in response")
+        # Check if response starts with field_validations structure
+        if not response_text.strip().startswith('{"field_validations":'):
+            logging.warning("Response doesn't start with expected field_validations structure")
             return None
         
-        # Extract just the JSON portion starting from field_validations
-        json_portion = response_stripped[json_start:]
-        logging.info(f"Found JSON starting at position {json_start}, JSON portion length: {len(json_portion)}")
-        
-        # Use the JSON portion for processing
-        response_text = json_portion
-        
-        # Use a more robust approach to extract complete field validation objects
+        # Find all complete field validation objects by parsing line by line
         import re
         
-        # Find all field validation objects using regex patterns
+        lines = response_text.split('\n')
         field_validations = []
+        current_object_lines = []
+        brace_count = 0
+        inside_validation = False
         
-        # Pattern to match complete field validation objects
-        # This looks for objects that start with field_id and end with a closing brace
-        pattern = r'\{\s*"field_id"[^}]*(?:"[^"]*":[^,}]*[,}])*[^}]*\}'
-        
-        # Find all matches
-        matches = re.findall(pattern, response_text, re.DOTALL)
-        
-        for match in matches:
-            try:
-                # Clean up the match
-                clean_match = match.strip()
-                if clean_match.endswith(','):
-                    clean_match = clean_match[:-1]
+        for line_num, line in enumerate(lines):
+            # Check if this line starts a new field validation object
+            if '"field_id"' in line and brace_count == 0:
+                # Start of a new field validation object
+                current_object_lines = [line]
+                inside_validation = True
+                brace_count += line.count('{') - line.count('}')
+            elif inside_validation:
+                current_object_lines.append(line)
+                brace_count += line.count('{') - line.count('}')
                 
-                # Test if it's valid JSON
-                test_json = '{"test": ' + clean_match + '}'
-                json.loads(test_json)
-                field_validations.append(clean_match)
-                logging.info(f"Found complete field validation object #{len(field_validations)}")
-            except json.JSONDecodeError:
-                continue
-        
-        # If regex approach didn't work well, try a simpler character-based approach
-        if len(field_validations) == 0:
-            logging.info("Regex approach found no objects, trying character-based parsing...")
-            
-            # Find the start of field_validations array
-            array_start = response_text.find('"field_validations": [')
-            if array_start == -1:
-                array_start = response_text.find('"field_validations":[')
-            
-            if array_start != -1:
-                # Start parsing from after the opening bracket
-                content = response_text[array_start:]
-                bracket_pos = content.find('[')
-                if bracket_pos != -1:
-                    content = content[bracket_pos + 1:]
-                    
-                    # Parse objects one by one using brace counting
-                    i = 0
-                    while i < len(content):
-                        # Skip whitespace
-                        while i < len(content) and content[i].isspace():
-                            i += 1
+                # Check if we've completed this object (brace_count back to 0)
+                if brace_count == 0 and (line.strip().endswith('}') or line.strip().endswith('},')):
+                    # We have a complete field validation object
+                    complete_object = '\n'.join(current_object_lines)
+                    try:
+                        # Try to parse this individual object to ensure it's valid
+                        obj_json = complete_object.strip()
+                        if obj_json.endswith(','):
+                            obj_json = obj_json[:-1]  # Remove trailing comma
                         
-                        if i >= len(content) or content[i] == ']':
-                            break
-                            
-                        # Start of an object
-                        if content[i] == '{':
-                            obj_start = i
-                            brace_count = 0
-                            
-                            # Find the end of this object
-                            while i < len(content):
-                                if content[i] == '{':
-                                    brace_count += 1
-                                elif content[i] == '}':
-                                    brace_count -= 1
-                                    if brace_count == 0:
-                                        # Found complete object
-                                        obj_text = content[obj_start:i+1]
-                                        try:
-                                            # Test if it's valid and contains field_id
-                                            if '"field_id"' in obj_text:
-                                                json.loads(obj_text)
-                                                field_validations.append(obj_text)
-                                                logging.info(f"Found complete field validation object #{len(field_validations)}")
-                                        except json.JSONDecodeError:
-                                            pass
-                                        break
-                                i += 1
-                        i += 1
+                        # Wrap in a test structure to validate
+                        test_json = '{"test": ' + obj_json + '}'
+                        json.loads(test_json)
+                        field_validations.append(complete_object.strip())
+                        logging.info(f"Found complete field validation object #{len(field_validations)}")
+                    except json.JSONDecodeError as e:
+                        logging.warning(f"Skipping invalid field validation object: {str(e)[:100]}...")
+                    
+                    # Reset for next object
+                    current_object_lines = []
+                    inside_validation = False
+                    brace_count = 0
         
         if field_validations:
             # Build a proper JSON structure with all complete field validations
@@ -999,15 +641,7 @@ CHOICE FIELD HANDLING:
 **CRITICAL COLLECTION NAME REQUIREMENT**: For collection properties, you MUST include the "collection_name" field in each field validation object. Use the exact collection name from the schema (e.g., "Increase Rates").
 
 REQUIRED OUTPUT FORMAT - Field Validation JSON Structure:
-{dynamic_example}
-
-**CRITICAL OUTPUT REQUIREMENTS**:
-- Return ONLY the JSON response above - no markdown formatting, no code blocks, no explanations
-- Do not wrap the JSON in ```json or ``` markdown code blocks
-- Do not include any text before or after the JSON
-- Start your response directly with {{ and end with }}
-- The response must be valid JSON that can be parsed directly
-- Do not include any introductory text like "Here is the JSON response:" or similar"""
+{dynamic_example}"""
         
         # STEP 1: ENHANCED DOCUMENT CONTENT EXTRACTION
         # Process documents in two phases: content extraction, then data extraction
@@ -1302,7 +936,7 @@ RETURN: Complete readable content from this document."""
         logging.info(f"Making data extraction call with {len(extracted_content_text)} characters of extracted content")
         
         # Retry logic for API overload situations in data extraction
-        max_retries = 4  # Allow for ultra-aggressive sanitization as 4th attempt
+        max_retries = 3
         retry_delay = 2  # Start with 2 seconds
         
         for attempt in range(max_retries):
@@ -1316,49 +950,6 @@ RETURN: Complete readable content from this document."""
                     ),
                     request_options={"timeout": None}  # Remove timeout constraints
                 )
-                
-                # Check for content safety blocks or other finish reasons
-                if response.candidates and len(response.candidates) > 0:
-                    candidate = response.candidates[0]
-                    if hasattr(candidate, 'finish_reason') and candidate.finish_reason:
-                        finish_reason = candidate.finish_reason
-                        logging.warning(f"Gemini API finish reason: {finish_reason}")
-                        
-                        if finish_reason == 1:  # CONTENT_SAFETY
-                            logging.error("Content safety block triggered - attempting content sanitization")
-                            # Try to sanitize content and retry
-                            if attempt < max_retries - 1:
-                                if attempt == 0:
-                                    # First retry: schema-aware sanitization
-                                    sanitized_prompt = sanitize_content_for_gemini(final_prompt, project_schema=project_schema)
-                                elif attempt == 1:
-                                    # Second retry: aggressive sanitization
-                                    logging.warning("Schema-aware sanitization failed, applying aggressive sanitization")
-                                    sanitized_prompt = apply_aggressive_sanitization(final_prompt, project_schema=project_schema)
-                                else:
-                                    # Third retry: ultra-aggressive sanitization (removes ALL PII)
-                                    logging.error("All sanitization levels failed, applying ultra-aggressive sanitization")
-                                    sanitized_prompt = apply_ultra_aggressive_sanitization(final_prompt, project_schema=project_schema)
-                                
-                                if sanitized_prompt != final_prompt:
-                                    logging.info("Retrying with sanitized content")
-                                    final_prompt = sanitized_prompt
-                                    continue
-                            return ExtractionResult(
-                                success=False, 
-                                error_message="Content safety filter triggered. Document may contain sensitive information that cannot be processed. Please review document content."
-                            )
-                        elif finish_reason == 3:  # OTHER
-                            return ExtractionResult(
-                                success=False,
-                                error_message="Gemini API encountered an unspecified error. Please try again later."
-                            )
-                        elif finish_reason == 4:  # RECITATION
-                            return ExtractionResult(
-                                success=False,
-                                error_message="Content appears to contain copyrighted material. Please provide original documents."
-                            )
-                
                 break  # Success, exit retry loop
             except Exception as e:
                 if "503" in str(e) and "overloaded" in str(e).lower() and attempt < max_retries - 1:
@@ -1417,10 +1008,6 @@ RETURN: Complete readable content from this document."""
         if len(response_text) > 500:
             logging.info(f"STEP 2: Raw AI response end: ...{response_text[-500:]}")
             
-        # Clean the response using our enhanced cleaning function
-        response_text = clean_gemini_response(response_text)
-        logging.info(f"STEP 2: Cleaned response length: {len(response_text)}")
-            
         # Check for potential truncation indicators
         truncation_indicators = ['...', '...}', '"ai_reasoning": "Extracted from document analysis",']
         if any(indicator in response_text[-100:] for indicator in truncation_indicators):
@@ -1442,6 +1029,16 @@ RETURN: Complete readable content from this document."""
         # Check if response appears to end abruptly
         if len(response_text) > 10000 and not response_text.strip().endswith((']}', '}')):
             logging.warning("RESPONSE APPEARS TRUNCATED - Does not end with expected JSON closing")
+        
+        # Remove markdown code blocks if present
+        if response_text.startswith("```json"):
+            response_text = response_text[7:]  # Remove ```json
+        if response_text.startswith("```"):
+            response_text = response_text[3:]   # Remove ```
+        if response_text.endswith("```"):
+            response_text = response_text[:-3]  # Remove trailing ```
+        
+        response_text = response_text.strip()
         
         try:
             # If empty response, create default structure

@@ -1,5 +1,5 @@
 import { Settings, Home, Users, Building2, Shield } from "lucide-react";
-import ExtraplLogo from "@/components/ExtraplLogo";
+import ExtractlyLogo from "@/components/ExtractlyLogo";
 import UserProfile from "@/components/UserProfile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -68,7 +68,7 @@ export default function AdminPanel() {
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
-            <ExtraplLogo />
+            <ExtractlyLogo />
             <UserProfile />
           </div>
         </div>

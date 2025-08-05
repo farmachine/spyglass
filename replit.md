@@ -1,7 +1,7 @@
-# Extrapl. - AI-Powered Document Data Extraction Platform
+# Extractly - AI-Powered Document Data Extraction Platform
 
 ## Overview
-Extrapl. is an AI-powered document data extraction platform built with React, Express, and TypeScript. It processes legal and business documents, offering enhanced conflict detection and collaborative workspace features. The platform enables users to configure extraction schemas, upload documents, and review AI-analyzed data with knowledge-based validation. Extrapl. aims to streamline data extraction from complex documents, offering significant market potential by reducing manual effort and improving accuracy.
+Extractly is an AI-powered document data extraction platform built with React, Express, and TypeScript. It processes legal and business documents, offering enhanced conflict detection and collaborative workspace features. The platform enables users to configure extraction schemas, upload documents, and review AI-analyzed data with knowledge-based validation. Extractly aims to streamline data extraction from complex documents, offering significant market potential by reducing manual effort and improving accuracy.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -51,9 +51,6 @@ Preferred communication style: Simple, everyday language.
 - **Enhanced Field Editing**: Complete field editing system with inline clear icons, manual update tracking, AI reasoning display control, and comprehensive revert functionality.
 - **Collection Management**: Fixed "Add new +" functionality with proper index calculation and consistent validation filtering for both legacy and new records.
 - **Empty Data Handling**: Robust session view loading that gracefully handles empty AI extraction results, displaying functional empty states without errors or crashes.
-- **Gemini Token Limit Handling**: Advanced JSON truncation repair system that preserves partial extraction results when hitting Gemini API output token limits, converting complete failures into partial successes with 70%+ data recovery rates.
-- **Clean JSON Output**: Enhanced Gemini AI response processing that ensures pure JSON output without markdown formatting, code blocks, or introductory text, using explicit prompt instructions and robust response cleaning functions.
-- **Content Safety Handling**: Advanced multi-tier content safety system including: (1) Schema-aware sanitization that only removes sensitive data types NOT being requested in extraction schema, (2) Aggressive sanitization for extreme cases that preserves document structure while maximally sanitizing content, (3) Intelligent retry mechanism with escalating sanitization levels, and (4) Comprehensive error handling for all finish_reason types (1, 3, 4) to maximize extraction success rates while protecting privacy.
 
 ### Key Architectural Decisions
 - **Monorepo Structure**: Single repository with shared types.
@@ -64,7 +61,6 @@ Preferred communication style: Simple, everyday language.
 - **Express + Vite**: Combines a robust backend framework with modern frontend tooling.
 - **UUID Consistency**: Full UUID string consistency across all storage interfaces.
 - **Graceful Error Handling**: Session views load successfully even when AI returns empty results, maintaining full functionality for manual data entry.
-- **Truncation Recovery**: Advanced JSON repair system handles Gemini API output token limits by preserving complete field validation objects from truncated responses, ensuring partial data recovery instead of complete failures.
 
 ## External Dependencies
 
