@@ -24,10 +24,23 @@ interface SessionViewProps {
   project: ProjectWithDetails;
 }
 
+interface BatchData {
+  sessionId: string;
+  totalValidations: number;
+  totalBatches: number;
+  batches: Array<{
+    batchNumber: number;
+    validationCount: number;
+    validations: FieldValidation[];
+  }>;
+}
+
 export default function SessionView({ sessionId, project }: SessionViewProps) {
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
+  const [selectedBatch, setSelectedBatch] = useState<number | null>(null); // null = show all batches
+  const [showBatchDebug, setShowBatchDebug] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: session, isLoading } = useQuery<ExtractionSessionWithValidation>({
@@ -43,6 +56,12 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
   const { data: schemaData } = useQuery({
     queryKey: [`/api/projects/${project.id}/schema-data`],
     enabled: !!project.id,
+  });
+
+  // Get batch validation data for debug screen
+  const { data: batchData } = useQuery<BatchData>({
+    queryKey: [`/api/sessions/${sessionId}/validation-batches`],
+    enabled: showBatchDebug,
   });
 
   const updateValidationMutation = useMutation({
@@ -208,16 +227,21 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
     console.error('Failed to parse extracted data:', error);
   }
 
+  // Filter validations by selected batch (if any)
+  const allValidations = session.fieldValidations || [];
+  const validations = selectedBatch === null 
+    ? allValidations 
+    : allValidations.filter(v => (v.batchNumber || 1) === selectedBatch);
+    
   // Calculate validation statistics
-  const validations = session.fieldValidations || [];
   const validFields = validations.filter(v => v.validationStatus === 'valid').length;
   const invalidFields = validations.filter(v => v.validationStatus === 'invalid').length;
   const manualFields = validations.filter(v => v.validationStatus === 'manual').length;
   const pendingFields = validations.filter(v => v.validationStatus === 'pending').length;
 
   // Group validations by field type
-  const schemaFieldValidations = validations.filter(v => v.fieldType === 'schema_field');
-  const collectionValidations = validations.filter(v => v.fieldType === 'collection_property');
+  const schemaFieldValidations = validations.filter(v => v.validationType === 'schema_field');
+  const collectionValidations = validations.filter(v => v.validationType === 'collection_property');
 
   // Group collection validations by collection name and sort by schema property order
   const collectionGroups = collectionValidations.reduce((acc, validation) => {
@@ -297,6 +321,57 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
         />
       </div>
 
+      {/* Batch Debug Panel */}
+      {(batchData?.totalBatches > 1 || showBatchDebug) && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm">Batch Validation Debug</CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowBatchDebug(!showBatchDebug)}
+              >
+                {showBatchDebug ? "Hide" : "Show"} Debug
+              </Button>
+            </div>
+          </CardHeader>
+          {showBatchDebug && (
+            <CardContent>
+              <div className="space-y-3">
+                <div className="text-sm text-gray-600">
+                  Total validations: {allValidations.length} | Total batches: {batchData?.totalBatches || 1}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={selectedBatch === null ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedBatch(null)}
+                  >
+                    All Batches ({allValidations.length})
+                  </Button>
+                  {batchData?.batches.map(batch => (
+                    <Button
+                      key={batch.batchNumber}
+                      variant={selectedBatch === batch.batchNumber ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedBatch(batch.batchNumber)}
+                    >
+                      Batch {batch.batchNumber} ({batch.validationCount})
+                    </Button>
+                  ))}
+                </div>
+                {selectedBatch !== null && (
+                  <div className="text-sm text-blue-600">
+                    Showing only validations from batch {selectedBatch}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      )}
+
       <Separator />
 
       {/* Project Schema Fields */}
@@ -318,7 +393,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
                     />
                     <div>
                       <Label className="font-medium">{validation.fieldName || 'Unknown Field'}</Label>
-                      <p className="text-sm text-gray-600">{validation.fieldType}</p>
+                      <p className="text-sm text-gray-600">{validation.validationType}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -424,7 +499,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
                         <div>
                           <Label className="font-medium">{(validation as FieldValidationWithName).fieldName || 'Unknown Field'}</Label>
                           <p className="text-sm text-gray-600">
-                            {validation.fieldType} • Record {(validation.recordIndex ?? 0) + 1}
+                            {validation.dataType} • Record {(validation.recordIndex ?? 0) + 1}
                           </p>
                         </div>
                       </div>

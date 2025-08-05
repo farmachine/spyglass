@@ -3274,7 +3274,8 @@ print(json.dumps(result))
                   validationStatus: validationStatus,
                   aiReasoning: validation.ai_reasoning || '',
                   manuallyVerified: false,
-                  confidenceScore: confidenceScore
+                  confidenceScore: confidenceScore,
+                  batchNumber: validation.batch_number || 1
                 });
               }
             }
@@ -3306,6 +3307,44 @@ print(json.dumps(result))
     } catch (error) {
       console.error("AI_EXTRACTION error:", error);
       res.status(500).json({ message: "Failed to start AI extraction process" });
+    }
+  });
+
+  // Batch validation routes for debug screen
+  app.get("/api/sessions/:sessionId/validation-batches", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      
+      // Get all validations for the session
+      const validations = await storage.getFieldValidations(sessionId);
+      
+      // Group by batch number
+      const batches = {};
+      validations.forEach(validation => {
+        const batchNumber = validation.batchNumber || 1;
+        if (!batches[batchNumber]) {
+          batches[batchNumber] = [];
+        }
+        batches[batchNumber].push(validation);
+      });
+      
+      // Convert to array format with batch info
+      const batchArray = Object.keys(batches).map(batchNum => ({
+        batchNumber: parseInt(batchNum),
+        validationCount: batches[batchNum].length,
+        validations: batches[batchNum]
+      })).sort((a, b) => a.batchNumber - b.batchNumber);
+      
+      res.json({
+        sessionId,
+        totalValidations: validations.length,
+        totalBatches: batchArray.length,
+        batches: batchArray
+      });
+      
+    } catch (error) {
+      console.error("Error getting validation batches:", error);
+      res.status(500).json({ message: "Failed to get validation batches" });
     }
   });
 

@@ -27,6 +27,221 @@ class ExtractionResult:
 
 # ValidationResult dataclass removed - validation now occurs only during extraction
 
+def detect_truncation(response_text: str, expected_field_count: int = None) -> bool:
+    """
+    Detect if AI response was truncated based on multiple heuristics
+    """
+    # Heuristic 1: Check if response ends with incomplete JSON structure
+    if not response_text.strip().endswith('}'):
+        return True
+    
+    # Heuristic 2: Check for incomplete field validation objects
+    try:
+        parsed = json.loads(response_text)
+        field_validations = parsed.get('field_validations', [])
+        
+        # Check if any field validation is incomplete (missing required fields)
+        for validation in field_validations:
+            required_fields = ['field_id', 'validation_type', 'data_type', 'field_name']
+            if not all(field in validation for field in required_fields):
+                return True
+                
+        # Heuristic 3: Compare against expected field count (if provided)
+        if expected_field_count and len(field_validations) < expected_field_count * 0.7:  # Less than 70% of expected
+            return True
+            
+    except json.JSONDecodeError:
+        return True
+    
+    return False
+
+def generate_continuation_prompt(original_prompt: str, previous_validations: List[Dict], project_schema: Dict) -> str:
+    """
+    Generate a continuation prompt that instructs AI to pick up where it left off
+    """
+    # Calculate which fields are still missing
+    completed_field_ids = set()
+    completed_collection_items = set()
+    
+    for validation in previous_validations:
+        field_id = validation.get('field_id')
+        if field_id:
+            completed_field_ids.add(field_id)
+            
+        # Track collection items
+        if validation.get('validation_type') == 'collection_property':
+            collection_key = f"{validation.get('collection_name')}.{validation.get('record_index', 0)}"
+            completed_collection_items.add(collection_key)
+    
+    # Find remaining fields
+    remaining_schema_fields = []
+    remaining_collection_items = []
+    
+    # Check schema fields
+    for field in project_schema.get('schema_fields', []):
+        if field['id'] not in completed_field_ids:
+            remaining_schema_fields.append(field)
+    
+    # Check collection properties (more complex as we need to determine missing items)
+    for collection in project_schema.get('collections', []):
+        collection_name = collection.get('collectionName', collection.get('objectName', ''))
+        # For continuation, assume we need to continue with the same pattern
+        # This is a simplified approach - in practice, you might want more sophisticated logic
+        properties = collection.get('properties', [])
+        for prop in properties:
+            if prop['id'] not in completed_field_ids:
+                remaining_collection_items.append({
+                    'collection': collection_name,
+                    'property': prop
+                })
+    
+    # Build continuation prompt
+    continuation_prompt = f"""CONTINUATION EXTRACTION REQUEST
+
+You previously processed this document and extracted {len(previous_validations)} field validations. Due to response limits, the extraction was incomplete. Please continue extraction for the REMAINING fields only.
+
+ALREADY COMPLETED FIELDS ({len(previous_validations)} validations):
+{chr(10).join(f"- {v.get('field_name', 'Unknown')} (ID: {v.get('field_id', 'Unknown')})" for v in previous_validations[:10])}
+{f"... and {len(previous_validations) - 10} more" if len(previous_validations) > 10 else ""}
+
+REMAINING FIELDS TO EXTRACT:
+"""
+    
+    if remaining_schema_fields:
+        continuation_prompt += f"\nSchema Fields ({len(remaining_schema_fields)} remaining):\n"
+        for field in remaining_schema_fields:
+            continuation_prompt += f"- {field['fieldName']} (ID: {field['id']}, Type: {field['fieldType']})\n"
+    
+    if remaining_collection_items:
+        continuation_prompt += f"\nCollection Properties ({len(remaining_collection_items)} remaining):\n"
+        for item in remaining_collection_items[:20]:  # Limit display
+            continuation_prompt += f"- {item['collection']}.{item['property']['propertyName']} (ID: {item['property']['id']})\n"
+    
+    continuation_prompt += f"""
+
+CRITICAL INSTRUCTIONS:
+1. Extract ONLY the remaining fields listed above
+2. Use the EXACT field_id values from the schema
+3. Follow the same JSON format as your previous response
+4. Include batch_number: 2 in each field validation object
+5. Do NOT re-extract already completed fields
+
+REQUIRED OUTPUT FORMAT:
+{{"field_validations": [
+  // Only the remaining field validations here
+]}}
+"""
+    
+    return continuation_prompt
+
+def perform_batch_continuation(
+    documents: List[Dict],
+    project_schema: Dict,
+    extraction_rules: List[Dict] = None,
+    knowledge_documents: List[Dict] = None,
+    previous_validations: List[Dict] = None
+) -> ExtractionResult:
+    """
+    Perform continuation extraction for remaining fields when truncation is detected
+    """
+    try:
+        import google.generativeai as genai
+        
+        if not os.getenv('GOOGLE_API_KEY'):
+            return ExtractionResult(
+                success=False,
+                error_message="GOOGLE_API_KEY environment variable not set"
+            )
+        
+        genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
+        
+        # Generate continuation prompt
+        continuation_prompt = generate_continuation_prompt("", previous_validations or [], project_schema)
+        
+        # Add document content to the prompt
+        document_content = ""
+        for doc in documents:
+            file_name = doc.get('file_name', 'Unknown')
+            content = doc.get('file_content', '')
+            if isinstance(content, str) and not content.startswith('data:'):
+                document_content += f"\n\n=== DOCUMENT: {file_name} ===\n{content}"
+        
+        full_continuation_prompt = f"""DOCUMENT CONTENT:
+{document_content}
+
+{continuation_prompt}"""
+        
+        logging.info(f"BATCH_CONTINUATION: Starting continuation extraction for {len(previous_validations)} already completed validations")
+        
+        model = genai.GenerativeModel('gemini-2.5-pro')
+        response = model.generate_content(full_continuation_prompt)
+        
+        if not response or not response.text:
+            return ExtractionResult(
+                success=False,
+                error_message="No response from AI model for continuation"
+            )
+        
+        raw_response = response.text.strip()
+        logging.info(f"BATCH_CONTINUATION: Received continuation response ({len(raw_response)} characters)")
+        
+        # Try to parse the continuation response
+        try:
+            parsed_continuation = json.loads(raw_response)
+            continuation_validations = parsed_continuation.get('field_validations', [])
+            
+            # Add batch_number: 2 to each continuation validation
+            for validation in continuation_validations:
+                validation['batch_number'] = 2
+            
+            logging.info(f"BATCH_CONTINUATION: Successfully parsed {len(continuation_validations)} additional validations")
+            
+            return ExtractionResult(
+                success=True,
+                extracted_data=parsed_continuation,
+                extraction_prompt=full_continuation_prompt,
+                ai_response=raw_response
+            )
+            
+        except json.JSONDecodeError as e:
+            # Try to repair the continuation response
+            logging.warning(f"BATCH_CONTINUATION: JSON parsing failed, attempting repair: {e}")
+            repaired_response = repair_truncated_json(raw_response)
+            
+            if repaired_response:
+                try:
+                    parsed_continuation = json.loads(repaired_response)
+                    continuation_validations = parsed_continuation.get('field_validations', [])
+                    
+                    # Add batch_number: 2 to each continuation validation
+                    for validation in continuation_validations:
+                        validation['batch_number'] = 2
+                    
+                    logging.info(f"BATCH_CONTINUATION: Successfully repaired and parsed {len(continuation_validations)} additional validations")
+                    
+                    return ExtractionResult(
+                        success=True,
+                        extracted_data=parsed_continuation,
+                        extraction_prompt=full_continuation_prompt,
+                        ai_response=repaired_response
+                    )
+                except json.JSONDecodeError:
+                    logging.error("BATCH_CONTINUATION: Failed to parse even after repair")
+            
+            return ExtractionResult(
+                success=False,
+                error_message=f"Failed to parse continuation response: {e}",
+                extraction_prompt=full_continuation_prompt,
+                ai_response=raw_response
+            )
+    
+    except Exception as e:
+        logging.error(f"BATCH_CONTINUATION: Error during continuation extraction: {e}")
+        return ExtractionResult(
+            success=False,
+            error_message=str(e)
+        )
+
 def repair_truncated_json(response_text: str) -> str:
     """
     Enhanced repair function for truncated JSON responses. Finds complete field validation objects
@@ -1108,6 +1323,52 @@ RETURN: Complete readable content from this document."""
             if "field_validations" not in extracted_data:
                 logging.warning("AI response missing field_validations key, creating default structure")
                 extracted_data = {"field_validations": []}
+                
+            # BATCH CONTINUATION LOGIC - ONLY TRIGGER WHEN TRUNCATION IS DETECTED
+            field_validations = extracted_data.get('field_validations', [])
+            
+            # Calculate expected field count for truncation detection
+            expected_field_count = 0
+            if project_schema:
+                expected_field_count += len(project_schema.get('schema_fields', []))
+                for collection in project_schema.get('collections', []):
+                    # Estimate 2 items per collection for truncation detection
+                    expected_field_count += len(collection.get('properties', [])) * 2
+            
+            # Only proceed with batch continuation if truncation is actually detected
+            is_truncated = detect_truncation(response_text, expected_field_count)
+            logging.info(f"TRUNCATION DETECTION: Found {len(field_validations)} validations, expected ~{expected_field_count}, truncated: {is_truncated}")
+            
+            if is_truncated and len(field_validations) > 0:
+                logging.info("BATCH_CONTINUATION: Truncation detected, attempting continuation extraction...")
+                
+                # Mark batch 1 validations
+                for validation in field_validations:
+                    validation['batch_number'] = 1
+                
+                # Attempt batch continuation
+                continuation_result = perform_batch_continuation(
+                    documents=documents,
+                    project_schema=project_schema,
+                    extraction_rules=extraction_rules,
+                    knowledge_documents=knowledge_documents,
+                    previous_validations=field_validations
+                )
+                
+                if continuation_result.success:
+                    continuation_validations = continuation_result.extracted_data.get('field_validations', [])
+                    logging.info(f"BATCH_CONTINUATION: Successfully retrieved {len(continuation_validations)} additional validations")
+                    
+                    # Merge the results
+                    extracted_data['field_validations'].extend(continuation_validations)
+                    logging.info(f"BATCH_CONTINUATION: Total validations after merge: {len(extracted_data['field_validations'])}")
+                else:
+                    logging.warning(f"BATCH_CONTINUATION: Failed to get continuation: {continuation_result.error_message}")
+            else:
+                # No truncation detected, mark all validations as batch 1
+                for validation in field_validations:
+                    validation['batch_number'] = 1
+                logging.info("BATCH_CONTINUATION: No truncation detected, proceeding with single batch")
                 
             logging.info(f"STEP 1: Successfully extracted {len(extracted_data.get('field_validations', []))} field validations")
             return ExtractionResult(
