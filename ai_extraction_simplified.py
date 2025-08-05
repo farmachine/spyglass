@@ -181,14 +181,28 @@ REMAINING FIELDS TO EXTRACT:
 CRITICAL INSTRUCTIONS:
 1. Extract ONLY the remaining fields listed above
 2. Use the EXACT field_id values from the schema
-3. Follow the same JSON format as your previous response
+3. Follow the EXACT same JSON format as your previous response with ALL required properties
 4. Include batch_number: 2 in each field validation object
 5. Do NOT re-extract already completed fields
 
-REQUIRED OUTPUT FORMAT:
+REQUIRED OUTPUT FORMAT - EACH VALIDATION MUST INCLUDE ALL PROPERTIES:
 {{"field_validations": [
-  // Only the remaining field validations here
+  {{
+    "field_id": "field-id-from-schema",
+    "validation_type": "collection_property",
+    "data_type": "TEXT", 
+    "field_name": "Collection.Property[index]",
+    "collection_name": "Collection",
+    "extracted_value": "your extracted value",
+    "confidence_score": 0.95,
+    "validation_status": "unverified", 
+    "ai_reasoning": "detailed reasoning for extraction",
+    "record_index": 123,
+    "batch_number": 2
+  }}
 ]}}
+
+MANDATORY: Each field validation object MUST contain all properties shown above.
 """
     
     return continuation_prompt

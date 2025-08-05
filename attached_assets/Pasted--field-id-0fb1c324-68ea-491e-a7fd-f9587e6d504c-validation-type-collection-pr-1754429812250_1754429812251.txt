@@ -1,0 +1,375 @@
+ {
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "validation_type": "collection_property",
+      "data_type": "TEXT",
+      "field_name": "Data Fields.Field Type[154]",
+      "collection_name": "Data Fields",
+      "extracted_value": "Date",
+      "confidence_score": 1,
+      "validation_status": "unverified",
+      "ai_reasoning": "Inferred field type from the data in the 'Date Became Widow(er)' column of the 'Widows' sheet, which contains date values.",
+      "record_index": 154,
+      "batch_number": 1
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[155]",
+      "value": "Widows.Beneficiary Code For Previous Status Of Deceased Member"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[155]",
+      "value": "string"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[156]",
+      "value": "Widows.Date Deceased Member Became Pensioner"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[156]",
+      "value": "date"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[157]",
+      "value": "Widows.Widow(er)'s Annual Pre-6.4.1988 GMP Component At Date Of This Valuation"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[157]",
+      "value": "number"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[158]",
+      "value": "Widows.Widow(er)'s Annual Post-5.4.1988 GMP Component At Date Of This Valuation"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[158]",
+      "value": "number"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[159]",
+      "value": "Widows.Total Widow(er)'s Pension Payable From Scheme At This Valuation"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[159]",
+      "value": "number"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[160]",
+      "value": "Widows.Total Widow(er)'s Pension Payable From Scheme At Last Valuation"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[160]",
+      "value": "number"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[161]",
+      "value": "Widows.Component Of Widow(er)'s Pension At This Valuation Subject To RPI capped at 5% pa"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[161]",
+      "value": "number"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[162]",
+      "value": "Widows.Date Of Exit From Widow(er) Beneficiary Status"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[162]",
+      "value": "date"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[163]",
+      "value": "Widows.Code For Exit From Widow(er) Beneficiary Status"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[163]",
+      "value": "string"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[164]",
+      "value": "Widows.Widow's Allotment At Valuation Date Included In Pension"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[164]",
+      "value": "number"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[165]",
+      "value": "Widows.Old Supplementary Fund Indicator"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[165]",
+      "value": "string"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[166]",
+      "value": "Widows.Old Supplementary Fund Pension"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[166]",
+      "value": "number"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[167]",
+      "value": "Widows.Component Of Widow(er)'s Pension At This Valuation Subject To RPI capped at 2.5% pa"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[167]",
+      "value": "number"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[168]",
+      "value": "Widows.Section B Indicator"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[168]",
+      "value": "string"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[169]",
+      "value": "Widows.Component Of Widow(er)'s Pension At This Valuation Subject To CPI capped at 2.5% pa"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[169]",
+      "value": "number"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[170]",
+      "value": "Widows.Postcode"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[170]",
+      "value": "string"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[171]",
+      "value": "Children.Valuation Record Type"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[171]",
+      "value": "string"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[172]",
+      "value": "Children.Child's Reference No"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[172]",
+      "value": "number"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[173]",
+      "value": "Children.Deceased members reference no"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[173]",
+      "value": "number"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[174]",
+      "value": "Children.Child's Date of Birth"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[174]",
+      "value": "date"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[175]",
+      "value": "Children.Date Child'sPension Commenced"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[175]",
+      "value": "date"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[176]",
+      "value": "Children.Code For Previous Status Of Deceased Member"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[176]",
+      "value": "string"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[177]",
+      "value": "Children.Child's Pension Payable From Scheme At This Valuation"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[177]",
+      "value": "number"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[178]",
+      "value": "Children.Component Of Child's Pension At This Valuation Subject To RPI capped at 5% pa"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[178]",
+      "value": "number"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[179]",
+      "value": "Children.Date Child's Pension Is To Cease Or Has Ceased"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[179]",
+      "value": "date"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[180]",
+      "value": "Children.Old Supplementary Fund Indicator"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[180]",
+      "value": "string"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[181]",
+      "value": "Children.Old Supplementary Fund Pension"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[181]",
+      "value": "number"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[182]",
+      "value": "Children.Section B Indicator"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[182]",
+      "value": "string"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[183]",
+      "value": "Children.Component Of Child's Pension At This Valuation Subject To RPI capped at 2_5% pa"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[183]",
+      "value": "number"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "d35ab7bb-48e2-41ab-be2a-f666ea365dcb",
+      "field_name": "Data Fields.Field Name[184]",
+      "value": "Children.Component of Child’s Pension At This Valuation Subject to CPI capped at 2_5% pa"
+    },
+    {
+      "batch_number": 2,
+      "field_id": "0fb1c324-68ea-491e-a7fd-f9587e6d504c",
+      "field_name": "Data Fields.Field Type[184]",
+      "value": "number"
+    }
+  ]
+}

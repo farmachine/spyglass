@@ -2485,10 +2485,13 @@ print(json.dumps(result))
           // Calculate confidence score and determine auto-verification
           // For empty fields, set confidence to 0%
           let confidenceScore;
-          if (!validation.extracted_value || validation.extracted_value === "" || validation.extracted_value === "null") {
+          const extractedVal = validation.extracted_value || validation.value; // Handle both formats
+          if (!extractedVal || extractedVal === "" || extractedVal === "null") {
             confidenceScore = 0;
           } else {
-            confidenceScore = Math.round(parseFloat(validation.confidence_score) * 100); // Convert to integer percentage
+            // Handle both decimal (0.95) and percentage (95) formats
+            const rawScore = parseFloat(validation.confidence_score) || 80; // Default for batch 2
+            confidenceScore = rawScore > 1 ? Math.round(rawScore) : Math.round(rawScore * 100);
           }
           
           const shouldAutoVerify = confidenceScore >= autoVerifyThreshold;
@@ -2499,29 +2502,32 @@ print(json.dumps(result))
           if (existingValidation) {
             // Update existing record with extracted data
             const updateData = {
-              extractedValue: validation.extracted_value,
+              extractedValue: validation.extracted_value || validation.value,
               confidenceScore: confidenceScore,
               validationStatus: validationStatus,
-              aiReasoning: validation.ai_reasoning,
-              documentSource: validation.document_source || 'Unknown'
+              aiReasoning: validation.ai_reasoning || `Extracted in batch ${validation.batch_number || 1}`,
+              documentSource: validation.document_source || 'Unknown',
+              batchNumber: validation.batch_number || 1
             };
             console.log(`SAVE VALIDATIONS: Updating ${fieldName} with data:`, updateData);
             savedValidation = await storage.updateFieldValidation(existingValidation.id, updateData);
             console.log(`SAVE VALIDATIONS: Updated existing field ${fieldName}, result:`, savedValidation);
           } else {
             // Create new record if none exists
+            // Handle missing properties for batch continuation validations
             const createData = {
               sessionId: sessionId,
               fieldId: validation.field_id,
-              validationType: validation.validation_type,
-              dataType: validation.data_type,
+              validationType: validation.validation_type || 'collection_property', // Default for batch continuations
+              dataType: validation.data_type || 'TEXT', // Default for batch continuations
               collectionName: collectionName,
-              extractedValue: validation.extracted_value,
+              extractedValue: validation.extracted_value || validation.value, // Handle both formats
               confidenceScore: confidenceScore,
               validationStatus: validationStatus,
-              aiReasoning: validation.ai_reasoning,
+              aiReasoning: validation.ai_reasoning || `Extracted in batch ${validation.batch_number || 1}`,
               documentSource: validation.document_source || 'Unknown',
-              recordIndex: validation.record_index || 0
+              recordIndex: validation.record_index || 0,
+              batchNumber: validation.batch_number || 1
             };
             console.log(`SAVE VALIDATIONS: Creating new field ${fieldName} with data:`, createData);
             savedValidation = await storage.createFieldValidation(createData);
