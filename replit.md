@@ -52,7 +52,6 @@ Preferred communication style: Simple, everyday language.
 - **Collection Management**: Fixed "Add new +" functionality with proper index calculation and consistent validation filtering for both legacy and new records.
 - **Empty Data Handling**: Robust session view loading that gracefully handles empty AI extraction results, displaying functional empty states without errors or crashes.
 - **Enhanced Truncation Repair**: Improved JSON repair functionality for truncated Gemini API responses, with comprehensive parsing logic that recovers complete field validation objects and maintains data integrity during AI extraction failures.
-- **Enhanced Truncation Recovery**: Intelligent truncation recovery system that uses the existing proven extraction system as primary, and only triggers advanced batch validation when truncation is detected. Features automatic detection of AI response truncation, progressive recovery methods (JSON repair → continuation → batch validation), and seamless integration without disrupting working workflows. This approach maintains reliability while providing robust recovery for complex datasets that exceed AI response limits.
 
 ### Key Architectural Decisions
 - **Monorepo Structure**: Single repository with shared types.

@@ -3129,11 +3129,11 @@ print(json.dumps(results))
     }
   });
 
-  // Enhanced AI Extraction Endpoint with Automatic Continuation Support
+  // AI Extraction Endpoint
   app.post("/api/sessions/:sessionId/extract", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
-      console.log(`🚀 Enhanced extraction starting for session ${sessionId}`);
+      console.log(`AI_EXTRACTION: Starting extraction for session ${sessionId}`);
       
       // Get session and project data
       const session = await storage.getExtractionSession(sessionId);
@@ -3162,31 +3162,7 @@ print(json.dumps(results))
         })
       );
 
-      console.log(`📊 Schema: ${schemaFields.length} fields, ${collectionsWithProperties.length} collections`);
-
-      // Get documents from request body (like the old gemini-extraction endpoint)
-      const { extractedTexts, prompt } = req.body;
-      
-      // Convert extracted texts to documents format expected by the AI system
-      let documents = [];
-      if (extractedTexts && Array.isArray(extractedTexts)) {
-        documents = extractedTexts.map((text, index) => ({
-          file_content: text.content || text,
-          file_name: text.filename || `document_${index + 1}.txt`,
-          mime_type: text.mime_type || 'text/plain'
-        }));
-      } else if (prompt) {
-        // Handle direct prompt mode (from SchemaView)
-        documents = [{
-          file_content: prompt,
-          file_name: 'schema_prompt.txt',
-          mime_type: 'text/plain'
-        }];
-      }
-      
-      console.log(`📄 Received ${documents.length} documents for enhanced extraction`);
-      
-      // Prepare data for enhanced Python extraction script with continuation support
+      // Prepare data for Python extraction script
       const extractionData = {
         session_id: sessionId,
         project_id: projectId,
@@ -3195,12 +3171,14 @@ print(json.dumps(results))
         knowledge_documents: knowledgeDocuments,
         extraction_rules: extractionRules,
         session_data: {
-          documents: documents
-        },
-        enable_continuation: true // Enable the continuation system
+          files: JSON.parse(session.fileMetadata || '[]'),
+          documents: session.documents || []
+        }
       };
 
-      // Use existing extraction system, only trigger batch validation if truncation detected
+      console.log(`AI_EXTRACTION: Processing ${schemaFields.length} schema fields and ${collectionsWithProperties.length} collections`);
+
+      // Call Python AI extraction script
       const { spawn } = await import('child_process');
       let pythonOutput = '';
       let pythonError = '';
@@ -3208,124 +3186,14 @@ print(json.dumps(results))
       const python = spawn('python3', ['-c', `
 import sys
 import json
-import logging
 sys.path.append('.')
-
-from ai_extraction_simplified import step1_extract_from_documents, repair_truncated_json
-
-# Import batch validation only for truncation recovery
-try:
-    from ai_batch_validation import run_enhanced_batch_validation
-    BATCH_RECOVERY_AVAILABLE = True
-except ImportError:
-    BATCH_RECOVERY_AVAILABLE = False
-
-logging.basicConfig(level=logging.INFO)
-
-def run_extraction_with_truncation_recovery(input_data):
-    """Use existing system first, batch validation only for truncation recovery"""
-    try:
-        # Extract input parameters
-        session_id = input_data['session_id']
-        project_id = input_data['project_id']
-        schema_fields = input_data['schema_fields']
-        collections = input_data['collections']
-        knowledge_documents = input_data.get('knowledge_documents', [])
-        extraction_rules = input_data.get('extraction_rules', [])
-        documents = input_data.get('session_data', {}).get('documents', [])
-        
-        if not documents:
-            return {"success": False, "error": "No documents found for extraction"}
-        
-        logging.info(f"🚀 Starting extraction for session {session_id}")
-        
-        # STEP 1: Use existing proven extraction system
-        project_schema = {"schema_fields": schema_fields, "collections": collections}
-        
-        extraction_result = step1_extract_from_documents(
-            documents=documents,
-            project_schema=project_schema,
-            extraction_rules=extraction_rules,
-            knowledge_documents=knowledge_documents
-        )
-        
-        if not extraction_result.success:
-            return {"success": False, "error": extraction_result.error_message}
-        
-        # STEP 2: Check results and detect truncation
-        extracted_data = extraction_result.extracted_data or {}
-        field_validations = extracted_data.get('field_validations', [])
-        original_response = extraction_result.ai_response or ""
-        
-        # Try basic JSON repair if no validations found
-        if not field_validations and original_response:
-            repaired_json = repair_truncated_json(original_response)
-            if repaired_json:
-                try:
-                    extracted_data = json.loads(repaired_json)
-                    field_validations = extracted_data.get('field_validations', [])
-                    logging.info("✅ JSON repair recovered data")
-                except json.JSONDecodeError:
-                    pass
-        
-        # Detect truncation
-        truncated = False
-        if original_response:
-            response_end = original_response.strip()
-            truncated = not (response_end.endswith(']}') or response_end.endswith(']\n}'))
-        
-        # STEP 3: If truncation detected and no validations, trigger batch recovery
-        if truncated and not field_validations and BATCH_RECOVERY_AVAILABLE:
-            logging.info("🔄 Truncation detected - using batch validation recovery")
-            
-            try:
-                batch_result = run_enhanced_batch_validation(
-                    session_id=session_id,
-                    project_id=project_id,
-                    documents=documents,
-                    schema_fields=schema_fields,
-                    collections=collections,
-                    knowledge_base=knowledge_documents,
-                    extraction_rules=extraction_rules
-                )
-                
-                if batch_result.get('success') and batch_result.get('field_validations'):
-                    logging.info(f"✅ Batch recovery successful: {len(batch_result['field_validations'])} validations")
-                    return {
-                        "success": True,
-                        "extracted_data": {"field_validations": batch_result['field_validations']},
-                        "field_validations": batch_result['field_validations'],
-                        "input_token_count": extraction_result.input_token_count + batch_result.get('input_token_count', 0),
-                        "output_token_count": extraction_result.output_token_count + batch_result.get('output_token_count', 0),
-                        "truncation_recovery_used": True,
-                        "field_count": len(batch_result['field_validations'])
-                    }
-                    
-            except Exception as e:
-                logging.warning(f"Batch recovery failed: {e}")
-        
-        # STEP 4: Return standard results
-        return {
-            "success": True,
-            "extracted_data": extracted_data,
-            "field_validations": field_validations,
-            "input_token_count": extraction_result.input_token_count,
-            "output_token_count": extraction_result.output_token_count,
-            "truncation_recovery_used": False,
-            "field_count": len(field_validations)
-        }
-        
-    except Exception as e:
-        logging.error(f"❌ Extraction error: {e}")
-        import traceback
-        traceback.print_exc()
-        return {"success": False, "error": str(e)}
+from ai_extraction import run_full_document_extraction
 
 # Read input data
 input_data = json.loads(sys.stdin.read())
 
-# Run extraction with truncation recovery
-result = run_extraction_with_truncation_recovery(input_data)
+# Run AI extraction
+result = run_full_document_extraction(input_data)
 
 # Output result
 print(json.dumps(result))
@@ -3344,10 +3212,10 @@ print(json.dumps(result))
       
       python.on('close', async (code) => {
         if (code !== 0) {
-          console.error(`Enhanced Extraction: Python process failed with code ${code}`);
-          console.error(`Enhanced Extraction: Error output: ${pythonError}`);
+          console.error(`AI_EXTRACTION: Python process failed with code ${code}`);
+          console.error(`AI_EXTRACTION: Error output: ${pythonError}`);
           return res.status(500).json({ 
-            message: "Enhanced AI extraction failed", 
+            message: "AI extraction failed", 
             error: pythonError,
             code: code
           });
@@ -3357,20 +3225,13 @@ print(json.dumps(result))
           const extractionResults = JSON.parse(pythonOutput);
           
           if (extractionResults.success) {
-            console.log(`✅ AI extraction successful: ${extractionResults.field_count || 0} field validations`);
-            if (extractionResults.truncation_recovery_used) {
-              if (extractionResults.batch_processing_used) {
-                console.log(`🔄 Truncation recovery used batch validation system`);
-              } else if (extractionResults.continuation_used) {
-                console.log(`🔄 Truncation recovery used continuation system`);
-              }
-            }
+            console.log(`AI_EXTRACTION: Successfully processed ${extractionResults.total_fields_processed || 0} fields`);
             
             // Update session status to completed
             await storage.updateExtractionSession(sessionId, {
               status: 'completed',
               extractedData: JSON.stringify(extractionResults.extracted_data || {}),
-              documentCount: (session.documents || []).length
+              documentCount: extractionResults.document_count || 0
             });
 
             // Create field validations from results
@@ -3420,28 +3281,22 @@ print(json.dumps(result))
             
             res.json({
               success: true,
-              message: extractionResults.truncation_recovery_used ? 
-                "AI extraction completed with truncation recovery" : 
-                "AI extraction completed successfully",
+              message: "AI extraction completed successfully",
               extraction_results: extractionResults,
-              session_id: sessionId,
-              truncation_recovery_used: extractionResults.truncation_recovery_used || false,
-              batch_processing_used: extractionResults.batch_processing_used || false,
-              continuation_used: extractionResults.continuation_used || false,
-              field_count: extractionResults.field_count || 0
+              session_id: sessionId
             });
           } else {
-            console.log('Enhanced Extraction failed:', extractionResults.error);
+            console.log('AI_EXTRACTION: Extraction failed:', extractionResults.error);
             res.status(500).json({ 
-              message: "Enhanced AI extraction failed",
+              message: "AI extraction failed",
               error: extractionResults.error
             });
           }
         } catch (parseError) {
-          console.error(`Enhanced Extraction: Failed to parse Python output: ${parseError}`);
-          console.error(`Enhanced Extraction: Raw output: ${pythonOutput}`);
+          console.error(`AI_EXTRACTION: Failed to parse Python output: ${parseError}`);
+          console.error(`AI_EXTRACTION: Raw output: ${pythonOutput}`);
           res.status(500).json({
-            message: "Failed to parse enhanced extraction results",
+            message: "Failed to parse extraction results",
             error: parseError.message,
             output: pythonOutput
           });
@@ -3449,8 +3304,8 @@ print(json.dumps(result))
       });
 
     } catch (error) {
-      console.error("Enhanced AI extraction error:", error);
-      res.status(500).json({ message: "Failed to start enhanced AI extraction process" });
+      console.error("AI_EXTRACTION error:", error);
+      res.status(500).json({ message: "Failed to start AI extraction process" });
     }
   });
 
