@@ -246,11 +246,12 @@ def perform_batch_extraction(
     Perform batch extraction with incremental JSON building and explicit bookmarking.
     """
     try:
-        # Initialize Gemini AI
-        if not os.getenv('GOOGLE_API_KEY'):
+        # Initialize Gemini AI with the same configuration as the working system
+        api_key = os.getenv('GEMINI_API_KEY')  # Use GEMINI_API_KEY like the working system
+        if not api_key:
             return BatchResult(
                 success=False,
-                error_message="Google API key not configured"
+                error_message="GEMINI_API_KEY not configured"
             )
         
         if genai is None:
@@ -259,8 +260,8 @@ def perform_batch_extraction(
                 error_message="Google Generative AI library not available"
             )
         
-        genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
-        model = genai.GenerativeModel('gemini-pro')
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.0-flash-exp')  # Use the same model as the working system
         
         # Create incremental prompt
         prompt = create_incremental_prompt(

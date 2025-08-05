@@ -3200,7 +3200,7 @@ print(json.dumps(results))
         enable_continuation: true // Enable the continuation system
       };
 
-      // Call enhanced Python AI extraction script with batch validation support
+      // Call enhanced Python AI extraction script with fallback to original system
       const { spawn } = await import('child_process');
       let pythonOutput = '';
       let pythonError = '';
@@ -3211,14 +3211,26 @@ import json
 import logging
 sys.path.append('.')
 
-# Import the enhanced batch validation system
-from ai_batch_validation import run_enhanced_batch_validation
+# Import both systems: new batch validation and original working system
+try:
+    from ai_batch_validation import run_enhanced_batch_validation
+    BATCH_SYSTEM_AVAILABLE = True
+except ImportError as e:
+    logging.warning(f"Batch validation system not available: {e}")
+    BATCH_SYSTEM_AVAILABLE = False
+
+from ai_extraction_simplified import step1_extract_from_documents, repair_truncated_json
+from ai_continuation_system import (
+    analyze_truncation_point,
+    perform_continuation_extraction,
+    merge_extraction_results
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
-def run_enhanced_extraction_with_batch_validation(input_data):
-    """Enhanced extraction with intelligent batch validation and incremental JSON building"""
+def run_enhanced_extraction_with_intelligent_fallback(input_data):
+    """Enhanced extraction with batch validation and intelligent fallback to working system"""
     try:
         session_id = input_data['session_id']
         project_id = input_data['project_id']
@@ -3233,43 +3245,151 @@ def run_enhanced_extraction_with_batch_validation(input_data):
         if not documents:
             return {"success": False, "error": "No documents found for extraction"}
         
-        logging.info(f"🚀 Starting enhanced batch validation for session {session_id}")
+        # Analyze dataset complexity to decide which system to use
+        total_content_length = sum(len(str(doc.get('file_content', ''))) for doc in documents)
+        total_fields = len(schema_fields)
+        collection_properties = sum(len(col.get('properties', [])) for col in collections)
+        estimated_complexity = total_content_length + (total_fields * 100) + (collection_properties * 200)
         
-        # Use the enhanced batch validation system
-        result = run_enhanced_batch_validation(
-            session_id=session_id,
-            project_id=project_id,
+        # Try batch system for complex datasets, fallback to original for simpler ones or if batch fails
+        use_batch_system = BATCH_SYSTEM_AVAILABLE and estimated_complexity > 5000
+        
+        if use_batch_system:
+            logging.info(f"🚀 Using enhanced batch validation for complex dataset (session {session_id})")
+            try:
+                result = run_enhanced_batch_validation(
+                    session_id=session_id,
+                    project_id=project_id,
+                    documents=documents,
+                    schema_fields=schema_fields,
+                    collections=collections,
+                    knowledge_base=knowledge_documents,
+                    extraction_rules=extraction_rules
+                )
+                
+                if result.get('success'):
+                    logging.info(f"✅ Batch validation completed: {result.get('total_validations', 0)} validations")
+                    return {
+                        "success": True,
+                        "extracted_data": {"field_validations": result.get('field_validations', [])},
+                        "field_validations": result.get('field_validations', []),
+                        "input_token_count": result.get('input_token_count', 0),
+                        "output_token_count": result.get('output_token_count', 0),
+                        "batch_processing_used": True,
+                        "total_batches": result.get('total_batches', 1),
+                        "field_count": result.get('total_validations', 0)
+                    }
+                else:
+                    logging.warning(f"⚠️ Batch system failed, falling back to original: {result.get('error')}")
+                    use_batch_system = False
+                    
+            except Exception as e:
+                logging.warning(f"⚠️ Batch system error, falling back to original: {e}")
+                use_batch_system = False
+        
+        # Use original working system (either as primary choice or fallback)
+        logging.info(f"🚀 Using original extraction system for session {session_id}")
+        
+        # Prepare project schema
+        project_schema = {
+            "schema_fields": schema_fields,
+            "collections": collections
+        }
+        
+        # Perform initial extraction using the working system
+        extraction_result = step1_extract_from_documents(
             documents=documents,
-            schema_fields=schema_fields,
-            collections=collections,
-            knowledge_base=knowledge_documents,
-            extraction_rules=extraction_rules
+            project_schema=project_schema,
+            extraction_rules=extraction_rules,
+            knowledge_documents=knowledge_documents
         )
         
-        if result.get('success'):
-            logging.info(f"✅ Batch validation completed: {result.get('total_validations', 0)} validations across {result.get('total_batches', 1)} batches")
+        if not extraction_result.success:
+            return {"success": False, "error": extraction_result.error_message}
+        
+        extracted_data = extraction_result.extracted_data
+        original_response = extraction_result.ai_response
+        
+        # Check if we have field validations
+        if not extracted_data or not extracted_data.get('field_validations'):
+            logging.warning("⚠️ No field validations extracted - checking for truncation")
             
-            return {
-                "success": True,
-                "extracted_data": {"field_validations": result.get('field_validations', [])},
-                "field_validations": result.get('field_validations', []),
-                "input_token_count": result.get('input_token_count', 0),
-                "output_token_count": result.get('output_token_count', 0),
-                "batch_processing_used": result.get('batch_processing_used', False),
-                "total_batches": result.get('total_batches', 1),
-                "field_count": result.get('total_validations', 0),
-                "batch_analysis": result.get('batch_analysis', {}),
-                "batch_progress": result.get('batch_progress', None)
-            }
-        else:
-            logging.error(f"❌ Batch validation failed: {result.get('error', 'Unknown error')}")
-            return {
-                "success": False,
-                "error": result.get('error', 'Batch validation failed')
-            }
+            # Attempt truncation repair
+            if original_response:
+                repaired_json = repair_truncated_json(original_response)
+                if repaired_json:
+                    try:
+                        extracted_data = json.loads(repaired_json)
+                        logging.info("✅ Truncation repair successful")
+                    except json.JSONDecodeError:
+                        logging.error("❌ Truncation repair failed")
+                        extracted_data = {"field_validations": []}
+                else:
+                    extracted_data = {"field_validations": []}
+        
+        field_validations = extracted_data.get('field_validations', [])
+        
+        # Check if we need continuation
+        needs_continuation = False
+        continuation_info = None
+        
+        if original_response and field_validations:
+            # Simple check: if response doesn't end with proper closing, it was likely truncated
+            response_stripped = original_response.strip()
+            if not (response_stripped.endswith(']}') or response_stripped.endswith(']\n}')):
+                logging.info("🔍 Truncation detected - analyzing continuation point")
+                continuation_info = analyze_truncation_point(original_response, extracted_data)
+                
+                if continuation_info:
+                    needs_continuation = True
+                    logging.info(f"🔄 Continuation needed - recovered {continuation_info['total_recovered']} validations")
+        
+        # Perform continuation if needed
+        final_extracted_data = extracted_data
+        if needs_continuation and continuation_info:
+            logging.info("🚀 Starting continuation extraction...")
+            
+            # Extract the original document text for continuation
+            extracted_text = ""
+            for doc in documents:
+                if isinstance(doc.get('file_content'), str) and not doc['file_content'].startswith('data:'):
+                    extracted_text += f"\\n\\n=== DOCUMENT: {doc.get('file_name', 'Unknown')} ===\\n{doc['file_content']}"
+            
+            # Perform continuation extraction
+            continuation_result = perform_continuation_extraction(
+                session_id=session_id,
+                project_id=project_id,
+                extracted_text=extracted_text,
+                schema_fields=schema_fields,
+                collections=collections,
+                knowledge_base=knowledge_documents,
+                extraction_rules=extraction_rules,
+                previous_response=original_response,
+                repaired_data=extracted_data
+            )
+            
+            if continuation_result and continuation_result.get('success'):
+                # Merge the results
+                continuation_data = continuation_result['continuation_data']
+                final_extracted_data = merge_extraction_results(extracted_data, continuation_data)
+                
+                logging.info(f"✅ Continuation successful - total validations: {len(final_extracted_data.get('field_validations', []))}")
+            else:
+                logging.warning("⚠️ Continuation failed - using repaired data only")
+        
+        return {
+            "success": True,
+            "extracted_data": final_extracted_data,
+            "field_validations": final_extracted_data.get('field_validations', []),
+            "input_token_count": extraction_result.input_token_count,
+            "output_token_count": extraction_result.output_token_count,
+            "continuation_used": needs_continuation,
+            "batch_processing_used": False,
+            "field_count": len(final_extracted_data.get('field_validations', []))
+        }
         
     except Exception as e:
-        logging.error(f"❌ Enhanced extraction with batch validation error: {e}")
+        logging.error(f"❌ Enhanced extraction error: {e}")
         import traceback
         traceback.print_exc()
         return {"success": False, "error": str(e)}
@@ -3277,8 +3397,8 @@ def run_enhanced_extraction_with_batch_validation(input_data):
 # Read input data
 input_data = json.loads(sys.stdin.read())
 
-# Run enhanced extraction with batch validation
-result = run_enhanced_extraction_with_batch_validation(input_data)
+# Run enhanced extraction with intelligent fallback
+result = run_enhanced_extraction_with_intelligent_fallback(input_data)
 
 # Output result
 print(json.dumps(result))
@@ -3310,9 +3430,11 @@ print(json.dumps(result))
           const extractionResults = JSON.parse(pythonOutput);
           
           if (extractionResults.success) {
-            console.log(`✅ Enhanced batch validation successful: ${extractionResults.field_count || 0} field validations`);
+            console.log(`✅ Enhanced extraction successful: ${extractionResults.field_count || 0} field validations`);
             if (extractionResults.batch_processing_used) {
               console.log(`🔄 Batch processing was used across ${extractionResults.total_batches || 1} batches`);
+            } else if (extractionResults.continuation_used) {
+              console.log(`🔄 Continuation was used for large dataset processing`);
             }
             
             // Update session status to completed
@@ -3369,10 +3491,13 @@ print(json.dumps(result))
             
             res.json({
               success: true,
-              message: "Enhanced batch validation completed successfully",
+              message: extractionResults.batch_processing_used ? 
+                "Enhanced batch validation completed successfully" : 
+                "Enhanced AI extraction completed successfully",
               extraction_results: extractionResults,
               session_id: sessionId,
               batch_processing_used: extractionResults.batch_processing_used || false,
+              continuation_used: extractionResults.continuation_used || false,
               total_batches: extractionResults.total_batches || 1,
               field_count: extractionResults.field_count || 0,
               batch_analysis: extractionResults.batch_analysis || {},
