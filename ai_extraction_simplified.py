@@ -29,8 +29,8 @@ class ExtractionResult:
 
 def repair_truncated_json(response_text: str) -> str:
     """
-    Attempt to repair truncated JSON responses by finding complete field validation objects
-    and properly closing the JSON structure to preserve as much data as possible.
+    Enhanced repair function for truncated JSON responses. Finds complete field validation objects
+    and properly closes the JSON structure to preserve as much data as possible.
     """
     try:
         logging.info(f"Attempting to repair JSON response of length {len(response_text)}")
@@ -38,9 +38,17 @@ def repair_truncated_json(response_text: str) -> str:
         # Check if response starts with field_validations structure
         if not response_text.strip().startswith('{"field_validations":'):
             logging.warning("Response doesn't start with expected field_validations structure")
-            return None
+            # Try alternative patterns
+            if '"field_validations"' in response_text[:200]:
+                logging.info("Found field_validations key later in response, attempting repair...")
+                # Try to extract just the field_validations part
+                start_idx = response_text.find('"field_validations"')
+                if start_idx > 0:
+                    response_text = '{"' + response_text[start_idx:]
+            else:
+                return None
         
-        # Find all complete field validation objects by parsing line by line
+        # Enhanced parsing to handle multiple bracket patterns
         import re
         
         lines = response_text.split('\n')
@@ -48,19 +56,32 @@ def repair_truncated_json(response_text: str) -> str:
         current_object_lines = []
         brace_count = 0
         inside_validation = False
+        in_field_validations_array = False
         
         for line_num, line in enumerate(lines):
-            # Check if this line starts a new field validation object
-            if '"field_id"' in line and brace_count == 0:
+            # Check if we're entering the field_validations array
+            if '"field_validations":' in line:
+                in_field_validations_array = True
+                continue
+                
+            if not in_field_validations_array:
+                continue
+                
+            # Look for object start - either opening brace alone or with field_id/field_name
+            line_stripped = line.strip()
+            if line_stripped == '{' or ('{' in line and ('"field_id"' in line or '"field_name"' in line)):
                 # Start of a new field validation object
-                current_object_lines = [line]
+                if line_stripped == '{':
+                    current_object_lines = [line]
+                else:
+                    current_object_lines = [line]
                 inside_validation = True
-                brace_count += line.count('{') - line.count('}')
+                brace_count = line.count('{') - line.count('}')
             elif inside_validation:
                 current_object_lines.append(line)
                 brace_count += line.count('{') - line.count('}')
                 
-                # Check if we've completed this object (brace_count back to 0)
+                # Check if we've completed this object (brace count is 0 and line ends with })
                 if brace_count == 0 and (line.strip().endswith('}') or line.strip().endswith('},')):
                     # We have a complete field validation object
                     complete_object = '\n'.join(current_object_lines)
@@ -72,9 +93,16 @@ def repair_truncated_json(response_text: str) -> str:
                         
                         # Wrap in a test structure to validate
                         test_json = '{"test": ' + obj_json + '}'
-                        json.loads(test_json)
-                        field_validations.append(complete_object.strip())
-                        logging.info(f"Found complete field validation object #{len(field_validations)}")
+                        parsed_test = json.loads(test_json)
+                        
+                        # Validate it has required fields
+                        test_obj = parsed_test['test']
+                        if 'field_id' in test_obj or 'field_name' in test_obj:
+                            field_validations.append(complete_object.strip())
+                            logging.info(f"Found complete field validation object #{len(field_validations)}")
+                        else:
+                            logging.warning("Field validation object missing required keys")
+                            
                     except json.JSONDecodeError as e:
                         logging.warning(f"Skipping invalid field validation object: {str(e)[:100]}...")
                     
@@ -105,15 +133,24 @@ def repair_truncated_json(response_text: str) -> str:
             repaired += '  ]\n}'
             
             # Test if the repair worked
-            json.loads(repaired)
-            logging.info(f"Successfully repaired truncated JSON - preserved {len(field_validations)} complete field validations")
-            return repaired
+            final_parsed = json.loads(repaired)
+            logging.info(f"✅ Successfully repaired truncated JSON - preserved {len(field_validations)} complete field validations")
+            
+            # Additional validation
+            if 'field_validations' in final_parsed and isinstance(final_parsed['field_validations'], list):
+                logging.info(f"✅ Repair validation passed - {len(final_parsed['field_validations'])} field validations ready")
+                return repaired
+            else:
+                logging.error("❌ Repair validation failed - invalid structure")
+                return None
         else:
             logging.warning("No complete field validation objects found in truncated response")
             return None
         
     except Exception as e:
         logging.error(f"JSON repair failed: {e}")
+        import traceback
+        logging.error(f"Repair traceback: {traceback.format_exc()}")
         return None
 
 def step1_extract_from_documents(
@@ -1050,20 +1087,21 @@ RETURN: Complete readable content from this document."""
                 try:
                     extracted_data = json.loads(response_text)
                 except json.JSONDecodeError as e:
-                    logging.warning(f"Direct JSON parsing failed: {e}")
-                    logging.warning("Attempting JSON repair for truncated response...")
+                    logging.warning(f"📋 Direct JSON parsing failed: {e}")
+                    logging.warning("🔧 Attempting JSON repair for truncated response...")
                     
                     # Attempt to repair truncated JSON
                     repaired_json = repair_truncated_json(response_text)
                     if repaired_json:
                         try:
                             extracted_data = json.loads(repaired_json)
-                            logging.info("Successfully repaired and parsed truncated JSON response")
+                            logging.info("✅ Successfully repaired and parsed truncated JSON response")
+                            logging.info(f"🔢 Recovered {len(extracted_data.get('field_validations', []))} field validations from truncated response")
                         except json.JSONDecodeError:
-                            logging.error("JSON repair failed, creating minimal structure")
+                            logging.error("❌ JSON repair failed, creating minimal structure")
                             extracted_data = {"field_validations": []}
                     else:
-                        logging.error("Could not repair JSON, creating minimal structure")
+                        logging.error("❌ Could not repair JSON, creating minimal structure")
                         extracted_data = {"field_validations": []}
                 
             # Validate that we have the expected field_validations structure
