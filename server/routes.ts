@@ -3164,6 +3164,28 @@ print(json.dumps(results))
 
       console.log(`📊 Schema: ${schemaFields.length} fields, ${collectionsWithProperties.length} collections`);
 
+      // Get documents from request body (like the old gemini-extraction endpoint)
+      const { extractedTexts, prompt } = req.body;
+      
+      // Convert extracted texts to documents format expected by the AI system
+      let documents = [];
+      if (extractedTexts && Array.isArray(extractedTexts)) {
+        documents = extractedTexts.map((text, index) => ({
+          file_content: text.content || text,
+          file_name: text.filename || `document_${index + 1}.txt`,
+          mime_type: text.mime_type || 'text/plain'
+        }));
+      } else if (prompt) {
+        // Handle direct prompt mode (from SchemaView)
+        documents = [{
+          file_content: prompt,
+          file_name: 'schema_prompt.txt',
+          mime_type: 'text/plain'
+        }];
+      }
+      
+      console.log(`📄 Received ${documents.length} documents for enhanced extraction`);
+      
       // Prepare data for enhanced Python extraction script with continuation support
       const extractionData = {
         session_id: sessionId,
@@ -3173,8 +3195,7 @@ print(json.dumps(results))
         knowledge_documents: knowledgeDocuments,
         extraction_rules: extractionRules,
         session_data: {
-          files: JSON.parse(session.fileMetadata || '[]'),
-          documents: session.documents || []
+          documents: documents
         },
         enable_continuation: true // Enable the continuation system
       };
