@@ -3129,11 +3129,11 @@ print(json.dumps(results))
     }
   });
 
-  // AI Extraction Endpoint
+  // Enhanced AI Extraction Endpoint with Automatic Continuation Support
   app.post("/api/sessions/:sessionId/extract", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
-      console.log(`AI_EXTRACTION: Starting extraction for session ${sessionId}`);
+      console.log(`🚀 Enhanced extraction starting for session ${sessionId}`);
       
       // Get session and project data
       const session = await storage.getExtractionSession(sessionId);
@@ -3162,7 +3162,31 @@ print(json.dumps(results))
         })
       );
 
-      // Prepare data for Python extraction script
+      console.log(`📊 Schema: ${schemaFields.length} fields, ${collectionsWithProperties.length} collections`);
+
+      // Get documents from request body (like the old gemini-extraction endpoint)
+      const { extractedTexts, prompt } = req.body;
+      
+      // Convert extracted texts to documents format expected by the AI system
+      let documents = [];
+      if (extractedTexts && Array.isArray(extractedTexts)) {
+        documents = extractedTexts.map((text, index) => ({
+          file_content: text.content || text,
+          file_name: text.filename || `document_${index + 1}.txt`,
+          mime_type: text.mime_type || 'text/plain'
+        }));
+      } else if (prompt) {
+        // Handle direct prompt mode (from SchemaView)
+        documents = [{
+          file_content: prompt,
+          file_name: 'schema_prompt.txt',
+          mime_type: 'text/plain'
+        }];
+      }
+      
+      console.log(`📄 Received ${documents.length} documents for enhanced extraction`);
+      
+      // Prepare data for enhanced Python extraction script with continuation support
       const extractionData = {
         session_id: sessionId,
         project_id: projectId,
@@ -3171,14 +3195,12 @@ print(json.dumps(results))
         knowledge_documents: knowledgeDocuments,
         extraction_rules: extractionRules,
         session_data: {
-          files: JSON.parse(session.fileMetadata || '[]'),
-          documents: session.documents || []
-        }
+          documents: documents
+        },
+        enable_continuation: true // Enable the continuation system
       };
 
-      console.log(`AI_EXTRACTION: Processing ${schemaFields.length} schema fields and ${collectionsWithProperties.length} collections`);
-
-      // Call Python AI extraction script
+      // Call enhanced Python AI extraction script with continuation support
       const { spawn } = await import('child_process');
       let pythonOutput = '';
       let pythonError = '';
@@ -3186,14 +3208,146 @@ print(json.dumps(results))
       const python = spawn('python3', ['-c', `
 import sys
 import json
+import logging
 sys.path.append('.')
-from ai_extraction import run_full_document_extraction
+
+# Import the continuation-enabled extraction system
+from ai_extraction_simplified import step1_extract_from_documents, repair_truncated_json
+from ai_continuation_system import (
+    analyze_truncation_point,
+    perform_continuation_extraction,
+    merge_extraction_results
+)
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+
+def run_enhanced_extraction(input_data):
+    """Enhanced extraction with automatic continuation support"""
+    try:
+        session_id = input_data['session_id']
+        project_id = input_data['project_id']
+        schema_fields = input_data['schema_fields']
+        collections = input_data['collections']
+        knowledge_documents = input_data.get('knowledge_documents', [])
+        extraction_rules = input_data.get('extraction_rules', [])
+        session_data = input_data.get('session_data', {})
+        
+        # Prepare project schema
+        project_schema = {
+            "schema_fields": schema_fields,
+            "collections": collections
+        }
+        
+        # Get documents from session data
+        documents = session_data.get('documents', [])
+        if not documents:
+            return {"success": False, "error": "No documents found for extraction"}
+        
+        logging.info(f"🚀 Starting enhanced extraction for session {session_id}")
+        
+        # Perform initial extraction
+        extraction_result = step1_extract_from_documents(
+            documents=documents,
+            project_schema=project_schema,
+            extraction_rules=extraction_rules,
+            knowledge_documents=knowledge_documents
+        )
+        
+        if not extraction_result.success:
+            return {"success": False, "error": extraction_result.error_message}
+        
+        extracted_data = extraction_result.extracted_data
+        original_response = extraction_result.ai_response
+        
+        # Check if we have field validations
+        if not extracted_data or not extracted_data.get('field_validations'):
+            logging.warning("⚠️ No field validations extracted - checking for truncation")
+            
+            # Attempt truncation repair
+            if original_response:
+                repaired_json = repair_truncated_json(original_response)
+                if repaired_json:
+                    try:
+                        extracted_data = json.loads(repaired_json)
+                        logging.info("✅ Truncation repair successful")
+                    except json.JSONDecodeError:
+                        logging.error("❌ Truncation repair failed")
+                        extracted_data = {"field_validations": []}
+                else:
+                    extracted_data = {"field_validations": []}
+        
+        field_validations = extracted_data.get('field_validations', [])
+        
+        # Check if we need continuation
+        needs_continuation = False
+        continuation_info = None
+        
+        if original_response and field_validations:
+            # Simple check: if response doesn't end with proper closing, it was likely truncated
+            response_stripped = original_response.strip()
+            if not (response_stripped.endswith(']}') or response_stripped.endswith(']\n}')):
+                logging.info("🔍 Truncation detected - analyzing continuation point")
+                continuation_info = analyze_truncation_point(original_response, extracted_data)
+                
+                if continuation_info:
+                    needs_continuation = True
+                    logging.info(f"🔄 Continuation needed - recovered {continuation_info['total_recovered']} validations")
+        
+        # Perform continuation if needed
+        final_extracted_data = extracted_data
+        if needs_continuation and continuation_info:
+            logging.info("🚀 Starting continuation extraction...")
+            
+            # Extract the original document text for continuation
+            extracted_text = ""
+            for doc in documents:
+                if isinstance(doc.get('file_content'), str) and not doc['file_content'].startswith('data:'):
+                    extracted_text += f"\\n\\n=== DOCUMENT: {doc.get('file_name', 'Unknown')} ===\\n{doc['file_content']}"
+            
+            # Perform continuation extraction
+            continuation_result = perform_continuation_extraction(
+                session_id=session_id,
+                project_id=project_id,
+                extracted_text=extracted_text,
+                schema_fields=schema_fields,
+                collections=collections,
+                knowledge_base=knowledge_documents,
+                extraction_rules=extraction_rules,
+                previous_response=original_response,
+                repaired_data=extracted_data
+            )
+            
+            if continuation_result and continuation_result.get('success'):
+                # Merge the results
+                continuation_data = continuation_result['continuation_data']
+                final_extracted_data = merge_extraction_results(extracted_data, continuation_data)
+                
+                logging.info(f"✅ Continuation successful - total validations: {len(final_extracted_data.get('field_validations', []))}")
+            else:
+                logging.warning("⚠️ Continuation failed - using repaired data only")
+        
+        return {
+            "success": True,
+            "extracted_data": final_extracted_data,
+            "field_validations": final_extracted_data.get('field_validations', []),
+            "input_token_count": extraction_result.input_token_count,
+            "output_token_count": extraction_result.output_token_count,
+            "continuation_used": needs_continuation,
+            "field_count": len(final_extracted_data.get('field_validations', []))
+        }
+        
+    except Exception as e:
+        logging.error(f"❌ Enhanced extraction error: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
 
 # Read input data
 input_data = json.loads(sys.stdin.read())
 
-# Run AI extraction
-result = run_full_document_extraction(input_data)
+# Run enhanced extraction
+result = run_enhanced_extraction(input_data)
 
 # Output result
 print(json.dumps(result))
@@ -3212,10 +3366,10 @@ print(json.dumps(result))
       
       python.on('close', async (code) => {
         if (code !== 0) {
-          console.error(`AI_EXTRACTION: Python process failed with code ${code}`);
-          console.error(`AI_EXTRACTION: Error output: ${pythonError}`);
+          console.error(`Enhanced Extraction: Python process failed with code ${code}`);
+          console.error(`Enhanced Extraction: Error output: ${pythonError}`);
           return res.status(500).json({ 
-            message: "AI extraction failed", 
+            message: "Enhanced AI extraction failed", 
             error: pythonError,
             code: code
           });
@@ -3225,13 +3379,16 @@ print(json.dumps(result))
           const extractionResults = JSON.parse(pythonOutput);
           
           if (extractionResults.success) {
-            console.log(`AI_EXTRACTION: Successfully processed ${extractionResults.total_fields_processed || 0} fields`);
+            console.log(`✅ Enhanced extraction successful: ${extractionResults.field_count || 0} field validations`);
+            if (extractionResults.continuation_used) {
+              console.log(`🔄 Continuation was used for large dataset processing`);
+            }
             
             // Update session status to completed
             await storage.updateExtractionSession(sessionId, {
               status: 'completed',
               extractedData: JSON.stringify(extractionResults.extracted_data || {}),
-              documentCount: extractionResults.document_count || 0
+              documentCount: (session.documents || []).length
             });
 
             // Create field validations from results
@@ -3281,22 +3438,24 @@ print(json.dumps(result))
             
             res.json({
               success: true,
-              message: "AI extraction completed successfully",
+              message: "Enhanced AI extraction completed successfully",
               extraction_results: extractionResults,
-              session_id: sessionId
+              session_id: sessionId,
+              continuation_used: extractionResults.continuation_used || false,
+              field_count: extractionResults.field_count || 0
             });
           } else {
-            console.log('AI_EXTRACTION: Extraction failed:', extractionResults.error);
+            console.log('Enhanced Extraction failed:', extractionResults.error);
             res.status(500).json({ 
-              message: "AI extraction failed",
+              message: "Enhanced AI extraction failed",
               error: extractionResults.error
             });
           }
         } catch (parseError) {
-          console.error(`AI_EXTRACTION: Failed to parse Python output: ${parseError}`);
-          console.error(`AI_EXTRACTION: Raw output: ${pythonOutput}`);
+          console.error(`Enhanced Extraction: Failed to parse Python output: ${parseError}`);
+          console.error(`Enhanced Extraction: Raw output: ${pythonOutput}`);
           res.status(500).json({
-            message: "Failed to parse extraction results",
+            message: "Failed to parse enhanced extraction results",
             error: parseError.message,
             output: pythonOutput
           });
@@ -3304,8 +3463,8 @@ print(json.dumps(result))
       });
 
     } catch (error) {
-      console.error("AI_EXTRACTION error:", error);
-      res.status(500).json({ message: "Failed to start AI extraction process" });
+      console.error("Enhanced AI extraction error:", error);
+      res.status(500).json({ message: "Failed to start enhanced AI extraction process" });
     }
   });
 
