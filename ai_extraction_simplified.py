@@ -24,10 +24,6 @@ class ExtractionResult:
     ai_response: Optional[str] = None
     input_token_count: Optional[int] = None
     output_token_count: Optional[int] = None
-    is_partial: bool = False
-    total_expected_fields: Optional[int] = None
-    extracted_field_count: Optional[int] = None
-    completion_percentage: Optional[float] = None
 
 # ValidationResult dataclass removed - validation now occurs only during extraction
 
@@ -1255,25 +1251,13 @@ RETURN: Complete readable content from this document."""
                 extracted_data = {"field_validations": []}
                 
             logging.info(f"STEP 1: Successfully extracted {len(extracted_data.get('field_validations', []))} field validations")
-            
-            # Calculate completion statistics for multi-pass detection
-            expected_fields = count_expected_fields(project_schema)
-            extracted_count = len(get_extracted_field_ids(extracted_data))
-            completion_rate = extracted_count / expected_fields if expected_fields > 0 else 1.0
-            
-            logging.info(f"Extraction completion: {extracted_count}/{expected_fields} fields ({completion_rate*100:.1f}%)")
-            
             return ExtractionResult(
                 success=True, 
                 extracted_data=extracted_data,
                 extraction_prompt=final_prompt,
                 ai_response=response.text,
                 input_token_count=input_token_count,
-                output_token_count=output_token_count,
-                is_partial=completion_rate < 0.95,  # Consider partial if less than 95% complete
-                total_expected_fields=expected_fields,
-                extracted_field_count=extracted_count,
-                completion_percentage=completion_rate * 100
+                output_token_count=output_token_count
             )
             
         except json.JSONDecodeError as e:
@@ -1285,106 +1269,9 @@ RETURN: Complete readable content from this document."""
         logging.error(f"STEP 1 extraction failed: {e}")
         return ExtractionResult(success=False, error_message=str(e))
 
-def count_expected_fields(schema: Dict[str, Any]) -> int:
-    """Count total expected fields in a schema for multi-pass detection"""
-    count = len(schema.get("schema_fields", []))
-    
-    for collection in schema.get("collections", []):
-        properties = collection.get("properties", [])
-        # Estimate 5 records per collection (can be made configurable)
-        count += len(properties) * 5
-        
-    return count
+# Validation function removed - validation now occurs only during extraction process
 
-def get_extracted_field_ids(extracted_data: Dict[str, Any]) -> List[str]:
-    """Get list of field IDs that were successfully extracted"""
-    if not extracted_data or "field_validations" not in extracted_data:
-        return []
-    
-    field_ids = []
-    for validation in extracted_data["field_validations"]:
-        if validation.get("field_id") and validation.get("extracted_value"):
-            field_ids.append(validation["field_id"])
-    
-    return field_ids
-
-def create_filtered_schema(original_schema: Dict[str, Any], exclude_field_ids: List[str]) -> Dict[str, Any]:
-    """Create a schema excluding already extracted fields - for remaining fields strategy"""
-    filtered_schema = {"schema_fields": [], "collections": []}
-    
-    # Filter schema fields
-    for field in original_schema.get("schema_fields", []):
-        if field['id'] not in exclude_field_ids:
-            filtered_schema["schema_fields"].append(field)
-    
-    # Keep all collections (they'll be filtered during extraction based on what was already extracted)
-    filtered_schema["collections"] = original_schema.get("collections", [])
-    
-    return filtered_schema
-
-def extract_remaining_fields(
-    documents: List[Dict[str, Any]], 
-    project_schema: Dict[str, Any],
-    already_extracted_result: ExtractionResult,
-    extraction_rules: List[Dict[str, Any]] = None,
-    knowledge_documents: List[Dict[str, Any]] = None,
-    session_name: str = "contract"
-) -> ExtractionResult:
-    """
-    REMAINING FIELDS STRATEGY: Extract only the fields that weren't captured in the previous pass.
-    This is the most efficient multi-pass approach.
-    """
-    if not already_extracted_result.success or not already_extracted_result.extracted_data:
-        return ExtractionResult(success=False, error_message="No valid previous extraction to build upon")
-    
-    # Get list of already extracted field IDs
-    extracted_field_ids = get_extracted_field_ids(already_extracted_result.extracted_data)
-    
-    # Create filtered schema with only missing fields
-    filtered_schema = create_filtered_schema(project_schema, extracted_field_ids)
-    
-    remaining_count = count_expected_fields(filtered_schema)
-    if remaining_count == 0:
-        logging.info("No remaining fields to extract")
-        return ExtractionResult(success=True, extracted_data={"field_validations": []})
-    
-    logging.info(f"=== REMAINING FIELDS EXTRACTION ===")
-    logging.info(f"Previously extracted: {len(extracted_field_ids)} fields")
-    logging.info(f"Remaining to extract: {remaining_count} fields")
-    
-    # Extract only the remaining fields
-    remaining_result = step1_extract_from_documents(
-        documents=documents,
-        project_schema=filtered_schema,
-        extraction_rules=extraction_rules,
-        knowledge_documents=knowledge_documents,
-        session_name=session_name
-    )
-    
-    return remaining_result
-
-def merge_extraction_results(existing_data: Dict[str, Any], new_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Merge field validations from multiple extraction passes"""
-    if not existing_data:
-        return new_data
-    
-    if not new_data or "field_validations" not in new_data:
-        return existing_data
-    
-    # Combine field validations, avoiding duplicates
-    existing_validations = existing_data.get("field_validations", [])
-    new_validations = new_data.get("field_validations", [])
-    
-    existing_field_ids = {v.get("field_id") for v in existing_validations}
-    
-    merged_count = 0
-    for validation in new_validations:
-        if validation.get("field_id") not in existing_field_ids:
-            existing_validations.append(validation)
-            merged_count += 1
-    
-    logging.info(f"Merged {merged_count} new field validations with existing data")
-    return {"field_validations": existing_validations}
+# Chain function removed - only extraction is needed, validation occurs during extraction
 
 if __name__ == "__main__":
     import sys
