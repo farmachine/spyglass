@@ -21,7 +21,7 @@ import DefineData from "./DefineData";
 import Publishing from "./Publishing";
 import UserProfile from "./UserProfile";
 import Breadcrumb from "./Breadcrumb";
-import ExtractlyLogo from "./ExtractlyLogo";
+import ExtraplLogo from "./ExtraplLogo";
 import WavePattern from "./WavePattern";
 
 interface ProjectLayoutProps {
@@ -327,7 +327,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="w-full px-6 py-4">
           <div className="flex items-center justify-between w-full">
-            <ExtractlyLogo />
+            <ExtraplLogo />
             <UserProfile />
           </div>
         </div>

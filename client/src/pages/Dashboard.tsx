@@ -15,7 +15,7 @@ import { useLocation } from "wouter";
 import ProjectCard from "@/components/ProjectCard";
 import CreateProjectDialog from "@/components/CreateProjectDialog";
 import UserProfile from "@/components/UserProfile";
-import ExtractlyLogo from "@/components/ExtractlyLogo";
+import ExtraplLogo from "@/components/ExtraplLogo";
 import WavePattern from "@/components/WavePattern";
 
 export default function Dashboard() {
@@ -162,7 +162,7 @@ export default function Dashboard() {
       <div className="bg-white border-b border-gray-200 shadow-sm flex-shrink-0 z-10">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
-            <ExtractlyLogo />
+            <ExtraplLogo />
             <div className="flex items-center space-x-4">
               {isPrimaryOrgAdmin && (
                 <DropdownMenu>

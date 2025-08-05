@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
 import { loginSchema } from "@shared/schema";
 import { z } from "zod";
-import ExtractlyLogo from "@/components/ExtractlyLogo";
+import ExtraplLogo from "@/components/ExtraplLogo";
 import WavePattern from "@/components/WavePattern";
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -45,7 +45,7 @@ export default function Login() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-6">
           <div className="flex justify-center">
-            <ExtractlyLogo />
+            <ExtraplLogo />
           </div>
           <div className="space-y-1">
             <div className="flex items-center justify-center space-x-2">
