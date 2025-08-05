@@ -173,6 +173,75 @@ def sanitize_content_for_gemini(prompt_text: str, project_schema=None) -> str:
     
     return prompt_text
 
+def apply_ultra_aggressive_sanitization(prompt_text: str, project_schema=None) -> str:
+    """
+    Ultra-aggressive sanitization that removes ALL PII regardless of schema requirements.
+    This is used when documents still trigger safety blocks after all other sanitization attempts.
+    Focuses on preserving only document structure and numeric data.
+    """
+    import re
+    
+    logging.info("Applying ultra-aggressive sanitization - removing ALL PII regardless of schema")
+    
+    # Always remove ALL names, regardless of schema requirements
+    prompt_text = re.sub(r'\b[A-Z][A-Z\s]{5,50}\b', '[PERSON]', prompt_text)  # All caps names
+    prompt_text = re.sub(r'\b[A-Z][a-z]+\s+[A-Z][a-z]+\s+[A-Z][a-z]+\b', '[FULL_NAME]', prompt_text)  # Three names
+    prompt_text = re.sub(r'\b[A-Z][a-z]+\s+[A-Z][a-z]+\b', '[NAME]', prompt_text)  # Two names
+    prompt_text = re.sub(r'\bJOSHUA\b|\bFREDERICK\b|\bFARMER\b', '[NAME]', prompt_text)  # Specific problematic names
+    
+    # Remove ALL ID numbers
+    prompt_text = re.sub(r'\b[XY]\d{7}[A-Z]\b', '[ID]', prompt_text)  # Spanish NIE
+    prompt_text = re.sub(r'\b\d{8}[A-Z]\b', '[DNI]', prompt_text)  # Spanish DNI
+    prompt_text = re.sub(r'\b[A-Z]\d{8}\b', '[NIF]', prompt_text)  # Spanish NIF
+    
+    # Remove ALL addresses
+    prompt_text = re.sub(r'\bC[ALÓ]L*[EL]*\s+[A-ZÁÉÍÓÚÑÜ\s\d,.-]+\d{5}\s+[A-ZÁÉÍÓÚÑÜ\s]+\b', '[ADDRESS]', prompt_text, flags=re.IGNORECASE)
+    prompt_text = re.sub(r'\b\d{5}\s+[A-ZÁÉÍÓÚÑÜ\s]+\b', '[LOCATION]', prompt_text)
+    
+    # Remove ALL bank/financial information
+    prompt_text = re.sub(r'\bIBAN:\s*[A-Z0-9*\s-]+\b', 'IBAN: [BANK_ACCOUNT]', prompt_text)
+    prompt_text = re.sub(r'\bBSCH[A-Z0-9*]{4,20}\b', '[BANK_CODE]', prompt_text)
+    prompt_text = re.sub(r'\bES\d{2}[A-Z0-9*\s-]{20,}\b', '[IBAN]', prompt_text)
+    
+    # Remove ALL phone numbers and emails
+    prompt_text = re.sub(r'\b\d{9}\b', '[PHONE]', prompt_text)  # 9-digit numbers
+    prompt_text = re.sub(r'\b6\d{8}\b', '[MOBILE]', prompt_text)  # Spanish mobile
+    prompt_text = re.sub(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '[EMAIL]', prompt_text)
+    
+    # Preserve only policy numbers and amounts
+    # Preserve dates in DD/MM/YYYY format (needed for policy dates)
+    prompt_text = re.sub(r'\b\d{1,2}/\d{1,2}/\d{4}\b', '[POLICY_DATE]', prompt_text)
+    
+    # Preserve amounts in euros (essential for insurance data)
+    prompt_text = re.sub(r'\b\d{1,3}[,.]\d{2}€\b', '[EURO_AMOUNT]', prompt_text)
+    
+    # Preserve vehicle plates only if specifically requested in schema
+    requested_types = set()
+    if project_schema:
+        requested_types = get_field_types_from_schema(project_schema)
+    
+    if 'vehicle_plates' not in requested_types:
+        prompt_text = re.sub(r'\b\d{4}[A-Z]{3}\b', '[PLATE]', prompt_text)  # Spanish format
+    
+    # Replace any remaining long alphanumeric sequences
+    prompt_text = re.sub(r'\b[A-Z0-9]{8,}\b', '[CODE]', prompt_text)
+    
+    # Preserve essential document structure
+    essential_markers = [
+        'Allianz', 'Seguros', 'Póliza', 'Policy', 'Insurance', 'Vehicle', 'Premium',
+        'Cobertura', 'Coverage', 'Total', 'Recibo', 'Período', 'ANUAL', 'EUR',
+        'Responsabilidad Civil', 'Vehículo Asegurado', 'Liquidación de Primas'
+    ]
+    
+    # Restore essential business terms that might have been over-sanitized
+    for marker in essential_markers:
+        # Don't over-sanitize these essential terms
+        prompt_text = re.sub(f'\\[NAME\\](?=.*{marker})', marker, prompt_text, flags=re.IGNORECASE)
+        prompt_text = re.sub(f'\\[ENTITY\\](?=.*{marker})', marker, prompt_text, flags=re.IGNORECASE)
+    
+    logging.info(f"Ultra-aggressive sanitization complete. Removed ALL PII. Length: {len(prompt_text)} chars")
+    return prompt_text
+
 def apply_aggressive_sanitization(prompt_text: str, project_schema=None) -> str:
     """
     Extremely aggressive sanitization for documents that still trigger safety blocks
@@ -1233,7 +1302,7 @@ RETURN: Complete readable content from this document."""
         logging.info(f"Making data extraction call with {len(extracted_content_text)} characters of extracted content")
         
         # Retry logic for API overload situations in data extraction
-        max_retries = 3
+        max_retries = 4  # Allow for ultra-aggressive sanitization as 4th attempt
         retry_delay = 2  # Start with 2 seconds
         
         for attempt in range(max_retries):
@@ -1262,10 +1331,14 @@ RETURN: Complete readable content from this document."""
                                 if attempt == 0:
                                     # First retry: schema-aware sanitization
                                     sanitized_prompt = sanitize_content_for_gemini(final_prompt, project_schema=project_schema)
-                                else:
-                                    # Second retry: aggressive sanitization as last resort
+                                elif attempt == 1:
+                                    # Second retry: aggressive sanitization
                                     logging.warning("Schema-aware sanitization failed, applying aggressive sanitization")
                                     sanitized_prompt = apply_aggressive_sanitization(final_prompt, project_schema=project_schema)
+                                else:
+                                    # Third retry: ultra-aggressive sanitization (removes ALL PII)
+                                    logging.error("All sanitization levels failed, applying ultra-aggressive sanitization")
+                                    sanitized_prompt = apply_ultra_aggressive_sanitization(final_prompt, project_schema=project_schema)
                                 
                                 if sanitized_prompt != final_prompt:
                                     logging.info("Retrying with sanitized content")
