@@ -384,13 +384,15 @@ def perform_batch_continuation(
     try:
         import google.generativeai as genai
         
-        if not os.getenv('GOOGLE_API_KEY'):
+        # Check for API key in multiple possible environment variables
+        api_key = os.getenv('GOOGLE_GENAI_API_KEY') or os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
+        if not api_key:
             return ExtractionResult(
                 success=False,
-                error_message="GOOGLE_API_KEY environment variable not set"
+                error_message="No Gemini API key found. Please set GOOGLE_GENAI_API_KEY, GEMINI_API_KEY, or GOOGLE_API_KEY environment variable"
             )
         
-        genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
+        genai.configure(api_key=api_key)
         
         # Generate continuation prompt
         continuation_prompt = generate_continuation_prompt("", previous_validations or [], project_schema)
