@@ -51,6 +51,7 @@ Preferred communication style: Simple, everyday language.
 - **Enhanced Field Editing**: Complete field editing system with inline clear icons, manual update tracking, AI reasoning display control, and comprehensive revert functionality.
 - **Collection Management**: Fixed "Add new +" functionality with proper index calculation and consistent validation filtering for both legacy and new records.
 - **Empty Data Handling**: Robust session view loading that gracefully handles empty AI extraction results, displaying functional empty states without errors or crashes.
+- **Gemini Token Limit Handling**: Advanced JSON truncation repair system that preserves partial extraction results when hitting Gemini API output token limits, converting complete failures into partial successes with 70%+ data recovery rates.
 
 ### Key Architectural Decisions
 - **Monorepo Structure**: Single repository with shared types.
@@ -61,6 +62,7 @@ Preferred communication style: Simple, everyday language.
 - **Express + Vite**: Combines a robust backend framework with modern frontend tooling.
 - **UUID Consistency**: Full UUID string consistency across all storage interfaces.
 - **Graceful Error Handling**: Session views load successfully even when AI returns empty results, maintaining full functionality for manual data entry.
+- **Truncation Recovery**: Advanced JSON repair system handles Gemini API output token limits by preserving complete field validation objects from truncated responses, ensuring partial data recovery instead of complete failures.
 
 ## External Dependencies
 

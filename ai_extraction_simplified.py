@@ -35,60 +35,106 @@ def repair_truncated_json(response_text: str) -> str:
     try:
         logging.info(f"Attempting to repair JSON response of length {len(response_text)}")
         
-        # Check if response starts with field_validations structure or contains it
+        # Find the start of the JSON structure - it might not be at the beginning
         response_stripped = response_text.strip()
-        if not (response_stripped.startswith('{"field_validations":') or '{"field_validations":' in response_stripped):
-            logging.warning("Response doesn't contain expected field_validations structure")
-            # Try to find the start of field_validations
-            field_val_start = response_stripped.find('{"field_validations":')
-            if field_val_start > 0:
-                logging.info(f"Found field_validations structure at position {field_val_start}")
-                response_text = response_stripped[field_val_start:]
-            else:
-                return None
         
-        # Find all complete field validation objects by parsing line by line
+        # Look for field_validations JSON structure with flexible formatting
+        json_start = response_stripped.find('{"field_validations":')
+        if json_start == -1:
+            json_start = response_stripped.find('{\n  "field_validations":')
+        if json_start == -1:
+            json_start = response_stripped.find('{ "field_validations":')
+        
+        if json_start == -1:
+            logging.warning("Could not find field_validations structure in response")
+            return None
+        
+        # Extract just the JSON portion starting from field_validations
+        json_portion = response_stripped[json_start:]
+        logging.info(f"Found JSON starting at position {json_start}, JSON portion length: {len(json_portion)}")
+        
+        # Use the JSON portion for processing
+        response_text = json_portion
+        
+        # Use a more robust approach to extract complete field validation objects
         import re
         
-        lines = response_text.split('\n')
+        # Find all field validation objects using regex patterns
         field_validations = []
-        current_object_lines = []
-        brace_count = 0
-        inside_validation = False
         
-        for line_num, line in enumerate(lines):
-            # Check if this line starts a new field validation object
-            if '"field_id"' in line and brace_count == 0:
-                # Start of a new field validation object
-                current_object_lines = [line]
-                inside_validation = True
-                brace_count += line.count('{') - line.count('}')
-            elif inside_validation:
-                current_object_lines.append(line)
-                brace_count += line.count('{') - line.count('}')
+        # Pattern to match complete field validation objects
+        # This looks for objects that start with field_id and end with a closing brace
+        pattern = r'\{\s*"field_id"[^}]*(?:"[^"]*":[^,}]*[,}])*[^}]*\}'
+        
+        # Find all matches
+        matches = re.findall(pattern, response_text, re.DOTALL)
+        
+        for match in matches:
+            try:
+                # Clean up the match
+                clean_match = match.strip()
+                if clean_match.endswith(','):
+                    clean_match = clean_match[:-1]
                 
-                # Check if we've completed this object (brace_count back to 0)
-                if brace_count == 0 and (line.strip().endswith('}') or line.strip().endswith('},')):
-                    # We have a complete field validation object
-                    complete_object = '\n'.join(current_object_lines)
-                    try:
-                        # Try to parse this individual object to ensure it's valid
-                        obj_json = complete_object.strip()
-                        if obj_json.endswith(','):
-                            obj_json = obj_json[:-1]  # Remove trailing comma
-                        
-                        # Wrap in a test structure to validate
-                        test_json = '{"test": ' + obj_json + '}'
-                        json.loads(test_json)
-                        field_validations.append(complete_object.strip())
-                        logging.info(f"Found complete field validation object #{len(field_validations)}")
-                    except json.JSONDecodeError as e:
-                        logging.warning(f"Skipping invalid field validation object: {str(e)[:100]}...")
+                # Test if it's valid JSON
+                test_json = '{"test": ' + clean_match + '}'
+                json.loads(test_json)
+                field_validations.append(clean_match)
+                logging.info(f"Found complete field validation object #{len(field_validations)}")
+            except json.JSONDecodeError:
+                continue
+        
+        # If regex approach didn't work well, try a simpler character-based approach
+        if len(field_validations) == 0:
+            logging.info("Regex approach found no objects, trying character-based parsing...")
+            
+            # Find the start of field_validations array
+            array_start = response_text.find('"field_validations": [')
+            if array_start == -1:
+                array_start = response_text.find('"field_validations":[')
+            
+            if array_start != -1:
+                # Start parsing from after the opening bracket
+                content = response_text[array_start:]
+                bracket_pos = content.find('[')
+                if bracket_pos != -1:
+                    content = content[bracket_pos + 1:]
                     
-                    # Reset for next object
-                    current_object_lines = []
-                    inside_validation = False
-                    brace_count = 0
+                    # Parse objects one by one using brace counting
+                    i = 0
+                    while i < len(content):
+                        # Skip whitespace
+                        while i < len(content) and content[i].isspace():
+                            i += 1
+                        
+                        if i >= len(content) or content[i] == ']':
+                            break
+                            
+                        # Start of an object
+                        if content[i] == '{':
+                            obj_start = i
+                            brace_count = 0
+                            
+                            # Find the end of this object
+                            while i < len(content):
+                                if content[i] == '{':
+                                    brace_count += 1
+                                elif content[i] == '}':
+                                    brace_count -= 1
+                                    if brace_count == 0:
+                                        # Found complete object
+                                        obj_text = content[obj_start:i+1]
+                                        try:
+                                            # Test if it's valid and contains field_id
+                                            if '"field_id"' in obj_text:
+                                                json.loads(obj_text)
+                                                field_validations.append(obj_text)
+                                                logging.info(f"Found complete field validation object #{len(field_validations)}")
+                                        except json.JSONDecodeError:
+                                            pass
+                                        break
+                                i += 1
+                        i += 1
         
         if field_validations:
             # Build a proper JSON structure with all complete field validations
