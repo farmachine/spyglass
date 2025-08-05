@@ -24,6 +24,10 @@ class ExtractionResult:
     ai_response: Optional[str] = None
     input_token_count: Optional[int] = None
     output_token_count: Optional[int] = None
+    is_partial: bool = False
+    total_expected_fields: Optional[int] = None
+    extracted_field_count: Optional[int] = None
+    completion_percentage: Optional[float] = None
 
 # ValidationResult dataclass removed - validation now occurs only during extraction
 
