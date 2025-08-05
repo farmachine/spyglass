@@ -13,7 +13,7 @@ def test_session_truncation():
     Test truncation detection with data similar to session 18f9d838-d33f-4017-a75c-f8d010b43ba5
     """
     
-    # Simulate the project schema (124 items, 3 properties each expected)
+    # Simulate the project schema (185 items, 2 properties each expected)
     project_schema = {
         "schema_fields": [
             {"fieldName": "Main Field", "fieldType": "TEXT", "id": "main-field-id"}
@@ -23,16 +23,15 @@ def test_session_truncation():
                 "collectionName": "Data Fields",
                 "properties": [
                     {"fieldName": "Field Name", "fieldType": "TEXT", "id": "field-name-id"},
-                    {"fieldName": "Field Type", "fieldType": "TEXT", "id": "field-type-id"},
-                    {"fieldName": "Field Description", "fieldType": "TEXT", "id": "field-desc-id"}
+                    {"fieldName": "Field Type", "fieldType": "TEXT", "id": "field-type-id"}
                 ]
             }
         ]
     }
     
     # Simulate response with 249 validations (missing 122)
-    # Should have: 1 schema + (124 items × 3 properties) = 373 total
-    # Actually got: 1 schema + (124 items × 2 properties) = 249 total  
+    # Should have: 1 schema + (185 items × 2 properties) = 371 total
+    # Actually got: 1 schema + (124 items × 2 properties) = 249 total (61 fewer items than expected)  
     
     field_validations = []
     
@@ -46,7 +45,7 @@ def test_session_truncation():
     })
     
     # Add 248 collection validations (124 items × 2 properties each)
-    # This simulates the truncation - missing the 3rd property for each item
+    # This simulates the truncation - missing 61 complete items (from item 124 to 184)
     for i in range(124):
         # Field Name property
         field_validations.append({
@@ -70,7 +69,7 @@ def test_session_truncation():
             "extracted_value": "TEXT"
         })
         
-        # Missing: Field Description property (this is the truncation)
+        # Missing: Items 124-184 (61 complete items missing due to truncation)
     
     # Create simulated AI response
     response_data = {
@@ -78,14 +77,14 @@ def test_session_truncation():
     }
     
     response_text = json.dumps(response_data, indent=2)
-    expected_field_count = 1 + (3 * 124)  # Schema + collection properties
+    expected_field_count = 1 + (2 * 185)  # Schema + collection properties
     
     print(f"Testing truncation detection:")
     print(f"- Total validations in response: {len(field_validations)}")
     print(f"- Expected validations: {expected_field_count}") 
-    print(f"- Collection items: 124")
-    print(f"- Properties per item found: 2")
-    print(f"- Properties per item expected: 3")
+    print(f"- Collection items found: 124")
+    print(f"- Collection items expected: 185")
+    print(f"- Properties per item: 2")
     print()
     
     # Test the enhanced detection
@@ -94,7 +93,7 @@ def test_session_truncation():
     print(f"Truncation detected: {is_truncated}")
     
     if is_truncated:
-        print("✅ SUCCESS: Enhanced detection correctly identified the missing Field Description properties")
+        print("✅ SUCCESS: Enhanced detection correctly identified the missing collection items (124-184)")
     else:
         print("❌ FAILED: Detection missed the truncation")
     
