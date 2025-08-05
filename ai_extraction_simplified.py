@@ -39,15 +39,45 @@ def sanitize_content_for_gemini(prompt_text: str) -> str:
     prompt_text = re.sub(r'\b\d{3}-\d{2}-\d{4}\b', '[SSN]', prompt_text)
     prompt_text = re.sub(r'\b\d{9}\b', '[ID_NUMBER]', prompt_text)
     
+    # Spanish NIE numbers (e.g., Y9799103J, X1234567L)
+    prompt_text = re.sub(r'\b[XYZ]\d{7}[A-Z]\b', '[NIE]', prompt_text)
+    
+    # Spanish NIF numbers (e.g., 12345678Z)
+    prompt_text = re.sub(r'\b\d{8}[A-Z]\b', '[NIF]', prompt_text)
+    
     # Credit card numbers
     prompt_text = re.sub(r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b', '[CARD_NUMBER]', prompt_text)
     
-    # Phone numbers with various formats
+    # IBAN patterns (Spanish and international)
+    prompt_text = re.sub(r'\b[A-Z]{2}\d{2}[A-Z0-9]{4}\d{7}[A-Z0-9*]{10,}\b', '[IBAN]', prompt_text)
+    prompt_text = re.sub(r'\bES\d{2}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b', '[IBAN]', prompt_text)
+    
+    # Phone numbers with various formats (including Spanish mobile)
     prompt_text = re.sub(r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b', '[PHONE]', prompt_text)
     prompt_text = re.sub(r'\(\d{3}\)\s?\d{3}[-.]?\d{4}', '[PHONE]', prompt_text)
+    prompt_text = re.sub(r'\b\d{3}\s?\d{6}\b', '[PHONE]', prompt_text)  # Spanish format
+    prompt_text = re.sub(r'\b6\d{8}\b', '[MOBILE]', prompt_text)  # Spanish mobile
     
     # Email addresses
     prompt_text = re.sub(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '[EMAIL]', prompt_text)
+    
+    # Personal names (common patterns)
+    prompt_text = re.sub(r'\b[A-Z][a-z]+\s+[A-Z][a-z]+\s+[A-Z][a-z]+\b', '[FULL_NAME]', prompt_text)  # Three names
+    prompt_text = re.sub(r'\b[A-Z][A-Z\s]{10,50}\b', '[NAME]', prompt_text)  # All caps names
+    
+    # Vehicle registration plates (European format)
+    prompt_text = re.sub(r'\b\d{4}[A-Z]{3}\b', '[PLATE]', prompt_text)  # Spanish format like 9131KXV
+    prompt_text = re.sub(r'\b[A-Z]{1,3}\d{1,4}[A-Z]{1,3}\b', '[PLATE]', prompt_text)  # General European
+    
+    # Enhanced IBAN patterns (more comprehensive)
+    prompt_text = re.sub(r'\bBSCH[A-Z0-9*]{4,20}\b', '[IBAN_CODE]', prompt_text)  # Bank codes
+    prompt_text = re.sub(r'\bES\d{2}[A-Z0-9*\s-]{20,}\b', '[IBAN_FULL]', prompt_text)  # Spanish IBAN
+    
+    # Addresses (Spanish street patterns)
+    prompt_text = re.sub(r'\bC[ALÓ]L*[EL]*\s+[A-ZÁÉÍÓÚÑÜ\s\d,.-]+\d{5}\s+[A-ZÁÉÍÓÚÑÜ\s]+\b', '[ADDRESS]', prompt_text, flags=re.IGNORECASE)
+    
+    # Policy/account numbers (long numeric sequences)
+    prompt_text = re.sub(r'\b\d{9,12}\b', '[POLICY_NUMBER]', prompt_text)
     
     # Remove excessive repeated characters that might trigger safety filters
     prompt_text = re.sub(r'(.)\1{10,}', r'\1\1\1', prompt_text)
