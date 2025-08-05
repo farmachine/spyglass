@@ -117,7 +117,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
   // Initialize collapsed collections when session data loads
   useEffect(() => {
     if (session?.fieldValidations) {
-      const collectionValidations = session.fieldValidations.filter(v => v.fieldType === 'collection_property');
+      const collectionValidations = session.fieldValidations.filter(v => v.validationType === 'collection_property');
       const collectionGroups = collectionValidations.reduce((acc, validation) => {
         const collectionName = validation.collectionName || 'Unknown Collection';
         if (!acc[collectionName]) acc[collectionName] = [];
@@ -321,8 +321,8 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
         />
       </div>
 
-      {/* Batch Debug Panel */}
-      {(batchData?.totalBatches > 1 || showBatchDebug) && (
+      {/* Batch Debug Panel - Show for sessions with many validations or when debug enabled */}
+      {((batchData?.totalBatches && batchData.totalBatches > 1) || showBatchDebug || allValidations.length > 100) && (
         <Card className="border-blue-200 bg-blue-50">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -340,7 +340,14 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
             <CardContent>
               <div className="space-y-3">
                 <div className="text-sm text-gray-600">
-                  Total validations: {allValidations.length} | Total batches: {batchData?.totalBatches || 1}
+                  <div>Total validations: {allValidations.length} | Total batches: {batchData?.totalBatches || 1}</div>
+                  <div>Currently showing: {validations.length} validations</div>
+                  {batchData?.totalBatches === 1 && (
+                    <div className="text-green-600 font-medium">✓ No truncation detected - all data processed in single batch</div>
+                  )}
+                  {batchData && batchData.totalBatches > 1 && (
+                    <div className="text-orange-600 font-medium">⚠ Multiple batches due to AI response truncation</div>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button
