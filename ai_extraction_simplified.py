@@ -29,12 +29,32 @@ class ExtractionResult:
 
 def detect_truncation(response_text: str, expected_field_count: int = None, project_schema: Dict[str, Any] = None) -> bool:
     """
-    Enhanced truncation detection with smarter collection analysis
+    Enhanced truncation detection prioritizing AI response analysis
     """
+    # PRIMARY: Analyze the actual AI response structure
+    
     # Heuristic 1: Check if response ends with incomplete JSON structure
-    if not response_text.strip().endswith('}'):
+    stripped_response = response_text.strip()
+    if not stripped_response.endswith('}'):
         logging.info("TRUNCATION: Response doesn't end with }")
         return True
+    
+    # Heuristic 1.1: Check for abrupt ending patterns that indicate incomplete JSON
+    response_tail = stripped_response[-50:]  # Check only the very end
+    
+    # Look for signs of incomplete final object or array
+    incomplete_patterns = [
+        '"field_id"',      # Started a field but not completed 
+        '"validation_type"', # Property name without closing
+        ',"',              # Comma without following content
+        ':{',              # Object started but not closed
+    ]
+    
+    # Only flag as truncated if the response ends abruptly with these patterns
+    for pattern in incomplete_patterns:
+        if response_tail.endswith(pattern) or response_tail.endswith(pattern + '"'):
+            logging.info(f"TRUNCATION: Response ends abruptly with pattern: '{pattern}'")
+            return True
     
     # Heuristic 2: Check for incomplete field validation objects
     try:
@@ -48,9 +68,8 @@ def detect_truncation(response_text: str, expected_field_count: int = None, proj
                 logging.info(f"TRUNCATION: Incomplete validation found: {validation}")
                 return True
         
-        # Enhanced Heuristic 3: Smart collection analysis
+        # SECONDARY: Enhanced collection analysis (AI response structure analysis)
         if project_schema:
-            # Analyze collection completeness
             collections = project_schema.get('collections', [])
             for collection in collections:
                 collection_name = collection.get('collectionName', collection.get('objectName', ''))
@@ -59,20 +78,23 @@ def detect_truncation(response_text: str, expected_field_count: int = None, proj
                 if not properties:
                     continue
                 
-                # Count validations for this collection
-                collection_validations = [v for v in field_validations 
-                                        if v.get('collection_name') == collection_name]
+                # Find all collection validations using multiple matching strategies
+                collection_validations = []
+                for v in field_validations:
+                    if (v.get('collection_name') == collection_name or
+                        v.get('field_name', '').startswith(f"{collection_name}.") or
+                        v.get('validation_type') == 'collection_property'):
+                        collection_validations.append(v)
                 
                 if collection_validations:
-                    # Calculate expected items based on actual data
                     properties_per_item = len(properties)
                     total_collection_validations = len(collection_validations)
                     calculated_items = total_collection_validations / properties_per_item
                     
-                    # Check if we have complete sets (no partial items)
+                    # Primary check: incomplete items (fractional items indicate truncation)
                     if calculated_items != int(calculated_items):
                         logging.info(f"TRUNCATION: Incomplete collection items detected. Collection: {collection_name}, "
-                                   f"Expected properties per item: {properties_per_item}, "
+                                   f"Properties per item: {properties_per_item}, "
                                    f"Total validations: {total_collection_validations}, "
                                    f"Calculated items: {calculated_items}")
                         return True
@@ -98,12 +120,11 @@ def detect_truncation(response_text: str, expected_field_count: int = None, proj
                                                f"has {len(item_validations)} properties, expected {properties_per_item}")
                                     return True
         
-        # Fallback: Original expected count check (but only if realistic)
+        # TERTIARY: Expected count check (final fallback only if response structure looks complete)
         if expected_field_count and expected_field_count > 10:  # Only use if reasonable estimate
-            # Use 90% threshold for better detection of partial truncation
             threshold = expected_field_count * 0.9
             if len(field_validations) < threshold:
-                logging.info(f"TRUNCATION: Field count check failed. Found: {len(field_validations)}, "
+                logging.info(f"TRUNCATION: Field count suggests truncation. Found: {len(field_validations)}, "
                            f"Expected: {expected_field_count}, Threshold: {threshold}")
                 return True
             
