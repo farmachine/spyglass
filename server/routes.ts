@@ -1626,15 +1626,81 @@ except Exception as e:
       const sessionId = req.params.sessionId;
       const { files, project_data } = req.body;
       
-      const projectId = project_data?.projectId || project_data?.id;
       console.log(`STEP 1 EXTRACT: Starting extraction for session ${sessionId}`);
       
-      // Convert frontend file format to Python script expected format
-      const convertedFiles = (files || []).map((file: any) => ({
-        file_name: file.name,
-        file_content: file.content, // This is the data URL from FileReader
-        mime_type: file.type
-      }));
+      // Get session data to retrieve project ID and any existing extracted content
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      
+      const projectId = project_data?.projectId || project_data?.id || session.projectId;
+      console.log(`STEP 1 EXTRACT: Project ID: ${projectId}`);
+      
+      let convertedFiles = [];
+      
+      // If no files provided in request, try to get from session's existing extracted content
+      if (!files || files.length === 0) {
+        console.log(`STEP 1 EXTRACT: No files in request, checking session for existing extracted content`);
+        try {
+          if (session.extractedData) {
+            const sessionData = JSON.parse(session.extractedData);
+            const extractedTexts = sessionData.extracted_texts || [];
+            
+            console.log(`STEP 1 EXTRACT: Found ${extractedTexts.length} extracted texts in session`);
+            
+            // Convert extracted texts to the format expected by the Python script
+            convertedFiles = extractedTexts.map((text: any) => ({
+              file_name: text.file_name,
+              file_content: text.text_content, // Already extracted text content
+              mime_type: 'text/plain' // Mark as pre-extracted text
+            }));
+            
+            if (convertedFiles.length > 0) {
+              const totalChars = convertedFiles.reduce((sum, file) => sum + (file.file_content?.length || 0), 0);
+              console.log(`STEP 1 EXTRACT: Using ${convertedFiles.length} existing extracted documents (${totalChars} total characters)`);
+            }
+          }
+        } catch (error) {
+          console.log(`STEP 1 EXTRACT: Could not parse session extracted data: ${error.message}`);
+        }
+      } else {
+        // Convert frontend file format to Python script expected format
+        convertedFiles = files.map((file: any) => ({
+          file_name: file.name,
+          file_content: file.content, // This is the data URL from FileReader
+          mime_type: file.type
+        }));
+        console.log(`STEP 1 EXTRACT: Using ${convertedFiles.length} files from request`);
+      }
+      
+      if (convertedFiles.length === 0) {
+        return res.status(400).json({ 
+          message: "No documents to extract from. Please upload documents first." 
+        });
+      }
+
+      // Get project schema data
+      let projectSchemaData = project_data;
+      if (!projectSchemaData && projectId) {
+        console.log(`STEP 1 EXTRACT: Fetching project schema for project ${projectId}`);
+        try {
+          // Get schema fields and collections from storage
+          const schemaFields = await storage.getProjectSchemaFields(projectId);
+          const collections = await storage.getObjectCollections(projectId);
+          
+          projectSchemaData = {
+            projectId: projectId,
+            schemaFields: schemaFields,
+            collections: collections
+          };
+          
+          console.log(`STEP 1 EXTRACT: Retrieved schema: ${schemaFields.length} fields, ${collections.length} collections`);
+        } catch (error) {
+          console.log(`STEP 1 EXTRACT: Could not get project schema: ${error.message}`);
+          projectSchemaData = { projectId: projectId, schemaFields: [], collections: [] };
+        }
+      }
 
       // Get extraction rules for better AI guidance
       const extractionRules = projectId ? await storage.getExtractionRules(projectId) : [];
@@ -1648,15 +1714,26 @@ except Exception as e:
         session_id: sessionId,
         files: convertedFiles,
         project_schema: {
-          schema_fields: project_data?.schemaFields || [],
-          collections: project_data?.collections || []
+          schema_fields: projectSchemaData?.schemaFields || [],
+          collections: projectSchemaData?.collections || []
         },
         extraction_rules: extractionRules,
         knowledge_documents: knowledgeDocuments,
-        session_name: project_data?.mainObjectName || "contract"
+        session_name: projectSchemaData?.mainObjectName || session.sessionName || "contract"
       };
       
-      console.log(`STEP 1: Extracting from ${files?.length || 0} documents with ${extractionRules.length} extraction rules`);
+      console.log(`STEP 1: Extracting from ${convertedFiles.length} documents with ${extractionRules.length} extraction rules`);
+      
+      // Calculate expected validations for chunking decision
+      const expectedValidations = (projectSchemaData?.schemaFields?.length || 0) + 
+        (projectSchemaData?.collections || []).reduce((sum, col) => sum + (col.properties?.length || 0) * 50, 0);
+      
+      console.log(`STEP 1: Expected validations: ${expectedValidations} (chunking threshold: 100)`);
+      if (expectedValidations > 100) {
+        console.log(`STEP 1: Will use CHUNKED EXTRACTION due to high validation count`);
+      } else {
+        console.log(`STEP 1: Will use single-pass extraction`);
+      }
       
       // Call Python extraction script
       const python = spawn('python3', ['ai_extraction_simplified.py']);
@@ -1699,7 +1776,7 @@ except Exception as e:
           });
           
           // Create field validation records from extracted data
-          await createFieldValidationRecords(sessionId, extractedData, project_data);
+          await createFieldValidationRecords(sessionId, extractedData, projectSchemaData);
           
           res.json({ 
             message: "STEP 1: Data extraction completed", 
