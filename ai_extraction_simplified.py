@@ -1403,14 +1403,47 @@ RETURN: Complete readable content from this document."""
             # Calculate expected field count for truncation detection
             expected_field_count = 0
             if project_schema:
-                expected_field_count += len(project_schema.get('schema_fields', []))
+                schema_fields_count = len(project_schema.get('schema_fields', []))
+                expected_field_count += schema_fields_count
+                logging.info(f"TRUNCATION CALCULATION: Found {schema_fields_count} schema fields")
+                
                 for collection in project_schema.get('collections', []):
-                    # Estimate 2 items per collection for truncation detection
-                    expected_field_count += len(collection.get('properties', [])) * 2
+                    collection_name = collection.get('collectionName', collection.get('objectName', ''))
+                    properties_count = len(collection.get('properties', []))
+                    logging.info(f"TRUNCATION CALCULATION: Collection '{collection_name}' has {properties_count} properties")
+                    
+                    if properties_count > 0:
+                        # Look for the highest record index in current validations to estimate total items
+                        # Try multiple matching strategies for collection validation detection
+                        collection_validations = []
+                        for v in field_validations:
+                            if (v.get('collection_name') == collection_name or
+                                v.get('field_name', '').startswith(f"{collection_name}.") or
+                                v.get('validation_type') == 'collection_property'):
+                                collection_validations.append(v)
+                        
+                        logging.info(f"TRUNCATION CALCULATION: Found {len(collection_validations)} validations for collection '{collection_name}'")
+                        
+                        if collection_validations:
+                            max_index = max((v.get('record_index', 0) for v in collection_validations), default=0)
+                            # Use a more reasonable buffer: 20% more items or minimum 10 items
+                            buffer = max(int(max_index * 0.2), 10)
+                            estimated_items = max_index + buffer
+                            logging.info(f"TRUNCATION CALCULATION: Max index {max_index}, buffer {buffer}, estimating {estimated_items} total items")
+                        else:
+                            estimated_items = 200  # Conservative estimate for large datasets
+                            logging.info(f"TRUNCATION CALCULATION: No collection validations found, using default estimate: {estimated_items}")
+                        
+                        collection_expected = properties_count * estimated_items
+                        expected_field_count += collection_expected
+                        logging.info(f"TRUNCATION CALCULATION: Collection contributes {collection_expected} validations ({properties_count} × {estimated_items})")
+                
+                logging.info(f"TRUNCATION CALCULATION: Total expected validations: {expected_field_count}")
             
             # Only proceed with batch continuation if truncation is actually detected
             is_truncated = detect_truncation(response_text, expected_field_count, project_schema)
             logging.info(f"TRUNCATION DETECTION: Found {len(field_validations)} validations, expected ~{expected_field_count}, truncated: {is_truncated}")
+            logging.info(f"TRUNCATION DETECTION: Threshold = {expected_field_count * 0.9 if expected_field_count else 'N/A'}, Percentage = {(len(field_validations)/expected_field_count*100) if expected_field_count else 'N/A'}%")
             
             if is_truncated and len(field_validations) > 0:
                 logging.info("BATCH_CONTINUATION: Truncation detected, attempting continuation extraction...")

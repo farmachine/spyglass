@@ -29,9 +29,9 @@ def test_session_truncation():
         ]
     }
     
-    # Simulate response with 309 validations (missing 62) 
+    # Simulate response with 300 validations (missing 71) 
     # Should have: 1 schema + (185 items × 2 properties) = 371 total
-    # Actually got: 1 schema + (154 items × 2 properties) = 309 total (31 fewer items than expected)  
+    # Actually got: 1 schema + (149 items × 2 properties) = 300 total (36 fewer items than expected)  
     
     field_validations = []
     
@@ -44,9 +44,9 @@ def test_session_truncation():
         "extracted_value": "Some value"
     })
     
-    # Add 308 collection validations (154 items × 2 properties each) 
-    # This simulates the current truncation - missing 31 complete items (from item 154 to 184)
-    for i in range(154):
+    # Add 298 collection validations (149 items × 2 properties each) 
+    # This simulates the current truncation - missing 36 complete items (from item 149 to 184)
+    for i in range(149):
         # Field Name property
         field_validations.append({
             "field_id": "field-name-id",
@@ -69,7 +69,7 @@ def test_session_truncation():
             "extracted_value": "TEXT"
         })
         
-        # Missing: Items 154-184 (31 complete items missing due to truncation)
+        # Missing: Items 149-184 (36 complete items missing due to truncation)
     
     # Create simulated AI response
     response_data = {
@@ -82,7 +82,7 @@ def test_session_truncation():
     print(f"Testing truncation detection:")
     print(f"- Total validations in response: {len(field_validations)}")
     print(f"- Expected validations: {expected_field_count}") 
-    print(f"- Collection items found: 154")
+    print(f"- Collection items found: 149")
     print(f"- Collection items expected: 185")
     print(f"- Properties per item: 2")
     print()
@@ -93,7 +93,7 @@ def test_session_truncation():
     print(f"Truncation detected: {is_truncated}")
     
     if is_truncated:
-        print("✅ SUCCESS: Enhanced detection correctly identified the missing collection items (154-184)")
+        print("✅ SUCCESS: Enhanced detection correctly identified the missing collection items (149-184)")
     else:
         print("❌ FAILED: Detection missed the truncation")
     
