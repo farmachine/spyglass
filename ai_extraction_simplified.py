@@ -1613,7 +1613,37 @@ RETURN: Complete readable content from this document."""
             logging.info(f"ENHANCED TRUNCATION DETECTION: Found {len(field_validations)} validations, expected ~{expected_field_count}")
             logging.info(f"TRUNCATION RESULT: {truncation_result}")
             
-            if is_truncated and len(field_validations) > 0:
+            # Handle empty AI response - create placeholder validation records for schema fields
+            if len(field_validations) == 0:
+                logging.info("EMPTY_RESPONSE_HANDLING: AI returned empty field_validations array - creating placeholder records")
+                
+                # Create placeholder validation records for schema fields only
+                schema_fields = project_schema.get('schema_fields', [])
+                placeholder_validations = []
+                
+                for field in schema_fields:
+                    placeholder_validation = {
+                        'field_id': field.get('id'),
+                        'field_name': field.get('fieldName') or field.get('field_name', ''),
+                        'field_type': 'schema_field',
+                        'validation_type': 'schema_field',
+                        'extracted_value': None,
+                        'original_extracted_value': None,
+                        'validation_status': 'pending',
+                        'confidence_score': 0,
+                        'ai_reasoning': None,
+                        'original_ai_reasoning': None,
+                        'batch_number': 1,  # Always assign batch 1 for empty responses
+                        'data_type': field.get('fieldType', 'TEXT'),
+                        'collection_name': None,
+                        'record_index': None
+                    }
+                    placeholder_validations.append(placeholder_validation)
+                
+                extracted_data['field_validations'] = placeholder_validations
+                logging.info(f"EMPTY_RESPONSE_HANDLING: Created {len(placeholder_validations)} placeholder validation records")
+                
+            elif is_truncated and len(field_validations) > 0:
                 logging.info(f"BATCH_CONTINUATION: Truncation detected via {truncation_result['detection_method']}")
                 logging.info(f"BATCH_CONTINUATION REASON: {truncation_result['reason']}")
                 logging.info(f"BATCH_CONTINUATION: Attempting continuation extraction for {truncation_result.get('missing_validations', 0)} missing validations...")
