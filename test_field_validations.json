@@ -1,0 +1,124 @@
+{
+  "field_validations": [
+    {
+      "field_id": "prop-field-type",
+      "validation_type": "collection_property",
+      "data_type": "TEXT",
+      "field_name": "Data Fields.Field Type[0]",
+      "collection_name": "Data Fields",
+      "extracted_value": "Date",
+      "confidence_score": 1.0,
+      "validation_status": "unverified",
+      "ai_reasoning": "Extracted from the 'Data Field Analysis' section in the 'data_fields_test.xlsx' document. This is the first data field listed.",
+      "record_index": 0
+    },
+    {
+      "field_id": "prop-field-name",
+      "validation_type": "collection_property",
+      "data_type": "TEXT",
+      "field_name": "Data Fields.Field Name[0]",
+      "collection_name": "Data Fields",
+      "extracted_value": "Date of Birth",
+      "confidence_score": 1.0,
+      "validation_status": "unverified",
+      "ai_reasoning": "Extracted from the 'Data Field Analysis' section in the 'data_fields_test.xlsx' document. This is the first data field listed.",
+      "record_index": 0
+    },
+    {
+      "field_id": "prop-field-type",
+      "validation_type": "collection_property",
+      "data_type": "TEXT",
+      "field_name": "Data Fields.Field Type[1]",
+      "collection_name": "Data Fields",
+      "extracted_value": "Number",
+      "confidence_score": 1.0,
+      "validation_status": "unverified",
+      "ai_reasoning": "Extracted from the 'Data Field Analysis' section in the 'data_fields_test.xlsx' document. This is the second data field listed.",
+      "record_index": 1
+    },
+    {
+      "field_id": "prop-field-name",
+      "validation_type": "collection_property",
+      "data_type": "TEXT",
+      "field_name": "Data Fields.Field Name[1]",
+      "collection_name": "Data Fields",
+      "extracted_value": "Pension Amount",
+      "confidence_score": 1.0,
+      "validation_status": "unverified",
+      "ai_reasoning": "Extracted from the 'Data Field Analysis' section in the 'data_fields_test.xlsx' document. This is the second data field listed.",
+      "record_index": 1
+    },
+    {
+      "field_id": "prop-field-type",
+      "validation_type": "collection_property",
+      "data_type": "TEXT",
+      "field_name": "Data Fields.Field Type[2]",
+      "collection_name": "Data Fields",
+      "extracted_value": "Text",
+      "confidence_score": 1.0,
+      "validation_status": "unverified",
+      "ai_reasoning": "Extracted from the 'Data Field Analysis' section in the 'data_fields_test.xlsx' document. This is the third data field listed.",
+      "record_index": 2
+    },
+    {
+      "field_id": "prop-field-name",
+      "validation_type": "collection_property",
+      "data_type": "TEXT",
+      "field_name": "Data Fields.Field Name[2]",
+      "collection_name": "Data Fields",
+      "extracted_value": "Member Status",
+      "confidence_score": 1.0,
+      "validation_status": "unverified",
+      "ai_reasoning": "Extracted from the 'Data Field Analysis' section in the 'data_fields_test.xlsx' document. This is the third data field listed.",
+      "record_index": 2
+    },
+    {
+      "field_id": "prop-field-type",
+      "validation_type": "collection_property",
+      "data_type": "TEXT",
+      "field_name": "Data Fields.Field Type[3]",
+      "collection_name": "Data Fields",
+      "extracted_value": "Text",
+      "confidence_score": 1.0,
+      "validation_status": "unverified",
+      "ai_reasoning": "Extracted from the 'Data Field Analysis' section in the 'data_fields_test.xlsx' document. This is the fourth data field listed.",
+      "record_index": 3
+    },
+    {
+      "field_id": "prop-field-name",
+      "validation_type": "collection_property",
+      "data_type": "TEXT",
+      "field_name": "Data Fields.Field Name[3]",
+      "collection_name": "Data Fields",
+      "extracted_value": "Scheme Name",
+      "confidence_score": 1.0,
+      "validation_status": "unverified",
+      "ai_reasoning": "Extracted from the 'Data Field Analysis' section in the 'data_fields_test.xlsx' document. This is the fourth data field listed.",
+      "record_index": 3
+    },
+    {
+      "field_id": "prop-field-type",
+      "validation_type": "collection_property",
+      "data_type": "TEXT",
+      "field_name": "Data Fields.Field Type[4]",
+      "collection_name": "Data Fields",
+      "extracted_value": "Date",
+      "confidence_score": 1.0,
+      "validation_status": "unverified",
+      "ai_reasoning": "Extracted from the 'Data Field Analysis' section in the 'data_fields_test.xlsx' document. This is the fifth data field listed.",
+      "record_index": 4
+    },
+    {
+      "field_id": "prop-field-name",
+      "validation_type": "collection_property",
+      "data_type": "TEXT",
+      "field_name": "Data Fields.Field Name[4]",
+      "collection_name": "Data Fields",
+      "extracted_value": "Joining Date",
+      "confidence_score": 1.0,
+      "validation_status": "unverified",
+      "ai_reasoning": "Extracted from the 'Data Field Analysis' section in the 'data_fields_test.xlsx' document. This is the fifth data field listed.",
+      "record_index": 4
+    }
+  ]
+}

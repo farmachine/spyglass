@@ -2819,124 +2819,220 @@ print(json.dumps(result))
 
   // Helper function to create field validation records from extracted data
   async function createFieldValidationRecords(sessionId: string, extractedData: any, project_data: any) {
-    const sessionObject = Object.values(extractedData)[0] as any; // Get the main object (e.g., "contract")
-    
-    console.log(`Creating field validation records for session ${sessionId}`);
-    console.log(`Session object keys:`, Object.keys(sessionObject));
-    
-    // Create records for schema fields
-    if (project_data?.schemaFields) {
-      for (const field of project_data.schemaFields) {
-        // Convert field name to match what AI extracted (camelCase)
-        const camelCaseFieldName = convertToCamelCase(field.fieldName);
-        let fieldValue = sessionObject[camelCaseFieldName];
-        
-        // Let AI handle ALL calculations - no programmatic logic
-        
-        console.log(`Creating validation record for schema field: ${field.fieldName} = ${fieldValue} (looking for ${camelCaseFieldName})`);
-        
-        // Determine validation status based on confidence score vs threshold
-        const confidenceScore = fieldValue ? 95 : 20;
-        const autoVerifyThreshold = field.autoVerificationConfidence || 80;
-        const shouldAutoVerify = confidenceScore >= autoVerifyThreshold;
-        const validationStatus = shouldAutoVerify ? 'verified' : 'unverified';
-        
-        console.log(`Schema field ${field.fieldName}: confidence ${confidenceScore}% vs threshold ${autoVerifyThreshold}% = ${validationStatus}`);
-        
-        await storage.createFieldValidation({
-          sessionId,
-          validationType: 'schema_field',
-          dataType: field.fieldType,
-          fieldId: field.id,
-          collectionName: null,
-          recordIndex: 0,
-          extractedValue: fieldValue !== undefined ? fieldValue?.toString() : null,
-          originalExtractedValue: fieldValue !== undefined ? fieldValue?.toString() : null,
-          originalConfidenceScore: fieldValue ? 95 : 20,
-          originalAiReasoning: fieldValue ? "Calculated from extracted data" : "Not found in document",
-          validationStatus: validationStatus,
-          aiReasoning: "Pending validation",
-          manuallyVerified: false,
-          confidenceScore: confidenceScore
-        });
-        
-        console.log(`Created validation record for schema field: ${field.fieldName} = ${fieldValue}`);
+    try {
+      console.log(`Creating field validation records for session ${sessionId}`);
+      
+      // Handle both old and new extraction formats
+      let sessionObject = {};
+      let fieldValidations = [];
+      
+      if (typeof extractedData === 'string') {
+        try {
+          const parsed = JSON.parse(extractedData);
+          sessionObject = parsed;
+          fieldValidations = parsed.field_validations || [];
+        } catch (error) {
+          console.log(`Could not parse extracted data as JSON: ${error.message}`);
+        }
+      } else if (extractedData && extractedData.extracted_data) {
+        sessionObject = extractedData.extracted_data;
+        fieldValidations = extractedData.field_validations || extractedData.extracted_data.field_validations || [];
+      } else if (extractedData) {
+        sessionObject = extractedData;
+        fieldValidations = extractedData.field_validations || [];
       }
-    }
-    
-    // Create records for collection properties
-    if (project_data?.collections) {
-      for (const collection of project_data.collections) {
-        const collectionName = collection.collectionName || collection.objectName;
-        // Try both original name and lowercase version
-        let collectionData = sessionObject[collectionName] || sessionObject[collectionName.toLowerCase()];
+      
+      // For old format compatibility
+      if (fieldValidations.length === 0 && Object.keys(sessionObject).length > 0) {
+        sessionObject = Object.values(sessionObject)[0] as any; // Get the main object (e.g., "contract")
+      }
+      
+      console.log(`Session object keys:`, Object.keys(sessionObject));
+      console.log(`Field validations found:`, fieldValidations.length);
+      
+      // If we have field validations (new format), use them directly
+      if (fieldValidations.length > 0) {
+        console.log(`Using new field validation format with ${fieldValidations.length} validations`);
         
-        console.log(`Looking for collection ${collectionName}, found:`, Array.isArray(collectionData) ? `${collectionData.length} items` : 'not found');
-        
-        if (Array.isArray(collectionData)) {
-          for (let index = 0; index < collectionData.length; index++) {
-            const item = collectionData[index];
+        for (const validation of fieldValidations) {
+          try {
+            // Map validation to storage format
+            const validationRecord = {
+              sessionId,
+              validationType: validation.validation_type || 'schema_field',
+              dataType: validation.data_type || 'TEXT',
+              fieldId: validation.field_id,
+              collectionName: validation.collection_name || null,
+              recordIndex: validation.record_index || 0,
+              extractedValue: validation.extracted_value,
+              originalExtractedValue: validation.extracted_value,
+              originalConfidenceScore: validation.confidence_score || 0,
+              originalAiReasoning: validation.ai_reasoning || "Extracted via AI",
+              validationStatus: validation.validation_status || 'unverified',
+              aiReasoning: validation.ai_reasoning || "Extracted via AI",
+              manuallyVerified: false,
+              confidenceScore: validation.confidence_score || 0
+            };
             
-            for (const property of collection.properties || []) {
-              // Try different property name variations to match AI extraction
-              let propertyValue = item[property.propertyName]; // Try exact match first
+            await storage.createFieldValidation(validationRecord);
+            
+            const fieldName = validation.field_name || 'Unknown';
+            const collectionInfo = validation.collection_name ? `[${validation.collection_name}]` : '[Schema]';
+            console.log(`Created validation: ${collectionInfo} ${fieldName} = ${validation.extracted_value}`);
+            
+          } catch (error) {
+            console.error(`Error creating field validation record:`, error);
+          }
+        }
+        
+        console.log(`Field validation record creation completed for session ${sessionId}`);
+        return;
+      }
+      
+      console.log(`Using legacy format processing for session ${sessionId}`);
+      
+      // Create records for schema fields
+      if (project_data?.schemaFields) {
+        for (const field of project_data.schemaFields) {
+          // Convert field name to match what AI extracted (camelCase)
+          const camelCaseFieldName = convertToCamelCase(field.fieldName);
+          let fieldValue = sessionObject[camelCaseFieldName];
+          
+          console.log(`Creating validation record for schema field: ${field.fieldName} = ${fieldValue} (looking for ${camelCaseFieldName})`);
+          
+          // Determine validation status based on confidence score vs threshold
+          const confidenceScore = fieldValue ? 95 : 20;
+          const autoVerifyThreshold = field.autoVerificationConfidence || 80;
+          const shouldAutoVerify = confidenceScore >= autoVerifyThreshold;
+          const validationStatus = shouldAutoVerify ? 'verified' : 'unverified';
+          
+          console.log(`Schema field ${field.fieldName}: confidence ${confidenceScore}% vs threshold ${autoVerifyThreshold}% = ${validationStatus}`);
+          
+          await storage.createFieldValidation({
+            sessionId,
+            validationType: 'schema_field',
+            dataType: field.fieldType,
+            fieldId: field.id,
+            collectionName: null,
+            recordIndex: 0,
+            extractedValue: fieldValue !== undefined ? fieldValue?.toString() : null,
+            originalExtractedValue: fieldValue !== undefined ? fieldValue?.toString() : null,
+            originalConfidenceScore: fieldValue ? 95 : 20,
+            originalAiReasoning: fieldValue ? "Calculated from extracted data" : "Not found in document",
+            validationStatus: validationStatus,
+            aiReasoning: "Pending validation",
+            manuallyVerified: false,
+            confidenceScore: confidenceScore
+          });
+          
+          console.log(`Created validation record for schema field: ${field.fieldName} = ${fieldValue}`);
+        }
+      }
+      
+      // Create records for collection properties (legacy format)
+      if (project_data?.collections) {
+        for (const collection of project_data.collections) {
+          const collectionName = collection.collectionName || collection.objectName;
+          let collectionData = sessionObject[collectionName] || sessionObject[collectionName.toLowerCase()];
+          
+          console.log(`Looking for collection ${collectionName}, found:`, Array.isArray(collectionData) ? `${collectionData.length} items` : 'not found');
+          
+          if (Array.isArray(collectionData)) {
+            for (let index = 0; index < collectionData.length; index++) {
+              const item = collectionData[index];
               
-              if (propertyValue === undefined) {
-                // Try camelCase version
-                const camelCaseProperty = convertToCamelCase(property.propertyName);
-                propertyValue = item[camelCaseProperty];
-              }
-              
-              if (propertyValue === undefined) {
-                // Try lowercase version
-                propertyValue = item[property.propertyName.toLowerCase()];
-              }
-              
-              if (propertyValue === undefined) {
-                // Try common AI field name mappings
-                const commonMappings = {
-                  'Name': 'partyName',
-                  'Address': 'address',
-                  'Company Name': 'companyName',
-                  'Party Name': 'partyName'
-                };
+              for (const property of collection.properties || []) {
+                let propertyValue = item[property.propertyName];
                 
-                if (commonMappings[property.propertyName]) {
-                  propertyValue = item[commonMappings[property.propertyName]];
+                if (propertyValue === undefined) {
+                  const camelCaseProperty = convertToCamelCase(property.propertyName);
+                  propertyValue = item[camelCaseProperty];
                 }
+                
+                await storage.createFieldValidation({
+                  sessionId,
+                  validationType: 'collection_property',
+                  dataType: property.propertyType,
+                  fieldId: property.id,
+                  collectionName,
+                  recordIndex: index,
+                  extractedValue: propertyValue !== undefined ? propertyValue : null,
+                  originalExtractedValue: propertyValue !== undefined ? propertyValue : null,
+                  originalConfidenceScore: propertyValue ? 95 : 20,
+                  originalAiReasoning: propertyValue ? "Extracted during AI processing" : "Not found in document",
+                  validationStatus: "unverified",
+                  aiReasoning: "Pending validation",
+                  manuallyVerified: false,
+                  confidenceScore: propertyValue ? 95 : 20
+                });
               }
-              
-              const fieldName = `${collectionName}.${property.propertyName}[${index}]`;
-              
-              console.log(`Mapping ${property.propertyName} for item ${index}: found value "${propertyValue}" (searched in:`, Object.keys(item), ')');
-              
-              await storage.createFieldValidation({
-                sessionId,
-                validationType: 'collection_property',
-                dataType: property.propertyType,
-                fieldId: property.id,
-                collectionName,
-                recordIndex: index,
-                extractedValue: propertyValue !== undefined ? propertyValue : null,
-                originalExtractedValue: propertyValue !== undefined ? propertyValue : null,
-                originalConfidenceScore: propertyValue ? 95 : 20,
-                originalAiReasoning: propertyValue ? "Extracted during AI processing" : "Not found in document",
-                validationStatus: "unverified",
-                aiReasoning: "Pending validation",
-                manuallyVerified: false,
-                confidenceScore: propertyValue ? 95 : 20 // Set proper initial confidence
-              });
-              
-              console.log(`Created validation record for collection property: ${fieldName} = ${propertyValue}`);
             }
           }
         }
       }
+      
+    } catch (error) {
+      console.error(`Error in createFieldValidationRecords: ${error.message}`);
     }
-    
-    console.log(`Field validation record creation completed for session ${sessionId}`);
   }
   
+  // Test endpoint for field validation save process
+  app.post("/api/test/field-validation-save", async (req, res) => {
+    try {
+      console.log('TEST: Field validation save process');
+      
+      const { field_validations } = req.body;
+      
+      if (!field_validations || !Array.isArray(field_validations)) {
+        return res.status(400).json({ message: "field_validations array is required" });
+      }
+      
+      console.log(`TEST: Processing ${field_validations.length} field validations`);
+      
+      // Create a test session
+      const testSessionId = `test-${Date.now()}`;
+      const testProjectId = 'a9d24db8-6d6c-4b1a-9a01-b5b9c83da6c9';
+      
+      // Get project schema
+      const schemaFields = await storage.getProjectSchemaFields(testProjectId);
+      const collections = await storage.getObjectCollections(testProjectId);
+      
+      const project_data = {
+        schemaFields,
+        collections
+      };
+      
+      // Test the new field validation save logic
+      await createFieldValidationRecords(testSessionId, { field_validations }, project_data);
+      
+      // Check what was saved
+      const savedValidations = await storage.getFieldValidations(testSessionId);
+      
+      console.log(`TEST: Saved ${savedValidations.length} field validations to database`);
+      
+      // Analyze what was saved
+      const collectionValidations = savedValidations.filter(v => v.collectionName === 'Data Fields');
+      
+      res.json({
+        success: true,
+        testSessionId,
+        totalValidations: savedValidations.length,
+        collectionValidations: collectionValidations.length,
+        sampleValidations: savedValidations.slice(0, 5).map(v => ({
+          fieldId: v.fieldId,
+          collectionName: v.collectionName,
+          extractedValue: v.extractedValue,
+          recordIndex: v.recordIndex,
+          confidenceScore: v.confidenceScore
+        }))
+      });
+      
+    } catch (error) {
+      console.error("Test field validation save error:", error);
+      res.status(500).json({ message: "Test failed", error: error.message });
+    }
+  });
+
   // Field Validations
   app.get("/api/sessions/:sessionId/validations", async (req, res) => {
     try {
