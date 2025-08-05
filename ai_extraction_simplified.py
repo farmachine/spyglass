@@ -27,268 +27,6 @@ class ExtractionResult:
 
 # ValidationResult dataclass removed - validation now occurs only during extraction
 
-def extract_data_with_chunking(
-    full_prompt: str, 
-    project_schema: Dict[str, Any], 
-    model, 
-    total_expected_validations: int
-) -> ExtractionResult:
-    """
-    Extract data using chunking approach when the response is expected to be large.
-    Splits the schema into smaller chunks and processes them separately.
-    """
-    try:
-        logging.info(f"Starting chunked extraction for {total_expected_validations} expected validations")
-        
-        # Strategy: Process schema fields first, then collections in chunks
-        all_field_validations = []
-        
-        # CHUNK 1: Process schema fields
-        if project_schema.get("schema_fields"):
-            schema_fields_chunk = {
-                "schema_fields": project_schema["schema_fields"],
-                "collections": []  # Empty for this chunk
-            }
-            
-            logging.info(f"Processing schema fields chunk ({len(project_schema['schema_fields'])} fields)")
-            chunk_result = process_schema_chunk(full_prompt, schema_fields_chunk, model, "schema_fields")
-            
-            if chunk_result.success and chunk_result.extracted_data:
-                validations = chunk_result.extracted_data.get("field_validations", [])
-                all_field_validations.extend(validations)
-                logging.info(f"Schema fields chunk successful: {len(validations)} validations extracted")
-            else:
-                logging.warning(f"Schema fields chunk failed: {chunk_result.error_message}")
-        
-        # CHUNK 2+: Process collections in smaller chunks
-        if project_schema.get("collections"):
-            collections = project_schema["collections"]
-            
-            # Process each collection separately to avoid overwhelming the response
-            for i, collection in enumerate(collections):
-                collection_chunk = {
-                    "schema_fields": [],  # Empty for collection chunks
-                    "collections": [collection]  # Single collection
-                }
-                
-                collection_name = collection.get('collectionName', f'Collection {i+1}')
-                properties_count = len(collection.get('properties', []))
-                logging.info(f"Processing collection chunk: {collection_name} ({properties_count} properties)")
-                
-                chunk_result = process_schema_chunk(full_prompt, collection_chunk, model, f"collection_{collection_name}")
-                
-                if chunk_result.success and chunk_result.extracted_data:
-                    validations = chunk_result.extracted_data.get("field_validations", [])
-                    all_field_validations.extend(validations)
-                    logging.info(f"Collection '{collection_name}' chunk successful: {len(validations)} validations extracted")
-                else:
-                    logging.warning(f"Collection '{collection_name}' chunk failed: {chunk_result.error_message}")
-        
-        # Combine all results
-        final_extracted_data = {"field_validations": all_field_validations}
-        
-        logging.info(f"Chunked extraction complete: {len(all_field_validations)} total validations extracted")
-        
-        return ExtractionResult(
-            success=True,
-            extracted_data=final_extracted_data,
-            extraction_prompt=full_prompt[:1000] + "...[chunked]",
-            ai_response=f"[CHUNKED RESPONSE: {len(all_field_validations)} validations]"
-        )
-        
-    except Exception as e:
-        logging.error(f"Chunked extraction error: {e}")
-        return ExtractionResult(
-            success=False,
-            error_message=f"Chunked extraction failed: {str(e)}"
-        )
-
-def process_schema_chunk(
-    base_prompt: str, 
-    chunk_schema: Dict[str, Any], 
-    model, 
-    chunk_name: str
-) -> ExtractionResult:
-    """
-    Process a single chunk of the schema (either schema fields or a collection).
-    """
-    try:
-        import google.generativeai as genai
-        
-        # Build a focused prompt for this chunk
-        chunk_prompt = build_chunk_prompt(base_prompt, chunk_schema, chunk_name)
-        
-        logging.info(f"Making API call for chunk: {chunk_name}")
-        
-        # Make API call with smaller expected response
-        response = model.generate_content(
-            chunk_prompt,
-            generation_config=genai.GenerationConfig(
-                max_output_tokens=32768,  # Smaller limit for chunks
-                temperature=0.1,
-                response_mime_type="application/json"
-            ),
-            request_options={"timeout": 120}
-        )
-        
-        if not response or not response.text:
-            return ExtractionResult(success=False, error_message=f"No response from AI for chunk {chunk_name}")
-        
-        # Parse the response
-        response_text = response.text.strip()
-        
-        # Remove markdown if present
-        if response_text.startswith("```json"):
-            response_text = response_text[7:]
-        if response_text.startswith("```"):
-            response_text = response_text[3:]
-        if response_text.endswith("```"):
-            response_text = response_text[:-3]
-        
-        response_text = response_text.strip()
-        
-        try:
-            extracted_data = json.loads(response_text)
-            return ExtractionResult(
-                success=True,
-                extracted_data=extracted_data,
-                extraction_prompt=chunk_prompt[:500] + "...",
-                ai_response=response_text[:1000] + "..." if len(response_text) > 1000 else response_text
-            )
-        except json.JSONDecodeError as e:
-            logging.error(f"JSON parsing failed for chunk {chunk_name}: {e}")
-            # Try repair for this chunk
-            repaired = repair_truncated_json(response_text)
-            if repaired:
-                try:
-                    extracted_data = json.loads(repaired)
-                    return ExtractionResult(
-                        success=True,
-                        extracted_data=extracted_data,
-                        extraction_prompt=chunk_prompt[:500] + "...",
-                        ai_response="[REPAIRED] " + response_text[:500] + "..."
-                    )
-                except json.JSONDecodeError:
-                    pass
-            
-            return ExtractionResult(
-                success=False,
-                error_message=f"JSON parsing failed for chunk {chunk_name}: {str(e)}"
-            )
-            
-    except Exception as e:
-        logging.error(f"Chunk processing error for {chunk_name}: {e}")
-        return ExtractionResult(
-            success=False,
-            error_message=f"Chunk processing failed for {chunk_name}: {str(e)}"
-        )
-
-def build_chunk_prompt(base_prompt: str, chunk_schema: Dict[str, Any], chunk_name: str) -> str:
-    """
-    Build a focused prompt for a specific chunk of the schema.
-    """
-    # Extract the document content from the base prompt
-    if "EXTRACTED DOCUMENT CONTENT:" in base_prompt:
-        prompt_parts = base_prompt.split("EXTRACTED DOCUMENT CONTENT:")
-        document_content = "EXTRACTED DOCUMENT CONTENT:" + prompt_parts[1]
-        base_instructions = prompt_parts[0]
-    else:
-        document_content = ""
-        base_instructions = base_prompt
-    
-    # Build focused instructions for this chunk
-    chunk_instructions = f"""
-{base_instructions}
-
-=== FOCUSED CHUNK EXTRACTION: {chunk_name} ===
-
-IMPORTANT: This is a CHUNKED extraction request. Only extract data for the specific schema elements listed below.
-Do NOT attempt to extract data for the entire schema - only focus on these specific fields/collections.
-
-"""
-    
-    # Add schema fields if present in chunk
-    if chunk_schema.get("schema_fields"):
-        chunk_instructions += "SCHEMA FIELDS TO EXTRACT IN THIS CHUNK:\n"
-        for field in chunk_schema["schema_fields"]:
-            field_name = field.get('fieldName', 'Unknown')
-            field_id = field.get('id', 'Unknown')
-            field_type = field.get('fieldType', 'TEXT')
-            description = field.get('description', '')
-            chunk_instructions += f"- {field_name} (ID: {field_id}, {field_type}): {description}\n"
-        chunk_instructions += "\n"
-    
-    # Add collections if present in chunk
-    if chunk_schema.get("collections"):
-        chunk_instructions += "COLLECTIONS TO EXTRACT IN THIS CHUNK:\n"
-        for collection in chunk_schema["collections"]:
-            collection_name = collection.get('collectionName', 'Unknown')
-            collection_description = collection.get('description', '')
-            chunk_instructions += f"- {collection_name}: {collection_description}\n"
-            
-            properties = collection.get('properties', [])
-            for prop in properties:
-                prop_name = prop.get('propertyName', 'Unknown')
-                prop_id = prop.get('id', 'Unknown')
-                prop_type = prop.get('propertyType', 'TEXT')
-                prop_description = prop.get('description', '')
-                chunk_instructions += f"  * {prop_name} (ID: {prop_id}, {prop_type}): {prop_description}\n"
-        chunk_instructions += "\n"
-    
-    chunk_instructions += """
-CHUNK EXTRACTION REQUIREMENTS:
-1. Extract ALL instances found in the documents for the fields/collections specified above
-2. Do NOT extract data for any fields/collections not listed above
-3. Return complete JSON with "field_validations" array containing all found instances
-4. For collections, extract ALL records found (not just 2-3 examples)
-5. Use exact field_id and property_id values from the schema above
-
-"""
-    
-    return chunk_instructions + "\n" + document_content
-
-def single_pass_extraction_with_repair(full_prompt: str, model) -> any:
-    """
-    Perform single-pass extraction with enhanced truncation repair.
-    """
-    try:
-        import google.generativeai as genai
-        import time
-        
-        logging.info("Performing single-pass extraction with enhanced repair")
-        
-        # Retry logic for API overload situations
-        max_retries = 3
-        retry_delay = 2
-        
-        for attempt in range(max_retries):
-            try:
-                response = model.generate_content(
-                    full_prompt,
-                    generation_config=genai.GenerationConfig(
-                        max_output_tokens=65536,  # Gemini 2.5 Pro max output limit
-                        temperature=0.1,
-                        response_mime_type="application/json"
-                    ),
-                    request_options={"timeout": None}
-                )
-                break  # Success, exit retry loop
-            except Exception as e:
-                if "503" in str(e) and "overloaded" in str(e).lower() and attempt < max_retries - 1:
-                    logging.warning(f"API overloaded (attempt {attempt + 1}/{max_retries}), retrying in {retry_delay}s...")
-                    time.sleep(retry_delay)
-                    retry_delay *= 2  # Exponential backoff
-                    continue
-                else:
-                    raise e  # Re-raise if not overload error or final attempt
-        
-        return response
-        
-    except Exception as e:
-        logging.error(f"Single-pass extraction failed: {e}")
-        # Return a mock response object with empty text
-        return type('Response', (), {'text': '{"field_validations": []}'})()
-
 def repair_truncated_json(response_text: str) -> str:
     """
     Attempt to repair truncated JSON responses by finding complete field validation objects
@@ -1200,47 +938,35 @@ RETURN: Complete readable content from this document."""
         # Now proceed with data extraction using the extracted content
         final_prompt = full_prompt + f"\n\nEXTRACTED DOCUMENT CONTENT:\n{extracted_content_text}"
         
-        # STEP 2: DATA EXTRACTION FROM CONTENT WITH CHUNKING SUPPORT
+        # STEP 2: DATA EXTRACTION FROM CONTENT
         logging.info(f"=== STEP 2: DATA EXTRACTION ===")
         logging.info(f"Making data extraction call with {len(extracted_content_text)} characters of extracted content")
         
-        # Estimate if we might hit response limits based on schema complexity
-        total_expected_validations = 0
-        if project_schema.get("schema_fields"):
-            total_expected_validations += len(project_schema["schema_fields"])
-        if project_schema.get("collections"):
-            for collection in project_schema["collections"]:
-                properties = collection.get("properties", [])
-                # Conservative estimate: 50 collection records per collection * properties
-                estimated_records = 50
-                total_expected_validations += len(properties) * estimated_records
+        # Retry logic for API overload situations in data extraction
+        max_retries = 3
+        retry_delay = 2  # Start with 2 seconds
         
-        logging.info(f"Estimated total field validations: {total_expected_validations}")
-        
-        # If we expect a very large response, try chunked extraction first
-        if total_expected_validations > 100:  # Threshold for chunking
-            logging.info(f"Large schema detected ({total_expected_validations} expected validations), attempting chunked extraction")
-            
-            # Try chunked extraction approach
-            chunked_result = extract_data_with_chunking(
-                final_prompt, 
-                project_schema, 
-                model,
-                total_expected_validations
-            )
-            
-            if chunked_result.success:
-                logging.info("Chunked extraction successful!")
-                response = type('Response', (), {'text': json.dumps(chunked_result.extracted_data)})()
-            else:
-                logging.warning(f"Chunked extraction failed: {chunked_result.error_message}")
-                logging.info("Falling back to single-pass extraction with truncation handling")
-                
-                # Fallback to single-pass with enhanced truncation repair
-                response = single_pass_extraction_with_repair(final_prompt, model)
-        else:
-            logging.info("Small schema detected, using single-pass extraction")
-            response = single_pass_extraction_with_repair(final_prompt, model)
+        for attempt in range(max_retries):
+            try:
+                response = model.generate_content(
+                    final_prompt,
+                    generation_config=genai.GenerationConfig(
+                        max_output_tokens=65536,  # Gemini 2.5 Pro max output limit
+                        temperature=0.1,
+                        response_mime_type="application/json"
+                    ),
+                    request_options={"timeout": None}  # Remove timeout constraints
+                )
+                break  # Success, exit retry loop
+            except Exception as e:
+                if "503" in str(e) and "overloaded" in str(e).lower() and attempt < max_retries - 1:
+                    logging.warning(f"Data extraction API overloaded (attempt {attempt + 1}/{max_retries}), retrying in {retry_delay}s...")
+                    import time
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # Exponential backoff
+                    continue
+                else:
+                    raise e  # Re-raise if not overload error or final attempt
         
         if not response or not response.text:
             return ExtractionResult(success=False, error_message="No response from AI")
@@ -1346,55 +1072,30 @@ RETURN: Complete readable content from this document."""
                     else:
                         logging.error("Could not repair JSON, creating minimal structure")
                         extracted_data = {"field_validations": []}
-            
-            # Validate extracted data structure
-            if not isinstance(extracted_data, dict):
-                logging.warning("Extracted data is not a dictionary, creating default structure")
-                extracted_data = {"field_validations": []}
-            
+                
+            # Validate that we have the expected field_validations structure
             if "field_validations" not in extracted_data:
-                logging.warning("No field_validations key found, creating default structure")
+                logging.warning("AI response missing field_validations key, creating default structure")
                 extracted_data = {"field_validations": []}
-            
-            field_validations = extracted_data.get("field_validations", [])
-            logging.info(f"STEP 2 COMPLETE: Successfully extracted {len(field_validations)} field validations")
-            
+                
+            logging.info(f"STEP 1: Successfully extracted {len(extracted_data.get('field_validations', []))} field validations")
             return ExtractionResult(
-                success=True,
+                success=True, 
                 extracted_data=extracted_data,
-                extraction_prompt=final_prompt[:1000] + "..." if len(final_prompt) > 1000 else final_prompt,
-                ai_response=response_text[:1000] + "..." if len(response_text) > 1000 else response_text,
+                extraction_prompt=final_prompt,
+                ai_response=response.text,
                 input_token_count=input_token_count,
                 output_token_count=output_token_count
             )
             
         except json.JSONDecodeError as e:
-            logging.error(f"Final JSON parsing failed: {e}")
-            return ExtractionResult(
-                success=False,
-                error_message=f"JSON parsing failed: {str(e)}",
-                extraction_prompt=final_prompt[:1000] + "..." if len(final_prompt) > 1000 else final_prompt,
-                ai_response=response_text[:1000] + "..." if len(response_text) > 1000 else response_text,
-                input_token_count=input_token_count,
-                output_token_count=output_token_count
-            )
-        except Exception as e:
-            logging.error(f"Unexpected error in data extraction: {e}")
-            return ExtractionResult(
-                success=False,
-                error_message=f"Unexpected error: {str(e)}",
-                extraction_prompt=final_prompt[:1000] + "..." if len(final_prompt) > 1000 else final_prompt,
-                ai_response=response_text[:500] if 'response_text' in locals() else "No response",
-                input_token_count=input_token_count,
-                output_token_count=output_token_count
-            )
-    
+            logging.error(f"Failed to parse AI response as JSON: {e}")
+            logging.error(f"Cleaned response: {response_text}")
+            return ExtractionResult(success=False, error_message=f"Invalid JSON response: {e}")
+            
     except Exception as e:
-        logging.error(f"STEP 1: Document extraction failed: {e}")
-        return ExtractionResult(
-            success=False,
-            error_message=f"Document extraction failed: {str(e)}"
-        )
+        logging.error(f"STEP 1 extraction failed: {e}")
+        return ExtractionResult(success=False, error_message=str(e))
 
 # Validation function removed - validation now occurs only during extraction process
 
