@@ -51,6 +51,8 @@ Preferred communication style: Simple, everyday language.
 - **Enhanced Field Editing**: Complete field editing system with inline clear icons, manual update tracking, AI reasoning display control, and comprehensive revert functionality.
 - **Collection Management**: Fixed "Add new +" functionality with proper index calculation and consistent validation filtering for both legacy and new records.
 - **Empty Data Handling**: Robust session view loading that gracefully handles empty AI extraction results, displaying functional empty states without errors or crashes.
+- **Chunked AI Extraction**: Complete implementation of intelligent chunking system for large schemas that exceed token limits, with separate processing of schema fields and collection properties, reassembly of results, and robust error handling.
+- **Field Validation Save Process**: Fixed critical bug in `createFieldValidationRecords` function to properly handle the new `field_validations` array format from chunked extraction, ensuring collection property validations are correctly saved to the database.
 
 ### Key Architectural Decisions
 - **Monorepo Structure**: Single repository with shared types.
@@ -61,6 +63,8 @@ Preferred communication style: Simple, everyday language.
 - **Express + Vite**: Combines a robust backend framework with modern frontend tooling.
 - **UUID Consistency**: Full UUID string consistency across all storage interfaces.
 - **Graceful Error Handling**: Session views load successfully even when AI returns empty results, maintaining full functionality for manual data entry.
+- **Chunked Processing Architecture**: AI extraction uses intelligent chunking to handle large schemas, processing schema fields and collections separately to stay within token limits, then reassembling results for seamless user experience.
+- **Field Validation Data Flow**: Standardized `field_validations` array format from AI extraction through to database storage, ensuring consistent data handling across the entire extraction pipeline.
 
 ## External Dependencies
 
