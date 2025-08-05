@@ -53,7 +53,7 @@ Preferred communication style: Simple, everyday language.
 - **Empty Data Handling**: Robust session view loading that gracefully handles empty AI extraction results, displaying functional empty states without errors or crashes.
 - **Gemini Token Limit Handling**: Advanced JSON truncation repair system that preserves partial extraction results when hitting Gemini API output token limits, converting complete failures into partial successes with 70%+ data recovery rates.
 - **Clean JSON Output**: Enhanced Gemini AI response processing that ensures pure JSON output without markdown formatting, code blocks, or introductory text, using explicit prompt instructions and robust response cleaning functions.
-- **Content Safety Handling**: Comprehensive error handling for Gemini API content safety blocks (finish_reason=1), including automatic content sanitization, PII redaction, and intelligent retry mechanisms to resolve blocked requests.
+- **Content Safety Handling**: Advanced multi-tier content safety system including: (1) Schema-aware sanitization that only removes sensitive data types NOT being requested in extraction schema, (2) Aggressive sanitization for extreme cases that preserves document structure while maximally sanitizing content, (3) Intelligent retry mechanism with escalating sanitization levels, and (4) Comprehensive error handling for all finish_reason types (1, 3, 4) to maximize extraction success rates while protecting privacy.
 
 ### Key Architectural Decisions
 - **Monorepo Structure**: Single repository with shared types.

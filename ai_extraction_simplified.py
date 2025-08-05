@@ -27,56 +27,120 @@ class ExtractionResult:
 
 # ValidationResult dataclass removed - validation now occurs only during extraction
 
-def sanitize_content_for_gemini(prompt_text: str) -> str:
+def get_field_types_from_schema(project_schema):
     """
-    Sanitize content to avoid Gemini content safety blocks.
-    Removes potentially problematic content while preserving data extraction context.
+    Extract all field types that are being requested in the extraction schema.
+    Returns a set of field types that should NOT be sanitized.
+    """
+    requested_types = set()
+    
+    # Check schema fields
+    for field in project_schema.get('schema_fields', []):
+        field_name = field.get('fieldName', '').lower()
+        field_desc = field.get('description', '').lower()
+        
+        # Map field names and descriptions to sensitive data types
+        if any(keyword in field_name + ' ' + field_desc for keyword in ['credit card', 'card number', 'payment']):
+            requested_types.add('credit_cards')
+        if any(keyword in field_name + ' ' + field_desc for keyword in ['ssn', 'social security', 'identification', 'id number', 'nie', 'nif']):
+            requested_types.add('id_numbers')
+        if any(keyword in field_name + ' ' + field_desc for keyword in ['phone', 'mobile', 'telephone']):
+            requested_types.add('phone_numbers')
+        if any(keyword in field_name + ' ' + field_desc for keyword in ['email', 'e-mail']):
+            requested_types.add('emails')
+        if any(keyword in field_name + ' ' + field_desc for keyword in ['name', 'person', 'customer', 'client']):
+            requested_types.add('names')
+        if any(keyword in field_name + ' ' + field_desc for keyword in ['address', 'street', 'location']):
+            requested_types.add('addresses')
+        if any(keyword in field_name + ' ' + field_desc for keyword in ['iban', 'account', 'bank']):
+            requested_types.add('bank_accounts')
+        if any(keyword in field_name + ' ' + field_desc for keyword in ['plate', 'registration', 'vehicle', 'license']):
+            requested_types.add('vehicle_plates')
+    
+    # Check collection properties
+    for collection in project_schema.get('collections', []):
+        for prop in collection.get('properties', []):
+            prop_name = prop.get('propertyName', '').lower()
+            prop_desc = prop.get('description', '').lower()
+            
+            if any(keyword in prop_name + ' ' + prop_desc for keyword in ['credit card', 'card number', 'payment']):
+                requested_types.add('credit_cards')
+            if any(keyword in prop_name + ' ' + prop_desc for keyword in ['ssn', 'social security', 'identification', 'id number', 'nie', 'nif']):
+                requested_types.add('id_numbers')
+            if any(keyword in prop_name + ' ' + prop_desc for keyword in ['phone', 'mobile', 'telephone']):
+                requested_types.add('phone_numbers')
+            if any(keyword in prop_name + ' ' + prop_desc for keyword in ['email', 'e-mail']):
+                requested_types.add('emails')
+            if any(keyword in prop_name + ' ' + prop_desc for keyword in ['name', 'person', 'customer', 'client']):
+                requested_types.add('names')
+            if any(keyword in prop_name + ' ' + prop_desc for keyword in ['address', 'street', 'location']):
+                requested_types.add('addresses')
+            if any(keyword in prop_name + ' ' + prop_desc for keyword in ['iban', 'account', 'bank']):
+                requested_types.add('bank_accounts')
+            if any(keyword in prop_name + ' ' + prop_desc for keyword in ['plate', 'registration', 'vehicle', 'license']):
+                requested_types.add('vehicle_plates')
+    
+    return requested_types
+
+def sanitize_content_for_gemini(prompt_text: str, project_schema=None) -> str:
+    """
+    Schema-aware content sanitization that only removes sensitive data types
+    that are NOT being requested in the extraction schema.
     """
     import re
     
-    # Remove potential personally identifiable information patterns
-    # Social Security Numbers
-    prompt_text = re.sub(r'\b\d{3}-\d{2}-\d{4}\b', '[SSN]', prompt_text)
-    prompt_text = re.sub(r'\b\d{9}\b', '[ID_NUMBER]', prompt_text)
+    # Determine which data types are being requested
+    requested_types = set()
+    if project_schema:
+        requested_types = get_field_types_from_schema(project_schema)
     
-    # Spanish NIE numbers (e.g., Y9799103J, X1234567L)
-    prompt_text = re.sub(r'\b[XYZ]\d{7}[A-Z]\b', '[NIE]', prompt_text)
+    logging.info(f"Schema analysis: Requested data types = {requested_types}")
     
-    # Spanish NIF numbers (e.g., 12345678Z)
-    prompt_text = re.sub(r'\b\d{8}[A-Z]\b', '[NIF]', prompt_text)
+    # Only sanitize data types that are NOT being requested
+    if 'credit_cards' not in requested_types:
+        prompt_text = re.sub(r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b', '[CARD_NUMBER]', prompt_text)
+        logging.info("Sanitized credit card numbers (not requested in schema)")
     
-    # Credit card numbers
-    prompt_text = re.sub(r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b', '[CARD_NUMBER]', prompt_text)
+    if 'id_numbers' not in requested_types:
+        prompt_text = re.sub(r'\b\d{3}-\d{2}-\d{4}\b', '[SSN]', prompt_text)
+        prompt_text = re.sub(r'\b[XYZ]\d{7}[A-Z]\b', '[NIE]', prompt_text)  # Spanish NIE
+        prompt_text = re.sub(r'\b\d{8}[A-Z]\b', '[NIF]', prompt_text)  # Spanish NIF
+        prompt_text = re.sub(r'\b\d{9}\b', '[ID_NUMBER]', prompt_text)
+        logging.info("Sanitized ID numbers (not requested in schema)")
     
-    # IBAN patterns (Spanish and international)
-    prompt_text = re.sub(r'\b[A-Z]{2}\d{2}[A-Z0-9]{4}\d{7}[A-Z0-9*]{10,}\b', '[IBAN]', prompt_text)
-    prompt_text = re.sub(r'\bES\d{2}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b', '[IBAN]', prompt_text)
+    if 'phone_numbers' not in requested_types:
+        prompt_text = re.sub(r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b', '[PHONE]', prompt_text)
+        prompt_text = re.sub(r'\(\d{3}\)\s?\d{3}[-.]?\d{4}', '[PHONE]', prompt_text)
+        prompt_text = re.sub(r'\b\d{3}\s?\d{6}\b', '[PHONE]', prompt_text)  # Spanish format
+        prompt_text = re.sub(r'\b6\d{8}\b', '[MOBILE]', prompt_text)  # Spanish mobile
+        logging.info("Sanitized phone numbers (not requested in schema)")
     
-    # Phone numbers with various formats (including Spanish mobile)
-    prompt_text = re.sub(r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b', '[PHONE]', prompt_text)
-    prompt_text = re.sub(r'\(\d{3}\)\s?\d{3}[-.]?\d{4}', '[PHONE]', prompt_text)
-    prompt_text = re.sub(r'\b\d{3}\s?\d{6}\b', '[PHONE]', prompt_text)  # Spanish format
-    prompt_text = re.sub(r'\b6\d{8}\b', '[MOBILE]', prompt_text)  # Spanish mobile
+    if 'emails' not in requested_types:
+        prompt_text = re.sub(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '[EMAIL]', prompt_text)
+        logging.info("Sanitized email addresses (not requested in schema)")
     
-    # Email addresses
-    prompt_text = re.sub(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '[EMAIL]', prompt_text)
+    if 'names' not in requested_types:
+        prompt_text = re.sub(r'\b[A-Z][a-z]+\s+[A-Z][a-z]+\s+[A-Z][a-z]+\b', '[FULL_NAME]', prompt_text)  # Three names
+        prompt_text = re.sub(r'\b[A-Z][A-Z\s]{10,50}\b', '[NAME]', prompt_text)  # All caps names
+        logging.info("Sanitized personal names (not requested in schema)")
     
-    # Personal names (common patterns)
-    prompt_text = re.sub(r'\b[A-Z][a-z]+\s+[A-Z][a-z]+\s+[A-Z][a-z]+\b', '[FULL_NAME]', prompt_text)  # Three names
-    prompt_text = re.sub(r'\b[A-Z][A-Z\s]{10,50}\b', '[NAME]', prompt_text)  # All caps names
+    if 'addresses' not in requested_types:
+        prompt_text = re.sub(r'\bC[ALÓ]L*[EL]*\s+[A-ZÁÉÍÓÚÑÜ\s\d,.-]+\d{5}\s+[A-ZÁÉÍÓÚÑÜ\s]+\b', '[ADDRESS]', prompt_text, flags=re.IGNORECASE)
+        logging.info("Sanitized addresses (not requested in schema)")
     
-    # Vehicle registration plates (European format)
-    prompt_text = re.sub(r'\b\d{4}[A-Z]{3}\b', '[PLATE]', prompt_text)  # Spanish format like 9131KXV
-    prompt_text = re.sub(r'\b[A-Z]{1,3}\d{1,4}[A-Z]{1,3}\b', '[PLATE]', prompt_text)  # General European
+    if 'bank_accounts' not in requested_types:
+        prompt_text = re.sub(r'\b[A-Z]{2}\d{2}[A-Z0-9]{4}\d{7}[A-Z0-9*]{10,}\b', '[IBAN]', prompt_text)
+        prompt_text = re.sub(r'\bES\d{2}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b', '[IBAN]', prompt_text)
+        prompt_text = re.sub(r'\bBSCH[A-Z0-9*]{4,20}\b', '[IBAN_CODE]', prompt_text)  # Bank codes
+        prompt_text = re.sub(r'\bES\d{2}[A-Z0-9*\s-]{20,}\b', '[IBAN_FULL]', prompt_text)  # Spanish IBAN
+        logging.info("Sanitized bank accounts (not requested in schema)")
     
-    # Enhanced IBAN patterns (more comprehensive)
-    prompt_text = re.sub(r'\bBSCH[A-Z0-9*]{4,20}\b', '[IBAN_CODE]', prompt_text)  # Bank codes
-    prompt_text = re.sub(r'\bES\d{2}[A-Z0-9*\s-]{20,}\b', '[IBAN_FULL]', prompt_text)  # Spanish IBAN
+    if 'vehicle_plates' not in requested_types:
+        prompt_text = re.sub(r'\b\d{4}[A-Z]{3}\b', '[PLATE]', prompt_text)  # Spanish format like 9131KXV
+        prompt_text = re.sub(r'\b[A-Z]{1,3}\d{1,4}[A-Z]{1,3}\b', '[PLATE]', prompt_text)  # General European
+        logging.info("Sanitized vehicle plates (not requested in schema)")
     
-    # Addresses (Spanish street patterns)
-    prompt_text = re.sub(r'\bC[ALÓ]L*[EL]*\s+[A-ZÁÉÍÓÚÑÜ\s\d,.-]+\d{5}\s+[A-ZÁÉÍÓÚÑÜ\s]+\b', '[ADDRESS]', prompt_text, flags=re.IGNORECASE)
-    
-    # Policy/account numbers (long numeric sequences)
+    # Always sanitize policy numbers as they're rarely the target and often trigger blocks
     prompt_text = re.sub(r'\b\d{9,12}\b', '[POLICY_NUMBER]', prompt_text)
     
     # Remove excessive repeated characters that might trigger safety filters
@@ -107,6 +171,56 @@ def sanitize_content_for_gemini(prompt_text: str) -> str:
             else:
                 prompt_text = schema_part + "\n[CONTENT TRUNCATED FOR SAFETY]"
     
+    return prompt_text
+
+def apply_aggressive_sanitization(prompt_text: str, project_schema=None) -> str:
+    """
+    Extremely aggressive sanitization for documents that still trigger safety blocks
+    after schema-aware sanitization. This is a last resort that maximally sanitizes
+    while preserving document structure for extraction.
+    """
+    import re
+    
+    # Get requested types to preserve minimal essential data
+    requested_types = set()
+    if project_schema:
+        requested_types = get_field_types_from_schema(project_schema)
+    
+    logging.info(f"Applying aggressive sanitization. Preserving: {requested_types}")
+    
+    # Replace all numeric sequences except currency amounts
+    prompt_text = re.sub(r'\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b', '[DATE]', prompt_text)  # Dates
+    prompt_text = re.sub(r'\b\d{1,3}[,.]?\d{0,3}[,.]?\d{2}\s*€?\b', '[AMOUNT]', prompt_text)  # Currency amounts
+    prompt_text = re.sub(r'\b\d{4,}\b', '[NUMBER]', prompt_text)  # Long numbers
+    
+    # Replace all proper nouns and capitalized words (likely names/places)
+    if 'names' not in requested_types:
+        prompt_text = re.sub(r'\b[A-Z][A-Z\s]{2,}\b', '[NAME]', prompt_text)
+        prompt_text = re.sub(r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b', '[ENTITY]', prompt_text)
+    
+    # Replace addresses and locations
+    if 'addresses' not in requested_types:
+        prompt_text = re.sub(r'\b\d{5}\s+[A-Z][A-Za-z\s]+\b', '[LOCATION]', prompt_text)
+        prompt_text = re.sub(r'\bC[ALÓ]L*[EL]*\s+[A-Za-z\s,.\d-]+\b', '[STREET]', prompt_text, flags=re.IGNORECASE)
+    
+    # Replace any remaining sensitive patterns
+    prompt_text = re.sub(r'\b[A-Z0-9*]{10,}\b', '[CODE]', prompt_text)  # Codes and IDs
+    prompt_text = re.sub(r'\b\w+@\w+\.\w+\b', '[EMAIL]', prompt_text)  # Emails
+    
+    # Preserve document structure markers
+    structure_markers = [
+        'Tomador del Seguro', 'Vehículo Asegurado', 'Datos del Conductor',
+        'Liquidación de Primas', 'Domicilio de Cobro', 'Cobertura',
+        'Policy', 'Vehicle', 'Insurance', 'Premium', 'Coverage'
+    ]
+    
+    for marker in structure_markers:
+        # Re-establish structure markers if they were accidentally sanitized
+        pattern = r'\[NAME\]|\[ENTITY\]'
+        if marker.upper() in prompt_text.upper():
+            prompt_text = re.sub(f'({pattern})(?=.*{marker.upper()})', marker, prompt_text, flags=re.IGNORECASE)
+    
+    logging.info(f"Aggressive sanitization complete. Length: {len(prompt_text)} chars")
     return prompt_text
 
 def clean_gemini_response(response_text: str) -> str:
@@ -1145,7 +1259,14 @@ RETURN: Complete readable content from this document."""
                             logging.error("Content safety block triggered - attempting content sanitization")
                             # Try to sanitize content and retry
                             if attempt < max_retries - 1:
-                                sanitized_prompt = sanitize_content_for_gemini(final_prompt)
+                                if attempt == 0:
+                                    # First retry: schema-aware sanitization
+                                    sanitized_prompt = sanitize_content_for_gemini(final_prompt, project_schema=project_schema)
+                                else:
+                                    # Second retry: aggressive sanitization as last resort
+                                    logging.warning("Schema-aware sanitization failed, applying aggressive sanitization")
+                                    sanitized_prompt = apply_aggressive_sanitization(final_prompt, project_schema=project_schema)
+                                
                                 if sanitized_prompt != final_prompt:
                                     logging.info("Retrying with sanitized content")
                                     final_prompt = sanitized_prompt
