@@ -158,8 +158,7 @@ def step1_extract_from_documents(
     project_schema: Dict[str, Any],
     extraction_rules: List[Dict[str, Any]] = None,
     knowledge_documents: List[Dict[str, Any]] = None,
-    session_name: str = "contract",
-    custom_prompt: str = None
+    session_name: str = "contract"
 ) -> ExtractionResult:
     """
     STEP 1: Extract data from documents using AI
@@ -662,14 +661,9 @@ def step1_extract_from_documents(
         logging.info(f"Generated field validation example with {len(extraction_rules or [])} extraction rules")
         logging.info(f"Dynamic example preview (first 500 chars): {dynamic_example[:500]}...")
         
-        # Use custom prompt if provided, otherwise use the standard prompt
-        if custom_prompt:
-            logging.info("🔄 Using custom continuation prompt")
-            full_prompt = custom_prompt
-        else:
-            # The imported prompt already contains all the necessary instructions
-            # Just add document verification and choice field handling specific to this run
-            full_prompt += f"""
+        # The imported prompt already contains all the necessary instructions
+        # Just add document verification and choice field handling specific to this run
+        full_prompt += f"""
 
 DOCUMENT VERIFICATION: Confirm you processed all {len(documents)} documents: {[doc.get('file_name', 'Unknown') for doc in documents]}
 
@@ -685,10 +679,6 @@ CHOICE FIELD HANDLING:
 
 REQUIRED OUTPUT FORMAT - Field Validation JSON Structure:
 {dynamic_example}"""
-            
-        # Close the if-else block for custom prompt
-        if not custom_prompt:
-            pass  # Standard prompt modifications are already added above
         
         # STEP 1: ENHANCED DOCUMENT CONTENT EXTRACTION
         # Process documents in two phases: content extraction, then data extraction
