@@ -429,7 +429,7 @@ export default function NewUpload({ project }: NewUploadProps) {
 
         let aiResponse;
         try {
-          aiResponse = await apiRequest(`/api/sessions/${session.id}/gemini-extraction`, {
+          aiResponse = await apiRequest(`/api/sessions/${session.id}/extract`, {
             method: 'POST',
             body: JSON.stringify({ 
               extractedTexts: textExtractionResult.extracted_texts || textExtractionResult.result?.extracted_texts || [],

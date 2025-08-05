@@ -529,8 +529,8 @@ ${error instanceof Error ? error.message : 'Unknown error'}
         documentTextPreview: documentContent.text.substring(0, 300)
       });
       
-      // Make actual API call to Gemini
-      const response = await apiRequest(`/api/sessions/${sessionId}/gemini-extraction`, {
+      // Make actual API call to Enhanced Gemini Extraction with Continuation Support
+      const response = await apiRequest(`/api/sessions/${sessionId}/extract`, {
         method: 'POST',
         body: JSON.stringify({ 
           prompt: fullPrompt,
