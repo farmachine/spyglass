@@ -52,6 +52,7 @@ Preferred communication style: Simple, everyday language.
 - **Collection Management**: Fixed "Add new +" functionality with proper index calculation and consistent validation filtering for both legacy and new records.
 - **Empty Data Handling**: Robust session view loading that gracefully handles empty AI extraction results, displaying functional empty states without errors or crashes.
 - **Enhanced Truncation Repair**: Improved JSON repair functionality for truncated Gemini API responses, with comprehensive parsing logic that recovers complete field validation objects and maintains data integrity during AI extraction failures.
+- **Smart Truncation Detection**: Advanced truncation detection that analyzes collection completeness by checking if items have all expected properties, rather than relying on rough estimates. Detects cases where AI response is cut off mid-collection, triggering batch continuation automatically.
 
 ### Key Architectural Decisions
 - **Monorepo Structure**: Single repository with shared types.

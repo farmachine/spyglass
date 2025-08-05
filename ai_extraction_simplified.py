@@ -27,12 +27,13 @@ class ExtractionResult:
 
 # ValidationResult dataclass removed - validation now occurs only during extraction
 
-def detect_truncation(response_text: str, expected_field_count: int = None) -> bool:
+def detect_truncation(response_text: str, expected_field_count: int = None, project_schema: Dict[str, Any] = None) -> bool:
     """
-    Detect if AI response was truncated based on multiple heuristics
+    Enhanced truncation detection with smarter collection analysis
     """
     # Heuristic 1: Check if response ends with incomplete JSON structure
     if not response_text.strip().endswith('}'):
+        logging.info("TRUNCATION: Response doesn't end with }")
         return True
     
     # Heuristic 2: Check for incomplete field validation objects
@@ -44,15 +45,71 @@ def detect_truncation(response_text: str, expected_field_count: int = None) -> b
         for validation in field_validations:
             required_fields = ['field_id', 'validation_type', 'data_type', 'field_name']
             if not all(field in validation for field in required_fields):
+                logging.info(f"TRUNCATION: Incomplete validation found: {validation}")
                 return True
+        
+        # Enhanced Heuristic 3: Smart collection analysis
+        if project_schema:
+            # Analyze collection completeness
+            collections = project_schema.get('collections', [])
+            for collection in collections:
+                collection_name = collection.get('collectionName', collection.get('objectName', ''))
+                properties = collection.get('properties', [])
                 
-        # Heuristic 3: Compare against expected field count (if provided)
-        if expected_field_count and len(field_validations) < expected_field_count * 0.7:  # Less than 70% of expected
-            return True
+                if not properties:
+                    continue
+                
+                # Count validations for this collection
+                collection_validations = [v for v in field_validations 
+                                        if v.get('collection_name') == collection_name]
+                
+                if collection_validations:
+                    # Calculate expected items based on actual data
+                    properties_per_item = len(properties)
+                    total_collection_validations = len(collection_validations)
+                    calculated_items = total_collection_validations / properties_per_item
+                    
+                    # Check if we have complete sets (no partial items)
+                    if calculated_items != int(calculated_items):
+                        logging.info(f"TRUNCATION: Incomplete collection items detected. Collection: {collection_name}, "
+                                   f"Expected properties per item: {properties_per_item}, "
+                                   f"Total validations: {total_collection_validations}, "
+                                   f"Calculated items: {calculated_items}")
+                        return True
+                    
+                    # Additional check: Look for missing properties in the last items
+                    items_count = int(calculated_items)
+                    if items_count > 0:
+                        # Group validations by item index
+                        item_groups = {}
+                        for validation in collection_validations:
+                            item_index = validation.get('item_index', 0)
+                            if item_index not in item_groups:
+                                item_groups[item_index] = []
+                            item_groups[item_index].append(validation)
+                        
+                        # Check if the last few items have all properties
+                        max_item_index = max(item_groups.keys()) if item_groups else -1
+                        for check_index in range(max(0, max_item_index - 2), max_item_index + 1):
+                            if check_index in item_groups:
+                                item_validations = item_groups[check_index]
+                                if len(item_validations) < properties_per_item:
+                                    logging.info(f"TRUNCATION: Item {check_index} in collection {collection_name} "
+                                               f"has {len(item_validations)} properties, expected {properties_per_item}")
+                                    return True
+        
+        # Fallback: Original expected count check (but only if realistic)
+        if expected_field_count and expected_field_count > 10:  # Only use if reasonable estimate
+            if len(field_validations) < expected_field_count * 0.7:
+                logging.info(f"TRUNCATION: Field count check failed. Found: {len(field_validations)}, "
+                           f"Expected: {expected_field_count}, Threshold: {expected_field_count * 0.7}")
+                return True
             
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as e:
+        logging.info(f"TRUNCATION: JSON decode error: {e}")
         return True
     
+    logging.info("TRUNCATION: No truncation detected")
     return False
 
 def generate_continuation_prompt(original_prompt: str, previous_validations: List[Dict], project_schema: Dict) -> str:
@@ -1336,7 +1393,7 @@ RETURN: Complete readable content from this document."""
                     expected_field_count += len(collection.get('properties', [])) * 2
             
             # Only proceed with batch continuation if truncation is actually detected
-            is_truncated = detect_truncation(response_text, expected_field_count)
+            is_truncated = detect_truncation(response_text, expected_field_count, project_schema)
             logging.info(f"TRUNCATION DETECTION: Found {len(field_validations)} validations, expected ~{expected_field_count}, truncated: {is_truncated}")
             
             if is_truncated and len(field_validations) > 0:
