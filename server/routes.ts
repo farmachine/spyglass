@@ -3223,29 +3223,25 @@ except ImportError:
 logging.basicConfig(level=logging.INFO)
 
 def run_extraction_with_truncation_recovery(input_data):
-    """Use existing system with batch validation for truncation recovery only"""
+    """Use existing system first, batch validation only for truncation recovery"""
     try:
+        # Extract input parameters
         session_id = input_data['session_id']
         project_id = input_data['project_id']
         schema_fields = input_data['schema_fields']
         collections = input_data['collections']
         knowledge_documents = input_data.get('knowledge_documents', [])
         extraction_rules = input_data.get('extraction_rules', [])
-        session_data = input_data.get('session_data', {})
+        documents = input_data.get('session_data', {}).get('documents', [])
         
-        documents = session_data.get('documents', [])
         if not documents:
             return {"success": False, "error": "No documents found for extraction"}
         
-        logging.info(f"🚀 Using proven extraction system for session {session_id}")
+        logging.info(f"🚀 Starting extraction for session {session_id}")
         
-        # Prepare project schema for existing system
-        project_schema = {
-            "schema_fields": schema_fields,
-            "collections": collections
-        }
+        # STEP 1: Use existing proven extraction system
+        project_schema = {"schema_fields": schema_fields, "collections": collections}
         
-        # Step 1: Use the existing proven extraction system
         extraction_result = step1_extract_from_documents(
             documents=documents,
             project_schema=project_schema,
@@ -3256,38 +3252,31 @@ def run_extraction_with_truncation_recovery(input_data):
         if not extraction_result.success:
             return {"success": False, "error": extraction_result.error_message}
         
-        extracted_data = extraction_result.extracted_data
-        original_response = extraction_result.ai_response
-        
-        # Step 2: Check for truncation and attempt repair
-        if not extracted_data or not extracted_data.get('field_validations'):
-            logging.warning("⚠️ No field validations - checking for truncation")
-            
-            if original_response:
-                repaired_json = repair_truncated_json(original_response)
-                if repaired_json:
-                    try:
-                        extracted_data = json.loads(repaired_json)
-                        logging.info("✅ JSON repair successful")
-                    except json.JSONDecodeError:
-                        logging.error("❌ JSON repair failed")
-                        extracted_data = {"field_validations": []}
-                else:
-                    extracted_data = {"field_validations": []}
-        
+        # STEP 2: Check results and detect truncation
+        extracted_data = extraction_result.extracted_data or {}
         field_validations = extracted_data.get('field_validations', [])
+        original_response = extraction_result.ai_response or ""
         
-        # Step 3: Check if truncation was detected and recovery methods failed
-        truncation_detected = False
+        # Try basic JSON repair if no validations found
+        if not field_validations and original_response:
+            repaired_json = repair_truncated_json(original_response)
+            if repaired_json:
+                try:
+                    extracted_data = json.loads(repaired_json)
+                    field_validations = extracted_data.get('field_validations', [])
+                    logging.info("✅ JSON repair recovered data")
+                except json.JSONDecodeError:
+                    pass
+        
+        # Detect truncation
+        truncated = False
         if original_response:
-            response_stripped = original_response.strip()
-            if not (response_stripped.endswith(']}') or response_stripped.endswith(']\n}')):
-                truncation_detected = True
-                logging.info("🔍 Truncation detected in AI response")
+            response_end = original_response.strip()
+            truncated = not (response_end.endswith(']}') or response_end.endswith(']\n}'))
         
-        # Step 4: If truncation detected and standard recovery didn't work, try batch validation
-        if truncation_detected and len(field_validations) == 0 and BATCH_SYSTEM_AVAILABLE:
-            logging.info("🚀 Standard recovery failed - attempting batch validation recovery")
+        # STEP 3: If truncation detected and no validations, trigger batch recovery
+        if truncated and not field_validations and BATCH_RECOVERY_AVAILABLE:
+            logging.info("🔄 Truncation detected - using batch validation recovery")
             
             try:
                 batch_result = run_enhanced_batch_validation(
@@ -3301,66 +3290,21 @@ def run_extraction_with_truncation_recovery(input_data):
                 )
                 
                 if batch_result.get('success') and batch_result.get('field_validations'):
-                    logging.info(f"✅ Batch validation recovery successful: {len(batch_result.get('field_validations', []))} validations")
+                    logging.info(f"✅ Batch recovery successful: {len(batch_result['field_validations'])} validations")
                     return {
                         "success": True,
-                        "extracted_data": {"field_validations": batch_result.get('field_validations', [])},
-                        "field_validations": batch_result.get('field_validations', []),
+                        "extracted_data": {"field_validations": batch_result['field_validations']},
+                        "field_validations": batch_result['field_validations'],
                         "input_token_count": extraction_result.input_token_count + batch_result.get('input_token_count', 0),
                         "output_token_count": extraction_result.output_token_count + batch_result.get('output_token_count', 0),
                         "truncation_recovery_used": True,
-                        "batch_processing_used": True,
-                        "field_count": len(batch_result.get('field_validations', []))
+                        "field_count": len(batch_result['field_validations'])
                     }
-                else:
-                    logging.warning("⚠️ Batch validation recovery failed")
                     
             except Exception as e:
-                logging.warning(f"⚠️ Batch validation recovery error: {e}")
+                logging.warning(f"Batch recovery failed: {e}")
         
-        # Step 5: Try continuation system if we have some data but truncation detected
-        elif truncation_detected and len(field_validations) > 0:
-            logging.info("🔄 Trying continuation system for partial truncation")
-            
-            continuation_info = analyze_truncation_point(original_response, extracted_data)
-            
-            if continuation_info:
-                # Extract document text for continuation
-                extracted_text = ""
-                for doc in documents:
-                    if isinstance(doc.get('file_content'), str) and not doc['file_content'].startswith('data:'):
-                        extracted_text += f"\\n\\n=== DOCUMENT: {doc.get('file_name', 'Unknown')} ===\\n{doc['file_content']}"
-                
-                continuation_result = perform_continuation_extraction(
-                    session_id=session_id,
-                    project_id=project_id,
-                    extracted_text=extracted_text,
-                    schema_fields=schema_fields,
-                    collections=collections,
-                    knowledge_base=knowledge_documents,
-                    extraction_rules=extraction_rules,
-                    previous_response=original_response,
-                    repaired_data=extracted_data
-                )
-                
-                if continuation_result and continuation_result.get('success'):
-                    continuation_data = continuation_result['continuation_data']
-                    final_extracted_data = merge_extraction_results(extracted_data, continuation_data)
-                    
-                    logging.info(f"✅ Continuation successful: {len(final_extracted_data.get('field_validations', []))} total validations")
-                    
-                    return {
-                        "success": True,
-                        "extracted_data": final_extracted_data,
-                        "field_validations": final_extracted_data.get('field_validations', []),
-                        "input_token_count": extraction_result.input_token_count,
-                        "output_token_count": extraction_result.output_token_count,
-                        "truncation_recovery_used": True,
-                        "continuation_used": True,
-                        "field_count": len(final_extracted_data.get('field_validations', []))
-                    }
-        
-        # Step 6: Return the original results (success case or best effort)
+        # STEP 4: Return standard results
         return {
             "success": True,
             "extracted_data": extracted_data,
