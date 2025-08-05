@@ -35,10 +35,17 @@ def repair_truncated_json(response_text: str) -> str:
     try:
         logging.info(f"Attempting to repair JSON response of length {len(response_text)}")
         
-        # Check if response starts with field_validations structure
-        if not response_text.strip().startswith('{"field_validations":'):
-            logging.warning("Response doesn't start with expected field_validations structure")
-            return None
+        # Check if response starts with field_validations structure or contains it
+        response_stripped = response_text.strip()
+        if not (response_stripped.startswith('{"field_validations":') or '{"field_validations":' in response_stripped):
+            logging.warning("Response doesn't contain expected field_validations structure")
+            # Try to find the start of field_validations
+            field_val_start = response_stripped.find('{"field_validations":')
+            if field_val_start > 0:
+                logging.info(f"Found field_validations structure at position {field_val_start}")
+                response_text = response_stripped[field_val_start:]
+            else:
+                return None
         
         # Find all complete field validation objects by parsing line by line
         import re
