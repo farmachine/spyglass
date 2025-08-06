@@ -1,4 +1,4 @@
-import { Plus, Settings, Search, LayoutDashboard, Shield, Database, AlertTriangle, CheckCircle2, CheckCircle, TrendingUp } from "lucide-react";
+import { Plus, Settings, Search, LayoutDashboard, Shield, Database, AlertTriangle, CheckCircle2, CheckCircle, TrendingUp, GripVertical } from "lucide-react";
 import { WaveIcon, DropletIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { useProjects } from "@/hooks/useProjects";
 import { useDashboardStatistics } from "@/hooks/useDashboardStatistics";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,6 +29,7 @@ export default function Dashboard() {
   const { data: statistics, isLoading: statisticsLoading } = useDashboardStatistics();
   const { user } = useAuth();
   const [, navigate] = useLocation();
+  const queryClient = useQueryClient();
 
   const isAdmin = user?.role === "admin";
   const isPrimaryOrgAdmin = user?.role === "admin" && user?.organization?.type === "primary";
@@ -53,7 +57,51 @@ export default function Dashboard() {
     );
     
     return statusFilter && (nameMatch || descriptionMatch || orgMatch);
-  }) || [];
+  })?.sort((a, b) => (a.dashboardPosition || 0) - (b.dashboardPosition || 0)) || [];
+
+  // Mutation for updating project positions
+  const updateProjectPositions = useMutation({
+    mutationFn: async (updates: Array<{ id: string; dashboardPosition: number }>) => {
+      await Promise.all(
+        updates.map(update =>
+          apiRequest(`/api/projects/${update.id}`, {
+            method: "PUT",
+            body: JSON.stringify({ dashboardPosition: update.dashboardPosition }),
+          })
+        )
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+    },
+  });
+
+  // Handle drag end for project reordering
+  const handleDragEnd = (result: any) => {
+    if (!result.destination) return;
+
+    const items = Array.from(filteredProjects);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    // Update positions optimistically
+    const updates = items.map((project, index) => ({
+      id: project.id,
+      dashboardPosition: index * 10 // Use increments of 10 for future insertions
+    }));
+
+    // Optimistic update
+    queryClient.setQueryData(["/api/projects"], (oldData: any) => {
+      if (!oldData) return oldData;
+      return oldData.map((project: any) => {
+        const update = updates.find(u => u.id === project.id);
+        return update ? { ...project, dashboardPosition: update.dashboardPosition } : project;
+      });
+    });
+
+    // Update server
+    updateProjectPositions.mutate(updates);
+  };
 
   const renderProjectsContent = () => {
     if (isLoading) {
@@ -80,11 +128,46 @@ export default function Dashboard() {
 
     if (filteredProjects && filteredProjects.length > 0) {
       return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProjects.map((project) => (
-            <ProjectCard key={project.id} project={project} />
-          ))}
-        </div>
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Droppable droppableId="projects" direction="horizontal">
+            {(provided, snapshot) => (
+              <div
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+                className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 transition-colors ${
+                  snapshot.isDraggingOver ? 'bg-blue-50/50' : ''
+                }`}
+              >
+                {filteredProjects.map((project, index) => (
+                  <Draggable key={project.id} draggableId={project.id} index={index}>
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        className={`transition-all duration-200 ${
+                          snapshot.isDragging 
+                            ? 'scale-105 shadow-2xl rotate-2 z-50' 
+                            : 'scale-100 shadow-md'
+                        }`}
+                      >
+                        <div className="relative group">
+                          <div
+                            {...provided.dragHandleProps}
+                            className="absolute top-2 right-12 z-10 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing bg-white/90 hover:bg-white rounded p-1 shadow-sm"
+                          >
+                            <GripVertical className="h-4 w-4 text-gray-500" />
+                          </div>
+                          <ProjectCard project={project} />
+                        </div>
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
       );
     }
 

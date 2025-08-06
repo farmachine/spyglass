@@ -33,6 +33,7 @@ export const projects = pgTable("projects", {
   mainObjectName: text("main_object_name").default("Session"),
   mainObjectDescription: text("main_object_description"),
   status: text("status", { enum: ["active", "inactive"] }).notNull().default("active"),
+  dashboardPosition: integer("dashboard_position").default(0), // For free-form drag arrangement on dashboard
   isInitialSetupComplete: boolean("is_initial_setup_complete").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
