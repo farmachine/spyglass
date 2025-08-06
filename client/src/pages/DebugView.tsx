@@ -275,23 +275,36 @@ export default function DebugView() {
               <CardContent>
                 {batchData ? (
                   <div className="space-y-6">
-                    {/* Overview */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="bg-gray-50 p-4 rounded-lg">
+                    {/* Enhanced Overview with Cost Analysis */}
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                      <div className="bg-gray-50 p-4 rounded-lg border">
                         <div className="text-2xl font-bold text-gray-900">{validations?.length || 0}</div>
                         <div className="text-sm text-gray-600">Total Validations</div>
                       </div>
-                      <div className="bg-gray-50 p-4 rounded-lg">
+                      <div className="bg-gray-50 p-4 rounded-lg border">
                         <div className="text-2xl font-bold text-gray-900">{batchData.totalBatches}</div>
                         <div className="text-sm text-gray-600">Processing Batches</div>
                       </div>
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <div className="text-2xl font-bold text-gray-900">{session.inputTokenCount ? Math.round(session.inputTokenCount / 1000) : 0}K</div>
-                        <div className="text-sm text-gray-600">Input Tokens</div>
+                      <div className="bg-blue-50 p-4 rounded-lg border">
+                        <div className="text-2xl font-bold text-blue-900">{formatTokenCount(session.inputTokenCount || 0)}</div>
+                        <div className="text-sm text-blue-600">Total Input Tokens</div>
+                        <div className="text-xs text-blue-500 mt-1">
+                          ~${((session.inputTokenCount || 0) * 0.00001875).toFixed(4)} cost
+                        </div>
                       </div>
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <div className="text-2xl font-bold text-gray-900">{session.outputTokenCount ? Math.round(session.outputTokenCount / 1000) : 0}K</div>
-                        <div className="text-sm text-gray-600">Output Tokens</div>
+                      <div className="bg-green-50 p-4 rounded-lg border">
+                        <div className="text-2xl font-bold text-green-900">{formatTokenCount(session.outputTokenCount || 0)}</div>
+                        <div className="text-sm text-green-600">Total Output Tokens</div>
+                        <div className="text-xs text-green-500 mt-1">
+                          ~${((session.outputTokenCount || 0) * 0.000075).toFixed(4)} cost
+                        </div>
+                      </div>
+                      <div className="bg-purple-50 p-4 rounded-lg border">
+                        <div className="text-2xl font-bold text-purple-900">{formatTokenCount((session.inputTokenCount || 0) + (session.outputTokenCount || 0))}</div>
+                        <div className="text-sm text-purple-600">Combined Tokens</div>
+                        <div className="text-xs text-purple-500 mt-1">
+                          ~${(((session.inputTokenCount || 0) * 0.00001875) + ((session.outputTokenCount || 0) * 0.000075)).toFixed(4)} total
+                        </div>
                       </div>
                     </div>
 
@@ -327,9 +340,40 @@ export default function DebugView() {
                                       {batch.validationCount} validation{batch.validationCount !== 1 ? 's' : ''}
                                     </span>
                                   </div>
-                                  <div className="flex gap-4 text-xs text-gray-500">
-                                    <span>Input: {formatTokenCount(batch.inputTokenCount)} tokens</span>
-                                    <span>Output: {formatTokenCount(batch.outputTokenCount)} tokens</span>
+                                  <div className="text-xs text-gray-500">
+                                    Created: {new Date(batch.createdAt).toLocaleString()}
+                                  </div>
+                                </div>
+                                
+                                {/* Enhanced Token Usage Metrics */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
+                                  <div className="bg-blue-50 p-3 rounded-lg border">
+                                    <div className="text-lg font-semibold text-blue-900">{formatTokenCount(batch.inputTokenCount)}</div>
+                                    <div className="text-xs text-blue-600">Input Tokens</div>
+                                    <div className="text-xs text-blue-500 mt-1">
+                                      ~${((batch.inputTokenCount || 0) * 0.00001875).toFixed(4)} cost
+                                    </div>
+                                  </div>
+                                  <div className="bg-green-50 p-3 rounded-lg border">
+                                    <div className="text-lg font-semibold text-green-900">{formatTokenCount(batch.outputTokenCount)}</div>
+                                    <div className="text-xs text-green-600">Output Tokens</div>
+                                    <div className="text-xs text-green-500 mt-1">
+                                      ~${((batch.outputTokenCount || 0) * 0.000075).toFixed(4)} cost
+                                    </div>
+                                  </div>
+                                  <div className="bg-purple-50 p-3 rounded-lg border">
+                                    <div className="text-lg font-semibold text-purple-900">{formatTokenCount((batch.inputTokenCount || 0) + (batch.outputTokenCount || 0))}</div>
+                                    <div className="text-xs text-purple-600">Total Tokens</div>
+                                    <div className="text-xs text-purple-500 mt-1">
+                                      ~${(((batch.inputTokenCount || 0) * 0.00001875) + ((batch.outputTokenCount || 0) * 0.000075)).toFixed(4)} total
+                                    </div>
+                                  </div>
+                                  <div className="bg-gray-50 p-3 rounded-lg border">
+                                    <div className="text-lg font-semibold text-gray-900">{((batch.validationCount / (validations?.length || 1)) * 100).toFixed(1)}%</div>
+                                    <div className="text-xs text-gray-600">Processing Share</div>
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      {Math.round((batch.inputTokenCount || 0) / (batch.validationCount || 1))} tokens/validation
+                                    </div>
                                   </div>
                                 </div>
                               </CardHeader>
@@ -377,10 +421,51 @@ export default function DebugView() {
                       )}
                     </div>
 
+                    {/* Performance Analytics */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3">Performance Analytics</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-gray-50 p-4 rounded-lg border">
+                          <h4 className="font-medium mb-2">Token Efficiency</h4>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span>Avg tokens per validation:</span>
+                              <span className="font-mono">{Math.round(((session.inputTokenCount || 0) + (session.outputTokenCount || 0)) / (validations?.length || 1))}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Input/Output ratio:</span>
+                              <span className="font-mono">{((session.inputTokenCount || 0) / (session.outputTokenCount || 1)).toFixed(2)}:1</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Cost per validation:</span>
+                              <span className="font-mono">${(((((session.inputTokenCount || 0) * 0.00001875) + ((session.outputTokenCount || 0) * 0.000075)) / (validations?.length || 1)).toFixed(6))}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="bg-gray-50 p-4 rounded-lg border">
+                          <h4 className="font-medium mb-2">Batch Performance</h4>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span>Batches processed:</span>
+                              <span className="font-mono">{sessionBatches?.length || batchData.totalBatches}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Avg validations per batch:</span>
+                              <span className="font-mono">{Math.round((validations?.length || 0) / (sessionBatches?.length || batchData.totalBatches || 1))}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Processing efficiency:</span>
+                              <span className="font-mono">{batchData.totalBatches === 1 ? '100%' : `${(100 - ((batchData.totalBatches - 1) * 20)).toFixed(0)}%`}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Technical Details */}
                     <div>
                       <h3 className="text-lg font-semibold mb-3">Technical Details</h3>
-                      <div className="bg-gray-50 p-4 rounded-lg">
+                      <div className="bg-gray-50 p-4 rounded-lg border">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                           <div>
                             <span className="font-medium">Session ID:</span> {session.id}
@@ -393,6 +478,12 @@ export default function DebugView() {
                           </div>
                           <div>
                             <span className="font-medium">Last Updated:</span> {new Date(session.updatedAt).toLocaleString()}
+                          </div>
+                          <div>
+                            <span className="font-medium">AI Model:</span> Gemini 2.5 Flash
+                          </div>
+                          <div>
+                            <span className="font-medium">Processing Mode:</span> {batchData.totalBatches === 1 ? 'Single Pass' : 'Multi-Batch'}
                           </div>
                         </div>
                       </div>
