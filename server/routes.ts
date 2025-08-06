@@ -2588,10 +2588,13 @@ print(json.dumps(result))
       }));
 
       console.log(`SINGLE-STEP: Processing ${convertedFiles.length} documents with integrated extraction and validation`);
+      console.log(`SINGLE-STEP: Files received:`, files?.map(f => ({ name: f.name, type: f.type, contentLength: f.content?.length })));
+      console.log(`SINGLE-STEP: Converted files:`, convertedFiles.map(f => ({ name: f.file_name, type: f.mime_type, contentLength: f.file_content?.length })));
       
       // Get extraction rules and knowledge documents for comprehensive AI guidance
       const extractionRules = projectId ? await storage.getExtractionRules(projectId) : [];
       const knowledgeDocuments = projectId ? await storage.getKnowledgeDocuments(projectId) : [];
+      console.log(`SINGLE-STEP: Project ${projectId} has ${extractionRules.length} extraction rules and ${knowledgeDocuments.length} knowledge docs`);
       
       // Prepare data for Python single-step extraction script
       const extractionData = {
