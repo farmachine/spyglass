@@ -2605,8 +2605,8 @@ print(json.dumps(result))
         session_id: sessionId
       };
       
-      // Call Python single-step extraction script
-      const python = spawn('python3', ['ai_extraction_single_step.py']);
+      // Call Python comprehensive extraction script
+      const python = spawn('python3', ['ai_extraction_simplified.py']);
       
       python.stdin.write(JSON.stringify(extractionData));
       python.stdin.end();
@@ -2624,9 +2624,14 @@ print(json.dumps(result))
       
       await new Promise((resolve, reject) => {
         python.on('close', async (code: any) => {
+          console.log(`Python script exited with code: ${code}`);
+          console.log(`Python stdout length: ${output.length}`);
+          console.log(`Python stderr length: ${error.length}`);
+          
           if (code !== 0) {
             console.error('SINGLE-STEP PROCESS error:', error);
-            return reject(new Error(`AI single-step extraction failed: ${error}`));
+            console.error('SINGLE-STEP PROCESS stdout:', output);
+            return reject(new Error(`AI single-step extraction failed with code ${code}: ${error}`));
           }
           
           try {
