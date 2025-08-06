@@ -3363,29 +3363,31 @@ print(json.dumps(result))
       // Get existing validations to extract verified data
       const existingValidations = await storage.getSessionValidations(sessionId);
       const verifiedData: Record<string, any> = {};
+      const verificationStatus: Record<string, boolean> = {};
 
       // Build verified data context from existing validations
       existingValidations.forEach(validation => {
-        if (validation.validationStatus === 'verified' || 
-            validation.validationStatus === 'valid' ||
-            validation.validationStatus === 'manual-verified') {
-          
-          if (validation.validationType === 'schema_field') {
-            verifiedData[validation.fieldName] = validation.extractedValue;
-          } else if (validation.validationType === 'collection_property' && 
-                     validation.collectionName && validation.recordIndex !== null) {
-            if (!verifiedData[validation.collectionName]) {
-              verifiedData[validation.collectionName] = [];
-            }
-            
-            // Ensure array has enough elements
-            while (verifiedData[validation.collectionName].length <= validation.recordIndex) {
-              verifiedData[validation.collectionName].push({});
-            }
-            
-            const propertyName = validation.fieldName.split('.').pop()?.replace(/\[\d+\]$/, '') || '';
-            verifiedData[validation.collectionName][validation.recordIndex][propertyName] = validation.extractedValue;
+        const isVerified = validation.validationStatus === 'verified' || 
+                          validation.validationStatus === 'valid' ||
+                          validation.validationStatus === 'manual-verified';
+        
+        if (validation.validationType === 'schema_field') {
+          verifiedData[validation.fieldName] = validation.extractedValue;
+          verificationStatus[validation.fieldName] = isVerified;
+        } else if (validation.validationType === 'collection_property' && 
+                   validation.collectionName && validation.recordIndex !== null) {
+          if (!verifiedData[validation.collectionName]) {
+            verifiedData[validation.collectionName] = [];
           }
+          
+          // Ensure array has enough elements
+          while (verifiedData[validation.collectionName].length <= validation.recordIndex) {
+            verifiedData[validation.collectionName].push({});
+          }
+          
+          const propertyName = validation.fieldName.split('.').pop()?.replace(/\[\d+\]$/, '') || '';
+          verifiedData[validation.collectionName][validation.recordIndex][propertyName] = validation.extractedValue;
+          verificationStatus[validation.fieldName] = isVerified;
         }
       });
 
@@ -3422,10 +3424,12 @@ print(json.dumps(result))
         extraction_rules: extractionRules || [],
         knowledge_documents: knowledgeDocuments || [],
         verified_data: verifiedData,  // Include verified data for context
+        verification_status: verificationStatus,  // Include verification status for each field
         session_name: sessionId
       };
 
       console.log(`ADD_DOCUMENTS: Sending to Python with verified data context:`, Object.keys(verifiedData));
+      console.log(`ADD_DOCUMENTS: Verification status:`, verificationStatus);
 
       python.stdin.write(JSON.stringify(extractionInput));
       python.stdin.end();
@@ -3462,6 +3466,18 @@ print(json.dumps(result))
             if (result.field_validations && Array.isArray(result.field_validations)) {
               for (const fieldValidation of result.field_validations) {
                 try {
+                  // Check if this field was previously verified and is being changed
+                  const wasVerified = verificationStatus[fieldValidation.field_name] || false;
+                  const previousValue = verifiedData[fieldValidation.field_name];
+                  const isValueChanged = wasVerified && previousValue !== fieldValidation.extracted_value;
+                  
+                  // Add change detection info to the AI reasoning if this is a verified field change
+                  let enhancedReasoning = fieldValidation.ai_reasoning || '';
+                  if (isValueChanged) {
+                    console.log(`ADD_DOCUMENTS: Detected change to verified field ${fieldValidation.field_name}: "${previousValue}" → "${fieldValidation.extracted_value}"`);
+                    enhancedReasoning = `[VERIFIED FIELD CHANGED] Previous value: "${previousValue}" → New value: "${fieldValidation.extracted_value}". ${enhancedReasoning}`;
+                  }
+
                   await storage.createFieldValidation({
                     sessionId: sessionId,
                     validationType: fieldValidation.field_type || 'schema_field',
@@ -3473,9 +3489,9 @@ print(json.dumps(result))
                     extractedValue: fieldValidation.extracted_value,
                     originalExtractedValue: fieldValidation.extracted_value,
                     originalConfidenceScore: fieldValidation.confidence_score || 0,
-                    originalAiReasoning: fieldValidation.ai_reasoning,
-                    validationStatus: fieldValidation.validation_status || 'pending',
-                    aiReasoning: fieldValidation.ai_reasoning,
+                    originalAiReasoning: enhancedReasoning,
+                    validationStatus: isValueChanged ? 'requires-review' : (fieldValidation.validation_status || 'pending'),
+                    aiReasoning: enhancedReasoning,
                     manuallyVerified: false,
                     manuallyUpdated: false,
                     confidenceScore: fieldValidation.confidence_score || 0,

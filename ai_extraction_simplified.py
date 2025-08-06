@@ -159,7 +159,8 @@ def step1_extract_from_documents(
     extraction_rules: List[Dict[str, Any]] = None,
     knowledge_documents: List[Dict[str, Any]] = None,
     session_name: str = "contract",
-    verified_data: Dict[str, Any] = None
+    verified_data: Dict[str, Any] = None,
+    verification_status: Dict[str, bool] = None
 ) -> ExtractionResult:
     """
     STEP 1: Extract data from documents using AI
@@ -669,20 +670,27 @@ def step1_extract_from_documents(
             verified_data_context += "The following data has already been verified from previous documents in this session:\n\n"
             
             for field_name, value in verified_data.items():
+                is_verified = verification_status.get(field_name, False) if verification_status else False
+                verification_label = "✓ VERIFIED" if is_verified else "⚠ UNVERIFIED"
+                
                 if isinstance(value, list):
                     # Collection data
-                    verified_data_context += f"**{field_name}**: {len(value)} verified items\n"
+                    verified_data_context += f"**{field_name}** ({verification_label}): {len(value)} items\n"
                     for i, item in enumerate(value):
                         verified_data_context += f"  Item {i+1}: {item}\n"
                 else:
                     # Schema field data
-                    verified_data_context += f"**{field_name}**: {value}\n"
+                    verified_data_context += f"**{field_name}** ({verification_label}): {value}\n"
             
-            verified_data_context += "\nINSTRUCTIONS FOR ADDITIONAL DOCUMENTS:\n"
-            verified_data_context += "- Use this verified information as context when processing the new document\n"
-            verified_data_context += "- If the new document contains conflicting information, prefer the new document's data\n"
-            verified_data_context += "- If the new document adds to collection items, extract all new items found\n"
-            verified_data_context += "- Focus on extracting NEW or ADDITIONAL information from this document\n\n"
+            verified_data_context += "\n## CRITICAL INSTRUCTIONS FOR VERIFIED DATA:\n"
+            verified_data_context += "- **PRESERVE VERIFIED FIELDS**: Do NOT change any field marked as '✓ VERIFIED' unless the new document contains compelling evidence that contradicts it\n"
+            verified_data_context += "- **CHANGE REASONING REQUIRED**: If you must change a verified field, provide detailed reasoning in the 'ai_reasoning' field explaining:\n"
+            verified_data_context += "  * Previous value: [old value]\n"
+            verified_data_context += "  * New value: [new value]\n"
+            verified_data_context += "  * Reason for change: [detailed explanation of why the new document's information is more accurate]\n"
+            verified_data_context += "- **UNVERIFIED FIELDS**: Fields marked '⚠ UNVERIFIED' can be updated normally if new information is found\n"
+            verified_data_context += "- **NEW INFORMATION**: Focus on extracting NEW or ADDITIONAL information from this document\n"
+            verified_data_context += "- **COLLECTION ADDITIONS**: For collections, add new items rather than replacing existing verified items\n\n"
 
         # The imported prompt already contains all the necessary instructions
         # Just add document verification and choice field handling specific to this run
@@ -1177,9 +1185,10 @@ if __name__ == "__main__":
             knowledge_documents = input_data.get("knowledge_documents", [])
             session_name = input_data.get("session_name", "contract")
             verified_data = input_data.get("verified_data", {})  # Additional context for extract_additional
+            verification_status = input_data.get("verification_status", {})  # Verification status for each field
             
             # Call the extraction function (same logic works for both operations)
-            result = step1_extract_from_documents(documents, project_schema, extraction_rules, knowledge_documents, session_name, verified_data)
+            result = step1_extract_from_documents(documents, project_schema, extraction_rules, knowledge_documents, session_name, verified_data, verification_status)
             
             if result.success:
                 print(json.dumps({
