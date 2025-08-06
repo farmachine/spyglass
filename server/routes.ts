@@ -2254,20 +2254,59 @@ print(json.dumps(result))
             
             // Store extracted validations
             if (result.field_validations) {
+              // Get schema fields and collection properties to map field names to UUIDs
+              const schemaFields = await storage.getProjectSchemaFields(project.id);
+              const collections = await storage.getObjectCollections(project.id);
+              
+              // Build mapping from field names to UUIDs
+              const fieldNameToId: Record<string, string> = {};
+              
+              // Map schema fields
+              for (const field of schemaFields) {
+                fieldNameToId[field.fieldName] = field.id;
+              }
+              
+              // Map collection properties  
+              for (const collection of collections) {
+                const properties = await storage.getCollectionProperties(collection.id);
+                for (const prop of properties) {
+                  // Handle indexed collection fields like "Codes.Code Name[0]"
+                  const baseFieldName = `${collection.collectionName}.${prop.propertyName}`;
+                  fieldNameToId[baseFieldName] = prop.id;
+                }
+              }
+              
               for (const validation of result.field_validations) {
+                // Extract base field name (remove index like [0], [1])
+                const fieldName = validation.field_name;
+                const baseFieldName = fieldName.replace(/\[\d+\]$/, '');
+                const fieldId = fieldNameToId[baseFieldName];
+                
+                if (!fieldId) {
+                  console.warn(`Could not find field ID for field: ${fieldName} (base: ${baseFieldName})`);
+                  continue;
+                }
+                
                 // Check if validation already exists for this field
                 const existingValidations = await storage.getFieldValidations(sessionId);
-                const existingValidation = existingValidations.find(v => v.fieldName === validation.field_id);
+                const existingValidation = existingValidations.find(v => 
+                  v.fieldId === fieldId && 
+                  (v.recordIndex || 0) === (validation.record_index || 0)
+                );
                 
                 const validationData = {
                   sessionId: sessionId,
-                  fieldName: validation.field_id,
+                  fieldId: fieldId, // Now properly mapped to UUID
+                  validationType: validation.validation_type || 'schema_field',
+                  dataType: validation.data_type || 'TEXT',
+                  collectionName: validation.collection_name || null,
+                  recordIndex: validation.record_index || 0,
                   extractedValue: validation.extracted_value || '',
-                  confidence: validation.confidence || 0,
-                  aiReasoning: validation.reasoning || '',
-                  status: (validation.confidence >= 80) ? 'verified' : 'pending',
-                  isManuallyEdited: false,
-                  validationType: validation.validation_type || 'schema_field'
+                  confidenceScore: Math.round((validation.confidence_score || 0) * 100),
+                  validationStatus: validation.validation_status || 'pending',
+                  aiReasoning: validation.ai_reasoning || validation.reasoning || '',
+                  manuallyVerified: false,
+                  manuallyUpdated: false
                 };
                 
                 if (existingValidation) {
