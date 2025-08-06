@@ -159,9 +159,9 @@ def step1_extract_from_documents(
     extraction_rules: List[Dict[str, Any]] = None,
     knowledge_documents: List[Dict[str, Any]] = None,
     session_name: str = "contract",
-    verified_data: Dict[str, Any] = None,
-    verification_status: Dict[str, bool] = None,
-    extraction_notes: str = ""
+    validated_data_context: Dict[str, Any] = None,
+    extraction_notes: str = "",
+    is_subsequent_upload: bool = False
 ) -> ExtractionResult:
     """
     STEP 1: Extract data from documents using AI
@@ -673,35 +673,58 @@ def step1_extract_from_documents(
         logging.info(f"Generated field validation example with {len(extraction_rules or [])} extraction rules")
         logging.info(f"Dynamic example preview (first 500 chars): {dynamic_example[:500]}...")
         
-        # Add verified data context if available (for additional document processing)
-        verified_data_context = ""
-        if verified_data and verified_data:
-            verified_data_context = "\n\n## PREVIOUSLY VERIFIED INFORMATION:\n"
-            verified_data_context += "The following data has already been verified from previous documents in this session:\n\n"
+        # Handle validated data context for subsequent uploads
+        validated_context = ""
+        if is_subsequent_upload and validated_data_context:
+            logging.info(f"Processing validated data context with {len(validated_data_context)} existing fields (subsequent upload mode)")
+            validated_context = "\n\n## EXISTING VALIDATED DATA (READ-ONLY CONTEXT):\n"
+            validated_context += "The following data has been previously validated and is provided for context. DO NOT include these fields in your output:\n\n"
             
-            for field_name, value in verified_data.items():
-                is_verified = verification_status.get(field_name, False) if verification_status else False
-                verification_label = "✓ VERIFIED" if is_verified else "⚠ UNVERIFIED"
-                
-                if isinstance(value, list):
-                    # Collection data
-                    verified_data_context += f"**{field_name}** ({verification_label}): {len(value)} items\n"
-                    for i, item in enumerate(value):
-                        verified_data_context += f"  Item {i+1}: {item}\n"
+            # Group by collection for better organization
+            collections_data = {}
+            schema_data = {}
+            
+            for field_name, context in validated_data_context.items():
+                if context.get('collection'):
+                    collection_name = context['collection']
+                    if collection_name not in collections_data:
+                        collections_data[collection_name] = {}
+                    
+                    record_index = context.get('recordIndex', 0)
+                    if record_index not in collections_data[collection_name]:
+                        collections_data[collection_name][record_index] = {}
+                    
+                    # Extract property name from field_name like "Codes.Code Name[0]"
+                    property_name = field_name.split('.')[1].split('[')[0] if '.' in field_name else field_name
+                    collections_data[collection_name][record_index][property_name] = context
                 else:
-                    # Schema field data
-                    verified_data_context += f"**{field_name}** ({verification_label}): {value}\n"
+                    schema_data[field_name] = context
             
-            verified_data_context += "\n## CRITICAL INSTRUCTIONS FOR VERIFIED DATA:\n"
-            verified_data_context += "- **LOCKED VERIFIED FIELDS**: Fields marked as '✓ VERIFIED' are LOCKED and must NOT be changed under any circumstances\n"
-            verified_data_context += "- **PRESERVE VERIFIED VALUES**: For verified fields, return the EXACT same extracted_value that was previously verified\n"
-            verified_data_context += "- **NO OVERRIDES**: Even if the new document contains different information, verified fields cannot be updated\n"
-            verified_data_context += "- **UNVERIFIED FIELDS ONLY**: Only update fields marked '⚠ UNVERIFIED' with new information from the documents\n"
-            verified_data_context += "- **MISSING DATA FOCUS**: Concentrate on filling in empty/missing fields rather than changing existing verified data\n"
-            verified_data_context += "- **EXTRACT NEW DOCUMENT CONTENT**: For unverified/empty fields, extract detailed information from the new document content\n"
-            verified_data_context += "- **DETAILED EXTRACTION**: If the document contains code definitions, meanings, or explanations, extract the FULL detailed text\n"
-            verified_data_context += "- **IGNORE EMPTY VALUES**: Do NOT return 'null', 'empty', or blank values if the document contains relevant information\n"
-            verified_data_context += "- **COMPREHENSIVE SEARCH**: Search the entire document content for code meanings, definitions, and explanations\n\n"
+            # Display schema fields
+            if schema_data:
+                validated_context += "**Schema Fields (Validated):**\n"
+                for field_name, context in schema_data.items():
+                    validated_context += f"- {field_name}: \"{context['value']}\" (Confidence: {context.get('confidence', 0)}%)\n"
+                    if context.get('reasoning'):
+                        validated_context += f"  Reasoning: {context['reasoning']}\n"
+                validated_context += "\n"
+            
+            # Display collection data
+            for collection_name, records in collections_data.items():
+                validated_context += f"**{collection_name} Collection (Validated Records):**\n"
+                for record_index, properties in records.items():
+                    validated_context += f"Record {record_index}:\n"
+                    for prop_name, context in properties.items():
+                        validated_context += f"  - {prop_name}: \"{context['value']}\"\n"
+                        if context.get('reasoning'):
+                            validated_context += f"    Reasoning: {context['reasoning']}\n"
+                validated_context += "\n"
+            
+            validated_context += "## EXTRACTION INSTRUCTIONS FOR SUBSEQUENT UPLOAD:\n"
+            validated_context += "- **FOCUS ON MISSING DATA**: Only extract data for fields that are NOT shown above\n"
+            validated_context += "- **MAINTAIN COLLECTION INTEGRITY**: For collections, ensure new records use the next available index\n"
+            validated_context += "- **EXTRACT FROM NEW DOCUMENT**: Use the uploaded document content to fill missing information\n"
+            validated_context += "- **COMPREHENSIVE EXTRACTION**: Extract detailed explanations, not abbreviated summaries\n\n"
 
         # The imported prompt already contains all the necessary instructions
         # Just add document verification and choice field handling specific to this run
@@ -711,7 +734,7 @@ def step1_extract_from_documents(
             extraction_notes_context = f"\n\n## EXTRACTION NOTES:\n{extraction_notes}\n"
 
         full_prompt += f"""
-{verified_data_context}{extraction_notes_context}
+{validated_context}{extraction_notes_context}
 DOCUMENT VERIFICATION: Confirm you processed all {len(documents)} documents: {[doc.get('file_name', 'Unknown') for doc in documents]}
 
 CHOICE FIELD HANDLING:
@@ -1200,12 +1223,12 @@ if __name__ == "__main__":
             extraction_rules = input_data.get("extraction_rules", [])
             knowledge_documents = input_data.get("knowledge_documents", [])
             session_name = input_data.get("session_name", "contract")
-            verified_data = input_data.get("verified_data", {})  # Additional context for extract_additional
-            verification_status = input_data.get("verification_status", {})  # Verification status for each field
+            validated_data_context = input_data.get("validated_data_context", {})  # New context for subsequent uploads
             extraction_notes = input_data.get("extraction_notes", "")  # Special extraction instructions
+            is_subsequent_upload = input_data.get("is_subsequent_upload", False)  # Flag for upload type
             
-            # Call the extraction function (same logic works for both operations)
-            result = step1_extract_from_documents(documents, project_schema, extraction_rules, knowledge_documents, session_name, verified_data, verification_status, extraction_notes)
+            # Call the extraction function with new parameters
+            result = step1_extract_from_documents(documents, project_schema, extraction_rules, knowledge_documents, session_name, validated_data_context, extraction_notes, is_subsequent_upload)
             
             if result.success:
                 print(json.dumps({

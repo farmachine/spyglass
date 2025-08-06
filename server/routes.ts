@@ -2152,35 +2152,80 @@ print(json.dumps(result))
         return res.status(404).json({ success: false, error: 'Project not found' });
       }
 
-      // Get existing validations to include in AI prompt for context
+      // Get existing validations to build context and filtered schema
       const existingValidations = await storage.getFieldValidations(sessionId);
       
-      // Build verified data and status maps for AI context
-      const verifiedData: any = {};
-      const verificationStatus: any = {};
+      // Separate validated data from unvalidated fields
+      const validatedDataContext: any = {};
+      const unvalidatedFields = new Set<string>();
+      const collectionRecordCounts: any = {};
       
       existingValidations.forEach(validation => {
-        // Include all existing data for AI context, marking verification status properly
-        if (validation.extractedValue && validation.extractedValue.trim() !== '') {
-          verifiedData[validation.fieldName] = validation.extractedValue;
-          // Mark as verified if validation status is 'verified' OR if manuallyVerified is true
-          verificationStatus[validation.fieldName] = (
-            validation.validationStatus === 'verified' || 
-            validation.manuallyVerified === true
-          );
+        const fieldName = validation.fieldName;
+        const isVerified = validation.validationStatus === 'verified' || validation.manuallyVerified === true;
+        const hasData = validation.extractedValue && validation.extractedValue.trim() !== '';
+        
+        if (isVerified && hasData) {
+          // Include full validation context for verified fields
+          validatedDataContext[fieldName] = {
+            value: validation.extractedValue,
+            confidence: validation.confidenceScore,
+            reasoning: validation.aiReasoning,
+            status: 'verified',
+            collection: validation.collectionName,
+            recordIndex: validation.recordIndex || 0
+          };
+          
+          // Track record counts for collections
+          if (validation.collectionName) {
+            const key = validation.collectionName;
+            const index = validation.recordIndex || 0;
+            collectionRecordCounts[key] = Math.max(collectionRecordCounts[key] || 0, index + 1);
+          }
+        } else if (!hasData || (!isVerified && hasData)) {
+          // Field needs to be updated - either empty or unverified
+          unvalidatedFields.add(fieldName.replace(/\[\d+\]$/, '')); // Remove index for base field tracking
         }
       });
 
-      console.log(`AI EXTRACTION: Found ${existingValidations.length} existing validations, ${Object.keys(verifiedData).length} with data`);
+      console.log(`AI EXTRACTION: Found ${existingValidations.length} existing validations`);
+      console.log(`AI EXTRACTION: ${Object.keys(validatedDataContext).length} verified fields, ${unvalidatedFields.size} unvalidated field types`);
+      console.log(`AI EXTRACTION: Collection record counts:`, collectionRecordCounts);
       console.log(`AI EXTRACTION: Processing ${extractedData.documents?.length || 0} documents`);
-      if (extractedData.documents?.length > 0) {
-        const docContent = extractedData.documents[0].file_content || '';
-        console.log(`AI EXTRACTION: First document preview: ${docContent.substring(0, 200)}...`);
-        console.log(`AI EXTRACTION: Document contains code meanings: ${docContent.includes('Active Deferred') || docContent.includes('Code') || docContent.includes('meaning')}`);
-        console.log(`AI EXTRACTION: Document length: ${docContent.length} characters`);
-      }
       
-      // Prepare schema data for Python script
+      // Filter schema to only include fields that need updates
+      const filteredSchemaFields = schemaFields.filter(field => 
+        unvalidatedFields.has(field.fieldName)
+      );
+      
+      const filteredCollections = collections.map(collection => {
+        const collectionBaseKey = collection.collectionName;
+        const hasUnvalidatedProps = collection.properties.some(prop => 
+          unvalidatedFields.has(`${collectionBaseKey}.${prop.propertyName}`)
+        );
+        
+        if (hasUnvalidatedProps) {
+          return {
+            id: collection.id,
+            collectionName: collection.collectionName,
+            description: collection.description,
+            existingRecordCount: collectionRecordCounts[collection.collectionName] || 0,
+            properties: collection.properties.filter(prop => 
+              unvalidatedFields.has(`${collectionBaseKey}.${prop.propertyName}`)
+            ).map(prop => ({
+              id: prop.id,
+              propertyName: prop.propertyName,
+              propertyType: prop.propertyType,
+              description: prop.description
+            }))
+          };
+        }
+        return null;
+      }).filter(Boolean);
+
+      console.log(`AI EXTRACTION: Filtered schema - ${filteredSchemaFields.length} fields, ${filteredCollections.length} collections with missing data`);
+      
+      // Prepare focused schema data for Python script
       const schemaData = {
         project: {
           id: project.id,
@@ -2188,7 +2233,7 @@ print(json.dumps(result))
           description: project.description,
           mainObjectName: project.mainObjectName
         },
-        schema_fields: schemaFields.map(field => ({
+        schema_fields: filteredSchemaFields.map(field => ({
           id: field.id,
           fieldName: field.fieldName,
           fieldType: field.fieldType,
@@ -2197,17 +2242,7 @@ print(json.dumps(result))
           choiceOptions: field.choiceOptions,
           autoVerificationConfidence: field.autoVerificationConfidence
         })),
-        collections: collections.map(collection => ({
-          id: collection.id,
-          collectionName: collection.collectionName,
-          description: collection.description,
-          properties: collection.properties.map(prop => ({
-            id: prop.id,
-            propertyName: prop.propertyName,
-            propertyType: prop.propertyType,
-            description: prop.description
-          }))
-        })),
+        collections: filteredCollections,
         knowledge_documents: knowledgeDocuments.map(doc => ({
           id: doc.id,
           displayName: doc.displayName,
@@ -2296,9 +2331,9 @@ print(json.dumps(result))
         extraction_rules: extractionRules,
         knowledge_documents: knowledgeDocuments,
         session_name: project.mainObjectName || "Session",
-        verified_data: verifiedData,
-        verification_status: verificationStatus,
-        extraction_notes: extractionNotes
+        validated_data_context: validatedDataContext,
+        extraction_notes: extractionNotes,
+        is_subsequent_upload: true
       });
       
       // Debug the exact data being sent to AI
