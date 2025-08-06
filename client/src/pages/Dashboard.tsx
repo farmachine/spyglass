@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -57,50 +57,49 @@ export default function Dashboard() {
     );
     
     return statusFilter && (nameMatch || descriptionMatch || orgMatch);
-  })?.sort((a, b) => (a.dashboardPosition || 0) - (b.dashboardPosition || 0)) || [];
+  }) || [];
 
-  // Mutation for updating project positions
-  const updateProjectPositions = useMutation({
-    mutationFn: async (updates: Array<{ id: string; dashboardPosition: number }>) => {
-      await Promise.all(
-        updates.map(update =>
-          apiRequest(`/api/projects/${update.id}`, {
-            method: "PUT",
-            body: JSON.stringify({ dashboardPosition: update.dashboardPosition }),
-          })
-        )
-      );
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
-    },
-  });
+  // Local state for project order (fallback until database column is available)
+  const [projectOrder, setProjectOrder] = useState<string[]>([]);
+
+  // Initialize project order from localStorage or default order
+  useEffect(() => {
+    if (filteredProjects.length > 0) {
+      const savedOrder = localStorage.getItem('dashboard-project-order');
+      if (savedOrder) {
+        try {
+          const parsed = JSON.parse(savedOrder);
+          setProjectOrder(parsed);
+        } catch {
+          setProjectOrder(filteredProjects.map(p => p.id));
+        }
+      } else {
+        setProjectOrder(filteredProjects.map(p => p.id));
+      }
+    }
+  }, [filteredProjects.length]);
+
+  // Sort projects by the custom order
+  const orderedProjects = projectOrder.length > 0 
+    ? projectOrder
+        .map(id => filteredProjects.find(p => p.id === id))
+        .filter(Boolean)
+        .concat(filteredProjects.filter(p => !projectOrder.includes(p.id)))
+    : filteredProjects;
 
   // Handle drag end for project reordering
   const handleDragEnd = (result: any) => {
     if (!result.destination) return;
 
-    const items = Array.from(filteredProjects);
+    const items = Array.from(orderedProjects);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
-    // Update positions optimistically
-    const updates = items.map((project, index) => ({
-      id: project.id,
-      dashboardPosition: index * 10 // Use increments of 10 for future insertions
-    }));
-
-    // Optimistic update
-    queryClient.setQueryData(["/api/projects"], (oldData: any) => {
-      if (!oldData) return oldData;
-      return oldData.map((project: any) => {
-        const update = updates.find(u => u.id === project.id);
-        return update ? { ...project, dashboardPosition: update.dashboardPosition } : project;
-      });
-    });
-
-    // Update server
-    updateProjectPositions.mutate(updates);
+    const newOrder = items.map(project => project.id);
+    setProjectOrder(newOrder);
+    
+    // Save to localStorage for persistence
+    localStorage.setItem('dashboard-project-order', JSON.stringify(newOrder));
   };
 
   const renderProjectsContent = () => {
@@ -126,7 +125,7 @@ export default function Dashboard() {
       );
     }
 
-    if (filteredProjects && filteredProjects.length > 0) {
+    if (orderedProjects && orderedProjects.length > 0) {
       return (
         <DragDropContext onDragEnd={handleDragEnd}>
           <Droppable droppableId="projects" direction="horizontal">
@@ -138,7 +137,7 @@ export default function Dashboard() {
                   snapshot.isDraggingOver ? 'bg-blue-50/50' : ''
                 }`}
               >
-                {filteredProjects.map((project, index) => (
+                {orderedProjects.map((project, index) => (
                   <Draggable key={project.id} draggableId={project.id} index={index}>
                     {(provided, snapshot) => (
                       <div
