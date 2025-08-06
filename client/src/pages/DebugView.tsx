@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Bug, Copy, Check } from "lucide-react";
 import { useState } from "react";
-import type { ExtractionSession } from "@shared/schema";
+import type { ExtractionSession, FieldValidation } from "@shared/schema";
 
 export default function DebugView() {
   const { sessionId } = useParams();
@@ -15,6 +16,11 @@ export default function DebugView() {
 
   const { data: session, isLoading } = useQuery<ExtractionSession>({
     queryKey: ['/api/sessions', sessionId],
+    enabled: !!sessionId
+  });
+
+  const { data: validations } = useQuery<FieldValidation[]>({
+    queryKey: ['/api/sessions', sessionId, 'validations'],
     enabled: !!sessionId
   });
 
@@ -33,6 +39,19 @@ export default function DebugView() {
       setTimeout(() => setCopiedResponse(false), 2000);
     }
   };
+
+  // Calculate batch information
+  const batchData = validations ? (() => {
+    const batchNumbers = [...new Set(validations.map(v => v.batchNumber || 1))];
+    const batches = batchNumbers.map(batchNumber => ({
+      batchNumber,
+      validationCount: validations.filter(v => (v.batchNumber || 1) === batchNumber).length
+    }));
+    return {
+      totalBatches: batchNumbers.length,
+      batches: batches.sort((a, b) => a.batchNumber - b.batchNumber)
+    };
+  })() : null;
 
   if (isLoading) {
     return (
@@ -109,7 +128,7 @@ export default function DebugView() {
         </Card>
       ) : (
         <Tabs defaultValue="prompt" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="prompt" className="flex items-center gap-2">
               AI Prompt
               {session.extractionPrompt && (
@@ -132,6 +151,19 @@ export default function DebugView() {
                   </span>
                   <span className={`text-xs px-2 py-1 rounded ${session.outputTokenCount ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                     {formatTokenCount(session.outputTokenCount)} tokens
+                  </span>
+                </div>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="batches" className="flex items-center gap-2">
+              Batch Information
+              {batchData && (
+                <div className="flex gap-1">
+                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                    {validations?.length || 0} validations
+                  </span>
+                  <span className={`text-xs px-2 py-1 rounded ${batchData.totalBatches > 1 ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
+                    {batchData.totalBatches} batch{batchData.totalBatches !== 1 ? 'es' : ''}
                   </span>
                 </div>
               )}
@@ -224,6 +256,101 @@ export default function DebugView() {
                 ) : (
                   <div className="text-center py-12 text-muted-foreground">
                     <p>No AI response data available for this session.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="batches">
+            <Card>
+              <CardHeader>
+                <CardTitle>Batch Processing Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {batchData ? (
+                  <div className="space-y-6">
+                    {/* Overview */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="text-2xl font-bold text-gray-900">{validations?.length || 0}</div>
+                        <div className="text-sm text-gray-600">Total Validations</div>
+                      </div>
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="text-2xl font-bold text-gray-900">{batchData.totalBatches}</div>
+                        <div className="text-sm text-gray-600">Processing Batches</div>
+                      </div>
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="text-2xl font-bold text-gray-900">{session.inputTokenCount ? Math.round(session.inputTokenCount / 1000) : 0}K</div>
+                        <div className="text-sm text-gray-600">Input Tokens</div>
+                      </div>
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="text-2xl font-bold text-gray-900">{session.outputTokenCount ? Math.round(session.outputTokenCount / 1000) : 0}K</div>
+                        <div className="text-sm text-gray-600">Output Tokens</div>
+                      </div>
+                    </div>
+
+                    {/* Truncation Status */}
+                    <div className="p-4 rounded-lg border">
+                      {batchData.totalBatches === 1 ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                          <span className="font-medium text-green-700">No Truncation Detected</span>
+                          <span className="text-sm text-gray-600">- All data processed in single batch</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                          <span className="font-medium text-orange-700">Multiple Batches Detected</span>
+                          <span className="text-sm text-gray-600">- AI response was truncated and required continuation</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Batch Breakdown */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3">Batch Breakdown</h3>
+                      <div className="space-y-2">
+                        {batchData.batches.map(batch => (
+                          <div key={batch.batchNumber} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <Badge variant="outline">Batch {batch.batchNumber}</Badge>
+                              <span className="text-sm text-gray-600">
+                                {batch.validationCount} validation{batch.validationCount !== 1 ? 's' : ''}
+                              </span>
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {((batch.validationCount / (validations?.length || 1)) * 100).toFixed(1)}% of total
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Technical Details */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3">Technical Details</h3>
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="font-medium">Session ID:</span> {session.id}
+                          </div>
+                          <div>
+                            <span className="font-medium">Processing Status:</span> {session.status}
+                          </div>
+                          <div>
+                            <span className="font-medium">Created:</span> {new Date(session.createdAt).toLocaleString()}
+                          </div>
+                          <div>
+                            <span className="font-medium">Last Updated:</span> {new Date(session.updatedAt).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <p>No batch processing data available for this session.</p>
                   </div>
                 )}
               </CardContent>
