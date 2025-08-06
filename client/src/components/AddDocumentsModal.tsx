@@ -177,15 +177,31 @@ export default function AddDocumentsModal({
           index === i ? { ...f, progress: 60, status: "processing" as const } : f
         ));
 
-        // Use the same extraction endpoint as NewUpload - this automatically handles existing session detection
-        const extractionResponse = await apiRequest(`/api/sessions/${sessionId}/extract-text`, {
+        // Step 1: Extract text from document
+        const textExtractionResponse = await apiRequest(`/api/sessions/${sessionId}/extract-text`, {
           method: 'POST',
           body: JSON.stringify({ files: [fileData] }),
           headers: { 'Content-Type': 'application/json' }
         });
 
-        if (!extractionResponse || !extractionResponse.success) {
-          throw new Error(extractionResponse?.error || extractionResponse?.message || `Failed to process ${file.file.name}`);
+        if (!textExtractionResponse || !textExtractionResponse.success) {
+          throw new Error(textExtractionResponse?.error || textExtractionResponse?.message || `Failed to extract text from ${file.file.name}`);
+        }
+
+        // Update progress
+        setSelectedFiles(prev => prev.map((f, index) => 
+          index === i ? { ...f, progress: 80, status: "processing" as const } : f
+        ));
+
+        // Step 2: Run AI extraction to match content to existing schema fields
+        const aiExtractionResponse = await apiRequest(`/api/sessions/${sessionId}/ai-extraction`, {
+          method: 'POST',
+          body: JSON.stringify({}), // AI extraction uses the session's extracted data
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!aiExtractionResponse || !aiExtractionResponse.success) {
+          throw new Error(aiExtractionResponse?.error || aiExtractionResponse?.message || `Failed to process ${file.file.name} with AI`);
         }
 
         // Update to completed

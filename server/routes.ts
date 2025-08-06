@@ -2114,6 +2114,184 @@ print(json.dumps(result))
     }
   });
 
+  // AI extraction for existing sessions (used by Add Documents)
+  app.post("/api/sessions/:sessionId/ai-extraction", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      console.log(`AI EXTRACTION: Starting AI analysis for session ${sessionId}`);
+      
+      // Get session data
+      const session = await storage.getSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ success: false, error: 'Session not found' });
+      }
+      
+      if (session.status !== "text_extracted") {
+        return res.status(400).json({ success: false, error: 'Session must have extracted text before AI analysis' });
+      }
+      
+      // Get extracted text data from session
+      let extractedData;
+      try {
+        extractedData = JSON.parse(session.extractedData || '{}');
+      } catch (error) {
+        return res.status(400).json({ success: false, error: 'Invalid extracted data in session' });
+      }
+      
+      // Get project schema and other data
+      const projectId = session.projectId;
+      const [project, schemaFields, collections, knowledgeDocuments, extractionRules] = await Promise.all([
+        storage.getProject(projectId),
+        storage.getProjectSchemaFields(projectId),
+        storage.getProjectCollections(projectId), 
+        storage.getKnowledgeDocuments(projectId),
+        storage.getExtractionRules(projectId)
+      ]);
+      
+      if (!project) {
+        return res.status(404).json({ success: false, error: 'Project not found' });
+      }
+
+      // Get existing validations to include in AI prompt for context
+      const existingValidations = await storage.getSessionValidations(sessionId);
+      
+      // Build verified data and status maps for AI context
+      const verifiedData: any = {};
+      const verificationStatus: any = {};
+      
+      existingValidations.forEach(validation => {
+        if (validation.status === 'verified' && validation.extractedValue) {
+          verifiedData[validation.fieldName] = validation.extractedValue;
+          verificationStatus[validation.fieldName] = true;
+        } else if (validation.extractedValue) {
+          verifiedData[validation.fieldName] = validation.extractedValue;
+          verificationStatus[validation.fieldName] = false;
+        }
+      });
+
+      console.log(`AI EXTRACTION: Found ${existingValidations.length} existing validations, ${Object.keys(verifiedData).length} with data`);
+      
+      // Prepare schema data for Python script
+      const schemaData = {
+        project: {
+          id: project.id,
+          name: project.name,
+          description: project.description,
+          mainObjectName: project.mainObjectName
+        },
+        schema_fields: schemaFields.map(field => ({
+          id: field.id,
+          fieldName: field.fieldName,
+          fieldType: field.fieldType,
+          description: field.description,
+          orderIndex: field.orderIndex,
+          choiceOptions: field.choiceOptions,
+          autoVerificationConfidence: field.autoVerificationConfidence
+        })),
+        collections: collections.map(collection => ({
+          id: collection.id,
+          collectionName: collection.collectionName,
+          description: collection.description,
+          properties: collection.properties.map(prop => ({
+            id: prop.id,
+            propertyName: prop.propertyName,
+            propertyType: prop.propertyType,
+            description: prop.description
+          }))
+        })),
+        knowledge_documents: knowledgeDocuments.map(doc => ({
+          id: doc.id,
+          displayName: doc.displayName,
+          content: doc.content || ""
+        })),
+        extraction_rules: extractionRules.map(rule => ({
+          id: rule.id,
+          ruleName: rule.ruleName,
+          ruleContent: rule.ruleContent,
+          targetFields: rule.targetField ? [rule.targetField] : []
+        }))
+      };
+
+      // Call Python AI extraction script with existing validation context
+      const python = spawn('python3', ['ai_extraction_simplified.py'], {
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+
+      const inputData = JSON.stringify({
+        documents: extractedData.documents || [],
+        project_schema: schemaData,
+        extraction_rules: extractionRules,
+        knowledge_documents: knowledgeDocuments,
+        session_name: project.mainObjectName || "Session",
+        verified_data: verifiedData,
+        verification_status: verificationStatus
+      });
+
+      python.stdin.write(inputData);
+      python.stdin.end();
+
+      let output = '';
+      let error = '';
+
+      python.stdout.on('data', (data: any) => {
+        output += data.toString();
+      });
+
+      python.stderr.on('data', (data: any) => {
+        error += data.toString();
+      });
+
+      await new Promise((resolve, reject) => {
+        python.on('close', async (code: any) => {
+          if (code !== 0) {
+            console.error('AI EXTRACTION error:', error);
+            return reject(new Error(`AI extraction failed: ${error}`));
+          }
+          
+          try {
+            const result = JSON.parse(output);
+            console.log(`AI EXTRACTION: Processing completed with ${result.field_validations?.length || 0} field validations`);
+            
+            // Store extracted validations
+            if (result.field_validations) {
+              for (const validation of result.field_validations) {
+                await storage.upsertValidation(sessionId, {
+                  fieldName: validation.field_id,
+                  extractedValue: validation.extracted_value || '',
+                  confidence: validation.confidence || 0,
+                  aiReasoning: validation.reasoning || '',
+                  status: (validation.confidence >= 80) ? 'verified' : 'pending',
+                  isManuallyEdited: false
+                });
+              }
+            }
+
+            // Update session status
+            await storage.updateExtractionSession(sessionId, {
+              status: "ai_processed"
+            });
+            
+            resolve(result);
+            
+          } catch (parseError) {
+            console.error('AI EXTRACTION JSON parse error:', parseError);
+            console.error('Raw output:', output);
+            reject(new Error(`Invalid JSON response: ${parseError}`));
+          }
+        });
+      });
+      
+      res.json({
+        success: true,
+        message: "AI extraction completed successfully"
+      });
+      
+    } catch (error) {
+      console.error("AI EXTRACTION error:", error);
+      res.status(500).json({ success: false, message: "Failed to run AI extraction", error: error.message });
+    }
+  });
+
   // Gemini AI extraction endpoint
   app.post("/api/sessions/:sessionId/gemini-extraction", async (req, res) => {
     try {
