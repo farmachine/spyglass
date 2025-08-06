@@ -2300,6 +2300,21 @@ print(json.dumps(result))
         verification_status: verificationStatus,
         extraction_notes: extractionNotes
       });
+      
+      // Debug the exact data being sent to AI
+      console.log(`AI INPUT DATA: ${inputData.length} characters`);
+      if (extractedData.documents?.length > 0) {
+        const firstDoc = extractedData.documents[0];
+        const content = firstDoc.file_content || '';
+        console.log(`AI INPUT DOCUMENT: ${firstDoc.file_name} (${content.length} chars)`);
+        if (content.includes('Active Deferred') || content.includes('Pension Scheme')) {
+          console.log('✓ Document contains pension code content');
+          console.log(`Sample content: ${content.substring(0, 500)}...`);
+        } else {
+          console.log('⚠ Document may not contain expected code meanings');
+          console.log(`Actual content preview: ${content.substring(0, 300)}...`);
+        }
+      }
 
       python.stdin.write(inputData);
       python.stdin.end();
