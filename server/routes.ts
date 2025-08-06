@@ -2266,7 +2266,8 @@ print(json.dumps(result))
                   confidence: validation.confidence || 0,
                   aiReasoning: validation.reasoning || '',
                   status: (validation.confidence >= 80) ? 'verified' : 'pending',
-                  isManuallyEdited: false
+                  isManuallyEdited: false,
+                  validationType: validation.validation_type || 'schema_field'
                 };
                 
                 if (existingValidation) {
