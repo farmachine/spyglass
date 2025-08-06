@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Settings, Database, Tag, GripVertical, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Edit, Trash2, Settings, Database, Tag, GripVertical, Sparkles } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -58,10 +58,6 @@ export default function DefineData({ project }: DefineDataProps) {
   const [isEditingMainObjectName, setIsEditingMainObjectName] = useState(false);
   const [isEditingMainObjectDescription, setIsEditingMainObjectDescription] = useState(false);
   const [activeTab, setActiveTab] = useState('main-data');
-  
-  // Alt key hover state for swapping
-  const [isAltPressed, setIsAltPressed] = useState(false);
-  const [hoveredItem, setHoveredItem] = useState<{ type: 'field' | 'collection'; id: string } | null>(null);
   
   // Update local state when project prop changes (needed for database updates)
   useEffect(() => {
