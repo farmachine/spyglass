@@ -2160,12 +2160,14 @@ print(json.dumps(result))
       const verificationStatus: any = {};
       
       existingValidations.forEach(validation => {
-        if (validation.status === 'verified' && validation.extractedValue) {
+        // Include all existing data for AI context, marking verification status properly
+        if (validation.extractedValue && validation.extractedValue.trim() !== '') {
           verifiedData[validation.fieldName] = validation.extractedValue;
-          verificationStatus[validation.fieldName] = true;
-        } else if (validation.extractedValue) {
-          verifiedData[validation.fieldName] = validation.extractedValue;
-          verificationStatus[validation.fieldName] = false;
+          // Mark as verified if validation status is 'verified' OR if manuallyVerified is true
+          verificationStatus[validation.fieldName] = (
+            validation.validationStatus === 'verified' || 
+            validation.manuallyVerified === true
+          );
         }
       });
 
@@ -2375,10 +2377,21 @@ print(json.dumps(result))
                 };
                 
                 if (existingValidation) {
-                  // Update existing validation
-                  await storage.updateFieldValidation(existingValidation.id, validationData);
+                  // Check if existing validation is verified/locked - if so, preserve its data
+                  const isVerified = existingValidation.validationStatus === 'verified' || existingValidation.manuallyVerified === true;
+                  
+                  if (isVerified) {
+                    console.log(`PROTECTING VERIFIED FIELD: ${fieldName} - keeping existing value: ${existingValidation.extractedValue}`);
+                    // Don't update verified fields - they are locked
+                    continue;
+                  } else {
+                    console.log(`UPDATING UNVERIFIED FIELD: ${fieldName} - from "${existingValidation.extractedValue}" to "${extractedValue}"`);
+                    // Update existing unverified validation
+                    await storage.updateFieldValidation(existingValidation.id, validationData);
+                  }
                 } else {
-                  // Create new validation
+                  // Create new validation for fields that don't exist yet
+                  console.log(`CREATING NEW FIELD: ${fieldName} - value: "${extractedValue}"`);
                   await storage.createFieldValidation(validationData);
                 }
               }

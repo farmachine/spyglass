@@ -684,14 +684,12 @@ def step1_extract_from_documents(
                     verified_data_context += f"**{field_name}** ({verification_label}): {value}\n"
             
             verified_data_context += "\n## CRITICAL INSTRUCTIONS FOR VERIFIED DATA:\n"
-            verified_data_context += "- **PRESERVE VERIFIED FIELDS**: Do NOT change any field marked as '✓ VERIFIED' unless the new document contains compelling evidence that contradicts it\n"
-            verified_data_context += "- **CHANGE REASONING REQUIRED**: If you must change a verified field, provide detailed reasoning in the 'ai_reasoning' field explaining:\n"
-            verified_data_context += "  * Previous value: [old value]\n"
-            verified_data_context += "  * New value: [new value]\n"
-            verified_data_context += "  * Reason for change: [detailed explanation of why the new document's information is more accurate]\n"
-            verified_data_context += "- **UNVERIFIED FIELDS**: Fields marked '⚠ UNVERIFIED' can be updated normally if new information is found\n"
-            verified_data_context += "- **NEW INFORMATION**: Focus on extracting NEW or ADDITIONAL information from this document\n"
-            verified_data_context += "- **COLLECTION ADDITIONS**: For collections, add new items rather than replacing existing verified items\n\n"
+            verified_data_context += "- **LOCKED VERIFIED FIELDS**: Fields marked as '✓ VERIFIED' are LOCKED and must NOT be changed under any circumstances\n"
+            verified_data_context += "- **PRESERVE VERIFIED VALUES**: For verified fields, return the EXACT same extracted_value that was previously verified\n"
+            verified_data_context += "- **NO OVERRIDES**: Even if the new document contains different information, verified fields cannot be updated\n"
+            verified_data_context += "- **UNVERIFIED FIELDS ONLY**: Only update fields marked '⚠ UNVERIFIED' with new information from the documents\n"
+            verified_data_context += "- **MISSING DATA FOCUS**: Concentrate on filling in empty/missing fields rather than changing existing verified data\n"
+            verified_data_context += "- **STRICT PRESERVATION**: Return verified fields with identical extracted_value, validation_status, and confidence_score\n\n"
 
         # The imported prompt already contains all the necessary instructions
         # Just add document verification and choice field handling specific to this run
