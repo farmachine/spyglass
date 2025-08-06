@@ -1943,7 +1943,7 @@ Thank you for your assistance.`;
                     if (verifiedCount === totalCount) {
                       return <Check className="w-4 h-4 ml-2 text-green-600" />;
                     } else {
-                      return <Check className="w-4 h-4 ml-2 text-gray-400" />;
+                      return <Check className="w-4 h-4 ml-2 text-white" />;
                     }
                   })()}
                 </TabsTrigger>
@@ -1971,7 +1971,7 @@ Thank you for your assistance.`;
                         if (verifiedCount === totalCount) {
                           return <Check className="w-4 h-4 ml-2 text-green-600" />;
                         } else {
-                          return <Check className="w-4 h-4 ml-2 text-gray-400" />;
+                          return <Check className="w-4 h-4 ml-2 text-white" />;
                         }
                       })()}
                     </TabsTrigger>
