@@ -325,62 +325,6 @@ export default function DebugView() {
                       )}
                     </div>
 
-                    {/* Batch Comparison Summary (only show if multiple batches) */}
-                    {sessionBatches && sessionBatches.length > 1 && (
-                      <div>
-                        <h3 className="text-lg font-semibold mb-3">Batch Comparison</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                          {sessionBatches.map(batch => (
-                            <div key={batch.batchNumber} className={`p-4 rounded-lg border-2 ${batch.batchNumber === 1 ? 'border-blue-200 bg-blue-50' : 'border-orange-200 bg-orange-50'}`}>
-                              <div className="flex items-center justify-between mb-3">
-                                <Badge variant={batch.batchNumber === 1 ? "default" : "secondary"} className="text-sm">
-                                  Batch {batch.batchNumber} {batch.batchNumber === 1 ? '(Initial)' : '(Continuation)'}
-                                </Badge>
-                                <span className="text-xs text-gray-500">
-                                  {batch.validationCount} validations
-                                </span>
-                              </div>
-                              
-                              <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                  <span>Input tokens:</span>
-                                  <span className="font-mono font-semibold">{formatTokenCount(batch.inputTokenCount)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Output tokens:</span>
-                                  <span className="font-mono font-semibold">{formatTokenCount(batch.outputTokenCount)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Total tokens:</span>
-                                  <span className="font-mono font-semibold">{formatTokenCount((batch.inputTokenCount || 0) + (batch.outputTokenCount || 0))}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Cost:</span>
-                                  <span className="font-mono font-semibold">${(((batch.inputTokenCount || 0) * 0.00001875) + ((batch.outputTokenCount || 0) * 0.000075)).toFixed(4)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Efficiency:</span>
-                                  <span className="font-mono font-semibold">{Math.round((batch.inputTokenCount || 0) / (batch.validationCount || 1))} tokens/validation</span>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        
-                        {/* Batch comparison insights */}
-                        {sessionBatches.length === 2 && (
-                          <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                            <h4 className="font-medium text-yellow-800 mb-2">Batch Analysis</h4>
-                            <div className="text-sm text-yellow-700 space-y-1">
-                              <div>• Batch 1 used {formatTokenCount(sessionBatches[0]?.inputTokenCount || 0)} input tokens vs Batch 2: {formatTokenCount(sessionBatches[1]?.inputTokenCount || 0)}</div>
-                              <div>• Batch 2 generated {formatTokenCount(sessionBatches[1]?.outputTokenCount || 0)} output tokens (continuation data)</div>
-                              <div>• Token efficiency: Batch 1: {Math.round((sessionBatches[0]?.inputTokenCount || 0) / (sessionBatches[0]?.validationCount || 1))} vs Batch 2: {Math.round((sessionBatches[1]?.inputTokenCount || 0) / (sessionBatches[1]?.validationCount || 1))} tokens per validation</div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
                     {/* Detailed Batch Information */}
                     <div>
                       <h3 className="text-lg font-semibold mb-3">Detailed Batch Information</h3>

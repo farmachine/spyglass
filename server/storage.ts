@@ -1290,15 +1290,6 @@ export class MemStorage implements IStorage {
     return this.extractionSessions.get(sessionId);
   }
 
-  async updateSession(sessionId: string, updateData: Partial<ExtractionSession>): Promise<ExtractionSession | undefined> {
-    const existingSession = this.extractionSessions.get(sessionId);
-    if (!existingSession) return undefined;
-    
-    const updatedSession = { ...existingSession, ...updateData };
-    this.extractionSessions.set(sessionId, updatedSession);
-    return updatedSession;
-  }
-
   async getProjectCollections(projectId: string): Promise<ObjectCollection[]> {
     return Array.from(this.objectCollections.values())
       .filter(collection => collection.projectId === projectId)
