@@ -2140,7 +2140,13 @@ print(json.dumps(result))
           extractedData.documents = extractedData.extracted_texts.map(textDoc => ({
             file_name: textDoc.file_name,
             file_content: textDoc.text_content,
-            word_count: textDoc.word_count
+            word_count: textDoc.word_count,
+            mime_type: textDoc.file_name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 
+                      textDoc.file_name.toLowerCase().endsWith('.docx') ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' :
+                      textDoc.file_name.toLowerCase().endsWith('.doc') ? 'application/msword' :
+                      textDoc.file_name.toLowerCase().endsWith('.xlsx') ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' :
+                      textDoc.file_name.toLowerCase().endsWith('.xls') ? 'application/vnd.ms-excel' :
+                      'application/octet-stream'
           }));
         }
       } catch (error) {
