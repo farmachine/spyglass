@@ -2266,7 +2266,7 @@ print(json.dumps(result))
       const collectionStats = {};
       
       // Count existing records per collection and identify empty fields
-      Object.keys(verifiedData).forEach(fieldName => {
+      Object.keys(validatedDataContext).forEach(fieldName => {
         const parts = fieldName.split('.');
         if (parts.length >= 2) {
           const collectionName = parts[0];
@@ -2282,10 +2282,8 @@ print(json.dumps(result))
             const recordIndex = parseInt(indexMatch[1]);
             collectionStats[collectionName].total = Math.max(collectionStats[collectionName].total, recordIndex + 1);
             
-            // Check if this field is empty
-            if (!verifiedData[fieldName] || verifiedData[fieldName].trim() === '') {
-              collectionStats[collectionName].emptyFields.push(fieldName);
-            }
+            // Check if this field is empty - note: validatedDataContext only contains verified data
+            // Unverified/empty fields are tracked separately in unvalidatedFields
           }
         }
       });
