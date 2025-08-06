@@ -46,14 +46,19 @@ EXTRACTION_PROMPT = """You are an expert data extraction specialist. Extract dat
 - **Collection-Section Matching**: If a collection name (e.g., "Increase Rates") matches or relates to a document section name (e.g., "2.3 Increase Rates"), extract ALL numbered subsections within that boundary
 - **Complete Number Sequences**: Count how many numbered items exist in a sequence and extract every single one - do not stop at 2-3 examples
 
-### Markdown Table Recognition:
-- **Markdown Format**: Recognize markdown tables with pipes (|) separating columns and dashes (-) creating headers
-- **Table Structure**: Identify table headers, data rows, and understand that each row represents a separate collection item
-- **Row Extraction**: Extract EVERY data row from markdown tables - if you see 10 rows, extract all 10 as separate collection items
-- **Column Mapping**: Map table columns to collection properties based on header names and content patterns
-- **Table Boundaries**: Understand where tables start and end in markdown format
-- **COMPLETE COLUMN EXTRACTION**: When extracting from tables, ensure ALL columns for ALL rows are extracted - do not leave any table cells empty in your extraction. If a table has 3 columns (Name, Code, Meaning), extract ALL 3 columns for EVERY row
-- **MISSING DATA INFERENCE**: If a table column appears to have corresponding data but isn't explicitly labeled (e.g., code meanings), infer and extract the meanings based on the codes and context
+### Table and Collection Data Extraction:
+- **Complete Table Processing**: When you encounter any table (markdown format with | separators, regular tables, or data in tabular format), extract EVERY single row as a separate collection item
+- **No Data Omission**: If a table has 15 rows of data, extract all 15 - never stop at 2-3 examples or truncate the results
+- **Column Completeness**: For each table row, extract values for ALL columns/properties defined in the schema - do not leave any fields empty unless the cell is genuinely blank in the source
+- **Data Inference**: When a table cell appears empty but context suggests a value should exist, infer the most appropriate value based on:
+  - Pattern recognition from other rows
+  - Context clues from the document
+  - Logical relationships between fields
+- **Property Mapping**: Map table columns to schema properties using:
+  - Exact header name matches
+  - Semantic similarity (e.g., "Description" maps to "Meaning")
+  - Content pattern analysis
+- **Missing Properties**: If a schema property isn't represented in the table but the document contains related information elsewhere, extract and populate that property for all collection items
 
 ### Collection Identification Strategies:
 1. **Header Analysis**: Look for section headers, table titles, or list introductions that indicate content type

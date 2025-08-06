@@ -2217,11 +2217,61 @@ print(json.dumps(result))
         stdio: ['pipe', 'pipe', 'pipe']
       });
 
-      // Add specific instruction for Code Meanings extraction
-      const codesCount = Object.keys(verifiedData).filter(key => key.startsWith('Codes.')).length / 2; // Divide by 2 since we have Code Name and Code List
-      const codeExtractionNote = codesCount > 0 ? 
-        `SPECIAL INSTRUCTION: Extract Code Meanings for ALL ${Math.floor(codesCount)} code records. Do not leave any Code Meanings empty - infer meanings from context if not explicitly stated.` : 
-        '';
+      // Analyze existing data to identify incomplete collections that need full extraction
+      const incompleteCollections = [];
+      const collectionStats = {};
+      
+      // Count existing records per collection and identify empty fields
+      Object.keys(verifiedData).forEach(fieldName => {
+        const parts = fieldName.split('.');
+        if (parts.length >= 2) {
+          const collectionName = parts[0];
+          
+          if (!collectionStats[collectionName]) {
+            collectionStats[collectionName] = { total: 0, emptyFields: [] };
+          }
+          
+          // Count records by looking for indexed fields
+          const propertyPart = parts.slice(1).join('.');
+          const indexMatch = propertyPart.match(/\[(\d+)\]$/);
+          if (indexMatch) {
+            const recordIndex = parseInt(indexMatch[1]);
+            collectionStats[collectionName].total = Math.max(collectionStats[collectionName].total, recordIndex + 1);
+            
+            // Check if this field is empty
+            if (!verifiedData[fieldName] || verifiedData[fieldName].trim() === '') {
+              collectionStats[collectionName].emptyFields.push(fieldName);
+            }
+          }
+        }
+      });
+      
+      // Build extraction instructions for collections with incomplete data
+      let extractionNotes = "";
+      Object.entries(collectionStats).forEach(([collectionName, stats]) => {
+        if (stats.emptyFields.length > 0) {
+          const emptyFieldsByProperty = {};
+          stats.emptyFields.forEach(fieldName => {
+            const propertyName = fieldName.split('.').pop().replace(/\[\d+\]$/, '');
+            if (!emptyFieldsByProperty[propertyName]) {
+              emptyFieldsByProperty[propertyName] = 0;
+            }
+            emptyFieldsByProperty[propertyName]++;
+          });
+          
+          const emptyProperties = Object.entries(emptyFieldsByProperty)
+            .map(([prop, count]) => `${prop} (${count} empty)`)
+            .join(', ');
+          
+          extractionNotes += `CRITICAL: Complete ALL missing data for ${collectionName} collection (${stats.total} records). `;
+          extractionNotes += `Empty fields: ${emptyProperties}. Extract or infer values for ALL empty fields. `;
+        }
+      });
+      
+      if (extractionNotes) {
+        extractionNotes = "INCOMPLETE DATA COMPLETION: " + extractionNotes + 
+          "Do not leave any fields empty - extract from document text or infer from context when explicit values aren't available.";
+      }
 
       const inputData = JSON.stringify({
         documents: extractedData.documents || [],
@@ -2231,7 +2281,7 @@ print(json.dumps(result))
         session_name: project.mainObjectName || "Session",
         verified_data: verifiedData,
         verification_status: verificationStatus,
-        extraction_notes: codeExtractionNote
+        extraction_notes: extractionNotes
       });
 
       python.stdin.write(inputData);
