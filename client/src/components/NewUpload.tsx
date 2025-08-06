@@ -29,6 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type { ProjectWithDetails } from "@shared/schema";
+import { AsyncProcessingStatus } from "./AsyncProcessingStatus";
 
 const uploadFormSchema = z.object({
   sessionName: z.string().min(1, "Session name is required"),
@@ -68,6 +69,8 @@ export default function NewUpload({ project }: NewUploadProps) {
   const [totalDocuments, setTotalDocuments] = useState(0);
   const [extractionMode, setExtractionMode] = useState<'automated' | 'debug'>('automated');
   const [, setLocation] = useLocation();
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [showAsyncProcessing, setShowAsyncProcessing] = useState(false);
   
   const createExtractionSession = useCreateExtractionSession(project.id);
   const processExtraction = useProcessExtraction();
@@ -218,18 +221,23 @@ export default function NewUpload({ project }: NewUploadProps) {
         sessionName: data.sessionName,
         description: data.description || null,
         documentCount: selectedFiles.length,
-        status: "in_progress",
+        status: "pending",
       });
 
-      // Step 2: File upload progress
+      setSessionId(session.id);
+
+      // Step 2: File upload progress simulation (quick)
       setProcessingStep('uploading');
       for (let i = 0; i < selectedFiles.length; i++) {
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, 100));
         setProcessedDocuments(i + 1);
         setProcessingProgress(((i + 1) / selectedFiles.length) * 100);
       }
 
-      // Prepare file data for text extraction
+      // Step 3: Prepare file data for async processing
+      setProcessingStep('extracting');
+      setProcessingProgress(20);
+
       const filesData = await Promise.all(selectedFiles.map(async (fileData) => {
         try {
           // Read file content as base64
@@ -263,275 +271,45 @@ export default function NewUpload({ project }: NewUploadProps) {
         }
       }));
 
-      // Step 3: Text Extraction Phase with progressive loading
-      setProcessingStep('extracting');
-      setProcessingProgress(0);
+      // Step 4: Start async processing  
+      setProcessingProgress(50);
       setSelectedFiles(prev => prev.map(f => ({ ...f, status: "processing" as const })));
 
-      // Calculate estimated processing time based on total file size
-      const totalSize = filesData.reduce((sum, file) => sum + file.size, 0);
-      const estimatedProcessingTime = Math.max(2000, Math.min(15000, totalSize / 10000)); // 2-15 seconds based on size
-      
-      // Start progressive loading simulation
-      const startTime = Date.now();
-      const progressInterval = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(85, (elapsed / estimatedProcessingTime) * 85); // Cap at 85% until actual completion
-        setProcessingProgress(progress);
-      }, 200);
+      // Trigger async processing via the new async endpoint
+      const project_data = {
+        id: project.id,
+        projectId: project.id,
+        schemaFields: schemaFields,
+        collections: collections
+      };
 
-      let textExtractionResult;
-      try {
-        // Call new text extraction endpoint
-        textExtractionResult = await apiRequest(`/api/sessions/${session.id}/extract-text`, {
-          method: 'POST',
-          body: JSON.stringify({ files: filesData }),
-          headers: { 'Content-Type': 'application/json' }
-        });
+      await apiRequest(`/api/sessions/${session.id}/process-async`, {
+        method: 'POST',
+        body: JSON.stringify({
+          files: filesData,
+          project_data: project_data
+        }),
+        headers: { 'Content-Type': 'application/json' }
+      });
 
-        clearInterval(progressInterval);
-        setProcessingProgress(100);
-      } catch (error) {
-        clearInterval(progressInterval);
-        throw error;
-      }
+      setProcessingProgress(100);
+      setProcessingStep('complete');
 
-      if (extractionMode === 'automated') {
-        // Step 4: AI Extraction (Automated Mode Only)
-        setProcessingStep('extracting');
-        setProcessingProgress(0);
-
-        // Generate the comprehensive prompt using same logic as SchemaView
-        const schemaData = {
-          schema_fields: schemaFields,
-          collections: collections,
-          extraction_rules: extractionRules,
-          knowledge_documents: knowledgeDocuments,
-          project: project
-        };
-
-        const generateSchemaMarkdown = (schemaData: any, extractedText: string, documentCount: number) => {
-          let prompt = `You are an AI data extraction specialist. Extract data from the provided documents according to the schema configuration below.\n\n`;
-          
-          // Document content
-          prompt += `DOCUMENT CONTENT (${documentCount} document(s)):\n${extractedText}\n\n`;
-          
-          // Schema fields section
-          prompt += `PROJECT SCHEMA FIELDS (${schemaData.schema_fields.length} fields):\n`;
-          schemaData.schema_fields.forEach((field: any, index: number) => {
-            prompt += `${index + 1}. Field Name: ${field.fieldName}\n`;
-            prompt += `   Field Type: ${field.fieldType}\n`;
-            prompt += `   Description: ${field.description || 'No description'}\n`;
-            if (field.fieldType === 'CHOICE' && field.choiceOptions) {
-              const choices = field.choiceOptions.map((opt: any) => opt.value || opt).join('; ');
-              prompt += `   Choice Options: The output should be one of the following choices: ${choices}.\n`;
-            }
-            prompt += `   Auto Verification: ${field.autoVerificationConfidence || 80}%\n`;
-            
-            // Add extraction rules for this field
-            const fieldRules = schemaData.extraction_rules.filter((rule: any) => 
-              !rule.targetPropertyIds || rule.targetPropertyIds.length === 0 || rule.targetPropertyIds.includes(field.id)
-            );
-            if (fieldRules.length > 0) {
-              prompt += `   Extraction Rules: ${fieldRules.map((rule: any) => rule.ruleContent).join('; ')}\n`;
-            } else {
-              prompt += `   Extraction Rules: None\n`;
-            }
-            prompt += `\n`;
-          });
-          
-          // Collections section
-          prompt += `\nCOLLECTIONS (${schemaData.collections.length} collections):\n`;
-          schemaData.collections.forEach((collection: any, collIndex: number) => {
-            prompt += `${collIndex + 1}. Collection Name: ${collection.collectionName}\n`;
-            prompt += `   Description: ${collection.description || 'No description'}\n`;
-            prompt += `   Properties (${collection.properties?.length || 0}):\n`;
-            
-            collection.properties?.forEach((prop: any, propIndex: number) => {
-              prompt += `   ${propIndex + 1}. Property Name: ${prop.propertyName}\n`;
-              prompt += `      Property Type: ${prop.propertyType}\n`;  
-              prompt += `      Description: ${prop.description || 'No description'}\n`;
-              if (prop.propertyType === 'CHOICE' && prop.choiceOptions) {
-                const choices = prop.choiceOptions.map((opt: any) => opt.value || opt).join('; ');
-                prompt += `      Choice Options: The output should be one of the following choices: ${choices}.\n`;
-              }
-              prompt += `      Auto Verification: ${prop.autoVerificationConfidence || 80}%\n`;
-              
-              // Add extraction rules for this property
-              const propRules = schemaData.extraction_rules.filter((rule: any) => 
-                !rule.targetPropertyIds || rule.targetPropertyIds.length === 0 || rule.targetPropertyIds.includes(prop.id)
-              );
-              if (propRules.length > 0) {
-                prompt += `      Extraction Rules: ${propRules.map((rule: any) => rule.ruleContent).join('; ')}\n`;
-              } else {
-                prompt += `      Extraction Rules: None\n`;
-              }
-              prompt += `\n`;
-            });
-            prompt += `\n`;
-          });
-          
-          // Knowledge documents
-          prompt += `\nKNOWLEDGE DOCUMENTS (${schemaData.knowledge_documents.length}):\n`;
-          if (schemaData.knowledge_documents.length > 0) {
-            schemaData.knowledge_documents.forEach((doc: any, index: number) => {
-              prompt += `${index + 1}. Document: ${doc.title}\n`;
-              prompt += `   Content: ${doc.content || 'No content'}\n\n`;
-            });
-          } else {
-            prompt += `No knowledge documents configured\n\n`;
-          }
-          
-          // AI Processing Instructions
-          prompt += `AI PROCESSING INSTRUCTIONS:\n`;
-          prompt += `CORE EXTRACTION PROCESS:\n`;
-          prompt += `1. Extract data according to schema structure above\n`;
-          prompt += `2. Count ALL instances across ALL documents accurately\n`;
-          prompt += `3. Apply extraction rules to modify confidence scores as specified\n`;
-          prompt += `4. Use knowledge documents for validation and conflict detection\n\n`;
-          
-          prompt += `CHOICE FIELD HANDLING:\n`;
-          prompt += `- For CHOICE fields, ONLY return values from the specified choice options\n`;
-          prompt += `- If extracted text doesn't match any choice exactly, return null for extracted_value\n`;
-          prompt += `- Do not force extraction into choices - null values are acceptable\n`;
-          prompt += `- This allows database writes to continue without blocking\n\n`;
-          
-          prompt += `CONFIDENCE SCORING (confidence_score 0-100):\n`;
-          prompt += `• Base: High confidence (85-95) for clear extractions\n`;
-          prompt += `• Apply extraction rule adjustments per rule content\n`;
-          prompt += `• Reduce confidence for knowledge document conflicts\n`;
-          prompt += `• Use each field's Auto Verification threshold for validation_status\n\n`;
-          
-          prompt += `OUTPUT: Return only valid JSON matching this exact schema:\n`;
-          prompt += `{\n  "field_validations": [\n`;
-          prompt += `    // Schema fields and collection properties with:\n`;
-          prompt += `    // field_type, field_id, extracted_value, confidence_score, ai_reasoning, document_source, validation_status, record_index\n`;
-          prompt += `  ]\n}\n`;
-          
-          return prompt;
-        };
-
-        const fullPrompt = generateSchemaMarkdown(schemaData, textExtractionResult.extractedText || '', selectedFiles.length);
-
-        // Calculate AI processing time based on prompt size and number of fields
-        const promptSize = fullPrompt.length;
-        const fieldCount = schemaData.schema_fields.length + 
-          schemaData.collections.reduce((sum: number, col: any) => sum + (col.properties?.length || 0), 0);
-        const estimatedAITime = Math.max(3000, Math.min(20000, promptSize / 100 + fieldCount * 100)); // 3-20 seconds
-        
-        // Progressive loading for AI extraction
-        const aiStartTime = Date.now();
-        const aiProgressInterval = setInterval(() => {
-          const elapsed = Date.now() - aiStartTime;
-          const progress = Math.min(80, (elapsed / estimatedAITime) * 80); // Cap at 80% until completion
-          setProcessingProgress(progress);
-        }, 300);
-
-        let aiResponse;
-        try {
-          aiResponse = await apiRequest(`/api/sessions/${session.id}/gemini-extraction`, {
-            method: 'POST',
-            body: JSON.stringify({ 
-              extractedTexts: textExtractionResult.extracted_texts || textExtractionResult.result?.extracted_texts || [],
-              schemaFields: schemaData.schema_fields || [],
-              collections: schemaData.collections || [],
-              extractionRules: schemaData.extraction_rules || [],
-              knowledgeDocuments: schemaData.knowledge_documents || []
-            }),
-            headers: { 'Content-Type': 'application/json' }
-          });
-
-          clearInterval(aiProgressInterval);
-          setProcessingProgress(90);
-        } catch (error) {
-          clearInterval(aiProgressInterval);
-          throw error;
-        }
-
-        if (!aiResponse.success) {
-          throw new Error(`AI extraction failed: ${aiResponse.error}`);
-        }
-
-        // Step 5: Save to Database (Automated Mode Only)
-        setProcessingStep('validating');
-        setProcessingProgress(75);
-
-        // Use the field_validations directly from the Python script response
-        const fieldValidations = aiResponse.field_validations || aiResponse.extractedData?.field_validations || [];
-
-        if (!fieldValidations || fieldValidations.length === 0) {
-          throw new Error('No field validations found in AI extraction results');
-        }
-
-        const saveResponse = await apiRequest(`/api/sessions/${session.id}/save-validations`, {
-          method: 'POST',
-          body: JSON.stringify({ 
-            extractedData: JSON.stringify({ field_validations: fieldValidations })
-          }),
-          headers: { 'Content-Type': 'application/json' }
-        });
-
-        if (!saveResponse.success) {
-          throw new Error(`Database save failed: ${saveResponse.error}`);
-        }
-
-        setProcessingProgress(100);
-        
-        // Step 6: Complete and redirect to session view
-        setProcessingStep('complete');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        toast({
-          title: "Extraction complete",
-          description: `${selectedFiles.length} file(s) processed and data extracted successfully.`,
-        });
-
+      // Hide current progress dialog and show async status
+      setTimeout(() => {
         setShowProcessingDialog(false);
-        setLocation(`/projects/${project.id}/sessions/${session.id}`);
-      } else {
-        // Debug mode - redirect to schema view as before
-        setProcessingStep('complete');
-        
-        // Mark files as completed
-        setSelectedFiles(prev => prev.map(f => ({ ...f, status: "completed" as const })));
+        setShowAsyncProcessing(true);
+      }, 1000);
 
-        // Show success briefly before redirect
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        if (textExtractionResult && session?.id) {
-          toast({
-            title: "Text extraction complete",
-            description: `${selectedFiles.length} file(s) processed successfully. Going to schema generation...`,
-          });
-
-          // Close dialog and redirect to schema view with mode parameter
-          setShowProcessingDialog(false);
-          const redirectUrl = textExtractionResult.redirect || `/sessions/${session.id}/schema-view`;
-          const urlWithMode = `${redirectUrl}?mode=${extractionMode}`;
-
-          setLocation(urlWithMode);
-        } else {
-          throw new Error("Text extraction completed but session data is missing");
-        }
-      }
-      
-      // Reset form
-      form.reset();
-      setSelectedFiles([]);
     } catch (error) {
-      console.error("Failed to extract text:", error);
-      setSelectedFiles(prev => prev.map(f => ({ ...f, status: "error" as const })));
-      
-      setShowProcessingDialog(false);
+      console.error("Error creating session or triggering async processing:", error);
       toast({
-        title: "Text extraction failed",
-        description: "There was an error extracting text from your files. Please try again.",
+        title: "Processing Error",
+        description: "Failed to start document processing. Please try again.",
         variant: "destructive",
       });
-      
-      // Don't redirect on error - keep user on upload tab
-    } finally {
       setIsProcessing(false);
+      setShowProcessingDialog(false);
     }
   };
 
@@ -839,6 +617,25 @@ export default function NewUpload({ project }: NewUploadProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Async Processing Status Modal */}
+      {showAsyncProcessing && sessionId && (
+        <AsyncProcessingStatus
+          sessionId={sessionId}
+          onComplete={() => {
+            setShowAsyncProcessing(false);
+            setLocation(`/projects/${project.id}/sessions/${sessionId}`);
+          }}
+          onError={(errorMessage: string) => {
+            setShowAsyncProcessing(false);
+            toast({
+              title: "Processing Failed",
+              description: errorMessage,
+              variant: "destructive",
+            });
+          }}
+        />
+      )}
     </div>
   );
 }
