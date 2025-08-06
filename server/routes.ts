@@ -2134,6 +2134,15 @@ print(json.dumps(result))
       let extractedData;
       try {
         extractedData = JSON.parse(session.extractedData || '{}');
+        
+        // Convert text extraction format to AI extraction format
+        if (extractedData.extracted_texts && !extractedData.documents) {
+          extractedData.documents = extractedData.extracted_texts.map(textDoc => ({
+            file_name: textDoc.file_name,
+            file_content: textDoc.text_content,
+            word_count: textDoc.word_count
+          }));
+        }
       } catch (error) {
         return res.status(400).json({ success: false, error: 'Invalid extracted data in session' });
       }
