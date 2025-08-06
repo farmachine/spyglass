@@ -1307,8 +1307,50 @@ RETURN: Complete readable content from this document."""
                 else:
                     raise e  # Re-raise if not overload error or final attempt
         
-        if not response or not response.text:
-            return ExtractionResult(success=False, error_message="No response from AI")
+        # Enhanced error checking for safety filter and empty responses
+        if not response:
+            return ExtractionResult(success=False, error_message="No response object returned from Gemini API")
+        
+        # Check for safety filters or empty responses
+        if not response.text:
+            error_details = []
+            
+            # Check for candidates and finish reasons
+            if hasattr(response, 'candidates') and response.candidates:
+                for i, candidate in enumerate(response.candidates):
+                    if hasattr(candidate, 'finish_reason'):
+                        finish_reason = candidate.finish_reason
+                        error_details.append(f"Candidate {i}: finish_reason={finish_reason}")
+                        
+                        # Provide specific error messages based on finish reason
+                        if finish_reason == 1:  # STOP
+                            error_details.append("API stopped generation normally but returned empty content")
+                        elif finish_reason == 3:  # SAFETY
+                            error_details.append("Content was filtered by safety mechanisms")
+                        elif finish_reason == 4:  # RECITATION
+                            error_details.append("Content was flagged as potential copyright violation")
+                        elif finish_reason == 5:  # LENGTH
+                            error_details.append("Response exceeded maximum length limits")
+                        elif finish_reason == 6:  # SPII
+                            error_details.append("Content was flagged for sensitive personally identifiable information")
+                        elif finish_reason == 7:  # LANGUAGE
+                            error_details.append("Content was flagged for unsupported language")
+            
+            if hasattr(response, 'prompt_feedback') and response.prompt_feedback:
+                feedback = response.prompt_feedback
+                if hasattr(feedback, 'block_reason'):
+                    error_details.append(f"Prompt blocked: {feedback.block_reason}")
+                if hasattr(feedback, 'safety_ratings'):
+                    for rating in feedback.safety_ratings:
+                        if hasattr(rating, 'category') and hasattr(rating, 'probability'):
+                            error_details.append(f"Safety rating: {rating.category} = {rating.probability}")
+            
+            error_message = "Empty response from Gemini API"
+            if error_details:
+                error_message += f". Details: {'; '.join(error_details)}"
+            
+            logging.error(f"GEMINI API ERROR: {error_message}")
+            return ExtractionResult(success=False, error_message=error_message)
         
         # Extract token usage information
         input_token_count = None
