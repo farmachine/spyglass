@@ -2153,7 +2153,7 @@ print(json.dumps(result))
       }
 
       // Get existing validations to include in AI prompt for context
-      const existingValidations = await storage.getSessionValidations(sessionId);
+      const existingValidations = await storage.getFieldValidations(sessionId);
       
       // Build verified data and status maps for AI context
       const verifiedData: any = {};
@@ -2256,7 +2256,7 @@ print(json.dumps(result))
             if (result.field_validations) {
               for (const validation of result.field_validations) {
                 // Check if validation already exists for this field
-                const existingValidations = await storage.getSessionValidations(sessionId);
+                const existingValidations = await storage.getFieldValidations(sessionId);
                 const existingValidation = existingValidations.find(v => v.fieldName === validation.field_id);
                 
                 const validationData = {
