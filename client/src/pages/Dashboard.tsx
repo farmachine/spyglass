@@ -55,6 +55,37 @@ export default function Dashboard() {
     return statusFilter && (nameMatch || descriptionMatch || orgMatch);
   }) || [];
 
+  // Swap functionality
+  const handleSwapLeft = (projectId: string) => {
+    if (!filteredProjects) return;
+    
+    const currentIndex = filteredProjects.findIndex(p => p.id === projectId);
+    if (currentIndex <= 0) return; // Can't move left if it's the first item
+    
+    const updatedProjects = [...filteredProjects];
+    // Swap with the item to the left
+    [updatedProjects[currentIndex - 1], updatedProjects[currentIndex]] = 
+    [updatedProjects[currentIndex], updatedProjects[currentIndex - 1]];
+    
+    // TODO: Implement backend API call to persist order
+    console.log(`Swapping project ${projectId} left`);
+  };
+
+  const handleSwapRight = (projectId: string) => {
+    if (!filteredProjects) return;
+    
+    const currentIndex = filteredProjects.findIndex(p => p.id === projectId);
+    if (currentIndex >= filteredProjects.length - 1) return; // Can't move right if it's the last item
+    
+    const updatedProjects = [...filteredProjects];
+    // Swap with the item to the right
+    [updatedProjects[currentIndex], updatedProjects[currentIndex + 1]] = 
+    [updatedProjects[currentIndex + 1], updatedProjects[currentIndex]];
+    
+    // TODO: Implement backend API call to persist order
+    console.log(`Swapping project ${projectId} right`);
+  };
+
   const renderProjectsContent = () => {
     if (isLoading) {
       return (
@@ -81,8 +112,15 @@ export default function Dashboard() {
     if (filteredProjects && filteredProjects.length > 0) {
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProjects.map((project) => (
-            <ProjectCard key={project.id} project={project} />
+          {filteredProjects.map((project, index) => (
+            <ProjectCard 
+              key={project.id} 
+              project={project}
+              onSwapLeft={handleSwapLeft}
+              onSwapRight={handleSwapRight}
+              canMoveLeft={index > 0}
+              canMoveRight={index < filteredProjects.length - 1}
+            />
           ))}
         </div>
       );

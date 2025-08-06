@@ -1,4 +1,4 @@
-import { Calendar, Settings, Trash2, Copy, Building, Users, Database, CheckCircle, AlertTriangle, TrendingUp } from "lucide-react";
+import { Calendar, Settings, Trash2, Copy, Building, Users, Database, CheckCircle, AlertTriangle, TrendingUp, MoveLeft, MoveRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,9 +40,19 @@ import WavePattern from "./WavePattern";
 
 interface ProjectCardProps {
   project: ProjectWithAuthor & { publishedOrganizations?: Organization[] };
+  onSwapLeft?: (projectId: string) => void;
+  onSwapRight?: (projectId: string) => void;
+  canMoveLeft?: boolean;
+  canMoveRight?: boolean;
 }
 
-export default function ProjectCard({ project }: ProjectCardProps) {
+export default function ProjectCard({ 
+  project, 
+  onSwapLeft, 
+  onSwapRight, 
+  canMoveLeft = false, 
+  canMoveRight = false 
+}: ProjectCardProps) {
   const [, setLocation] = useLocation();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
@@ -224,6 +234,24 @@ export default function ProjectCard({ project }: ProjectCardProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    {canMoveLeft && (
+                      <DropdownMenuItem onClick={(e) => {
+                        e.stopPropagation();
+                        onSwapLeft?.(project.id);
+                      }}>
+                        <MoveLeft className="h-4 w-4 mr-2" />
+                        Move Left
+                      </DropdownMenuItem>
+                    )}
+                    {canMoveRight && (
+                      <DropdownMenuItem onClick={(e) => {
+                        e.stopPropagation();
+                        onSwapRight?.(project.id);
+                      }}>
+                        <MoveRight className="h-4 w-4 mr-2" />
+                        Move Right
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={openDuplicateDialog}>
                       <Copy className="h-4 w-4 mr-2" />
                       Duplicate
