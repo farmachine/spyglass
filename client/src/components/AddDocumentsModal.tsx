@@ -151,39 +151,41 @@ export default function AddDocumentsModal({
           index === i ? { ...f, progress: 30 } : f
         ));
 
-        const formData = new FormData();
-        formData.append('file', file.file);
-
-        // Upload file and extract text
-        const uploadResponse = await fetch('/api/extract-text', {
-          method: 'POST',
-          body: formData
+        // Read file content as base64 for the extraction endpoint
+        const base64Content = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            if (typeof reader.result === 'string') {
+              resolve(reader.result);
+            } else {
+              reject(new Error('Failed to read file as data URL'));
+            }
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file.file);
         });
 
-        if (!uploadResponse.ok) {
-          throw new Error(`Failed to process ${file.file.name}`);
-        }
-
-        const { text } = await uploadResponse.json();
+        const fileData = {
+          name: file.file.name,
+          size: file.file.size,
+          type: file.file.type,
+          content: base64Content
+        };
 
         // Update progress
         setSelectedFiles(prev => prev.map((f, index) => 
           index === i ? { ...f, progress: 60, status: "processing" as const } : f
         ));
 
-        // Add documents to existing session (this will include verified data in the prompt)
-        const addResponse = await apiRequest(`/api/sessions/${sessionId}/add-documents`, {
+        // Use the same extraction endpoint as NewUpload - this automatically handles existing session detection
+        const extractionResponse = await apiRequest(`/api/sessions/${sessionId}/extract-text`, {
           method: 'POST',
-          body: JSON.stringify({ 
-            documentText: text,
-            fileName: file.file.name,
-            projectId: projectId
-          }),
+          body: JSON.stringify({ files: [fileData] }),
           headers: { 'Content-Type': 'application/json' }
         });
 
-        if (!addResponse.success) {
-          throw new Error(addResponse.error || `Failed to process ${file.file.name}`);
+        if (!extractionResponse.success) {
+          throw new Error(extractionResponse.error || `Failed to process ${file.file.name}`);
         }
 
         // Update to completed

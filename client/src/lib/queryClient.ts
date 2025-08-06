@@ -18,7 +18,6 @@ export async function apiRequest(
   const { method = "GET", body, headers = {} } = options || {};
   const token = localStorage.getItem("auth_token");
   
-  console.log(`API Request: ${method} ${url}`, { hasToken: !!token, tokenLength: token?.length });
   
   const res = await fetch(url, {
     method,
