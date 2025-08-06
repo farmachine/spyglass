@@ -237,6 +237,7 @@ export default function ProjectCard({
                     {canMoveLeft && (
                       <DropdownMenuItem onClick={(e) => {
                         e.stopPropagation();
+                        console.log('Move Left clicked for project:', project.id);
                         onSwapLeft?.(project.id);
                       }}>
                         <MoveLeft className="h-4 w-4 mr-2" />
@@ -246,12 +247,20 @@ export default function ProjectCard({
                     {canMoveRight && (
                       <DropdownMenuItem onClick={(e) => {
                         e.stopPropagation();
+                        console.log('Move Right clicked for project:', project.id);
                         onSwapRight?.(project.id);
                       }}>
                         <MoveRight className="h-4 w-4 mr-2" />
                         Move Right
                       </DropdownMenuItem>
                     )}
+                    {/* Debug info */}
+                    <DropdownMenuItem onClick={(e) => {
+                      e.stopPropagation();
+                      console.log('Debug - canMoveLeft:', canMoveLeft, 'canMoveRight:', canMoveRight, 'project:', project.name);
+                    }}>
+                      Debug Info
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={openDuplicateDialog}>
                       <Copy className="h-4 w-4 mr-2" />
                       Duplicate
