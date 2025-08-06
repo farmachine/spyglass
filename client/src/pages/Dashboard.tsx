@@ -83,7 +83,7 @@ export default function Dashboard() {
   const orderedProjects = projectOrder.length > 0 
     ? projectOrder
         .map(id => filteredProjects.find(p => p.id === id))
-        .filter(Boolean)
+        .filter((project): project is NonNullable<typeof project> => project !== undefined)
         .concat(filteredProjects.filter(p => !projectOrder.includes(p.id)))
     : filteredProjects;
 
@@ -128,13 +128,13 @@ export default function Dashboard() {
     if (orderedProjects && orderedProjects.length > 0) {
       return (
         <DragDropContext onDragEnd={handleDragEnd}>
-          <Droppable droppableId="projects" direction="horizontal">
+          <Droppable droppableId="projects">
             {(provided, snapshot) => (
               <div
                 {...provided.droppableProps}
                 ref={provided.innerRef}
-                className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 transition-colors ${
-                  snapshot.isDraggingOver ? 'bg-blue-50/50' : ''
+                className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 transition-all duration-300 ease-in-out ${
+                  snapshot.isDraggingOver ? 'bg-blue-50/30 scale-[1.01]' : ''
                 }`}
               >
                 {orderedProjects.map((project, index) => (
@@ -143,18 +143,24 @@ export default function Dashboard() {
                       <div
                         ref={provided.innerRef}
                         {...provided.draggableProps}
-                        className={`transition-all duration-200 ${
+                        className={`transition-all duration-300 ease-out transform-gpu ${
                           snapshot.isDragging 
-                            ? 'scale-105 shadow-2xl rotate-2 z-50' 
-                            : 'scale-100 shadow-md'
+                            ? 'scale-110 shadow-2xl rotate-3 z-50 opacity-90' 
+                            : 'scale-100 shadow-md hover:shadow-lg hover:scale-[1.02]'
                         }`}
+                        style={{
+                          ...provided.draggableProps.style,
+                          transform: snapshot.isDragging 
+                            ? `${provided.draggableProps.style?.transform} rotate(3deg)`
+                            : provided.draggableProps.style?.transform
+                        }}
                       >
                         <div className="relative group">
                           <div
                             {...provided.dragHandleProps}
-                            className="absolute top-2 right-12 z-10 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing bg-white/90 hover:bg-white rounded p-1 shadow-sm"
+                            className="absolute top-2 right-12 z-20 opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-grab active:cursor-grabbing bg-white/95 hover:bg-white rounded-md p-1.5 shadow-md hover:shadow-lg backdrop-blur-sm"
                           >
-                            <GripVertical className="h-4 w-4 text-gray-500" />
+                            <GripVertical className="h-4 w-4 text-gray-600 hover:text-gray-800" />
                           </div>
                           <ProjectCard project={project} />
                         </div>
@@ -307,19 +313,19 @@ export default function Dashboard() {
                   <>
                     <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
                       <TrendingUp className="h-6 w-6 text-primary" />
-                      <span className="text-xl font-bold text-gray-900">{statistics.totalProjects}</span>
+                      <span className="text-xl font-bold text-gray-900">{statistics?.totalProjects || 0}</span>
                     </div>
                     <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
                       <Database className="h-6 w-6 text-slate-700" />
-                      <span className="text-xl font-bold text-gray-900">{statistics.totalSessions}</span>
+                      <span className="text-xl font-bold text-gray-900">{statistics?.totalSessions || 0}</span>
                     </div>
                     <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
                       <CheckCircle className="h-6 w-6 text-gray-400" />
-                      <span className="text-xl font-bold text-gray-900">{statistics.unverifiedSessions}</span>
+                      <span className="text-xl font-bold text-gray-900">{statistics?.unverifiedSessions || 0}</span>
                     </div>
                     <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
                       <CheckCircle className="h-6 w-6 text-green-600" />
-                      <span className="text-xl font-bold text-gray-900">{statistics.verifiedSessions}</span>
+                      <span className="text-xl font-bold text-gray-900">{statistics?.verifiedSessions || 0}</span>
                     </div>
                   </>
                 ) : null}
@@ -349,7 +355,7 @@ export default function Dashboard() {
                   <Checkbox 
                     id="show-deactivated"
                     checked={showDeactivated}
-                    onCheckedChange={setShowDeactivated}
+                    onCheckedChange={(checked) => setShowDeactivated(checked === true)}
                   />
                   <Label 
                     htmlFor="show-deactivated"
