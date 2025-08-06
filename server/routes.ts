@@ -3337,6 +3337,198 @@ print(json.dumps(result))
     }
   });
 
+  // Add documents to existing session with verified data context
+  app.post("/api/sessions/:sessionId/add-documents", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const { documentText, fileName, projectId } = req.body;
+
+      if (!documentText || !fileName || !projectId) {
+        return res.status(400).json({ message: "Document text, file name, and project ID are required" });
+      }
+
+      console.log(`ADD_DOCUMENTS: Processing additional document for session ${sessionId}`);
+
+      // Get existing session and project data
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      const project = await storage.getProjectWithDetails(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      // Get existing validations to extract verified data
+      const existingValidations = await storage.getSessionValidations(sessionId);
+      const verifiedData: Record<string, any> = {};
+
+      // Build verified data context from existing validations
+      existingValidations.forEach(validation => {
+        if (validation.validationStatus === 'verified' || 
+            validation.validationStatus === 'valid' ||
+            validation.validationStatus === 'manual-verified') {
+          
+          if (validation.validationType === 'schema_field') {
+            verifiedData[validation.fieldName] = validation.extractedValue;
+          } else if (validation.validationType === 'collection_property' && 
+                     validation.collectionName && validation.recordIndex !== null) {
+            if (!verifiedData[validation.collectionName]) {
+              verifiedData[validation.collectionName] = [];
+            }
+            
+            // Ensure array has enough elements
+            while (verifiedData[validation.collectionName].length <= validation.recordIndex) {
+              verifiedData[validation.collectionName].push({});
+            }
+            
+            const propertyName = validation.fieldName.split('.').pop()?.replace(/\[\d+\]$/, '') || '';
+            verifiedData[validation.collectionName][validation.recordIndex][propertyName] = validation.extractedValue;
+          }
+        }
+      });
+
+      console.log(`ADD_DOCUMENTS: Found ${Object.keys(verifiedData).length} verified data fields to include in context`);
+
+      // Get project schema, rules, and knowledge documents
+      const [schemaFields, collections, extractionRules, knowledgeDocuments] = await Promise.all([
+        storage.getProjectSchemaFields(projectId).catch(() => []),
+        storage.getObjectCollections(projectId).catch(() => []),
+        storage.getExtractionRules(projectId).catch(() => []),
+        storage.getKnowledgeDocuments(projectId).catch(() => [])
+      ]);
+
+      // Spawn Python extraction process
+      const { spawn } = await import('child_process');
+      const python = spawn('python3', ['ai_extraction_simplified.py'], {
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+
+      let output = '';
+      let error = '';
+
+      // Prepare extraction input with verified data context
+      const extractionInput = {
+        operation: "extract_additional",  // New operation type
+        documents: [{
+          file_name: fileName,
+          file_content: documentText
+        }],
+        project_schema: {
+          schema_fields: schemaFields || [],
+          collections: collections || []
+        },
+        extraction_rules: extractionRules || [],
+        knowledge_documents: knowledgeDocuments || [],
+        verified_data: verifiedData,  // Include verified data for context
+        session_name: sessionId
+      };
+
+      console.log(`ADD_DOCUMENTS: Sending to Python with verified data context:`, Object.keys(verifiedData));
+
+      python.stdin.write(JSON.stringify(extractionInput));
+      python.stdin.end();
+
+      python.stdout.on('data', (data: any) => {
+        output += data.toString();
+      });
+
+      python.stderr.on('data', (data: any) => {
+        error += data.toString();
+      });
+
+      await new Promise((resolve, reject) => {
+        python.on('close', async (code: any) => {
+          console.log(`ADD_DOCUMENTS: Python process completed with code ${code}`);
+          
+          if (code !== 0) {
+            console.error('ADD_DOCUMENTS extraction error:', error);
+            return reject(new Error(`Document processing failed: ${error}`));
+          }
+
+          try {
+            const result = JSON.parse(output);
+            
+            if (!result.success) {
+              console.error('ADD_DOCUMENTS: Extraction failed', result.error);
+              return reject(new Error(result.error || 'Unknown extraction error'));
+            }
+
+            console.log('ADD_DOCUMENTS: Extraction successful, creating new validations');
+
+            // Create new validations for the additional extracted data
+            // These will be merged with existing validations
+            if (result.field_validations && Array.isArray(result.field_validations)) {
+              for (const fieldValidation of result.field_validations) {
+                try {
+                  await storage.createFieldValidation({
+                    sessionId: sessionId,
+                    validationType: fieldValidation.field_type || 'schema_field',
+                    dataType: fieldValidation.data_type || 'TEXT',
+                    fieldId: fieldValidation.field_id,
+                    fieldName: fieldValidation.field_name,
+                    collectionName: fieldValidation.collection_name,
+                    recordIndex: fieldValidation.record_index,
+                    extractedValue: fieldValidation.extracted_value,
+                    originalExtractedValue: fieldValidation.extracted_value,
+                    originalConfidenceScore: fieldValidation.confidence_score || 0,
+                    originalAiReasoning: fieldValidation.ai_reasoning,
+                    validationStatus: fieldValidation.validation_status || 'pending',
+                    aiReasoning: fieldValidation.ai_reasoning,
+                    manuallyVerified: false,
+                    manuallyUpdated: false,
+                    confidenceScore: fieldValidation.confidence_score || 0,
+                    documentSource: fileName,
+                    documentSections: fieldValidation.document_sections
+                  });
+                } catch (err) {
+                  console.error('Failed to create field validation:', err);
+                }
+              }
+            }
+
+            // Update session status and add extraction data
+            await storage.updateExtractionSession(sessionId, {
+              status: 'extracted',  // Keep as extracted since we have new data
+              extractionPrompt: result.extraction_prompt,
+              aiResponse: result.ai_response,
+              inputTokenCount: (session.inputTokenCount || 0) + (result.input_token_count || 0),
+              outputTokenCount: (session.outputTokenCount || 0) + (result.output_token_count || 0)
+            });
+
+            res.json({
+              success: true,
+              message: `Successfully processed ${fileName} and added to session`,
+              newValidationsCount: result.field_validations?.length || 0,
+              tokenUsage: {
+                input: result.input_token_count || 0,
+                output: result.output_token_count || 0
+              }
+            });
+
+            resolve(true);
+          } catch (parseError) {
+            console.error('ADD_DOCUMENTS: Failed to parse Python output:', parseError);
+            reject(new Error('Failed to process extraction results'));
+          }
+        });
+
+        python.on('error', (pythonError) => {
+          console.error('ADD_DOCUMENTS: Python process error:', pythonError);
+          reject(new Error('Failed to start document processing'));
+        });
+      });
+
+    } catch (error) {
+      console.error("ADD_DOCUMENTS error:", error);
+      res.status(500).json({ 
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to add documents to session" 
+      });
+    }
+  });
+
   // Project Publishing Routes
   
   // Get project published organizations

@@ -158,7 +158,8 @@ def step1_extract_from_documents(
     project_schema: Dict[str, Any],
     extraction_rules: List[Dict[str, Any]] = None,
     knowledge_documents: List[Dict[str, Any]] = None,
-    session_name: str = "contract"
+    session_name: str = "contract",
+    verified_data: Dict[str, Any] = None
 ) -> ExtractionResult:
     """
     STEP 1: Extract data from documents using AI
@@ -661,10 +662,32 @@ def step1_extract_from_documents(
         logging.info(f"Generated field validation example with {len(extraction_rules or [])} extraction rules")
         logging.info(f"Dynamic example preview (first 500 chars): {dynamic_example[:500]}...")
         
+        # Add verified data context if available (for additional document processing)
+        verified_data_context = ""
+        if verified_data and verified_data:
+            verified_data_context = "\n\n## PREVIOUSLY VERIFIED INFORMATION:\n"
+            verified_data_context += "The following data has already been verified from previous documents in this session:\n\n"
+            
+            for field_name, value in verified_data.items():
+                if isinstance(value, list):
+                    # Collection data
+                    verified_data_context += f"**{field_name}**: {len(value)} verified items\n"
+                    for i, item in enumerate(value):
+                        verified_data_context += f"  Item {i+1}: {item}\n"
+                else:
+                    # Schema field data
+                    verified_data_context += f"**{field_name}**: {value}\n"
+            
+            verified_data_context += "\nINSTRUCTIONS FOR ADDITIONAL DOCUMENTS:\n"
+            verified_data_context += "- Use this verified information as context when processing the new document\n"
+            verified_data_context += "- If the new document contains conflicting information, prefer the new document's data\n"
+            verified_data_context += "- If the new document adds to collection items, extract all new items found\n"
+            verified_data_context += "- Focus on extracting NEW or ADDITIONAL information from this document\n\n"
+
         # The imported prompt already contains all the necessary instructions
         # Just add document verification and choice field handling specific to this run
         full_prompt += f"""
-
+{verified_data_context}
 DOCUMENT VERIFICATION: Confirm you processed all {len(documents)} documents: {[doc.get('file_name', 'Unknown') for doc in documents]}
 
 CHOICE FIELD HANDLING:
@@ -1146,15 +1169,17 @@ if __name__ == "__main__":
         logging.info(f"PARSED INPUT KEYS: {list(input_data.keys())}")
         operation = input_data.get("step", input_data.get("operation", "extract"))
         
-        if operation == "extract":
-            # STEP 1: Extract from documents
+        if operation in ["extract", "extract_additional"]:
+            # Extract from documents (regular or additional)
             documents = input_data.get("files", input_data.get("documents", []))  # Support both parameter names
             project_schema = input_data.get("project_schema", {})
             extraction_rules = input_data.get("extraction_rules", [])
             knowledge_documents = input_data.get("knowledge_documents", [])
             session_name = input_data.get("session_name", "contract")
+            verified_data = input_data.get("verified_data", {})  # Additional context for extract_additional
             
-            result = step1_extract_from_documents(documents, project_schema, extraction_rules, knowledge_documents, session_name)
+            # Call the extraction function (same logic works for both operations)
+            result = step1_extract_from_documents(documents, project_schema, extraction_rules, knowledge_documents, session_name, verified_data)
             
             if result.success:
                 print(json.dumps({

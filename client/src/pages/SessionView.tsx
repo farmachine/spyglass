@@ -25,6 +25,7 @@ import ValidationIcon from "@/components/ValidationIcon";
 import UserProfile from "@/components/UserProfile";
 
 import { EditFieldValueDialog } from "@/components/EditFieldValueDialog";
+import AddDocumentsModal from "@/components/AddDocumentsModal";
 
 import type { 
   ExtractionSession, 
@@ -267,6 +268,9 @@ export default function SessionView() {
     open: boolean;
     validation: FieldValidation | null;
   }>({ open: false, validation: null });
+
+  // Add documents modal state
+  const [addDocumentsModalOpen, setAddDocumentsModalOpen] = useState(false);
 
   // Helper function to find schema field data
   const findSchemaField = (validation: FieldValidation) => {
@@ -1903,6 +1907,15 @@ Thank you for your assistance.`;
                   <Info className="h-4 w-4" />
                 </Button>
                 <Button
+                  onClick={() => setAddDocumentsModalOpen(true)}
+                  variant="outline"
+                  size="sm"
+                  className="px-3 py-2"
+                  title="Add more documents to this session"
+                >
+                  <Upload className="h-4 w-4" />
+                </Button>
+                <Button
                   onClick={handleExportToExcel}
                   variant="outline"
                   size="sm"
@@ -2636,6 +2649,19 @@ Thank you for your assistance.`;
           collectionProperty={findCollectionProperty(editFieldDialog.validation)}
         />
       )}
+
+      {/* Add Documents Modal */}
+      <AddDocumentsModal
+        open={addDocumentsModalOpen}
+        onClose={() => setAddDocumentsModalOpen(false)}
+        sessionId={sessionId!}
+        projectId={projectId!}
+        onSuccess={() => {
+          // Refresh session data and validations after successful document upload
+          queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
+          queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+        }}
+      />
     </div>
   );
 }
