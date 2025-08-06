@@ -677,8 +677,8 @@ export class MemStorage implements IStorage {
     return Array.from(this.users.values()).find(u => u.email === email);
   }
 
-  async getUserWithOrganization(id: number): Promise<UserWithOrganization | undefined> {
-    const user = this.users.get(id);
+  async getUserWithOrganization(id: string): Promise<UserWithOrganization | undefined> {
+    const user = Array.from(this.users.values()).find(u => u.id === id);
     if (!user) return undefined;
     
     const org = this.organizations.get(user.organizationId);
@@ -1472,6 +1472,7 @@ class PostgreSQLStorage implements IStorage {
         isActive: users.isActive,
         createdAt: users.createdAt,
         isTemporaryPassword: users.isTemporaryPassword,
+        projectOrder: users.projectOrder,
         organization: {
           id: organizations.id,
           name: organizations.name,
