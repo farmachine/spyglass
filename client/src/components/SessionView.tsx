@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, ChevronDown, ChevronRight } from "lucide-react";
 import ValidationIcon, { ValidationProgress } from "./ValidationIcon";
 import { apiRequest } from "@/lib/queryClient";
@@ -41,6 +42,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
   const [selectedBatch, setSelectedBatch] = useState<number | null>(null); // null = show all batches
   const [showBatchDebug, setShowBatchDebug] = useState(false);
+  const [activeDebugTab, setActiveDebugTab] = useState("batches");
   const queryClient = useQueryClient();
 
   const { data: session, isLoading } = useQuery<ExtractionSessionWithValidation>({
@@ -321,12 +323,12 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
         />
       </div>
 
-      {/* Batch Debug Panel - Show for sessions with many validations or when debug enabled */}
+      {/* Debug Panel - Show for sessions with many validations or when debug enabled */}
       {((batchData?.totalBatches && batchData.totalBatches > 1) || showBatchDebug || allValidations.length > 100) && (
         <Card className="border-blue-200 bg-blue-50">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm">Batch Validation Debug</CardTitle>
+              <CardTitle className="text-sm">Debug Information</CardTitle>
               <Button
                 variant="ghost"
                 size="sm"
@@ -338,42 +340,64 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
           </CardHeader>
           {showBatchDebug && (
             <CardContent>
-              <div className="space-y-3">
-                <div className="text-sm text-gray-600">
-                  <div>Total validations: {allValidations.length} | Total batches: {batchData?.totalBatches || 1}</div>
-                  <div>Currently showing: {validations.length} validations</div>
-                  {batchData?.totalBatches === 1 && (
-                    <div className="text-green-600 font-medium">✓ No truncation detected - all data processed in single batch</div>
-                  )}
-                  {batchData && batchData.totalBatches > 1 && (
-                    <div className="text-orange-600 font-medium">⚠ Multiple batches due to AI response truncation</div>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={selectedBatch === null ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedBatch(null)}
-                  >
-                    All Batches ({allValidations.length})
-                  </Button>
-                  {batchData?.batches.map(batch => (
-                    <Button
-                      key={batch.batchNumber}
-                      variant={selectedBatch === batch.batchNumber ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSelectedBatch(batch.batchNumber)}
-                    >
-                      Batch {batch.batchNumber} ({batch.validationCount})
-                    </Button>
-                  ))}
-                </div>
-                {selectedBatch !== null && (
-                  <div className="text-sm text-blue-600">
-                    Showing only validations from batch {selectedBatch}
+              <Tabs value={activeDebugTab} onValueChange={setActiveDebugTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="batches">Batch Information</TabsTrigger>
+                  <TabsTrigger value="ai-response">Raw AI Response</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="batches" className="mt-4">
+                  <div className="space-y-3">
+                    <div className="text-sm text-gray-600">
+                      <div>Total validations: {allValidations.length} | Total batches: {batchData?.totalBatches || 1}</div>
+                      <div>Currently showing: {validations.length} validations</div>
+                      {batchData?.totalBatches === 1 && (
+                        <div className="text-green-600 font-medium">✓ No truncation detected - all data processed in single batch</div>
+                      )}
+                      {batchData && batchData.totalBatches > 1 && (
+                        <div className="text-orange-600 font-medium">⚠ Multiple batches due to AI response truncation</div>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant={selectedBatch === null ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSelectedBatch(null)}
+                      >
+                        All Batches ({allValidations.length})
+                      </Button>
+                      {batchData?.batches.map(batch => (
+                        <Button
+                          key={batch.batchNumber}
+                          variant={selectedBatch === batch.batchNumber ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSelectedBatch(batch.batchNumber)}
+                        >
+                          Batch {batch.batchNumber} ({batch.validationCount})
+                        </Button>
+                      ))}
+                    </div>
+                    {selectedBatch !== null && (
+                      <div className="text-sm text-blue-600">
+                        Showing only validations from batch {selectedBatch}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </TabsContent>
+                
+                <TabsContent value="ai-response" className="mt-4">
+                  <div className="space-y-3">
+                    <div className="text-sm text-gray-600">
+                      Raw AI response from extraction process (useful for debugging truncation issues)
+                    </div>
+                    <ScrollArea className="h-96 w-full border rounded-md p-4 bg-white">
+                      <pre className="text-xs whitespace-pre-wrap">
+                        {session?.aiResponse || "No AI response data available"}
+                      </pre>
+                    </ScrollArea>
+                  </div>
+                </TabsContent>
+              </Tabs>
             </CardContent>
           )}
         </Card>
