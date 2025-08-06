@@ -21,6 +21,7 @@ export const users = pgTable("users", {
   role: text("role").default("user").notNull(), // 'admin', 'user'
   isActive: boolean("is_active").default(true).notNull(),
   isTemporaryPassword: boolean("is_temporary_password").default(false).notNull(),
+  projectOrder: jsonb("project_order"), // Array of project IDs for custom ordering
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

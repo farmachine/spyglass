@@ -234,6 +234,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update user project order (User can update their own)
+  app.put("/api/users/:userId/project-order", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.params.userId;
+      const { projectOrder } = req.body;
+      
+      // Users can only update their own project order, unless they're an admin
+      if (req.user?.id !== userId && req.user?.role !== 'admin') {
+        return res.status(403).json({ message: "Not authorized to update this user's project order" });
+      }
+
+      if (!Array.isArray(projectOrder)) {
+        return res.status(400).json({ message: "Project order must be an array" });
+      }
+      
+      const updatedUser = await storage.updateUserProjectOrder(userId, projectOrder);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json({ success: true, projectOrder: updatedUser.projectOrder });
+    } catch (error) {
+      console.error("Update user project order error:", error);
+      res.status(500).json({ message: "Failed to update project order" });
+    }
+  });
+
   // Update organization (Admin only)
   app.put("/api/organizations/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {

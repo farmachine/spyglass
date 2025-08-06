@@ -62,6 +62,7 @@ export interface IStorage {
   deleteUser(id: string): Promise<boolean>;
   resetUserPassword(userId: string, tempPassword: string): Promise<{ tempPassword: string }>;
   updateUserPassword(userId: string, newPasswordHash: string, isTemporary: boolean): Promise<User | undefined>;
+  updateUserProjectOrder(userId: string, projectOrder: string[]): Promise<User | undefined>;
 
   // Projects (organization-filtered)
   getProjects(organizationId?: string, userRole?: string): Promise<Project[]>;
@@ -744,6 +745,18 @@ export class MemStorage implements IStorage {
       isTemporaryPassword: isTemporary 
     };
     this.users.set(userId, updated);
+    return updated;
+  }
+
+  async updateUserProjectOrder(userId: string, projectOrder: string[]): Promise<User | undefined> {
+    const user = Array.from(this.users.values()).find(u => u.id === userId);
+    if (!user) return undefined;
+    
+    const updated = { 
+      ...user, 
+      projectOrder 
+    };
+    this.users.set(user.id, updated);
     return updated;
   }
 
@@ -1533,6 +1546,16 @@ class PostgreSQLStorage implements IStorage {
         passwordHash: newPasswordHash, 
         isTemporaryPassword: isTemporary 
       })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    return result[0];
+  }
+
+  async updateUserProjectOrder(userId: string, projectOrder: string[]): Promise<User | undefined> {
+    const result = await this.db
+      .update(users)
+      .set({ projectOrder })
       .where(eq(users.id, userId))
       .returning();
     

@@ -12,6 +12,8 @@ import { useProjects } from "@/hooks/useProjects";
 import { useDashboardStatistics } from "@/hooks/useDashboardStatistics";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
+
 import ProjectCard from "@/components/ProjectCard";
 import CreateProjectDialog from "@/components/CreateProjectDialog";
 import UserProfile from "@/components/UserProfile";
@@ -27,6 +29,29 @@ export default function Dashboard() {
   const { data: statistics, isLoading: statisticsLoading } = useDashboardStatistics();
   const { user } = useAuth();
   const [, navigate] = useLocation();
+
+
+  // Load saved project order from user's profile
+  useMemo(() => {
+    if (user?.projectOrder && Array.isArray(user.projectOrder)) {
+      setProjectOrder(user.projectOrder);
+    }
+  }, [user?.projectOrder]);
+
+  // Save project order effect
+  const saveProjectOrder = async (newOrder: string[]) => {
+    try {
+      if (!user?.id) return;
+      await apiRequest(`/api/users/${user.id}/project-order`, {
+        method: 'PUT',
+        body: JSON.stringify({ projectOrder: newOrder })
+      });
+    } catch (error) {
+      console.error("Failed to save project order:", error);
+    }
+  };
+
+
 
   const isAdmin = user?.role === "admin";
   const isPrimaryOrgAdmin = user?.role === "admin" && user?.organization?.type === "primary";
@@ -93,6 +118,7 @@ export default function Dashboard() {
     [newOrder[currentIndex], newOrder[currentIndex - 1]];
     
     setProjectOrder(newOrder);
+    saveProjectOrder(newOrder);
     console.log(`Swapping project ${projectId} left`);
   };
 
@@ -109,6 +135,7 @@ export default function Dashboard() {
     [newOrder[currentIndex + 1], newOrder[currentIndex]];
     
     setProjectOrder(newOrder);
+    saveProjectOrder(newOrder);
     console.log(`Swapping project ${projectId} right`);
   };
 
