@@ -27,256 +27,113 @@ class ExtractionResult:
 
 # ValidationResult dataclass removed - validation now occurs only during extraction
 
-def detect_truncation(response_text: str, expected_field_count: int = None, project_schema: Dict[str, Any] = None) -> Dict[str, Any]:
+def detect_truncation(response_text: str, expected_field_count: int = None, project_schema: Dict[str, Any] = None) -> bool:
     """
-    Enhanced 3-tier truncation detection prioritizing AI response structure analysis
-    Returns detection result with reason and batch continuation guidance
+    Enhanced truncation detection prioritizing AI response analysis
     """
-    detection_result = {
-        "is_truncated": False,
-        "detection_method": None,
-        "reason": "",
-        "missing_validations": 0,
-        "batch_size": 0,
-        "continuation_needed": False
-    }
+    # PRIMARY: Analyze the actual AI response structure
     
-    # TIER 1: JSON Structure Analysis (PRIMARY) - Highest priority detection method
+    # Heuristic 1: Check if response ends with incomplete JSON structure
     stripped_response = response_text.strip()
-    
-    # Check 1.1: Response must end with proper closing brace
     if not stripped_response.endswith('}'):
-        detection_result.update({
-            "is_truncated": True,
-            "detection_method": "json_structure",
-            "reason": "Response doesn't end with closing brace '}'"
-        })
-        return detection_result
+        logging.info("TRUNCATION: Response doesn't end with }")
+        return True
     
-    # Check 1.2: Look for abrupt ending patterns in response tail (more precise detection)
-    response_tail = stripped_response[-50:]  # Check last 50 characters for truncation signs
-    abrupt_patterns = [
-        ':"',               # Property started but incomplete (ends with just quote)
-        ',"field_',         # Started new field after comma but cut off
-        ':{',               # Object started but not closed
-        '},\n',             # Trailing comma and newline suggesting more content
-        '},"',              # Object closed but followed by incomplete property
+    # Heuristic 1.1: Check for abrupt ending patterns that indicate incomplete JSON
+    response_tail = stripped_response[-50:]  # Check only the very end
+    
+    # Look for signs of incomplete final object or array
+    incomplete_patterns = [
+        '"field_id"',      # Started a field but not completed 
+        '"validation_type"', # Property name without closing
+        ',"',              # Comma without following content
+        ':{',              # Object started but not closed
     ]
     
-    for pattern in abrupt_patterns:
-        if response_tail.endswith(pattern) or pattern in response_tail[-20:]:
-            detection_result.update({
-                "is_truncated": True,
-                "detection_method": "json_structure", 
-                "reason": f"Response contains abrupt ending pattern: '{pattern}'"
-            })
-            return detection_result
+    # Only flag as truncated if the response ends abruptly with these patterns
+    for pattern in incomplete_patterns:
+        if response_tail.endswith(pattern) or response_tail.endswith(pattern + '"'):
+            logging.info(f"TRUNCATION: Response ends abruptly with pattern: '{pattern}'")
+            return True
     
-    # TIER 2: Collection Completeness Analysis (SECONDARY) - AI response structure analysis
+    # Heuristic 2: Check for incomplete field validation objects
     try:
         parsed = json.loads(response_text)
         field_validations = parsed.get('field_validations', [])
         
-        # Check 2.1: Validate each field validation object completeness
-        required_fields = ['field_id', 'validation_type', 'data_type', 'field_name']
-        for i, validation in enumerate(field_validations):
-            missing_fields = [field for field in required_fields if field not in validation]
-            if missing_fields:
-                detection_result.update({
-                    "is_truncated": True,
-                    "detection_method": "incomplete_validation",
-                    "reason": f"Validation {i} missing fields: {missing_fields}"
-                })
-                return detection_result
+        # Check if any field validation is incomplete (missing required fields)
+        for validation in field_validations:
+            required_fields = ['field_id', 'validation_type', 'data_type', 'field_name']
+            if not all(field in validation for field in required_fields):
+                logging.info(f"TRUNCATION: Incomplete validation found: {validation}")
+                return True
         
-        # Check 2.2: Analyze collection item completeness (90% threshold for sensitivity)
+        # SECONDARY: Enhanced collection analysis (AI response structure analysis)
         if project_schema:
             collections = project_schema.get('collections', [])
             for collection in collections:
-                collection_name = collection.get('collectionName', collection.get('collection_name', ''))
+                collection_name = collection.get('collectionName', collection.get('objectName', ''))
                 properties = collection.get('properties', [])
                 
-                if not collection_name or not properties:
+                if not properties:
                     continue
                 
-                # Get collection validations and analyze completeness
-                collection_validations = [v for v in field_validations 
-                                        if v.get('validation_type') == 'collection_property' and 
-                                           v.get('collection_name') == collection_name]
+                # Find all collection validations using multiple matching strategies
+                collection_validations = []
+                for v in field_validations:
+                    if (v.get('collection_name') == collection_name or
+                        v.get('field_name', '').startswith(f"{collection_name}.") or
+                        v.get('validation_type') == 'collection_property'):
+                        collection_validations.append(v)
                 
-                if not collection_validations:
-                    continue
-                
-                # Group validations by item_index to check completeness
-                items_by_index = {}
-                for validation in collection_validations:
-                    item_idx = validation.get('item_index', 0)
-                    if item_idx not in items_by_index:
-                        items_by_index[item_idx] = []
-                    items_by_index[item_idx].append(validation)
-                
-                # Check if we have complete items (all properties present)
-                complete_items = 0
-                incomplete_items = 0
-                max_index = max(items_by_index.keys()) if items_by_index else -1
-                last_item_incomplete = False
-                
-                for idx in range(max_index + 1):
-                    if idx in items_by_index:
-                        item_properties = len(items_by_index[idx])
-                        expected_properties = len(properties)
+                if collection_validations:
+                    properties_per_item = len(properties)
+                    total_collection_validations = len(collection_validations)
+                    calculated_items = total_collection_validations / properties_per_item
+                    
+                    # Primary check: incomplete items (fractional items indicate truncation)
+                    if calculated_items != int(calculated_items):
+                        logging.info(f"TRUNCATION: Incomplete collection items detected. Collection: {collection_name}, "
+                                   f"Properties per item: {properties_per_item}, "
+                                   f"Total validations: {total_collection_validations}, "
+                                   f"Calculated items: {calculated_items}")
+                        return True
+                    
+                    # Additional check: Look for missing properties in the last items
+                    items_count = int(calculated_items)
+                    if items_count > 0:
+                        # Group validations by item index
+                        item_groups = {}
+                        for validation in collection_validations:
+                            item_index = validation.get('item_index', 0)
+                            if item_index not in item_groups:
+                                item_groups[item_index] = []
+                            item_groups[item_index].append(validation)
                         
-                        if item_properties == expected_properties:
-                            complete_items += 1
-                        else:
-                            incomplete_items += 1
-                            # Special attention to the last item being incomplete
-                            if idx == max_index:
-                                last_item_incomplete = True
-                                
-                # Enhanced truncation detection logic:
-                # 1. If the last item is incomplete, it's likely truncation
-                # 2. Apply completeness threshold with different sensitivity levels
-                if complete_items > 0 and incomplete_items > 0:
-                    completeness_ratio = complete_items / (complete_items + incomplete_items)
-                    
-                    # Strong indicator: Last item incomplete (likely truncation)
-                    if last_item_incomplete:
-                        detection_result.update({
-                            "is_truncated": True,
-                            "detection_method": "collection_completeness",
-                            "reason": f"Collection '{collection_name}' has incomplete final item (strong truncation indicator)",
-                            "missing_validations": incomplete_items * len(properties),
-                            "batch_size": min(50, incomplete_items * len(properties))
-                        })
-                        return detection_result
-                    
-                    # Secondary check: Overall completeness below threshold
-                    elif completeness_ratio < 0.85:  # Lower threshold for general completeness
-                        detection_result.update({
-                            "is_truncated": True,
-                            "detection_method": "collection_completeness",
-                            "reason": f"Collection '{collection_name}' has {completeness_ratio:.1%} completeness ({complete_items}/{complete_items + incomplete_items} complete items)",
-                            "missing_validations": incomplete_items * len(properties),
-                            "batch_size": min(50, incomplete_items * len(properties))
-                        })
-                        return detection_result
-    
-        # TIER 3: Field Count Comparison (TERTIARY) - Fallback method
-        if expected_field_count and expected_field_count > 0:
-            actual_count = len(field_validations)
-            expected_with_buffer = int(expected_field_count * 0.80)  # 20% buffer for dynamic threshold
+                        # Check if the last few items have all properties
+                        max_item_index = max(item_groups.keys()) if item_groups else -1
+                        for check_index in range(max(0, max_item_index - 2), max_item_index + 1):
+                            if check_index in item_groups:
+                                item_validations = item_groups[check_index]
+                                if len(item_validations) < properties_per_item:
+                                    logging.info(f"TRUNCATION: Item {check_index} in collection {collection_name} "
+                                               f"has {len(item_validations)} properties, expected {properties_per_item}")
+                                    return True
+        
+        # TERTIARY: Expected count check (final fallback only if response structure looks complete)
+        if expected_field_count and expected_field_count > 10:  # Only use if reasonable estimate
+            threshold = expected_field_count * 0.9
+            if len(field_validations) < threshold:
+                logging.info(f"TRUNCATION: Field count suggests truncation. Found: {len(field_validations)}, "
+                           f"Expected: {expected_field_count}, Threshold: {threshold}")
+                return True
             
-            if actual_count < expected_with_buffer:
-                missing_count = expected_field_count - actual_count
-                detection_result.update({
-                    "is_truncated": True,
-                    "detection_method": "field_count",
-                    "reason": f"Field count mismatch: got {actual_count}, expected ~{expected_field_count} (threshold: {expected_with_buffer})",
-                    "missing_validations": missing_count,
-                    "batch_size": min(50, missing_count)
-                })
-                return detection_result
-        
     except json.JSONDecodeError as e:
-        # JSON parsing failed - likely truncated
-        detection_result.update({
-            "is_truncated": True,
-            "detection_method": "json_parse_error",
-            "reason": f"JSON parsing failed: {str(e)}"
-        })
-        return detection_result
+        logging.info(f"TRUNCATION: JSON decode error: {e}")
+        return True
     
-    # No truncation detected
-    logging.info("TRUNCATION: No truncation detected - response appears complete")
-    return detection_result
-
-def perform_batch_continuation(session_id: str, project_schema: Dict[str, Any], initial_validations: List[Dict], 
-                             extraction_rules: List[Dict], knowledge_documents: List[Dict], 
-                             batch_number: int = 2) -> Dict[str, Any]:
-    """
-    Perform batch continuation to retrieve missing validations when truncation is detected
-    """
-    try:
-        from google import genai
-        from google.genai import types
-        
-        # Prepare continuation prompt focusing on missing validations
-        missing_fields_guidance = f"""
-BATCH CONTINUATION REQUEST #{batch_number}
-
-CONTEXT: Previous AI response was truncated. You need to provide the REMAINING field validations that were cut off.
-
-INSTRUCTIONS:
-- Continue from where the previous response ended
-- Focus ONLY on the missing field validations
-- Ensure each validation has ALL required properties: field_id, validation_type, data_type, field_name, extracted_value, confidence_score, validation_status, ai_reasoning
-- Use the same extraction approach as the initial batch
-- Maintain consistency with previous validations
-
-REQUIRED JSON FORMAT:
-{{
-  "field_validations": [
-    // Continue with remaining validations here
-  ]
-}}
-"""
-
-        # Initialize Gemini client
-        client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
-        
-        # Create the continuation prompt
-        continuation_prompt = f"""
-{missing_fields_guidance}
-
-PREVIOUS VALIDATIONS COUNT: {len(initial_validations)}
-BATCH NUMBER: {batch_number}
-
-Please provide the remaining field validations that were truncated in the previous response.
-Focus on completing the extraction with all required validation properties.
-"""
-        
-        logging.info(f"BATCH CONTINUATION: Starting batch #{batch_number} for session {session_id}")
-        
-        # Make the API call for continuation
-        response = client.models.generate_content(
-            model='gemini-1.5-flash',
-            contents=continuation_prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.3,
-                max_output_tokens=8000,
-                response_mime_type="application/json"
-            )
-        )
-        
-        # Parse the continuation response
-        raw_response = response.text
-        continuation_data = json.loads(raw_response)
-        
-        # Extract token usage
-        usage = response.usage_metadata
-        input_tokens = getattr(usage, 'prompt_token_count', 0)
-        output_tokens = getattr(usage, 'candidates_token_count', 0)
-        
-        logging.info(f"BATCH CONTINUATION: Retrieved {len(continuation_data.get('field_validations', []))} additional validations")
-        
-        return {
-            "success": True,
-            "field_validations": continuation_data.get('field_validations', []),
-            "batch_number": batch_number,
-            "input_token_count": input_tokens,
-            "output_token_count": output_tokens,
-            "ai_response": raw_response
-        }
-        
-    except Exception as e:
-        logging.error(f"BATCH CONTINUATION ERROR: {str(e)}")
-        return {
-            "success": False,
-            "error": str(e),
-            "batch_number": batch_number,
-            "field_validations": []
-        }
+    logging.info("TRUNCATION: No truncation detected")
+    return False
 
 def generate_continuation_prompt(original_prompt: str, previous_validations: List[Dict], project_schema: Dict) -> str:
     """
@@ -384,15 +241,13 @@ def perform_batch_continuation(
     try:
         import google.generativeai as genai
         
-        # Check for API key in multiple possible environment variables
-        api_key = os.getenv('GOOGLE_GENAI_API_KEY') or os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
-        if not api_key:
+        if not os.getenv('GOOGLE_API_KEY'):
             return ExtractionResult(
                 success=False,
-                error_message="No Gemini API key found. Please set GOOGLE_GENAI_API_KEY, GEMINI_API_KEY, or GOOGLE_API_KEY environment variable"
+                error_message="GOOGLE_API_KEY environment variable not set"
             )
         
-        genai.configure(api_key=api_key)
+        genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
         
         # Generate continuation prompt
         continuation_prompt = generate_continuation_prompt("", previous_validations or [], project_schema)
@@ -1606,47 +1461,13 @@ RETURN: Complete readable content from this document."""
                 
                 logging.info(f"TRUNCATION CALCULATION: Total expected validations: {expected_field_count}")
             
-            # Enhanced 3-tier truncation detection system
-            truncation_result = detect_truncation(response_text, expected_field_count, project_schema)
-            is_truncated = truncation_result["is_truncated"]
+            # Only proceed with batch continuation if truncation is actually detected
+            is_truncated = detect_truncation(response_text, expected_field_count, project_schema)
+            logging.info(f"TRUNCATION DETECTION: Found {len(field_validations)} validations, expected ~{expected_field_count}, truncated: {is_truncated}")
+            logging.info(f"TRUNCATION DETECTION: Threshold = {expected_field_count * 0.9 if expected_field_count else 'N/A'}, Percentage = {(len(field_validations)/expected_field_count*100) if expected_field_count else 'N/A'}%")
             
-            logging.info(f"ENHANCED TRUNCATION DETECTION: Found {len(field_validations)} validations, expected ~{expected_field_count}")
-            logging.info(f"TRUNCATION RESULT: {truncation_result}")
-            
-            # Handle empty AI response - create placeholder validation records for schema fields
-            if len(field_validations) == 0:
-                logging.info("EMPTY_RESPONSE_HANDLING: AI returned empty field_validations array - creating placeholder records")
-                
-                # Create placeholder validation records for schema fields only
-                schema_fields = project_schema.get('schema_fields', [])
-                placeholder_validations = []
-                
-                for field in schema_fields:
-                    placeholder_validation = {
-                        'field_id': field.get('id'),
-                        'field_name': field.get('fieldName') or field.get('field_name', ''),
-                        'field_type': 'schema_field',
-                        'validation_type': 'schema_field',
-                        'extracted_value': None,
-                        'original_extracted_value': None,
-                        'validation_status': 'pending',
-                        'confidence_score': 0,
-                        'ai_reasoning': None,
-                        'original_ai_reasoning': None,
-                        'batch_number': 1,  # Always assign batch 1 for empty responses
-                        'data_type': field.get('fieldType', 'TEXT'),
-                        'collection_name': None,
-                        'record_index': None
-                    }
-                    placeholder_validations.append(placeholder_validation)
-                
-                extracted_data['field_validations'] = placeholder_validations
-                logging.info(f"EMPTY_RESPONSE_HANDLING: Created {len(placeholder_validations)} placeholder validation records")
-                
-            elif is_truncated and len(field_validations) > 0:
-                logging.info(f"BATCH_CONTINUATION: Truncation detected via {truncation_result['detection_method']}")
-                logging.info(f"BATCH_CONTINUATION REASON: {truncation_result['reason']}")
-                logging.info(f"BATCH_CONTINUATION: Attempting continuation extraction for {truncation_result.get('missing_validations', 0)} missing validations...")
+            if is_truncated and len(field_validations) > 0:
+                logging.info("BATCH_CONTINUATION: Truncation detected, attempting continuation extraction...")
                 
                 # Mark batch 1 validations
                 for validation in field_validations:
