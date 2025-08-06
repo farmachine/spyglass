@@ -3347,7 +3347,7 @@ print(json.dumps(result))
         return res.status(400).json({ message: "Document text, file name, and project ID are required" });
       }
 
-      console.log(`ADD_DOCUMENTS: Processing additional document for session ${sessionId}`);
+      console.log(`ADD_DOCUMENTS: Re-extracting session ${sessionId} with additional documents`);
 
       // Get existing session and project data
       const session = await storage.getExtractionSession(sessionId);
@@ -3360,38 +3360,39 @@ print(json.dumps(result))
         return res.status(404).json({ message: "Project not found" });
       }
 
-      // Get existing validations to extract verified data
+      // Get existing validations to build complete data context
       const existingValidations = await storage.getSessionValidations(sessionId);
-      const verifiedData: Record<string, any> = {};
+      const existingData: Record<string, any> = {};
       const verificationStatus: Record<string, boolean> = {};
 
-      // Build verified data context from existing validations
+      // Build complete data context from existing validations (both verified and unverified)
       existingValidations.forEach(validation => {
         const isVerified = validation.validationStatus === 'verified' || 
                           validation.validationStatus === 'valid' ||
                           validation.validationStatus === 'manual-verified';
         
         if (validation.validationType === 'schema_field') {
-          verifiedData[validation.fieldName] = validation.extractedValue;
+          existingData[validation.fieldName] = validation.extractedValue;
           verificationStatus[validation.fieldName] = isVerified;
         } else if (validation.validationType === 'collection_property' && 
                    validation.collectionName && validation.recordIndex !== null) {
-          if (!verifiedData[validation.collectionName]) {
-            verifiedData[validation.collectionName] = [];
+          if (!existingData[validation.collectionName]) {
+            existingData[validation.collectionName] = [];
           }
           
           // Ensure array has enough elements
-          while (verifiedData[validation.collectionName].length <= validation.recordIndex) {
-            verifiedData[validation.collectionName].push({});
+          while (existingData[validation.collectionName].length <= validation.recordIndex) {
+            existingData[validation.collectionName].push({});
           }
           
           const propertyName = validation.fieldName.split('.').pop()?.replace(/\[\d+\]$/, '') || '';
-          verifiedData[validation.collectionName][validation.recordIndex][propertyName] = validation.extractedValue;
+          existingData[validation.collectionName][validation.recordIndex][propertyName] = validation.extractedValue;
           verificationStatus[validation.fieldName] = isVerified;
         }
       });
 
-      console.log(`ADD_DOCUMENTS: Found ${Object.keys(verifiedData).length} verified data fields to include in context`);
+      console.log(`ADD_DOCUMENTS: Found ${Object.keys(existingData).length} existing data fields to include in context`);
+      console.log(`ADD_DOCUMENTS: Verified fields:`, Object.keys(verificationStatus).filter(k => verificationStatus[k]));
 
       // Get project schema, rules, and knowledge documents
       const [schemaFields, collections, extractionRules, knowledgeDocuments] = await Promise.all([
@@ -3410,25 +3411,40 @@ print(json.dumps(result))
       let output = '';
       let error = '';
 
-      // Prepare extraction input with verified data context
+      // Get all documents for this session (existing + new)
+      const allDocuments = [];
+      
+      // Add existing session documents if available
+      if (session.extractedData && typeof session.extractedData === 'object') {
+        const existingDocuments = session.extractedData.documents || [];
+        if (Array.isArray(existingDocuments)) {
+          allDocuments.push(...existingDocuments);
+        }
+      }
+      
+      // Add the new document
+      allDocuments.push({
+        file_name: fileName,
+        file_content: documentText
+      });
+
+      // Prepare extraction input for complete re-extraction with all documents
       const extractionInput = {
-        operation: "extract_additional",  // New operation type
-        documents: [{
-          file_name: fileName,
-          file_content: documentText
-        }],
+        operation: "extract",  // Use normal extraction
+        documents: allDocuments,
         project_schema: {
           schema_fields: schemaFields || [],
           collections: collections || []
         },
         extraction_rules: extractionRules || [],
         knowledge_documents: knowledgeDocuments || [],
-        verified_data: verifiedData,  // Include verified data for context
+        verified_data: existingData,  // Include all existing data for context
         verification_status: verificationStatus,  // Include verification status for each field
-        session_name: sessionId
+        session_name: session.sessionName || sessionId
       };
 
-      console.log(`ADD_DOCUMENTS: Sending to Python with verified data context:`, Object.keys(verifiedData));
+      console.log(`ADD_DOCUMENTS: Re-extracting with ${allDocuments.length} documents (${allDocuments.length - 1} existing + 1 new)`);
+      console.log(`ADD_DOCUMENTS: Existing data context:`, Object.keys(existingData));
       console.log(`ADD_DOCUMENTS: Verification status:`, verificationStatus);
 
       python.stdin.write(JSON.stringify(extractionInput));
@@ -3459,47 +3475,112 @@ print(json.dumps(result))
               return reject(new Error(result.error || 'Unknown extraction error'));
             }
 
-            console.log('ADD_DOCUMENTS: Extraction successful, creating new validations');
+            console.log('ADD_DOCUMENTS: Extraction successful, updating/creating validations');
 
-            // Create new validations for the additional extracted data
-            // These will be merged with existing validations
+            // Create a map of existing validations for quick lookup
+            const existingValidationsMap = new Map();
+            existingValidations.forEach(validation => {
+              const key = `${validation.fieldName}|${validation.collectionName || ''}|${validation.recordIndex || ''}`;
+              existingValidationsMap.set(key, validation);
+            });
+
+            // Process extracted field validations
             if (result.field_validations && Array.isArray(result.field_validations)) {
               for (const fieldValidation of result.field_validations) {
                 try {
-                  // Check if this field was previously verified and is being changed
-                  const wasVerified = verificationStatus[fieldValidation.field_name] || false;
-                  const previousValue = verifiedData[fieldValidation.field_name];
-                  const isValueChanged = wasVerified && previousValue !== fieldValidation.extracted_value;
+                  const validationKey = `${fieldValidation.field_name}|${fieldValidation.collection_name || ''}|${fieldValidation.record_index || ''}`;
+                  const existingValidation = existingValidationsMap.get(validationKey);
                   
-                  // Add change detection info to the AI reasoning if this is a verified field change
-                  let enhancedReasoning = fieldValidation.ai_reasoning || '';
-                  if (isValueChanged) {
-                    console.log(`ADD_DOCUMENTS: Detected change to verified field ${fieldValidation.field_name}: "${previousValue}" → "${fieldValidation.extracted_value}"`);
-                    enhancedReasoning = `[VERIFIED FIELD CHANGED] Previous value: "${previousValue}" → New value: "${fieldValidation.extracted_value}". ${enhancedReasoning}`;
-                  }
+                  if (existingValidation) {
+                    // Update existing validation
+                    const wasVerified = verificationStatus[fieldValidation.field_name] || false;
+                    const previousValue = existingValidation.extractedValue;
+                    const isValueChanged = previousValue !== fieldValidation.extracted_value;
+                    
+                    let enhancedReasoning = fieldValidation.ai_reasoning || '';
+                    let newStatus = fieldValidation.validation_status || existingValidation.validationStatus;
+                    
+                    if (isValueChanged) {
+                      if (wasVerified) {
+                        console.log(`ADD_DOCUMENTS: Detected change to verified field ${fieldValidation.field_name}: "${previousValue}" → "${fieldValidation.extracted_value}"`);
+                        enhancedReasoning = `[VERIFIED FIELD CHANGED] Previous value: "${previousValue}" → New value: "${fieldValidation.extracted_value}". ${enhancedReasoning}`;
+                        newStatus = 'requires-review';
+                      } else {
+                        console.log(`ADD_DOCUMENTS: Updated unverified field ${fieldValidation.field_name}: "${previousValue}" → "${fieldValidation.extracted_value}"`);
+                      }
+                    }
 
+                    await storage.updateFieldValidation(existingValidation.id, {
+                      extractedValue: fieldValidation.extracted_value,
+                      validationStatus: newStatus,
+                      aiReasoning: enhancedReasoning,
+                      confidenceScore: fieldValidation.confidence_score || existingValidation.confidenceScore,
+                      documentSource: `${existingValidation.documentSource || ''}, ${fileName}`.trim().replace(/^,\s*/, ''),
+                      documentSections: fieldValidation.document_sections
+                    });
+                  } else {
+                    // Create new validation (for new schema fields or previously missing data)
+                    console.log(`ADD_DOCUMENTS: Creating new validation for field ${fieldValidation.field_name}`);
+                    await storage.createFieldValidation({
+                      sessionId: sessionId,
+                      validationType: fieldValidation.field_type || 'schema_field',
+                      dataType: fieldValidation.data_type || 'TEXT',
+                      fieldId: fieldValidation.field_id,
+                      fieldName: fieldValidation.field_name,
+                      collectionName: fieldValidation.collection_name,
+                      recordIndex: fieldValidation.record_index,
+                      extractedValue: fieldValidation.extracted_value,
+                      originalExtractedValue: fieldValidation.extracted_value,
+                      originalConfidenceScore: fieldValidation.confidence_score || 0,
+                      originalAiReasoning: fieldValidation.ai_reasoning,
+                      validationStatus: fieldValidation.validation_status || 'pending',
+                      aiReasoning: fieldValidation.ai_reasoning,
+                      manuallyVerified: false,
+                      manuallyUpdated: false,
+                      confidenceScore: fieldValidation.confidence_score || 0,
+                      documentSource: fileName,
+                      documentSections: fieldValidation.document_sections
+                    });
+                  }
+                } catch (err) {
+                  console.error('Failed to update/create field validation:', err);
+                }
+              }
+            }
+
+            // Create empty validations for any new schema fields that don't have validations yet
+            const currentValidationFields = new Set(existingValidations.map(v => v.fieldName));
+            const allSchemaFields = [...(schemaFields || []), ...(collections || []).flatMap(c => 
+              (c.properties || []).map(p => `${c.name}.${p.propertyName}`)
+            )];
+            
+            for (const field of allSchemaFields) {
+              const fieldName = typeof field === 'string' ? field : field.fieldName;
+              if (!currentValidationFields.has(fieldName)) {
+                try {
+                  console.log(`ADD_DOCUMENTS: Creating empty validation for new schema field ${fieldName}`);
                   await storage.createFieldValidation({
                     sessionId: sessionId,
-                    validationType: fieldValidation.field_type || 'schema_field',
-                    dataType: fieldValidation.data_type || 'TEXT',
-                    fieldId: fieldValidation.field_id,
-                    fieldName: fieldValidation.field_name,
-                    collectionName: fieldValidation.collection_name,
-                    recordIndex: fieldValidation.record_index,
-                    extractedValue: fieldValidation.extracted_value,
-                    originalExtractedValue: fieldValidation.extracted_value,
-                    originalConfidenceScore: fieldValidation.confidence_score || 0,
-                    originalAiReasoning: enhancedReasoning,
-                    validationStatus: isValueChanged ? 'requires-review' : (fieldValidation.validation_status || 'pending'),
-                    aiReasoning: enhancedReasoning,
+                    validationType: 'schema_field',
+                    dataType: 'TEXT',
+                    fieldId: typeof field === 'string' ? null : field.id,
+                    fieldName: fieldName,
+                    collectionName: null,
+                    recordIndex: null,
+                    extractedValue: null,
+                    originalExtractedValue: null,
+                    originalConfidenceScore: 0,
+                    originalAiReasoning: 'No data extracted for this field',
+                    validationStatus: 'empty',
+                    aiReasoning: 'No data extracted for this field',
                     manuallyVerified: false,
                     manuallyUpdated: false,
-                    confidenceScore: fieldValidation.confidence_score || 0,
+                    confidenceScore: 0,
                     documentSource: fileName,
-                    documentSections: fieldValidation.document_sections
+                    documentSections: null
                   });
                 } catch (err) {
-                  console.error('Failed to create field validation:', err);
+                  console.error('Failed to create empty validation for new field:', err);
                 }
               }
             }
