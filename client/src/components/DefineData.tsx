@@ -691,6 +691,21 @@ export default function DefineData({ project }: DefineDataProps) {
                         {collection.properties?.length || 0} properties
                       </Badge>
                     </div>
+                    <div className="flex gap-1">
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => setDeleteDialog({ 
+                          open: true, 
+                          type: "collection", 
+                          id: collection.id, 
+                          name: collection.collectionName 
+                        })}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                   
                   <div className="flex items-start gap-2">
