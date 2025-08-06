@@ -1502,6 +1502,18 @@ except Exception as e:
     }
   });
 
+  // Get session batches (for debug view)
+  app.get("/api/sessions/:sessionId/batches", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const batches = await storage.getSessionBatches(sessionId);
+      res.json(batches);
+    } catch (error) {
+      console.error("Get session batches error:", error);
+      res.status(500).json({ message: "Failed to fetch session batches" });
+    }
+  });
+
   // Helper function to generate initial field validations for a new session
   const generateInitialFieldValidations = async (sessionId: string, projectId: string) => {
     try {
@@ -2625,12 +2637,30 @@ print(json.dumps(result))
               return reject(new Error(result.error || 'Single-step extraction failed'));
             }
             
-            const { fieldValidations, aggregatedExtraction } = result;
+            const { fieldValidations, aggregatedExtraction, batchData } = result;
+            
+            // Store batch information if available
+            if (batchData) {
+              console.log(`Creating session batch record for session ${sessionId}, batch ${batchData.batchNumber}`);
+              await storage.createSessionBatch({
+                sessionId,
+                batchNumber: batchData.batchNumber,
+                extractionPrompt: batchData.extractionPrompt,
+                aiResponse: batchData.aiResponse,
+                inputTokenCount: batchData.inputTokens || 0,
+                outputTokenCount: batchData.outputTokens || 0,
+                validationCount: 0 // Will be updated after validations are created
+              });
+            }
             
             // Store aggregated extraction data in session
             await storage.updateExtractionSession(sessionId, {
               status: "extracted",
-              extractedData: JSON.stringify(aggregatedExtraction)
+              extractedData: JSON.stringify(aggregatedExtraction),
+              inputTokenCount: batchData?.inputTokens || 0,
+              outputTokenCount: batchData?.outputTokens || 0,
+              extractionPrompt: batchData?.extractionPrompt || null,
+              aiResponse: batchData?.aiResponse || null
             });
             
             // Create field validation records directly from AI results
@@ -2709,6 +2739,14 @@ print(json.dumps(result))
               } catch (validationError) {
                 console.error(`Error creating validation record for ${validation.field_name}:`, validationError);
               }
+            }
+            
+            // Update validation count in batch if batch data was stored
+            if (batchData && fieldValidations) {
+              console.log(`Updating batch validation count to ${fieldValidations.length}`);
+              await storage.updateSessionBatch(sessionId, batchData.batchNumber, {
+                validationCount: fieldValidations.length
+              });
             }
             
             resolve({ fieldValidations, aggregatedExtraction });

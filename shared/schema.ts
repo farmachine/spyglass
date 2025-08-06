@@ -119,6 +119,18 @@ export const fieldValidations = pgTable("field_validations", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const sessionBatches = pgTable("session_batches", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
+  batchNumber: integer("batch_number").notNull(),
+  extractionPrompt: text("extraction_prompt"), // Store the prompt used for this batch
+  aiResponse: text("ai_response"), // Store the raw AI response for this batch
+  inputTokenCount: integer("input_tokens"), // Number of input tokens used for this batch
+  outputTokenCount: integer("output_tokens"), // Number of output tokens generated for this batch
+  validationCount: integer("validation_count").default(0), // Number of validations produced by this batch
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const knowledgeDocuments = pgTable("knowledge_documents", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
@@ -198,6 +210,11 @@ export const insertFieldValidationSchema = createInsertSchema(fieldValidations).
   updatedAt: true,
 });
 
+export const insertSessionBatchSchema = createInsertSchema(sessionBatches).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertProjectPublishingSchema = createInsertSchema(projectPublishing).omit({
   id: true,
   createdAt: true,
@@ -231,6 +248,8 @@ export type FieldValidationWithName = FieldValidation & {
   fieldName: string; // Added by backend through JOIN operations
 };
 export type InsertFieldValidation = z.infer<typeof insertFieldValidationSchema>;
+export type SessionBatch = typeof sessionBatches.$inferSelect;
+export type InsertSessionBatch = z.infer<typeof insertSessionBatchSchema>;
 export type ProjectPublishing = typeof projectPublishing.$inferSelect;
 export type InsertProjectPublishing = z.infer<typeof insertProjectPublishingSchema>;
 

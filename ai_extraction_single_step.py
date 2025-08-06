@@ -61,12 +61,26 @@ def main():
             if result_text.endswith('…') or '[TRUNCATED]' in result_text:
                 print("WARNING: Response appears to be truncated!", file=sys.stderr)
             
-            # Return success response
+            # Get token usage data
+            input_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0) if hasattr(response, 'usage_metadata') else 0
+            output_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0) if hasattr(response, 'usage_metadata') else 0
+            
+            print(f"DEBUG: Token usage - Input: {input_tokens}, Output: {output_tokens}", file=sys.stderr)
+            
+            # Return success response with detailed batch information
             result = {
                 "success": True,
                 "extractedData": result_text,
                 "sessionId": session_id,
-                "projectId": project_id
+                "projectId": project_id,
+                "batchData": {
+                    "batchNumber": 1,
+                    "extractionPrompt": prompt,
+                    "aiResponse": result_text,
+                    "inputTokens": input_tokens,
+                    "outputTokens": output_tokens,
+                    "validationCount": 0  # Will be updated when validations are created
+                }
             }
         else:
             result = {

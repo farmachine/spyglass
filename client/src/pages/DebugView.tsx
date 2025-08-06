@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Bug, Copy, Check } from "lucide-react";
 import { useState } from "react";
-import type { ExtractionSession, FieldValidation } from "@shared/schema";
+import type { ExtractionSession, FieldValidation, SessionBatch } from "@shared/schema";
 
 export default function DebugView() {
   const { sessionId } = useParams();
@@ -21,6 +21,11 @@ export default function DebugView() {
 
   const { data: validations } = useQuery<FieldValidation[]>({
     queryKey: ['/api/sessions', sessionId, 'validations'],
+    enabled: !!sessionId
+  });
+
+  const { data: sessionBatches } = useQuery<SessionBatch[]>({
+    queryKey: ['/api/sessions', sessionId, 'batches'],
     enabled: !!sessionId
   });
 
@@ -42,7 +47,7 @@ export default function DebugView() {
 
   // Calculate batch information
   const batchData = validations ? (() => {
-    const batchNumbers = [...new Set(validations.map(v => v.batchNumber || 1))];
+    const batchNumbers = Array.from(new Set(validations.map(v => v.batchNumber || 1)));
     const batches = batchNumbers.map(batchNumber => ({
       batchNumber,
       validationCount: validations.filter(v => (v.batchNumber || 1) === batchNumber).length
@@ -307,24 +312,69 @@ export default function DebugView() {
                       )}
                     </div>
 
-                    {/* Batch Breakdown */}
+                    {/* Detailed Batch Information */}
                     <div>
-                      <h3 className="text-lg font-semibold mb-3">Batch Breakdown</h3>
-                      <div className="space-y-2">
-                        {batchData.batches.map(batch => (
-                          <div key={batch.batchNumber} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <Badge variant="outline">Batch {batch.batchNumber}</Badge>
-                              <span className="text-sm text-gray-600">
-                                {batch.validationCount} validation{batch.validationCount !== 1 ? 's' : ''}
-                              </span>
+                      <h3 className="text-lg font-semibold mb-3">Detailed Batch Information</h3>
+                      {sessionBatches && sessionBatches.length > 0 ? (
+                        <div className="space-y-4">
+                          {sessionBatches.map(batch => (
+                            <Card key={batch.batchNumber} className="border">
+                              <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline">Batch {batch.batchNumber}</Badge>
+                                    <span className="text-sm text-gray-600">
+                                      {batch.validationCount} validation{batch.validationCount !== 1 ? 's' : ''}
+                                    </span>
+                                  </div>
+                                  <div className="flex gap-4 text-xs text-gray-500">
+                                    <span>Input: {formatTokenCount(batch.inputTokenCount)} tokens</span>
+                                    <span>Output: {formatTokenCount(batch.outputTokenCount)} tokens</span>
+                                  </div>
+                                </div>
+                              </CardHeader>
+                              <CardContent className="space-y-3">
+                                {batch.extractionPrompt && (
+                                  <div>
+                                    <h4 className="font-medium text-sm mb-2">Extraction Prompt</h4>
+                                    <ScrollArea className="h-[200px] w-full rounded-md border p-3 bg-gray-50">
+                                      <pre className="text-xs whitespace-pre-wrap font-mono">
+                                        {batch.extractionPrompt}
+                                      </pre>
+                                    </ScrollArea>
+                                  </div>
+                                )}
+                                {batch.aiResponse && (
+                                  <div>
+                                    <h4 className="font-medium text-sm mb-2">AI Response</h4>
+                                    <ScrollArea className="h-[200px] w-full rounded-md border p-3 bg-gray-50">
+                                      <pre className="text-xs whitespace-pre-wrap font-mono">
+                                        {batch.aiResponse}
+                                      </pre>
+                                    </ScrollArea>
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {batchData.batches.map(batch => (
+                            <div key={batch.batchNumber} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <Badge variant="outline">Batch {batch.batchNumber}</Badge>
+                                <span className="text-sm text-gray-600">
+                                  {batch.validationCount} validation{batch.validationCount !== 1 ? 's' : ''}
+                                </span>
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {((batch.validationCount / (validations?.length || 1)) * 100).toFixed(1)}% of total
+                              </div>
                             </div>
-                            <div className="text-sm text-gray-500">
-                              {((batch.validationCount / (validations?.length || 1)) * 100).toFixed(1)}% of total
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {/* Technical Details */}
