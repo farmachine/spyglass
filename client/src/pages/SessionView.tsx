@@ -1941,9 +1941,9 @@ Thank you for your assistance.`;
                     
                     if (totalCount === 0) return null;
                     if (verifiedCount === totalCount) {
-                      return <Check className="w-4 h-4 ml-2 text-green-600" />;
+                      return <ValidationIcon status="valid" showTooltip={false} size="sm" />;
                     } else {
-                      return <Check className="w-4 h-4 ml-2 text-gray-400" />;
+                      return <ValidationIcon status="pending" showTooltip={false} size="sm" />;
                     }
                   })()}
                 </TabsTrigger>
@@ -1969,9 +1969,9 @@ Thank you for your assistance.`;
                       {/* Collection verification indicator */}
                       {totalCount > 0 && (() => {
                         if (verifiedCount === totalCount) {
-                          return <Check className="w-4 h-4 ml-2 text-green-600" />;
+                          return <ValidationIcon status="valid" showTooltip={false} size="sm" />;
                         } else {
-                          return <Check className="w-4 h-4 ml-2 text-gray-400" />;
+                          return <ValidationIcon status="pending" showTooltip={false} size="sm" />;
                         }
                       })()}
                     </TabsTrigger>
