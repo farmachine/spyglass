@@ -20,6 +20,7 @@ import {
   insertProjectPublishingSchema
 } from "@shared/schema";
 import { authenticateToken, requireAdmin, generateToken, comparePassword, hashPassword, type AuthRequest } from "./auth";
+import { UserRole } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication Routes
@@ -3372,8 +3373,10 @@ print(json.dumps(result))
                           validation.validationStatus === 'manual-verified';
         
         if (validation.validationType === 'schema_field') {
-          existingData[validation.fieldName] = validation.extractedValue;
-          verificationStatus[validation.fieldName] = isVerified;
+          // Use fieldName from enhanced validation result
+          const fieldName = (validation as any).fieldName || `field_${validation.fieldId}`;
+          existingData[fieldName] = validation.extractedValue;
+          verificationStatus[fieldName] = isVerified;
         } else if (validation.validationType === 'collection_property' && 
                    validation.collectionName && validation.recordIndex !== null) {
           if (!existingData[validation.collectionName]) {
@@ -3385,9 +3388,11 @@ print(json.dumps(result))
             existingData[validation.collectionName].push({});
           }
           
-          const propertyName = validation.fieldName.split('.').pop()?.replace(/\[\d+\]$/, '') || '';
+          // Use fieldName from enhanced validation result  
+          const fieldName = (validation as any).fieldName || `field_${validation.fieldId}`;
+          const propertyName = fieldName.split('.').pop()?.replace(/\[\d+\]$/, '') || '';
           existingData[validation.collectionName][validation.recordIndex][propertyName] = validation.extractedValue;
-          verificationStatus[validation.fieldName] = isVerified;
+          verificationStatus[fieldName] = isVerified;
         }
       });
 
