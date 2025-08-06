@@ -2143,7 +2143,7 @@ print(json.dumps(result))
       const [project, schemaFields, collections, knowledgeDocuments, extractionRules] = await Promise.all([
         storage.getProject(projectId),
         storage.getProjectSchemaFields(projectId),
-        storage.getProjectCollections(projectId), 
+        storage.getObjectCollections(projectId), 
         storage.getKnowledgeDocuments(projectId),
         storage.getExtractionRules(projectId)
       ]);
@@ -2255,14 +2255,27 @@ print(json.dumps(result))
             // Store extracted validations
             if (result.field_validations) {
               for (const validation of result.field_validations) {
-                await storage.upsertValidation(sessionId, {
+                // Check if validation already exists for this field
+                const existingValidations = await storage.getSessionValidations(sessionId);
+                const existingValidation = existingValidations.find(v => v.fieldName === validation.field_id);
+                
+                const validationData = {
+                  sessionId: sessionId,
                   fieldName: validation.field_id,
                   extractedValue: validation.extracted_value || '',
                   confidence: validation.confidence || 0,
                   aiReasoning: validation.reasoning || '',
                   status: (validation.confidence >= 80) ? 'verified' : 'pending',
                   isManuallyEdited: false
-                });
+                };
+                
+                if (existingValidation) {
+                  // Update existing validation
+                  await storage.updateFieldValidation(existingValidation.id, validationData);
+                } else {
+                  // Create new validation
+                  await storage.createFieldValidation(validationData);
+                }
               }
             }
 
