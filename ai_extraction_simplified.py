@@ -689,7 +689,8 @@ def step1_extract_from_documents(
             verified_data_context += "- **NO OVERRIDES**: Even if the new document contains different information, verified fields cannot be updated\n"
             verified_data_context += "- **UNVERIFIED FIELDS ONLY**: Only update fields marked '⚠ UNVERIFIED' with new information from the documents\n"
             verified_data_context += "- **MISSING DATA FOCUS**: Concentrate on filling in empty/missing fields rather than changing existing verified data\n"
-            verified_data_context += "- **STRICT PRESERVATION**: Return verified fields with identical extracted_value, validation_status, and confidence_score\n\n"
+            verified_data_context += "- **EXTRACT NEW DOCUMENT CONTENT**: For unverified/empty fields, extract detailed information from the new document content\n"
+            verified_data_context += "- **DETAILED EXTRACTION**: If the document contains code definitions, meanings, or explanations, extract the FULL detailed text\n\n"
 
         # The imported prompt already contains all the necessary instructions
         # Just add document verification and choice field handling specific to this run

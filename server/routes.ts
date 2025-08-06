@@ -2172,6 +2172,10 @@ print(json.dumps(result))
       });
 
       console.log(`AI EXTRACTION: Found ${existingValidations.length} existing validations, ${Object.keys(verifiedData).length} with data`);
+      console.log(`AI EXTRACTION: Processing ${extractedData.documents?.length || 0} documents`);
+      if (extractedData.documents?.length > 0) {
+        console.log(`AI EXTRACTION: First document preview: ${extractedData.documents[0].file_content?.substring(0, 200) || 'No content'}...`);
+      }
       
       // Prepare schema data for Python script
       const schemaData = {
@@ -2273,6 +2277,14 @@ print(json.dumps(result))
       if (extractionNotes) {
         extractionNotes = "INCOMPLETE DATA COMPLETION: " + extractionNotes + 
           "Do not leave any fields empty - extract from document text or infer from context when explicit values aren't available.";
+      }
+      
+      // Add specific instruction for Code Meanings extraction from this document
+      if (extractedData.documents?.length > 0) {
+        const docContent = extractedData.documents[0].file_content || '';
+        if (docContent.includes('Code') || docContent.includes('meaning') || docContent.includes('definition')) {
+          extractionNotes += " DOCUMENT ANALYSIS: The uploaded document contains detailed code definitions and meanings - extract ALL code meanings from this document content.";
+        }
       }
 
       const inputData = JSON.stringify({
