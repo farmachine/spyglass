@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Settings, Database, Tag, GripVertical, Sparkles } from "lucide-react";
+import { Plus, Edit, Trash2, Settings, Database, Tag, GripVertical, Sparkles, FileText, Book, Link2 } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -31,6 +31,15 @@ import {
   useUpdateProperty,
   useDeleteProperty
 } from "@/hooks/useSchema";
+import {
+  useKnowledgeDocuments,
+  useExtractionRules,
+  useCreateKnowledgeDocument,
+  useCreateExtractionRule,
+  useDeleteKnowledgeDocument,
+  useDeleteExtractionRule
+} from "@/hooks/useKnowledge";
+import { useProjects } from "@/hooks/useProjects";
 import { useUpdateProject } from "@/hooks/useProjects";
 import SchemaFieldDialog from "@/components/SchemaFieldDialog";
 import CollectionDialog from "@/components/CollectionDialog";
@@ -42,6 +51,8 @@ import type {
   ProjectSchemaField,
   ObjectCollection,
   CollectionProperty,
+  KnowledgeDocument,
+  ExtractionRule,
 } from "@shared/schema";
 
 interface DefineDataProps {
@@ -58,6 +69,7 @@ export default function DefineData({ project }: DefineDataProps) {
   const [isEditingMainObjectName, setIsEditingMainObjectName] = useState(false);
   const [isEditingMainObjectDescription, setIsEditingMainObjectDescription] = useState(false);
   const [activeTab, setActiveTab] = useState('main-data');
+  const [connectDataDialogOpen, setConnectDataDialogOpen] = useState(false);
   
   // Update local state when project prop changes (needed for database updates)
   useEffect(() => {
@@ -72,6 +84,11 @@ export default function DefineData({ project }: DefineDataProps) {
   // AI Query state
   const [aiQuery, setAiQuery] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  
+  // Knowledge base queries
+  const { data: knowledgeDocuments, isLoading: knowledgeLoading } = useKnowledgeDocuments(project.id);
+  const { data: extractionRules, isLoading: rulesLoading } = useExtractionRules(project.id);
+  const { data: allProjects } = useProjects();
 
   const queryClient = useQueryClient();
 
@@ -466,6 +483,7 @@ export default function DefineData({ project }: DefineDataProps) {
                 {collection.collectionName}
               </TabsTrigger>
             ))}
+            <TabsTrigger value="knowledge" className="tabs-trigger">Knowledge Base</TabsTrigger>
             <Button
               variant="ghost"
               size="sm"
