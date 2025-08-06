@@ -213,7 +213,28 @@ export default function DefineData({ project }: DefineDataProps) {
       // Mark project as interacted to prevent welcome flow redirects
       sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
       
+      // Find the collection being deleted to determine tab navigation
+      const collectionToDelete = safeCollections.find(c => c.id === id);
+      const currentCollectionName = collectionToDelete?.collectionName;
+      
+      // Determine which tab to navigate to after deletion
+      let targetTab = "main-data"; // Default to main fields tab
+      
+      if (currentCollectionName && activeTab === currentCollectionName) {
+        // Find the index of the current collection
+        const currentIndex = safeCollections.findIndex(c => c.collectionName === currentCollectionName);
+        
+        if (currentIndex > 0) {
+          // Navigate to the previous collection tab
+          targetTab = safeCollections[currentIndex - 1].collectionName;
+        }
+        // If it's the first collection (index 0), targetTab remains "main-data"
+      }
+      
       await deleteCollection.mutateAsync(id);
+      
+      // Navigate to the determined tab after successful deletion
+      setActiveTab(targetTab);
       setDeleteDialog({ open: false });
     } catch (error) {
     }
