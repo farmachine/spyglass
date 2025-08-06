@@ -231,12 +231,30 @@ export default function DefineData({ project }: DefineDataProps) {
         // If it's the first collection (index 0), targetTab remains "main-data"
       }
       
-      await deleteCollection.mutateAsync(id);
+      // Optimistic update: Immediately update the cache to remove the collection
+      queryClient.setQueryData(["/api/projects", project.id, "collections"], (oldData: any) => {
+        if (!oldData) return oldData;
+        return oldData.filter((collection: any) => collection.id !== id);
+      });
       
-      // Navigate to the determined tab after successful deletion
+      // Optimistic update: Update the main project data to reflect the collection removal
+      queryClient.setQueryData(["/api/projects", project.id], (oldData: any) => {
+        if (!oldData) return oldData;
+        const updatedCollections = (oldData.collections || []).filter((collection: any) => collection.id !== id);
+        return { ...oldData, collections: updatedCollections };
+      });
+      
+      // Navigate to the determined tab immediately
       setActiveTab(targetTab);
       setDeleteDialog({ open: false });
+      
+      // Perform the actual deletion in the background
+      await deleteCollection.mutateAsync(id);
     } catch (error) {
+      // Revert optimistic updates on error
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id, "collections"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id] });
+      console.error("Failed to delete collection:", error);
     }
   };
 

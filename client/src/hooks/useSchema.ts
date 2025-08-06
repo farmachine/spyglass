@@ -116,6 +116,13 @@ export function useDeleteCollection(projectId: string) {
       method: "DELETE",
     }),
     onSuccess: () => {
+      // Only invalidate if optimistic updates haven't already been applied
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "collections"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+    },
+    onError: () => {
+      // This will be handled by the component's error handling
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "collections"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
