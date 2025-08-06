@@ -184,8 +184,8 @@ export default function AddDocumentsModal({
           headers: { 'Content-Type': 'application/json' }
         });
 
-        if (!extractionResponse.success) {
-          throw new Error(extractionResponse.error || `Failed to process ${file.file.name}`);
+        if (!extractionResponse || !extractionResponse.success) {
+          throw new Error(extractionResponse?.error || extractionResponse?.message || `Failed to process ${file.file.name}`);
         }
 
         // Update to completed

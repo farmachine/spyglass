@@ -2103,6 +2103,7 @@ print(json.dumps(result))
       });
       
       res.json({
+        success: true,
         message: "Text extraction completed successfully",
         redirect: `/sessions/${sessionId}/schema-view`
       });
