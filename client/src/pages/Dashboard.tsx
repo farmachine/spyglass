@@ -263,19 +263,19 @@ export default function Dashboard() {
                   <>
                     <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
                       <TrendingUp className="h-6 w-6 text-primary" />
-                      <span className="text-xl font-bold text-gray-900">{statistics.totalProjects}</span>
+                      <span className="text-xl font-bold text-gray-900">{statistics?.totalProjects || 0}</span>
                     </div>
                     <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
                       <Database className="h-6 w-6 text-slate-700" />
-                      <span className="text-xl font-bold text-gray-900">{statistics.totalSessions}</span>
+                      <span className="text-xl font-bold text-gray-900">{statistics?.totalSessions || 0}</span>
                     </div>
                     <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
                       <CheckCircle className="h-6 w-6 text-gray-400" />
-                      <span className="text-xl font-bold text-gray-900">{statistics.unverifiedSessions}</span>
+                      <span className="text-xl font-bold text-gray-900">{statistics?.unverifiedSessions || 0}</span>
                     </div>
                     <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
                       <CheckCircle className="h-6 w-6 text-green-600" />
-                      <span className="text-xl font-bold text-gray-900">{statistics.verifiedSessions}</span>
+                      <span className="text-xl font-bold text-gray-900">{statistics?.verifiedSessions || 0}</span>
                     </div>
                   </>
                 ) : null}
@@ -305,7 +305,7 @@ export default function Dashboard() {
                   <Checkbox 
                     id="show-deactivated"
                     checked={showDeactivated}
-                    onCheckedChange={setShowDeactivated}
+                    onCheckedChange={(checked) => setShowDeactivated(checked === true)}
                   />
                   <Label 
                     htmlFor="show-deactivated"

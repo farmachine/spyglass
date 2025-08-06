@@ -99,7 +99,7 @@ export default function ProjectCard({
   });
 
   // Get verification status for a session
-  const getVerificationStatus = (sessionId: number): 'verified' | 'in_progress' | 'pending' => {
+  const getVerificationStatus = (sessionId: string): 'verified' | 'in_progress' | 'pending' => {
     const sessionValidations = allValidations.filter(v => v.sessionId === sessionId);
     if (sessionValidations.length === 0) return 'pending';
     
