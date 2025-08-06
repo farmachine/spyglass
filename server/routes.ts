@@ -55,7 +55,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: user.email,
         name: user.name,
         organizationId: user.organizationId,
-        role: user.role,
+        role: user.role as UserRole,
         isTemporaryPassword: user.isTemporaryPassword
       });
 
@@ -1571,7 +1571,7 @@ except Exception as e:
             validationType: 'collection_property',
             dataType: property.propertyType,
             fieldId: property.id,
-            fieldName: `${collection.collectionName}.${property.propertyName}[0]`,
+
             collectionName: collection.collectionName,
             recordIndex: 0,
             extractedValue: null,
@@ -2724,7 +2724,7 @@ print(json.dumps(result))
                   validationStatus: validation.validation_status,
                   confidenceScore: validation.validation_confidence,
                   aiReasoning: validation.ai_reasoning,
-                  manualInput: false
+                  manuallyUpdated: false
                 });
                 
                 console.log(`Created validation for ${validation.field_name} -> ${fieldMapping.fieldType}`);

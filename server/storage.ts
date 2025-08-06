@@ -76,6 +76,7 @@ export interface IStorage {
 
   // Project Schema Fields
   getProjectSchemaFields(projectId: string): Promise<ProjectSchemaField[]>;
+  getProjectSchemaFieldById(id: string): Promise<ProjectSchemaField | undefined>;
   createProjectSchemaField(field: InsertProjectSchemaField): Promise<ProjectSchemaField>;
   updateProjectSchemaField(id: string, field: Partial<InsertProjectSchemaField>): Promise<ProjectSchemaField | undefined>;
   deleteProjectSchemaField(id: string): Promise<boolean>;
@@ -89,6 +90,7 @@ export interface IStorage {
 
   // Collection Properties
   getCollectionProperties(collectionId: string): Promise<CollectionProperty[]>;
+  getCollectionPropertyById(id: string): Promise<CollectionProperty | undefined>;
   createCollectionProperty(property: InsertCollectionProperty): Promise<CollectionProperty>;
   updateCollectionProperty(id: string, property: Partial<InsertCollectionProperty>): Promise<CollectionProperty | undefined>;
   deleteCollectionProperty(id: string): Promise<boolean>;
@@ -113,6 +115,7 @@ export interface IStorage {
 
   // Field Validations
   getFieldValidations(sessionId: string): Promise<FieldValidation[]>;
+  getSessionValidations(sessionId: string): Promise<FieldValidation[]>;
   getFieldValidation(id: string): Promise<FieldValidation | undefined>;
   createFieldValidation(validation: InsertFieldValidation): Promise<FieldValidation>;
   updateFieldValidation(id: string, validation: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined>;
@@ -168,6 +171,7 @@ export class MemStorage implements IStorage {
       id: orgId,
       name: "ACME Corporation", 
       description: "Sample organization for testing",
+      type: "primary",
       createdAt: new Date()
     };
     this.organizations.set(orgId, org);
@@ -182,18 +186,23 @@ export class MemStorage implements IStorage {
       organizationId: orgId,
       role: "admin",
       isActive: true,
+      isTemporaryPassword: false,
+      projectOrder: null,
       createdAt: new Date()
     };
     this.users.set(userId, adminUser);
 
     // Create a sample project with deterministic UUID
     const projectId = "550e8400-e29b-41d4-a716-446655440002"; // Fixed UUID for sample project
-    const project = {
+    const project: Project = {
       id: projectId,
       name: "Sample Invoice Processing",
       description: "Extract data from invoices and receipts",
-      organizationId: orgId, // Link to organization
+      organizationId: orgId,
+      createdBy: userId,
       mainObjectName: "Invoice",
+      mainObjectDescription: null,
+      status: "active",
       isInitialSetupComplete: true,
       createdAt: new Date(),
     };
@@ -208,6 +217,7 @@ export class MemStorage implements IStorage {
         fieldType: "NUMBER" as const,
         description: "The total amount of the invoice",
         autoVerificationConfidence: 80,
+        choiceOptions: null,
         orderIndex: 1,
         createdAt: new Date(Date.now() - 86400000 * 3), // 3 days ago
       },
@@ -218,6 +228,7 @@ export class MemStorage implements IStorage {
         fieldType: "DATE" as const,
         description: "The date when the invoice was issued",
         autoVerificationConfidence: 80,
+        choiceOptions: null,
         orderIndex: 2,
         createdAt: new Date(Date.now() - 86400000 * 2), // 2 days ago
       },
@@ -228,6 +239,7 @@ export class MemStorage implements IStorage {
         fieldType: "TEXT" as const,
         description: "The name of the vendor or supplier",
         autoVerificationConfidence: 80,
+        choiceOptions: null,
         orderIndex: 3,
         createdAt: new Date(Date.now() - 86400000 * 1), // 1 day ago
       },
@@ -256,6 +268,7 @@ export class MemStorage implements IStorage {
         propertyType: "TEXT" as const,
         description: "Description of the item",
         autoVerificationConfidence: 80,
+        choiceOptions: null,
         orderIndex: 1,
         createdAt: new Date(Date.now() - 86400000 * 3), // 3 days ago
       },
@@ -266,6 +279,7 @@ export class MemStorage implements IStorage {
         propertyType: "NUMBER" as const,
         description: "Number of items",
         autoVerificationConfidence: 80,
+        choiceOptions: null,
         orderIndex: 2,
         createdAt: new Date(Date.now() - 86400000 * 2), // 2 days ago
       },
@@ -276,6 +290,7 @@ export class MemStorage implements IStorage {
         propertyType: "NUMBER" as const,
         description: "Price per unit",
         autoVerificationConfidence: 80,
+        choiceOptions: null,
         orderIndex: 3,
         createdAt: new Date(Date.now() - 86400000 * 1), // 1 day ago
       },
@@ -1246,6 +1261,11 @@ export class MemStorage implements IStorage {
     });
     
     return enhancedValidations;
+  }
+
+  async getSessionValidations(sessionId: string): Promise<FieldValidation[]> {
+    // This is an alias for getFieldValidations for backwards compatibility
+    return this.getFieldValidations(sessionId);
   }
 
   async getFieldValidation(id: string): Promise<FieldValidation | undefined> {
