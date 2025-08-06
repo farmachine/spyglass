@@ -2121,7 +2121,7 @@ print(json.dumps(result))
       console.log(`AI EXTRACTION: Starting AI analysis for session ${sessionId}`);
       
       // Get session data
-      const session = await storage.getSession(sessionId);
+      const session = await storage.getExtractionSession(sessionId);
       if (!session) {
         return res.status(404).json({ success: false, error: 'Session not found' });
       }
