@@ -160,7 +160,8 @@ def step1_extract_from_documents(
     knowledge_documents: List[Dict[str, Any]] = None,
     session_name: str = "contract",
     verified_data: Dict[str, Any] = None,
-    verification_status: Dict[str, bool] = None
+    verification_status: Dict[str, bool] = None,
+    extraction_notes: str = ""
 ) -> ExtractionResult:
     """
     STEP 1: Extract data from documents using AI
@@ -694,8 +695,13 @@ def step1_extract_from_documents(
 
         # The imported prompt already contains all the necessary instructions
         # Just add document verification and choice field handling specific to this run
+        # Add extraction notes if provided
+        extraction_notes_context = ""
+        if extraction_notes:
+            extraction_notes_context = f"\n\n## EXTRACTION NOTES:\n{extraction_notes}\n"
+
         full_prompt += f"""
-{verified_data_context}
+{verified_data_context}{extraction_notes_context}
 DOCUMENT VERIFICATION: Confirm you processed all {len(documents)} documents: {[doc.get('file_name', 'Unknown') for doc in documents]}
 
 CHOICE FIELD HANDLING:
@@ -1186,9 +1192,10 @@ if __name__ == "__main__":
             session_name = input_data.get("session_name", "contract")
             verified_data = input_data.get("verified_data", {})  # Additional context for extract_additional
             verification_status = input_data.get("verification_status", {})  # Verification status for each field
+            extraction_notes = input_data.get("extraction_notes", "")  # Special extraction instructions
             
             # Call the extraction function (same logic works for both operations)
-            result = step1_extract_from_documents(documents, project_schema, extraction_rules, knowledge_documents, session_name, verified_data, verification_status)
+            result = step1_extract_from_documents(documents, project_schema, extraction_rules, knowledge_documents, session_name, verified_data, verification_status, extraction_notes)
             
             if result.success:
                 print(json.dumps({

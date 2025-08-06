@@ -2217,6 +2217,12 @@ print(json.dumps(result))
         stdio: ['pipe', 'pipe', 'pipe']
       });
 
+      // Add specific instruction for Code Meanings extraction
+      const codesCount = Object.keys(verifiedData).filter(key => key.startsWith('Codes.')).length / 2; // Divide by 2 since we have Code Name and Code List
+      const codeExtractionNote = codesCount > 0 ? 
+        `SPECIAL INSTRUCTION: Extract Code Meanings for ALL ${Math.floor(codesCount)} code records. Do not leave any Code Meanings empty - infer meanings from context if not explicitly stated.` : 
+        '';
+
       const inputData = JSON.stringify({
         documents: extractedData.documents || [],
         project_schema: schemaData,
@@ -2224,7 +2230,8 @@ print(json.dumps(result))
         knowledge_documents: knowledgeDocuments,
         session_name: project.mainObjectName || "Session",
         verified_data: verifiedData,
-        verification_status: verificationStatus
+        verification_status: verificationStatus,
+        extraction_notes: codeExtractionNote
       });
 
       python.stdin.write(inputData);

@@ -52,6 +52,8 @@ EXTRACTION_PROMPT = """You are an expert data extraction specialist. Extract dat
 - **Row Extraction**: Extract EVERY data row from markdown tables - if you see 10 rows, extract all 10 as separate collection items
 - **Column Mapping**: Map table columns to collection properties based on header names and content patterns
 - **Table Boundaries**: Understand where tables start and end in markdown format
+- **COMPLETE COLUMN EXTRACTION**: When extracting from tables, ensure ALL columns for ALL rows are extracted - do not leave any table cells empty in your extraction. If a table has 3 columns (Name, Code, Meaning), extract ALL 3 columns for EVERY row
+- **MISSING DATA INFERENCE**: If a table column appears to have corresponding data but isn't explicitly labeled (e.g., code meanings), infer and extract the meanings based on the codes and context
 
 ### Collection Identification Strategies:
 1. **Header Analysis**: Look for section headers, table titles, or list introductions that indicate content type
