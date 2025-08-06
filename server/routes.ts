@@ -2276,6 +2276,14 @@ print(json.dumps(result))
                 }
               }
               
+              console.log('Field name to ID mapping:', Object.keys(fieldNameToId));
+              console.log(`Processing ${result.field_validations.length} validations from AI`);
+              
+              // Debug: Log all field names the AI is trying to map
+              for (const validation of result.field_validations) {
+                console.log(`AI validation field: ${validation.field_name} -> extracted_value: ${validation.extracted_value}`);
+              }
+              
               for (const validation of result.field_validations) {
                 // Extract base field name (remove index like [0], [1])
                 const fieldName = validation.field_name;
