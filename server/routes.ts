@@ -2441,6 +2441,36 @@ print(json.dumps(result))
         return res.status(404).json({ error: 'Session not found' });
       }
 
+      // Build collection indexing maps to ensure unique indices per collection
+      const collectionIndexMaps = new Map();
+      
+      // First pass: identify all collections and build proper index mappings
+      for (const validation of parsedValidations) {
+        if (validation.field_type === 'collection_property') {
+          const fieldName = validation.field_name;
+          const collectionMatch = fieldName.match(/^(.+)\./);
+          if (collectionMatch) {
+            const collectionName = collectionMatch[1];
+            
+            if (!collectionIndexMaps.has(collectionName)) {
+              collectionIndexMaps.set(collectionName, new Map());
+            }
+            
+            const collectionMap = collectionIndexMaps.get(collectionName);
+            const originalIndex = validation.record_index || 0;
+            
+            // Map original index to new sequential index if not already mapped
+            if (!collectionMap.has(originalIndex)) {
+              collectionMap.set(originalIndex, collectionMap.size);
+            }
+          }
+        }
+      }
+      
+      console.log(`SAVE VALIDATIONS: Built index maps for ${collectionIndexMaps.size} collections:`, 
+        Array.from(collectionIndexMaps.entries()).map(([name, map]) => 
+          `${name}: ${map.size} indices`));
+
       // Update existing validation records instead of creating duplicates
       const savedValidations = [];
       for (const validation of parsedValidations) {
@@ -2448,30 +2478,38 @@ print(json.dumps(result))
           // For collection properties, we need to set the correct fieldName with index
           let fieldName = validation.field_name;
           let collectionName = null;
+          let correctedRecordIndex = validation.record_index || 0;
           
           // If it's a collection property, ensure proper indexed field name
           if (validation.field_type === 'collection_property') {
-            const recordIndex = validation.record_index || 0;
-            
-            // Check if the field name already has an index
-            if (!fieldName.includes('[')) {
-              // Add the index if missing (e.g., "Parties.Name" -> "Parties.Name[0]")
-              fieldName = `${fieldName}[${recordIndex}]`;
-            }
-            
             // Extract collection name from field name
             const collectionMatch = fieldName.match(/^(.+)\./);
             if (collectionMatch) {
               collectionName = collectionMatch[1];
+              
+              // Get the corrected sequential index for this collection
+              const collectionMap = collectionIndexMaps.get(collectionName);
+              if (collectionMap && collectionMap.has(validation.record_index || 0)) {
+                correctedRecordIndex = collectionMap.get(validation.record_index || 0);
+              }
+            }
+            
+            // Check if the field name already has an index
+            if (!fieldName.includes('[')) {
+              // Add the corrected index if missing (e.g., "Parties.Name" -> "Parties.Name[0]")
+              fieldName = `${fieldName}[${correctedRecordIndex}]`;
+            } else {
+              // Update existing index with corrected value
+              fieldName = fieldName.replace(/\[\d+\]$/, `[${correctedRecordIndex}]`);
             }
           }
           
-          // Find existing validation record for this field
+          // Find existing validation record for this field using the corrected index
           const existingValidations = await storage.getFieldValidations(sessionId);
           const existingValidation = existingValidations.find(v => 
             v.fieldName === fieldName && 
             v.fieldId === validation.field_id &&
-            v.recordIndex === (validation.record_index || 0)
+            v.recordIndex === correctedRecordIndex
           );
           
           let savedValidation;
@@ -2538,7 +2576,7 @@ print(json.dumps(result))
               validationStatus: validationStatus,
               aiReasoning: validation.ai_reasoning || `Extracted in batch ${validation.batch_number || 1}`,
               documentSource: validation.document_source || 'Unknown',
-              recordIndex: validation.record_index || 0,
+              recordIndex: correctedRecordIndex,
               batchNumber: validation.batch_number || 1
             };
             console.log(`SAVE VALIDATIONS: Creating new field ${fieldName} with data:`, createData);
