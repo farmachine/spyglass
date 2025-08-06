@@ -201,8 +201,7 @@ export default function DefineData({ project }: DefineDataProps) {
     try {
       await updateCollection.mutateAsync({ 
         id: collectionDialog.collection.id, 
-        collection: data,
-        projectId: project.id // Pass the current project ID for cache invalidation
+        collection: data
       });
       setCollectionDialog({ open: false });
     } catch (error) {
