@@ -143,26 +143,25 @@ export default function Dashboard() {
                       <div
                         ref={provided.innerRef}
                         {...provided.draggableProps}
-                        className={`transition-all duration-300 ease-out transform-gpu ${
+                        className={`transition-all duration-200 ease-out ${
                           snapshot.isDragging 
-                            ? 'scale-110 shadow-2xl rotate-3 z-50 opacity-90' 
-                            : 'scale-100 shadow-md hover:shadow-lg hover:scale-[1.02]'
+                            ? 'scale-105 shadow-2xl rotate-1 z-50 opacity-95' 
+                            : 'scale-100 shadow-md hover:shadow-lg hover:scale-[1.01]'
                         }`}
                         style={{
                           ...provided.draggableProps.style,
-                          transform: snapshot.isDragging 
-                            ? `${provided.draggableProps.style?.transform} rotate(3deg)`
-                            : provided.draggableProps.style?.transform
+                          transformOrigin: 'center center'
                         }}
                       >
                         <div className="relative group">
+                          <ProjectCard project={project} />
                           <div
                             {...provided.dragHandleProps}
-                            className="absolute top-2 right-12 z-20 opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-grab active:cursor-grabbing bg-white/95 hover:bg-white rounded-md p-1.5 shadow-md hover:shadow-lg backdrop-blur-sm"
+                            className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-grab active:cursor-grabbing bg-white/95 hover:bg-white rounded-md p-2 shadow-md hover:shadow-lg backdrop-blur-sm"
+                            style={{ transform: 'translate(0, 0)' }}
                           >
                             <GripVertical className="h-4 w-4 text-gray-600 hover:text-gray-800" />
                           </div>
-                          <ProjectCard project={project} />
                         </div>
                       </div>
                     )}
