@@ -2174,7 +2174,10 @@ print(json.dumps(result))
       console.log(`AI EXTRACTION: Found ${existingValidations.length} existing validations, ${Object.keys(verifiedData).length} with data`);
       console.log(`AI EXTRACTION: Processing ${extractedData.documents?.length || 0} documents`);
       if (extractedData.documents?.length > 0) {
-        console.log(`AI EXTRACTION: First document preview: ${extractedData.documents[0].file_content?.substring(0, 200) || 'No content'}...`);
+        const docContent = extractedData.documents[0].file_content || '';
+        console.log(`AI EXTRACTION: First document preview: ${docContent.substring(0, 200)}...`);
+        console.log(`AI EXTRACTION: Document contains code meanings: ${docContent.includes('Active Deferred') || docContent.includes('Code') || docContent.includes('meaning')}`);
+        console.log(`AI EXTRACTION: Document length: ${docContent.length} characters`);
       }
       
       // Prepare schema data for Python script

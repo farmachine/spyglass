@@ -50,15 +50,17 @@ EXTRACTION_PROMPT = """You are an expert data extraction specialist. Extract dat
 - **Complete Table Processing**: When you encounter any table (markdown format with | separators, regular tables, or data in tabular format), extract EVERY single row as a separate collection item
 - **No Data Omission**: If a table has 15 rows of data, extract all 15 - never stop at 2-3 examples or truncate the results
 - **Column Completeness**: For each table row, extract values for ALL columns/properties defined in the schema - do not leave any fields empty unless the cell is genuinely blank in the source
-- **Data Inference**: When a table cell appears empty but context suggests a value should exist, infer the most appropriate value based on:
-  - Pattern recognition from other rows
-  - Context clues from the document
-  - Logical relationships between fields
+- **Document-wide Search**: If a property is missing from a table but exists elsewhere in the document (e.g., code meanings in separate sections), search the ENTIRE document to find and extract that information
+- **Code Meaning Extraction**: When extracting code meanings, search for:
+  - Bullet-pointed definitions (• Code - Meaning format)
+  - Numbered lists with explanations
+  - Descriptive text following code names
+  - Definition sections that explain code values
 - **Property Mapping**: Map table columns to schema properties using:
   - Exact header name matches
   - Semantic similarity (e.g., "Description" maps to "Meaning")
   - Content pattern analysis
-- **Missing Properties**: If a schema property isn't represented in the table but the document contains related information elsewhere, extract and populate that property for all collection items
+- **Rich Content Extraction**: Extract full, detailed explanations rather than abbreviated summaries
 
 ### Collection Identification Strategies:
 1. **Header Analysis**: Look for section headers, table titles, or list introductions that indicate content type

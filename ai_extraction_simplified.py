@@ -189,6 +189,15 @@ def step1_extract_from_documents(
         
         logging.info(f"STEP 1: Starting extraction for {len(documents)} documents")
         
+        # Debug document content
+        for i, doc in enumerate(documents):
+            content = doc.get('file_content', '')
+            logging.info(f"Document {i}: {doc.get('file_name', 'Unknown')} - Content length: {len(content)}")
+            if 'Active Deferred' in content or 'Code Meanings' in content:
+                logging.info(f"Document {i} contains code meanings - content preview: {content[:300]}...")
+            elif content:
+                logging.info(f"Document {i} preview: {content[:200]}...")
+        
         # First, identify global extraction rules that apply to all fields
         global_rules = []
         field_specific_rules = {}
@@ -690,7 +699,9 @@ def step1_extract_from_documents(
             verified_data_context += "- **UNVERIFIED FIELDS ONLY**: Only update fields marked '⚠ UNVERIFIED' with new information from the documents\n"
             verified_data_context += "- **MISSING DATA FOCUS**: Concentrate on filling in empty/missing fields rather than changing existing verified data\n"
             verified_data_context += "- **EXTRACT NEW DOCUMENT CONTENT**: For unverified/empty fields, extract detailed information from the new document content\n"
-            verified_data_context += "- **DETAILED EXTRACTION**: If the document contains code definitions, meanings, or explanations, extract the FULL detailed text\n\n"
+            verified_data_context += "- **DETAILED EXTRACTION**: If the document contains code definitions, meanings, or explanations, extract the FULL detailed text\n"
+            verified_data_context += "- **IGNORE EMPTY VALUES**: Do NOT return 'null', 'empty', or blank values if the document contains relevant information\n"
+            verified_data_context += "- **COMPREHENSIVE SEARCH**: Search the entire document content for code meanings, definitions, and explanations\n\n"
 
         # The imported prompt already contains all the necessary instructions
         # Just add document verification and choice field handling specific to this run
