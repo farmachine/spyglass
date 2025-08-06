@@ -2385,13 +2385,13 @@ print(json.dumps(result))
                     // Don't update verified fields - they are locked
                     continue;
                   } else {
-                    console.log(`UPDATING UNVERIFIED FIELD: ${fieldName} - from "${existingValidation.extractedValue}" to "${extractedValue}"`);
+                    console.log(`UPDATING UNVERIFIED FIELD: ${fieldName} - from "${existingValidation.extractedValue}" to "${validation.extracted_value}"`);
                     // Update existing unverified validation
                     await storage.updateFieldValidation(existingValidation.id, validationData);
                   }
                 } else {
                   // Create new validation for fields that don't exist yet
-                  console.log(`CREATING NEW FIELD: ${fieldName} - value: "${extractedValue}"`);
+                  console.log(`CREATING NEW FIELD: ${fieldName} - value: "${validation.extracted_value}"`);
                   await storage.createFieldValidation(validationData);
                 }
               }
