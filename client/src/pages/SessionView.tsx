@@ -1941,11 +1941,9 @@ Thank you for your assistance.`;
                     
                     if (totalCount === 0) return null;
                     if (verifiedCount === totalCount) {
-                      return <CheckCircle className="w-4 h-4 ml-2 text-green-600" />;
-                    } else if (verifiedCount > 0) {
-                      return <AlertCircle className="w-4 h-4 ml-2 text-yellow-600" />;
+                      return <Check className="w-4 h-4 ml-2 text-green-600" />;
                     } else {
-                      return <AlertTriangle className="w-4 h-4 ml-2 text-red-500" />;
+                      return <Check className="w-4 h-4 ml-2 text-gray-400" />;
                     }
                   })()}
                 </TabsTrigger>
@@ -1971,11 +1969,9 @@ Thank you for your assistance.`;
                       {/* Collection verification indicator */}
                       {totalCount > 0 && (() => {
                         if (verifiedCount === totalCount) {
-                          return <CheckCircle className="w-4 h-4 ml-2 text-green-600" />;
-                        } else if (verifiedCount > 0) {
-                          return <AlertCircle className="w-4 h-4 ml-2 text-yellow-600" />;
+                          return <Check className="w-4 h-4 ml-2 text-green-600" />;
                         } else {
-                          return <AlertTriangle className="w-4 h-4 ml-2 text-red-500" />;
+                          return <Check className="w-4 h-4 ml-2 text-gray-400" />;
                         }
                       })()}
                     </TabsTrigger>
