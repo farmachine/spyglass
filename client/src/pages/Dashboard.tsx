@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useProjects } from "@/hooks/useProjects";
 import { useDashboardStatistics } from "@/hooks/useDashboardStatistics";
 import { useAuth } from "@/contexts/AuthContext";
@@ -22,6 +22,7 @@ export default function Dashboard() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [showDeactivated, setShowDeactivated] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [projectOrder, setProjectOrder] = useState<string[]>([]);
   const { data: projects, isLoading, error } = useProjects();
   const { data: statistics, isLoading: statisticsLoading } = useDashboardStatistics();
   const { user } = useAuth();
@@ -31,7 +32,7 @@ export default function Dashboard() {
   const isPrimaryOrgAdmin = user?.role === "admin" && user?.organization?.type === "primary";
 
   // Filter projects based on search query and showDeactivated checkbox
-  const filteredProjects = projects?.filter(project => {
+  const baseFilteredProjects = projects?.filter(project => {
     // For non-admin users, always hide deactivated projects
     // For admin users, respect the showDeactivated checkbox
     const statusFilter = isAdmin 
@@ -55,6 +56,29 @@ export default function Dashboard() {
     return statusFilter && (nameMatch || descriptionMatch || orgMatch);
   }) || [];
 
+  // Apply custom ordering
+  const filteredProjects = useMemo(() => {
+    if (!baseFilteredProjects || baseFilteredProjects.length === 0) return [];
+    if (projectOrder.length === 0) return baseFilteredProjects;
+    
+    // Sort according to projectOrder, then append any new projects not in the order
+    const ordered = [];
+    const remaining = [...baseFilteredProjects];
+    
+    // Add projects in the specified order
+    for (const projectId of projectOrder) {
+      const projectIndex = remaining.findIndex(p => p.id === projectId);
+      if (projectIndex !== -1) {
+        ordered.push(remaining.splice(projectIndex, 1)[0]);
+      }
+    }
+    
+    // Add any remaining projects that weren't in the order
+    ordered.push(...remaining);
+    
+    return ordered;
+  }, [baseFilteredProjects, projectOrder]);
+
   // Swap functionality
   const handleSwapLeft = (projectId: string) => {
     if (!filteredProjects) return;
@@ -62,12 +86,13 @@ export default function Dashboard() {
     const currentIndex = filteredProjects.findIndex(p => p.id === projectId);
     if (currentIndex <= 0) return; // Can't move left if it's the first item
     
-    const updatedProjects = [...filteredProjects];
+    // Create new order based on current filtered projects
+    const newOrder = filteredProjects.map(p => p.id);
     // Swap with the item to the left
-    [updatedProjects[currentIndex - 1], updatedProjects[currentIndex]] = 
-    [updatedProjects[currentIndex], updatedProjects[currentIndex - 1]];
+    [newOrder[currentIndex - 1], newOrder[currentIndex]] = 
+    [newOrder[currentIndex], newOrder[currentIndex - 1]];
     
-    // TODO: Implement backend API call to persist order
+    setProjectOrder(newOrder);
     console.log(`Swapping project ${projectId} left`);
   };
 
@@ -77,12 +102,13 @@ export default function Dashboard() {
     const currentIndex = filteredProjects.findIndex(p => p.id === projectId);
     if (currentIndex >= filteredProjects.length - 1) return; // Can't move right if it's the last item
     
-    const updatedProjects = [...filteredProjects];
+    // Create new order based on current filtered projects
+    const newOrder = filteredProjects.map(p => p.id);
     // Swap with the item to the right
-    [updatedProjects[currentIndex], updatedProjects[currentIndex + 1]] = 
-    [updatedProjects[currentIndex + 1], updatedProjects[currentIndex]];
+    [newOrder[currentIndex], newOrder[currentIndex + 1]] = 
+    [newOrder[currentIndex + 1], newOrder[currentIndex]];
     
-    // TODO: Implement backend API call to persist order
+    setProjectOrder(newOrder);
     console.log(`Swapping project ${projectId} right`);
   };
 

@@ -254,13 +254,7 @@ export default function ProjectCard({
                         Move Right
                       </DropdownMenuItem>
                     )}
-                    {/* Debug info */}
-                    <DropdownMenuItem onClick={(e) => {
-                      e.stopPropagation();
-                      console.log('Debug - canMoveLeft:', canMoveLeft, 'canMoveRight:', canMoveRight, 'project:', project.name);
-                    }}>
-                      Debug Info
-                    </DropdownMenuItem>
+
                     <DropdownMenuItem onClick={openDuplicateDialog}>
                       <Copy className="h-4 w-4 mr-2" />
                       Duplicate
