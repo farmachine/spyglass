@@ -3340,29 +3340,34 @@ print(json.dumps(result))
 
   // Add documents to existing session with verified data context
   app.post("/api/sessions/:sessionId/add-documents", authenticateToken, async (req: AuthRequest, res) => {
+    console.log(`ADD_DOCUMENTS: Request received for session ${req.params.sessionId}`);
+    console.log(`ADD_DOCUMENTS: User:`, req.user?.email);
+    console.log(`ADD_DOCUMENTS: Body keys:`, Object.keys(req.body || {}));
+    
     try {
       const sessionId = req.params.sessionId;
       const { documentText, fileName, projectId } = req.body;
 
       if (!documentText || !fileName || !projectId) {
+        console.log(`ADD_DOCUMENTS: Missing required fields:`, { documentText: !!documentText, fileName: !!fileName, projectId: !!projectId });
         return res.status(400).json({ message: "Document text, file name, and project ID are required" });
       }
 
       console.log(`ADD_DOCUMENTS: Re-extracting session ${sessionId} with additional documents`);
 
       // Get existing session and project data
-      const session = await storage.getExtractionSession(sessionId);
+      const session = await storage.getSessionWithValidations(sessionId);
       if (!session) {
         return res.status(404).json({ message: "Session not found" });
       }
 
-      const project = await storage.getProjectWithDetails(projectId);
+      const project = await storage.getProject(projectId);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
 
       // Get existing validations to build complete data context
-      const existingValidations = await storage.getSessionValidations(sessionId);
+      const existingValidations = session.validations || [];
       const existingData: Record<string, any> = {};
       const verificationStatus: Record<string, boolean> = {};
 
@@ -3416,15 +3421,21 @@ print(json.dumps(result))
       let output = '';
       let error = '';
 
-      // Get all documents for this session (existing + new)
+      // Get all documents for this session (existing + new)  
       const allDocuments = [];
       
       // Add existing session documents if available
-      if (session.extractedData && typeof session.extractedData === 'object') {
-        const existingDocuments = session.extractedData.documents || [];
-        if (Array.isArray(existingDocuments)) {
-          allDocuments.push(...existingDocuments);
+      try {
+        if (session.extractedData) {
+          const parsedData = typeof session.extractedData === 'string' ? 
+            JSON.parse(session.extractedData) : session.extractedData;
+          const existingDocuments = parsedData.documents || [];
+          if (Array.isArray(existingDocuments)) {
+            allDocuments.push(...existingDocuments);
+          }
         }
+      } catch (parseError) {
+        console.log('ADD_DOCUMENTS: Could not parse existing session data, treating as new session');
       }
       
       // Add the new document
