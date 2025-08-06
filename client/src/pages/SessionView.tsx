@@ -1929,7 +1929,26 @@ Thank you for your assistance.`;
             {/* Session Data Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="info" className="w-full folder-tabs">
               <TabsList className="w-full justify-start tabs-list">
-                <TabsTrigger value="info" className="tabs-trigger">{project.mainObjectName || "Session"} Information</TabsTrigger>
+                <TabsTrigger value="info" className="tabs-trigger">
+                  {project.mainObjectName || "Session"} Information
+                  {/* Info tab verification indicator */}
+                  {(() => {
+                    const infoValidations = validations.filter(v => !v.collectionName && !v.fieldName.includes('.'));
+                    const verifiedCount = infoValidations.filter(v => 
+                      v.validationStatus === 'verified' || v.manuallyVerified === true
+                    ).length;
+                    const totalCount = infoValidations.length;
+                    
+                    if (totalCount === 0) return null;
+                    if (verifiedCount === totalCount) {
+                      return <CheckCircle className="w-4 h-4 ml-2 text-green-600" />;
+                    } else if (verifiedCount > 0) {
+                      return <AlertCircle className="w-4 h-4 ml-2 text-yellow-600" />;
+                    } else {
+                      return <AlertTriangle className="w-4 h-4 ml-2 text-red-500" />;
+                    }
+                  })()}
+                </TabsTrigger>
                 {project.collections.map((collection) => {
                   const collectionValidations = validations.filter(v => 
                     v.collectionName === collection.collectionName || 
@@ -1939,10 +1958,26 @@ Thank you for your assistance.`;
                     collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null && idx !== undefined) : [];
                   const uniqueIndices = [...new Set(validationIndices)].sort((a, b) => a - b);
                   
+                  // Calculate verification status for this collection
+                  const verifiedCount = collectionValidations.filter(v => 
+                    v.validationStatus === 'verified' || v.manuallyVerified === true
+                  ).length;
+                  const totalCount = collectionValidations.length;
+                  
                   // Always show collection tabs even when empty, so users can add items
                   return (
                     <TabsTrigger key={collection.id} value={collection.collectionName} className="tabs-trigger">
                       {collection.collectionName} ({uniqueIndices.length})
+                      {/* Collection verification indicator */}
+                      {totalCount > 0 && (() => {
+                        if (verifiedCount === totalCount) {
+                          return <CheckCircle className="w-4 h-4 ml-2 text-green-600" />;
+                        } else if (verifiedCount > 0) {
+                          return <AlertCircle className="w-4 h-4 ml-2 text-yellow-600" />;
+                        } else {
+                          return <AlertTriangle className="w-4 h-4 ml-2 text-red-500" />;
+                        }
+                      })()}
                     </TabsTrigger>
                   );
                 })}
