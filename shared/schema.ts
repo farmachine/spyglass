@@ -114,21 +114,8 @@ export const fieldValidations = pgTable("field_validations", {
   confidenceScore: integer("confidence_score").default(0), // 0-100
   documentSource: text("document_source"), // name of the document where data was found
   documentSections: text("document_sections"), // sections where data was found (JSON array)
-  batchNumber: integer("batch_number").default(1), // tracks which batch this validation belongs to for truncation handling
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const sessionBatches = pgTable("session_batches", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
-  batchNumber: integer("batch_number").notNull(),
-  extractionPrompt: text("extraction_prompt"), // Store the prompt used for this batch
-  aiResponse: text("ai_response"), // Store the raw AI response for this batch
-  inputTokenCount: integer("input_tokens"), // Number of input tokens used for this batch
-  outputTokenCount: integer("output_tokens"), // Number of output tokens generated for this batch
-  validationCount: integer("validation_count").default(0), // Number of validations produced by this batch
-  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const knowledgeDocuments = pgTable("knowledge_documents", {
@@ -210,11 +197,6 @@ export const insertFieldValidationSchema = createInsertSchema(fieldValidations).
   updatedAt: true,
 });
 
-export const insertSessionBatchSchema = createInsertSchema(sessionBatches).omit({
-  id: true,
-  createdAt: true,
-});
-
 export const insertProjectPublishingSchema = createInsertSchema(projectPublishing).omit({
   id: true,
   createdAt: true,
@@ -248,8 +230,6 @@ export type FieldValidationWithName = FieldValidation & {
   fieldName: string; // Added by backend through JOIN operations
 };
 export type InsertFieldValidation = z.infer<typeof insertFieldValidationSchema>;
-export type SessionBatch = typeof sessionBatches.$inferSelect;
-export type InsertSessionBatch = z.infer<typeof insertSessionBatchSchema>;
 export type ProjectPublishing = typeof projectPublishing.$inferSelect;
 export type InsertProjectPublishing = z.infer<typeof insertProjectPublishingSchema>;
 

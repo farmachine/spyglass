@@ -7,7 +7,6 @@ import {
   knowledgeDocuments,
   extractionRules,
   fieldValidations,
-  sessionBatches,
   organizations,
   users,
   projectPublishing,
@@ -36,9 +35,7 @@ import {
   type OrganizationWithUsers,
   type UserWithOrganization,
   type ProjectPublishing,
-  type InsertProjectPublishing,
-  type SessionBatch,
-  type InsertSessionBatch
+  type InsertProjectPublishing
 } from "@shared/schema";
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
@@ -120,10 +117,6 @@ export interface IStorage {
   updateFieldValidation(id: string, validation: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined>;
   deleteFieldValidation(id: string): Promise<boolean>;
   getSessionWithValidations(sessionId: string): Promise<ExtractionSessionWithValidation | undefined>;
-
-  // Session Batches
-  getSessionBatches(sessionId: string): Promise<SessionBatch[]>;
-  createSessionBatch(batch: InsertSessionBatch): Promise<SessionBatch>;
 
   // Project Publishing
   getProjectPublishing(projectId: string): Promise<ProjectPublishing[]>;
@@ -2168,21 +2161,6 @@ class PostgreSQLStorage implements IStorage {
       ...session,
       fieldValidations: validations
     };
-  }
-
-  // Session Batches
-  async getSessionBatches(sessionId: string): Promise<SessionBatch[]> {
-    const result = await this.db
-      .select()
-      .from(sessionBatches)
-      .where(eq(sessionBatches.sessionId, sessionId))
-      .orderBy(sessionBatches.batchNumber);
-    return result;
-  }
-
-  async createSessionBatch(batch: InsertSessionBatch): Promise<SessionBatch> {
-    const result = await this.db.insert(sessionBatches).values(batch).returning();
-    return result[0];
   }
 
   // Project Publishing methods

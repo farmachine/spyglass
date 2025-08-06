@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, ChevronDown, ChevronRight } from "lucide-react";
 import ValidationIcon, { ValidationProgress } from "./ValidationIcon";
 import { apiRequest } from "@/lib/queryClient";
@@ -25,24 +24,10 @@ interface SessionViewProps {
   project: ProjectWithDetails;
 }
 
-interface BatchData {
-  sessionId: string;
-  totalValidations: number;
-  totalBatches: number;
-  batches: Array<{
-    batchNumber: number;
-    validationCount: number;
-    validations: FieldValidation[];
-  }>;
-}
-
 export default function SessionView({ sessionId, project }: SessionViewProps) {
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
-  const [selectedBatch, setSelectedBatch] = useState<number | null>(null); // null = show all batches
-  const [showBatchDebug, setShowBatchDebug] = useState(false);
-  const [activeDebugTab, setActiveDebugTab] = useState("batches");
   const queryClient = useQueryClient();
 
   const { data: session, isLoading } = useQuery<ExtractionSessionWithValidation>({
@@ -58,12 +43,6 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
   const { data: schemaData } = useQuery({
     queryKey: [`/api/projects/${project.id}/schema-data`],
     enabled: !!project.id,
-  });
-
-  // Get batch validation data for debug screen
-  const { data: batchData } = useQuery<BatchData>({
-    queryKey: [`/api/sessions/${sessionId}/validation-batches`],
-    enabled: true, // Always fetch to determine if debug panel should show
   });
 
   const updateValidationMutation = useMutation({
@@ -119,7 +98,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
   // Initialize collapsed collections when session data loads
   useEffect(() => {
     if (session?.fieldValidations) {
-      const collectionValidations = session.fieldValidations.filter(v => v.validationType === 'collection_property');
+      const collectionValidations = session.fieldValidations.filter(v => v.fieldType === 'collection_property');
       const collectionGroups = collectionValidations.reduce((acc, validation) => {
         const collectionName = validation.collectionName || 'Unknown Collection';
         if (!acc[collectionName]) acc[collectionName] = [];
@@ -229,21 +208,16 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
     console.error('Failed to parse extracted data:', error);
   }
 
-  // Filter validations by selected batch (if any)
-  const allValidations = session.fieldValidations || [];
-  const validations = selectedBatch === null 
-    ? allValidations 
-    : allValidations.filter(v => (v.batchNumber || 1) === selectedBatch);
-    
   // Calculate validation statistics
+  const validations = session.fieldValidations || [];
   const validFields = validations.filter(v => v.validationStatus === 'valid').length;
   const invalidFields = validations.filter(v => v.validationStatus === 'invalid').length;
   const manualFields = validations.filter(v => v.validationStatus === 'manual').length;
   const pendingFields = validations.filter(v => v.validationStatus === 'pending').length;
 
   // Group validations by field type
-  const schemaFieldValidations = validations.filter(v => v.validationType === 'schema_field');
-  const collectionValidations = validations.filter(v => v.validationType === 'collection_property');
+  const schemaFieldValidations = validations.filter(v => v.fieldType === 'schema_field');
+  const collectionValidations = validations.filter(v => v.fieldType === 'collection_property');
 
   // Group collection validations by collection name and sort by schema property order
   const collectionGroups = collectionValidations.reduce((acc, validation) => {
@@ -323,86 +297,6 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
         />
       </div>
 
-      {/* Debug Panel - Show for sessions with many validations or when debug enabled */}
-      {((batchData?.totalBatches && batchData.totalBatches > 1) || showBatchDebug || allValidations.length > 100) && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm">Debug Information</CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowBatchDebug(!showBatchDebug)}
-              >
-                {showBatchDebug ? "Hide" : "Show"} Debug
-              </Button>
-            </div>
-          </CardHeader>
-          {showBatchDebug && (
-            <CardContent>
-              <Tabs value={activeDebugTab} onValueChange={setActiveDebugTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="batches">Batch Information</TabsTrigger>
-                  <TabsTrigger value="ai-response">Raw AI Response</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="batches" className="mt-4">
-                  <div className="space-y-3">
-                    <div className="text-sm text-gray-600">
-                      <div>Total validations: {allValidations.length} | Total batches: {batchData?.totalBatches || 1}</div>
-                      <div>Currently showing: {validations.length} validations</div>
-                      {batchData?.totalBatches === 1 && (
-                        <div className="text-green-600 font-medium">✓ No truncation detected - all data processed in single batch</div>
-                      )}
-                      {batchData && batchData.totalBatches > 1 && (
-                        <div className="text-orange-600 font-medium">⚠ Multiple batches due to AI response truncation</div>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant={selectedBatch === null ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setSelectedBatch(null)}
-                      >
-                        All Batches ({allValidations.length})
-                      </Button>
-                      {batchData?.batches.map(batch => (
-                        <Button
-                          key={batch.batchNumber}
-                          variant={selectedBatch === batch.batchNumber ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setSelectedBatch(batch.batchNumber)}
-                        >
-                          Batch {batch.batchNumber} ({batch.validationCount})
-                        </Button>
-                      ))}
-                    </div>
-                    {selectedBatch !== null && (
-                      <div className="text-sm text-blue-600">
-                        Showing only validations from batch {selectedBatch}
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="ai-response" className="mt-4">
-                  <div className="space-y-3">
-                    <div className="text-sm text-gray-600">
-                      Raw AI response from extraction process (useful for debugging truncation issues)
-                    </div>
-                    <ScrollArea className="h-96 w-full border rounded-md p-4 bg-white">
-                      <pre className="text-xs whitespace-pre-wrap">
-                        {session?.aiResponse || "No AI response data available"}
-                      </pre>
-                    </ScrollArea>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          )}
-        </Card>
-      )}
-
       <Separator />
 
       {/* Project Schema Fields */}
@@ -424,7 +318,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
                     />
                     <div>
                       <Label className="font-medium">{validation.fieldName || 'Unknown Field'}</Label>
-                      <p className="text-sm text-gray-600">{validation.validationType}</p>
+                      <p className="text-sm text-gray-600">{validation.fieldType}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -530,7 +424,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
                         <div>
                           <Label className="font-medium">{(validation as FieldValidationWithName).fieldName || 'Unknown Field'}</Label>
                           <p className="text-sm text-gray-600">
-                            {validation.dataType} • Record {(validation.recordIndex ?? 0) + 1}
+                            {validation.fieldType} • Record {(validation.recordIndex ?? 0) + 1}
                           </p>
                         </div>
                       </div>

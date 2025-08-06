@@ -1502,18 +1502,6 @@ except Exception as e:
     }
   });
 
-  // Get session batches (for debug view)
-  app.get("/api/sessions/:sessionId/batches", async (req, res) => {
-    try {
-      const sessionId = req.params.sessionId;
-      const batches = await storage.getSessionBatches(sessionId);
-      res.json(batches);
-    } catch (error) {
-      console.error("Get session batches error:", error);
-      res.status(500).json({ message: "Failed to fetch session batches" });
-    }
-  });
-
   // Helper function to generate initial field validations for a new session
   const generateInitialFieldValidations = async (sessionId: string, projectId: string) => {
     try {
@@ -2497,13 +2485,10 @@ print(json.dumps(result))
           // Calculate confidence score and determine auto-verification
           // For empty fields, set confidence to 0%
           let confidenceScore;
-          const extractedVal = validation.extracted_value || validation.value; // Handle both formats
-          if (!extractedVal || extractedVal === "" || extractedVal === "null") {
+          if (!validation.extracted_value || validation.extracted_value === "" || validation.extracted_value === "null") {
             confidenceScore = 0;
           } else {
-            // Handle both decimal (0.95) and percentage (95) formats
-            const rawScore = parseFloat(validation.confidence_score) || 80; // Default for batch 2
-            confidenceScore = rawScore > 1 ? Math.round(rawScore) : Math.round(rawScore * 100);
+            confidenceScore = Math.round(parseFloat(validation.confidence_score) * 100); // Convert to integer percentage
           }
           
           const shouldAutoVerify = confidenceScore >= autoVerifyThreshold;
@@ -2514,32 +2499,29 @@ print(json.dumps(result))
           if (existingValidation) {
             // Update existing record with extracted data
             const updateData = {
-              extractedValue: validation.extracted_value || validation.value,
+              extractedValue: validation.extracted_value,
               confidenceScore: confidenceScore,
               validationStatus: validationStatus,
-              aiReasoning: validation.ai_reasoning || `Extracted in batch ${validation.batch_number || 1}`,
-              documentSource: validation.document_source || 'Unknown',
-              batchNumber: validation.batch_number || 1
+              aiReasoning: validation.ai_reasoning,
+              documentSource: validation.document_source || 'Unknown'
             };
             console.log(`SAVE VALIDATIONS: Updating ${fieldName} with data:`, updateData);
             savedValidation = await storage.updateFieldValidation(existingValidation.id, updateData);
             console.log(`SAVE VALIDATIONS: Updated existing field ${fieldName}, result:`, savedValidation);
           } else {
             // Create new record if none exists
-            // Handle missing properties for batch continuation validations
             const createData = {
               sessionId: sessionId,
               fieldId: validation.field_id,
-              validationType: validation.validation_type || 'collection_property', // Default for batch continuations
-              dataType: validation.data_type || 'TEXT', // Default for batch continuations
+              validationType: validation.validation_type,
+              dataType: validation.data_type,
               collectionName: collectionName,
-              extractedValue: validation.extracted_value || validation.value, // Handle both formats
+              extractedValue: validation.extracted_value,
               confidenceScore: confidenceScore,
               validationStatus: validationStatus,
-              aiReasoning: validation.ai_reasoning || `Extracted in batch ${validation.batch_number || 1}`,
+              aiReasoning: validation.ai_reasoning,
               documentSource: validation.document_source || 'Unknown',
-              recordIndex: validation.record_index || 0,
-              batchNumber: validation.batch_number || 1
+              recordIndex: validation.record_index || 0
             };
             console.log(`SAVE VALIDATIONS: Creating new field ${fieldName} with data:`, createData);
             savedValidation = await storage.createFieldValidation(createData);
@@ -2637,30 +2619,12 @@ print(json.dumps(result))
               return reject(new Error(result.error || 'Single-step extraction failed'));
             }
             
-            const { fieldValidations, aggregatedExtraction, batchData } = result;
-            
-            // Store batch information if available
-            if (batchData) {
-              console.log(`Creating session batch record for session ${sessionId}, batch ${batchData.batchNumber}`);
-              await storage.createSessionBatch({
-                sessionId,
-                batchNumber: batchData.batchNumber,
-                extractionPrompt: batchData.extractionPrompt,
-                aiResponse: batchData.aiResponse,
-                inputTokenCount: batchData.inputTokens || 0,
-                outputTokenCount: batchData.outputTokens || 0,
-                validationCount: 0 // Will be updated after validations are created
-              });
-            }
+            const { fieldValidations, aggregatedExtraction } = result;
             
             // Store aggregated extraction data in session
             await storage.updateExtractionSession(sessionId, {
               status: "extracted",
-              extractedData: JSON.stringify(aggregatedExtraction),
-              inputTokenCount: batchData?.inputTokens || 0,
-              outputTokenCount: batchData?.outputTokens || 0,
-              extractionPrompt: batchData?.extractionPrompt || null,
-              aiResponse: batchData?.aiResponse || null
+              extractedData: JSON.stringify(aggregatedExtraction)
             });
             
             // Create field validation records directly from AI results
@@ -2739,14 +2703,6 @@ print(json.dumps(result))
               } catch (validationError) {
                 console.error(`Error creating validation record for ${validation.field_name}:`, validationError);
               }
-            }
-            
-            // Update validation count in batch if batch data was stored
-            if (batchData && fieldValidations) {
-              console.log(`Updating batch validation count to ${fieldValidations.length}`);
-              await storage.updateSessionBatch(sessionId, batchData.batchNumber, {
-                validationCount: fieldValidations.length
-              });
             }
             
             resolve({ fieldValidations, aggregatedExtraction });
@@ -3318,8 +3274,7 @@ print(json.dumps(result))
                   validationStatus: validationStatus,
                   aiReasoning: validation.ai_reasoning || '',
                   manuallyVerified: false,
-                  confidenceScore: confidenceScore,
-                  batchNumber: validation.batch_number || 1
+                  confidenceScore: confidenceScore
                 });
               }
             }
@@ -3351,44 +3306,6 @@ print(json.dumps(result))
     } catch (error) {
       console.error("AI_EXTRACTION error:", error);
       res.status(500).json({ message: "Failed to start AI extraction process" });
-    }
-  });
-
-  // Batch validation routes for debug screen
-  app.get("/api/sessions/:sessionId/validation-batches", async (req, res) => {
-    try {
-      const sessionId = req.params.sessionId;
-      
-      // Get all validations for the session
-      const validations = await storage.getFieldValidations(sessionId);
-      
-      // Group by batch number
-      const batches = {};
-      validations.forEach(validation => {
-        const batchNumber = validation.batchNumber || 1;
-        if (!batches[batchNumber]) {
-          batches[batchNumber] = [];
-        }
-        batches[batchNumber].push(validation);
-      });
-      
-      // Convert to array format with batch info
-      const batchArray = Object.keys(batches).map(batchNum => ({
-        batchNumber: parseInt(batchNum),
-        validationCount: batches[batchNum].length,
-        validations: batches[batchNum]
-      })).sort((a, b) => a.batchNumber - b.batchNumber);
-      
-      res.json({
-        sessionId,
-        totalValidations: validations.length,
-        totalBatches: batchArray.length,
-        batches: batchArray
-      });
-      
-    } catch (error) {
-      console.error("Error getting validation batches:", error);
-      res.status(500).json({ message: "Failed to get validation batches" });
     }
   });
 
