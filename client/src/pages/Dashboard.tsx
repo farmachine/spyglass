@@ -1,4 +1,4 @@
-import { Plus, Settings, Search, LayoutDashboard, Shield, Database, AlertTriangle, CheckCircle2, CheckCircle, TrendingUp, GripVertical } from "lucide-react";
+import { Plus, Settings, Search, LayoutDashboard, Shield, Database, AlertTriangle, CheckCircle2, CheckCircle, TrendingUp } from "lucide-react";
 import { WaveIcon, DropletIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,10 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useState, useEffect } from "react";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { useState } from "react";
 import { useProjects } from "@/hooks/useProjects";
 import { useDashboardStatistics } from "@/hooks/useDashboardStatistics";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,7 +26,6 @@ export default function Dashboard() {
   const { data: statistics, isLoading: statisticsLoading } = useDashboardStatistics();
   const { user } = useAuth();
   const [, navigate] = useLocation();
-  const queryClient = useQueryClient();
 
   const isAdmin = user?.role === "admin";
   const isPrimaryOrgAdmin = user?.role === "admin" && user?.organization?.type === "primary";
@@ -59,49 +55,6 @@ export default function Dashboard() {
     return statusFilter && (nameMatch || descriptionMatch || orgMatch);
   }) || [];
 
-  // Local state for project order (fallback until database column is available)
-  const [projectOrder, setProjectOrder] = useState<string[]>([]);
-
-  // Initialize project order from localStorage or default order
-  useEffect(() => {
-    if (filteredProjects.length > 0) {
-      const savedOrder = localStorage.getItem('dashboard-project-order');
-      if (savedOrder) {
-        try {
-          const parsed = JSON.parse(savedOrder);
-          setProjectOrder(parsed);
-        } catch {
-          setProjectOrder(filteredProjects.map(p => p.id));
-        }
-      } else {
-        setProjectOrder(filteredProjects.map(p => p.id));
-      }
-    }
-  }, [filteredProjects.length]);
-
-  // Sort projects by the custom order
-  const orderedProjects = projectOrder.length > 0 
-    ? projectOrder
-        .map(id => filteredProjects.find(p => p.id === id))
-        .filter(Boolean)
-        .concat(filteredProjects.filter(p => !projectOrder.includes(p.id)))
-    : filteredProjects;
-
-  // Handle drag end for project reordering
-  const handleDragEnd = (result: any) => {
-    if (!result.destination) return;
-
-    const items = Array.from(orderedProjects);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-
-    const newOrder = items.map(project => project.id);
-    setProjectOrder(newOrder);
-    
-    // Save to localStorage for persistence
-    localStorage.setItem('dashboard-project-order', JSON.stringify(newOrder));
-  };
-
   const renderProjectsContent = () => {
     if (isLoading) {
       return (
@@ -125,48 +78,13 @@ export default function Dashboard() {
       );
     }
 
-    if (orderedProjects && orderedProjects.length > 0) {
+    if (filteredProjects && filteredProjects.length > 0) {
       return (
-        <DragDropContext onDragEnd={handleDragEnd}>
-          <Droppable droppableId="projects" direction="horizontal">
-            {(provided, snapshot) => (
-              <div
-                {...provided.droppableProps}
-                ref={provided.innerRef}
-                className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 transition-colors ${
-                  snapshot.isDraggingOver ? 'bg-blue-50/50' : ''
-                }`}
-              >
-                {orderedProjects.map((project, index) => (
-                  <Draggable key={project.id} draggableId={project.id} index={index}>
-                    {(provided, snapshot) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        className={`transition-all duration-200 ${
-                          snapshot.isDragging 
-                            ? 'scale-105 shadow-2xl rotate-2 z-50' 
-                            : 'scale-100 shadow-md'
-                        }`}
-                      >
-                        <div className="relative group">
-                          <div
-                            {...provided.dragHandleProps}
-                            className="absolute top-2 right-12 z-10 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing bg-white/90 hover:bg-white rounded p-1 shadow-sm"
-                          >
-                            <GripVertical className="h-4 w-4 text-gray-500" />
-                          </div>
-                          <ProjectCard project={project} />
-                        </div>
-                      </div>
-                    )}
-                  </Draggable>
-                ))}
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-        </DragDropContext>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredProjects.map((project) => (
+            <ProjectCard key={project.id} project={project} />
+          ))}
+        </div>
       );
     }
 
