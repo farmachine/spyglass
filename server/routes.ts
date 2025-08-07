@@ -2874,9 +2874,9 @@ print(json.dumps(result))
           // Find existing validation record for this field
           const existingValidations = await storage.getFieldValidations(sessionId);
           const existingValidation = existingValidations.find(v => 
-            v.fieldName === fieldName && 
             v.fieldId === validation.field_id &&
-            v.recordIndex === (validation.record_index || 0)
+            v.recordIndex === (validation.record_index || 0) &&
+            v.validationType === validation.validation_type
           );
           
           let savedValidation;
@@ -2920,7 +2920,8 @@ print(json.dumps(result))
               confidenceScore: confidenceScore,
               validationStatus: validationStatus,
               aiReasoning: validation.ai_reasoning,
-              documentSource: validation.document_source || 'Unknown'
+              documentSource: validation.document_source || 'Unknown',
+              updatedAt: new Date()
             };
             console.log(`SAVE VALIDATIONS: Updating ${fieldName} with data:`, updateData);
             savedValidation = await storage.updateFieldValidation(existingValidation.id, updateData);
@@ -3127,7 +3128,9 @@ print(json.dumps(result))
                   validationStatus: validationStatus,
                   confidenceScore: confidenceScore,
                   aiReasoning: validation.ai_reasoning,
-                  manuallyUpdated: false
+                  documentSource: validation.document_source || 'Unknown',
+                  manuallyUpdated: false,
+                  manuallyVerified: false
                 });
                 
                 console.log(`Created validation for ${validation.field_name} (ID: ${fieldId}) with value: ${validation.extracted_value}`);
