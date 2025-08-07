@@ -1,0 +1,85 @@
+REQUIRED OUTPUT FORMAT - Field Validation JSON Structure:
+{"field_validations": [
+  {
+    "field_id": "e31f3e7c-5d4a-45d4-88fc-8ae7d493f43b",
+    "validation_type": "schema_field",
+    "data_type": "TEXT",
+    "field_name": "Name of File",
+    "extracted_value": "Extracted Text Value",
+    "confidence_score": 0.95,
+    "validation_status": "unverified",
+    "ai_reasoning": "Found in document section X - The name of the file."
+  },
+  {
+    "field_id": "81b2f86b-00fe-424a-80c2-2303bf13504b",
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Codes.Code Name[0]",
+    "collection_name": "Codes",
+    "extracted_value": "Extracted Value",
+    "confidence_score": 0.95,
+    "validation_status": "unverified",
+    "ai_reasoning": "Found Codes item 1 with Code Name value in document",
+    "record_index": 0
+  },
+  {
+    "field_id": "b7482f2f-a921-436f-a958-edd7ec738f45",
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Codes.Code List[0]",
+    "collection_name": "Codes",
+    "extracted_value": "Extracted Value",
+    "confidence_score": 0.95,
+    "validation_status": "unverified",
+    "ai_reasoning": "Found Codes item 1 with Code List value in document",
+    "record_index": 0
+  },
+  {
+    "field_id": "017a70e6-482b-4828-b686-c3e038fe0d10",
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Codes.Code Meanings[0]",
+    "collection_name": "Codes",
+    "extracted_value": "Extracted Value",
+    "confidence_score": 0.95,
+    "validation_status": "unverified",
+    "ai_reasoning": "Found Codes item 1 with Code Meanings value in document",
+    "record_index": 0
+  },
+  {
+    "field_id": "81b2f86b-00fe-424a-80c2-2303bf13504b",
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Codes.Code Name[1]",
+    "collection_name": "Codes",
+    "extracted_value": "Extracted Value",
+    "confidence_score": 0.95,
+    "validation_status": "unverified",
+    "ai_reasoning": "Found Codes item 2 with Code Name value in document",
+    "record_index": 1
+  },
+  {
+    "field_id": "b7482f2f-a921-436f-a958-edd7ec738f45",
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Codes.Code List[1]",
+    "collection_name": "Codes",
+    "extracted_value": "Extracted Value",
+    "confidence_score": 0.95,
+    "validation_status": "unverified",
+    "ai_reasoning": "Found Codes item 2 with Code List value in document",
+    "record_index": 1
+  },
+  {
+    "field_id": "017a70e6-482b-4828-b686-c3e038fe0d10",
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Codes.Code Meanings[1]",
+    "collection_name": "Codes",
+    "extracted_value": "Extracted Value",
+    "confidence_score": 0.95,
+    "validation_status": "unverified",
+    "ai_reasoning": "Found Codes item 2 with Code Meanings value in document",
+    "record_index": 1
+  }
+]}

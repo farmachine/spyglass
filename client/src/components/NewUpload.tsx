@@ -373,18 +373,27 @@ export default function NewUpload({ project }: NewUploadProps) {
           // Document content
           prompt += `DOCUMENT CONTENT (${documentCount} document(s)):\n${extractedText}\n\n`;
           
-          // Filter target fields or use all if none selected
+          // Filter target fields - if any are selected, only use selected ones; if none selected, use all
           const targetFields = targetFieldIds.length > 0 
             ? schemaData.schema_fields.filter((field: any) => targetFieldIds.includes(field.id))
             : schemaData.schema_fields;
             
-          // Filter target collections and properties
-          const targetCollections = targetPropertyIds.length > 0 
-            ? schemaData.collections.map((collection: any) => ({
+          // Filter target collections and properties - CRITICAL FIX: if any properties are selected, only include selected ones
+          const targetCollections = (() => {
+            if (targetPropertyIds.length > 0) {
+              // User has selected specific properties - only include those
+              return schemaData.collections.map((collection: any) => ({
                 ...collection,
                 properties: collection.properties?.filter((prop: any) => targetPropertyIds.includes(prop.id)) || []
-              })).filter((collection: any) => collection.properties.length > 0)
-            : schemaData.collections;
+              })).filter((collection: any) => collection.properties.length > 0);
+            } else if (targetFieldIds.length > 0) {
+              // User has selected schema fields but no collection properties - exclude all collections
+              return [];
+            } else {
+              // User has not selected anything - include all (default behavior)
+              return schemaData.collections;
+            }
+          })();
           
           // Schema fields section - only target fields
           if (targetFields.length > 0) {
@@ -484,6 +493,14 @@ export default function NewUpload({ project }: NewUploadProps) {
           
           return prompt;
         };
+
+        // Debug logging to verify field targeting is working correctly
+        console.log('Target Field Selection Debug:', {
+          selectedFieldIds: selectedFieldIds,
+          selectedPropertyIds: selectedPropertyIds,
+          totalSchemaFields: schemaData.schema_fields.length,
+          totalCollectionProperties: schemaData.collections.reduce((sum: number, col: any) => sum + (col.properties?.length || 0), 0)
+        });
 
         const fullPrompt = generateSchemaMarkdown(schemaData, textExtractionResult.extractedText || '', selectedFiles.length, selectedFieldIds, selectedPropertyIds);
 
