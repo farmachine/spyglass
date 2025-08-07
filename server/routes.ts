@@ -2505,7 +2505,7 @@ print(json.dumps(result))
   app.post("/api/sessions/:sessionId/gemini-extraction", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
-      const { extractedTexts, schemaFields, collections, extractionRules, knowledgeDocuments } = req.body;
+      const { extractedTexts, schemaFields, collections, extractionRules, knowledgeDocuments, targetFieldIds, targetPropertyIds } = req.body;
       
       console.log(`GEMINI EXTRACTION: Starting for session ${sessionId}`);
       console.log(`GEMINI EXTRACTION: Received ${extractedTexts?.length || 0} documents`);
@@ -2514,6 +2514,29 @@ print(json.dumps(result))
       console.log(`GEMINI EXTRACTION: Schema fields: ${schemaFields?.length || 0}`);
       console.log(`GEMINI EXTRACTION: Collections: ${collections?.length || 0}`);
       console.log(`GEMINI EXTRACTION: Extraction rules: ${extractionRules?.length || 0}`);
+      console.log(`GEMINI EXTRACTION: Target field IDs:`, targetFieldIds || []);
+      console.log(`GEMINI EXTRACTION: Target property IDs:`, targetPropertyIds || []);
+      
+      // Filter schema fields and collections based on target selections
+      let filteredSchemaFields = schemaFields || [];
+      let filteredCollections = collections || [];
+      
+      if (targetFieldIds && targetFieldIds.length > 0) {
+        filteredSchemaFields = schemaFields.filter((field: any) => targetFieldIds.includes(field.id));
+        console.log(`GEMINI EXTRACTION: Filtered schema fields from ${schemaFields.length} to ${filteredSchemaFields.length}`);
+      }
+      
+      if (targetPropertyIds && targetPropertyIds.length > 0) {
+        filteredCollections = collections.map((collection: any) => ({
+          ...collection,
+          properties: collection.properties?.filter((prop: any) => targetPropertyIds.includes(prop.id)) || []
+        })).filter((collection: any) => collection.properties.length > 0);
+        console.log(`GEMINI EXTRACTION: Filtered collections from ${collections.length} to ${filteredCollections.length}`);
+      } else if (targetFieldIds && targetFieldIds.length > 0) {
+        // If only schema fields are selected, exclude all collections
+        filteredCollections = [];
+        console.log(`GEMINI EXTRACTION: Excluded all collections because only schema fields were selected`);
+      }
       
       // If no extracted texts provided, try to get them from the session
       let finalExtractedTexts = extractedTexts || [];
@@ -2549,21 +2572,28 @@ print(json.dumps(result))
         mime_type: extracted.mime_type || 'application/pdf'
       }));
 
-      // Send the data to Python script in correct format
+      // Send the data to Python script in correct format (using filtered fields)
       const pythonInput = JSON.stringify({
         operation: "extract",
         documents: documents,
         project_schema: {
-          schema_fields: schemaFields || [],
-          collections: collections || []
+          schema_fields: filteredSchemaFields,
+          collections: filteredCollections
         },
         extraction_rules: extractionRules || [],
         knowledge_documents: knowledgeDocuments || [],
         session_name: sessionId
       });
       
+      console.log(`GEMINI EXTRACTION: Sending ${filteredSchemaFields.length} schema fields and ${filteredCollections.length} collections to Python`);
+      
       console.log(`GEMINI EXTRACTION: Sending ${documents.length} documents to Python script`);
       console.log(`GEMINI EXTRACTION: First document preview:`, documents[0] ? documents[0].file_name : 'No documents');
+      
+      if (filteredSchemaFields.length === 0 && filteredCollections.length === 0) {
+        console.log(`GEMINI EXTRACTION: WARNING - No fields selected for extraction!`);
+        return res.json({ success: false, error: 'No fields selected for extraction' });
+      }
       
       python.stdin.write(pythonInput);
       python.stdin.end();
