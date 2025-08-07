@@ -1730,6 +1730,9 @@ except Exception as e:
           // Create field validation records from extracted data
           await createFieldValidationRecords(sessionId, extractedData, project_data);
           
+          // Ensure ALL expected fields have validation records (including ignored/empty fields)
+          await ensureAllValidationRecordsExist(sessionId, projectId);
+          
           res.json({ 
             message: "STEP 1: Data extraction completed", 
             extractedData,
@@ -2559,6 +2562,9 @@ print(json.dumps(result))
               status: "ai_processed"
             });
             
+            // Ensure ALL expected fields have validation records (including ignored/empty fields)
+            await ensureAllValidationRecordsExist(sessionId, req.user!.organizationId);
+            
             resolve(result);
             
           } catch (parseError) {
@@ -3142,6 +3148,9 @@ print(json.dumps(result))
       }
       
       console.log(`SAVE VALIDATIONS: Successfully saved ${savedValidations.length} AI validations + ${additionalValidations} missing field validations = ${savedValidations.length + additionalValidations} total`);
+      
+      // Also run the comprehensive check to ensure ALL expected fields exist
+      await ensureAllValidationRecordsExist(sessionId, session.projectId);
 
       res.json({
         success: true,
@@ -3363,6 +3372,92 @@ print(json.dumps(result))
       .join('');
   }
 
+  // Helper function to ensure ALL schema fields and collection properties have validation records
+  async function ensureAllValidationRecordsExist(sessionId: string, projectId: string) {
+    console.log(`Ensuring all validation records exist for session ${sessionId}`);
+    
+    // Get all schema fields and collections
+    const schemaFields = await storage.getProjectSchemaFields(projectId);
+    const collections = await storage.getObjectCollections(projectId);
+    
+    // Get existing validations to avoid duplicates
+    const existingValidations = await storage.getFieldValidations(sessionId);
+    
+    // Create validation records for all schema fields
+    for (const field of schemaFields) {
+      const existingValidation = existingValidations.find(v => 
+        v.fieldId === field.id && v.validationType === 'schema_field'
+      );
+      
+      if (!existingValidation) {
+        console.log(`Creating missing validation record for schema field: ${field.fieldName}`);
+        await storage.createFieldValidation({
+          sessionId,
+          fieldId: field.id,
+          validationType: 'schema_field',
+          dataType: field.fieldType,
+          collectionName: null,
+          recordIndex: 0,
+          extractedValue: null, // Empty/ignored field
+          confidenceScore: 0,
+          validationStatus: 'pending', // Pending for empty fields
+          aiReasoning: 'Field created automatically - awaiting data extraction or manual input',
+          manuallyVerified: false,
+          manuallyUpdated: false
+        });
+      }
+    }
+    
+    // Find all collection record indices that have any validation data
+    const collectionRecordIndices = new Map(); // collectionName -> Set of record indices
+    for (const validation of existingValidations) {
+      if (validation.validationType === 'collection_property' && validation.collectionName) {
+        if (!collectionRecordIndices.has(validation.collectionName)) {
+          collectionRecordIndices.set(validation.collectionName, new Set());
+        }
+        collectionRecordIndices.get(validation.collectionName)!.add(validation.recordIndex || 0);
+      }
+    }
+    
+    // Create validation records for ALL properties of collection records that have any data
+    for (const collection of collections) {
+      const properties = await storage.getCollectionProperties(collection.id);
+      const recordIndices = collectionRecordIndices.get(collection.collectionName) || new Set();
+      
+      for (const recordIndex of recordIndices) {
+        console.log(`Ensuring all properties exist for ${collection.collectionName}[${recordIndex}]`);
+        
+        for (const prop of properties) {
+          const existingValidation = existingValidations.find(v => 
+            v.fieldId === prop.id && 
+            v.recordIndex === recordIndex && 
+            v.validationType === 'collection_property'
+          );
+          
+          if (!existingValidation) {
+            console.log(`Creating missing validation record for ${collection.collectionName}.${prop.propertyName}[${recordIndex}]`);
+            await storage.createFieldValidation({
+              sessionId,
+              fieldId: prop.id,
+              validationType: 'collection_property',
+              dataType: prop.propertyType || 'TEXT',
+              collectionName: collection.collectionName,
+              recordIndex: recordIndex,
+              extractedValue: null, // Empty/ignored field
+              confidenceScore: 0,
+              validationStatus: 'pending', // Pending for empty fields
+              aiReasoning: 'Field created automatically for collection completeness - awaiting data extraction or manual input',
+              manuallyVerified: false,
+              manuallyUpdated: false
+            });
+          }
+        }
+      }
+    }
+    
+    console.log(`Completed ensuring all validation records exist for session ${sessionId}`);
+  }
+  
   // Helper function to create field validation records from extracted data
   async function createFieldValidationRecords(sessionId: string, extractedData: any, project_data: any) {
     const sessionObject = Object.values(extractedData)[0] as any; // Get the main object (e.g., "contract")
