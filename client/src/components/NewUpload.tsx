@@ -261,6 +261,14 @@ export default function NewUpload({ project }: NewUploadProps) {
       return;
     }
 
+    // Debug: Log what fields are selected before processing
+    console.log('=== FORM SUBMISSION DEBUG ===');
+    console.log('Selected Field IDs:', selectedFieldIds);
+    console.log('Selected Property IDs:', selectedPropertyIds);
+    console.log('Form data targetFieldIds:', data.targetFieldIds);
+    console.log('Form data targetPropertyIds:', data.targetPropertyIds);
+    console.log('================================');
+
     setExtractionMode(extractionMode);
     setIsProcessing(true);
     setShowProcessingDialog(true);
@@ -502,7 +510,16 @@ export default function NewUpload({ project }: NewUploadProps) {
           totalCollectionProperties: schemaData.collections.reduce((sum: number, col: any) => sum + (col.properties?.length || 0), 0)
         });
 
-        const fullPrompt = generateSchemaMarkdown(schemaData, textExtractionResult.extractedText || '', selectedFiles.length, selectedFieldIds, selectedPropertyIds);
+        // Use the selected field IDs from component state, not form data
+        const actualSelectedFieldIds = selectedFieldIds.length > 0 ? selectedFieldIds : [];
+        const actualSelectedPropertyIds = selectedPropertyIds.length > 0 ? selectedPropertyIds : [];
+        
+        console.log('=== PROMPT GENERATION DEBUG ===');
+        console.log('Using Field IDs:', actualSelectedFieldIds);
+        console.log('Using Property IDs:', actualSelectedPropertyIds);
+        console.log('====================================');
+
+        const fullPrompt = generateSchemaMarkdown(schemaData, textExtractionResult.extractedText || '', selectedFiles.length, actualSelectedFieldIds, actualSelectedPropertyIds);
 
         // Calculate AI processing time based on prompt size and number of fields
         const promptSize = fullPrompt.length;
@@ -532,8 +549,8 @@ export default function NewUpload({ project }: NewUploadProps) {
               collections: schemaData.collections || [],
               extractionRules: schemaData.extraction_rules || [],
               knowledgeDocuments: schemaData.knowledge_documents || [],
-              targetFieldIds: selectedFieldIds,
-              targetPropertyIds: selectedPropertyIds
+              targetFieldIds: actualSelectedFieldIds,
+              targetPropertyIds: actualSelectedPropertyIds
             }),
             headers: { 'Content-Type': 'application/json' }
           });
