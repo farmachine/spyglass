@@ -2421,35 +2421,112 @@ print(json.dumps(result))
                 console.log(`AI validation field: ${validation.field_name} -> extracted_value: ${validation.extracted_value}`);
               }
               
+              // Create a map of AI-provided validations by field key for quick lookup
+              const aiValidationsMap = new Map();
               for (const validation of result.field_validations) {
-                // Extract base field name (remove index like [0], [1])
                 const fieldName = validation.field_name;
-                const baseFieldName = fieldName.replace(/\[\d+\]$/, '');
-                const fieldId = fieldNameToId[baseFieldName];
+                const recordIndex = validation.record_index || 0;
+                const key = `${fieldName}_${recordIndex}`;
+                aiValidationsMap.set(key, validation);
+              }
+              
+              // Process ALL expected fields - both those with AI data and those without
+              const allExpectedValidations = [];
+              
+              // Add schema fields
+              for (const field of schemaFields) {
+                const fieldKey = `${field.fieldName}_0`; // Schema fields have record index 0
+                const aiValidation = aiValidationsMap.get(fieldKey);
                 
-                if (!fieldId) {
-                  console.warn(`Could not find field ID for field: ${fieldName} (base: ${baseFieldName})`);
+                allExpectedValidations.push({
+                  fieldName: field.fieldName,
+                  baseFieldName: field.fieldName,
+                  fieldId: field.id,
+                  validationType: 'schema_field',
+                  dataType: field.fieldType || 'TEXT',
+                  collectionName: null,
+                  recordIndex: 0,
+                  aiData: aiValidation // null if AI didn't provide data
+                });
+              }
+              
+              // Add collection properties - determine which record indices exist for each collection
+              const collectionRecordIndices = new Map(); // collectionName -> Set of record indices
+              
+              // First, find all record indices that have any AI data for each collection
+              for (const [key, aiValidation] of aiValidationsMap) {
+                if (aiValidation.validation_type === 'collection_property') {
+                  const collectionName = aiValidation.collection_name;
+                  const recordIndex = aiValidation.record_index || 0;
+                  
+                  if (!collectionRecordIndices.has(collectionName)) {
+                    collectionRecordIndices.set(collectionName, new Set());
+                  }
+                  collectionRecordIndices.get(collectionName).add(recordIndex);
+                }
+              }
+              
+              // Now create validations for ALL properties of each collection item that has any data
+              for (const collection of collections) {
+                const properties = await storage.getCollectionProperties(collection.id);
+                const recordIndices = collectionRecordIndices.get(collection.collectionName) || new Set();
+                
+                // If no AI data found for this collection, skip it (no records to create)
+                if (recordIndices.size === 0) {
+                  console.log(`No AI data found for collection ${collection.collectionName}, skipping`);
                   continue;
                 }
+                
+                // For each record index that has any AI data, create validation records for ALL properties
+                for (const recordIndex of recordIndices) {
+                  console.log(`Creating validation records for ${collection.collectionName} record ${recordIndex} (all ${properties.length} properties)`);
+                  
+                  for (const prop of properties) {
+                    const fieldName = `${collection.collectionName}.${prop.propertyName}[${recordIndex}]`;
+                    const fieldKey = `${fieldName}_${recordIndex}`;
+                    const aiValidation = aiValidationsMap.get(fieldKey);
+                    
+                    allExpectedValidations.push({
+                      fieldName: fieldName,
+                      baseFieldName: `${collection.collectionName}.${prop.propertyName}`,
+                      fieldId: prop.id,
+                      validationType: 'collection_property',
+                      dataType: prop.propertyType || 'TEXT',
+                      collectionName: collection.collectionName,
+                      recordIndex: recordIndex,
+                      aiData: aiValidation // null if AI didn't provide data for this specific property
+                    });
+                  }
+                }
+              }
+              
+              console.log(`Processing ${allExpectedValidations.length} total expected validations (${result.field_validations.length} from AI, ${allExpectedValidations.length - result.field_validations.length} empty)`);
+              
+              // Now process all expected validations
+              for (const expectedValidation of allExpectedValidations) {
+                const fieldName = expectedValidation.fieldName;
+                const fieldId = expectedValidation.fieldId;
+                const aiData = expectedValidation.aiData;
                 
                 // Check if validation already exists for this field
                 const existingValidations = await storage.getFieldValidations(sessionId);
                 const existingValidation = existingValidations.find(v => 
                   v.fieldId === fieldId && 
-                  (v.recordIndex || 0) === (validation.record_index || 0)
+                  (v.recordIndex || 0) === expectedValidation.recordIndex
                 );
                 
+                // Create validation data - use AI data if available, otherwise create empty record
                 const validationData = {
                   sessionId: sessionId,
-                  fieldId: fieldId, // Now properly mapped to UUID
-                  validationType: validation.validation_type || 'schema_field',
-                  dataType: validation.data_type || 'TEXT',
-                  collectionName: validation.collection_name || null,
-                  recordIndex: validation.record_index || 0,
-                  extractedValue: validation.extracted_value || '',
-                  confidenceScore: Math.round((validation.confidence_score || 0) * 100),
-                  validationStatus: validation.validation_status || 'pending',
-                  aiReasoning: validation.ai_reasoning || validation.reasoning || '',
+                  fieldId: fieldId,
+                  validationType: expectedValidation.validationType,
+                  dataType: expectedValidation.dataType,
+                  collectionName: expectedValidation.collectionName,
+                  recordIndex: expectedValidation.recordIndex,
+                  extractedValue: aiData?.extracted_value || null, // null for empty fields
+                  confidenceScore: aiData ? Math.round((aiData.confidence_score || 0) * 100) : 0,
+                  validationStatus: aiData?.validation_status || 'pending', // pending for empty fields
+                  aiReasoning: aiData?.ai_reasoning || aiData?.reasoning || '',
                   manuallyVerified: false,
                   manuallyUpdated: false
                 };
@@ -2463,13 +2540,15 @@ print(json.dumps(result))
                     // Don't update verified fields - they are locked
                     continue;
                   } else {
-                    console.log(`UPDATING UNVERIFIED FIELD: ${fieldName} - from "${existingValidation.extractedValue}" to "${validation.extracted_value}"`);
+                    const logValue = aiData ? `"${aiData.extracted_value}"` : 'null (empty field)';
+                    console.log(`UPDATING FIELD: ${fieldName} - from "${existingValidation.extractedValue}" to ${logValue}`);
                     // Update existing unverified validation
                     await storage.updateFieldValidation(existingValidation.id, validationData);
                   }
                 } else {
-                  // Create new validation for fields that don't exist yet
-                  console.log(`CREATING NEW FIELD: ${fieldName} - value: "${validation.extracted_value}"`);
+                  // Create new validation record
+                  const logValue = aiData ? `"${aiData.extracted_value}"` : 'null (empty field)';
+                  console.log(`CREATING FIELD: ${fieldName} - value: ${logValue}`);
                   await storage.createFieldValidation(validationData);
                 }
               }
