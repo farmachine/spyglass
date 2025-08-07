@@ -3061,12 +3061,92 @@ print(json.dumps(result))
         }
       }
 
-      console.log(`SAVE VALIDATIONS: Successfully saved ${savedValidations.length} validations`);
+      // CRITICAL: Create missing validation records for empty fields
+      // If any property of a collection item has a validation, ALL properties need validation records
+      console.log('SAVE VALIDATIONS: Creating missing validation records for empty fields...');
+      
+      // Get all schema fields and collection properties to determine what should exist
+      const schemaFields = await storage.getProjectSchemaFields(session.projectId);
+      const collections = await storage.getObjectCollections(session.projectId);
+      
+      // Track which collection record indices have any validation data
+      const collectionRecordIndices = new Map(); // collectionName -> Set of record indices
+      
+      for (const validation of parsedValidations) {
+        if (validation.field_type === 'collection_property') {
+          const fieldName = validation.field_name;
+          // Extract collection name from field name like "Codes.Code Name[0]"
+          const collectionMatch = fieldName.match(/^(.+)\./); 
+          const collectionName = collectionMatch ? collectionMatch[1] : null;
+          const recordIndex = validation.record_index || 0;
+          
+          if (collectionName) {
+            if (!collectionRecordIndices.has(collectionName)) {
+              collectionRecordIndices.set(collectionName, new Set());
+            }
+            collectionRecordIndices.get(collectionName).add(recordIndex);
+          }
+        }
+      }
+      
+      console.log('SAVE VALIDATIONS: Collection record indices found:', Object.fromEntries(collectionRecordIndices));
+      
+      // Create missing validation records for collection properties
+      let additionalValidations = 0;
+      for (const collection of collections) {
+        const properties = await storage.getCollectionProperties(collection.id);
+        const recordIndices = collectionRecordIndices.get(collection.collectionName) || new Set();
+        
+        // For each record index that has any validation data
+        for (const recordIndex of recordIndices) {
+          console.log(`SAVE VALIDATIONS: Ensuring all properties exist for ${collection.collectionName}[${recordIndex}]`);
+          
+          // Check each property of this collection
+          for (const prop of properties) {
+            // Check if validation already exists for this property and record
+            const existingValidations = await storage.getFieldValidations(sessionId);
+            const existingValidation = existingValidations.find(v => 
+              v.fieldId === prop.id &&
+              v.recordIndex === recordIndex &&
+              v.validationType === 'collection_property'
+            );
+            
+            if (!existingValidation) {
+              // Create missing validation record with null value
+              console.log(`SAVE VALIDATIONS: Creating missing validation for ${collection.collectionName}.${prop.propertyName}[${recordIndex}]`);
+              
+              const createData = {
+                sessionId: sessionId,
+                fieldId: prop.id,
+                validationType: 'collection_property',
+                dataType: prop.propertyType || 'TEXT',
+                collectionName: collection.collectionName,
+                extractedValue: null, // Empty field
+                confidenceScore: 0,
+                validationStatus: 'pending' as const, // Pending for empty fields
+                aiReasoning: 'Field created automatically for collection completeness - no AI data found',
+                documentSource: 'Unknown',
+                recordIndex: recordIndex
+              };
+              
+              try {
+                const newValidation = await storage.createFieldValidation(createData);
+                console.log(`SAVE VALIDATIONS: Created missing field ${collection.collectionName}.${prop.propertyName}[${recordIndex}]`);
+                additionalValidations++;
+              } catch (error) {
+                console.error(`SAVE VALIDATIONS: Failed to create missing validation:`, error);
+              }
+            }
+          }
+        }
+      }
+      
+      console.log(`SAVE VALIDATIONS: Successfully saved ${savedValidations.length} AI validations + ${additionalValidations} missing field validations = ${savedValidations.length + additionalValidations} total`);
 
       res.json({
         success: true,
-        message: `Successfully saved ${savedValidations.length} field validations`,
-        savedCount: savedValidations.length,
+        message: `Successfully saved ${savedValidations.length + additionalValidations} field validations (${savedValidations.length} from AI, ${additionalValidations} missing fields)`,
+        savedCount: savedValidations.length + additionalValidations,
         validations: savedValidations
       });
 
