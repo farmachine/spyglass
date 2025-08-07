@@ -2,7 +2,7 @@ import React, { useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Upload, X, FileText, AlertCircle, Play, CheckCircle, Clock, TrendingUp } from "lucide-react";
+import { Upload, X, FileText, AlertCircle, Play, CheckCircle, Clock, TrendingUp, Target, ChevronDown, ChevronRight } from "lucide-react";
 import { WaveIcon, DropletIcon, FlowIcon, StreamIcon } from "@/components/SeaIcons";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Form,
   FormControl,
@@ -34,6 +36,8 @@ const uploadFormSchema = z.object({
   sessionName: z.string().min(1, "Session name is required"),
   description: z.string().optional(),
   files: z.any().optional(),
+  targetFieldIds: z.array(z.string()).optional(),
+  targetPropertyIds: z.array(z.string()).optional(),
 });
 
 type UploadForm = z.infer<typeof uploadFormSchema>;
@@ -67,6 +71,10 @@ export default function NewUpload({ project }: NewUploadProps) {
   const [processedDocuments, setProcessedDocuments] = useState(0);
   const [totalDocuments, setTotalDocuments] = useState(0);
   const [extractionMode, setExtractionMode] = useState<'automated' | 'debug'>('automated');
+  const [selectedFieldIds, setSelectedFieldIds] = useState<string[]>([]);
+  const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
+  const [showFieldSelector, setShowFieldSelector] = useState(false);
+  const [expandedCollections, setExpandedCollections] = useState<Record<string, boolean>>({});
   const [, setLocation] = useLocation();
   
   const createExtractionSession = useCreateExtractionSession(project.id);
@@ -86,6 +94,8 @@ export default function NewUpload({ project }: NewUploadProps) {
     defaultValues: {
       sessionName: "",
       description: "",
+      targetFieldIds: [],
+      targetPropertyIds: [],
     },
   });
 
@@ -169,6 +179,53 @@ export default function NewUpload({ project }: NewUploadProps) {
 
   const removeFile = (id: string) => {
     setSelectedFiles(prev => prev.filter(f => f.id !== id));
+  };
+
+  // Field selection handlers
+  const handleFieldSelection = (fieldId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedFieldIds(prev => [...prev, fieldId]);
+    } else {
+      setSelectedFieldIds(prev => prev.filter(id => id !== fieldId));
+    }
+  };
+
+  const handlePropertySelection = (propertyId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedPropertyIds(prev => [...prev, propertyId]);
+    } else {
+      setSelectedPropertyIds(prev => prev.filter(id => id !== propertyId));
+    }
+  };
+
+  const toggleCollectionExpanded = (collectionId: string) => {
+    setExpandedCollections(prev => ({
+      ...prev,
+      [collectionId]: !prev[collectionId]
+    }));
+  };
+
+  const selectAllFields = () => {
+    setSelectedFieldIds(schemaFields.map(field => field.id));
+  };
+
+  const deselectAllFields = () => {
+    setSelectedFieldIds([]);
+  };
+
+  const selectAllProperties = () => {
+    const allPropertyIds = collections.flatMap(collection => 
+      collection.properties?.map(prop => prop.id) || []
+    );
+    setSelectedPropertyIds(allPropertyIds);
+  };
+
+  const deselectAllProperties = () => {
+    setSelectedPropertyIds([]);
+  };
+
+  const getSelectedFieldsCount = () => {
+    return selectedFieldIds.length + selectedPropertyIds.length;
   };
 
   const simulateFileProcessing = async (files: UploadedFile[]) => {
@@ -310,66 +367,83 @@ export default function NewUpload({ project }: NewUploadProps) {
           project: project
         };
 
-        const generateSchemaMarkdown = (schemaData: any, extractedText: string, documentCount: number) => {
+        const generateSchemaMarkdown = (schemaData: any, extractedText: string, documentCount: number, targetFieldIds: string[] = [], targetPropertyIds: string[] = []) => {
           let prompt = `You are an AI data extraction specialist. Extract data from the provided documents according to the schema configuration below.\n\n`;
           
           // Document content
           prompt += `DOCUMENT CONTENT (${documentCount} document(s)):\n${extractedText}\n\n`;
           
-          // Schema fields section
-          prompt += `PROJECT SCHEMA FIELDS (${schemaData.schema_fields.length} fields):\n`;
-          schemaData.schema_fields.forEach((field: any, index: number) => {
-            prompt += `${index + 1}. Field Name: ${field.fieldName}\n`;
-            prompt += `   Field Type: ${field.fieldType}\n`;
-            prompt += `   Description: ${field.description || 'No description'}\n`;
-            if (field.fieldType === 'CHOICE' && field.choiceOptions) {
-              const choices = field.choiceOptions.map((opt: any) => opt.value || opt).join('; ');
-              prompt += `   Choice Options: The output should be one of the following choices: ${choices}.\n`;
-            }
-            prompt += `   Auto Verification: ${field.autoVerificationConfidence || 80}%\n`;
+          // Filter target fields or use all if none selected
+          const targetFields = targetFieldIds.length > 0 
+            ? schemaData.schema_fields.filter((field: any) => targetFieldIds.includes(field.id))
+            : schemaData.schema_fields;
             
-            // Add extraction rules for this field
-            const fieldRules = schemaData.extraction_rules.filter((rule: any) => 
-              !rule.targetPropertyIds || rule.targetPropertyIds.length === 0 || rule.targetPropertyIds.includes(field.id)
-            );
-            if (fieldRules.length > 0) {
-              prompt += `   Extraction Rules: ${fieldRules.map((rule: any) => rule.ruleContent).join('; ')}\n`;
-            } else {
-              prompt += `   Extraction Rules: None\n`;
-            }
-            prompt += `\n`;
-          });
+          // Filter target collections and properties
+          const targetCollections = targetPropertyIds.length > 0 
+            ? schemaData.collections.map((collection: any) => ({
+                ...collection,
+                properties: collection.properties?.filter((prop: any) => targetPropertyIds.includes(prop.id)) || []
+              })).filter((collection: any) => collection.properties.length > 0)
+            : schemaData.collections;
           
-          // Collections section
-          prompt += `\nCOLLECTIONS (${schemaData.collections.length} collections):\n`;
-          schemaData.collections.forEach((collection: any, collIndex: number) => {
-            prompt += `${collIndex + 1}. Collection Name: ${collection.collectionName}\n`;
-            prompt += `   Description: ${collection.description || 'No description'}\n`;
-            prompt += `   Properties (${collection.properties?.length || 0}):\n`;
-            
-            collection.properties?.forEach((prop: any, propIndex: number) => {
-              prompt += `   ${propIndex + 1}. Property Name: ${prop.propertyName}\n`;
-              prompt += `      Property Type: ${prop.propertyType}\n`;  
-              prompt += `      Description: ${prop.description || 'No description'}\n`;
-              if (prop.propertyType === 'CHOICE' && prop.choiceOptions) {
-                const choices = prop.choiceOptions.map((opt: any) => opt.value || opt).join('; ');
-                prompt += `      Choice Options: The output should be one of the following choices: ${choices}.\n`;
+          // Schema fields section - only target fields
+          if (targetFields.length > 0) {
+            prompt += `TARGET SCHEMA FIELDS (${targetFields.length} fields):\n`;
+            targetFields.forEach((field: any, index: number) => {
+              prompt += `${index + 1}. Field Name: ${field.fieldName}\n`;
+              prompt += `   Field Type: ${field.fieldType}\n`;
+              prompt += `   Description: ${field.description || 'No description'}\n`;
+              if (field.fieldType === 'CHOICE' && field.choiceOptions) {
+                const choices = field.choiceOptions.map((opt: any) => opt.value || opt).join('; ');
+                prompt += `   Choice Options: The output should be one of the following choices: ${choices}.\n`;
               }
-              prompt += `      Auto Verification: ${prop.autoVerificationConfidence || 80}%\n`;
+              prompt += `   Auto Verification: ${field.autoVerificationConfidence || 80}%\n`;
               
-              // Add extraction rules for this property
-              const propRules = schemaData.extraction_rules.filter((rule: any) => 
-                !rule.targetPropertyIds || rule.targetPropertyIds.length === 0 || rule.targetPropertyIds.includes(prop.id)
+              // Add extraction rules for this field
+              const fieldRules = schemaData.extraction_rules.filter((rule: any) => 
+                !rule.targetPropertyIds || rule.targetPropertyIds.length === 0 || rule.targetPropertyIds.includes(field.id)
               );
-              if (propRules.length > 0) {
-                prompt += `      Extraction Rules: ${propRules.map((rule: any) => rule.ruleContent).join('; ')}\n`;
+              if (fieldRules.length > 0) {
+                prompt += `   Extraction Rules: ${fieldRules.map((rule: any) => rule.ruleContent).join('; ')}\n`;
               } else {
-                prompt += `      Extraction Rules: None\n`;
+                prompt += `   Extraction Rules: None\n`;
               }
               prompt += `\n`;
             });
-            prompt += `\n`;
-          });
+          }
+          
+          // Collections section - only target collections and properties
+          if (targetCollections.length > 0) {
+            prompt += `\nTARGET COLLECTIONS (${targetCollections.length} collections):\n`;
+            targetCollections.forEach((collection: any, collIndex: number) => {
+              prompt += `${collIndex + 1}. Collection Name: ${collection.collectionName}\n`;
+              prompt += `   Description: ${collection.description || 'No description'}\n`;
+              prompt += `   Properties (${collection.properties?.length || 0}):\n`;
+              
+              collection.properties?.forEach((prop: any, propIndex: number) => {
+                prompt += `   ${propIndex + 1}. Property Name: ${prop.propertyName}\n`;
+                prompt += `      Property Type: ${prop.propertyType}\n`;  
+                prompt += `      Description: ${prop.description || 'No description'}\n`;
+                if (prop.propertyType === 'CHOICE' && prop.choiceOptions) {
+                  const choices = prop.choiceOptions.map((opt: any) => opt.value || opt).join('; ');
+                  prompt += `      Choice Options: The output should be one of the following choices: ${choices}.\n`;
+                }
+                prompt += `      Auto Verification: ${prop.autoVerificationConfidence || 80}%\n`;
+                
+                // Add extraction rules for this property
+                const propRules = schemaData.extraction_rules.filter((rule: any) => 
+                  !rule.targetPropertyIds || rule.targetPropertyIds.length === 0 || rule.targetPropertyIds.includes(prop.id)
+                );
+                if (propRules.length > 0) {
+                  prompt += `      Extraction Rules: ${propRules.map((rule: any) => rule.ruleContent).join('; ')}\n`;
+                } else {
+                  prompt += `      Extraction Rules: None\n`;
+                }
+                prompt += `\n`;
+              });
+              prompt += `\n`;
+            });
+          }
           
           // Knowledge documents
           prompt += `\nKNOWLEDGE DOCUMENTS (${schemaData.knowledge_documents.length}):\n`;
@@ -404,19 +478,23 @@ export default function NewUpload({ project }: NewUploadProps) {
           
           prompt += `OUTPUT: Return only valid JSON matching this exact schema:\n`;
           prompt += `{\n  "field_validations": [\n`;
-          prompt += `    // Schema fields and collection properties with:\n`;
-          prompt += `    // field_type, field_id, extracted_value, confidence_score, ai_reasoning, document_source, validation_status, record_index\n`;
+          prompt += `    // Only extract data for the TARGET fields and properties listed above\n`;
+          prompt += `    // Each validation should have: field_type, field_id, extracted_value, confidence_score, ai_reasoning, document_source, validation_status, record_index\n`;
           prompt += `  ]\n}\n`;
           
           return prompt;
         };
 
-        const fullPrompt = generateSchemaMarkdown(schemaData, textExtractionResult.extractedText || '', selectedFiles.length);
+        const fullPrompt = generateSchemaMarkdown(schemaData, textExtractionResult.extractedText || '', selectedFiles.length, selectedFieldIds, selectedPropertyIds);
 
         // Calculate AI processing time based on prompt size and number of fields
         const promptSize = fullPrompt.length;
-        const fieldCount = schemaData.schema_fields.length + 
-          schemaData.collections.reduce((sum: number, col: any) => sum + (col.properties?.length || 0), 0);
+        // Calculate field count based on selected fields or all fields
+        const targetFieldCount = selectedFieldIds.length > 0 ? selectedFieldIds.length : schemaData.schema_fields.length;
+        const targetPropertyCount = selectedPropertyIds.length > 0 
+          ? selectedPropertyIds.length 
+          : schemaData.collections.reduce((sum: number, col: any) => sum + (col.properties?.length || 0), 0);
+        const fieldCount = targetFieldCount + targetPropertyCount;
         const estimatedAITime = Math.max(3000, Math.min(20000, promptSize / 100 + fieldCount * 100)); // 3-20 seconds
         
         // Progressive loading for AI extraction
@@ -436,7 +514,9 @@ export default function NewUpload({ project }: NewUploadProps) {
               schemaFields: schemaData.schema_fields || [],
               collections: schemaData.collections || [],
               extractionRules: schemaData.extraction_rules || [],
-              knowledgeDocuments: schemaData.knowledge_documents || []
+              knowledgeDocuments: schemaData.knowledge_documents || [],
+              targetFieldIds: selectedFieldIds,
+              targetPropertyIds: selectedPropertyIds
             }),
             headers: { 'Content-Type': 'application/json' }
           });
@@ -481,9 +561,12 @@ export default function NewUpload({ project }: NewUploadProps) {
         setProcessingStep('complete');
         await new Promise(resolve => setTimeout(resolve, 1000));
 
+        const selectedFieldsText = getSelectedFieldsCount() > 0 
+          ? ` (${getSelectedFieldsCount()} targeted fields)` 
+          : '';
         toast({
           title: "Extraction complete",
-          description: `${selectedFiles.length} file(s) processed and data extracted successfully.`,
+          description: `${selectedFiles.length} file(s) processed and data extracted successfully${selectedFieldsText}.`,
         });
 
         setShowProcessingDialog(false);
@@ -687,7 +770,206 @@ export default function NewUpload({ project }: NewUploadProps) {
                     )}
                   />
 
+                  {/* Target Fields Selection */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Target className="h-4 w-4 text-primary" />
+                        <label className="text-sm font-medium">Target Fields</label>
+                        {getSelectedFieldsCount() > 0 && (
+                          <Badge variant="secondary" className="text-xs">
+                            {getSelectedFieldsCount()} selected
+                          </Badge>
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowFieldSelector(!showFieldSelector)}
+                        className="h-8"
+                        disabled={isProcessing}
+                      >
+                        {showFieldSelector ? (
+                          <>
+                            <ChevronDown className="h-3 w-3 mr-1" />
+                            Hide Selection
+                          </>
+                        ) : (
+                          <>
+                            <ChevronRight className="h-3 w-3 mr-1" />
+                            Select Fields
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    
+                    {showFieldSelector && (
+                      <Card className="border-gray-200">
+                        <CardContent className="pt-4">
+                          <div className="space-y-4">
+                            {/* Schema Fields Section */}
+                            {schemaFields.length > 0 && (
+                              <div>
+                                <div className="flex items-center justify-between mb-3">
+                                  <h4 className="text-sm font-medium text-gray-900">Schema Fields ({schemaFields.length})</h4>
+                                  <div className="space-x-2">
+                                    <Button 
+                                      type="button" 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={selectAllFields}
+                                      className="h-6 text-xs"
+                                      disabled={isProcessing}
+                                    >
+                                      Select All
+                                    </Button>
+                                    <Button 
+                                      type="button" 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={deselectAllFields}
+                                      className="h-6 text-xs"
+                                      disabled={isProcessing}
+                                    >
+                                      Clear
+                                    </Button>
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  {schemaFields.map((field) => (
+                                    <div key={field.id} className="flex items-start space-x-2 p-2 rounded border">
+                                      <Checkbox
+                                        id={`field-${field.id}`}
+                                        checked={selectedFieldIds.includes(field.id)}
+                                        onCheckedChange={(checked) => handleFieldSelection(field.id, !!checked)}
+                                        className="mt-0.5"
+                                        disabled={isProcessing}
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <label 
+                                          htmlFor={`field-${field.id}`} 
+                                          className="text-sm font-medium text-gray-900 cursor-pointer block"
+                                        >
+                                          {field.fieldName}
+                                        </label>
+                                        <p className="text-xs text-gray-500 truncate">{field.description || 'No description'}</p>
+                                        <Badge variant="outline" className="text-xs mt-1">{field.fieldType}</Badge>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
 
+                            {/* Collections Section */}
+                            {collections.length > 0 && (
+                              <div>
+                                <div className="flex items-center justify-between mb-3">
+                                  <h4 className="text-sm font-medium text-gray-900">Collection Properties</h4>
+                                  <div className="space-x-2">
+                                    <Button 
+                                      type="button" 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={selectAllProperties}
+                                      className="h-6 text-xs"
+                                      disabled={isProcessing}
+                                    >
+                                      Select All
+                                    </Button>
+                                    <Button 
+                                      type="button" 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={deselectAllProperties}
+                                      className="h-6 text-xs"
+                                      disabled={isProcessing}
+                                    >
+                                      Clear
+                                    </Button>
+                                  </div>
+                                </div>
+                                <div className="space-y-3">
+                                  {collections.map((collection) => (
+                                    <div key={collection.id} className="border rounded-md">
+                                      <Collapsible
+                                        open={expandedCollections[collection.id] || false}
+                                        onOpenChange={() => toggleCollectionExpanded(collection.id)}
+                                      >
+                                        <CollapsibleTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            className="w-full justify-between p-3 h-auto"
+                                            type="button"
+                                            disabled={isProcessing}
+                                          >
+                                            <div className="text-left">
+                                              <div className="font-medium text-sm">{collection.collectionName}</div>
+                                              <div className="text-xs text-gray-500">{collection.properties?.length || 0} properties</div>
+                                            </div>
+                                            {expandedCollections[collection.id] ? (
+                                              <ChevronDown className="h-4 w-4" />
+                                            ) : (
+                                              <ChevronRight className="h-4 w-4" />
+                                            )}
+                                          </Button>
+                                        </CollapsibleTrigger>
+                                        <CollapsibleContent>
+                                          <div className="px-3 pb-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            {collection.properties?.map((property) => (
+                                              <div key={property.id} className="flex items-start space-x-2 p-2 rounded border bg-gray-50">
+                                                <Checkbox
+                                                  id={`property-${property.id}`}
+                                                  checked={selectedPropertyIds.includes(property.id)}
+                                                  onCheckedChange={(checked) => handlePropertySelection(property.id, !!checked)}
+                                                  className="mt-0.5"
+                                                  disabled={isProcessing}
+                                                />
+                                                <div className="flex-1 min-w-0">
+                                                  <label 
+                                                    htmlFor={`property-${property.id}`} 
+                                                    className="text-sm font-medium text-gray-900 cursor-pointer block"
+                                                  >
+                                                    {property.propertyName}
+                                                  </label>
+                                                  <p className="text-xs text-gray-500 truncate">{property.description || 'No description'}</p>
+                                                  <Badge variant="outline" className="text-xs mt-1">{property.propertyType}</Badge>
+                                                </div>
+                                              </div>
+                                            )) || (
+                                              <div className="col-span-2 text-center text-sm text-gray-500 py-2">
+                                                No properties in this collection
+                                              </div>
+                                            )}
+                                          </div>
+                                        </CollapsibleContent>
+                                      </Collapsible>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {schemaFields.length === 0 && collections.length === 0 && (
+                              <div className="text-center text-sm text-gray-500 py-4">
+                                No schema fields or collections available. Please configure your project schema first.
+                              </div>
+                            )}
+
+                            {getSelectedFieldsCount() === 0 && (schemaFields.length > 0 || collections.length > 0) && (
+                              <Alert>
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription>
+                                  No fields selected. All available fields will be processed by default.
+                                </AlertDescription>
+                              </Alert>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
 
                   <Button 
                     type="submit" 
