@@ -960,6 +960,12 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
             if isinstance(collection_data, list) and collection_data:
                 logging.info(f"🤖 Processing AI-determined collection {collection_name}: {len(collection_data)} items")
                 
+                # *** ENHANCED COLLECTION VALIDATION CREATION ***
+                # CRITICAL: When AI finds collection items, create validation records for ALL properties
+                # This ensures ignored fields (like 'code meaning') remain editable
+                logging.info(f"🎯 COLLECTION DETECTION: Found {len(collection_data)} items in collection '{collection_name}'")
+                logging.info(f"🎯 CREATING NULL VALIDATIONS: Will ensure ALL properties get validation records")
+                
                 # Create validation records for each AI-extracted item in this collection
                 for record_index in range(len(collection_data)):
                     record = collection_data[record_index] if record_index < len(collection_data) else {}
@@ -981,6 +987,7 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
                         logging.error(f"Cannot convert properties dict with keys: {list(properties_data.keys())}")
                         continue
                 
+                # *** PYTHON SCRIPT LOGIC: Create validation for EVERY property in schema ***
                 for prop in properties_data:
                     if not isinstance(prop, dict):
                         continue
@@ -995,7 +1002,7 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
                         logging.info(f"⏭️ Skipping existing validation: {field_name_with_index}")
                         continue
                     
-                    logging.info(f"🔨 Creating NEW validation: {field_name_with_index}")
+                    logging.info(f"🔨 Creating validation for property: {field_name_with_index}")
                     
                     # Find extracted value using the same logic as individual processing
                     extracted_value = None
@@ -1015,19 +1022,21 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
                                     extracted_value = value
                                     break
                     
-                    # CREATE INITIAL BLANK VALIDATION RECORDS - Show "No validation data" initially
+                    # *** CORE LOGIC: Create validation records for ALL properties ***
+                    # Even if AI ignored this field, it gets a validation record so it remains editable
                     if extracted_value is not None and extracted_value != "" and extracted_value != "null":
-                        # Create blank validation record - batch validation will populate real data later
+                        # Property has a value from AI extraction
                         confidence = 0  # No confidence score initially
                         reasoning = "No validation data"  # Clear initial state
                         status = "unverified"  # Always start unverified
-                        logging.info(f"📝 Creating BLANK collection validation: {field_name_with_index} = '{extracted_value}' - batch validation will populate later")
+                        logging.info(f"✅ Creating validation with AI value: {field_name_with_index} = '{extracted_value}'")
                     else:
+                        # *** PYTHON SCRIPT FIX: Property was ignored by AI - create NULL validation ***
                         confidence = 0
-                        status = "invalid"
-                        reasoning = "No validation data - no value found"
+                        status = "pending"  # Use 'pending' instead of 'invalid' for ignored fields
+                        reasoning = "Field ignored by AI - ready for manual entry"
                         extracted_value = None
-                        logging.info(f"📝 Creating BLANK collection validation: {field_name_with_index} = null - batch validation will populate later")
+                        logging.info(f"🎯 NULL VALIDATION CREATED: {field_name_with_index} = null (ignored field now editable)")
                     
                     validation = FieldValidationResult(
                         field_id=prop_id,
@@ -1046,6 +1055,8 @@ def create_comprehensive_validation_records(aggregated_data, project_schema, exi
                         record_index=record_index
                     )
                     comprehensive_validations.append(validation)
+                    
+                logging.info(f"🎯 COLLECTION PROCESSING COMPLETE: {collection_name} - Created {len(properties_data)} validations per item x {len(collection_data)} items")
     
     logging.info(f"🎯 COMPREHENSIVE VALIDATION CREATION COMPLETE:")
     logging.info(f"   - Started with: {len(existing_validations)} existing validations")
