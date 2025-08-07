@@ -98,7 +98,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
   // Initialize collapsed collections when session data loads
   useEffect(() => {
     if (session?.fieldValidations) {
-      const collectionValidations = session.fieldValidations.filter(v => v.fieldType === 'collection_property');
+      const collectionValidations = session.fieldValidations.filter(v => v.validationType === 'collection_property');
       const collectionGroups = collectionValidations.reduce((acc, validation) => {
         const collectionName = validation.collectionName || 'Unknown Collection';
         if (!acc[collectionName]) acc[collectionName] = [];
@@ -216,8 +216,8 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
   const pendingFields = validations.filter(v => v.validationStatus === 'pending').length;
 
   // Group validations by field type
-  const schemaFieldValidations = validations.filter(v => v.fieldType === 'schema_field');
-  const collectionValidations = validations.filter(v => v.fieldType === 'collection_property');
+  const schemaFieldValidations = validations.filter(v => v.validationType === 'schema_field');
+  const collectionValidations = validations.filter(v => v.validationType === 'collection_property');
 
   // Group collection validations by collection name and sort by schema property order
   const collectionGroups = collectionValidations.reduce((acc, validation) => {
@@ -318,7 +318,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
                     />
                     <div>
                       <Label className="font-medium">{validation.fieldName || 'Unknown Field'}</Label>
-                      <p className="text-sm text-gray-600">{validation.fieldType}</p>
+                      <p className="text-sm text-gray-600">{validation.validationType} • {validation.dataType}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -346,7 +346,13 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
                       </div>
                     ) : (
                       <div className="text-right">
-                        <p className="font-medium">{validation.extractedValue || 'No value'}</p>
+                        <p 
+                          className={`font-medium ${!validation.extractedValue ? 'text-muted-foreground cursor-pointer hover:text-primary hover:underline' : ''}`}
+                          onClick={!validation.extractedValue ? () => handleManualEdit(validation) : undefined}
+                          title={!validation.extractedValue ? 'Click to enter value' : undefined}
+                        >
+                          {validation.extractedValue || 'No value'}
+                        </p>
                         <div className="flex items-center gap-2 mt-1 justify-end">
                           {validation.validationStatus === 'valid' && (
                             <Badge className="bg-green-100 text-green-800 text-xs">
@@ -424,7 +430,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
                         <div>
                           <Label className="font-medium">{(validation as FieldValidationWithName).fieldName || 'Unknown Field'}</Label>
                           <p className="text-sm text-gray-600">
-                            {validation.fieldType} • Record {(validation.recordIndex ?? 0) + 1}
+                            {validation.validationType} • {validation.dataType} • Record {(validation.recordIndex ?? 0) + 1}
                           </p>
                         </div>
                       </div>
@@ -453,7 +459,13 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
                           </div>
                         ) : (
                           <div className="text-right">
-                            <p className="font-medium">{validation.extractedValue || 'No value'}</p>
+                            <p 
+                              className={`font-medium ${!validation.extractedValue ? 'text-muted-foreground cursor-pointer hover:text-primary hover:underline' : ''}`}
+                              onClick={!validation.extractedValue ? () => handleManualEdit(validation) : undefined}
+                              title={!validation.extractedValue ? 'Click to enter value' : undefined}
+                            >
+                              {validation.extractedValue || 'No value'}
+                            </p>
                             <div className="flex items-center gap-2 mt-1 justify-end">
                               {validation.validationStatus === 'valid' && (
                                 <Badge className="bg-green-100 text-green-800 text-xs">

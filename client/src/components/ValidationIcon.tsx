@@ -98,7 +98,7 @@ export default function ValidationIcon({
           </div>
         )}
         
-        {status === "invalid" && onManualEdit && (
+        {onManualEdit && (status === "invalid" || status === "pending") && (
           <Button 
             variant="outline" 
             size="sm" 
@@ -106,7 +106,7 @@ export default function ValidationIcon({
             className="w-full mt-2"
           >
             <Edit2 className="h-3 w-3 mr-1" />
-            Edit Manually
+            {status === "pending" ? "Enter Value" : "Edit Manually"}
           </Button>
         )}
       </div>
@@ -125,7 +125,7 @@ export default function ValidationIcon({
             variant="ghost" 
             size="sm" 
             className="h-auto p-1"
-            onClick={status === "invalid" ? onManualEdit : undefined}
+            onClick={(status === "invalid" || status === "pending") ? onManualEdit : undefined}
           >
             {getStatusIcon()}
           </Button>
