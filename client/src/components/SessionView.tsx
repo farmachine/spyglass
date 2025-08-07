@@ -315,6 +315,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
                       reasoning={validation.aiReasoning}
                       confidenceScore={validation.confidenceScore ?? 0}
                       onManualEdit={() => handleManualEdit(validation)}
+                      isEmpty={!validation.extractedValue || validation.extractedValue.trim() === ''}
                     />
                     <div>
                       <Label className="font-medium">{validation.fieldName || 'Unknown Field'}</Label>
@@ -426,6 +427,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
                           reasoning={validation.aiReasoning}
                           confidenceScore={validation.confidenceScore ?? 0}
                           onManualEdit={() => handleManualEdit(validation)}
+                          isEmpty={!validation.extractedValue || validation.extractedValue.trim() === ''}
                         />
                         <div>
                           <Label className="font-medium">{(validation as FieldValidationWithName).fieldName || 'Unknown Field'}</Label>

@@ -16,6 +16,7 @@ interface ValidationIconProps {
   onManualEdit?: () => void;
   showTooltip?: boolean;
   size?: "sm" | "md" | "lg";
+  isEmpty?: boolean; // New prop to indicate if the field value is empty
 }
 
 export default function ValidationIcon({
@@ -24,7 +25,8 @@ export default function ValidationIcon({
   confidenceScore = 0,
   onManualEdit,
   showTooltip = true,
-  size = "md"
+  size = "md",
+  isEmpty = false
 }: ValidationIconProps) {
   const getStatusIcon = () => {
     const iconSizes = {
@@ -98,7 +100,7 @@ export default function ValidationIcon({
           </div>
         )}
         
-        {onManualEdit && (status === "invalid" || status === "pending") && (
+        {onManualEdit && (isEmpty || status === "invalid" || status === "pending") && (
           <Button 
             variant="outline" 
             size="sm" 
@@ -106,7 +108,7 @@ export default function ValidationIcon({
             className="w-full mt-2"
           >
             <Edit2 className="h-3 w-3 mr-1" />
-            {status === "pending" ? "Enter Value" : "Edit Manually"}
+            {isEmpty ? "Enter Value" : (status === "pending" ? "Enter Value" : "Edit Manually")}
           </Button>
         )}
       </div>
@@ -125,7 +127,7 @@ export default function ValidationIcon({
             variant="ghost" 
             size="sm" 
             className="h-auto p-1"
-            onClick={(status === "invalid" || status === "pending") ? onManualEdit : undefined}
+            onClick={(isEmpty || status === "invalid" || status === "pending") ? onManualEdit : undefined}
           >
             {getStatusIcon()}
           </Button>
