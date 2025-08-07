@@ -3094,29 +3094,43 @@ print(json.dumps(result))
             
             for (const validation of fieldValidations || []) {
               try {
-                // Map field name to proper field ID and type
-                const fieldMapping = await mapFieldNameToId(validation.field_name, schemaFields, collections);
+                // Use field ID and validation type directly from AI response
+                const fieldId = validation.field_id;
+                const validationType = validation.validation_type || 'schema_field';
+                const dataType = validation.data_type || 'TEXT';
+                let collectionName = null;
+                let recordIndex = 0;
                 
-                if (!fieldMapping) {
-                  console.warn(`Could not map field name: ${validation.field_name}`);
-                  continue;
+                // Handle collection properties
+                if (validationType === 'collection_property') {
+                  collectionName = validation.collection_name;
+                  recordIndex = validation.record_index || 0;
+                }
+                
+                // Convert confidence score to percentage
+                const confidenceScore = Math.round(parseFloat(validation.confidence_score) * 100);
+                
+                // Determine validation status based on extracted value and confidence
+                let validationStatus = validation.validation_status || 'unverified';
+                if (!validation.extracted_value || validation.extracted_value === "" || validation.extracted_value === "null") {
+                  validationStatus = 'pending';
                 }
                 
                 await storage.createFieldValidation({
-                  sessionId: validation.session_id,
-                  fieldId: fieldMapping.fieldId,
-                  validationType: fieldMapping.validationType,
-                  dataType: fieldMapping.dataType,
-                  collectionName: fieldMapping.collectionName,
-                  recordIndex: fieldMapping.recordIndex,
+                  sessionId: sessionId, // Use sessionId from the route parameter
+                  fieldId: fieldId,
+                  validationType: validationType,
+                  dataType: dataType,
+                  collectionName: collectionName,
+                  recordIndex: recordIndex,
                   extractedValue: validation.extracted_value,
-                  validationStatus: validation.validation_status,
-                  confidenceScore: validation.validation_confidence,
+                  validationStatus: validationStatus,
+                  confidenceScore: confidenceScore,
                   aiReasoning: validation.ai_reasoning,
                   manuallyUpdated: false
                 });
                 
-                console.log(`Created validation for ${validation.field_name} -> ${fieldMapping.fieldType}`);
+                console.log(`Created validation for ${validation.field_name} (ID: ${fieldId}) with value: ${validation.extracted_value}`);
               } catch (validationError) {
                 console.error(`Error creating validation record for ${validation.field_name}:`, validationError);
               }
