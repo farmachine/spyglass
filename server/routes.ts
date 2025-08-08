@@ -2319,8 +2319,9 @@ print(json.dumps(result))
         return res.status(404).json({ success: false, error: 'Session not found' });
       }
       
-      if (session.status !== "text_extracted") {
-        return res.status(400).json({ success: false, error: 'Session must have extracted text before AI analysis' });
+      // Check if session has extracted data to work with
+      if (!session.extractedData || session.extractedData.trim() === '' || session.extractedData === '{}') {
+        return res.status(400).json({ success: false, error: 'Session must have documents uploaded and processed before AI analysis' });
       }
       
       // Get extracted text data from session
