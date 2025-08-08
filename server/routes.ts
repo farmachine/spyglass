@@ -2649,10 +2649,22 @@ print(json.dumps(result))
               // Create a map of AI-provided validations by field key for quick lookup
               const aiValidationsMap = new Map();
               for (const validation of result.field_validations) {
-                const fieldName = validation.field_name;
-                const recordIndex = validation.record_index || 0;
-                const key = `${fieldName}_${recordIndex}`;
-                aiValidationsMap.set(key, validation);
+                // Use field_id directly if provided by AI, otherwise try to map field_name
+                let fieldId = validation.field_id;
+                if (!fieldId) {
+                  // Fallback to mapping field name to ID
+                  const baseFieldName = validation.field_name?.replace(/\[\d+\]$/, ''); // Remove array index
+                  fieldId = fieldNameToId[baseFieldName];
+                }
+                
+                if (fieldId) {
+                  const recordIndex = validation.record_index || 0;
+                  const key = `${fieldId}_${recordIndex}`;
+                  aiValidationsMap.set(key, { ...validation, field_id: fieldId });
+                  console.log(`Mapped AI validation: ${validation.field_name} -> ${fieldId} [${recordIndex}]`);
+                } else {
+                  console.warn(`Could not map field name to ID: ${validation.field_name}`);
+                }
               }
               
               // Process ALL expected fields - both those with AI data and those without
@@ -2660,7 +2672,7 @@ print(json.dumps(result))
               
               // Add schema fields
               for (const field of schemaFields) {
-                const fieldKey = `${field.fieldName}_0`; // Schema fields have record index 0
+                const fieldKey = `${field.id}_0`; // Schema fields have record index 0
                 const aiValidation = aiValidationsMap.get(fieldKey);
                 
                 allExpectedValidations.push({
@@ -2708,7 +2720,7 @@ print(json.dumps(result))
                   
                   for (const prop of properties) {
                     const fieldName = `${collection.collectionName}.${prop.propertyName}[${recordIndex}]`;
-                    const fieldKey = `${fieldName}_${recordIndex}`;
+                    const fieldKey = `${prop.id}_${recordIndex}`; // Use property ID instead of field name
                     const aiValidation = aiValidationsMap.get(fieldKey);
                     
                     allExpectedValidations.push({
