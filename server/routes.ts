@@ -2117,6 +2117,108 @@ print(json.dumps(result))
     }
   });
 
+  // Fix missing validation records for collection items
+  app.post("/api/sessions/:sessionId/fix-missing-validations", async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      
+      console.log(`🔧 FIXING MISSING VALIDATIONS for session ${sessionId}`);
+      
+      // Get the session
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      
+      // Get project data
+      const project = await storage.getProject(session.projectId);
+      const collections = await storage.getObjectCollections(session.projectId);
+      const existingValidations = await storage.getFieldValidations(sessionId);
+      
+      console.log(`🔧 Found ${collections.length} collections and ${existingValidations.length} existing validations`);
+      
+      let fixedCount = 0;
+      
+      // For each collection, find the missing validation records
+      for (const collection of collections) {
+        console.log(`🔧 Processing collection: ${collection.collectionName}`);
+        
+        const properties = await storage.getCollectionProperties(collection.id);
+        console.log(`🔧 Collection has ${properties.length} properties`);
+        
+        // Get property IDs for this collection to identify orphaned validations
+        const propertyIds = properties.map(p => p.id);
+        console.log(`🔧 Collection property IDs: [${propertyIds.join(', ')}]`);
+        
+        // Check for orphaned validations (null collectionName but collection_property type)
+        const orphanedValidations = existingValidations.filter(v => 
+          v.validationType === 'collection_property' && 
+          v.collectionName === null &&
+          propertyIds.includes(v.fieldId)
+        );
+        console.log(`🔧 Found ${orphanedValidations.length} orphaned validations with null collectionName`);
+        
+        // Find all record indices that have ANY validation for this collection
+        // Include validations with matching field IDs (even if collectionName is null)
+        const collectionValidations = existingValidations.filter(v => 
+          v.validationType === 'collection_property' && 
+          (v.collectionName === collection.collectionName || 
+           (v.collectionName === null && propertyIds.includes(v.fieldId)))
+        );
+        
+        const recordIndices = new Set<number>();
+        collectionValidations.forEach(v => recordIndices.add(v.recordIndex || 0));
+        
+        console.log(`🔧 Found record indices: [${Array.from(recordIndices).sort().join(', ')}]`);
+        
+        // For each record index, ensure ALL properties have validation records
+        for (const recordIndex of Array.from(recordIndices)) {
+          console.log(`🔧 Checking record ${collection.collectionName}[${recordIndex}]`);
+          
+          for (const prop of properties) {
+            const existingValidation = existingValidations.find(v => 
+              v.fieldId === prop.id && 
+              v.recordIndex === recordIndex && 
+              v.validationType === 'collection_property'
+            );
+            
+            if (!existingValidation) {
+              console.log(`🎯 CREATING MISSING VALIDATION: ${collection.collectionName}.${prop.propertyName}[${recordIndex}]`);
+              
+              await storage.createFieldValidation({
+                sessionId,
+                fieldId: prop.id,
+                validationType: 'collection_property',
+                dataType: prop.propertyType || 'TEXT',
+                collectionName: collection.collectionName,
+                recordIndex: recordIndex,
+                extractedValue: null, // Empty/ignored field
+                confidenceScore: 0,
+                validationStatus: 'pending', // Pending for empty fields
+                aiReasoning: 'Field ignored by AI - ready for manual entry',
+                manuallyVerified: false,
+                manuallyUpdated: false
+              });
+              
+              fixedCount++;
+            }
+          }
+        }
+      }
+      
+      console.log(`🎯 FIXED ${fixedCount} missing validation records for session ${sessionId}`);
+      
+      res.json({
+        message: `Successfully created ${fixedCount} missing validation records`,
+        fixedCount
+      });
+      
+    } catch (error) {
+      console.error("Fix missing validations error:", error);
+      res.status(500).json({ message: "Failed to fix missing validations", error: error.message });
+    }
+  });
+
   // AI extraction for existing sessions (used by Add Documents)
   app.post("/api/sessions/:sessionId/ai-extraction", async (req, res) => {
     try {
