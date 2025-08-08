@@ -3408,8 +3408,18 @@ print(json.dumps(result))
       }
     }
     
-    // Find all collection record indices that have any validation data
+    // *** ENHANCED LOGIC: Find ALL collection items from extracted data, not just ones with validations ***
+    const session = await storage.getExtractionSession(sessionId);
+    let extractedData = {};
+    try {
+      extractedData = session.extractedData ? JSON.parse(session.extractedData) : {};
+    } catch (e) {
+      console.log('No extracted data found for session');
+    }
+    
     const collectionRecordIndices = new Map(); // collectionName -> Set of record indices
+    
+    // First, find record indices from existing validations (legacy approach)
     for (const validation of existingValidations) {
       if (validation.validationType === 'collection_property' && validation.collectionName) {
         if (!collectionRecordIndices.has(validation.collectionName)) {
@@ -3419,10 +3429,30 @@ print(json.dumps(result))
       }
     }
     
-    // Create validation records for ALL properties of collection records that have any data
+    // *** CRITICAL FIX: Also find ALL items from extracted data ***
+    for (const collection of collections) {
+      const collectionData = extractedData[collection.collectionName];
+      if (Array.isArray(collectionData) && collectionData.length > 0) {
+        console.log(`🎯 COLLECTION DETECTION: Found ${collectionData.length} items in extracted data for '${collection.collectionName}'`);
+        
+        if (!collectionRecordIndices.has(collection.collectionName)) {
+          collectionRecordIndices.set(collection.collectionName, new Set());
+        }
+        
+        // Add ALL record indices from extracted data
+        for (let i = 0; i < collectionData.length; i++) {
+          collectionRecordIndices.get(collection.collectionName)!.add(i);
+          console.log(`🎯 ENSURING RECORD: ${collection.collectionName}[${i}] will get ALL property validations`);
+        }
+      }
+    }
+    
+    // Create validation records for ALL properties of ALL collection items found
     for (const collection of collections) {
       const properties = await storage.getCollectionProperties(collection.id);
       const recordIndices = collectionRecordIndices.get(collection.collectionName) || new Set();
+      
+      console.log(`🔧 PROCESSING COLLECTION: ${collection.collectionName} with ${recordIndices.size} items and ${properties.length} properties`);
       
       for (const recordIndex of recordIndices) {
         console.log(`Ensuring all properties exist for ${collection.collectionName}[${recordIndex}]`);
@@ -3435,7 +3465,7 @@ print(json.dumps(result))
           );
           
           if (!existingValidation) {
-            console.log(`Creating missing validation record for ${collection.collectionName}.${prop.propertyName}[${recordIndex}]`);
+            console.log(`🎯 CREATING NULL VALIDATION: ${collection.collectionName}.${prop.propertyName}[${recordIndex}] (ignored field now editable)`);
             await storage.createFieldValidation({
               sessionId,
               fieldId: prop.id,
@@ -3446,7 +3476,7 @@ print(json.dumps(result))
               extractedValue: null, // Empty/ignored field
               confidenceScore: 0,
               validationStatus: 'pending', // Pending for empty fields
-              aiReasoning: 'Field created automatically for collection completeness - awaiting data extraction or manual input',
+              aiReasoning: 'Field ignored by AI - ready for manual entry',
               manuallyVerified: false,
               manuallyUpdated: false
             });
