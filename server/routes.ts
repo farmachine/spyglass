@@ -2220,7 +2220,7 @@ print(json.dumps(result))
   });
 
   // AI extraction for existing sessions (used by Add Documents)
-  app.post("/api/sessions/:sessionId/ai-extraction", async (req, res) => {
+  app.post("/api/sessions/:sessionId/ai-extraction", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const sessionId = req.params.sessionId;
       console.log(`AI EXTRACTION: Starting AI analysis for session ${sessionId}`);
@@ -2665,7 +2665,7 @@ print(json.dumps(result))
             });
             
             // Ensure ALL expected fields have validation records (including ignored/empty fields)
-            await ensureAllValidationRecordsExist(sessionId, req.user!.organizationId);
+            await ensureAllValidationRecordsExist(sessionId, session.projectId);
             
             resolve(result);
             
