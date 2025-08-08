@@ -2305,7 +2305,9 @@ print(json.dumps(result))
   app.post("/api/sessions/:sessionId/ai-extraction", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const sessionId = req.params.sessionId;
+      const { targetFields } = req.body;
       console.log(`AI EXTRACTION: Starting AI analysis for session ${sessionId}`);
+      console.log(`AI EXTRACTION: Target fields:`, targetFields);
       
       // Get session data
       const session = await storage.getExtractionSession(sessionId);
@@ -2395,26 +2397,41 @@ print(json.dumps(result))
       console.log(`AI EXTRACTION: Collection record counts:`, collectionRecordCounts);
       console.log(`AI EXTRACTION: Processing ${extractedData.documents?.length || 0} documents`);
       
-      // Filter schema to only include fields that need updates
-      const filteredSchemaFields = schemaFields.filter(field => 
+      // Filter schema to only include fields that need updates AND are selected for extraction
+      let filteredSchemaFields = schemaFields.filter(field => 
         unvalidatedFields.has(field.fieldName)
       );
       
-      const filteredCollections = collections.map(collection => {
+      // If targetFields is provided, only include selected schema fields
+      if (targetFields && targetFields.schemaFields && targetFields.schemaFields.length > 0) {
+        const selectedSchemaFieldIds = new Set(targetFields.schemaFields.map(f => f.id));
+        filteredSchemaFields = filteredSchemaFields.filter(field => 
+          selectedSchemaFieldIds.has(field.id)
+        );
+        console.log(`AI EXTRACTION: Filtered schema fields by selection from ${schemaFields.length} to ${filteredSchemaFields.length}`);
+      }
+      
+      let filteredCollections = collections.map(collection => {
         const collectionBaseKey = collection.collectionName;
-        const hasUnvalidatedProps = collection.properties.some(prop => 
+        let unvalidatedProps = collection.properties.filter(prop => 
           unvalidatedFields.has(`${collectionBaseKey}.${prop.propertyName}`)
         );
         
-        if (hasUnvalidatedProps) {
+        // If targetFields is provided, only include selected collection properties
+        if (targetFields && targetFields.collectionProperties && targetFields.collectionProperties.length > 0) {
+          const selectedPropertyIds = new Set(targetFields.collectionProperties.map(p => p.id));
+          unvalidatedProps = unvalidatedProps.filter(prop => 
+            selectedPropertyIds.has(prop.id)
+          );
+        }
+        
+        if (unvalidatedProps.length > 0) {
           return {
             id: collection.id,
             collectionName: collection.collectionName,
             description: collection.description,
             existingRecordCount: collectionRecordCounts[collection.collectionName] || 0,
-            properties: collection.properties.filter(prop => 
-              unvalidatedFields.has(`${collectionBaseKey}.${prop.propertyName}`)
-            ).map(prop => ({
+            properties: unvalidatedProps.map(prop => ({
               id: prop.id,
               propertyName: prop.propertyName,
               propertyType: prop.propertyType,
@@ -2424,6 +2441,15 @@ print(json.dumps(result))
         }
         return null;
       }).filter(Boolean);
+      
+      // If only schema fields are selected, exclude all collections
+      if (targetFields && targetFields.schemaFields && targetFields.schemaFields.length > 0 && 
+          (!targetFields.collectionProperties || targetFields.collectionProperties.length === 0)) {
+        filteredCollections = [];
+        console.log(`AI EXTRACTION: Excluded all collections because only schema fields were selected`);
+      } else if (targetFields && targetFields.collectionProperties && targetFields.collectionProperties.length > 0) {
+        console.log(`AI EXTRACTION: Filtered collections by selection from ${collections.length} to ${filteredCollections.length}`);
+      }
 
       console.log(`AI EXTRACTION: Filtered schema - ${filteredSchemaFields.length} fields, ${filteredCollections.length} collections with missing data`);
       
