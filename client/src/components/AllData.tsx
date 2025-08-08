@@ -116,6 +116,7 @@ export default function AllData({ project }: AllDataProps) {
     },
     onSuccess: (newSession) => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sessions', newSession.id] });
       setShowCreateModal(false);
       setSessionName('');
       // Navigate to the new session
