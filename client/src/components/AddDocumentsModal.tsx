@@ -1,11 +1,17 @@
 import { useState, useCallback, useRef } from "react";
-import { Upload, X, FileText, CheckCircle, AlertTriangle } from "lucide-react";
+import { Upload, X, FileText, CheckCircle, AlertTriangle, Target, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useProjectSchemaFields, useObjectCollections, useAllProjectProperties } from "@/hooks/useSchema";
+import type { ProjectSchemaField, ObjectCollection } from "@shared/schema";
 
 interface AddDocumentsModalProps {
   open: boolean;
@@ -27,6 +33,13 @@ interface UploadedFile {
   error?: string;
 }
 
+interface TargetField {
+  id: string;
+  name: string;
+  type: 'schema_field' | 'collection_property';
+  collectionName?: string;
+}
+
 export default function AddDocumentsModal({ 
   open, 
   onClose, 
@@ -37,8 +50,17 @@ export default function AddDocumentsModal({
   const [selectedFiles, setSelectedFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [targetFields, setTargetFields] = useState<Set<string>>(new Set());
+  const [showTargetFields, setShowTargetFields] = useState(false);
+  const [schemaFieldsExpanded, setSchemaFieldsExpanded] = useState(true);
+  const [collectionsExpanded, setCollectionsExpanded] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Fetch project schema data
+  const { data: schemaFields = [] } = useProjectSchemaFields(projectId);
+  const { data: collections = [] } = useObjectCollections(projectId);
+  const { data: allProperties = [] } = useAllProjectProperties(projectId);
 
   const validateFile = (file: File): string | null => {
     const extension = '.' + file.name.split('.').pop()?.toLowerCase();
@@ -194,9 +216,24 @@ export default function AddDocumentsModal({
         ));
 
         // Step 2: Run AI extraction to match content to existing schema fields
+        const extractionPayload: any = {};
+        
+        // Add target fields if any are selected
+        if (targetFields.size > 0) {
+          const targetFieldsData = {
+            schemaFields: Array.from(targetFields).filter(id => 
+              schemaFields.some(field => field.id === id)
+            ).map(id => schemaFields.find(field => field.id === id)!),
+            collectionProperties: Array.from(targetFields).filter(id => 
+              allProperties.some(prop => prop.id === id)
+            ).map(id => allProperties.find(prop => prop.id === id)!)
+          };
+          extractionPayload.targetFields = targetFieldsData;
+        }
+        
         const aiExtractionResponse = await apiRequest(`/api/sessions/${sessionId}/ai-extraction`, {
           method: 'POST',
-          body: JSON.stringify({}), // AI extraction uses the session's extracted data
+          body: JSON.stringify(extractionPayload),
           headers: { 'Content-Type': 'application/json' }
         });
 
@@ -215,8 +252,10 @@ export default function AddDocumentsModal({
         description: `${selectedFiles.length} document(s) have been processed and added to the session`,
       });
 
-      // Clear files and close modal
+      // Clear files, target fields and close modal
       setSelectedFiles([]);
+      setTargetFields(new Set());
+      setShowTargetFields(false);
       onSuccess();
       onClose();
 
@@ -270,7 +309,39 @@ export default function AddDocumentsModal({
   const handleModalClose = () => {
     if (isProcessing) return;
     setSelectedFiles([]);
+    setTargetFields(new Set());
+    setShowTargetFields(false);
     onClose();
+  };
+
+  const toggleTargetField = (fieldId: string) => {
+    const newTargetFields = new Set(targetFields);
+    if (newTargetFields.has(fieldId)) {
+      newTargetFields.delete(fieldId);
+    } else {
+      newTargetFields.add(fieldId);
+    }
+    setTargetFields(newTargetFields);
+  };
+
+  const selectAllFields = (type: 'schema' | 'collection') => {
+    const newTargetFields = new Set(targetFields);
+    if (type === 'schema') {
+      schemaFields.forEach(field => newTargetFields.add(field.id));
+    } else {
+      allProperties.forEach(prop => newTargetFields.add(prop.id));
+    }
+    setTargetFields(newTargetFields);
+  };
+
+  const clearAllFields = (type: 'schema' | 'collection') => {
+    const newTargetFields = new Set(targetFields);
+    if (type === 'schema') {
+      schemaFields.forEach(field => newTargetFields.delete(field.id));
+    } else {
+      allProperties.forEach(prop => newTargetFields.delete(prop.id));
+    }
+    setTargetFields(newTargetFields);
   };
 
   return (
@@ -287,6 +358,182 @@ export default function AddDocumentsModal({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4">
+          {/* Target Fields Section */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Target className="h-4 w-4 text-blue-600" />
+                <Label className="text-sm font-medium">Target Fields (Optional)</Label>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowTargetFields(!showTargetFields)}
+                className="text-blue-600 hover:text-blue-800"
+              >
+                {showTargetFields ? 'Hide' : 'Show'} Target Options
+              </Button>
+            </div>
+            
+            {targetFields.size > 0 && (
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                  {targetFields.size} field{targetFields.size !== 1 ? 's' : ''} targeted
+                </Badge>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setTargetFields(new Set())}
+                  className="text-xs text-gray-500 hover:text-gray-700"
+                >
+                  Clear all
+                </Button>
+              </div>
+            )}
+            
+            {showTargetFields && (
+              <div className="border rounded-lg p-4 bg-gray-50 space-y-4">
+                <p className="text-xs text-gray-600">
+                  Select specific fields to focus AI extraction on. If no fields are selected, all fields will be processed.
+                </p>
+                
+                {/* Schema Fields */}
+                {schemaFields.length > 0 && (
+                  <Collapsible open={schemaFieldsExpanded} onOpenChange={setSchemaFieldsExpanded}>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <CollapsibleTrigger className="flex items-center gap-2 hover:text-blue-600">
+                          {schemaFieldsExpanded ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                          <span className="text-sm font-medium">Schema Fields ({schemaFields.length})</span>
+                        </CollapsibleTrigger>
+                        <div className="flex gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => selectAllFields('schema')}
+                            className="text-xs px-2 py-1 h-auto"
+                          >
+                            Select All
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => clearAllFields('schema')}
+                            className="text-xs px-2 py-1 h-auto"
+                          >
+                            Clear
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <CollapsibleContent className="space-y-2">
+                        {schemaFields.map((field) => (
+                          <div key={field.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`schema-${field.id}`}
+                              checked={targetFields.has(field.id)}
+                              onCheckedChange={() => toggleTargetField(field.id)}
+                            />
+                            <Label
+                              htmlFor={`schema-${field.id}`}
+                              className="text-sm cursor-pointer flex-1"
+                            >
+                              {field.fieldName}
+                              <span className="text-xs text-gray-500 ml-2">({field.fieldType})</span>
+                            </Label>
+                          </div>
+                        ))}
+                      </CollapsibleContent>
+                    </div>
+                  </Collapsible>
+                )}
+                
+                {/* Collection Properties */}
+                {collections.length > 0 && allProperties.length > 0 && (
+                  <Collapsible open={collectionsExpanded} onOpenChange={setCollectionsExpanded}>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <CollapsibleTrigger className="flex items-center gap-2 hover:text-blue-600">
+                          {collectionsExpanded ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                          <span className="text-sm font-medium">Collection Properties ({allProperties.length})</span>
+                        </CollapsibleTrigger>
+                        <div className="flex gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => selectAllFields('collection')}
+                            className="text-xs px-2 py-1 h-auto"
+                          >
+                            Select All
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => clearAllFields('collection')}
+                            className="text-xs px-2 py-1 h-auto"
+                          >
+                            Clear
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <CollapsibleContent className="space-y-3">
+                        {collections.map((collection) => {
+                          const collectionProps = allProperties.filter(prop => prop.collectionName === collection.collectionName);
+                          if (collectionProps.length === 0) return null;
+                          
+                          return (
+                            <div key={collection.id} className="border-l-2 border-blue-200 pl-3 space-y-2">
+                              <div className="text-sm font-medium text-gray-700">{collection.collectionName}</div>
+                              {collectionProps.map((prop) => (
+                                <div key={prop.id} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`prop-${prop.id}`}
+                                    checked={targetFields.has(prop.id)}
+                                    onCheckedChange={() => toggleTargetField(prop.id)}
+                                  />
+                                  <Label
+                                    htmlFor={`prop-${prop.id}`}
+                                    className="text-sm cursor-pointer flex-1"
+                                  >
+                                    {prop.propertyName}
+                                    <span className="text-xs text-gray-500 ml-2">({prop.propertyType})</span>
+                                  </Label>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })}
+                      </CollapsibleContent>
+                    </div>
+                  </Collapsible>
+                )}
+                
+                {schemaFields.length === 0 && collections.length === 0 && (
+                  <p className="text-sm text-gray-500 text-center py-4">
+                    No schema fields or collections found for this project.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+          
+          <Separator />
+          
           {/* File Drop Zone */}
           <div
             onDragEnter={handleDrag}
