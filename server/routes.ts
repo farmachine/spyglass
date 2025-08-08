@@ -2397,41 +2397,48 @@ print(json.dumps(result))
       console.log(`AI EXTRACTION: Collection record counts:`, collectionRecordCounts);
       console.log(`AI EXTRACTION: Processing ${extractedData.documents?.length || 0} documents`);
       
-      // Filter schema to only include fields that need updates AND are selected for extraction
-      let filteredSchemaFields = schemaFields.filter(field => 
-        unvalidatedFields.has(field.fieldName)
-      );
+      // Filter schema fields - prioritize target field selection first
+      let filteredSchemaFields = schemaFields;
       
-      // If targetFields is provided, only include selected schema fields
+      // If targetFields is provided, only include selected schema fields (takes priority)
       if (targetFields && targetFields.schemaFields && targetFields.schemaFields.length > 0) {
         const selectedSchemaFieldIds = new Set(targetFields.schemaFields.map(f => f.id));
         filteredSchemaFields = filteredSchemaFields.filter(field => 
           selectedSchemaFieldIds.has(field.id)
         );
         console.log(`AI EXTRACTION: Filtered schema fields by selection from ${schemaFields.length} to ${filteredSchemaFields.length}`);
+      } else {
+        // Only if no target fields specified, filter by validation status
+        filteredSchemaFields = filteredSchemaFields.filter(field => 
+          unvalidatedFields.has(field.fieldName)
+        );
+        console.log(`AI EXTRACTION: Filtered schema fields by validation status to ${filteredSchemaFields.length}`);
       }
       
       let filteredCollections = collections.map(collection => {
         const collectionBaseKey = collection.collectionName;
-        let unvalidatedProps = collection.properties.filter(prop => 
-          unvalidatedFields.has(`${collectionBaseKey}.${prop.propertyName}`)
-        );
+        let selectedProps = collection.properties;
         
-        // If targetFields is provided, only include selected collection properties
+        // If targetFields is provided, only include selected collection properties (takes priority)
         if (targetFields && targetFields.collectionProperties && targetFields.collectionProperties.length > 0) {
           const selectedPropertyIds = new Set(targetFields.collectionProperties.map(p => p.id));
-          unvalidatedProps = unvalidatedProps.filter(prop => 
+          selectedProps = selectedProps.filter(prop => 
             selectedPropertyIds.has(prop.id)
+          );
+        } else {
+          // Only if no target fields specified, filter by validation status
+          selectedProps = selectedProps.filter(prop => 
+            unvalidatedFields.has(`${collectionBaseKey}.${prop.propertyName}`)
           );
         }
         
-        if (unvalidatedProps.length > 0) {
+        if (selectedProps.length > 0) {
           return {
             id: collection.id,
             collectionName: collection.collectionName,
             description: collection.description,
             existingRecordCount: collectionRecordCounts[collection.collectionName] || 0,
-            properties: unvalidatedProps.map(prop => ({
+            properties: selectedProps.map(prop => ({
               id: prop.id,
               propertyName: prop.propertyName,
               propertyType: prop.propertyType,
