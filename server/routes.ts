@@ -2806,7 +2806,8 @@ print(json.dumps(result))
             
             resolve(result);
             
-          } catch (parseError) {
+          }
+        } catch (parseError) {
             console.error('AI EXTRACTION JSON parse error:', parseError);
             console.error('Raw output:', output);
             reject(new Error(`Invalid JSON response: ${parseError}`));
