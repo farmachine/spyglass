@@ -48,7 +48,9 @@ export default function AllData({ project }: AllDataProps) {
     queryKey: ['/api/validations/project', project.id],
     queryFn: async () => {
       const validations: FieldValidation[] = [];
-      for (const session of project.sessions) {
+      // Filter out null/undefined sessions before iterating
+      const validSessions = (project.sessions || []).filter(session => session && session.id);
+      for (const session of validSessions) {
         try {
           const response = await fetch(`/api/sessions/${session.id}/validations`);
           if (response.ok) {
@@ -68,6 +70,9 @@ export default function AllData({ project }: AllDataProps) {
 
   // Get verification status for a session
   const getVerificationStatus = (sessionId: string): 'verified' | 'in_progress' | 'pending' => {
+    // Safety check for sessionId
+    if (!sessionId) return 'pending';
+    
     const sessionValidations = allValidations.filter(v => v.sessionId === sessionId);
     if (sessionValidations.length === 0) return 'pending';
     
@@ -84,7 +89,9 @@ export default function AllData({ project }: AllDataProps) {
   const getVerificationStats = () => {
     const stats = { verified: 0, in_progress: 0, pending: 0 };
     
-    for (const session of project.sessions) {
+    // Filter out null/undefined sessions before iterating
+    const validSessions = (project.sessions || []).filter(session => session && session.id);
+    for (const session of validSessions) {
       const status = getVerificationStatus(session.id);
       stats[status]++;
     }
@@ -122,6 +129,9 @@ export default function AllData({ project }: AllDataProps) {
 
   // Get verification progress for a session
   const getSessionProgress = (sessionId: string) => {
+    // Safety check for sessionId
+    if (!sessionId) return { verified: 0, total: 0, percentage: 0 };
+    
     const sessionValidations = allValidations.filter(v => v.sessionId === sessionId);
     if (sessionValidations.length === 0) return { verified: 0, total: 0, percentage: 0 };
     
