@@ -1652,26 +1652,30 @@ except Exception as e:
   app.post("/api/projects/:projectId/sessions/create-empty", async (req, res) => {
     try {
       const projectId = req.params.projectId;
+      const { sessionName: providedName } = req.body;
       
-      // Get project details to generate session name
+      // Get project details
       const project = await storage.getProjectWithDetails(projectId);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
       
-      // Generate session name based on main object name and timestamp
-      const timestamp = new Date().toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-      const sessionName = `New ${project.mainObjectName || 'Session'} - ${timestamp}`;
+      // Use provided name or generate default name
+      let sessionName = providedName;
+      if (!sessionName || !sessionName.trim()) {
+        const timestamp = new Date().toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        sessionName = `New ${project.mainObjectName || 'Session'} - ${timestamp}`;
+      }
       
       // Create session
       const sessionData = {
         projectId,
-        sessionName,
+        sessionName: sessionName.trim(),
         description: '',
         status: 'pending' as const,
         documentCount: 0,

@@ -3,6 +3,9 @@ import { Database, CheckCircle, Clock, ExternalLink, Calendar, AlertCircle, Chev
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -21,6 +24,8 @@ export default function AllData({ project }: AllDataProps) {
   const [sortField, setSortField] = useState<SortField>('createdAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [, setLocation] = useLocation();
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [sessionName, setSessionName] = useState('');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -103,14 +108,16 @@ export default function AllData({ project }: AllDataProps) {
 
   // Create new session mutation
   const createSessionMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (sessionName: string) => {
       return apiRequest(`/api/projects/${project.id}/sessions/create-empty`, {
         method: 'POST',
-        body: JSON.stringify({})
+        body: JSON.stringify({ sessionName })
       });
     },
     onSuccess: (newSession) => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id] });
+      setShowCreateModal(false);
+      setSessionName('');
       // Navigate to the new session
       setLocation(`/projects/${project.id}/sessions/${newSession.id}`);
     },
@@ -124,7 +131,24 @@ export default function AllData({ project }: AllDataProps) {
   });
 
   const handleCreateNewSession = () => {
-    createSessionMutation.mutate();
+    setShowCreateModal(true);
+  };
+
+  const handleSubmitCreate = () => {
+    if (!sessionName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a session name",
+        variant: "destructive",
+      });
+      return;
+    }
+    createSessionMutation.mutate(sessionName.trim());
+  };
+
+  const handleCancelCreate = () => {
+    setShowCreateModal(false);
+    setSessionName('');
   };
 
   // Get verification progress for a session
@@ -224,14 +248,58 @@ export default function AllData({ project }: AllDataProps) {
               View extracted data and manage all extraction sessions for this project
             </p>
           </div>
-          <Button 
-            onClick={handleCreateNewSession}
-            disabled={createSessionMutation.isPending}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            New {project.mainObjectName || "Session"}
-          </Button>
+          <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+            <DialogTrigger asChild>
+              <Button 
+                onClick={handleCreateNewSession}
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                New {project.mainObjectName || "Session"}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Create New {project.mainObjectName || "Session"}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="sessionName">Name</Label>
+                  <Input
+                    id="sessionName"
+                    value={sessionName}
+                    onChange={(e) => setSessionName(e.target.value)}
+                    placeholder={`Enter ${(project.mainObjectName || "session").toLowerCase()} name`}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSubmitCreate();
+                      }
+                      if (e.key === 'Escape') {
+                        handleCancelCreate();
+                      }
+                    }}
+                    autoFocus
+                  />
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleCancelCreate}
+                    disabled={createSessionMutation.isPending}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleSubmitCreate}
+                    disabled={createSessionMutation.isPending || !sessionName.trim()}
+                  >
+                    {createSessionMutation.isPending ? "Creating..." : "Create"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -246,14 +314,58 @@ export default function AllData({ project }: AllDataProps) {
                 Click "New {project.mainObjectName || "Session"}" to create your first extraction session
               </p>
               <div className="mt-4">
-                <Button 
-                  onClick={handleCreateNewSession}
-                  disabled={createSessionMutation.isPending}
-                  className="flex items-center gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  New {project.mainObjectName || "Session"}
-                </Button>
+                <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      onClick={handleCreateNewSession}
+                      className="flex items-center gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      New {project.mainObjectName || "Session"}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Create New {project.mainObjectName || "Session"}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="sessionName2">Name</Label>
+                        <Input
+                          id="sessionName2"
+                          value={sessionName}
+                          onChange={(e) => setSessionName(e.target.value)}
+                          placeholder={`Enter ${(project.mainObjectName || "session").toLowerCase()} name`}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleSubmitCreate();
+                            }
+                            if (e.key === 'Escape') {
+                              handleCancelCreate();
+                            }
+                          }}
+                          autoFocus
+                        />
+                      </div>
+                      <div className="flex justify-end space-x-2">
+                        <Button 
+                          variant="outline" 
+                          onClick={handleCancelCreate}
+                          disabled={createSessionMutation.isPending}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={handleSubmitCreate}
+                          disabled={createSessionMutation.isPending || !sessionName.trim()}
+                        >
+                          {createSessionMutation.isPending ? "Creating..." : "Create"}
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
             </div>
           ) : (
