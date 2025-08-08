@@ -996,14 +996,43 @@ RETURN: Complete readable content from this document."""
                                 all_sheets = pd.read_excel(excel_stream, sheet_name=None, engine='openpyxl' if file_name.lower().endswith('.xlsx') else 'xlrd')
                                 
                                 text_content = []
+                                total_content_size = 0
+                                MAX_CONTENT_SIZE = 200000  # Limit to 200KB of text per document
+                                
                                 for sheet_name, df in all_sheets.items():
                                     text_content.append(f"=== SHEET: {sheet_name} ===")
                                     
-                                    # Convert dataframe to string representation
-                                    sheet_text = df.to_string(index=False, na_rep='')
+                                    # For large datasets, sample intelligently
+                                    if len(df) > 100:  # If more than 100 rows
+                                        logging.info(f"Large Excel sheet detected ({len(df)} rows), sampling for efficiency")
+                                        # Take first 50 rows, last 20 rows, and some middle rows
+                                        sample_df = pd.concat([
+                                            df.head(50),  # First 50 rows
+                                            df.iloc[len(df)//2-10:len(df)//2+10],  # 20 middle rows
+                                            df.tail(20)   # Last 20 rows
+                                        ]).drop_duplicates()
+                                        sheet_text = sample_df.to_string(index=False, na_rep='')
+                                        sheet_text += f"\n\n[NOTE: This sheet has {len(df)} total rows. Showing sample of {len(sample_df)} rows for analysis.]"
+                                    else:
+                                        # Convert dataframe to string representation
+                                        sheet_text = df.to_string(index=False, na_rep='')
+                                    
+                                    # Check if adding this sheet would exceed size limit
+                                    if total_content_size + len(sheet_text) > MAX_CONTENT_SIZE:
+                                        # Truncate the sheet content
+                                        remaining_space = MAX_CONTENT_SIZE - total_content_size
+                                        if remaining_space > 1000:  # Only add if we have reasonable space
+                                            sheet_text = sheet_text[:remaining_space] + "\n\n[CONTENT TRUNCATED - Sheet too large]"
+                                            text_content.append(sheet_text)
+                                            total_content_size += len(sheet_text)
+                                        text_content.append(f"\n[REMAINING SHEETS SKIPPED - Document size limit reached]")
+                                        break
+                                    
                                     text_content.append(sheet_text)
+                                    total_content_size += len(sheet_text)
                                 
                                 document_content = "\n\n".join(text_content)
+                                logging.info(f"Excel extraction: Final content size {len(document_content)} chars (limit: {MAX_CONTENT_SIZE})")
                                 logging.info(f"STEP 1: Successfully extracted {len(document_content)} characters from Excel document {file_name}")
                                 
                             except Exception as e:
@@ -1034,6 +1063,12 @@ RETURN: Complete readable content from this document."""
                     continue
         
         logging.info(f"STEP 1 COMPLETE: Processed {processed_docs} documents, extracted total of {len(extracted_content_text)} characters from all documents")
+        
+        # Check total content size and truncate if needed to prevent timeouts
+        MAX_TOTAL_CONTENT = 500000  # 500KB total limit for all documents combined
+        if len(extracted_content_text) > MAX_TOTAL_CONTENT:
+            logging.warning(f"Total content size ({len(extracted_content_text)} chars) exceeds limit ({MAX_TOTAL_CONTENT}), truncating...")
+            extracted_content_text = extracted_content_text[:MAX_TOTAL_CONTENT] + "\n\n[CONTENT TRUNCATED - Document set too large for single processing]"
         
         # Now proceed with data extraction using the extracted content
         final_prompt = full_prompt + f"\n\nEXTRACTED DOCUMENT CONTENT:\n{extracted_content_text}"

@@ -3,6 +3,20 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+// Set timeouts for long-running requests (AI extraction can take time)
+app.use((req, res, next) => {
+  // Increase timeout for AI extraction endpoints
+  if (req.path.includes('/ai-extraction') || req.path.includes('/gemini-extraction')) {
+    req.setTimeout(300000); // 5 minutes for AI extraction
+    res.setTimeout(300000);
+  } else {
+    req.setTimeout(120000); // 2 minutes for other requests
+    res.setTimeout(120000);
+  }
+  next();
+});
+
 // Increase body parser limits for file uploads
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
@@ -39,6 +53,9 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
+
+  // Set server timeout for long-running requests
+  server.setTimeout(300000); // 5 minutes
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
