@@ -2779,20 +2779,16 @@ print(json.dumps(result))
               }
             }
 
-            // Debug: Log what's in the result object
-            console.error('🔍 DEBUG: AI extraction result keys:', Object.keys(result));
-            console.error('🔍 DEBUG: extraction_prompt exists:', !!result.extraction_prompt);
-            console.error('🔍 DEBUG: ai_response exists:', !!result.ai_response);
-            console.error('🔍 DEBUG: input_token_count:', result.input_token_count);
-            console.error('🔍 DEBUG: output_token_count:', result.output_token_count);
-
-            // Update session status with debug data
+            // Get current session data to preserve any existing debug fields
+            const currentSession = await storage.getExtractionSession(sessionId);
+            
+            // Update session status while preserving existing debug data
             await storage.updateExtractionSession(sessionId, {
               status: "ai_processed",
-              extractionPrompt: result.extraction_prompt || null,
-              aiResponse: result.ai_response || null,
-              inputTokenCount: result.input_token_count || null,
-              outputTokenCount: result.output_token_count || null
+              extractionPrompt: result.extraction_prompt || currentSession?.extractionPrompt || null,
+              aiResponse: result.ai_response || currentSession?.aiResponse || null,
+              inputTokenCount: result.input_token_count || currentSession?.inputTokenCount || null,
+              outputTokenCount: result.output_token_count || currentSession?.outputTokenCount || null
             });
             
             // Ensure ALL expected fields have validation records (including ignored/empty fields)
