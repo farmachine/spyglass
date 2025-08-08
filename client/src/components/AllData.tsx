@@ -67,7 +67,7 @@ export default function AllData({ project }: AllDataProps) {
   });
 
   // Get verification status for a session
-  const getVerificationStatus = (sessionId: number): 'verified' | 'in_progress' | 'pending' => {
+  const getVerificationStatus = (sessionId: string): 'verified' | 'in_progress' | 'pending' => {
     const sessionValidations = allValidations.filter(v => v.sessionId === sessionId);
     if (sessionValidations.length === 0) return 'pending';
     
@@ -75,7 +75,7 @@ export default function AllData({ project }: AllDataProps) {
     
     // Debug logging
     console.log(`Session ${sessionId} - Validations: ${sessionValidations.length}, All verified: ${allVerified}`);
-    console.log(`Session ${sessionId} - Status breakdown:`, sessionValidations.map(v => ({ field: v.fieldName, status: v.validationStatus })));
+    console.log(`Session ${sessionId} - Status breakdown:`, sessionValidations.map(v => ({ field: (v as any).fieldName || 'Unknown', status: v.validationStatus })));
     
     return allVerified ? 'verified' : 'in_progress';
   };
@@ -121,7 +121,7 @@ export default function AllData({ project }: AllDataProps) {
   };
 
   // Get verification progress for a session
-  const getSessionProgress = (sessionId: number) => {
+  const getSessionProgress = (sessionId: string) => {
     const sessionValidations = allValidations.filter(v => v.sessionId === sessionId);
     if (sessionValidations.length === 0) return { verified: 0, total: 0, percentage: 0 };
     
