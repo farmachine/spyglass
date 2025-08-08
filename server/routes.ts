@@ -4206,11 +4206,15 @@ print(json.dumps(result))
           if (extractionResults.success) {
             console.log(`AI_EXTRACTION: Successfully processed ${extractionResults.total_fields_processed || 0} fields`);
             
-            // Update session status to completed
+            // Update session status to completed with debug data
             await storage.updateExtractionSession(sessionId, {
               status: 'completed',
               extractedData: JSON.stringify(extractionResults.extracted_data || {}),
-              documentCount: extractionResults.document_count || 0
+              documentCount: extractionResults.document_count || 0,
+              extractionPrompt: extractionResults.extraction_prompt || null,
+              aiResponse: extractionResults.ai_response || null,
+              inputTokenCount: extractionResults.input_token_count || null,
+              outputTokenCount: extractionResults.output_token_count || null
             });
 
             // Create field validations from results
