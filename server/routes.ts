@@ -2606,8 +2606,10 @@ print(json.dumps(result))
       await new Promise((resolve, reject) => {
         python.on('close', async (code: any) => {
           if (code !== 0) {
-            console.error('AI EXTRACTION error:', error);
-            return reject(new Error(`AI extraction failed: ${error}`));
+            console.error('AI EXTRACTION error - Exit code:', code);
+            console.error('AI EXTRACTION stderr:', error);
+            console.error('AI EXTRACTION stdout:', output);
+            return reject(new Error(`AI extraction failed with exit code ${code}: ${error}`));
           }
           
           try {
