@@ -2612,10 +2612,6 @@ print(json.dumps(result))
           
           try {
             const result = JSON.parse(output);
-            console.error(`🔍 AI RESULT KEYS:`, Object.keys(result));
-            console.error(`🔍 FIELD_VALIDATIONS EXISTS:`, !!result.field_validations);
-            console.error(`🔍 FIELD_VALIDATIONS LENGTH:`, result.field_validations?.length || 0);
-            console.error(`🔍 RESULT SUCCESS:`, result.success);
             console.log(`AI EXTRACTION: Processing completed with ${result.field_validations?.length || 0} field validations`);
             
             // Store extracted validations
