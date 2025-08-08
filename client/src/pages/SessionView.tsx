@@ -1852,7 +1852,7 @@ Thank you for your assistance.`;
                 </Link>
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center space-x-2">
-                    <h2 className="text-3xl font-bold">{project.mainObjectName || "Session"}: {session?.sessionName}</h2>
+                    <h2 className="text-3xl font-bold">{session?.sessionName}</h2>
                   </div>
                 </div>
               </div>
@@ -1930,7 +1930,7 @@ Thank you for your assistance.`;
             <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="info" className="w-full folder-tabs">
               <TabsList className="w-full justify-start tabs-list">
                 <TabsTrigger value="info" className="tabs-trigger">
-                  {project.mainObjectName || "Session"} Information
+                  General Information
                   {/* Info tab verification indicator */}
                   {(() => {
                     const infoValidations = validations.filter(v => !v.collectionName && !v.fieldName.includes('.'));
@@ -1983,7 +1983,7 @@ Thank you for your assistance.`;
                 <Card className="border-t-0 rounded-tl-none ml-0">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      {project.mainObjectName || "Session"} Information
+                      General Information
                     </CardTitle>
                     <p className="text-sm text-gray-600">
                       Core information and fields extracted from this {(project.mainObjectName || "session").toLowerCase()}.
