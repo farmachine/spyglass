@@ -2779,9 +2779,13 @@ print(json.dumps(result))
               }
             }
 
-            // Update session status
+            // Update session status with debug data
             await storage.updateExtractionSession(sessionId, {
-              status: "ai_processed"
+              status: "ai_processed",
+              extractionPrompt: result.extraction_prompt || null,
+              aiResponse: result.ai_response || null,
+              inputTokenCount: result.input_token_count || null,
+              outputTokenCount: result.output_token_count || null
             });
             
             // Ensure ALL expected fields have validation records (including ignored/empty fields)
