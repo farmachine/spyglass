@@ -165,19 +165,19 @@ export default function AllData({ project }: AllDataProps) {
 
   // Sorted sessions using useMemo for performance
   const sortedSessions = useMemo(() => {
-    const sessions = [...project.sessions];
+    const sessions = [...(project.sessions || [])].filter(session => session && session.id);
     
     return sessions.sort((a, b) => {
       let aValue, bValue;
       
       switch (sortField) {
         case 'sessionName':
-          aValue = a.sessionName.toLowerCase();
-          bValue = b.sessionName.toLowerCase();
+          aValue = (a.sessionName || '').toLowerCase();
+          bValue = (b.sessionName || '').toLowerCase();
           break;
         case 'documentCount':
-          aValue = a.documentCount;
-          bValue = b.documentCount;
+          aValue = a.documentCount || 0;
+          bValue = b.documentCount || 0;
           break;
         case 'progress':
           aValue = getSessionProgress(a.id).percentage;
@@ -264,6 +264,7 @@ export default function AllData({ project }: AllDataProps) {
                 </TableHeader>
                 <TableBody>
                 {sortedSessions.map((session) => {
+                  if (!session || !session.id) return null;
                   const progress = getSessionProgress(session.id);
                   const verificationStatus = getVerificationStatus(session.id);
                   
@@ -272,7 +273,7 @@ export default function AllData({ project }: AllDataProps) {
                       <TableCell className="py-3">
                         <Link href={`/projects/${project.id}/sessions/${session.id}`}>
                           <div className="cursor-pointer hover:text-primary transition-colors">
-                            <p className="font-medium text-sm">{session.sessionName}</p>
+                            <p className="font-medium text-sm">{session.sessionName || 'Untitled Session'}</p>
                             {session.description && (
                               <p className="text-xs text-muted-foreground truncate max-w-[200px]">
                                 {session.description}
@@ -282,7 +283,7 @@ export default function AllData({ project }: AllDataProps) {
                         </Link>
                       </TableCell>
                       <TableCell className="py-3 text-sm">
-                        {session.documentCount}
+                        {session.documentCount || 0}
                       </TableCell>
                       <TableCell className="py-3">
                         <div className="flex items-center gap-2">
@@ -311,12 +312,12 @@ export default function AllData({ project }: AllDataProps) {
                       </TableCell>
                       <TableCell className="py-3">
                         <div className="text-xs text-muted-foreground">
-                          {formatDate(session.createdAt).split(',')[0]}
+                          {session.createdAt ? formatDate(session.createdAt).split(',')[0] : 'Unknown'}
                         </div>
                       </TableCell>
                     </TableRow>
                   );
-                })}
+                }).filter(Boolean)}
                 </TableBody>
               </Table>
             </div>
