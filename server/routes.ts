@@ -2779,6 +2779,13 @@ print(json.dumps(result))
               }
             }
 
+            // Debug: Log what's in the result object
+            console.error('🔍 DEBUG: AI extraction result keys:', Object.keys(result));
+            console.error('🔍 DEBUG: extraction_prompt exists:', !!result.extraction_prompt);
+            console.error('🔍 DEBUG: ai_response exists:', !!result.ai_response);
+            console.error('🔍 DEBUG: input_token_count:', result.input_token_count);
+            console.error('🔍 DEBUG: output_token_count:', result.output_token_count);
+
             // Update session status with debug data
             await storage.updateExtractionSession(sessionId, {
               status: "ai_processed",
