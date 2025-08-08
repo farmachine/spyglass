@@ -3413,8 +3413,10 @@ print(json.dumps(result))
     let extractedData = {};
     try {
       extractedData = session.extractedData ? JSON.parse(session.extractedData) : {};
+      console.log(`🔍 DEBUG: Extracted data keys:`, Object.keys(extractedData));
+      console.log(`🔍 DEBUG: Full extracted data:`, JSON.stringify(extractedData, null, 2));
     } catch (e) {
-      console.log('No extracted data found for session');
+      console.log('❌ ERROR: Failed to parse extracted data:', e);
     }
     
     const collectionRecordIndices = new Map(); // collectionName -> Set of record indices
@@ -3431,7 +3433,12 @@ print(json.dumps(result))
     
     // *** CRITICAL FIX: Also find ALL items from extracted data ***
     for (const collection of collections) {
+      console.log(`🔍 DEBUG: Looking for collection '${collection.collectionName}' in extracted data`);
       const collectionData = extractedData[collection.collectionName];
+      console.log(`🔍 DEBUG: Collection data:`, collectionData);
+      console.log(`🔍 DEBUG: Is array?`, Array.isArray(collectionData));
+      console.log(`🔍 DEBUG: Length:`, collectionData?.length);
+      
       if (Array.isArray(collectionData) && collectionData.length > 0) {
         console.log(`🎯 COLLECTION DETECTION: Found ${collectionData.length} items in extracted data for '${collection.collectionName}'`);
         
@@ -3444,6 +3451,8 @@ print(json.dumps(result))
           collectionRecordIndices.get(collection.collectionName)!.add(i);
           console.log(`🎯 ENSURING RECORD: ${collection.collectionName}[${i}] will get ALL property validations`);
         }
+      } else {
+        console.log(`❌ DEBUG: No array data found for collection '${collection.collectionName}'`);
       }
     }
     
