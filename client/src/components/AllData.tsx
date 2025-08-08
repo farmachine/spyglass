@@ -1,11 +1,13 @@
 import React, { useState, useMemo } from "react";
-import { Database, CheckCircle, Clock, ExternalLink, Calendar, AlertCircle, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle } from "lucide-react";
+import { Database, CheckCircle, Clock, ExternalLink, Calendar, AlertCircle, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { Link, useLocation } from "wouter";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { ProjectWithDetails, FieldValidation } from "@shared/schema";
 
 interface AllDataProps {
@@ -18,6 +20,9 @@ type SortDirection = 'asc' | 'desc';
 export default function AllData({ project }: AllDataProps) {
   const [sortField, setSortField] = useState<SortField>('createdAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const formatDate = (date: Date | string) => {
     return new Date(date).toLocaleDateString('en-US', {
@@ -88,6 +93,32 @@ export default function AllData({ project }: AllDataProps) {
   };
 
   const verificationStats = getVerificationStats();
+
+  // Create new session mutation
+  const createSessionMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest(`/api/projects/${project.id}/sessions/create-empty`, {
+        method: 'POST',
+        body: JSON.stringify({})
+      });
+    },
+    onSuccess: (newSession) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id] });
+      // Navigate to the new session
+      setLocation(`/projects/${project.id}/sessions/${newSession.id}`);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create new session",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCreateNewSession = () => {
+    createSessionMutation.mutate();
+  };
 
   // Get verification progress for a session
   const getSessionProgress = (sessionId: number) => {
@@ -176,10 +207,22 @@ export default function AllData({ project }: AllDataProps) {
   return (
     <div>
       <div className="mb-8">
-        <h2 className="text-2xl font-semibold text-gray-900">{project.mainObjectName || "Session"} Extraction Sessions</h2>
-        <p className="text-sm text-gray-600 mt-1">
-          View extracted data and manage all extraction sessions for this project
-        </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-2xl font-semibold text-gray-900">{project.mainObjectName || "Session"} Extraction Sessions</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              View extracted data and manage all extraction sessions for this project
+            </p>
+          </div>
+          <Button 
+            onClick={handleCreateNewSession}
+            disabled={createSessionMutation.isPending}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            New {project.mainObjectName || "Session"}
+          </Button>
+        </div>
       </div>
 
       {/* Sessions Table */}
@@ -190,8 +233,18 @@ export default function AllData({ project }: AllDataProps) {
               <Database className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">No {(project.mainObjectName || "session").toLowerCase()} extractions</h3>
               <p className="mt-1 text-sm text-gray-500">
-                Upload documents to start extracting {(project.mainObjectName || "session").toLowerCase()} data
+                Click "New {project.mainObjectName || "Session"}" to create your first extraction session
               </p>
+              <div className="mt-4">
+                <Button 
+                  onClick={handleCreateNewSession}
+                  disabled={createSessionMutation.isPending}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  New {project.mainObjectName || "Session"}
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="rounded-md border">

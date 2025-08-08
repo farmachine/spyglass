@@ -1589,6 +1589,46 @@ except Exception as e:
     }
   };
 
+  // Helper function to generate validation records for schema fields only (for empty sessions)
+  const generateSchemaFieldValidations = async (sessionId: string, projectId: string) => {
+    try {
+      const project = await storage.getProjectWithDetails(projectId);
+      if (!project) {
+        console.error(`Project ${projectId} not found for session ${sessionId}`);
+        return;
+      }
+
+      console.log(`🆕 Generating schema field validations for empty session ${sessionId}, project ${projectId}`);
+      console.log(`📊 Schema fields: ${project.schemaFields.length} (collections will be empty initially)`);
+
+      // Create validations for schema fields only
+      for (const field of project.schemaFields) {
+        await storage.createFieldValidation({
+          sessionId,
+          validationType: 'schema_field',
+          dataType: field.fieldType,
+          fieldId: field.id,
+          collectionName: null,
+          recordIndex: 0,
+          extractedValue: null,
+          validationStatus: 'pending',
+          aiReasoning: null,
+          manuallyVerified: false,
+          confidenceScore: 0
+        });
+        console.log(`✅ Created validation for schema field: ${field.fieldName}`);
+      }
+
+      console.log(`🎯 Created ${project.schemaFields.length} schema field validations for empty session`);
+      
+      // Note: Collection properties will get validation records when AI extracts collection items
+      // or when user manually adds collection items via the + button
+    } catch (error) {
+      console.error(`Error generating schema field validations for session ${sessionId}:`, error);
+      throw error;
+    }
+  };
+
   app.post("/api/projects/:projectId/sessions", async (req, res) => {
     try {
       const projectId = req.params.projectId;
@@ -1605,6 +1645,48 @@ except Exception as e:
       res.status(201).json(session);
     } catch (error) {
       res.status(500).json({ message: "Failed to create extraction session" });
+    }
+  });
+
+  // Create empty session with validation records for schema fields only
+  app.post("/api/projects/:projectId/sessions/create-empty", async (req, res) => {
+    try {
+      const projectId = req.params.projectId;
+      
+      // Get project details to generate session name
+      const project = await storage.getProjectWithDetails(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Generate session name based on main object name and timestamp
+      const timestamp = new Date().toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      const sessionName = `New ${project.mainObjectName || 'Session'} - ${timestamp}`;
+      
+      // Create session
+      const sessionData = {
+        projectId,
+        sessionName,
+        description: `Empty ${project.mainObjectName || 'session'} ready for document upload`,
+        status: 'pending' as const,
+        documentCount: 0,
+        extractedData: '{}',
+      };
+      
+      const session = await storage.createExtractionSession(sessionData);
+      
+      // Create validation records for schema fields only (no collection items)
+      await generateSchemaFieldValidations(session.id, projectId);
+      
+      res.status(201).json(session);
+    } catch (error) {
+      console.error("Failed to create empty session:", error);
+      res.status(500).json({ message: "Failed to create empty session" });
     }
   });
 

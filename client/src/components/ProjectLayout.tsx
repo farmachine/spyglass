@@ -14,7 +14,6 @@ import { useProject } from "@/hooks/useProjects";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import type { FieldValidation } from "@/types/api";
-import NewUpload from "./NewUpload";
 import AllData from "./AllData";
 import KnowledgeRules from "./KnowledgeRules";
 import DefineData from "./DefineData";
@@ -28,11 +27,11 @@ interface ProjectLayoutProps {
   projectId: string;
 }
 
-type ActiveTab = "upload" | "data" | "knowledge" | "define" | "publishing";
+type ActiveTab = "data" | "knowledge" | "define" | "publishing";
 
 export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const [, setLocation] = useLocation();
-  const [activeTab, setActiveTab] = useState<ActiveTab>("upload");
+  const [activeTab, setActiveTab] = useState<ActiveTab>("data");
   const { data: project, isLoading, error } = useProject(projectId);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -112,10 +111,8 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
     // If a specific tab is requested in URL, honor it first (always override current tab)
     if (tab) {
       switch (tab) {
-        case 'upload':
-          setActiveTab('upload');
-          break;
         case 'all-data':
+        case 'upload': // Redirect old upload tab to data
           setActiveTab('data');
           break;
         case 'knowledge':
@@ -129,7 +126,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
           if (canAccessPublishing) setActiveTab('publishing');
           break;
         default:
-          setActiveTab('upload');
+          setActiveTab('data');
       }
       // Mark as interacted to prevent any future welcome flow
       sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
@@ -295,7 +292,6 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const showWelcomeFlow = !hasDataItems;
 
   const navItems = [
-    { id: "upload" as const, label: `New ${project.mainObjectName || "Session"}`, icon: DropletIcon, disabled: showWelcomeFlow },
     { id: "data" as const, label: `All ${project.mainObjectName || "Session"}s`, icon: FlowIcon, disabled: showWelcomeFlow },
     ...(canAccessConfigTabs ? [
       { id: "knowledge" as const, label: "Knowledge/Rules", icon: TideIcon, disabled: showWelcomeFlow },
@@ -308,8 +304,6 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
 
   const renderActiveContent = () => {
     switch (activeTab) {
-      case "upload":
-        return <NewUpload project={project} />;
       case "data":
         return <AllData project={project} />;
       case "knowledge":
@@ -318,6 +312,8 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
         return <DefineData project={project} />;
       case "publishing":
         return <Publishing project={project} />;
+      default:
+        return <AllData project={project} />;
     }
   };
 
