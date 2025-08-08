@@ -2661,10 +2661,9 @@ print(json.dumps(result))
                   const recordIndex = validation.record_index || 0;
                   const key = `${fieldId}_${recordIndex}`;
                   aiValidationsMap.set(key, { ...validation, field_id: fieldId });
-                  console.log(`Mapped AI validation: ${validation.field_name} -> ${fieldId} [${recordIndex}]`);
+                  console.error(`🎯 MAPPED AI VALIDATION: ${validation.field_name} -> ${fieldId} [${recordIndex}] = "${validation.extracted_value}"`);
                 } else {
-                  console.warn(`Could not map field name to ID: ${validation.field_name}`);
-                }
+                  console.error(`❌ COULD NOT MAP: ${validation.field_name}`);
               }
               
               // Process ALL expected fields - both those with AI data and those without
@@ -2773,12 +2772,11 @@ print(json.dumps(result))
                   const isVerified = existingValidation.validationStatus === 'verified' || existingValidation.manuallyVerified === true;
                   
                   if (isVerified) {
-                    console.log(`PROTECTING VERIFIED FIELD: ${fieldName} - keeping existing value: ${existingValidation.extractedValue}`);
-                    // Don't update verified fields - they are locked
+                    console.error(`🔒 PROTECTING VERIFIED: ${fieldName} - keeping: "${existingValidation.extractedValue}"`);
                     continue;
                   } else {
                     const logValue = aiData ? `"${aiData.extracted_value}"` : 'null (empty field)';
-                    console.log(`UPDATING FIELD: ${fieldName} - from "${existingValidation.extractedValue}" to ${logValue}`);
+                    console.error(`📝 UPDATING FIELD: ${fieldName} - from "${existingValidation.extractedValue}" to ${logValue}`);
                     // Update existing unverified validation
                     await storage.updateFieldValidation(existingValidation.id, validationData);
                   }
