@@ -1672,7 +1672,7 @@ except Exception as e:
       const sessionData = {
         projectId,
         sessionName,
-        description: `Empty ${project.mainObjectName || 'session'} ready for document upload`,
+        description: '',
         status: 'pending' as const,
         documentCount: 0,
         extractedData: '{}',
