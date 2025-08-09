@@ -2691,46 +2691,16 @@ print(json.dumps(result))
               // Add collection properties - determine which record indices exist for each collection
               const collectionRecordIndices = new Map(); // collectionName -> Set of record indices
               
-              // First, find existing record indices from verified validations (DON'T overwrite these)
-              for (const collection of collections) {
-                const existingValidations = await storage.getFieldValidations(sessionId);
-                const verifiedIndices = existingValidations
-                  .filter(v => 
-                    v.validationType === 'collection_property' && 
-                    v.collectionName === collection.collectionName &&
-                    (v.validationStatus === 'verified' || v.manuallyVerified === true)
-                  )
-                  .map(v => v.recordIndex || 0);
-                
-                if (verifiedIndices.length > 0) {
-                  console.log(`🔒 VERIFIED INDICES for ${collection.collectionName}: [${verifiedIndices.join(', ')}]`);
-                  collectionRecordIndices.set(collection.collectionName, new Set(verifiedIndices));
-                }
-              }
-              
-              // Then, find NEW record indices from AI data (use next available indices)
+              // First, find all record indices that have any AI data for each collection
               for (const [key, aiValidation] of aiValidationsMap) {
                 if (aiValidation.validation_type === 'collection_property') {
                   const collectionName = aiValidation.collection_name;
-                  let recordIndex = aiValidation.record_index || 0;
+                  const recordIndex = aiValidation.record_index || 0;
                   
                   if (!collectionRecordIndices.has(collectionName)) {
                     collectionRecordIndices.set(collectionName, new Set());
                   }
-                  
-                  const existingIndices = collectionRecordIndices.get(collectionName);
-                  
-                  // If this is a new extraction with verified data, use next available index
-                  if (existingIndices.size > 0) {
-                    const maxExistingIndex = Math.max(...Array.from(existingIndices));
-                    recordIndex = maxExistingIndex + 1 + recordIndex; // Offset by max existing + 1
-                    console.log(`🔄 BATCH PROCESSING: Reassigning ${collectionName} index ${aiValidation.record_index} -> ${recordIndex} to avoid verified data`);
-                  }
-                  
-                  existingIndices.add(recordIndex);
-                  
-                  // Update the AI validation record index for consistent processing
-                  aiValidation.record_index = recordIndex;
+                  collectionRecordIndices.get(collectionName).add(recordIndex);
                 }
               }
               
@@ -2770,36 +2740,18 @@ print(json.dumps(result))
               
               console.log(`Processing ${allExpectedValidations.length} total expected validations (${result.field_validations.length} from AI, ${allExpectedValidations.length - result.field_validations.length} empty)`);
               
-              // Now process all expected validations with database retry logic
+              // Now process all expected validations
               for (const expectedValidation of allExpectedValidations) {
                 const fieldName = expectedValidation.fieldName;
                 const fieldId = expectedValidation.fieldId;
                 const aiData = expectedValidation.aiData;
                 
-                // Check if validation already exists for this field with retry logic
-                let existingValidations;
-                let existingValidation;
-                let retryCount = 0;
-                const maxRetries = 3;
-                
-                while (retryCount < maxRetries) {
-                  try {
-                    existingValidations = await storage.getFieldValidations(sessionId);
-                    existingValidation = existingValidations.find(v => 
-                      v.fieldId === fieldId && 
-                      (v.recordIndex || 0) === expectedValidation.recordIndex
-                    );
-                    break; // Success, exit retry loop
-                  } catch (error) {
-                    retryCount++;
-                    console.log(`Database retry ${retryCount}/${maxRetries} for getFieldValidations:`, error.message);
-                    if (retryCount >= maxRetries) {
-                      throw error; // Re-throw if all retries failed
-                    }
-                    // Wait before retry (exponential backoff)
-                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
-                  }
-                }
+                // Check if validation already exists for this field
+                const existingValidations = await storage.getFieldValidations(sessionId);
+                const existingValidation = existingValidations.find(v => 
+                  v.fieldId === fieldId && 
+                  (v.recordIndex || 0) === expectedValidation.recordIndex
+                );
                 
                 // Create validation data - use AI data if available, otherwise create empty record
                 const validationData = {
@@ -2827,98 +2779,32 @@ print(json.dumps(result))
                   } else {
                     const logValue = aiData ? `"${aiData.extracted_value}"` : 'null (empty field)';
                     console.error(`📝 UPDATING FIELD: ${fieldName} - from "${existingValidation.extractedValue}" to ${logValue}`);
-                    // Update existing unverified validation with retry logic
-                    retryCount = 0;
-                    while (retryCount < maxRetries) {
-                      try {
-                        await storage.updateFieldValidation(existingValidation.id, validationData);
-                        break;
-                      } catch (error) {
-                        retryCount++;
-                        console.log(`Database retry ${retryCount}/${maxRetries} for updateFieldValidation:`, error.message);
-                        if (retryCount >= maxRetries) {
-                          throw error;
-                        }
-                        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
-                      }
-                    }
+                    // Update existing unverified validation
+                    await storage.updateFieldValidation(existingValidation.id, validationData);
                   }
                 } else {
-                  // Create new validation record with retry logic
+                  // Create new validation record
                   const logValue = aiData ? `"${aiData.extracted_value}"` : 'null (empty field)';
                   console.log(`CREATING FIELD: ${fieldName} - value: ${logValue}`);
-                  retryCount = 0;
-                  while (retryCount < maxRetries) {
-                    try {
-                      await storage.createFieldValidation(validationData);
-                      break;
-                    } catch (error) {
-                      retryCount++;
-                      console.log(`Database retry ${retryCount}/${maxRetries} for createFieldValidation:`, error.message);
-                      if (retryCount >= maxRetries) {
-                        throw error;
-                      }
-                      await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
-                    }
-                  }
+                  await storage.createFieldValidation(validationData);
                 }
               }
             }
 
-            // Get current session data to preserve any existing debug fields with retry logic
-            let currentSession;
-            retryCount = 0;
-            while (retryCount < maxRetries) {
-              try {
-                currentSession = await storage.getExtractionSession(sessionId);
-                break;
-              } catch (error) {
-                retryCount++;
-                console.log(`Database retry ${retryCount}/${maxRetries} for getExtractionSession:`, error.message);
-                if (retryCount >= maxRetries) {
-                  throw error;
-                }
-                await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
-              }
-            }
+            // Get current session data to preserve any existing debug fields
+            const currentSession = await storage.getExtractionSession(sessionId);
             
-            // Update session status while preserving existing debug data with retry logic
-            retryCount = 0;
-            while (retryCount < maxRetries) {
-              try {
-                await storage.updateExtractionSession(sessionId, {
-                  status: "ai_processed",
-                  extractionPrompt: result.extraction_prompt || currentSession?.extractionPrompt || null,
-                  aiResponse: result.ai_response || currentSession?.aiResponse || null,
-                  inputTokenCount: result.input_token_count || currentSession?.inputTokenCount || null,
-                  outputTokenCount: result.output_token_count || currentSession?.outputTokenCount || null
-                });
-                break;
-              } catch (error) {
-                retryCount++;
-                console.log(`Database retry ${retryCount}/${maxRetries} for updateExtractionSession:`, error.message);
-                if (retryCount >= maxRetries) {
-                  throw error;
-                }
-                await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
-              }
-            }
+            // Update session status while preserving existing debug data
+            await storage.updateExtractionSession(sessionId, {
+              status: "ai_processed",
+              extractionPrompt: result.extraction_prompt || currentSession?.extractionPrompt || null,
+              aiResponse: result.ai_response || currentSession?.aiResponse || null,
+              inputTokenCount: result.input_token_count || currentSession?.inputTokenCount || null,
+              outputTokenCount: result.output_token_count || currentSession?.outputTokenCount || null
+            });
             
-            // Ensure ALL expected fields have validation records (including ignored/empty fields) with retry logic
-            retryCount = 0;
-            while (retryCount < maxRetries) {
-              try {
-                await ensureAllValidationRecordsExist(sessionId, session.projectId);
-                break;
-              } catch (error) {
-                retryCount++;
-                console.log(`Database retry ${retryCount}/${maxRetries} for ensureAllValidationRecordsExist:`, error.message);
-                if (retryCount >= maxRetries) {
-                  throw error;
-                }
-                await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
-              }
-            }
+            // Ensure ALL expected fields have validation records (including ignored/empty fields)
+            await ensureAllValidationRecordsExist(sessionId, session.projectId);
             
             resolve(result);
             
@@ -3777,7 +3663,7 @@ print(json.dumps(result))
     
     const collectionRecordIndices = new Map(); // collectionName -> Set of record indices
     
-    // First, find record indices from existing validations, prioritizing verified ones
+    // First, find record indices from existing validations (legacy approach)
     for (const validation of existingValidations) {
       if (validation.validationType === 'collection_property' && validation.collectionName) {
         if (!collectionRecordIndices.has(validation.collectionName)) {
@@ -3802,15 +3688,10 @@ print(json.dumps(result))
           collectionRecordIndices.set(collection.collectionName, new Set());
         }
         
-        // Add ALL record indices from extracted data, but offset if verified indices exist
-        const existingIndices = collectionRecordIndices.get(collection.collectionName);
-        const startIndex = existingIndices && existingIndices.size > 0 ? 
-          Math.max(...Array.from(existingIndices)) + 1 : 0;
-        
+        // Add ALL record indices from extracted data
         for (let i = 0; i < collectionData.length; i++) {
-          const newIndex = startIndex + i;
-          collectionRecordIndices.get(collection.collectionName)!.add(newIndex);
-          console.log(`🎯 ENSURING RECORD: ${collection.collectionName}[${newIndex}] will get ALL property validations (offset from verified data)`);
+          collectionRecordIndices.get(collection.collectionName)!.add(i);
+          console.log(`🎯 ENSURING RECORD: ${collection.collectionName}[${i}] will get ALL property validations`);
         }
       } else {
         console.log(`❌ DEBUG: No array data found for collection '${collection.collectionName}'`);
@@ -4280,33 +4161,6 @@ print(json.dumps(results))
         })
       );
 
-      // Extract document data from session
-      let documents = [];
-      try {
-        const extractedData = JSON.parse(session.extractedData || '{}');
-        if (extractedData.processed_documents && extractedData.processed_documents.length > 0) {
-          // Use existing processed documents with text content
-          documents = extractedData.processed_documents.map((doc: any) => ({
-            file_name: doc.file_name || 'Unknown Document',
-            file_content: doc.text_content || doc.content || 'No content available'
-          }));
-        } else {
-          console.log('No processed documents found, checking for raw file data');
-          // Fallback: try to get raw content if available
-          documents = [];
-        }
-      } catch (error) {
-        console.log('Failed to parse extracted data, using empty documents array:', error);
-        documents = [];
-      }
-
-      if (documents.length === 0) {
-        return res.status(400).json({ 
-          message: "No documents found in session. Please upload documents first.",
-          session_id: sessionId 
-        });
-      }
-
       // Prepare data for Python extraction script
       const extractionData = {
         session_id: sessionId,
@@ -4316,7 +4170,8 @@ print(json.dumps(results))
         knowledge_documents: knowledgeDocuments,
         extraction_rules: extractionRules,
         session_data: {
-          documents: documents
+          files: JSON.parse(session.fileMetadata || '[]'),
+          documents: session.documents || []
         }
       };
 
@@ -4384,18 +4239,22 @@ print(json.dumps(result))
 
             // Create field validations from results
             if (extractionResults.field_validations) {
-              // Optimize for high-volume processing
-              if (extractionResults.field_validations.length > 100) {
-                console.log(`High-volume extraction: processing ${extractionResults.field_validations.length} validations`);
-              }
-
               for (const validation of extractionResults.field_validations) {
                 // Get auto-verification threshold for this field
                 let autoVerifyThreshold = 80; // Default threshold
                 
                 try {
-                  // For now, use default threshold since we need to implement these methods
-                  autoVerifyThreshold = 80;
+                  if (validation.validation_type === 'schema_field') {
+                    const schemaField = await storage.getProjectSchemaFieldById(validation.field_id);
+                    if (schemaField?.autoVerificationConfidence) {
+                      autoVerifyThreshold = schemaField.autoVerificationConfidence;
+                    }
+                  } else if (validation.validation_type === 'collection_property') {
+                    const collectionProperty = await storage.getCollectionPropertyById(validation.field_id);
+                    if (collectionProperty?.autoVerificationConfidence) {
+                      autoVerifyThreshold = collectionProperty.autoVerificationConfidence;
+                    }
+                  }
                 } catch (error) {
                   console.warn(`Could not get auto-verification threshold for field ${validation.field_id}, using default 80`);
                 }

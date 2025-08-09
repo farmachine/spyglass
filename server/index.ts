@@ -7,12 +7,12 @@ const app = express();
 // Set timeouts for long-running requests (AI extraction can take time)
 app.use((req, res, next) => {
   // Increase timeout for AI extraction endpoints
-  if (req.path.includes('/ai-extraction') || req.path.includes('/gemini-extraction') || req.path.includes('/extract-text')) {
-    req.setTimeout(600000); // 10 minutes for AI extraction and text processing
-    res.setTimeout(600000);
-  } else {
-    req.setTimeout(300000); // 5 minutes for other requests
+  if (req.path.includes('/ai-extraction') || req.path.includes('/gemini-extraction')) {
+    req.setTimeout(300000); // 5 minutes for AI extraction
     res.setTimeout(300000);
+  } else {
+    req.setTimeout(120000); // 2 minutes for other requests
+    res.setTimeout(120000);
   }
   next();
 });
