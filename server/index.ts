@@ -17,9 +17,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Increase body parser limits for file uploads
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+// Increase body parser limits for large Excel file uploads and AI processing
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ extended: false, limit: '100mb' }));
 
 app.use((req, res, next) => {
   const start = Date.now();

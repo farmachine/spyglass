@@ -2574,6 +2574,22 @@ print(json.dumps(result))
         is_subsequent_upload: true
       });
       
+      // LARGE FILE OPTIMIZATION: Truncate content if too large for AI processing
+      const MAX_CONTENT_SIZE = 400000; // 400KB limit for AI processing stability
+      
+      if (extractedData.documents?.length > 0) {
+        extractedData.documents = extractedData.documents.map(doc => {
+          if (doc.file_content && doc.file_content.length > MAX_CONTENT_SIZE) {
+            console.log(`⚠️  LARGE FILE OPTIMIZATION: ${doc.file_name} (${doc.file_content.length} chars) truncated to ${MAX_CONTENT_SIZE} chars for AI processing`);
+            return {
+              ...doc,
+              file_content: doc.file_content.substring(0, MAX_CONTENT_SIZE) + '\n\n[Content truncated for AI processing efficiency - focusing on first portion which typically contains column headers]'
+            };
+          }
+          return doc;
+        });
+      }
+
       // Debug the exact data being sent to AI
       console.log(`AI INPUT DATA: ${inputData.length} characters`);
       if (extractedData.documents?.length > 0) {
