@@ -53,6 +53,8 @@ Preferred communication style: Simple, everyday language.
 - **Empty Data Handling**: Robust session view loading that gracefully handles empty AI extraction results, displaying functional empty states without errors or crashes.
 - **Enhanced Truncation Repair**: Improved JSON repair functionality for truncated Gemini API responses, with comprehensive parsing logic that recovers complete field validation objects and maintains data integrity during AI extraction failures.
 - **Dashboard Tile Swap**: Complete tile reordering functionality with "Move Left" and "Move Right" options in project settings dropdowns, enabling visual rearrangement of project tiles with persistent ordering state.
+- **Large Document Performance Optimization**: Enhanced AI extraction pipeline with intelligent content optimization, chunking, and size limits for documents >500KB. Implemented efficient change detection to prevent unnecessary database updates during field validation processing.
+- **Database Update Optimization**: Added proper change detection in field validation updates to prevent redundant database operations when values haven't actually changed, significantly improving performance with large datasets.
 
 ### Key Architectural Decisions
 - **Monorepo Structure**: Single repository with shared types.

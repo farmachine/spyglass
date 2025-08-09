@@ -2777,10 +2777,21 @@ print(json.dumps(result))
                     console.error(`🔒 PROTECTING VERIFIED: ${fieldName} - keeping: "${existingValidation.extractedValue}"`);
                     continue;
                   } else {
-                    const logValue = aiData ? `"${aiData.extracted_value}"` : 'null (empty field)';
-                    console.error(`📝 UPDATING FIELD: ${fieldName} - from "${existingValidation.extractedValue}" to ${logValue}`);
-                    // Update existing unverified validation
-                    await storage.updateFieldValidation(existingValidation.id, validationData);
+                    // Only update if values have actually changed
+                    const hasValueChanged = existingValidation.extractedValue !== validationData.extractedValue;
+                    const hasReasoningChanged = existingValidation.aiReasoning !== validationData.aiReasoning;
+                    const hasConfidenceChanged = existingValidation.confidenceScore !== validationData.confidenceScore;
+                    const hasStatusChanged = existingValidation.validationStatus !== validationData.validationStatus;
+                    
+                    if (hasValueChanged || hasReasoningChanged || hasConfidenceChanged || hasStatusChanged) {
+                      const logValue = aiData ? `"${aiData.extracted_value}"` : 'null (empty field)';
+                      console.error(`📝 UPDATING FIELD: ${fieldName} - from "${existingValidation.extractedValue}" to ${logValue}`);
+                      // Update existing unverified validation
+                      await storage.updateFieldValidation(existingValidation.id, validationData);
+                    } else {
+                      // Skip update - no changes detected
+                      continue;
+                    }
                   }
                 } else {
                   // Create new validation record
