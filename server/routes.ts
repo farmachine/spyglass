@@ -2839,8 +2839,10 @@ print(json.dumps(result))
               
               // PERFORMANCE CHECK: Warn if processing too many records
               const totalOperations = validationsToCreate.length + validationsToUpdate.length;
-              if (totalOperations > 100) {
-                console.warn(`⚠️  HIGH VOLUME: Processing ${totalOperations} validation operations. Consider optimizing AI extraction limits.`);
+              if (totalOperations > 500) {
+                console.warn(`⚠️  VERY HIGH VOLUME: Processing ${totalOperations} validation operations. Consider optimizing AI extraction limits.`);
+              } else if (totalOperations > 200) {
+                console.log(`📊 HIGH VOLUME: Processing ${totalOperations} validation operations - within acceptable limits.`);
               }
               
               // Execute batch create operations with chunking for large volumes

@@ -726,11 +726,11 @@ def step1_extract_from_documents(
                     properties = collection.get("properties", [])
                     
                     # PERFORMANCE LIMIT: Cap collection examples to prevent excessive record creation
-                    # Allow reasonable sample size but prevent AI from generating hundreds of records
+                    # Allow reasonable sample size but prevent AI from generating too many template records
                     if collection_name == "Column Name Mapping":
-                        example_count = min(5, 2)  # Limit Column Name Mapping to max 5 examples
+                        example_count = min(10, 2)  # Allow more examples for Column Name Mapping (up to 10)
                     else:
-                        example_count = 2  # Standard example count for other collections
+                        example_count = 3  # Slightly increased example count for other collections
                     
                     for record_index in range(example_count):
                         for prop_index, prop in enumerate(properties):
