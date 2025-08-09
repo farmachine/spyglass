@@ -57,6 +57,7 @@ Preferred communication style: Simple, everyday language.
 - **Collection Processing Limits**: Maximum of 50 items per collection (200 field validations for 4-column collections) implemented in AI instruction prompts to ensure reliable processing and prevent timeouts.
 - **Verified Validation Context**: Enhanced AI prompt system passes verified field validations as reference context while instructing AI not to re-extract them, with collection expansion logic to search for additional items when collections are targeted.
 - **Batch Processing Workflow**: Intelligent batch extraction system for processing collections in chunks - when collections are re-targeted, AI searches for additional items beyond verified ones, enabling efficient processing of large datasets like column headers and sheet names.
+- **Index Collision Prevention**: Fixed record index calculation to prevent overwriting during batch processing - verified collection items are protected and new AI extractions get incremental indices beyond existing ones.
 
 ### Key Architectural Decisions
 - **Monorepo Structure**: Single repository with shared types.

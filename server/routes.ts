@@ -2691,16 +2691,46 @@ print(json.dumps(result))
               // Add collection properties - determine which record indices exist for each collection
               const collectionRecordIndices = new Map(); // collectionName -> Set of record indices
               
-              // First, find all record indices that have any AI data for each collection
+              // First, find existing record indices from verified validations (DON'T overwrite these)
+              for (const collection of collections) {
+                const existingValidations = await storage.getFieldValidations(sessionId);
+                const verifiedIndices = existingValidations
+                  .filter(v => 
+                    v.validationType === 'collection_property' && 
+                    v.collectionName === collection.collectionName &&
+                    (v.validationStatus === 'verified' || v.manuallyVerified === true)
+                  )
+                  .map(v => v.recordIndex || 0);
+                
+                if (verifiedIndices.length > 0) {
+                  console.log(`🔒 VERIFIED INDICES for ${collection.collectionName}: [${verifiedIndices.join(', ')}]`);
+                  collectionRecordIndices.set(collection.collectionName, new Set(verifiedIndices));
+                }
+              }
+              
+              // Then, find NEW record indices from AI data (use next available indices)
               for (const [key, aiValidation] of aiValidationsMap) {
                 if (aiValidation.validation_type === 'collection_property') {
                   const collectionName = aiValidation.collection_name;
-                  const recordIndex = aiValidation.record_index || 0;
+                  let recordIndex = aiValidation.record_index || 0;
                   
                   if (!collectionRecordIndices.has(collectionName)) {
                     collectionRecordIndices.set(collectionName, new Set());
                   }
-                  collectionRecordIndices.get(collectionName).add(recordIndex);
+                  
+                  const existingIndices = collectionRecordIndices.get(collectionName);
+                  
+                  // If this is a new extraction with verified data, use next available index
+                  if (existingIndices.size > 0) {
+                    const maxExistingIndex = Math.max(...Array.from(existingIndices));
+                    recordIndex = maxExistingIndex + 1 + recordIndex; // Offset by max existing + 1
+                    console.log(`🔄 BATCH PROCESSING: Reassigning ${collectionName} index ${aiValidation.record_index} -> ${recordIndex} to avoid verified data`);
+                  }
+                  
+                  existingIndices.add(recordIndex);
+                  
+                  // Update the AI validation record index for consistent processing
+                  aiValidation.record_index = recordIndex;
                 }
               }
               
@@ -3663,7 +3693,7 @@ print(json.dumps(result))
     
     const collectionRecordIndices = new Map(); // collectionName -> Set of record indices
     
-    // First, find record indices from existing validations (legacy approach)
+    // First, find record indices from existing validations, prioritizing verified ones
     for (const validation of existingValidations) {
       if (validation.validationType === 'collection_property' && validation.collectionName) {
         if (!collectionRecordIndices.has(validation.collectionName)) {
@@ -3688,10 +3718,15 @@ print(json.dumps(result))
           collectionRecordIndices.set(collection.collectionName, new Set());
         }
         
-        // Add ALL record indices from extracted data
+        // Add ALL record indices from extracted data, but offset if verified indices exist
+        const existingIndices = collectionRecordIndices.get(collection.collectionName);
+        const startIndex = existingIndices && existingIndices.size > 0 ? 
+          Math.max(...Array.from(existingIndices)) + 1 : 0;
+        
         for (let i = 0; i < collectionData.length; i++) {
-          collectionRecordIndices.get(collection.collectionName)!.add(i);
-          console.log(`🎯 ENSURING RECORD: ${collection.collectionName}[${i}] will get ALL property validations`);
+          const newIndex = startIndex + i;
+          collectionRecordIndices.get(collection.collectionName)!.add(newIndex);
+          console.log(`🎯 ENSURING RECORD: ${collection.collectionName}[${newIndex}] will get ALL property validations (offset from verified data)`);
         }
       } else {
         console.log(`❌ DEBUG: No array data found for collection '${collection.collectionName}'`);
