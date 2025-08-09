@@ -1,0 +1,1396 @@
+{
+  "field_validations": [
+    {
+      "field_id": "241870ff-66c0-42c8-9150-6796ce4f2d91",
+      "validation_type": "schema_field",
+      "data_type": "TEXT",
+      "field_name": "Broker",
+      "extracted_value": null,
+      "confidence_score": 0.9,
+      "validation_status": "unverified",
+      "ai_reasoning": "The provided document is an Excel file containing pension scheme member data. No information about a broker was found in any of the worksheets."
+    },
+    {
+      "field_id": "e4fd1a72-0cf3-44b0-8f8b-0b365920b651",
+      "validation_type": "schema_field",
+      "data_type": "TEXT",
+      "field_name": "Admin Contact",
+      "extracted_value": null,
+      "confidence_score": 0.9,
+      "validation_status": "unverified",
+      "ai_reasoning": "The provided document is an Excel file containing pension scheme member data. No information about an administrator or their contact details was found in any of the worksheets."
+    }
+  ],
+  "collections": {
+    "Column Name Mapping": [
+      {
+        "record_index": 0,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Old Member's Reference No"
+        },
+        "ai_reasoning": "Extracted column header 1 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 1,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Member's Reference No"
+        },
+        "ai_reasoning": "Extracted column header 2 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 2,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Employer Code"
+        },
+        "ai_reasoning": "Extracted column header 3 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 3,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Sex Code"
+        },
+        "ai_reasoning": "Extracted column header 4 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 4,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Date of Birth"
+        },
+        "ai_reasoning": "Extracted column header 5 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 5,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Date Became Pensioner"
+        },
+        "ai_reasoning": "Extracted column header 6 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 6,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Code For Previous Status"
+        },
+        "ai_reasoning": "Extracted column header 7 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 7,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Type Of Retirement"
+        },
+        "ai_reasoning": "Extracted column header 8 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 8,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Date Of Exit From Active Service"
+        },
+        "ai_reasoning": "Extracted column header 9 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 9,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Annual Pre-6.4.1988 GMP Component At Date Of Exit From Active Service"
+        },
+        "ai_reasoning": "Extracted column header 10 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 10,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Annual Post-5.4.1988 GMP Component At Date Of Exit From Active Service"
+        },
+        "ai_reasoning": "Extracted column header 11 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 11,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Annual Pre-6.4.1988 GMP Component At Date Of This Valuation"
+        },
+        "ai_reasoning": "Extracted column header 12 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 12,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Annual Post-5.4.1988 GMP Component At Date Of This Valuation"
+        },
+        "ai_reasoning": "Extracted column header 13 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 13,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Total Pension Payable From Scheme At Last Valuation"
+        },
+        "ai_reasoning": "Extracted column header 14 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 14,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Total Pension Payable From Scheme At This Valuation"
+        },
+        "ai_reasoning": "Extracted column header 15 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 15,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Component Of Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)"
+        },
+        "ai_reasoning": "Extracted column header 16 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 16,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Contingent Widow(er)'s Sex Code"
+        },
+        "ai_reasoning": "Extracted column header 17 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 17,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Contingent Widow(er)'s Date Of Birth"
+        },
+        "ai_reasoning": "Extracted column header 18 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 18,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Contingent Widow(er)'s Pension At This Valuation"
+        },
+        "ai_reasoning": "Extracted column header 19 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 19,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)"
+        },
+        "ai_reasoning": "Extracted column header 20 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 20,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Date Of Exit From Pensioner Status"
+        },
+        "ai_reasoning": "Extracted column header 21 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 21,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Code For Exit From Pensioner Status"
+        },
+        "ai_reasoning": "Extracted column header 22 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 22,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Old Supplementary Fund Indicator"
+        },
+        "ai_reasoning": "Extracted column header 23 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 23,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Married Indicator"
+        },
+        "ai_reasoning": "Extracted column header 24 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 24,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Old Supplementary Fund Pension"
+        },
+        "ai_reasoning": "Extracted column header 25 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 25,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Component Of Pension At This Valuation Subject To RPI capped at 2.5% pa"
+        },
+        "ai_reasoning": "Extracted column header 26 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 26,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 2.5% pa"
+        },
+        "ai_reasoning": "Extracted column header 27 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 27,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Non-increasing pension"
+        },
+        "ai_reasoning": "Extracted column header 28 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 28,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Non-increasing TV-in pension"
+        },
+        "ai_reasoning": "Extracted column header 29 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 29,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Component Of Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)"
+        },
+        "ai_reasoning": "Extracted column header 30 from the 'New_Pensioners' worksheet. The original header contained a newline character which has been replaced with a space."
+      },
+      {
+        "record_index": 30,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)"
+        },
+        "ai_reasoning": "Extracted column header 31 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 31,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Total Pension Payable From Scheme At Retirement Before Reduction for Tax Free Cash"
+        },
+        "ai_reasoning": "Extracted column header 32 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 32,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Tax Free Cash taken at Retirement"
+        },
+        "ai_reasoning": "Extracted column header 33 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 33,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Pension Commuted At Retirement in Exchange for Tax Free Cash"
+        },
+        "ai_reasoning": "Extracted column header 34 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 34,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Total Pension Payable From Scheme At Retirement After Reduction for Tax Free Cash"
+        },
+        "ai_reasoning": "Extracted column header 35 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 35,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Postcode"
+        },
+        "ai_reasoning": "Extracted column header 36 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 36,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Status"
+        },
+        "ai_reasoning": "Extracted column header 37 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 37,
+        "properties": {
+          "Worksheet Name": "New_Pensioners",
+          "Column Heading": "Section B Indicator"
+        },
+        "ai_reasoning": "Extracted column header 38 from the 'New_Pensioners' worksheet."
+      },
+      {
+        "record_index": 38,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Valuation Record Type"
+        },
+        "ai_reasoning": "Extracted column header 1 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 39,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Member's Reference No"
+        },
+        "ai_reasoning": "Extracted column header 2 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 40,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Employer Code"
+        },
+        "ai_reasoning": "Extracted column header 3 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 41,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Benefits Scale Code"
+        },
+        "ai_reasoning": "Extracted column header 4 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 42,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Sex Code"
+        },
+        "ai_reasoning": "Extracted column header 5 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 43,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Date Of Birth"
+        },
+        "ai_reasoning": "Extracted column header 6 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 44,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Date Pensionable Service Commenced"
+        },
+        "ai_reasoning": "Extracted column header 7 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 45,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Date Became Active Deferred Member"
+        },
+        "ai_reasoning": "Extracted column header 8 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 46,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Code For Previous Status"
+        },
+        "ai_reasoning": "Extracted column header 9 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 47,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Normal Retirement Date"
+        },
+        "ai_reasoning": "Extracted column header 10 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 48,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Annual Pre-6.4.1988 GMP Component At Date Became Active Deferred Member"
+        },
+        "ai_reasoning": "Extracted column header 11 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 49,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Annual Post-5.4.1988 GMP Component At Date Became Active Deferred Member"
+        },
+        "ai_reasoning": "Extracted column header 12 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 50,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Total Deferred Pension Payable From Scheme At Date Became Active Deferred Member"
+        },
+        "ai_reasoning": "Extracted column header 13 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 51,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Total Contingent Widow(er) Pension Payable From Scheme At Date Became Active Deferred Member"
+        },
+        "ai_reasoning": "Extracted column header 14 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 52,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To Statutory Revaluation In Deferment And CPI capped at 2.5% pa in payment"
+        },
+        "ai_reasoning": "Extracted column header 15 from the 'Active deferreds' worksheet. The original header contained a newline character which has been replaced with a space."
+      },
+      {
+        "record_index": 53,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To Both Statutory Revaluation In Deferment And RPI capped at 5% pa in payment"
+        },
+        "ai_reasoning": "Extracted column header 16 from the 'Active deferreds' worksheet. The original header contained a newline character which has been replaced with a space."
+      },
+      {
+        "record_index": 54,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Member's Total Normal Contributions With Interest To The Date Of This Valuation"
+        },
+        "ai_reasoning": "Extracted column header 17 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 55,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Date Of Exit From Active Deferred Member Status"
+        },
+        "ai_reasoning": "Extracted column header 18 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 56,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Code For Exit From Active Deferred Member Status"
+        },
+        "ai_reasoning": "Extracted column header 19 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 57,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Contingent Widow(er)'s Pension Subject To RPI capped at 5% pa At Date Became Active Deferred Member"
+        },
+        "ai_reasoning": "Extracted column header 20 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 58,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Early Vesting Age"
+        },
+        "ai_reasoning": "Extracted column header 21 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 59,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Contingent Spouse's Benefit Marker"
+        },
+        "ai_reasoning": "Extracted column header 22 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 60,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Old Supplementary Fund Indicator"
+        },
+        "ai_reasoning": "Extracted column header 23 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 61,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Spouse's Date of Birth"
+        },
+        "ai_reasoning": "Extracted column header 24 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 62,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Married Indicator"
+        },
+        "ai_reasoning": "Extracted column header 25 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 63,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Old Supplementary Fund Pension"
+        },
+        "ai_reasoning": "Extracted column header 26 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 64,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "New Pension Date"
+        },
+        "ai_reasoning": "Extracted column header 27 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 65,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To LPI5 Revaluation In Deferment And RPI capped at 2.5% pa in payment"
+        },
+        "ai_reasoning": "Extracted column header 28 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 66,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To LPI2.5 Revaluation In Deferment And RPI capped at 2.5% pa in payment"
+        },
+        "ai_reasoning": "Extracted column header 29 from the 'Active deferreds' worksheet. The original header contained a newline character which has been replaced with a space."
+      },
+      {
+        "record_index": 67,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Contingent Widow(er)'s Pension Subject To RPI capped at 2.5% pa At Date Became Active Deferred Member"
+        },
+        "ai_reasoning": "Extracted column header 30 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 68,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Contingent Widow(er)'s Pension Subject To CPI capped at 2.5% pa At Date Became Active Deferred Member"
+        },
+        "ai_reasoning": "Extracted column header 31 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 69,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Postcode"
+        },
+        "ai_reasoning": "Extracted column header 32 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 70,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Date Of Buy-Out Of SBO Terms"
+        },
+        "ai_reasoning": "Extracted column header 33 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 71,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Deferred Pension For Service To Buy-Out at this valuation date"
+        },
+        "ai_reasoning": "Extracted column header 34 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 72,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Annual Post-5.4.1988 up to 31.5.1995 GMP Component At Date Of This Valuation"
+        },
+        "ai_reasoning": "Extracted column header 35 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 73,
+        "properties": {
+          "Worksheet Name": "Active deferreds",
+          "Column Heading": "Final salary: Final Pensionable Salary At Exit From Active Status"
+        },
+        "ai_reasoning": "Extracted column header 36 from the 'Active deferreds' worksheet."
+      },
+      {
+        "record_index": 74,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Valuation Record Type"
+        },
+        "ai_reasoning": "Extracted column header 1 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 75,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Member's Reference No"
+        },
+        "ai_reasoning": "Extracted column header 2 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 76,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Employer Code"
+        },
+        "ai_reasoning": "Extracted column header 3 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 77,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Benefits Scale Code"
+        },
+        "ai_reasoning": "Extracted column header 4 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 78,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Sex Code"
+        },
+        "ai_reasoning": "Extracted column header 5 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 79,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Date Of Birth"
+        },
+        "ai_reasoning": "Extracted column header 6 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 80,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Date Pensionable Service Commenced"
+        },
+        "ai_reasoning": "Extracted column header 7 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 81,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Date Became Deferred Pensioner"
+        },
+        "ai_reasoning": "Extracted column header 8 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 82,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Code For Previous Status"
+        },
+        "ai_reasoning": "Extracted column header 9 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 83,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Normal Retirement Date"
+        },
+        "ai_reasoning": "Extracted column header 10 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 84,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Annual Pre-6.4.1988 GMP Component At Date Became Deferred Pensioner"
+        },
+        "ai_reasoning": "Extracted column header 11 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 85,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Annual Post-5.4.1988 GMP Component At Date Became Deferred Pensioner"
+        },
+        "ai_reasoning": "Extracted column header 12 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 86,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Total Deferred Pension Payable From Scheme At Date Became Deferred Pensioner"
+        },
+        "ai_reasoning": "Extracted column header 13 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 87,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Total Contingent Widow(er) Pension Payable From Scheme At Date Became Deferred Pensioner"
+        },
+        "ai_reasoning": "Extracted column header 14 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 88,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Excess Component Of Deferred Pension At Date Became Deferred Pensioner Not Subject To Statutory Revaluation In Deferment"
+        },
+        "ai_reasoning": "Extracted column header 15 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 89,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Excess Component Of Deferred Pension At Date Became Deferred Pensioner Subject To Statutory Revaluation In Deferment And CPI capped at 2.5% pa in payment (or fixed 5% pa in deferment and in payment for former Section B)"
+        },
+        "ai_reasoning": "Extracted column header 16 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 90,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Excess Component Of Deferred Pension At Date Became Deferred Pensioner Subject To Both Statutory Revaluation In Deferment And RPI capped at 5% pa in payment (or fixed 5% in deferment and CPI capped at 5% pa in payment for Section B members)"
+        },
+        "ai_reasoning": "Extracted column header 17 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 91,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Member's Total Normal Contributions With Interest To The Date Of This Valuation"
+        },
+        "ai_reasoning": "Extracted column header 18 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 92,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Date Of Exit From Deferred Pensioner Status"
+        },
+        "ai_reasoning": "Extracted column header 19 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 93,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Code For Exit From Deferred Pensioner Status"
+        },
+        "ai_reasoning": "Extracted column header 20 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 94,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "VSS Current Pension Including GMP"
+        },
+        "ai_reasoning": "Extracted column header 21 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 95,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Contingent Widow(er)'s Pension Subject To RPI capped at 5% pa At Date Became Deferred Pensioner"
+        },
+        "ai_reasoning": "Extracted column header 22 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 96,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Early Vesting Age"
+        },
+        "ai_reasoning": "Extracted column header 23 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 97,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Contingent Spouse's Benefit Marker"
+        },
+        "ai_reasoning": "Extracted column header 24 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 98,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Old Supplementary Fund Indicator"
+        },
+        "ai_reasoning": "Extracted column header 25 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 99,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Spouse's Date of Birth"
+        },
+        "ai_reasoning": "Extracted column header 26 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 100,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Married Indicator"
+        },
+        "ai_reasoning": "Extracted column header 27 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 101,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Old Supplementary Fund Pension"
+        },
+        "ai_reasoning": "Extracted column header 28 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 102,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "New Pension Date"
+        },
+        "ai_reasoning": "Extracted column header 29 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 103,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Excess Component Of Deferred Pension At Date Became Deferred Pensioner Subject To LPI5 Revaluation In Deferment And RPI capped at 2.5% pa in payment (or fixed 5% in deferment and CPI capped at 2.5% pa in payment for Section B members)"
+        },
+        "ai_reasoning": "Extracted column header 30 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 104,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Excess Component Of Deferred Pension At Date Became Deferred Pensioner Subject To LPI2.5 Revaluation In Deferment And RPI capped at 2.5% pa in payment"
+        },
+        "ai_reasoning": "Extracted column header 31 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 105,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Contingent Widow(er)'s Pension Subject To RPI capped at 2.5% pa At Date Became Deferred Pensioner"
+        },
+        "ai_reasoning": "Extracted column header 32 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 106,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Section B indicator"
+        },
+        "ai_reasoning": "Extracted column header 33 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 107,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "TV-in fixed Paid Up Pension at Normal Retirement Date"
+        },
+        "ai_reasoning": "Extracted column header 34 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 108,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Contingent Widow(er)'s Pension Subject To CPI capped at 2.5% pa At Date Became Deferred Pensioner (or fixed 5% pa for former Section B members)"
+        },
+        "ai_reasoning": "Extracted column header 35 from the 'Deferreds' worksheet. The original header contained a newline character which has been replaced with a space."
+      },
+      {
+        "record_index": 109,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Postcode"
+        },
+        "ai_reasoning": "Extracted column header 36 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 110,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Salary at date of leaving pensionable service"
+        },
+        "ai_reasoning": "Extracted column header 37 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 111,
+        "properties": {
+          "Worksheet Name": "Deferreds",
+          "Column Heading": "Section B Pre 21 July 1997 (Post 97 fixed 5% pa in deferment and payment pension)"
+        },
+        "ai_reasoning": "Extracted column header 38 from the 'Deferreds' worksheet."
+      },
+      {
+        "record_index": 112,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Member's Reference No"
+        },
+        "ai_reasoning": "Extracted column header 1 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 113,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Employer Code"
+        },
+        "ai_reasoning": "Extracted column header 2 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 114,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Sex Code"
+        },
+        "ai_reasoning": "Extracted column header 3 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 115,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Date Of Birth"
+        },
+        "ai_reasoning": "Extracted column header 4 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 116,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Date Became Pensioner"
+        },
+        "ai_reasoning": "Extracted column header 5 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 117,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Code For Previous Status"
+        },
+        "ai_reasoning": "Extracted column header 6 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 118,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Type Of Retirement"
+        },
+        "ai_reasoning": "Extracted column header 7 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 119,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Date Of Exit From Active Service"
+        },
+        "ai_reasoning": "Extracted column header 8 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 120,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Annual Pre-6.4.1988 GMP Component At Date Of Exit From Active Service"
+        },
+        "ai_reasoning": "Extracted column header 9 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 121,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Annual Post-5.4.1988 GMP Component At Date Of Exit From Active Service"
+        },
+        "ai_reasoning": "Extracted column header 10 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 122,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Annual Pre-6.4.1988 GMP Component At Date Of This Valuation"
+        },
+        "ai_reasoning": "Extracted column header 11 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 123,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Annual Post-5.4.1988 GMP Component At Date Of This Valuation"
+        },
+        "ai_reasoning": "Extracted column header 12 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 124,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Total Pension Payable From Scheme At Last Valuation"
+        },
+        "ai_reasoning": "Extracted column header 13 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 125,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Total Pension Payable From Scheme At This Valuation"
+        },
+        "ai_reasoning": "Extracted column header 14 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 126,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Component Of Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)"
+        },
+        "ai_reasoning": "Extracted column header 15 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 127,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Contingent Widow(er)'s Sex Code"
+        },
+        "ai_reasoning": "Extracted column header 16 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 128,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Contingent Widow(er)'s Date Of Birth"
+        },
+        "ai_reasoning": "Extracted column header 17 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 129,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Contingent Widow(er)'s Pension At This Valuation"
+        },
+        "ai_reasoning": "Extracted column header 18 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 130,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)"
+        },
+        "ai_reasoning": "Extracted column header 19 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 131,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Date Of Exit From Pensioner Status"
+        },
+        "ai_reasoning": "Extracted column header 20 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 132,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Code For Exit From Pensioner Status"
+        },
+        "ai_reasoning": "Extracted column header 21 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 133,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Old Supplementary Fund Indicator"
+        },
+        "ai_reasoning": "Extracted column header 22 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 134,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Married Indicator"
+        },
+        "ai_reasoning": "Extracted column header 23 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 135,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Old Supplementary Fund Pension"
+        },
+        "ai_reasoning": "Extracted column header 24 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 136,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Component Of Pension At This Valuation Subject To RPI capped at 2.5% pa"
+        },
+        "ai_reasoning": "Extracted column header 25 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 137,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 2.5% pa"
+        },
+        "ai_reasoning": "Extracted column header 26 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 138,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Non-increasing pension"
+        },
+        "ai_reasoning": "Extracted column header 27 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 139,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Non-increasing TV-in pension"
+        },
+        "ai_reasoning": "Extracted column header 28 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 140,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Component Of Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)"
+        },
+        "ai_reasoning": "Extracted column header 29 from the 'Pensioners' worksheet. The original header contained a newline character which has been replaced with a space."
+      },
+      {
+        "record_index": 141,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)"
+        },
+        "ai_reasoning": "Extracted column header 30 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 142,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Total Pension Payable From Scheme At Retirement Before Reduction for Tax Free Cash"
+        },
+        "ai_reasoning": "Extracted column header 31 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 143,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Tax Free Cash taken at Retirement"
+        },
+        "ai_reasoning": "Extracted column header 32 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 144,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Pension Commuted At Retirement in Exchange for Tax Free Cash"
+        },
+        "ai_reasoning": "Extracted column header 33 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 145,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Total Pension Payable From Scheme At Retirement After Reduction for Tax Free Cash"
+        },
+        "ai_reasoning": "Extracted column header 34 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 146,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Postcode"
+        },
+        "ai_reasoning": "Extracted column header 35 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 147,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Status"
+        },
+        "ai_reasoning": "Extracted column header 36 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 148,
+        "properties": {
+          "Worksheet Name": "Pensioners",
+          "Column Heading": "Section B Indicator"
+        },
+        "ai_reasoning": "Extracted column header 37 from the 'Pensioners' worksheet."
+      },
+      {
+        "record_index": 149,
+        "properties": {
+          "Worksheet Name": "Widows",
+          "Column Heading": "Valuation Record Type"
+        },
+        "ai_reasoning": "Extracted column header 1 from the 'Widows' worksheet."
+      },
+      {
+        "record_index": 150,
+        "properties": {
+          "Worksheet Name": "Widows",
+          "Column Heading": "Widow(er)'s Reference No"
+        },
+        "ai_reasoning": "Extracted column header 2 from the 'Widows' worksheet."
+      },
+      {
+        "record_index": 151,
+        "properties": {
+          "Worksheet Name": "Widows",
+          "Column Heading": "Deceased Member's Reference No"
+        },
+        "ai_reasoning": "Extracted column header 3 from the 'Widows' worksheet."
+      },
+      {
+        "record_index": 152,
+        "properties": {
+          "Worksheet Name": "Widows",
+          "Column Heading": "Beneficiary's Code"
+        },
+        "ai_reasoning": "Extracted column header 4 from the 'Widows' worksheet."
+      },
+      {
+        "record_index": 153,
+        "properties": {
+          "Worksheet Name": "Widows",
+          "Column Heading": "Widow(er)'s Date Of Birth"
+        },
+        "ai_reasoning": "Extracted column header 5 from the 'Widows' worksheet."
+      },
+      {
+        "record_index": 154,
+        "properties": {
+          "Worksheet Name": "Widows",
+          "Column Heading": "Date Became Widow(er)"
+        },
+        "ai_reasoning": "Extracted column header 6 from the 'Widows' worksheet."
+      },
+      {
+        "record_index": 155,
+        "properties": {
+          "Worksheet Name": "Widows",
+          "Column Heading": "Beneficiary Code For Previous Status Of Deceased Member"
+        },
+        "ai_reasoning": "Extracted column header 7 from the 'Widows' worksheet."
+      },
+      {
+        "record_index": 156,
+        "properties": {
+          "Worksheet Name": "Widows",
+          "Column Heading": "Date Deceased Member Became Pensioner"
+        },
+        "ai_reasoning": "Extracted column header 8 from the 'Widows' worksheet."
+      },
+      {
+        "record_index": 157,
+        "properties": {
+          "Worksheet Name": "Widows",
+          "Column Heading": "Widow(er)'s Annual Pre-6.4.1988 GMP Component At Date Of This Valuation"
+        },
+        "ai_reasoning": "Extracted column header 9 from the 'Widows' worksheet."
+      },
+      {
+        "record_index": 158,
+        "properties": {
+          "Worksheet Name": "Widows",
+          "Column Heading": "Widow(er)'s Annual Post-5.4.1988 GMP Component At Date Of This Valuation"
+        },
+        "ai_reasoning": "Extracted column header 10 from the 'Widows' worksheet."
+      },
+      {
+        "record_index": 159,
+        "properties": {
+          "Worksheet Name": "Widows",
+          "Column Heading": "Total Widow(er)'s Pension Payable From Scheme At This Valuation"
+        },
+        "ai_reasoning": "Extracted column header 11 from the 'Widows' worksheet."
+      },
+      {
+        "record_index": 160,
+        "properties": {
+          "Worksheet Name": "Widows",
+          "Column Heading": "Total Widow(er)'s Pension Payable From Scheme At Last Valuation"
+        },
+        "ai_reasoning": "Extracted column header 12 from the 'Widows' worksheet."
+      },
+      {
+        "record_index": 161,
+        "properties": {
+          "Worksheet Name": "Widows",
+          "Column Heading": "Component Of Widow(er)'s Pension At This Valuation Subject To RPI capped at 5% pa"
+        },
+        "ai_reasoning": "Extracted column header 13 from the 'Widows' worksheet."
+      },
+      {
+        "record_index": 162,
+        "properties": {
+          "Worksheet Name": "Widows",
+          "Column Heading": "Date Of Exit From Widow(er) Beneficiary Status"
+        },
+        "ai_reasoning": "Extracted column header 14 from the 'Widows' worksheet."
+      },
+      {
+        "record_index": 163,
+        "properties": {
+          "Worksheet Name": "Widows",
+          "Column Heading": "Code For Exit From Widow(er) Beneficiary Status"
+        },
+        "ai_reasoning": "Extracted column header 15 from the 'Widows' worksheet."
+      },
+      {
+        "record_index": 164,
+        "properties": {
+          "Worksheet Name": "Widows",
+          "Column Heading": "Widow's Allotment At Valuation Date Included In Pension"
+        },
+        "ai_reasoning": "Extracted column header 16 from the 'Widows' worksheet."
+      },
+      {
+        "record_index": 165,
+        "properties": {
+          "Worksheet Name": "Widows",
+          "Column Heading": "Old Supplementary Fund Indicator"
+        },
+        "ai_reasoning": "Extracted column header 17 from the 'Widows' worksheet."
+      },
+      {
+        "record_index": 166,
+        "properties": {
+          "Worksheet Name": "Widows",
+          "Column Heading": "Old Supplementary Fund Pension"
+        },
+        "ai_reasoning": "Extracted column header 18 from the 'Widows' worksheet."
+      },
+      {
+        "record_index": 167,
+        "properties": {
+          "Worksheet Name": "Widows",
+          "Column Heading": "Component Of Widow(er)'s Pension At This Valuation Subject To RPI capped at 2.5% pa"
+        },
+        "ai_reasoning": "Extracted column header 19 from the 'Widows' worksheet."
+      },
+      {
+        "record_index": 168,
+        "properties": {
+          "Worksheet Name": "Widows",
+          "Column Heading": "Section B Indicator"
+        },
+        "ai_reasoning": "Extracted column header 20 from the 'Widows' worksheet."
+      },
+      {
+        "record_index": 169,
+        "properties": {
+          "Worksheet Name": "Widows",
+          "Column Heading": "Component Of Widow(er)'s Pension At This Valuation Subject To CPI capped at 2.5% pa"
+        },
+        "ai_reasoning": "Extracted column header 21 from the 'Widows' worksheet."
+      },
+      {
+        "record_index": 170,
+        "properties": {
+          "Worksheet Name": "Widows",
+          "Column Heading": "Postcode"
+        },
+        "ai_reasoning": "Extracted column header 22 from the 'Widows' worksheet."
+      }
+    ]
+  }
+}

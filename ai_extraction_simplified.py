@@ -713,6 +713,8 @@ def step1_extract_from_documents(
                     json_lines.append(f'    "validation_type": "schema_field",')
                     json_lines.append(f'    "data_type": "{field_type}",')
                     json_lines.append(f'    "field_name": "{field_name}",')
+                    json_lines.append(f'    "collection_name": null,')
+                    json_lines.append(f'    "record_index": 0,')
                     json_lines.append(f'    "extracted_value": "{example_value}",')
                     json_lines.append(f'    "confidence_score": 0.95,')
                     json_lines.append(f'    "validation_status": "unverified",')
@@ -756,11 +758,11 @@ def step1_extract_from_documents(
                             json_lines.append(f'    "data_type": "{prop_type}",')
                             json_lines.append(f'    "field_name": "{field_name_with_index}",')
                             json_lines.append(f'    "collection_name": "{collection_name}",')
+                            json_lines.append(f'    "record_index": {record_index},')
                             json_lines.append(f'    "extracted_value": "{example_value}",')
                             json_lines.append(f'    "confidence_score": 0.95,')
                             json_lines.append(f'    "validation_status": "unverified",')
-                            json_lines.append(f'    "ai_reasoning": "Found {collection_name} item {record_index + 1} with {prop_name} value in document",')
-                            json_lines.append(f'    "record_index": {record_index}')
+                            json_lines.append(f'    "ai_reasoning": "Found {collection_name} item {record_index + 1} with {prop_name} value in document"')
                             
                             # Check if this is the last item
                             is_last = (collection == project_schema["collections"][-1] and 

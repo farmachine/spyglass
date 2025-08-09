@@ -2,6 +2,31 @@
 
 EXTRACTION_PROMPT = """You are an expert data extraction specialist. Extract data from the provided documents and return a JSON object with the exact structure specified below.
 
+## MANDATORY OUTPUT FORMAT:
+YOU MUST RETURN ONLY A JSON OBJECT WITH THIS EXACT STRUCTURE:
+{
+  "field_validations": [
+    {
+      "field_id": "uuid-string",
+      "validation_type": "schema_field" or "collection_property",
+      "data_type": "TEXT|NUMBER|DATE|CHOICE",
+      "field_name": "Field Name" or "Collection.Property[index]",
+      "collection_name": null or "Collection Name",
+      "record_index": 0 (for collection properties),
+      "extracted_value": "actual extracted value",
+      "confidence_score": 0.95,
+      "validation_status": "unverified",
+      "ai_reasoning": "explanation of how/where you found this value"
+    }
+  ]
+}
+
+## CRITICAL OUTPUT REQUIREMENTS:
+- **NO COLLECTIONS OBJECT**: Do NOT return a "collections" object structure
+- **INDIVIDUAL FIELD VALIDATIONS ONLY**: Every extracted value must be a separate field_validation record
+- **COLLECTION ITEMS AS SEPARATE RECORDS**: For collection properties, create one field_validation record per property per record_index
+- **PROPER FIELD NAMING**: Use "Collection.Property[index]" format for collection field names
+
 ## CRITICAL INSTRUCTIONS:
 1. PROCESS ALL DOCUMENTS: Process every document provided in the document set
 2. FOLLOW SCHEMA FIELD DESCRIPTIONS PRECISELY - Each description is your extraction instruction
