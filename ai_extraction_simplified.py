@@ -466,9 +466,9 @@ def step1_extract_from_documents(
             json_schema_section += "\n## SCHEMA FIELDS JSON FORMAT:\n"
             json_schema_section += "```json\n{\n  \"schema_fields\": [\n"
             for i, field in enumerate(project_schema["schema_fields"]):
-                field_id = field['id']
-                field_name = field['fieldName']
-                field_type = field['fieldType']
+                field_id = field.get('id', f'field_{i}')  # Safe access to id
+                field_name = field.get('fieldName', f'Field_{i}')
+                field_type = field.get('fieldType', 'TEXT')
                 field_description = field.get('description', '')
                 auto_verify_threshold = field.get('autoVerificationConfidence', 80)
                 
@@ -591,7 +591,7 @@ def step1_extract_from_documents(
                     prop_name = prop.get('propertyName', '')
                     prop_type = prop.get('propertyType', 'TEXT')
                     prop_description = prop.get('description', '')
-                    prop_id = prop['id']
+                    prop_id = prop.get('id', f'prop_{j}_{collection.get("id", "unknown")}')  # Safe access to id
                     prop_auto_verify_threshold = prop.get('autoVerificationConfidence', 80)
                     
                     # Find applicable extraction rules for this property
@@ -734,7 +734,7 @@ def step1_extract_from_documents(
                     
                     for record_index in range(example_count):
                         for prop_index, prop in enumerate(properties):
-                            prop_id = prop['id']
+                            prop_id = prop.get('id', f'prop_{record_index}_{prop_index}')
                             prop_name = prop['propertyName']
                             prop_type = prop['propertyType']
                             
