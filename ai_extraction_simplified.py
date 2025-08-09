@@ -153,82 +153,6 @@ def repair_truncated_json(response_text: str) -> str:
         logging.error(f"Repair traceback: {traceback.format_exc()}")
         return None
 
-def _optimize_excel_content_for_ai(content: str) -> str:
-    """Optimize large Excel content by sampling representative data from each section"""
-    try:
-        sections = content.split('=== SHEET:')
-        optimized_sections = []
-        
-        # Keep the file header
-        if sections and sections[0]:
-            header_part = sections[0][:1000] + "..."
-            optimized_sections.append(header_part)
-        
-        # Process each sheet section
-        for i, section in enumerate(sections[1:], 1):
-            if not section.strip():
-                continue
-                
-            lines = section.split('\n')
-            sheet_name = lines[0].strip() if lines else f"Sheet{i}"
-            
-            # Take first few lines (headers) and sample some data rows
-            headers_and_sample = []
-            headers_and_sample.extend(lines[:5])  # Headers and column definitions
-            
-            # Sample some data rows from middle and end
-            data_lines = lines[5:] if len(lines) > 5 else []
-            if len(data_lines) > 20:
-                # Take first 5, middle 5, last 5 data rows
-                headers_and_sample.extend(data_lines[:5])
-                headers_and_sample.append(f"... ({len(data_lines) - 15} rows omitted) ...")
-                mid_point = len(data_lines) // 2
-                headers_and_sample.extend(data_lines[mid_point:mid_point+5])
-                headers_and_sample.append("... (additional rows omitted) ...")
-                headers_and_sample.extend(data_lines[-5:])
-            else:
-                headers_and_sample.extend(data_lines)
-            
-            section_content = '=== SHEET: ' + '\n'.join(headers_and_sample)
-            optimized_sections.append(section_content)
-            
-            # Increase section limit for better column extraction
-            if len(optimized_sections) >= 12:  # Max 11 sheets + header for enhanced capacity
-                remaining = len(sections) - i - 1
-                if remaining > 0:
-                    optimized_sections.append(f"\n... ({remaining} additional sheets omitted) ...")
-                break
-        
-        result = '\n\n'.join(optimized_sections)
-        return result
-        
-    except Exception as e:
-        logging.error(f"Excel optimization failed: {e}")
-        # Fallback to simple truncation
-        return content[:50000] + "\n... (content truncated due to size) ..."
-
-def _sample_large_content(content: str) -> str:
-    """Sample large content by taking beginning, middle, and end portions"""
-    try:
-        if len(content) <= 50000:
-            return content
-            
-        # Increase sampling for better column coverage - take first 30KB, middle 15KB, last 30KB
-        first_part = content[:30000]
-        middle_start = len(content) // 2 - 7500
-        middle_part = content[middle_start:middle_start + 15000]
-        last_part = content[-30000:]
-        
-        return (first_part + 
-                "\n\n... (middle content omitted) ...\n\n" + 
-                middle_part + 
-                "\n\n... (additional content omitted) ...\n\n" + 
-                last_part)
-        
-    except Exception as e:
-        logging.error(f"Content sampling failed: {e}")
-        return content[:50000] + "\n... (content truncated) ..."
-
 def step1_extract_from_documents(
     documents: List[Dict[str, Any]], 
     project_schema: Dict[str, Any],
@@ -265,32 +189,10 @@ def step1_extract_from_documents(
         
         logging.info(f"STEP 1: Starting extraction for {len(documents)} documents")
         
-        # Debug and optimize document content for large files
-        optimized_documents = []
+        # Debug document content
         for i, doc in enumerate(documents):
             content = doc.get('file_content', '')
-            file_name = doc.get('file_name', 'Unknown')
-            logging.info(f"Document {i}: {file_name} - Content length: {len(content)}")
-            
-            # Handle large documents by intelligent sampling
-            if len(content) > 100000:  # 100KB threshold for chunking
-                logging.info(f"Document {i} is large ({len(content)} chars), applying intelligent sampling...")
-                
-                # For Excel files, extract representative samples from each section
-                if file_name.lower().endswith(('.xlsx', '.xls')):
-                    optimized_content = _optimize_excel_content_for_ai(content)
-                    logging.info(f"Excel content optimized from {len(content)} to {len(optimized_content)} characters")
-                    content = optimized_content
-                else:
-                    # For other large files, take structured samples
-                    content = _sample_large_content(content)
-                    logging.info(f"Content sampled to {len(content)} characters")
-            
-            optimized_documents.append({
-                **doc,
-                'file_content': content
-            })
-            
+            logging.info(f"Document {i}: {doc.get('file_name', 'Unknown')} - Content length: {len(content)}")
             if 'Active Deferred' in content or 'Code Meanings' in content:
                 logging.info(f"Document {i} contains code meanings - content preview: {content[:300]}...")
             elif content:
@@ -466,9 +368,9 @@ def step1_extract_from_documents(
             json_schema_section += "\n## SCHEMA FIELDS JSON FORMAT:\n"
             json_schema_section += "```json\n{\n  \"schema_fields\": [\n"
             for i, field in enumerate(project_schema["schema_fields"]):
-                field_id = field.get('id', f'field_{i}')  # Safe access to id
-                field_name = field.get('fieldName', f'Field_{i}')
-                field_type = field.get('fieldType', 'TEXT')
+                field_id = field['id']
+                field_name = field['fieldName']
+                field_type = field['fieldType']
                 field_description = field.get('description', '')
                 auto_verify_threshold = field.get('autoVerificationConfidence', 80)
                 
@@ -591,7 +493,7 @@ def step1_extract_from_documents(
                     prop_name = prop.get('propertyName', '')
                     prop_type = prop.get('propertyType', 'TEXT')
                     prop_description = prop.get('description', '')
-                    prop_id = prop.get('id', f'prop_{j}_{collection.get("id", "unknown")}')  # Safe access to id
+                    prop_id = prop['id']
                     prop_auto_verify_threshold = prop.get('autoVerificationConfidence', 80)
                     
                     # Find applicable extraction rules for this property
@@ -713,8 +615,6 @@ def step1_extract_from_documents(
                     json_lines.append(f'    "validation_type": "schema_field",')
                     json_lines.append(f'    "data_type": "{field_type}",')
                     json_lines.append(f'    "field_name": "{field_name}",')
-                    json_lines.append(f'    "collection_name": null,')
-                    json_lines.append(f'    "record_index": 0,')
                     json_lines.append(f'    "extracted_value": "{example_value}",')
                     json_lines.append(f'    "confidence_score": 0.95,')
                     json_lines.append(f'    "validation_status": "unverified",')
@@ -727,16 +627,12 @@ def step1_extract_from_documents(
                     collection_name = collection.get('collectionName', collection.get('objectName', ''))
                     properties = collection.get("properties", [])
                     
-                    # PERFORMANCE LIMIT: Cap collection examples to prevent excessive record creation
-                    # Allow reasonable sample size but prevent AI from generating too many template records
-                    if collection_name == "Column Name Mapping":
-                        example_count = min(15, 3)  # Increased examples for Column Name Mapping (up to 15)
-                    else:
-                        example_count = 5  # Increased example count for other collections
+                    # Show minimal examples for all collections - let AI decide actual count
+                    example_count = 2  # Standard example count for all collections
                     
                     for record_index in range(example_count):
                         for prop_index, prop in enumerate(properties):
-                            prop_id = prop.get('id', f'prop_{record_index}_{prop_index}')
+                            prop_id = prop['id']
                             prop_name = prop['propertyName']
                             prop_type = prop['propertyType']
                             
@@ -758,11 +654,11 @@ def step1_extract_from_documents(
                             json_lines.append(f'    "data_type": "{prop_type}",')
                             json_lines.append(f'    "field_name": "{field_name_with_index}",')
                             json_lines.append(f'    "collection_name": "{collection_name}",')
-                            json_lines.append(f'    "record_index": {record_index},')
                             json_lines.append(f'    "extracted_value": "{example_value}",')
                             json_lines.append(f'    "confidence_score": 0.95,')
                             json_lines.append(f'    "validation_status": "unverified",')
-                            json_lines.append(f'    "ai_reasoning": "Found {collection_name} item {record_index + 1} with {prop_name} value in document"')
+                            json_lines.append(f'    "ai_reasoning": "Found {collection_name} item {record_index + 1} with {prop_name} value in document",')
+                            json_lines.append(f'    "record_index": {record_index}')
                             
                             # Check if this is the last item
                             is_last = (collection == project_schema["collections"][-1] and 
@@ -780,13 +676,7 @@ def step1_extract_from_documents(
         # Handle validated data context for subsequent uploads
         validated_context = ""
         if is_subsequent_upload and validated_data_context:
-            # Handle different validated_data_context structures
-            existing_validations = validated_data_context.get('existing_validations', [])
-            if isinstance(existing_validations, list):
-                logging.info(f"Processing validated data context with {len(existing_validations)} existing fields (subsequent upload mode)")
-            else:
-                logging.info(f"Processing validated data context with {len(validated_data_context)} existing fields (subsequent upload mode)")
-                
+            logging.info(f"Processing validated data context with {len(validated_data_context)} existing fields (subsequent upload mode)")
             validated_context = "\n\n## EXISTING VALIDATED DATA (READ-ONLY CONTEXT):\n"
             validated_context += "The following data has been previously validated and is provided for context. DO NOT include these fields in your output:\n\n"
             
@@ -794,49 +684,21 @@ def step1_extract_from_documents(
             collections_data = {}
             schema_data = {}
             
-            # Handle list structure (existing_validations key)
-            if isinstance(existing_validations, list):
-                for validation in existing_validations:
-                    field_name = validation.get('field_name', f"field_{validation.get('field_id', 'unknown')}")
-                    context = {
-                        'value': validation.get('extracted_value', ''),
-                        'confidence': validation.get('confidence_score', 0),
-                        'reasoning': validation.get('ai_reasoning', ''),
-                        'collection': validation.get('collection_name'),
-                        'recordIndex': validation.get('record_index', 0)
-                    }
+            for field_name, context in validated_data_context.items():
+                if context.get('collection'):
+                    collection_name = context['collection']
+                    if collection_name not in collections_data:
+                        collections_data[collection_name] = {}
                     
-                    if context.get('collection'):
-                        collection_name = context['collection']
-                        if collection_name not in collections_data:
-                            collections_data[collection_name] = {}
-                        
-                        record_index = context.get('recordIndex', 0)
-                        if record_index not in collections_data[collection_name]:
-                            collections_data[collection_name][record_index] = {}
-                        
-                        # Extract property name from field_name like "Codes.Code Name[0]"
-                        property_name = field_name.split('.')[1].split('[')[0] if '.' in field_name else field_name
-                        collections_data[collection_name][record_index][property_name] = context
-                    else:
-                        schema_data[field_name] = context
-            else:
-                # Handle dictionary structure (legacy format)
-                for field_name, context in validated_data_context.items():
-                    if context.get('collection'):
-                        collection_name = context['collection']
-                        if collection_name not in collections_data:
-                            collections_data[collection_name] = {}
-                        
-                        record_index = context.get('recordIndex', 0)
-                        if record_index not in collections_data[collection_name]:
-                            collections_data[collection_name][record_index] = {}
-                        
-                        # Extract property name from field_name like "Codes.Code Name[0]"
-                        property_name = field_name.split('.')[1].split('[')[0] if '.' in field_name else field_name
-                        collections_data[collection_name][record_index][property_name] = context
-                    else:
-                        schema_data[field_name] = context
+                    record_index = context.get('recordIndex', 0)
+                    if record_index not in collections_data[collection_name]:
+                        collections_data[collection_name][record_index] = {}
+                    
+                    # Extract property name from field_name like "Codes.Code Name[0]"
+                    property_name = field_name.split('.')[1].split('[')[0] if '.' in field_name else field_name
+                    collections_data[collection_name][record_index][property_name] = context
+                else:
+                    schema_data[field_name] = context
             
             # Display schema fields
             if schema_data:
@@ -899,7 +761,7 @@ REQUIRED OUTPUT FORMAT - Field Validation JSON Structure:
         extracted_content_text = ""
         processed_docs = 0
         
-        for doc in optimized_documents:
+        for doc in documents:
             file_content = doc['file_content']
             file_name = doc['file_name']
             mime_type = doc['mime_type']

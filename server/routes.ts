@@ -2497,7 +2497,7 @@ print(json.dumps(result))
       };
 
       // Call Python AI extraction script with existing validation context
-      const python = spawn('python3', ['ai_extraction_fixed.py'], {
+      const python = spawn('python3', ['ai_extraction_simplified.py'], {
         stdio: ['pipe', 'pipe', 'pipe']
       });
 
@@ -2574,22 +2574,6 @@ print(json.dumps(result))
         is_subsequent_upload: true
       });
       
-      // LARGE FILE OPTIMIZATION: Truncate content if too large for AI processing
-      const MAX_CONTENT_SIZE = 400000; // 400KB limit for AI processing stability
-      
-      if (extractedData.documents?.length > 0) {
-        extractedData.documents = extractedData.documents.map(doc => {
-          if (doc.file_content && doc.file_content.length > MAX_CONTENT_SIZE) {
-            console.log(`⚠️  LARGE FILE OPTIMIZATION: ${doc.file_name} (${doc.file_content.length} chars) truncated to ${MAX_CONTENT_SIZE} chars for AI processing`);
-            return {
-              ...doc,
-              file_content: doc.file_content.substring(0, MAX_CONTENT_SIZE) + '\n\n[Content truncated for AI processing efficiency - focusing on first portion which typically contains column headers]'
-            };
-          }
-          return doc;
-        });
-      }
-
       // Debug the exact data being sent to AI
       console.log(`AI INPUT DATA: ${inputData.length} characters`);
       if (extractedData.documents?.length > 0) {
@@ -2756,28 +2740,18 @@ print(json.dumps(result))
               
               console.log(`Processing ${allExpectedValidations.length} total expected validations (${result.field_validations.length} from AI, ${allExpectedValidations.length - result.field_validations.length} empty)`);
               
-              // PERFORMANCE OPTIMIZATION: Fetch all existing validations once, outside the loop
-              const existingValidations = await storage.getFieldValidations(sessionId);
-              const existingValidationsMap = new Map();
-              for (const validation of existingValidations) {
-                const key = `${validation.fieldId}_${validation.recordIndex || 0}`;
-                existingValidationsMap.set(key, validation);
-              }
-              
-              // Batch operations for better performance
-              const validationsToCreate = [];
-              const validationsToUpdate = [];
-              let updatesSkipped = 0;
-              
-              // Process all expected validations
+              // Now process all expected validations
               for (const expectedValidation of allExpectedValidations) {
                 const fieldName = expectedValidation.fieldName;
                 const fieldId = expectedValidation.fieldId;
                 const aiData = expectedValidation.aiData;
                 
-                // Find existing validation using the pre-built map
-                const validationKey = `${fieldId}_${expectedValidation.recordIndex}`;
-                const existingValidation = existingValidationsMap.get(validationKey);
+                // Check if validation already exists for this field
+                const existingValidations = await storage.getFieldValidations(sessionId);
+                const existingValidation = existingValidations.find(v => 
+                  v.fieldId === fieldId && 
+                  (v.recordIndex || 0) === expectedValidation.recordIndex
+                );
                 
                 // Create validation data - use AI data if available, otherwise create empty record
                 const validationData = {
@@ -2803,87 +2777,16 @@ print(json.dumps(result))
                     console.error(`🔒 PROTECTING VERIFIED: ${fieldName} - keeping: "${existingValidation.extractedValue}"`);
                     continue;
                   } else {
-                    // Normalize values for comparison (handle null/undefined differences)
-                    const normalizeValue = (val) => {
-                      if (val === undefined || val === null || val === 'null') return null;
-                      return String(val).trim();
-                    };
-                    
-                    const currentValue = normalizeValue(existingValidation.extractedValue);
-                    const newValue = normalizeValue(validationData.extractedValue);
-                    const currentReasoning = normalizeValue(existingValidation.aiReasoning);
-                    const newReasoning = normalizeValue(validationData.aiReasoning);
-                    
-                    // Only update if values have actually changed
-                    const hasValueChanged = currentValue !== newValue;
-                    const hasReasoningChanged = currentReasoning !== newReasoning;
-                    const hasConfidenceChanged = existingValidation.confidenceScore !== validationData.confidenceScore;
-                    const hasStatusChanged = existingValidation.validationStatus !== validationData.validationStatus;
-                    
-                    // Debug logging for troubleshooting
-                    if (fieldName.includes('Worksheet Name[0]')) {
-                      console.log(`🔍 DEBUG COMPARISON for ${fieldName}:`);
-                      console.log(`  Current: "${currentValue}" | New: "${newValue}" | Changed: ${hasValueChanged}`);
-                      console.log(`  Current Reasoning: "${currentReasoning}" | New: "${newReasoning}" | Changed: ${hasReasoningChanged}`);
-                      console.log(`  Confidence: ${existingValidation.confidenceScore} → ${validationData.confidenceScore} | Changed: ${hasConfidenceChanged}`);
-                      console.log(`  Status: ${existingValidation.validationStatus} → ${validationData.validationStatus} | Changed: ${hasStatusChanged}`);
-                    }
-                    
-                    if (hasValueChanged || hasReasoningChanged || hasConfidenceChanged || hasStatusChanged) {
-                      const logValue = aiData ? `"${aiData.extracted_value}"` : 'null (empty field)';
-                      console.error(`📝 UPDATING FIELD: ${fieldName} - from "${existingValidation.extractedValue}" to ${logValue}`);
-                      validationsToUpdate.push({ id: existingValidation.id, data: validationData });
-                    } else {
-                      // Skip update - no changes detected
-                      updatesSkipped++;
-                      if (fieldName.includes('Worksheet Name[0]')) {
-                        console.log(`✅ SKIPPING UPDATE for ${fieldName} - no changes detected`);
-                      }
-                      continue;
-                    }
+                    const logValue = aiData ? `"${aiData.extracted_value}"` : 'null (empty field)';
+                    console.error(`📝 UPDATING FIELD: ${fieldName} - from "${existingValidation.extractedValue}" to ${logValue}`);
+                    // Update existing unverified validation
+                    await storage.updateFieldValidation(existingValidation.id, validationData);
                   }
                 } else {
                   // Create new validation record
                   const logValue = aiData ? `"${aiData.extracted_value}"` : 'null (empty field)';
                   console.log(`CREATING FIELD: ${fieldName} - value: ${logValue}`);
-                  validationsToCreate.push(validationData);
-                }
-              }
-              
-              // BATCH OPERATIONS for better performance
-              console.log(`📊 BATCH SUMMARY: ${validationsToCreate.length} to create, ${validationsToUpdate.length} to update, ${updatesSkipped} skipped (no changes)`);
-              
-              // PERFORMANCE CHECK: Warn if processing too many records
-              const totalOperations = validationsToCreate.length + validationsToUpdate.length;
-              if (totalOperations > 500) {
-                console.warn(`⚠️  VERY HIGH VOLUME: Processing ${totalOperations} validation operations. Consider optimizing AI extraction limits.`);
-              } else if (totalOperations > 200) {
-                console.log(`📊 HIGH VOLUME: Processing ${totalOperations} validation operations - within acceptable limits.`);
-              }
-              
-              // Execute batch create operations with chunking for large volumes
-              if (validationsToCreate.length > 0) {
-                console.log(`🔄 Creating ${validationsToCreate.length} new validation records...`);
-                const createChunkSize = 50; // Process in chunks to prevent memory issues
-                for (let i = 0; i < validationsToCreate.length; i += createChunkSize) {
-                  const chunk = validationsToCreate.slice(i, i + createChunkSize);
-                  console.log(`  📝 Creating batch ${Math.floor(i/createChunkSize) + 1}/${Math.ceil(validationsToCreate.length/createChunkSize)} (${chunk.length} records)`);
-                  for (const validationData of chunk) {
-                    await storage.createFieldValidation(validationData);
-                  }
-                }
-              }
-              
-              // Execute batch update operations with chunking for large volumes
-              if (validationsToUpdate.length > 0) {
-                console.log(`🔄 Updating ${validationsToUpdate.length} existing validation records...`);
-                const updateChunkSize = 50; // Process in chunks to prevent memory issues
-                for (let i = 0; i < validationsToUpdate.length; i += updateChunkSize) {
-                  const chunk = validationsToUpdate.slice(i, i + updateChunkSize);
-                  console.log(`  📝 Updating batch ${Math.floor(i/updateChunkSize) + 1}/${Math.ceil(validationsToUpdate.length/updateChunkSize)} (${chunk.length} records)`);
-                  for (const update of chunk) {
-                    await storage.updateFieldValidation(update.id, update.data);
-                  }
+                  await storage.createFieldValidation(validationData);
                 }
               }
             }
@@ -2985,7 +2888,7 @@ print(json.dumps(result))
       let output = '';
       let error = '';
       
-      const python = spawn('python3', ['ai_extraction_fixed.py'], {
+      const python = spawn('python3', ['ai_extraction_simplified.py'], {
         cwd: process.cwd()
       });
 

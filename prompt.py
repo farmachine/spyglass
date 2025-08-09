@@ -2,31 +2,6 @@
 
 EXTRACTION_PROMPT = """You are an expert data extraction specialist. Extract data from the provided documents and return a JSON object with the exact structure specified below.
 
-## MANDATORY OUTPUT FORMAT:
-YOU MUST RETURN ONLY A JSON OBJECT WITH THIS EXACT STRUCTURE:
-{
-  "field_validations": [
-    {
-      "field_id": "uuid-string",
-      "validation_type": "schema_field" or "collection_property",
-      "data_type": "TEXT|NUMBER|DATE|CHOICE",
-      "field_name": "Field Name" or "Collection.Property[index]",
-      "collection_name": null or "Collection Name",
-      "record_index": 0 (for collection properties),
-      "extracted_value": "actual extracted value",
-      "confidence_score": 0.95,
-      "validation_status": "unverified",
-      "ai_reasoning": "explanation of how/where you found this value"
-    }
-  ]
-}
-
-## CRITICAL OUTPUT REQUIREMENTS:
-- **NO COLLECTIONS OBJECT**: Do NOT return a "collections" object structure
-- **INDIVIDUAL FIELD VALIDATIONS ONLY**: Every extracted value must be a separate field_validation record
-- **COLLECTION ITEMS AS SEPARATE RECORDS**: For collection properties, create one field_validation record per property per record_index
-- **PROPER FIELD NAMING**: Use "Collection.Property[index]" format for collection field names
-
 ## CRITICAL INSTRUCTIONS:
 1. PROCESS ALL DOCUMENTS: Process every document provided in the document set
 2. FOLLOW SCHEMA FIELD DESCRIPTIONS PRECISELY - Each description is your extraction instruction
@@ -97,14 +72,6 @@ YOU MUST RETURN ONLY A JSON OBJECT WITH THIS EXACT STRUCTURE:
 7. **NUMBERED SECTION RECOGNITION**: Recognize numbered section patterns (e.g., 2.3.1, 2.3.2, 2.3.3... 2.3.10) as indicating a complete set of related items that should ALL be extracted
 8. **SECTION BOUNDARY DETECTION**: When collection name matches a section (e.g., "Increase Rates" and section "2.3 Increase Rates"), extract ALL numbered subsections until the next major section (e.g., 2.3.1 through 2.3.10 until section 2.4)
 9. **MARKDOWN TABLE RECOGNITION**: Identify markdown tables (with | separators) and extract ALL data rows as separate collection items - count the rows and extract every single one
-
-## PERFORMANCE AND VOLUME LIMITS:
-- **MAXIMUM CAPACITY**: For comprehensive extraction, limit collection extractions to a maximum of 250 records per collection type
-- **PRIORITY EXTRACTION**: If more than 250 items exist, extract the first 250 most relevant/important items based on document structure and content priority
-- **EXCEL COLUMN SUPPORT**: When processing Excel workbooks, extract ALL column headers and mappings from ALL worksheets up to the 250-record limit
-- **ENHANCED PROCESSING**: Process complete Excel content including all worksheets to maximize column detection
-- **FULL COVERAGE**: Extract every available column header across all sheets to reach maximum capacity
-- **SMART SAMPLING**: When limiting large datasets, prioritize items from different sections/categories to maintain data diversity
 
 ### Decision Framework:
 - **When in doubt, include**: If an item could potentially belong to a collection, include it
