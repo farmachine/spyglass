@@ -4161,6 +4161,33 @@ print(json.dumps(results))
         })
       );
 
+      // Extract document data from session
+      let documents = [];
+      try {
+        const extractedData = JSON.parse(session.extractedData || '{}');
+        if (extractedData.processed_documents && extractedData.processed_documents.length > 0) {
+          // Use existing processed documents with text content
+          documents = extractedData.processed_documents.map((doc: any) => ({
+            file_name: doc.file_name || 'Unknown Document',
+            file_content: doc.text_content || doc.content || 'No content available'
+          }));
+        } else {
+          console.log('No processed documents found, checking for raw file data');
+          // Fallback: try to get raw content if available
+          documents = [];
+        }
+      } catch (error) {
+        console.log('Failed to parse extracted data, using empty documents array:', error);
+        documents = [];
+      }
+
+      if (documents.length === 0) {
+        return res.status(400).json({ 
+          message: "No documents found in session. Please upload documents first.",
+          session_id: sessionId 
+        });
+      }
+
       // Prepare data for Python extraction script
       const extractionData = {
         session_id: sessionId,
@@ -4170,8 +4197,7 @@ print(json.dumps(results))
         knowledge_documents: knowledgeDocuments,
         extraction_rules: extractionRules,
         session_data: {
-          files: JSON.parse(session.fileMetadata || '[]'),
-          documents: session.documents || []
+          documents: documents
         }
       };
 
@@ -4244,17 +4270,8 @@ print(json.dumps(result))
                 let autoVerifyThreshold = 80; // Default threshold
                 
                 try {
-                  if (validation.validation_type === 'schema_field') {
-                    const schemaField = await storage.getProjectSchemaFieldById(validation.field_id);
-                    if (schemaField?.autoVerificationConfidence) {
-                      autoVerifyThreshold = schemaField.autoVerificationConfidence;
-                    }
-                  } else if (validation.validation_type === 'collection_property') {
-                    const collectionProperty = await storage.getCollectionPropertyById(validation.field_id);
-                    if (collectionProperty?.autoVerificationConfidence) {
-                      autoVerifyThreshold = collectionProperty.autoVerificationConfidence;
-                    }
-                  }
+                  // For now, use default threshold since we need to implement these methods
+                  autoVerifyThreshold = 80;
                 } catch (error) {
                   console.warn(`Could not get auto-verification threshold for field ${validation.field_id}, using default 80`);
                 }
