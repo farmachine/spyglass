@@ -2497,7 +2497,7 @@ print(json.dumps(result))
       };
 
       // Call Python AI extraction script with existing validation context
-      const python = spawn('python3', ['ai_extraction_simplified.py'], {
+      const python = spawn('python3', ['ai_extraction_fixed.py'], {
         stdio: ['pipe', 'pipe', 'pipe']
       });
 
@@ -2985,7 +2985,7 @@ print(json.dumps(result))
       let output = '';
       let error = '';
       
-      const python = spawn('python3', ['ai_extraction_simplified.py'], {
+      const python = spawn('python3', ['ai_extraction_fixed.py'], {
         cwd: process.cwd()
       });
 
