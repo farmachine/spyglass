@@ -190,7 +190,7 @@ def create_optimized_prompt(schema_fields: List[Dict], collections: List[Dict], 
 1. Process ALL documents thoroughly
 2. Follow field descriptions precisely  
 3. Apply extraction rules where specified
-4. For collections: Extract EVERY instance as separate items
+4. For collections: Extract EVERY instance as separate items (maximum 50 items per collection)
 5. Use knowledge documents for validation where listed
 6. Return only valid JSON - no explanations
 

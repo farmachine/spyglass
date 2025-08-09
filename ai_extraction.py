@@ -55,15 +55,16 @@ def compile_extraction_prompt(
 2. FOLLOW SCHEMA FIELD DESCRIPTIONS PRECISELY - Each description is your extraction instruction
 3. APPLY EXTRACTION RULES - Rules modify extraction behavior, formatting, and validation
 4. **ONLY CREATE RECORDS WHEN FOUND**: Only include field_validations for fields that actually exist in the document
-5. Return JSON with real extracted values only
-6. If extraction rules specify formatting, apply that formatting to extracted values
+5. **COLLECTION LIMIT**: For collections, extract maximum 50 items per collection to ensure reliable processing
+6. Return JSON with real extracted values only
+7. If extraction rules specify formatting, apply that formatting to extracted values
 
 ## FIELD TYPE DEFINITIONS:
 - **TEXT**: Extract text content as specified in the field description
 - **NUMBER**: Count or extract numeric values as described  
 - **DATE**: Extract dates in standard format (YYYY-MM-DD)
 - **CHOICE**: Select one of the predefined options
-- **COLLECTION**: Extract multiple instances - create separate records for each unique item found
+- **COLLECTION**: Extract multiple instances - create separate records for each unique item found (max 50 items per collection)
 """
 
     # Add document content
