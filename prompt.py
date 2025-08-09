@@ -99,10 +99,11 @@ YOU MUST RETURN ONLY A JSON OBJECT WITH THIS EXACT STRUCTURE:
 9. **MARKDOWN TABLE RECOGNITION**: Identify markdown tables (with | separators) and extract ALL data rows as separate collection items - count the rows and extract every single one
 
 ## PERFORMANCE AND VOLUME LIMITS:
-- **INCREASED CAPACITY**: For comprehensive extraction, limit collection extractions to a maximum of 200 records per collection type
-- **PRIORITY EXTRACTION**: If more than 200 items exist, extract the first 200 most relevant/important items based on document structure and content priority
-- **EXCEL COLUMN SUPPORT**: When processing Excel workbooks, extract ALL column headers and mappings up to the 200-record limit
-- **BALANCED PROCESSING**: Aim for comprehensive data coverage while maintaining system performance
+- **MAXIMUM CAPACITY**: For comprehensive extraction, limit collection extractions to a maximum of 250 records per collection type
+- **PRIORITY EXTRACTION**: If more than 250 items exist, extract the first 250 most relevant/important items based on document structure and content priority
+- **EXCEL COLUMN SUPPORT**: When processing Excel workbooks, extract ALL column headers and mappings from ALL worksheets up to the 250-record limit
+- **ENHANCED PROCESSING**: Process complete Excel content including all worksheets to maximize column detection
+- **FULL COVERAGE**: Extract every available column header across all sheets to reach maximum capacity
 - **SMART SAMPLING**: When limiting large datasets, prioritize items from different sections/categories to maintain data diversity
 
 ### Decision Framework:

@@ -192,8 +192,8 @@ def _optimize_excel_content_for_ai(content: str) -> str:
             section_content = '=== SHEET: ' + '\n'.join(headers_and_sample)
             optimized_sections.append(section_content)
             
-            # Limit total sections to avoid overload
-            if len(optimized_sections) >= 6:  # Max 5 sheets + header
+            # Increase section limit for better column extraction
+            if len(optimized_sections) >= 12:  # Max 11 sheets + header for enhanced capacity
                 remaining = len(sections) - i - 1
                 if remaining > 0:
                     optimized_sections.append(f"\n... ({remaining} additional sheets omitted) ...")
@@ -213,11 +213,11 @@ def _sample_large_content(content: str) -> str:
         if len(content) <= 50000:
             return content
             
-        # Take first 20KB, middle 10KB, last 20KB
-        first_part = content[:20000]
-        middle_start = len(content) // 2 - 5000
-        middle_part = content[middle_start:middle_start + 10000]
-        last_part = content[-20000:]
+        # Increase sampling for better column coverage - take first 30KB, middle 15KB, last 30KB
+        first_part = content[:30000]
+        middle_start = len(content) // 2 - 7500
+        middle_part = content[middle_start:middle_start + 15000]
+        last_part = content[-30000:]
         
         return (first_part + 
                 "\n\n... (middle content omitted) ...\n\n" + 
@@ -730,9 +730,9 @@ def step1_extract_from_documents(
                     # PERFORMANCE LIMIT: Cap collection examples to prevent excessive record creation
                     # Allow reasonable sample size but prevent AI from generating too many template records
                     if collection_name == "Column Name Mapping":
-                        example_count = min(10, 2)  # Allow more examples for Column Name Mapping (up to 10)
+                        example_count = min(15, 3)  # Increased examples for Column Name Mapping (up to 15)
                     else:
-                        example_count = 3  # Slightly increased example count for other collections
+                        example_count = 5  # Increased example count for other collections
                     
                     for record_index in range(example_count):
                         for prop_index, prop in enumerate(properties):
