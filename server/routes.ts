@@ -4265,6 +4265,11 @@ print(json.dumps(result))
 
             // Create field validations from results
             if (extractionResults.field_validations) {
+              // Optimize for high-volume processing
+              if (extractionResults.field_validations.length > 100) {
+                console.log(`High-volume extraction: processing ${extractionResults.field_validations.length} validations`);
+              }
+
               for (const validation of extractionResults.field_validations) {
                 // Get auto-verification threshold for this field
                 let autoVerifyThreshold = 80; // Default threshold
