@@ -73,6 +73,12 @@ EXTRACTION_PROMPT = """You are an expert data extraction specialist. Extract dat
 8. **SECTION BOUNDARY DETECTION**: When collection name matches a section (e.g., "Increase Rates" and section "2.3 Increase Rates"), extract ALL numbered subsections until the next major section (e.g., 2.3.1 through 2.3.10 until section 2.4)
 9. **MARKDOWN TABLE RECOGNITION**: Identify markdown tables (with | separators) and extract ALL data rows as separate collection items - count the rows and extract every single one
 
+## PERFORMANCE AND VOLUME LIMITS:
+- **REASONABLE LIMITS**: For performance optimization, limit collection extractions to a maximum of 50 records per collection type
+- **PRIORITY EXTRACTION**: If more than 50 items exist, extract the first 50 most relevant/important items based on document structure and content priority
+- **BALANCED PROCESSING**: Aim for comprehensive but manageable data volumes that maintain system performance
+- **SMART SAMPLING**: When limiting large datasets, prioritize items from different sections/categories to maintain data diversity
+
 ### Decision Framework:
 - **When in doubt, include**: If an item could potentially belong to a collection, include it
 - **Section coherence**: If 70% or more of items in a section match a collection type, include all items
