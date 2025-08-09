@@ -56,8 +56,10 @@ def compile_extraction_prompt(
 3. APPLY EXTRACTION RULES - Rules modify extraction behavior, formatting, and validation
 4. **ONLY CREATE RECORDS WHEN FOUND**: Only include field_validations for fields that actually exist in the document
 5. **COLLECTION LIMIT**: For collections, extract maximum 50 items per collection to ensure reliable processing
-6. Return JSON with real extracted values only
-7. If extraction rules specify formatting, apply that formatting to extracted values
+6. **VERIFIED DATA HANDLING**: Use verified field validations as reference context but DO NOT re-extract these fields
+7. **COLLECTION EXPANSION**: If any collection or its properties are targeted for extraction, search for ALL additional items of that collection type
+8. Return JSON with real extracted values only
+9. If extraction rules specify formatting, apply that formatting to extracted values
 
 ## FIELD TYPE DEFINITIONS:
 - **TEXT**: Extract text content as specified in the field description
@@ -150,12 +152,33 @@ def compile_extraction_prompt(
     
     # Add verified validations section for reference
     verified_section = ""
+    collection_expansion_note = ""
     if verified_validations:
-        verified_section = "\n## VERIFIED FIELD VALIDATIONS (for reference):\n"
+        verified_section = "\n## VERIFIED FIELD VALIDATIONS (for reference only - DO NOT re-extract these):\n"
+        verified_section += "These fields have already been validated and should be used as context for understanding the document structure.\n"
+        
+        # Track which collections are already partially extracted
+        verified_collections = set()
+        
         for validation in verified_validations:
             field_name = validation.get('field_name', '')
             extracted_value = validation.get('extracted_value', '')
+            collection_name = validation.get('collection_name', '')
+            
             verified_section += f"- {field_name}: {extracted_value}\n"
+            
+            # Track collections with existing data
+            if collection_name:
+                verified_collections.add(collection_name)
+        
+        # Add collection expansion instructions
+        if verified_collections:
+            collection_expansion_note = f"\n## COLLECTION EXPANSION REQUIRED:\n"
+            collection_expansion_note += f"The following collections already have some verified data: {', '.join(verified_collections)}\n"
+            collection_expansion_note += f"**CRITICAL**: Search for ALL additional items in these collections that are not yet extracted.\n"
+            collection_expansion_note += f"Look for more instances, patterns, or rows that follow the same structure as the verified data.\n"
+            collection_expansion_note += f"**BATCH PROCESSING**: This is a batch extraction - find additional items beyond the verified ones.\n"
+            collection_expansion_note += f"Examples: More column headers, additional sheet names, extra data rows, similar patterns.\n"
     
     # Output format specification
     output_format = """
@@ -194,8 +217,10 @@ Return a JSON object with this exact structure:
 **IMPORTANT**: 
 - Use the field IDs provided in the schema above
 - For collections, create separate records with incremental record_index (0, 1, 2, etc.)
-- Only include fields that actually have extractable data
+- Only include fields that actually have extractable data  
 - Provide clear ai_reasoning explaining where each value was found
+- DO NOT re-extract any fields marked as "VERIFIED" in the reference section
+- When collections have verified data, expand by finding additional collection items beyond the verified ones
 """
     
     # Combine all sections
@@ -207,6 +232,7 @@ Return a JSON object with this exact structure:
         rules_section + 
         knowledge_section + 
         verified_section +
+        collection_expansion_note +
         output_format
     )
     
