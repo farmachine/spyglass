@@ -2770,18 +2770,36 @@ print(json.dumps(result))
               
               console.log(`Processing ${allExpectedValidations.length} total expected validations (${result.field_validations.length} from AI, ${allExpectedValidations.length - result.field_validations.length} empty)`);
               
-              // Now process all expected validations
+              // Now process all expected validations with database retry logic
               for (const expectedValidation of allExpectedValidations) {
                 const fieldName = expectedValidation.fieldName;
                 const fieldId = expectedValidation.fieldId;
                 const aiData = expectedValidation.aiData;
                 
-                // Check if validation already exists for this field
-                const existingValidations = await storage.getFieldValidations(sessionId);
-                const existingValidation = existingValidations.find(v => 
-                  v.fieldId === fieldId && 
-                  (v.recordIndex || 0) === expectedValidation.recordIndex
-                );
+                // Check if validation already exists for this field with retry logic
+                let existingValidations;
+                let existingValidation;
+                let retryCount = 0;
+                const maxRetries = 3;
+                
+                while (retryCount < maxRetries) {
+                  try {
+                    existingValidations = await storage.getFieldValidations(sessionId);
+                    existingValidation = existingValidations.find(v => 
+                      v.fieldId === fieldId && 
+                      (v.recordIndex || 0) === expectedValidation.recordIndex
+                    );
+                    break; // Success, exit retry loop
+                  } catch (error) {
+                    retryCount++;
+                    console.log(`Database retry ${retryCount}/${maxRetries} for getFieldValidations:`, error.message);
+                    if (retryCount >= maxRetries) {
+                      throw error; // Re-throw if all retries failed
+                    }
+                    // Wait before retry (exponential backoff)
+                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+                  }
+                }
                 
                 // Create validation data - use AI data if available, otherwise create empty record
                 const validationData = {
@@ -2809,32 +2827,98 @@ print(json.dumps(result))
                   } else {
                     const logValue = aiData ? `"${aiData.extracted_value}"` : 'null (empty field)';
                     console.error(`📝 UPDATING FIELD: ${fieldName} - from "${existingValidation.extractedValue}" to ${logValue}`);
-                    // Update existing unverified validation
-                    await storage.updateFieldValidation(existingValidation.id, validationData);
+                    // Update existing unverified validation with retry logic
+                    retryCount = 0;
+                    while (retryCount < maxRetries) {
+                      try {
+                        await storage.updateFieldValidation(existingValidation.id, validationData);
+                        break;
+                      } catch (error) {
+                        retryCount++;
+                        console.log(`Database retry ${retryCount}/${maxRetries} for updateFieldValidation:`, error.message);
+                        if (retryCount >= maxRetries) {
+                          throw error;
+                        }
+                        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+                      }
+                    }
                   }
                 } else {
-                  // Create new validation record
+                  // Create new validation record with retry logic
                   const logValue = aiData ? `"${aiData.extracted_value}"` : 'null (empty field)';
                   console.log(`CREATING FIELD: ${fieldName} - value: ${logValue}`);
-                  await storage.createFieldValidation(validationData);
+                  retryCount = 0;
+                  while (retryCount < maxRetries) {
+                    try {
+                      await storage.createFieldValidation(validationData);
+                      break;
+                    } catch (error) {
+                      retryCount++;
+                      console.log(`Database retry ${retryCount}/${maxRetries} for createFieldValidation:`, error.message);
+                      if (retryCount >= maxRetries) {
+                        throw error;
+                      }
+                      await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+                    }
+                  }
                 }
               }
             }
 
-            // Get current session data to preserve any existing debug fields
-            const currentSession = await storage.getExtractionSession(sessionId);
+            // Get current session data to preserve any existing debug fields with retry logic
+            let currentSession;
+            retryCount = 0;
+            while (retryCount < maxRetries) {
+              try {
+                currentSession = await storage.getExtractionSession(sessionId);
+                break;
+              } catch (error) {
+                retryCount++;
+                console.log(`Database retry ${retryCount}/${maxRetries} for getExtractionSession:`, error.message);
+                if (retryCount >= maxRetries) {
+                  throw error;
+                }
+                await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+              }
+            }
             
-            // Update session status while preserving existing debug data
-            await storage.updateExtractionSession(sessionId, {
-              status: "ai_processed",
-              extractionPrompt: result.extraction_prompt || currentSession?.extractionPrompt || null,
-              aiResponse: result.ai_response || currentSession?.aiResponse || null,
-              inputTokenCount: result.input_token_count || currentSession?.inputTokenCount || null,
-              outputTokenCount: result.output_token_count || currentSession?.outputTokenCount || null
-            });
+            // Update session status while preserving existing debug data with retry logic
+            retryCount = 0;
+            while (retryCount < maxRetries) {
+              try {
+                await storage.updateExtractionSession(sessionId, {
+                  status: "ai_processed",
+                  extractionPrompt: result.extraction_prompt || currentSession?.extractionPrompt || null,
+                  aiResponse: result.ai_response || currentSession?.aiResponse || null,
+                  inputTokenCount: result.input_token_count || currentSession?.inputTokenCount || null,
+                  outputTokenCount: result.output_token_count || currentSession?.outputTokenCount || null
+                });
+                break;
+              } catch (error) {
+                retryCount++;
+                console.log(`Database retry ${retryCount}/${maxRetries} for updateExtractionSession:`, error.message);
+                if (retryCount >= maxRetries) {
+                  throw error;
+                }
+                await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+              }
+            }
             
-            // Ensure ALL expected fields have validation records (including ignored/empty fields)
-            await ensureAllValidationRecordsExist(sessionId, session.projectId);
+            // Ensure ALL expected fields have validation records (including ignored/empty fields) with retry logic
+            retryCount = 0;
+            while (retryCount < maxRetries) {
+              try {
+                await ensureAllValidationRecordsExist(sessionId, session.projectId);
+                break;
+              } catch (error) {
+                retryCount++;
+                console.log(`Database retry ${retryCount}/${maxRetries} for ensureAllValidationRecordsExist:`, error.message);
+                if (retryCount >= maxRetries) {
+                  throw error;
+                }
+                await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+              }
+            }
             
             resolve(result);
             
