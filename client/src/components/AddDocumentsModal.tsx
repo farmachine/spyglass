@@ -220,18 +220,23 @@ export default function AddDocumentsModal({
         
         // Add target fields if any are selected
         if (targetFields.size > 0) {
-          const targetFieldsData = {
-            schemaFields: Array.from(targetFields).filter(id => 
-              schemaFields.some(field => field.id === id)
-            ).map(id => schemaFields.find(field => field.id === id)!),
-            collectionProperties: Array.from(targetFields).filter(id => 
-              allProperties.some(prop => prop.id === id)
-            ).map(id => allProperties.find(prop => prop.id === id)!)
-          };
-          extractionPayload.targetFields = targetFieldsData;
+          // Convert to the format expected by gemini-extraction endpoint
+          const schemaFieldIds = Array.from(targetFields).filter(id => 
+            schemaFields.some(field => field.id === id)
+          );
+          const propertyIds = Array.from(targetFields).filter(id => 
+            allProperties.some(prop => prop.id === id)
+          );
+          
+          if (schemaFieldIds.length > 0) {
+            extractionPayload.targetFieldIds = schemaFieldIds;
+          }
+          if (propertyIds.length > 0) {
+            extractionPayload.targetPropertyIds = propertyIds;
+          }
         }
         
-        const aiExtractionResponse = await apiRequest(`/api/sessions/${sessionId}/ai-extraction`, {
+        const aiExtractionResponse = await apiRequest(`/api/sessions/${sessionId}/gemini-extraction`, {
           method: 'POST',
           body: JSON.stringify(extractionPayload),
           headers: { 'Content-Type': 'application/json' }
