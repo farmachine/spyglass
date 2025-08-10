@@ -1403,8 +1403,43 @@ RETURN: Complete readable content from this document."""
                 
             # Validate that we have the expected field_validations structure
             if "field_validations" not in extracted_data:
-                logging.warning("AI response missing field_validations key, creating default structure")
-                extracted_data = {"field_validations": []}
+                # Check if AI returned data in collections format instead
+                if "collections" in extracted_data:
+                    logging.info("AI returned data in collections format, converting to field_validations format")
+                    field_validations = []
+                    
+                    # Convert collections format to field_validations format
+                    for collection in extracted_data.get("collections", []):
+                        collection_name = collection.get("collection_name", "")
+                        records = collection.get("records", [])
+                        
+                        logging.info(f"Converting collection '{collection_name}' with {len(records)} records")
+                        
+                        for record in records:
+                            record_index = record.get("record_index", 0)
+                            properties = record.get("properties", {})
+                            
+                            # Convert each property to a field validation
+                            for field_id, extracted_value in properties.items():
+                                field_validation = {
+                                    "field_id": field_id,
+                                    "validation_type": "collection_property",
+                                    "data_type": "TEXT",  # Default, could be improved with property metadata
+                                    "field_name": f"{collection_name}.Property[{record_index}]",  # Generic name
+                                    "collection_name": collection_name,
+                                    "extracted_value": str(extracted_value) if extracted_value is not None else "",
+                                    "confidence_score": 1.0,  # AI didn't provide confidence in this format
+                                    "validation_status": "unverified",
+                                    "ai_reasoning": f"Extracted from {collection_name} collection, record {record_index}",
+                                    "record_index": record_index
+                                }
+                                field_validations.append(field_validation)
+                    
+                    extracted_data = {"field_validations": field_validations}
+                    logging.info(f"Successfully converted collections format to {len(field_validations)} field validations")
+                else:
+                    logging.warning("AI response missing field_validations key, creating default structure")
+                    extracted_data = {"field_validations": []}
             
             # Enforce 100-record limit and ensure complete collection items
             field_validations = extracted_data.get('field_validations', [])
