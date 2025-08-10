@@ -38,13 +38,15 @@ Preferred communication style: Simple, everyday language.
 
 ### Technical Implementations
 - **Document Processing**: Supports PDF, DOCX, DOC, XLSX, XLS files.
-- **AI Integration**: Comprehensive AI-powered data extraction and validation using Google Gemini API, including intelligent reasoning, auto-verification, and conflict detection.
+- **Hybrid Extraction System**: Two-tier approach combining simple direct extraction for basic tasks (column mapping, document metadata) with complex AI-powered reasoning for analytical fields, optimizing speed and cost efficiency.
+- **Task Classification**: Intelligent classification system determining whether to use direct extraction or AI reasoning based on field complexity and requirements.
+- **AI Integration**: Comprehensive AI-powered data extraction and validation using Google Gemini API for complex fields requiring intelligent reasoning, auto-verification, and conflict detection.
 - **Multi-Tenancy**: Role-based access control with Admin/User roles and organization-level data isolation.
 - **UUID Migration**: Full migration to ISO UUIDs for all database entities and API parameters.
 - **Project Management**: Project creation, schema definition (global fields, object collections), knowledge base management, and session tracking.
 - **Data Validation**: Comprehensive field-level validation with visual indicators, manual editing capabilities, field clearing functionality, revert-to-AI options, and smart status handling (empty fields = unverified, filled fields = verified).
 - **Dynamic Naming**: "Main Object Name" feature allows dynamic renaming of UI elements.
-- **Workflow**: Streamlined multi-step loading popups and automated extraction flow.
+- **Workflow**: Streamlined multi-step loading popups and automated extraction flow with task-specific optimization.
 - **Table Features**: Dynamic column resizing, drag-and-drop reordering of schema fields/properties.
 - **Excel Export**: Multi-sheet Excel export functionality for session validation data.
 - **Large PDF Handling**: Intelligent chunking system for processing large PDFs, splitting them into manageable chunks and reassembling after processing.
