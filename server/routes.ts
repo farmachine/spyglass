@@ -2353,7 +2353,7 @@ print(json.dumps(result))
   });
 
   // AI extraction for existing sessions (used by Add Documents)
-  app.post("/api/sessions/:sessionId/ai-extraction", authenticateToken, async (req: AuthRequest, res) => {
+  app.post("/api/sessions/:sessionId/ai-extraction", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
       const { targetFields } = req.body;
