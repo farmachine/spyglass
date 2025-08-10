@@ -858,10 +858,11 @@ def step1_extract_from_documents(
 {validated_context}{extraction_notes_context}
 DOCUMENT VERIFICATION: Confirm you processed all {len(documents)} documents: {[doc.get('file_name', 'Unknown') for doc in documents]}
 
-**CRITICAL RESPONSE LIMIT**: Your response MUST NOT exceed 100 field validation records total. If you find more data:
-- Prioritize the most important/complete records
-- If extracting collection items and approaching the limit, finish the current complete collection item rather than starting a partial one
-- Quality over quantity - 100 complete records are better than 150 incomplete ones
+**RESPONSE OPTIMIZATION**: Aim for comprehensive extraction while maintaining quality:
+- Extract ALL relevant data found in the documents
+- For large datasets, prioritize complete records over partial ones
+- Ensure all collection items are fully populated with their properties
+- Focus on accuracy and completeness rather than arbitrary limits
 
 CHOICE FIELD HANDLING:
 - For CHOICE fields, extract values from the specified choice options only
@@ -1123,24 +1124,35 @@ RETURN: Complete readable content from this document."""
                                 
                                 text_content = []
                                 total_content_size = 0
-                                MAX_CONTENT_SIZE = 200000  # Limit to 200KB of text per document
+                                MAX_CONTENT_SIZE = 800000  # Increased to 800KB per document for better Excel coverage
                                 
                                 for sheet_name, df in all_sheets.items():
                                     text_content.append(f"=== SHEET: {sheet_name} ===")
                                     
-                                    # For large datasets, sample intelligently
-                                    if len(df) > 100:  # If more than 100 rows
-                                        logging.info(f"Large Excel sheet detected ({len(df)} rows), sampling for efficiency")
-                                        # Take first 50 rows, last 20 rows, and some middle rows
+                                    # For very large datasets, sample more intelligently  
+                                    if len(df) > 500:  # If more than 500 rows, sample more extensively
+                                        logging.info(f"Very large Excel sheet detected ({len(df)} rows), using intelligent sampling")
+                                        # Take larger samples to capture more data patterns
                                         sample_df = pd.concat([
-                                            df.head(50),  # First 50 rows
-                                            df.iloc[len(df)//2-10:len(df)//2+10],  # 20 middle rows
-                                            df.tail(20)   # Last 20 rows
+                                            df.head(150),  # First 150 rows (often headers + significant data)
+                                            df.iloc[len(df)//4:len(df)//4+50],  # 50 rows from 1st quarter
+                                            df.iloc[len(df)//2-25:len(df)//2+25],  # 50 middle rows
+                                            df.iloc[3*len(df)//4:3*len(df)//4+50],  # 50 rows from 3rd quarter
+                                            df.tail(100)   # Last 100 rows (often important summary data)
                                         ]).drop_duplicates()
                                         sheet_text = sample_df.to_string(index=False, na_rep='')
-                                        sheet_text += f"\n\n[NOTE: This sheet has {len(df)} total rows. Showing sample of {len(sample_df)} rows for analysis.]"
+                                        sheet_text += f"\n\n[NOTE: This sheet has {len(df)} total rows. Showing comprehensive sample of {len(sample_df)} rows covering key data sections for complete analysis.]"
+                                    elif len(df) > 200:  # Medium-large sheets
+                                        logging.info(f"Large Excel sheet detected ({len(df)} rows), using expanded sampling")
+                                        sample_df = pd.concat([
+                                            df.head(100),  # First 100 rows
+                                            df.iloc[len(df)//2-25:len(df)//2+25],  # 50 middle rows
+                                            df.tail(50)   # Last 50 rows
+                                        ]).drop_duplicates()
+                                        sheet_text = sample_df.to_string(index=False, na_rep='')
+                                        sheet_text += f"\n\n[NOTE: This sheet has {len(df)} total rows. Showing expanded sample of {len(sample_df)} rows for thorough analysis.]"
                                     else:
-                                        # Convert dataframe to string representation
+                                        # Convert full dataframe to string representation for smaller sheets
                                         sheet_text = df.to_string(index=False, na_rep='')
                                     
                                     # Check if adding this sheet would exceed size limit
@@ -1191,7 +1203,7 @@ RETURN: Complete readable content from this document."""
         logging.info(f"STEP 1 COMPLETE: Processed {processed_docs} documents, extracted total of {len(extracted_content_text)} characters from all documents")
         
         # Check total content size and truncate if needed to prevent timeouts
-        MAX_TOTAL_CONTENT = 500000  # 500KB total limit for all documents combined
+        MAX_TOTAL_CONTENT = 1500000  # Increased to 1.5MB total limit for better Excel processing
         if len(extracted_content_text) > MAX_TOTAL_CONTENT:
             logging.warning(f"Total content size ({len(extracted_content_text)} chars) exceeds limit ({MAX_TOTAL_CONTENT}), truncating...")
             extracted_content_text = extracted_content_text[:MAX_TOTAL_CONTENT] + "\n\n[CONTENT TRUNCATED - Document set too large for single processing]"
@@ -1212,7 +1224,7 @@ RETURN: Complete readable content from this document."""
                 response = model.generate_content(
                     final_prompt,
                     generation_config=genai.GenerationConfig(
-                        max_output_tokens=65536,  # Gemini 2.5 Pro max output limit
+                        max_output_tokens=100000,  # Increased output limit for comprehensive Excel extraction
                         temperature=0.1,
                         response_mime_type="application/json"
                     ),
