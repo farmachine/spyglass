@@ -2848,16 +2848,16 @@ except Exception as e:
       let filteredCollections = collections || [];
       
       if (targetFieldIds && targetFieldIds.length > 0) {
-        filteredSchemaFields = (schemaFields || []).filter((field: any) => targetFieldIds.includes(field.id));
-        console.log(`GEMINI EXTRACTION: Filtered schema fields from ${(schemaFields || []).length} to ${filteredSchemaFields.length}`);
+        filteredSchemaFields = schemaFields.filter((field: any) => targetFieldIds.includes(field.id));
+        console.log(`GEMINI EXTRACTION: Filtered schema fields from ${schemaFields.length} to ${filteredSchemaFields.length}`);
       }
       
       if (targetPropertyIds && targetPropertyIds.length > 0) {
-        filteredCollections = (collections || []).map((collection: any) => ({
+        filteredCollections = collections.map((collection: any) => ({
           ...collection,
           properties: collection.properties?.filter((prop: any) => targetPropertyIds.includes(prop.id)) || []
         })).filter((collection: any) => collection.properties.length > 0);
-        console.log(`GEMINI EXTRACTION: Filtered collections from ${(collections || []).length} to ${filteredCollections.length}`);
+        console.log(`GEMINI EXTRACTION: Filtered collections from ${collections.length} to ${filteredCollections.length}`);
       } else if (targetFieldIds && targetFieldIds.length > 0) {
         // If only schema fields are selected, exclude all collections
         filteredCollections = [];
@@ -2995,41 +2995,6 @@ except Exception as e:
                 console.log(`GEMINI EXTRACTION: Saved prompt, repaired AI response, and token counts to database (Input: ${result.input_token_count}, Output: ${result.output_token_count})`);
               } catch (saveError) {
                 console.error('GEMINI EXTRACTION: Failed to save extraction data:', saveError);
-              }
-            }
-
-            // Save field validations to database if available
-            if (result.success && result.extracted_data && result.extracted_data.field_validations) {
-              try {
-                const fieldValidations = result.extracted_data.field_validations;
-                console.log(`GEMINI EXTRACTION: Saving ${fieldValidations.length} field validation records to database`);
-                
-                // Save each field validation record
-                for (const validation of fieldValidations) {
-                  const validationRecord = {
-                    sessionId: sessionId,
-                    validationType: validation.validation_type || 'collection_property',
-                    dataType: validation.data_type || 'TEXT',
-                    fieldId: validation.field_id,
-                    fieldName: validation.field_name,
-                    collectionName: validation.collection_name,
-                    recordIndex: validation.record_index || 0,
-                    extractedValue: validation.extracted_value,
-                    validationStatus: validation.validation_status || 'unverified',
-                    aiReasoning: validation.ai_reasoning,
-                    confidence: validation.confidence_score || 0,
-                    confidenceScore: validation.confidence_score || 0,
-                    documentSource: 'AI Extraction',
-                    manuallyUpdated: false,
-                    manuallyVerified: false
-                  };
-                  
-                  await storage.createFieldValidation(validationRecord);
-                }
-                
-                console.log(`GEMINI EXTRACTION: Successfully saved ${fieldValidations.length} validation records to database`);
-              } catch (saveError) {
-                console.error('GEMINI EXTRACTION: Failed to save field validations:', saveError);
               }
             }
             

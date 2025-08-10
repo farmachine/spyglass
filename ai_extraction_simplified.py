@@ -563,8 +563,145 @@ def step1_extract_from_documents(
                 json_schema_section += "\n"
             json_schema_section += "  ]\n}\n```\n"
         
-        # Collections schema information is provided in the collections_text section below
-        # No need for JSON format examples that might confuse the AI response format
+        # Add collections JSON format
+        if project_schema.get("collections"):
+            json_schema_section += "\n## COLLECTIONS JSON FORMAT:\n"
+            json_schema_section += "```json\n{\n  \"collections\": [\n"
+            for i, collection in enumerate(project_schema["collections"]):
+                collection_name = collection.get('collectionName', collection.get('objectName', ''))
+                collection_description = collection.get('description', '')
+                
+                # Find applicable extraction rules for this collection
+                applicable_rules = []
+                
+                # Add global rules first (these apply to ALL fields)
+                applicable_rules.extend(global_rules)
+                
+                # Add collection-specific rules
+                if collection_name in field_specific_rules:
+                    applicable_rules.extend(field_specific_rules[collection_name])
+
+                # Find applicable knowledge documents for this collection (just names for reference)
+                applicable_coll_knowledge_names = []
+                if knowledge_documents:
+                    for doc in knowledge_documents:
+                        doc_target = doc.get('targetField', '')
+                        display_name = doc.get('displayName', doc.get('fileName', 'Unknown Document'))
+                        # If no target field specified, apply to all fields/collections
+                        if not doc_target or doc_target == '' or doc_target is None:
+                            applicable_coll_knowledge_names.append(display_name)
+                        elif isinstance(doc_target, list):
+                            if collection_name in doc_target or 'All Fields' in doc_target:
+                                applicable_coll_knowledge_names.append(display_name)
+                        elif collection_name == doc_target or doc_target == 'All Fields':
+                            applicable_coll_knowledge_names.append(display_name)
+                
+                full_instruction = collection_description or 'Extract array of these objects'
+                if applicable_rules:
+                    full_instruction += " | RULE: " + " | RULE: ".join(applicable_rules)
+                
+                json_schema_section += f"    {{\n"
+                json_schema_section += f"      \"collection_name\": \"{collection_name}\",\n"
+                json_schema_section += f"      \"description\": \"{full_instruction}\",\n"
+                
+                # Add extraction rules section for collections
+                if applicable_rules:
+                    coll_rules_list = [rule.replace('"', '\\"') for rule in applicable_rules]
+                    json_schema_section += f"      \"extraction_rules\": {coll_rules_list},\n"
+                else:
+                    json_schema_section += f"      \"extraction_rules\": [],\n"
+                
+                # Add knowledge documents section for collections (just document names)
+                if applicable_coll_knowledge_names:
+                    json_schema_section += f"      \"knowledge_documents\": {json.dumps(applicable_coll_knowledge_names)},\n"
+                else:
+                    json_schema_section += f"      \"knowledge_documents\": [],\n"
+                
+                json_schema_section += f"      \"properties\": [\n"
+                
+                properties = collection.get("properties", [])
+                for j, prop in enumerate(properties):
+                    prop_name = prop.get('propertyName', '')
+                    prop_type = prop.get('propertyType', 'TEXT')
+                    prop_description = prop.get('description', '')
+                    prop_id = prop['id']
+                    prop_auto_verify_threshold = prop.get('autoVerificationConfidence', 80)
+                    
+                    # Find applicable extraction rules for this property
+                    prop_rules = []
+                    
+                    # Add global rules first (these apply to ALL fields)
+                    prop_rules.extend(global_rules)
+                    
+                    # Add property-specific rules
+                    arrow_notation = f"{collection_name} --> {prop_name}"
+                    full_prop_name = f"{collection_name}.{prop_name}"
+                    
+                    # Check field_specific_rules for various naming patterns
+                    for pattern in [arrow_notation, full_prop_name, prop_name]:
+                        if pattern in field_specific_rules:
+                            prop_rules.extend(field_specific_rules[pattern])
+
+                    # Find applicable knowledge documents for this property (just names for reference)
+                    prop_knowledge_names = []
+                    if knowledge_documents:
+                        for doc in knowledge_documents:
+                            doc_target = doc.get('targetField', '')
+                            arrow_notation = f"{collection_name} --> {prop_name}"
+                            full_prop_name = f"{collection_name}.{prop_name}"
+                            display_name = doc.get('displayName', doc.get('fileName', 'Unknown Document'))
+                            
+                            # If no target field specified, apply to all fields/properties
+                            if not doc_target or doc_target == '' or doc_target is None:
+                                prop_knowledge_names.append(display_name)
+                            elif isinstance(doc_target, list):
+                                if (arrow_notation in doc_target or 
+                                    full_prop_name in doc_target or 
+                                    prop_name in doc_target or 
+                                    'All Fields' in doc_target):
+                                    prop_knowledge_names.append(display_name)
+                            elif (arrow_notation == doc_target or 
+                                  full_prop_name == doc_target or 
+                                  prop_name == doc_target or 
+                                  doc_target == 'All Fields'):
+                                prop_knowledge_names.append(display_name)
+                    
+                    prop_instruction = prop_description or 'Extract this property'
+                    if prop_rules:
+                        prop_instruction += " | RULE: " + " | RULE: ".join(prop_rules)
+                    
+                    json_schema_section += f"        {{\n"
+                    json_schema_section += f"          \"property_id\": \"{prop_id}\",\n"
+                    json_schema_section += f"          \"property_name\": \"{prop_name}\",\n"
+                    json_schema_section += f"          \"property_type\": \"{prop_type}\",\n"
+                    json_schema_section += f"          \"description\": \"{prop_instruction}\",\n"
+                    json_schema_section += f"          \"auto_verification_confidence\": {prop_auto_verify_threshold}"
+                    if prop_type == 'CHOICE' and prop.get('choiceOptions'):
+                        json_schema_section += f",\n          \"choices\": {prop['choiceOptions']}"
+                    
+                    # Add extraction rules section for properties
+                    if prop_rules:
+                        prop_rules_list = [rule.replace('"', '\\"') for rule in prop_rules]
+                        json_schema_section += f",\n          \"extraction_rules\": {prop_rules_list}"
+                    else:
+                        json_schema_section += f",\n          \"extraction_rules\": []"
+                    
+                    # Add knowledge documents section for properties (just document names)
+                    if prop_knowledge_names:
+                        json_schema_section += f",\n          \"knowledge_documents\": {json.dumps(prop_knowledge_names)}"
+                    else:
+                        json_schema_section += f",\n          \"knowledge_documents\": []"
+                    
+                    json_schema_section += "\n        }"
+                    if j < len(properties) - 1:
+                        json_schema_section += ","
+                    json_schema_section += "\n"
+                
+                json_schema_section += "      ]\n    }"
+                if i < len(project_schema["collections"]) - 1:
+                    json_schema_section += ","
+                json_schema_section += "\n"
+            json_schema_section += "  ]\n}\n```\n"
         
         # Use the imported prompt template with our schema, collections, verified context, and JSON schema
         full_prompt = json_schema_section + "\n" + EXTRACTION_PROMPT.format(
