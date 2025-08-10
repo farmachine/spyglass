@@ -2627,6 +2627,7 @@ print(json.dumps(result))
         knowledge_documents: knowledgeDocuments,
         session_name: project.mainObjectName || "Session",
         validated_data_context: validatedDataContext,
+        collection_record_counts: collectionRecordCounts,
         extraction_notes: extractionNotes,
         is_subsequent_upload: true
       });

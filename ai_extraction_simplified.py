@@ -227,6 +227,9 @@ def step1_extract_from_documents(
         verified_field_ids = set()
         highest_collection_indices = {}
         
+        # Use collection_record_counts from server if available
+        collection_record_counts = input_data.get('collection_record_counts', {})
+        logging.info(f"INPUT: collection_record_counts: {collection_record_counts}")
         logging.info(f"INPUT: validated_data_context contains {len(validated_data_context) if validated_data_context else 0} items")
         if validated_data_context:
             logging.info(f"SAMPLE verified context items: {list(validated_data_context.keys())[:5]}")
@@ -260,6 +263,12 @@ def step1_extract_from_documents(
                             highest_collection_indices[collection_name] = record_index
                         else:
                             highest_collection_indices[collection_name] = max(highest_collection_indices[collection_name], record_index)
+                
+                # Override with server-provided collection record counts if available
+                for collection_name, count in collection_record_counts.items():
+                    if count > 0:
+                        highest_collection_indices[collection_name] = count - 1  # Convert count to highest index
+                        logging.info(f"OVERRIDE: Using server count for {collection_name}: {count} records (highest index: {count - 1})")
                         
                         logging.info(f"VERIFIED COLLECTION ITEM: {collection_name} index {record_index} field {field_name}")
             
