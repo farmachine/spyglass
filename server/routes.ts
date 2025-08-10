@@ -1744,6 +1744,14 @@ except Exception as e:
       const projectId = project_data?.projectId || project_data?.id;
       console.log(`STEP 1 EXTRACT: Starting extraction for session ${sessionId}`);
       
+      // Validate that we have a valid project ID
+      if (!projectId) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Project ID is required for extraction" 
+        });
+      }
+      
       // Convert frontend file format to Python script expected format
       const convertedFiles = (files || []).map((file: any) => ({
         file_name: file.name,
@@ -1751,14 +1759,33 @@ except Exception as e:
         mime_type: file.type
       }));
 
-      // Get extraction rules for better AI guidance
-      const extractionRules = projectId ? await storage.getExtractionRules(projectId) : [];
+      // Get extraction rules for better AI guidance (with error handling)
+      let extractionRules = [];
+      let knowledgeDocuments = [];
       
-      // Get knowledge documents for better AI guidance
-      const knowledgeDocuments = projectId ? await storage.getKnowledgeDocuments(projectId) : [];
+      try {
+        extractionRules = await storage.getExtractionRules(projectId);
+      } catch (error) {
+        console.warn(`Failed to get extraction rules for project ${projectId}:`, error);
+        extractionRules = [];
+      }
+      
+      try {
+        knowledgeDocuments = await storage.getKnowledgeDocuments(projectId);
+      } catch (error) {
+        console.warn(`Failed to get knowledge documents for project ${projectId}:`, error);
+        knowledgeDocuments = [];
+      }
 
-      // Get existing verified field validations for context
-      const existingValidations = await storage.getFieldValidations(sessionId);
+      // Get existing verified field validations for context (with error handling)
+      let existingValidations = [];
+      try {
+        existingValidations = await storage.getFieldValidations(sessionId);
+      } catch (error) {
+        console.warn(`Failed to get field validations for session ${sessionId}:`, error);
+        existingValidations = [];
+      }
+      
       const verifiedDataContext: Record<string, any> = {};
       
       // Build verified field context from existing validations
