@@ -1836,6 +1836,221 @@ except Exception as e:
       res.status(500).json({ message: "Failed to start extraction process" });
     }
   });
+
+  // EXTRACTION-ONLY: Extract data without validation, confidence scores, or reasoning
+  app.post("/api/sessions/:sessionId/extract-only", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const { files, project_data } = req.body;
+      
+      const projectId = project_data?.projectId || project_data?.id;
+      console.log(`EXTRACTION-ONLY: Starting extraction for session ${sessionId}`);
+      
+      // Convert frontend file format to Python script expected format
+      const convertedFiles = (files || []).map((file: any) => ({
+        file_name: file.name,
+        file_content: file.content, // This is the data URL from FileReader
+        mime_type: file.type
+      }));
+
+      // Get extraction rules for better AI guidance
+      const extractionRules = projectId ? await storage.getExtractionRules(projectId) : [];
+      
+      // Get knowledge documents for better AI guidance
+      const knowledgeDocuments = projectId ? await storage.getKnowledgeDocuments(projectId) : [];
+
+      // Prepare data for Python extraction-only script
+      const extractionData = {
+        documents: convertedFiles,
+        schema_fields: project_data?.schemaFields || [],
+        extraction_rules: extractionRules,
+        knowledge_documents: knowledgeDocuments,
+        session_id: sessionId,
+        project_name: project_data?.name || "Document Analysis"
+      };
+      
+      console.log(`EXTRACTION-ONLY: Processing ${files?.length || 0} documents with ${extractionRules.length} extraction rules`);
+      
+      // Call Python extraction-only script
+      const python = spawn('python3', ['ai_extraction_only.py']);
+      
+      python.stdin.write(JSON.stringify(extractionData));
+      python.stdin.end();
+      
+      let output = '';
+      let error = '';
+      
+      python.stdout.on('data', (data: any) => {
+        output += data.toString();
+      });
+      
+      python.stderr.on('data', (data: any) => {
+        error += data.toString();
+      });
+      
+      python.on('close', async (code: any) => {
+        if (code !== 0) {
+          console.error('EXTRACTION-ONLY error:', error);
+          return res.status(500).json({ 
+            message: "AI extraction failed", 
+            error: error 
+          });
+        }
+        
+        try {
+          const extractedData = JSON.parse(output);
+          console.log('EXTRACTION-ONLY data:', JSON.stringify(extractedData, null, 2));
+          
+          // Store extracted data in session along with token usage and AI response
+          await storage.updateExtractionSession(sessionId, {
+            status: "extracted",
+            extractedData: JSON.stringify(extractedData.extracted_data || extractedData),
+            extractionPrompt: extractedData.extraction_prompt,
+            aiResponse: extractedData.ai_response,
+            inputTokenCount: extractedData.input_token_count,
+            outputTokenCount: extractedData.output_token_count
+          });
+          
+          // Create simple field extraction records (without validation fields)
+          await createSimpleFieldExtractionRecords(sessionId, extractedData, project_data);
+          
+          res.json({ 
+            message: "Extraction-only completed successfully", 
+            extractedData,
+            sessionId 
+          });
+          
+        } catch (error) {
+          console.error('EXTRACTION-ONLY processing error:', error);
+          res.status(500).json({ message: "Failed to process extraction results" });
+        }
+      });
+      
+    } catch (error) {
+      console.error("EXTRACTION-ONLY error:", error);
+      res.status(500).json({ message: "Failed to start extraction-only process" });
+    }
+  });
+
+  // VALIDATION-ONLY: Validate unverified data separately from extraction
+  app.post("/api/sessions/:sessionId/validate-only", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const { projectId, targetFieldIds } = req.body;
+      
+      console.log(`VALIDATION-ONLY: Starting validation for session ${sessionId}`);
+      
+      // Get all unverified field validation records for this session
+      let fieldValidations = await storage.getFieldValidations(sessionId);
+      
+      // Filter to only unverified records, and optionally by target field IDs
+      let unverifiedValidations = fieldValidations.filter(v => v.validationStatus === 'unverified');
+      
+      if (targetFieldIds && targetFieldIds.length > 0) {
+        unverifiedValidations = unverifiedValidations.filter(v => targetFieldIds.includes(v.fieldId));
+        console.log(`VALIDATION-ONLY: Filtered to ${unverifiedValidations.length} unverified records from target field IDs`);
+      }
+      
+      console.log(`VALIDATION-ONLY: Found ${unverifiedValidations.length} unverified records to validate`);
+      
+      if (unverifiedValidations.length === 0) {
+        return res.json({
+          message: "No unverified data to validate",
+          validatedCount: 0
+        });
+      }
+      
+      // Get extraction rules and knowledge documents
+      const extractionRules = projectId ? await storage.getExtractionRules(projectId) : [];
+      const knowledgeDocuments = projectId ? await storage.getKnowledgeDocuments(projectId) : [];
+      
+      // Get session extracted texts for context
+      const session = await storage.getExtractionSession(sessionId);
+      const extractedTexts = session?.extractedTexts ? JSON.parse(session.extractedTexts) : [];
+      
+      // Prepare data for Python validation script
+      const validationData = {
+        session_id: sessionId,
+        field_validations: unverifiedValidations,
+        extraction_rules: extractionRules,
+        knowledge_documents: knowledgeDocuments,
+        extracted_texts: extractedTexts
+      };
+      
+      console.log(`VALIDATION-ONLY: Validating ${unverifiedValidations.length} unverified records`);
+      
+      // Call Python validation script
+      const python = spawn('python3', ['ai_validation_only.py']);
+      
+      python.stdin.write(JSON.stringify(validationData));
+      python.stdin.end();
+      
+      let output = '';
+      let error = '';
+      
+      python.stdout.on('data', (data: any) => {
+        output += data.toString();
+      });
+      
+      python.stderr.on('data', (data: any) => {
+        error += data.toString();
+      });
+      
+      python.on('close', async (code: any) => {
+        if (code !== 0) {
+          console.error('VALIDATION-ONLY error:', error);
+          return res.status(500).json({ 
+            message: "AI validation failed", 
+            error: error 
+          });
+        }
+        
+        try {
+          const validationResults = JSON.parse(output);
+          console.log('VALIDATION-ONLY results:', JSON.stringify(validationResults, null, 2));
+          
+          if (!validationResults.success) {
+            return res.status(500).json({
+              message: "Validation failed",
+              error: validationResults.error_message
+            });
+          }
+          
+          // Update field validation records with validation results
+          const validatedFields = validationResults.validated_fields || [];
+          let updatedCount = 0;
+          
+          for (const validatedField of validatedFields) {
+            try {
+              await storage.updateFieldValidation(validatedField.validation_id, {
+                confidenceScore: validatedField.confidence_score,
+                validationStatus: validatedField.validation_status,
+                aiReasoning: validatedField.ai_reasoning,
+                manuallyVerified: validatedField.validation_status === 'verified'
+              });
+              updatedCount++;
+            } catch (updateError) {
+              console.error(`Failed to update validation ${validatedField.validation_id}:`, updateError);
+            }
+          }
+          
+          res.json({ 
+            message: `Validation-only completed successfully`, 
+            validatedCount: updatedCount,
+            totalProcessed: validatedFields.length
+          });
+          
+        } catch (error) {
+          console.error('VALIDATION-ONLY processing error:', error);
+          res.status(500).json({ message: "Failed to process validation results" });
+        }
+      });
+      
+    } catch (error) {
+      console.error("VALIDATION-ONLY error:", error);
+      res.status(500).json({ message: "Failed to start validation-only process" });
+    }
+  });
   
   // STEP 2: Validate field records using AI
   app.post("/api/sessions/:sessionId/validate", async (req, res) => {
@@ -2844,31 +3059,6 @@ print(json.dumps(result))
       console.log(`GEMINI EXTRACTION: Target field IDs:`, targetFieldIds || []);
       console.log(`GEMINI EXTRACTION: Target property IDs:`, targetPropertyIds || []);
       
-      // Get existing verified collection items for incremental extraction
-      const existingValidations = await storage.getFieldValidations(sessionId);
-      const verifiedCollectionItems = existingValidations.filter(validation => 
-        validation.fieldType === 'collection_property' && 
-        validation.validationStatus === 'valid'
-      );
-      
-      console.log(`GEMINI EXTRACTION: Found ${verifiedCollectionItems.length} verified collection items to use as reference`);
-      
-      // Group verified items by collection and record index
-      const verifiedItemsByCollection: { [key: string]: { [key: number]: any } } = {};
-      for (const validation of verifiedCollectionItems) {
-        if (validation.fieldId && validation.recordIndex !== null) {
-          // Extract collection name from field ID (format: collectionName.propertyName)
-          const collectionName = validation.fieldId.split('.')[0];
-          if (!verifiedItemsByCollection[collectionName]) {
-            verifiedItemsByCollection[collectionName] = {};
-          }
-          if (!verifiedItemsByCollection[collectionName][validation.recordIndex]) {
-            verifiedItemsByCollection[collectionName][validation.recordIndex] = {};
-          }
-          verifiedItemsByCollection[collectionName][validation.recordIndex][validation.fieldId] = validation.extractedValue;
-        }
-      }
-      
       // Filter schema fields and collections based on target selections
       let filteredSchemaFields = schemaFields || [];
       let filteredCollections = collections || [];
@@ -2924,23 +3114,6 @@ print(json.dumps(result))
         mime_type: extracted.mime_type || 'application/pdf'
       }));
 
-      // Calculate batch limits for collections (max 30 collection items total)
-      const maxCollectionItems = 30;
-      let totalExistingItems = 0;
-      
-      // Count existing verified items per collection
-      const existingItemCounts: { [key: string]: number } = {};
-      for (const collectionName in verifiedItemsByCollection) {
-        existingItemCounts[collectionName] = Object.keys(verifiedItemsByCollection[collectionName]).length;
-        totalExistingItems += existingItemCounts[collectionName];
-      }
-      
-      console.log(`GEMINI EXTRACTION: Existing verified items: ${JSON.stringify(existingItemCounts)} (total: ${totalExistingItems})`);
-      
-      // Calculate remaining extraction capacity
-      const remainingCapacity = Math.max(0, maxCollectionItems - totalExistingItems);
-      console.log(`GEMINI EXTRACTION: Remaining extraction capacity: ${remainingCapacity} items`);
-      
       // Send the data to Python script in correct format (using filtered fields)
       const pythonInput = JSON.stringify({
         operation: "extract",
@@ -2951,10 +3124,7 @@ print(json.dumps(result))
         },
         extraction_rules: extractionRules || [],
         knowledge_documents: knowledgeDocuments || [],
-        session_name: sessionId,
-        verified_collection_items: verifiedItemsByCollection,
-        is_incremental_extraction: Object.keys(verifiedItemsByCollection).length > 0,
-        max_collection_items_limit: remainingCapacity
+        session_name: sessionId
       });
       
       console.log(`GEMINI EXTRACTION: Sending ${filteredSchemaFields.length} schema fields and ${filteredCollections.length} collections to Python`);
@@ -3782,6 +3952,49 @@ print(json.dumps(result))
     }
     
     console.log(`Completed ensuring all validation records exist for session ${sessionId}`);
+  }
+
+  // Helper function to create simple field extraction records (extraction-only, no validation)
+  async function createSimpleFieldExtractionRecords(sessionId: string, extractedData: any, project_data: any) {
+    console.log(`Creating simple field extraction records for session ${sessionId}`);
+    
+    if (!extractedData.extracted_data || !extractedData.extracted_data.field_extractions) {
+      console.log('No field_extractions found in extracted data');
+      return;
+    }
+    
+    const fieldExtractions = extractedData.extracted_data.field_extractions;
+    console.log(`Processing ${fieldExtractions.length} field extractions`);
+    
+    for (const extraction of fieldExtractions) {
+      console.log(`Creating extraction record for: ${extraction.field_name || extraction.field_id}`);
+      
+      try {
+        await storage.createFieldValidation({
+          sessionId,
+          fieldId: extraction.field_id,
+          validationType: extraction.validation_type || 'schema_field',
+          dataType: extraction.data_type || 'TEXT',
+          collectionName: extraction.collection_name || null,
+          recordIndex: extraction.record_index || 0,
+          extractedValue: extraction.extracted_value,
+          originalExtractedValue: extraction.extracted_value,
+          originalConfidenceScore: null, // No confidence scoring in extraction-only
+          originalAiReasoning: null, // No reasoning in extraction-only
+          validationStatus: 'unverified', // All extracted data starts as unverified
+          aiReasoning: null, // No reasoning in extraction-only
+          manuallyVerified: false,
+          confidenceScore: null, // No confidence scoring in extraction-only
+          manuallyUpdated: false
+        });
+        
+        console.log(`Created extraction record for: ${extraction.field_name || extraction.field_id} = ${extraction.extracted_value}`);
+      } catch (error) {
+        console.error(`Failed to create extraction record for ${extraction.field_id}:`, error);
+      }
+    }
+    
+    console.log(`Completed creating ${fieldExtractions.length} simple extraction records`);
   }
   
   // Helper function to create field validation records from extracted data

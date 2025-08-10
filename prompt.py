@@ -22,8 +22,6 @@ EXTRACTION_PROMPT = """You are an expert data extraction specialist. Extract dat
 14. **SECTION NAME MATCHING**: If collection name matches document section name (e.g., "Increase Rates" collection and "2.3 Increase Rates" section), extract ALL numbered subsections within that section boundary
 15. **CONTENT RELATIONSHIP**: If collection properties (escalation types, rate values) relate to table content, extract the ENTIRE section containing that content type
 16. **PIPE-SEPARATED DATA**: Recognize pipe (|) separated data as table structure even without proper markdown formatting
-17. **INCREMENTAL EXTRACTION**: If existing verified items are shown for a collection, do NOT re-extract those items. Only look for ADDITIONAL items that are different from the existing ones. Use existing items as reference for what has already been processed.
-18. **BATCH PROCESSING**: If a batch limit is specified, extract only up to that number of NEW collection items across ALL collections. Prioritize the most important or complete items when a limit applies.
 
 ## KNOWLEDGE DOCUMENT TARGETING:
 - **Field-Specific Targeting**: Each field/collection/property has a knowledge_documents array listing which documents apply to it

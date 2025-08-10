@@ -161,10 +161,7 @@ def step1_extract_from_documents(
     session_name: str = "contract",
     validated_data_context: Dict[str, Any] = None,
     extraction_notes: str = "",
-    is_subsequent_upload: bool = False,
-    verified_collection_items: Dict[str, Dict[int, Any]] = None,
-    is_incremental_extraction: bool = False,
-    max_collection_items_limit: int = None
+    is_subsequent_upload: bool = False
 ) -> ExtractionResult:
     """
     STEP 1: Extract data from documents using AI
@@ -256,8 +253,6 @@ def step1_extract_from_documents(
         
         # Build collections section for the imported prompt
         collections_text = ""
-        verified_items_context = ""
-        
         if project_schema.get("collections"):
             for collection in project_schema["collections"]:
                 collection_name = collection.get('collectionName', collection.get('objectName', ''))
@@ -280,34 +275,13 @@ def step1_extract_from_documents(
                 
                 collections_text += f"\n- **{collection_name}**: {full_instruction}"
                 
-                # Check if this collection has verified items (for incremental extraction)
-                existing_items = []
-                if verified_collection_items and collection_name in verified_collection_items:
-                    existing_items = list(verified_collection_items[collection_name].values())
-                    
-                if is_incremental_extraction and existing_items:
-                    collections_text += f"\n  **INCREMENTAL EXTRACTION**: This collection already has {len(existing_items)} verified items. Look for ADDITIONAL items only - do not re-extract the existing items listed below."
-                    collections_text += f"\n  **EXISTING VERIFIED ITEMS** (for reference only, do not extract these again):"
-                    for i, item in enumerate(existing_items[:5]):  # Show first 5 as examples
-                        item_preview = str(item)[:100] + "..." if len(str(item)) > 100 else str(item)
-                        collections_text += f"\n    - Item {i+1}: {item_preview}"
-                    if len(existing_items) > 5:
-                        collections_text += f"\n    - ... and {len(existing_items) - 5} more existing items"
-                        
-                if max_collection_items_limit is not None and max_collection_items_limit > 0:
-                    collections_text += f"\n  **BATCH LIMIT**: Extract maximum {max_collection_items_limit} NEW collection items across ALL collections in this batch. Prioritize the most important items if you find more."
-                elif max_collection_items_limit is not None and max_collection_items_limit == 0:
-                    collections_text += f"\n  **BATCH LIMIT REACHED**: No new collection items can be extracted in this batch as the limit of 30 items has been reached."
-                
                 # Add explicit instructions for list/collection items
-                if not is_incremental_extraction or max_collection_items_limit != 0:
-                    collections_text += f"\n  **CRITICAL FOR {collection_name}**: Find ALL NEW instances in the documents. Create one collection item per unique instance found. Each item should have a separate record_index (starting from {len(existing_items) if existing_items else 0})."
-                    collections_text += f"\n  **TABLE EXTRACTION**: If {collection_name} items appear in a table, extract EVERY ROW from that table, not just 2-3 examples. Count all rows and extract all data."
-                    collections_text += f"\n  **NUMBERED SECTIONS**: If {collection_name} matches a document section name, find ALL numbered subsections (e.g., 2.3.1, 2.3.2, 2.3.3, etc.) and extract each one as a separate collection item."
-                    collections_text += f"\n  **MARKDOWN TABLES**: Recognize markdown table format with | separators. Extract ALL data rows (excluding headers) as separate collection items - if table has 10 rows, extract all 10."
-                    collections_text += f"\n  **COUNT ALL ITEMS**: If you see numbered items 2.3.1, 2.3.2, 2.3.3... keep going until you reach the end (e.g., 2.3.10) and extract EVERY SINGLE ONE as separate collection items."
-                    if max_collection_items_limit is None:
-                        collections_text += f"\n  **NO TRUNCATION**: Include ALL found items in your JSON response - do not truncate or limit the output even if there are many items."
+                collections_text += f"\n  **CRITICAL FOR {collection_name}**: Find ALL instances in the documents. Create one collection item per unique instance found. Each item should have a separate record_index (0, 1, 2, etc.)."
+                collections_text += f"\n  **TABLE EXTRACTION**: If {collection_name} items appear in a table, extract EVERY ROW from that table, not just 2-3 examples. Count all rows and extract all data."
+                collections_text += f"\n  **NUMBERED SECTIONS**: If {collection_name} matches a document section name, find ALL numbered subsections (e.g., 2.3.1, 2.3.2, 2.3.3, etc.) and extract each one as a separate collection item."
+                collections_text += f"\n  **MARKDOWN TABLES**: Recognize markdown table format with | separators. Extract ALL data rows (excluding headers) as separate collection items - if table has 10 rows, extract all 10."
+                collections_text += f"\n  **COUNT ALL ITEMS**: If you see numbered items 2.3.1, 2.3.2, 2.3.3... keep going until you reach the end (e.g., 2.3.10) and extract EVERY SINGLE ONE as separate collection items."
+                collections_text += f"\n  **NO TRUNCATION**: Include ALL found items in your JSON response - do not truncate or limit the output even if there are many items."
                 
                 properties = collection.get("properties", [])
                 if properties:
@@ -1288,27 +1262,8 @@ if __name__ == "__main__":
             extraction_notes = input_data.get("extraction_notes", "")  # Special extraction instructions
             is_subsequent_upload = input_data.get("is_subsequent_upload", False)  # Flag for upload type
             
-            # Incremental batch processing parameters
-            verified_collection_items = input_data.get("verified_collection_items", {})
-            is_incremental_extraction = input_data.get("is_incremental_extraction", False)
-            max_collection_items_limit = input_data.get("max_collection_items_limit", None)
-            
-            logging.info(f"INCREMENTAL EXTRACTION: {is_incremental_extraction}, VERIFIED ITEMS: {len(verified_collection_items)}, LIMIT: {max_collection_items_limit}")
-            
             # Call the extraction function with new parameters
-            result = step1_extract_from_documents(
-                documents, 
-                project_schema, 
-                extraction_rules, 
-                knowledge_documents, 
-                session_name, 
-                validated_data_context, 
-                extraction_notes, 
-                is_subsequent_upload,
-                verified_collection_items,
-                is_incremental_extraction,
-                max_collection_items_limit
-            )
+            result = step1_extract_from_documents(documents, project_schema, extraction_rules, knowledge_documents, session_name, validated_data_context, extraction_notes, is_subsequent_upload)
             
             if result.success:
                 print(json.dumps({

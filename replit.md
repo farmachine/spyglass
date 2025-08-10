@@ -38,7 +38,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Technical Implementations
 - **Document Processing**: Supports PDF, DOCX, DOC, XLSX, XLS files.
-- **AI Integration**: Comprehensive AI-powered data extraction and validation using Google Gemini API, including intelligent reasoning, auto-verification, and conflict detection.
+- **AI Integration**: Comprehensive AI-powered data extraction and validation using Google Gemini API, including intelligent reasoning, auto-verification, and conflict detection. Features both combined extraction/validation and independent extraction-only/validation-only processes for optimized performance.
 - **Multi-Tenancy**: Role-based access control with Admin/User roles and organization-level data isolation.
 - **UUID Migration**: Full migration to ISO UUIDs for all database entities and API parameters.
 - **Project Management**: Project creation, schema definition (global fields, object collections), knowledge base management, and session tracking.
@@ -53,7 +53,7 @@ Preferred communication style: Simple, everyday language.
 - **Empty Data Handling**: Robust session view loading that gracefully handles empty AI extraction results, displaying functional empty states without errors or crashes.
 - **Enhanced Truncation Repair**: Improved JSON repair functionality for truncated Gemini API responses, with comprehensive parsing logic that recovers complete field validation objects and maintains data integrity during AI extraction failures.
 - **Dashboard Tile Swap**: Complete tile reordering functionality with "Move Left" and "Move Right" options in project settings dropdowns, enabling visual rearrangement of project tiles with persistent ordering state.
-- **Incremental Batch Processing**: AI extraction system now supports incremental processing where verified collection items serve as reference content for extracting additional items in batches limited to 30 collection items maximum, enabling efficient processing of large datasets in manageable chunks.
+- **Extraction-Only System**: Completely redesigned extraction/validation process with independent extraction and validation phases. Extraction-only API (`/api/sessions/:sessionId/extract-only`) focuses purely on data extraction without confidence scoring, reasoning, or validation. Separate validation-only API (`/api/sessions/:sessionId/validate-only`) handles validation of unverified data independently, increasing extraction capacity and allowing focused AI task handling.
 
 ### Key Architectural Decisions
 - **Monorepo Structure**: Single repository with shared types.
