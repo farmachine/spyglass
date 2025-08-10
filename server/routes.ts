@@ -2844,6 +2844,31 @@ print(json.dumps(result))
       console.log(`GEMINI EXTRACTION: Target field IDs:`, targetFieldIds || []);
       console.log(`GEMINI EXTRACTION: Target property IDs:`, targetPropertyIds || []);
       
+      // Get existing verified collection items for incremental extraction
+      const existingValidations = await storage.getFieldValidations(sessionId);
+      const verifiedCollectionItems = existingValidations.filter(validation => 
+        validation.fieldType === 'collection_property' && 
+        validation.validationStatus === 'valid'
+      );
+      
+      console.log(`GEMINI EXTRACTION: Found ${verifiedCollectionItems.length} verified collection items to use as reference`);
+      
+      // Group verified items by collection and record index
+      const verifiedItemsByCollection: { [key: string]: { [key: number]: any } } = {};
+      for (const validation of verifiedCollectionItems) {
+        if (validation.fieldId && validation.recordIndex !== null) {
+          // Extract collection name from field ID (format: collectionName.propertyName)
+          const collectionName = validation.fieldId.split('.')[0];
+          if (!verifiedItemsByCollection[collectionName]) {
+            verifiedItemsByCollection[collectionName] = {};
+          }
+          if (!verifiedItemsByCollection[collectionName][validation.recordIndex]) {
+            verifiedItemsByCollection[collectionName][validation.recordIndex] = {};
+          }
+          verifiedItemsByCollection[collectionName][validation.recordIndex][validation.fieldId] = validation.extractedValue;
+        }
+      }
+      
       // Filter schema fields and collections based on target selections
       let filteredSchemaFields = schemaFields || [];
       let filteredCollections = collections || [];
@@ -2899,6 +2924,23 @@ print(json.dumps(result))
         mime_type: extracted.mime_type || 'application/pdf'
       }));
 
+      // Calculate batch limits for collections (max 30 collection items total)
+      const maxCollectionItems = 30;
+      let totalExistingItems = 0;
+      
+      // Count existing verified items per collection
+      const existingItemCounts: { [key: string]: number } = {};
+      for (const collectionName in verifiedItemsByCollection) {
+        existingItemCounts[collectionName] = Object.keys(verifiedItemsByCollection[collectionName]).length;
+        totalExistingItems += existingItemCounts[collectionName];
+      }
+      
+      console.log(`GEMINI EXTRACTION: Existing verified items: ${JSON.stringify(existingItemCounts)} (total: ${totalExistingItems})`);
+      
+      // Calculate remaining extraction capacity
+      const remainingCapacity = Math.max(0, maxCollectionItems - totalExistingItems);
+      console.log(`GEMINI EXTRACTION: Remaining extraction capacity: ${remainingCapacity} items`);
+      
       // Send the data to Python script in correct format (using filtered fields)
       const pythonInput = JSON.stringify({
         operation: "extract",
@@ -2909,7 +2951,10 @@ print(json.dumps(result))
         },
         extraction_rules: extractionRules || [],
         knowledge_documents: knowledgeDocuments || [],
-        session_name: sessionId
+        session_name: sessionId,
+        verified_collection_items: verifiedItemsByCollection,
+        is_incremental_extraction: Object.keys(verifiedItemsByCollection).length > 0,
+        max_collection_items_limit: remainingCapacity
       });
       
       console.log(`GEMINI EXTRACTION: Sending ${filteredSchemaFields.length} schema fields and ${filteredCollections.length} collections to Python`);

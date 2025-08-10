@@ -53,6 +53,7 @@ Preferred communication style: Simple, everyday language.
 - **Empty Data Handling**: Robust session view loading that gracefully handles empty AI extraction results, displaying functional empty states without errors or crashes.
 - **Enhanced Truncation Repair**: Improved JSON repair functionality for truncated Gemini API responses, with comprehensive parsing logic that recovers complete field validation objects and maintains data integrity during AI extraction failures.
 - **Dashboard Tile Swap**: Complete tile reordering functionality with "Move Left" and "Move Right" options in project settings dropdowns, enabling visual rearrangement of project tiles with persistent ordering state.
+- **Incremental Batch Processing**: AI extraction system now supports incremental processing where verified collection items serve as reference content for extracting additional items in batches limited to 30 collection items maximum, enabling efficient processing of large datasets in manageable chunks.
 
 ### Key Architectural Decisions
 - **Monorepo Structure**: Single repository with shared types.
