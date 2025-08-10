@@ -2848,16 +2848,16 @@ except Exception as e:
       let filteredCollections = collections || [];
       
       if (targetFieldIds && targetFieldIds.length > 0) {
-        filteredSchemaFields = schemaFields.filter((field: any) => targetFieldIds.includes(field.id));
-        console.log(`GEMINI EXTRACTION: Filtered schema fields from ${schemaFields.length} to ${filteredSchemaFields.length}`);
+        filteredSchemaFields = (schemaFields || []).filter((field: any) => targetFieldIds.includes(field.id));
+        console.log(`GEMINI EXTRACTION: Filtered schema fields from ${(schemaFields || []).length} to ${filteredSchemaFields.length}`);
       }
       
       if (targetPropertyIds && targetPropertyIds.length > 0) {
-        filteredCollections = collections.map((collection: any) => ({
+        filteredCollections = (collections || []).map((collection: any) => ({
           ...collection,
           properties: collection.properties?.filter((prop: any) => targetPropertyIds.includes(prop.id)) || []
         })).filter((collection: any) => collection.properties.length > 0);
-        console.log(`GEMINI EXTRACTION: Filtered collections from ${collections.length} to ${filteredCollections.length}`);
+        console.log(`GEMINI EXTRACTION: Filtered collections from ${(collections || []).length} to ${filteredCollections.length}`);
       } else if (targetFieldIds && targetFieldIds.length > 0) {
         // If only schema fields are selected, exclude all collections
         filteredCollections = [];

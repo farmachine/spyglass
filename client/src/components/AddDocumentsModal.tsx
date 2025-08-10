@@ -216,7 +216,12 @@ export default function AddDocumentsModal({
         ));
 
         // Step 2: Run AI extraction to match content to existing schema fields
-        const extractionPayload: any = {};
+        const extractionPayload: any = {
+          schemaFields: schemaFields || [],
+          collections: collections || [],
+          extractionRules: extractionRules || [],
+          knowledgeDocuments: knowledgeDocuments || []
+        };
         
         // Add target fields if any are selected
         if (targetFields.size > 0) {
