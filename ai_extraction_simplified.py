@@ -1203,7 +1203,7 @@ RETURN: Complete readable content from this document."""
         logging.info(f"STEP 1 COMPLETE: Processed {processed_docs} documents, extracted total of {len(extracted_content_text)} characters from all documents")
         
         # Check total content size and truncate if needed to prevent timeouts
-        MAX_TOTAL_CONTENT = 1500000  # Increased to 1.5MB total limit for better Excel processing
+        MAX_TOTAL_CONTENT = 2500000  # Increased to 2.5MB total limit for very large Excel processing
         if len(extracted_content_text) > MAX_TOTAL_CONTENT:
             logging.warning(f"Total content size ({len(extracted_content_text)} chars) exceeds limit ({MAX_TOTAL_CONTENT}), truncating...")
             extracted_content_text = extracted_content_text[:MAX_TOTAL_CONTENT] + "\n\n[CONTENT TRUNCATED - Document set too large for single processing]"
