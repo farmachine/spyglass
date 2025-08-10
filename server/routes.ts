@@ -2378,6 +2378,7 @@ print(json.dumps(result))
         
         // Convert text extraction format to AI extraction format
         if (extractedData.extracted_texts && !extractedData.documents) {
+          console.log(`CONVERSION: Converting ${extractedData.extracted_texts.length} extracted_texts to documents format`);
           extractedData.documents = extractedData.extracted_texts.map(textDoc => ({
             file_name: textDoc.file_name,
             file_content: textDoc.text_content,
@@ -2389,6 +2390,15 @@ print(json.dumps(result))
                       textDoc.file_name.toLowerCase().endsWith('.xls') ? 'application/vnd.ms-excel' :
                       'application/octet-stream'
           }));
+          console.log(`CONVERSION: Successfully created ${extractedData.documents.length} documents`);
+          
+          // Log document details for debugging
+          extractedData.documents.forEach((doc, index) => {
+            console.log(`DOCUMENT ${index}: ${doc.file_name} (${doc.file_content?.length || 0} chars)`);
+            if (doc.file_content && doc.file_content.length > 0) {
+              console.log(`PREVIEW: ${doc.file_content.substring(0, 200)}...`);
+            }
+          });
         }
       } catch (error) {
         return res.status(400).json({ success: false, error: 'Invalid extracted data in session' });
