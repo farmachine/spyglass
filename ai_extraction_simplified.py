@@ -227,6 +227,10 @@ def step1_extract_from_documents(
         verified_field_ids = set()
         highest_collection_indices = {}
         
+        logging.info(f"INPUT: validated_data_context contains {len(validated_data_context) if validated_data_context else 0} items")
+        if validated_data_context:
+            logging.info(f"SAMPLE verified context items: {list(validated_data_context.keys())[:5]}")
+        
         if validated_data_context:
             verified_fields = []
             verified_collections = {}
@@ -256,6 +260,8 @@ def step1_extract_from_documents(
                             highest_collection_indices[collection_name] = record_index
                         else:
                             highest_collection_indices[collection_name] = max(highest_collection_indices[collection_name], record_index)
+                        
+                        logging.info(f"VERIFIED COLLECTION ITEM: {collection_name} index {record_index} field {field_name}")
             
             # Build context text
             if verified_fields or verified_collections:
@@ -267,14 +273,18 @@ def step1_extract_from_documents(
                 if verified_collections:
                     verified_context_text += "\n**Collection Items (LOCKED):**\n"
                     for collection_name, items in verified_collections.items():
-                        verified_context_text += f"\n**{collection_name}** (Verified Items 0-{highest_collection_indices.get(collection_name, 0)}):\n"
+                        highest_index = highest_collection_indices.get(collection_name, 0)
+                        next_index = highest_index + 1
+                        verified_context_text += f"\n**{collection_name}** (Verified Items 0-{highest_index}):\n"
                         for record_index in sorted(items.keys()):
                             verified_context_text += f"Item {record_index}:\n" + "\n".join(items[record_index]) + "\n"
-                        verified_context_text += f"**NEXT NEW ITEMS START AT INDEX {highest_collection_indices[collection_name] + 1}**\n"
+                        verified_context_text += f"**NEXT NEW ITEMS START AT INDEX {next_index}**\n"
+                        logging.info(f"CONTEXT: {collection_name} highest verified index: {highest_index}, next index: {next_index}")
                 
                 verified_context_text += "\n**CRITICAL**: Do not include any of the above verified fields in your extraction response. Use them only as context for understanding the session.\n"
             else:
                 verified_context_text = "No verified fields yet - this is the initial extraction."
+                logging.info("CONTEXT: No verified fields found - initial extraction")
 
         # Build schema fields section for the imported prompt
         schema_fields_text = ""
