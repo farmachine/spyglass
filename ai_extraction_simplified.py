@@ -1359,32 +1359,16 @@ RETURN: Complete readable content from this document."""
                 logging.warning("AI response missing field_validations key, creating default structure")
                 extracted_data = {"field_validations": []}
             
-            # Enhanced record limit based on context - allow more for field targeting operations
+            # Enforce 100-record limit and ensure complete collection items
             field_validations = extracted_data.get('field_validations', [])
-            
-            # Determine if this is a field targeting operation (updating existing collection items)
-            # Field targeting operations need higher limits to update all existing records
-            is_field_targeting = False
-            if validated_data_context and len(validated_data_context) > 50:
-                is_field_targeting = True
-                logging.info("FIELD TARGETING: Detected field targeting operation with extensive existing data")
-            
-            # Set appropriate limits based on operation type
-            if is_field_targeting:
-                record_limit = 500  # Higher limit for field targeting operations  
-                logging.info(f"FIELD TARGETING: Using enhanced limit of {record_limit} records for field targeting")
-            else:
-                record_limit = 100  # Standard limit for new extractions
-                logging.info(f"NEW EXTRACTION: Using standard limit of {record_limit} records for new extraction")
-            
-            if len(field_validations) > record_limit:
-                logging.warning(f"AI returned {len(field_validations)} records, enforcing {record_limit}-record limit")
+            if len(field_validations) > 100:
+                logging.warning(f"AI returned {len(field_validations)} records, enforcing 100-record limit")
                 
                 # Find the last complete collection item within the limit
                 truncated_validations = []
                 collection_items = {}
                 
-                for i, validation in enumerate(field_validations[:record_limit]):
+                for i, validation in enumerate(field_validations[:100]):
                     truncated_validations.append(validation)
                     
                     # Track collection items to ensure completeness
@@ -1401,10 +1385,10 @@ RETURN: Complete readable content from this document."""
                 
                 # Check if we need to remove incomplete collection items at the boundary
                 # Look ahead to see if there are more properties for the last collection items
-                if len(field_validations) > record_limit:
+                if len(field_validations) > 100:
                     # Check if the next validation(s) would complete a collection item
                     boundary_collections = {}
-                    for validation in field_validations[record_limit:]:
+                    for validation in field_validations[100:]:
                         if validation.get('validation_type') == 'collection_property':
                             collection_name = validation.get('collection_name', '')
                             record_index = validation.get('record_index', 0)
@@ -1423,7 +1407,7 @@ RETURN: Complete readable content from this document."""
                             record_index = validation.get('record_index', 0)
                             key = f"{collection_name}_{record_index}"
                             
-                            # If this collection item continues beyond the limit, mark as incomplete
+                            # If this collection item continues beyond the 100-record limit, mark as incomplete
                             if key in boundary_collections:
                                 incomplete_collection_items.add(key)
                             
@@ -1438,7 +1422,7 @@ RETURN: Complete readable content from this document."""
                     logging.info(f"Trimmed to {len(final_validations)} complete records, removed {len(truncated_validations) - len(final_validations)} incomplete collection items")
                 else:
                     extracted_data['field_validations'] = truncated_validations
-                    logging.info(f"Trimmed to exactly {record_limit} records")
+                    logging.info(f"Trimmed to exactly 100 records")
                 
             logging.info(f"STEP 1: Successfully extracted {len(extracted_data.get('field_validations', []))} field validations")
             return ExtractionResult(
