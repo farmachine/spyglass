@@ -2619,6 +2619,15 @@ print(json.dumps(result))
           extractionNotes += " DOCUMENT ANALYSIS: The uploaded document contains detailed code definitions and meanings - extract ALL code meanings from this document content.";
         }
       }
+      
+      // Critical indexing instruction
+      if (Object.keys(collectionRecordCounts).length > 0) {
+        extractionNotes += " INDEXING CRITICAL: ";
+        Object.entries(collectionRecordCounts).forEach(([collectionName, count]) => {
+          extractionNotes += `For ${collectionName} collection, START NEW RECORDS AT INDEX ${count} (existing indexes 0-${count-1} are verified and protected). `;
+        });
+        extractionNotes += "Do NOT use indexes 0-110 for any new extractions - these are already verified and must not be modified.";
+      }
 
       const inputData = JSON.stringify({
         documents: extractedData.documents || [],

@@ -731,7 +731,9 @@ def step1_extract_from_documents(
                     else:
                         example_count = 2
                     
-                    for record_index in range(example_count):
+                    # Start from next available index for this collection
+                    start_index = highest_collection_indices.get(collection_name, -1) + 1
+                    for record_index in range(start_index, start_index + example_count):
                         for prop_index, prop in enumerate(properties):
                             prop_id = prop['id']
                             prop_name = prop['propertyName']
