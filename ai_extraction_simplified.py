@@ -234,16 +234,46 @@ def step1_extract_from_documents(
         if validated_data_context:
             logging.info(f"SAMPLE verified context items: {list(validated_data_context.keys())[:5]}")
         
+        # Initialize collections tracking
+        verified_fields = []
+        verified_collections = {}
+        existing_collections = {}  # Track all existing collection items for field targeting
+        
         if validated_data_context:
-            verified_fields = []
-            verified_collections = {}
             
             # Extract verified fields and collections from validated_data_context
-            for field_id, field_data in validated_data_context.items():
-                if field_data.get('validation_status') == 'verified':
+            for field_key, field_data in validated_data_context.items():
+                field_id = field_data.get('field_id')
+                validation_status = field_data.get('validation_status', 'unverified')
+                field_name = field_data.get('field_name', 'Unknown')
+                extracted_value = field_data.get('extracted_value', '')
+                
+                # Track all existing collection items (both verified and unverified) for field targeting
+                if field_data.get('validation_type') == 'collection_property':
+                    collection_name = field_data.get('collection_name', '')
+                    record_index = field_data.get('record_index', 0)
+                    
+                    if collection_name not in existing_collections:
+                        existing_collections[collection_name] = {}
+                    if record_index not in existing_collections[collection_name]:
+                        existing_collections[collection_name][record_index] = []
+                    
+                    existing_collections[collection_name][record_index].append({
+                        'field_id': field_id,
+                        'field_name': field_name,
+                        'extracted_value': extracted_value,
+                        'validation_status': validation_status
+                    })
+                    
+                    # Track highest index for each collection
+                    if collection_name not in highest_collection_indices:
+                        highest_collection_indices[collection_name] = record_index
+                    else:
+                        highest_collection_indices[collection_name] = max(highest_collection_indices[collection_name], record_index)
+                
+                # Only treat as verified if status is actually verified
+                if validation_status == 'verified':
                     verified_field_ids.add(field_id)
-                    field_name = field_data.get('field_name', 'Unknown')
-                    extracted_value = field_data.get('extracted_value', '')
                     
                     if field_data.get('validation_type') == 'schema_field':
                         verified_fields.append(f"- **{field_name}**: {extracted_value}")
@@ -257,12 +287,17 @@ def step1_extract_from_documents(
                             verified_collections[collection_name][record_index] = []
                         
                         verified_collections[collection_name][record_index].append(f"  - {field_name}: {extracted_value}")
-                        
-                        # Track highest index for each collection
-                        if collection_name not in highest_collection_indices:
-                            highest_collection_indices[collection_name] = record_index
-                        else:
-                            highest_collection_indices[collection_name] = max(highest_collection_indices[collection_name], record_index)
+            
+            # Log existing collection structure for debugging
+            for collection_name, records in existing_collections.items():
+                record_count = len(records)
+                logging.info(f"EXISTING COLLECTION: {collection_name} has {record_count} existing records (indices: {sorted(records.keys())})")
+                
+                # Log some field details for debugging
+                for record_index in sorted(list(records.keys())[:3]):  # Show first 3 records
+                    fields = records[record_index]
+                    field_info = [f"{f['field_name']}={f['extracted_value'] or 'EMPTY'}" for f in fields]
+                    logging.info(f"  Record {record_index}: {', '.join(field_info[:3])}...")  # Show first 3 fields
                 
                 # Override with server-provided collection record counts if available
                 for collection_name, count in collection_record_counts.items():
@@ -337,6 +372,12 @@ def step1_extract_from_documents(
                 verified_count = highest_collection_indices.get(collection_name, -1) + 1 if collection_name in highest_collection_indices else 0
                 next_index = verified_count
                 
+                # Check if this collection has existing items for field targeting
+                existing_count = 0
+                if collection_name in existing_collections:
+                    existing_count = len(existing_collections[collection_name])
+                    logging.info(f"FIELD TARGETING: {collection_name} has {existing_count} existing collection items")
+                
                 # Find applicable extraction rules for this collection
                 applicable_rules = []
                 if extraction_rules:
@@ -354,8 +395,14 @@ def step1_extract_from_documents(
                 
                 collections_text += f"\n- **{collection_name}**: {full_instruction}"
                 
+                # Add field targeting context for existing collection items
+                if existing_count > 0:
+                    collections_text += f"\n  **FIELD TARGETING MODE**: This collection has {existing_count} existing items (record indices 0-{existing_count-1})"
+                    collections_text += f"\n  **UPDATE EXISTING ITEMS**: Fill in missing field values for existing collection items. Do NOT create new items unless extracting additional data not present in existing records."
+                    collections_text += f"\n  **MAINTAIN RECORD INDICES**: When updating existing items, keep the same record_index values (0, 1, 2, etc.) as the existing collection structure."
+                
                 # Add verified collection context
-                if verified_count > 0:
+                elif verified_count > 0:
                     collections_text += f"\n  **VERIFIED ITEMS EXIST**: Items 0-{verified_count-1} are already verified and locked. Do NOT re-extract these."
                     collections_text += f"\n  **START NEW ITEMS AT INDEX {next_index}**: Any new items must use record_index {next_index}, {next_index+1}, {next_index+2}, etc."
                 

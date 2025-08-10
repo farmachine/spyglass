@@ -2898,6 +2898,37 @@ except Exception as e:
         mime_type: extracted.mime_type || 'application/pdf'
       }));
 
+      // For field targeting, get existing validation data to provide context
+      let validatedDataContext = {};
+      if (targetFieldIds?.length > 0 || targetPropertyIds?.length > 0) {
+        console.log(`GEMINI EXTRACTION: Field targeting detected, retrieving existing validation data for context`);
+        try {
+          const existingValidations = await storage.getFieldValidations(sessionId);
+          if (existingValidations && existingValidations.length > 0) {
+            console.log(`GEMINI EXTRACTION: Found ${existingValidations.length} existing validation records for context`);
+            // Convert to the format expected by Python script (keyed by field_id)
+            const validationMap: any = {};
+            for (const validation of existingValidations) {
+              const key = `${validation.fieldId}_${validation.recordIndex || 0}`;
+              validationMap[key] = {
+                field_id: validation.fieldId,
+                field_name: validation.fieldName,
+                extracted_value: validation.extractedValue || '',
+                ai_reasoning: validation.aiReasoning || '',
+                confidence: validation.confidence,
+                validation_type: validation.validationType,
+                collection_name: validation.collectionName,
+                record_index: validation.recordIndex || 0,
+                validation_status: validation.validationStatus
+              };
+            }
+            validatedDataContext = validationMap;
+          }
+        } catch (error) {
+          console.log(`GEMINI EXTRACTION: Could not get existing validations: ${(error as any).message}`);
+        }
+      }
+
       // Send the data to Python script in correct format (using filtered fields)
       const pythonInput = JSON.stringify({
         operation: "extract",
@@ -2908,7 +2939,8 @@ except Exception as e:
         },
         extraction_rules: extractionRules || [],
         knowledge_documents: knowledgeDocuments || [],
-        session_name: sessionId
+        session_name: sessionId,
+        validated_data_context: validatedDataContext
       });
       
       console.log(`GEMINI EXTRACTION: Sending ${filteredSchemaFields.length} schema fields and ${filteredCollections.length} collections to Python`);
