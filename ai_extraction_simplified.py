@@ -765,7 +765,7 @@ def step1_extract_from_documents(
                             
                             # Check if this is the last item
                             is_last = (collection == project_schema["collections"][-1] and 
-                                     record_index == (example_count - 1) and 
+                                     record_index == (start_index + example_count - 1) and 
                                      prop_index == len(properties) - 1)
                             json_lines.append('  }' + ('' if is_last else ','))
             
