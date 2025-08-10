@@ -627,8 +627,22 @@ def step1_extract_from_documents(
                     collection_name = collection.get('collectionName', collection.get('objectName', ''))
                     properties = collection.get("properties", [])
                     
-                    # Show minimal examples for all collections - let AI decide actual count
-                    example_count = 2  # Standard example count for all collections
+                    # Show minimal examples for all collections within 100-record limit
+                    # Calculate available space for collection examples
+                    schema_field_count = len(project_schema.get("schema_fields", []))
+                    remaining_space = 100 - schema_field_count
+                    total_collections = len(project_schema.get("collections", []))
+                    
+                    # Distribute remaining space among collections, minimum 1 example each
+                    if total_collections > 0:
+                        properties_per_collection = sum(len(c.get('properties', [])) for c in project_schema.get("collections", []))
+                        if properties_per_collection > 0:
+                            max_examples_per_collection = max(1, remaining_space // (properties_per_collection))
+                            example_count = min(2, max_examples_per_collection)  # Standard example count, capped by space
+                        else:
+                            example_count = 1
+                    else:
+                        example_count = 2
                     
                     for record_index in range(example_count):
                         for prop_index, prop in enumerate(properties):
@@ -736,6 +750,11 @@ def step1_extract_from_documents(
         full_prompt += f"""
 {validated_context}{extraction_notes_context}
 DOCUMENT VERIFICATION: Confirm you processed all {len(documents)} documents: {[doc.get('file_name', 'Unknown') for doc in documents]}
+
+**CRITICAL RESPONSE LIMIT**: Your response MUST NOT exceed 100 field validation records total. If you find more data:
+- Prioritize the most important/complete records
+- If extracting collection items and approaching the limit, finish the current complete collection item rather than starting a partial one
+- Quality over quantity - 100 complete records are better than 150 incomplete ones
 
 CHOICE FIELD HANDLING:
 - For CHOICE fields, extract values from the specified choice options only
@@ -1157,7 +1176,10 @@ RETURN: Complete readable content from this document."""
             
         # Count field_validations objects to detect truncation
         field_validation_count = response_text.count('"field_id":')
-        logging.info(f"TRUNCATION CHECK: Found {field_validation_count} field_validation objects in response")
+        logging.info(f"RECORD COUNT CHECK: Found {field_validation_count} field_validation objects in response")
+        
+        if field_validation_count > 100:
+            logging.warning(f"AI returned {field_validation_count} records, exceeding 100-record limit")
         
         # Check for session-specific troubleshooting
         if "0db04e6a-006b-48af-b9bb-b1dc88edaae5" in str(session_name):
@@ -1171,6 +1193,10 @@ RETURN: Complete readable content from this document."""
         # Check if response appears to end abruptly
         if len(response_text) > 10000 and not response_text.strip().endswith((']}', '}')):
             logging.warning("RESPONSE APPEARS TRUNCATED - Does not end with expected JSON closing")
+            
+        # Check for 100-record limit compliance
+        if field_validation_count > 100:
+            logging.warning(f"Response contains {field_validation_count} records - will enforce 100-record limit")
         
         # Remove markdown code blocks if present
         if response_text.startswith("```json"):
@@ -1213,6 +1239,71 @@ RETURN: Complete readable content from this document."""
             if "field_validations" not in extracted_data:
                 logging.warning("AI response missing field_validations key, creating default structure")
                 extracted_data = {"field_validations": []}
+            
+            # Enforce 100-record limit and ensure complete collection items
+            field_validations = extracted_data.get('field_validations', [])
+            if len(field_validations) > 100:
+                logging.warning(f"AI returned {len(field_validations)} records, enforcing 100-record limit")
+                
+                # Find the last complete collection item within the limit
+                truncated_validations = []
+                collection_items = {}
+                
+                for i, validation in enumerate(field_validations[:100]):
+                    truncated_validations.append(validation)
+                    
+                    # Track collection items to ensure completeness
+                    if validation.get('validation_type') == 'collection_property':
+                        collection_name = validation.get('collection_name', '')
+                        record_index = validation.get('record_index', 0)
+                        
+                        if collection_name not in collection_items:
+                            collection_items[collection_name] = {}
+                        if record_index not in collection_items[collection_name]:
+                            collection_items[collection_name][record_index] = []
+                        
+                        collection_items[collection_name][record_index].append(validation)
+                
+                # Check if we need to remove incomplete collection items at the boundary
+                # Look ahead to see if there are more properties for the last collection items
+                if len(field_validations) > 100:
+                    # Check if the next validation(s) would complete a collection item
+                    boundary_collections = {}
+                    for validation in field_validations[100:]:
+                        if validation.get('validation_type') == 'collection_property':
+                            collection_name = validation.get('collection_name', '')
+                            record_index = validation.get('record_index', 0)
+                            key = f"{collection_name}_{record_index}"
+                            if key not in boundary_collections:
+                                boundary_collections[key] = []
+                            boundary_collections[key].append(validation)
+                    
+                    # Remove incomplete collection items from the truncated list
+                    final_validations = []
+                    incomplete_collection_items = set()
+                    
+                    for validation in truncated_validations:
+                        if validation.get('validation_type') == 'collection_property':
+                            collection_name = validation.get('collection_name', '')
+                            record_index = validation.get('record_index', 0)
+                            key = f"{collection_name}_{record_index}"
+                            
+                            # If this collection item continues beyond the 100-record limit, mark as incomplete
+                            if key in boundary_collections:
+                                incomplete_collection_items.add(key)
+                            
+                            # Only include if this collection item is complete within the limit
+                            if key not in incomplete_collection_items:
+                                final_validations.append(validation)
+                        else:
+                            # Always include schema fields
+                            final_validations.append(validation)
+                    
+                    extracted_data['field_validations'] = final_validations
+                    logging.info(f"Trimmed to {len(final_validations)} complete records, removed {len(truncated_validations) - len(final_validations)} incomplete collection items")
+                else:
+                    extracted_data['field_validations'] = truncated_validations
+                    logging.info(f"Trimmed to exactly 100 records")
                 
             logging.info(f"STEP 1: Successfully extracted {len(extracted_data.get('field_validations', []))} field validations")
             return ExtractionResult(
