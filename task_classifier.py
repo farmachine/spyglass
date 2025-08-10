@@ -82,33 +82,42 @@ Respond with only this JSON format:
 
 def classify_extraction_task_basic(target_fields):
     """
-    Basic fallback classification when AI is unavailable
+    Basic binary classification: Excel Column Extraction vs Current AI Extraction
     """
-    simple_patterns = {
-        "Column Name Mapping": "simple",
-        "Missing Column Names": "simple", 
-        "Additional Column Names": "simple",
-        "Document Title": "simple",
-        "File Name": "simple",
-        "Upload Date": "simple"
+    # EXCEL COLUMN EXTRACTION - Direct data copying from Excel files
+    excel_column_tasks = {
+        "Column Name Mapping",  # Extract column names and worksheet names
+        "Missing Column Names", # Compare expected vs actual columns
+        "Additional Column Names"  # Find unexpected columns
     }
     
+    # CURRENT AI EXTRACTION - Complex reasoning and analysis
+    # Everything else that requires AI understanding, validation, or reasoning
+    
     field_classifications = {}
-    simple_count = 0
+    excel_task_count = 0
     
     for field in target_fields:
-        if any(pattern in field for pattern in simple_patterns.keys()):
-            field_classifications[field] = "simple"
-            simple_count += 1
+        if field in excel_column_tasks:
+            field_classifications[field] = "excel_column_extraction"
+            excel_task_count += 1
         else:
-            field_classifications[field] = "complex"
+            field_classifications[field] = "current_ai_extraction"
     
-    overall = "simple" if simple_count == len(target_fields) else "complex"
+    # Decision: Use Excel extraction only if ALL fields are simple column tasks
+    if excel_task_count == len(target_fields) and excel_task_count > 0:
+        extraction_method = "excel_column_extraction"
+        reasoning = f"All {len(target_fields)} fields are Excel column tasks - using direct extraction"
+    else:
+        extraction_method = "current_ai_extraction" 
+        reasoning = f"Contains {len(target_fields) - excel_task_count} complex fields - using AI extraction"
     
     return {
-        "overall_classification": overall,
+        "extraction_method": extraction_method,
         "field_classifications": field_classifications,
-        "reasoning": f"Basic pattern matching: {simple_count}/{len(target_fields)} fields are simple"
+        "reasoning": reasoning,
+        "excel_tasks": excel_task_count,
+        "ai_tasks": len(target_fields) - excel_task_count
     }
 
 def get_simple_extraction_strategy(target_fields):

@@ -1820,10 +1820,23 @@ except Exception as e:
       
       console.log(`STEP 1: Extracting from ${files?.length || 0} documents with ${extractionRules.length} extraction rules`);
       
-      // Check if this is a simple column mapping task that can use direct extraction
+      // Classify extraction task: Excel Column Extraction vs Current AI Extraction
       const collections = project_data?.collections || [];
+      const schemaFields = project_data?.schemaFields || [];
       const targetCollections = collections.map((c: any) => c.name);
-      const isSimpleColumnTask = targetCollections.length === 1 && targetCollections[0] === "Column Name Mapping";
+      const targetSchemaFields = schemaFields.map((f: any) => f.fieldName);
+      const allTargetFields = [...targetCollections, ...targetSchemaFields];
+      
+      // Binary decision: Excel column extraction OR current AI extraction
+      const excelColumnTasks = new Set(["Column Name Mapping", "Missing Column Names", "Additional Column Names"]);
+      const isExcelColumnExtraction = allTargetFields.length > 0 && 
+                                     allTargetFields.every(field => excelColumnTasks.has(field));
+      
+      console.log('TASK CLASSIFICATION:');
+      console.log('  Target fields:', allTargetFields);
+      console.log('  Excel column tasks:', allTargetFields.filter(f => excelColumnTasks.has(f)));
+      console.log('  Complex tasks:', allTargetFields.filter(f => !excelColumnTasks.has(f)));
+      console.log('  Decision: Use', isExcelColumnExtraction ? 'EXCEL COLUMN EXTRACTION' : 'CURRENT AI EXTRACTION');
       
       // Get collection count for starting index
       let collectionRecordCounts: Record<string, number> = {};
@@ -1845,8 +1858,8 @@ except Exception as e:
       console.log('TASK CLASSIFICATION: Target collections:', targetCollections);
       console.log('TASK CLASSIFICATION: Is simple column task:', isSimpleColumnTask);
       
-      if (isSimpleColumnTask) {
-        console.log('USING SIMPLE EXTRACTION: Direct column extraction for Column Name Mapping');
+      if (isExcelColumnExtraction) {
+        console.log('USING EXCEL COLUMN EXTRACTION: Direct Excel parsing - no AI needed');
         
         // Use simple direct extraction for column mapping
         const python = spawn('python3', ['simple_column_extractor.py', (collectionRecordCounts["Column Name Mapping"] || 0).toString()]);
@@ -1919,8 +1932,8 @@ except Exception as e:
         return;
       }
       
-      // Use complex AI extraction for other tasks
-      console.log('USING COMPLEX AI EXTRACTION: Advanced reasoning required');
+      // Use current AI extraction for complex tasks
+      console.log('USING CURRENT AI EXTRACTION: Complex reasoning and analysis required');
       const python = spawn('python3', ['ai_extraction_simplified.py']);
       
       python.stdin.write(JSON.stringify(extractionData));
