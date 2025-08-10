@@ -61,6 +61,9 @@ export default function AddDocumentsModal({
   const { data: schemaFields = [] } = useProjectSchemaFields(projectId);
   const { data: collections = [] } = useObjectCollections(projectId);
   const { data: allProperties = [] } = useAllProjectProperties(projectId);
+  // Note: knowledgeDocuments and extractionRules will be fetched from server-side as needed
+  const knowledgeDocuments = [];
+  const extractionRules = [];
 
   const validateFile = (file: File): string | null => {
     const extension = '.' + file.name.split('.').pop()?.toLowerCase();
