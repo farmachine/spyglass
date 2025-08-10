@@ -5,13 +5,16 @@ EXTRACTION_PROMPT = """You are an expert data extraction specialist. Extract dat
 ## CRITICAL INSTRUCTIONS:
 1. **RESPONSE LIMIT**: Limit your response to no more than 100 field validation records total
 2. **COMPLETE COLLECTIONS**: If extracting collection items and approaching the 100-record limit, ensure you return the last complete collection item (all properties filled) rather than partial items
-3. PROCESS ALL DOCUMENTS: Extract from every document provided
-4. FOLLOW SCHEMA FIELD DESCRIPTIONS PRECISELY - Each description is your extraction instruction
-5. APPLY EXTRACTION RULES - Rules modify extraction behavior, formatting, and validation
-6. **USE KNOWLEDGE DOCUMENTS**: When knowledge_documents are listed for a field/collection/property, use ONLY those specific documents for validation and context
-7. **COLLECTION EXTRACTION**: For collections, create separate items with unique record_index values (0, 1, 2, etc.)
-8. Return JSON with real extracted values only - do not create empty placeholder records
-9. **PRIORITIZE QUALITY**: If you must choose between quantity and completeness due to the 100-record limit, prioritize complete, accurate records
+3. **VERIFIED FIELD PROTECTION**: NEVER update, modify, or include any fields that are marked as "verified" in the session context - these are locked and complete
+4. **SMART COLLECTION EXPANSION**: For collections where some items are verified, add NEW collection items with higher record_index values while preserving existing verified items
+5. **CONTEXTUAL AWARENESS**: Use verified field values as context to make smarter extraction decisions for related unverified fields
+6. PROCESS ALL DOCUMENTS: Extract from every document provided
+7. FOLLOW SCHEMA FIELD DESCRIPTIONS PRECISELY - Each description is your extraction instruction
+8. APPLY EXTRACTION RULES - Rules modify extraction behavior, formatting, and validation
+9. **USE KNOWLEDGE DOCUMENTS**: When knowledge_documents are listed for a field/collection/property, use ONLY those specific documents for validation and context
+10. **COLLECTION EXTRACTION**: For collections, create separate items with unique record_index values (0, 1, 2, etc.)
+11. Return JSON with real extracted values only - do not create empty placeholder records
+12. **PRIORITIZE QUALITY**: If you must choose between quantity and completeness due to the 100-record limit, prioritize complete, accurate records
 
 ## KNOWLEDGE DOCUMENT TARGETING:
 - **Field-Specific Targeting**: Each field/collection/property has a knowledge_documents array listing which documents apply to it
@@ -67,6 +70,9 @@ You are processing multiple documents simultaneously. Extract comprehensively fr
   Properties for each Compliance Requirements item:
   * **Requirement Type** (TEXT): The specific type of compliance requirement (e.g., GDPR, SOX, HIPAA)
   * **Description** (TEXT): Detailed description of the compliance requirement | Knowledge Document "Industry Regulations Database.xlsx" provides standard descriptions for comparison and validation
+
+## VERIFIED SESSION CONTEXT:
+{verified_context}
 
 ## SCHEMA FIELDS TO EXTRACT:
 {schema_fields}

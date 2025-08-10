@@ -27,7 +27,7 @@ class ExtractionResult:
 
 # ValidationResult dataclass removed - validation now occurs only during extraction
 
-def repair_truncated_json(response_text: str) -> str:
+def repair_truncated_json(response_text: str) -> Optional[str]:
     """
     Enhanced repair function for truncated JSON responses. Finds complete field validation objects
     and properly closes the JSON structure to preserve as much data as possible.
@@ -156,10 +156,10 @@ def repair_truncated_json(response_text: str) -> str:
 def step1_extract_from_documents(
     documents: List[Dict[str, Any]], 
     project_schema: Dict[str, Any],
-    extraction_rules: List[Dict[str, Any]] = None,
-    knowledge_documents: List[Dict[str, Any]] = None,
+    extraction_rules: Optional[List[Dict[str, Any]]] = None,
+    knowledge_documents: Optional[List[Dict[str, Any]]] = None,
     session_name: str = "contract",
-    validated_data_context: Dict[str, Any] = None,
+    validated_data_context: Optional[Dict[str, Any]] = None,
     extraction_notes: str = "",
     is_subsequent_upload: bool = False
 ) -> ExtractionResult:
@@ -222,6 +222,60 @@ def step1_extract_from_documents(
                             field_specific_rules[rule_target] = []
                         field_specific_rules[rule_target].append(rule_content)
         
+        # Build verified context section
+        verified_context_text = ""
+        verified_field_ids = set()
+        highest_collection_indices = {}
+        
+        if validated_data_context:
+            verified_fields = []
+            verified_collections = {}
+            
+            # Extract verified fields and collections from validated_data_context
+            for field_id, field_data in validated_data_context.items():
+                if field_data.get('validation_status') == 'verified':
+                    verified_field_ids.add(field_id)
+                    field_name = field_data.get('field_name', 'Unknown')
+                    extracted_value = field_data.get('extracted_value', '')
+                    
+                    if field_data.get('validation_type') == 'schema_field':
+                        verified_fields.append(f"- **{field_name}**: {extracted_value}")
+                    elif field_data.get('validation_type') == 'collection_property':
+                        collection_name = field_data.get('collection_name', '')
+                        record_index = field_data.get('record_index', 0)
+                        
+                        if collection_name not in verified_collections:
+                            verified_collections[collection_name] = {}
+                        if record_index not in verified_collections[collection_name]:
+                            verified_collections[collection_name][record_index] = []
+                        
+                        verified_collections[collection_name][record_index].append(f"  - {field_name}: {extracted_value}")
+                        
+                        # Track highest index for each collection
+                        if collection_name not in highest_collection_indices:
+                            highest_collection_indices[collection_name] = record_index
+                        else:
+                            highest_collection_indices[collection_name] = max(highest_collection_indices[collection_name], record_index)
+            
+            # Build context text
+            if verified_fields or verified_collections:
+                verified_context_text = "**VERIFIED FIELDS (DO NOT RE-EXTRACT OR MODIFY):**\n"
+                
+                if verified_fields:
+                    verified_context_text += "\n**Schema Fields (LOCKED):**\n" + "\n".join(verified_fields) + "\n"
+                
+                if verified_collections:
+                    verified_context_text += "\n**Collection Items (LOCKED):**\n"
+                    for collection_name, items in verified_collections.items():
+                        verified_context_text += f"\n**{collection_name}** (Verified Items 0-{highest_collection_indices.get(collection_name, 0)}):\n"
+                        for record_index in sorted(items.keys()):
+                            verified_context_text += f"Item {record_index}:\n" + "\n".join(items[record_index]) + "\n"
+                        verified_context_text += f"**NEXT NEW ITEMS START AT INDEX {highest_collection_indices[collection_name] + 1}**\n"
+                
+                verified_context_text += "\n**CRITICAL**: Do not include any of the above verified fields in your extraction response. Use them only as context for understanding the session.\n"
+            else:
+                verified_context_text = "No verified fields yet - this is the initial extraction."
+
         # Build schema fields section for the imported prompt
         schema_fields_text = ""
         
@@ -231,6 +285,11 @@ def step1_extract_from_documents(
                 field_name = field['fieldName']
                 field_type = field['fieldType']
                 field_description = field.get('description', '')
+                field_id = field['id']
+                
+                # Skip verified fields
+                if field_id in verified_field_ids:
+                    continue
                 
                 # Collect all applicable extraction rules for this field
                 applicable_rules = []
@@ -248,7 +307,6 @@ def step1_extract_from_documents(
                     full_instruction += " | " + " | ".join(applicable_rules)
                 
                 # Include field ID in the prompt for AI reference
-                field_id = field['id']
                 schema_fields_text += f"\n- **{field_name}** (ID: {field_id}, {field_type}): {full_instruction}"
         
         # Build collections section for the imported prompt
@@ -257,6 +315,10 @@ def step1_extract_from_documents(
             for collection in project_schema["collections"]:
                 collection_name = collection.get('collectionName', collection.get('objectName', ''))
                 collection_description = collection.get('description', '')
+                
+                # Check if this collection has verified items
+                verified_count = highest_collection_indices.get(collection_name, -1) + 1 if collection_name in highest_collection_indices else 0
+                next_index = verified_count
                 
                 # Find applicable extraction rules for this collection
                 applicable_rules = []
@@ -275,8 +337,13 @@ def step1_extract_from_documents(
                 
                 collections_text += f"\n- **{collection_name}**: {full_instruction}"
                 
+                # Add verified collection context
+                if verified_count > 0:
+                    collections_text += f"\n  **VERIFIED ITEMS EXIST**: Items 0-{verified_count-1} are already verified and locked. Do NOT re-extract these."
+                    collections_text += f"\n  **START NEW ITEMS AT INDEX {next_index}**: Any new items must use record_index {next_index}, {next_index+1}, {next_index+2}, etc."
+                
                 # Add explicit instructions for list/collection items
-                collections_text += f"\n  **CRITICAL FOR {collection_name}**: Find ALL instances in the documents. Create one collection item per unique instance found. Each item should have a separate record_index (0, 1, 2, etc.)."
+                collections_text += f"\n  **CRITICAL FOR {collection_name}**: Find ALL instances in the documents. Create one collection item per unique instance found. Each item should have a separate record_index ({next_index}, {next_index+1}, {next_index+2}, etc.)."
                 collections_text += f"\n  **TABLE EXTRACTION**: If {collection_name} items appear in a table, extract EVERY ROW from that table, not just 2-3 examples. Count all rows and extract all data."
                 collections_text += f"\n  **NUMBERED SECTIONS**: If {collection_name} matches a document section name, find ALL numbered subsections (e.g., 2.3.1, 2.3.2, 2.3.3, etc.) and extract each one as a separate collection item."
                 collections_text += f"\n  **MARKDOWN TABLES**: Recognize markdown table format with | separators. Extract ALL data rows (excluding headers) as separate collection items - if table has 10 rows, extract all 10."
@@ -572,8 +639,9 @@ def step1_extract_from_documents(
                 json_schema_section += "\n"
             json_schema_section += "  ]\n}\n```\n"
         
-        # Use the imported prompt template with our schema, collections, and JSON schema
+        # Use the imported prompt template with our schema, collections, verified context, and JSON schema
         full_prompt = json_schema_section + "\n" + EXTRACTION_PROMPT.format(
+            verified_context=verified_context_text,
             schema_fields=schema_fields_text,
             collections=collections_text
         )
@@ -1360,7 +1428,7 @@ if __name__ == "__main__":
                 print(json.dumps({
                     "success": True, 
                     "extracted_data": result.extracted_data, 
-                    "field_validations": result.extracted_data.get("field_validations", []),
+                    "field_validations": result.extracted_data.get("field_validations", []) if result.extracted_data else [],
                     "extraction_prompt": result.extraction_prompt,
                     "ai_response": result.ai_response,
                     "input_token_count": result.input_token_count,

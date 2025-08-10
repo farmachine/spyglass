@@ -1757,6 +1757,24 @@ except Exception as e:
       // Get knowledge documents for better AI guidance
       const knowledgeDocuments = projectId ? await storage.getKnowledgeDocuments(projectId) : [];
 
+      // Get existing verified field validations for context
+      const existingValidations = await storage.getFieldValidations(sessionId);
+      const verifiedDataContext: Record<string, any> = {};
+      
+      // Build verified field context from existing validations
+      for (const validation of existingValidations) {
+        if (validation.validationStatus === 'verified') {
+          verifiedDataContext[validation.fieldId] = {
+            field_name: validation.fieldName,
+            extracted_value: validation.extractedValue,
+            validation_status: validation.validationStatus,
+            validation_type: validation.validationType,
+            collection_name: validation.collectionName,
+            record_index: validation.recordIndex
+          };
+        }
+      }
+
       // Prepare data for Python extraction script
       const extractionData = {
         step: "extract",
@@ -1768,7 +1786,9 @@ except Exception as e:
         },
         extraction_rules: extractionRules,
         knowledge_documents: knowledgeDocuments,
-        session_name: project_data?.mainObjectName || "contract"
+        session_name: project_data?.mainObjectName || "contract",
+        validated_data_context: verifiedDataContext,
+        is_subsequent_upload: Object.keys(verifiedDataContext).length > 0
       };
       
       console.log(`STEP 1: Extracting from ${files?.length || 0} documents with ${extractionRules.length} extraction rules`);
