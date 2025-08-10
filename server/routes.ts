@@ -1820,7 +1820,120 @@ except Exception as e:
       
       console.log(`STEP 1: Extracting from ${files?.length || 0} documents with ${extractionRules.length} extraction rules`);
       
-      // Call Python extraction script
+      // Classify extraction task: Excel Column Extraction vs Current AI Extraction
+      const collections = project_data?.collections || [];
+      const schemaFields = project_data?.schemaFields || [];
+      const targetCollections = collections.map((c: any) => c.name);
+      const targetSchemaFields = schemaFields.map((f: any) => f.fieldName);
+      const allTargetFields = [...targetCollections, ...targetSchemaFields];
+      
+      // Binary decision: Excel column extraction OR current AI extraction
+      const excelColumnTasks = new Set(["Column Name Mapping", "Missing Column Names", "Additional Column Names"]);
+      const isExcelColumnExtraction = allTargetFields.length > 0 && 
+                                     allTargetFields.every(field => excelColumnTasks.has(field));
+      
+      console.log('TASK CLASSIFICATION:');
+      console.log('  Target fields:', allTargetFields);
+      console.log('  Excel column tasks:', allTargetFields.filter(f => excelColumnTasks.has(f)));
+      console.log('  Complex tasks:', allTargetFields.filter(f => !excelColumnTasks.has(f)));
+      console.log('  Decision: Use', isExcelColumnExtraction ? 'EXCEL COLUMN EXTRACTION' : 'CURRENT AI EXTRACTION');
+      
+      // Get collection count for starting index
+      let collectionRecordCounts: Record<string, number> = {};
+      try {
+        const validationCount = await storage.getFieldValidationCount(sessionId);
+        for (const validation of existingValidations) {
+          if (validation.collectionName && validation.recordIndex !== null) {
+            const currentCount = collectionRecordCounts[validation.collectionName] || 0;
+            if (validation.recordIndex >= currentCount) {
+              collectionRecordCounts[validation.collectionName] = validation.recordIndex + 1;
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to calculate collection record counts:', error);
+      }
+      
+      console.log('TASK CLASSIFICATION: Collection record counts:', collectionRecordCounts);
+      console.log('TASK CLASSIFICATION: Target collections:', targetCollections);
+      console.log('TASK CLASSIFICATION: Is simple column task:', isSimpleColumnTask);
+      
+      if (isExcelColumnExtraction) {
+        console.log('USING EXCEL COLUMN EXTRACTION: Direct Excel parsing - no AI needed');
+        
+        // Use simple direct extraction for column mapping
+        const python = spawn('python3', ['simple_column_extractor.py', (collectionRecordCounts["Column Name Mapping"] || 0).toString()]);
+        
+        // Pass session data to simple extractor
+        const sessionDataForExtraction = {
+          extractedTexts: (await storage.getExtractionSession(sessionId))?.extractedTexts || []
+        };
+        
+        python.stdin.write(JSON.stringify(sessionDataForExtraction));
+        python.stdin.end();
+        
+        let output = '';
+        let error = '';
+        
+        python.stdout.on('data', (data: any) => {
+          output += data.toString();
+        });
+        
+        python.stderr.on('data', (data: any) => {
+          error += data.toString();
+        });
+        
+        python.on('close', async (code: any) => {
+          if (code !== 0) {
+            console.error('Simple extraction error:', error);
+            return res.status(500).json({ 
+              message: "Simple extraction failed", 
+              error: error 
+            });
+          }
+          
+          try {
+            const extractedData = JSON.parse(output);
+            console.log('SIMPLE EXTRACTION SUCCESS:', extractedData.message);
+            
+            // Store extracted data in session
+            await storage.updateExtractionSession(sessionId, {
+              status: "extracted",
+              extractedData: JSON.stringify(extractedData),
+              extractionPrompt: "Simple direct extraction - no AI prompt used",
+              aiResponse: `Simple extraction: Found ${extractedData.columns_found} columns`,
+              inputTokenCount: 0,
+              outputTokenCount: 0
+            });
+            
+            // Create field validation records from extracted data
+            await createFieldValidationRecords(sessionId, extractedData, project_data);
+            
+            // Ensure ALL expected fields have validation records
+            await ensureAllValidationRecordsExist(sessionId, projectId);
+            
+            res.json({ 
+              message: "SIMPLE EXTRACTION: Column mapping completed", 
+              extractedData,
+              sessionId,
+              extraction_method: "simple_direct",
+              processing_time_ms: extractedData.processing_time_ms
+            });
+            
+          } catch (error) {
+            console.error('Simple extraction parse error:', error);
+            res.status(500).json({ 
+              message: "Failed to parse simple extraction results", 
+              error: error.message 
+            });
+          }
+        });
+        
+        return;
+      }
+      
+      // Use current AI extraction for complex tasks
+      console.log('USING CURRENT AI EXTRACTION: Complex reasoning and analysis required');
       const python = spawn('python3', ['ai_extraction_simplified.py']);
       
       python.stdin.write(JSON.stringify(extractionData));
