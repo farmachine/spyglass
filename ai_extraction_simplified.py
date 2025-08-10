@@ -269,8 +269,6 @@ def step1_extract_from_documents(
                     if count > 0:
                         highest_collection_indices[collection_name] = count - 1  # Convert count to highest index
                         logging.info(f"OVERRIDE: Using server count for {collection_name}: {count} records (highest index: {count - 1})")
-                        
-                        logging.info(f"VERIFIED COLLECTION ITEM: {collection_name} index {record_index} field {field_name}")
             
             # Build context text
             if verified_fields or verified_collections:
@@ -710,10 +708,17 @@ def step1_extract_from_documents(
             
             # Add collection properties with proper field validation structure
             if project_schema.get("collections"):
+                # Track items to determine which is the last one for proper JSON formatting
+                all_collection_items = []
+                
                 for collection in project_schema["collections"]:
                     collection_name = collection.get('collectionName', collection.get('objectName', ''))
                     properties = collection.get("properties", [])
                     
+                    # Only process collections that have properties
+                    if not properties:
+                        continue
+                        
                     # Show minimal examples for all collections within 100-record limit
                     # Calculate available space for collection examples
                     schema_field_count = len(project_schema.get("schema_fields", []))
@@ -733,6 +738,8 @@ def step1_extract_from_documents(
                     
                     # Start from next available index for this collection
                     start_index = highest_collection_indices.get(collection_name, -1) + 1
+                    
+                    # Generate all collection items for this collection
                     for record_index in range(start_index, start_index + example_count):
                         for prop_index, prop in enumerate(properties):
                             prop_id = prop['id']
@@ -751,23 +758,34 @@ def step1_extract_from_documents(
                             
                             field_name_with_index = f"{collection_name}.{prop_name}[{record_index}]"
                             
-                            json_lines.append('  {')
-                            json_lines.append(f'    "field_id": "{prop_id}",')
-                            json_lines.append(f'    "validation_type": "collection_property",')
-                            json_lines.append(f'    "data_type": "{prop_type}",')
-                            json_lines.append(f'    "field_name": "{field_name_with_index}",')
-                            json_lines.append(f'    "collection_name": "{collection_name}",')
-                            json_lines.append(f'    "extracted_value": "{example_value}",')
-                            json_lines.append(f'    "confidence_score": 0.95,')
-                            json_lines.append(f'    "validation_status": "unverified",')
-                            json_lines.append(f'    "ai_reasoning": "Found {collection_name} item {record_index + 1} with {prop_name} value in document",')
-                            json_lines.append(f'    "record_index": {record_index}')
-                            
-                            # Check if this is the last item
-                            is_last = (collection == project_schema["collections"][-1] and 
-                                     record_index == (start_index + example_count - 1) and 
-                                     prop_index == len(properties) - 1)
-                            json_lines.append('  }' + ('' if is_last else ','))
+                            # Store item info for later JSON generation
+                            all_collection_items.append({
+                                'prop_id': prop_id,
+                                'prop_type': prop_type,
+                                'field_name_with_index': field_name_with_index,
+                                'collection_name': collection_name,
+                                'example_value': example_value,
+                                'record_index': record_index,
+                                'prop_name': prop_name
+                            })
+                
+                # Generate JSON for all collection items
+                for i, item in enumerate(all_collection_items):
+                    json_lines.append('  {')
+                    json_lines.append(f'    "field_id": "{item["prop_id"]}",')
+                    json_lines.append(f'    "validation_type": "collection_property",')
+                    json_lines.append(f'    "data_type": "{item["prop_type"]}",')
+                    json_lines.append(f'    "field_name": "{item["field_name_with_index"]}",')
+                    json_lines.append(f'    "collection_name": "{item["collection_name"]}",')
+                    json_lines.append(f'    "extracted_value": "{item["example_value"]}",')
+                    json_lines.append(f'    "confidence_score": 0.95,')
+                    json_lines.append(f'    "validation_status": "unverified",')
+                    json_lines.append(f'    "ai_reasoning": "Found {item["collection_name"]} item {item["record_index"] + 1} with {item["prop_name"]} value in document",')
+                    json_lines.append(f'    "record_index": {item["record_index"]}')
+                    
+                    # Check if this is the last item
+                    is_last = (i == len(all_collection_items) - 1)
+                    json_lines.append('  }' + ('' if is_last else ','))
             
             json_lines.append(']}')
             return '\n'.join(json_lines)
