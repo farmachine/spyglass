@@ -18,35 +18,42 @@ export async function apiRequest(
   const { method = "GET", body, headers = {} } = options || {};
   const token = localStorage.getItem("auth_token");
   
-  
-  const res = await fetch(url, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` }),
-      ...headers,
-    },
-    body,
-    credentials: "include",
-  });
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+        ...headers,
+      },
+      body,
+      credentials: "include",
+    });
 
-  // If unauthorized, clear token and redirect to login
-  if (res.status === 401) {
-    localStorage.removeItem("auth_token");
-    window.location.href = "/login";
-    return;
-  }
+    // If unauthorized, clear token and redirect to login
+    if (res.status === 401) {
+      localStorage.removeItem("auth_token");
+      window.location.href = "/login";
+      return;
+    }
 
-  await throwIfResNotOk(res);
-  
-  // Handle empty responses (like 204 No Content)
-  const contentType = res.headers.get("content-type");
-  if (res.status === 204 || !contentType?.includes("application/json")) {
-    return null;
+    await throwIfResNotOk(res);
+    
+    // Handle empty responses (like 204 No Content)
+    const contentType = res.headers.get("content-type");
+    if (res.status === 204 || !contentType?.includes("application/json")) {
+      return null;
+    }
+    
+    const text = await res.text();
+    return text ? JSON.parse(text) : null;
+  } catch (error) {
+    // Enhanced error handling with more context
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error(`Network error: Unable to connect to server. Please check your connection and try again.`);
+    }
+    throw error;
   }
-  
-  const text = await res.text();
-  return text ? JSON.parse(text) : null;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -86,7 +93,14 @@ export const queryClient = new QueryClient({
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: Infinity,
-      retry: false,
+      retry: (failureCount, error) => {
+        // Retry network errors up to 2 times
+        if (error?.message?.includes('Network error') && failureCount < 2) {
+          return true;
+        }
+        return false;
+      },
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     },
     mutations: {
       retry: false,
