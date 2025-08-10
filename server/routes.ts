@@ -2997,6 +2997,41 @@ except Exception as e:
                 console.error('GEMINI EXTRACTION: Failed to save extraction data:', saveError);
               }
             }
+
+            // Save field validations to database if available
+            if (result.success && result.extracted_data && result.extracted_data.field_validations) {
+              try {
+                const fieldValidations = result.extracted_data.field_validations;
+                console.log(`GEMINI EXTRACTION: Saving ${fieldValidations.length} field validation records to database`);
+                
+                // Save each field validation record
+                for (const validation of fieldValidations) {
+                  const validationRecord = {
+                    sessionId: sessionId,
+                    validationType: validation.validation_type || 'collection_property',
+                    dataType: validation.data_type || 'TEXT',
+                    fieldId: validation.field_id,
+                    fieldName: validation.field_name,
+                    collectionName: validation.collection_name,
+                    recordIndex: validation.record_index || 0,
+                    extractedValue: validation.extracted_value,
+                    validationStatus: validation.validation_status || 'unverified',
+                    aiReasoning: validation.ai_reasoning,
+                    confidence: validation.confidence_score || 0,
+                    confidenceScore: validation.confidence_score || 0,
+                    documentSource: 'AI Extraction',
+                    manuallyUpdated: false,
+                    manuallyVerified: false
+                  };
+                  
+                  await storage.createFieldValidation(validationRecord);
+                }
+                
+                console.log(`GEMINI EXTRACTION: Successfully saved ${fieldValidations.length} validation records to database`);
+              } catch (saveError) {
+                console.error('GEMINI EXTRACTION: Failed to save field validations:', saveError);
+              }
+            }
             
             res.json({
               success: result.success,
