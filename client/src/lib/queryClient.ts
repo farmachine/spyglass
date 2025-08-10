@@ -49,8 +49,15 @@ export async function apiRequest(
     return text ? JSON.parse(text) : null;
   } catch (error) {
     // Enhanced error handling with more context
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new Error(`Network error: Unable to connect to server. Please check your connection and try again.`);
+    if (error instanceof TypeError && (
+      error.message.includes('Failed to fetch') || 
+      error.message.includes('Network request failed') ||
+      error.message.includes('fetch: network error')
+    )) {
+      throw new Error(`Network error: unable to connect to server. Please check your connection and try again.`);
+    }
+    if (error instanceof Error && error.name === 'NetworkError') {
+      throw new Error(`Network error: unable to connect to server. Please check your connection and try again.`);
     }
     throw error;
   }
