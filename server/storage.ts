@@ -4,6 +4,7 @@ import {
   objectCollections, 
   collectionProperties, 
   extractionSessions,
+  sessionDocuments,
   knowledgeDocuments,
   extractionRules,
   fieldValidations,
@@ -21,6 +22,8 @@ import {
   type InsertCollectionProperty,
   type ExtractionSession,
   type InsertExtractionSession,
+  type SessionDocument,
+  type InsertSessionDocument,
   type KnowledgeDocument,
   type InsertKnowledgeDocument,
   type ExtractionRule,
@@ -104,6 +107,12 @@ export interface IStorage {
   createExtractionSession(session: InsertExtractionSession): Promise<ExtractionSession>;
   updateExtractionSession(id: string, session: Partial<InsertExtractionSession>): Promise<ExtractionSession | undefined>;
 
+  // Session Documents
+  getSessionDocuments(sessionId: string): Promise<SessionDocument[]>;
+  createSessionDocument(document: InsertSessionDocument): Promise<SessionDocument>;
+  updateSessionDocument(id: string, document: Partial<InsertSessionDocument>): Promise<SessionDocument | undefined>;
+  deleteSessionDocument(id: string): Promise<boolean>;
+
   // Knowledge Documents
   getKnowledgeDocuments(projectId: string): Promise<KnowledgeDocument[]>;
   createKnowledgeDocument(document: InsertKnowledgeDocument): Promise<KnowledgeDocument>;
@@ -144,6 +153,7 @@ export class MemStorage implements IStorage {
   private objectCollections: Map<string, ObjectCollection>;
   private collectionProperties: Map<string, CollectionProperty>;
   private extractionSessions: Map<string, ExtractionSession>;
+  private sessionDocuments: Map<string, SessionDocument>;
   private knowledgeDocuments: Map<string, KnowledgeDocument>;
   private extractionRules: Map<string, ExtractionRule>;
   private fieldValidations: Map<string, FieldValidation>;
@@ -158,6 +168,7 @@ export class MemStorage implements IStorage {
     this.objectCollections = new Map();
     this.collectionProperties = new Map();
     this.extractionSessions = new Map();
+    this.sessionDocuments = new Map();
     this.knowledgeDocuments = new Map();
     this.extractionRules = new Map();
     this.fieldValidations = new Map();
@@ -1172,6 +1183,37 @@ export class MemStorage implements IStorage {
     const updatedSession = { ...session, ...updateData, updatedAt: new Date() };
     this.extractionSessions.set(id, updatedSession);
     return updatedSession;
+  }
+
+  // Session Documents (MemStorage implementation)
+  async getSessionDocuments(sessionId: string): Promise<SessionDocument[]> {
+    return Array.from(this.sessionDocuments.values())
+      .filter(doc => doc.sessionId === sessionId)
+      .sort((a, b) => new Date(a.extractedAt).getTime() - new Date(b.extractedAt).getTime());
+  }
+
+  async createSessionDocument(insertDocument: InsertSessionDocument): Promise<SessionDocument> {
+    const id = this.generateUUID();
+    const document: SessionDocument = {
+      ...insertDocument,
+      id,
+      extractedAt: new Date(),
+    };
+    this.sessionDocuments.set(id, document);
+    return document;
+  }
+
+  async updateSessionDocument(id: string, updateData: Partial<InsertSessionDocument>): Promise<SessionDocument | undefined> {
+    const document = this.sessionDocuments.get(id);
+    if (!document) return undefined;
+
+    const updatedDocument = { ...document, ...updateData };
+    this.sessionDocuments.set(id, updatedDocument);
+    return updatedDocument;
+  }
+
+  async deleteSessionDocument(id: string): Promise<boolean> {
+    return this.sessionDocuments.delete(id);
   }
 
   // Knowledge Documents
@@ -2272,6 +2314,37 @@ class PostgreSQLStorage implements IStorage {
           eq(projectPublishing.organizationId, organizationId)
         )
       );
+    return result.rowCount > 0;
+  }
+
+  // Session Documents
+  async getSessionDocuments(sessionId: string): Promise<SessionDocument[]> {
+    const result = await this.db
+      .select()
+      .from(sessionDocuments)
+      .where(eq(sessionDocuments.sessionId, sessionId))
+      .orderBy(sessionDocuments.extractedAt);
+    return result;
+  }
+
+  async createSessionDocument(document: InsertSessionDocument): Promise<SessionDocument> {
+    const result = await this.db.insert(sessionDocuments).values(document).returning();
+    return result[0];
+  }
+
+  async updateSessionDocument(id: string, document: Partial<InsertSessionDocument>): Promise<SessionDocument | undefined> {
+    const result = await this.db
+      .update(sessionDocuments)
+      .set(document)
+      .where(eq(sessionDocuments.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteSessionDocument(id: string): Promise<boolean> {
+    const result = await this.db
+      .delete(sessionDocuments)
+      .where(eq(sessionDocuments.id, id));
     return result.rowCount > 0;
   }
 

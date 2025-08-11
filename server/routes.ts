@@ -1533,6 +1533,18 @@ except Exception as e:
     }
   });
 
+  // Get session documents endpoint
+  app.get("/api/sessions/:sessionId/documents", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const documents = await storage.getSessionDocuments(sessionId);
+      res.json(documents);
+    } catch (error) {
+      console.error("Get session documents error:", error);
+      res.status(500).json({ message: "Failed to fetch session documents" });
+    }
+  });
+
   // Helper function to generate initial field validations for a new session
   const generateInitialFieldValidations = async (sessionId: string, projectId: string) => {
     try {
@@ -2142,6 +2154,40 @@ except Exception as e:
         try {
           const result = JSON.parse(output);
           console.log(`TEXT EXTRACTION: Extracted text from ${result.extracted_texts?.length || 0} documents`);
+          
+          // Save each document with its extracted content to session documents table
+          if (result.extracted_texts && Array.isArray(result.extracted_texts)) {
+            for (const extractedText of result.extracted_texts) {
+              try {
+                // Find the original file to get size and MIME type
+                const originalFile = convertedFiles.find(f => f.file_name === extractedText.file_name);
+                
+                // Calculate file size from data URL if available
+                let fileSize = null;
+                if (originalFile?.file_content && originalFile.file_content.startsWith('data:')) {
+                  try {
+                    const base64Data = originalFile.file_content.split(',')[1];
+                    fileSize = Math.floor(base64Data.length * 0.75); // Approximate file size from base64
+                  } catch (e) {
+                    console.warn(`Could not calculate file size for ${extractedText.file_name}`);
+                  }
+                }
+                
+                await storage.createSessionDocument({
+                  sessionId: sessionId,
+                  fileName: extractedText.file_name,
+                  fileSize: fileSize,
+                  mimeType: originalFile?.mime_type || null,
+                  extractedContent: extractedText.text_content
+                });
+                
+                console.log(`Saved document: ${extractedText.file_name} with extracted content to session documents`);
+              } catch (docError) {
+                console.error(`Failed to save document ${extractedText.file_name}:`, docError);
+                // Continue with other documents even if one fails
+              }
+            }
+          }
           
           // Save extracted data to session
           await storage.updateExtractionSession(sessionId, {
