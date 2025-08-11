@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2 } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import * as XLSX from 'xlsx';
 import { Link } from "wouter";
@@ -2176,8 +2176,9 @@ Thank you for your assistance.`;
               {activeTab === 'info' && (
                 <Card className="border-t-0 rounded-tl-none ml-0">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      General Information
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">General Information</span>
+                      <Wand2 className="h-4 w-4 text-slate-400" />
                     </CardTitle>
                     <p className="text-sm text-gray-600">
                       Core information and fields extracted from this {(project.mainObjectName || "session").toLowerCase()}.
@@ -2497,11 +2498,14 @@ Thank you for your assistance.`;
                   <div key={collection.id} className="mt-0 px-0 ml-0">
                     <Card className="border-t-0 rounded-tl-none ml-0">
                       <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          {collection.collectionName}
-                          <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                            {uniqueIndices.length} {uniqueIndices.length === 1 ? 'item' : 'items'}
-                          </span>
+                        <CardTitle className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            {collection.collectionName}
+                            <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                              {uniqueIndices.length} {uniqueIndices.length === 1 ? 'item' : 'items'}
+                            </span>
+                          </div>
+                          <Wand2 className="h-4 w-4 text-slate-400" />
                         </CardTitle>
                         <p className="text-sm text-gray-600">{collection.description}</p>
                       </CardHeader>
