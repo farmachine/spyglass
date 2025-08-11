@@ -4519,7 +4519,7 @@ print(json.dumps(result))
         
         if (fileType === "pdf" || fileType === "word") {
           // Use existing Python text extraction
-          const extractResponse = await fetch("http://localhost:5000/api/extract-text-only", {
+          const extractResponse = await fetch("http://127.0.0.1:5001/api/extract-text-only", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -4537,7 +4537,7 @@ print(json.dumps(result))
           }
         } else if (fileType === "excel") {
           // Use Python for Excel processing
-          const extractResponse = await fetch("http://localhost:5000/api/extract-text-only", {
+          const extractResponse = await fetch("http://127.0.0.1:5001/api/extract-text-only", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
