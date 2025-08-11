@@ -1949,70 +1949,101 @@ Thank you for your assistance.`;
           
           {/* Session Navigation - Only visible in session view */}
           <div className="border-t border-slate-200 p-4 flex-1">
-            <div className="mb-3">
+            <div className="mb-4">
               <h3 className="text-xs font-medium text-slate-700 uppercase tracking-wider">Session Sections</h3>
             </div>
-            <div className="space-y-0.5">
-              {/* General Information Tab */}
-              <button
-                onClick={() => setActiveTab('info')}
-                className={`w-full flex items-center justify-between px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
-                  activeTab === 'info' 
-                    ? 'bg-primary text-white font-medium shadow-sm' 
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal'
-                }`}
-              >
-                <span>General Information</span>
-                {(() => {
-                  const infoValidations = validations.filter(v => !v.collectionName && !v.fieldName.includes('.'));
-                  const verifiedCount = infoValidations.filter(v => 
-                    v.validationStatus === 'verified' || 
-                    (v.validationStatus === 'valid' && v.manuallyVerified === true)
-                  ).length;
-                  const totalCount = infoValidations.length;
-                  
-                  if (totalCount === 0) return null;
-                  if (verifiedCount === totalCount) {
-                    return <Check className="w-3 h-3 text-green-400" />;
-                  } else {
-                    return null;
-                  }
-                })()}
-              </button>
+            <div className="relative">
+              {/* Vertical connecting line */}
+              <div className="absolute left-4 top-4 bottom-0 w-px bg-slate-200"></div>
               
-              {/* Collection Tabs */}
-              {project.collections.map((collection) => {
-                const collectionValidations = validations.filter(v => 
-                  v.collectionName === collection.collectionName || 
-                  (v.fieldName && v.fieldName.startsWith(collection.collectionName + '.'))
-                );
-                const validationIndices = collectionValidations.length > 0 ? 
-                  collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null && idx !== undefined) : [];
-                const uniqueIndices = [...new Set(validationIndices)].sort((a, b) => a - b);
-                
-                const verifiedCount = collectionValidations.filter(v => 
-                  v.validationStatus === 'verified' || 
-                  (v.validationStatus === 'valid' && v.manuallyVerified === true)
-                ).length;
-                const totalCount = collectionValidations.length;
-                
-                return (
+              <div className="space-y-3">
+                {/* General Information Tab */}
+                <div className="relative flex items-center">
+                  {/* Circular icon */}
+                  <div className={`relative z-10 w-8 h-8 rounded-full border-2 flex items-center justify-center ${
+                    activeTab === 'info' 
+                      ? 'bg-primary border-primary' 
+                      : 'bg-white border-slate-300'
+                  }`}>
+                    {(() => {
+                      const infoValidations = validations.filter(v => !v.collectionName && !v.fieldName.includes('.'));
+                      const verifiedCount = infoValidations.filter(v => 
+                        v.validationStatus === 'verified' || 
+                        (v.validationStatus === 'valid' && v.manuallyVerified === true)
+                      ).length;
+                      const totalCount = infoValidations.length;
+                      
+                      if (totalCount > 0 && verifiedCount === totalCount) {
+                        return <Check className="w-4 h-4 text-green-600" />;
+                      } else {
+                        return <div className={`w-3 h-3 rounded-full ${
+                          activeTab === 'info' ? 'bg-white' : 'bg-slate-400'
+                        }`}></div>;
+                      }
+                    })()}
+                  </div>
+                  
+                  {/* Tab button */}
                   <button
-                    key={collection.id}
-                    onClick={() => setActiveTab(collection.collectionName)}
-                    className={`w-full flex items-center justify-between px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
-                      activeTab === collection.collectionName 
+                    onClick={() => setActiveTab('info')}
+                    className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
+                      activeTab === 'info' 
                         ? 'bg-primary text-white font-medium shadow-sm' 
                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal'
                     }`}
                   >
-                    <span className="truncate">{collection.collectionName} ({uniqueIndices.length})</span>
-                    {totalCount > 0 && verifiedCount === totalCount && (
-                      <Check className="w-3 h-3 text-green-400 flex-shrink-0 ml-1" />
-                    )}
+                    General Information
                   </button>
-                );
-              })}
+                </div>
+                
+                {/* Collection Tabs */}
+                {project.collections.map((collection, index) => {
+                  const collectionValidations = validations.filter(v => 
+                    v.collectionName === collection.collectionName || 
+                    (v.fieldName && v.fieldName.startsWith(collection.collectionName + '.'))
+                  );
+                  const validationIndices = collectionValidations.length > 0 ? 
+                    collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null && idx !== undefined) : [];
+                  const uniqueIndices = [...new Set(validationIndices)].sort((a, b) => a - b);
+                  
+                  const verifiedCount = collectionValidations.filter(v => 
+                    v.validationStatus === 'verified' || 
+                    (v.validationStatus === 'valid' && v.manuallyVerified === true)
+                  ).length;
+                  const totalCount = collectionValidations.length;
+                  
+                  return (
+                    <div key={collection.id} className="relative flex items-center">
+                      {/* Circular icon */}
+                      <div className={`relative z-10 w-8 h-8 rounded-full border-2 flex items-center justify-center ${
+                        activeTab === collection.collectionName 
+                          ? 'bg-primary border-primary' 
+                          : 'bg-white border-slate-300'
+                      }`}>
+                        {totalCount > 0 && verifiedCount === totalCount ? (
+                          <Check className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <div className={`w-3 h-3 rounded-full ${
+                            activeTab === collection.collectionName ? 'bg-white' : 'bg-slate-400'
+                          }`}></div>
+                        )}
+                      </div>
+                      
+                      {/* Tab button */}
+                      <button
+                        onClick={() => setActiveTab(collection.collectionName)}
+                        className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
+                          activeTab === collection.collectionName 
+                            ? 'bg-primary text-white font-medium shadow-sm' 
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal'
+                        }`}
+                      >
+                        <div className="truncate">{collection.collectionName} ({uniqueIndices.length})</div>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
