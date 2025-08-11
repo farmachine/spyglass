@@ -4565,13 +4565,20 @@ print(json.dumps(result))
 
       // Filter schema and collections to only selected target fields
       const allProjectFields = [
-        ...(project_data.schemaFields || []),
+        ...(project_data.schemaFields || []).map((field: any) => ({
+          id: field.id,
+          name: field.fieldName,
+          type: field.fieldType || 'TEXT',
+          isSchema: true
+        })),
         ...(project_data.collections || []).flatMap((collection: any) => 
           (collection.properties || []).map((prop: any) => ({
-            id: `${collection.collectionName}.${prop.propertyName}`,
+            id: prop.id,
             name: `${collection.collectionName} - ${prop.propertyName}`,
             type: prop.fieldType || 'TEXT',
-            collectionName: collection.collectionName
+            collectionName: collection.collectionName,
+            propertyName: prop.propertyName,
+            isCollection: true
           }))
         )
       ];
@@ -4579,8 +4586,8 @@ print(json.dumps(result))
       const selectedFields = allProjectFields.filter(field => selectedTargetFields.includes(field.id));
       
       // Separate selected fields back into schema and collections
-      const targetSchemaFields = selectedFields.filter(field => !field.id.includes('.'));
-      const targetCollectionFields = selectedFields.filter(field => field.id.includes('.'));
+      const targetSchemaFields = selectedFields.filter(field => field.isSchema);
+      const targetCollectionFields = selectedFields.filter(field => field.isCollection);
       
       // Rebuild collections structure with only selected properties
       const targetCollections = [...new Set(targetCollectionFields.map(field => field.collectionName))]
@@ -4589,8 +4596,8 @@ print(json.dumps(result))
           const selectedProperties = targetCollectionFields
             .filter(field => field.collectionName === collectionName)
             .map(field => {
-              const propertyName = field.id.split('.')[1];
-              return originalCollection?.properties.find((p: any) => p.propertyName === propertyName);
+              // Find the property by ID instead of constructed name
+              return originalCollection?.properties.find((p: any) => p.id === field.id);
             })
             .filter(Boolean);
 
