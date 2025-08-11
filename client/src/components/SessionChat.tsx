@@ -92,8 +92,8 @@ export default function SessionChat({ sessionId, session, validations }: Session
   return (
     <div className="fixed bottom-4 right-4 z-50">
       <Card 
-        className={`w-80 shadow-lg border-[#4F63A4]/20 ${
-          isMinimized ? 'h-auto' : 'h-96'
+        className={`w-96 shadow-lg border-[#4F63A4]/20 ${
+          isMinimized ? 'h-auto' : 'h-[500px]'
         }`}
       >
         <CardHeader className="p-3 pb-2 border-b">
@@ -124,7 +124,7 @@ export default function SessionChat({ sessionId, session, validations }: Session
         </CardHeader>
 
         {!isMinimized && (
-          <CardContent className="p-0 flex flex-col h-80">
+          <CardContent className="p-0 flex flex-col h-[440px]">
             <ScrollArea className="flex-1 p-3">
               <div className="space-y-2">
                 {isLoading ? (
@@ -147,7 +147,7 @@ export default function SessionChat({ sessionId, session, validations }: Session
                         </div>
                       )}
                       <div
-                        className={`max-w-[75%] px-2 py-1.5 rounded-lg text-xs leading-relaxed ${
+                        className={`max-w-[80%] px-3 py-2 rounded-lg text-sm leading-relaxed ${
                           msg.role === 'user'
                             ? 'bg-[#4F63A4] text-white'
                             : 'bg-gray-100 text-gray-900'
@@ -183,28 +183,25 @@ export default function SessionChat({ sessionId, session, validations }: Session
               </div>
             </ScrollArea>
 
-            <div className="flex gap-2 p-3 border-t bg-gray-50">
-              <Input
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }}
-                placeholder="Ask about this session..."
-                className="flex-1 text-xs h-8 bg-white"
-                disabled={sendMessageMutation.isPending}
-              />
-              <Button
-                onClick={handleSendMessage}
-                disabled={!message.trim() || sendMessageMutation.isPending}
-                size="sm"
-                className="bg-[#4F63A4] hover:bg-[#3d4f85] text-white px-2 h-8"
-              >
-                <Send className="h-3 w-3" />
-              </Button>
+            <div className="border-t p-3">
+              <div className="flex gap-2">
+                <Input
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Ask about this session's data..."
+                  className="flex-1 text-sm h-10"
+                  disabled={sendMessageMutation.isPending}
+                />
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!message.trim() || sendMessageMutation.isPending}
+                  size="sm"
+                  className="bg-[#4F63A4] hover:bg-[#3d4f85] text-white h-10 px-4"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </CardContent>
         )}
