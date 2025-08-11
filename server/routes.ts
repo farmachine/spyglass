@@ -4155,13 +4155,15 @@ except Exception as e:
               if (!existingFieldNames.includes(property.propertyName)) {
                 const newFieldName = `${updatedValidation.collectionName}.${property.propertyName}[${updatedValidation.recordIndex}]`;
                 
-                await storage.createFieldValidation({
+                const newValidation = {
                   sessionId: updatedValidation.sessionId,
-                  fieldName: newFieldName,
+                  validationType: "collection_property" as const,
+                  dataType: property.propertyType || "TEXT", // Use propertyType from collection property
+                  fieldId: property.id,
                   collectionName: updatedValidation.collectionName,
                   recordIndex: updatedValidation.recordIndex,
                   extractedValue: null,
-                  validationStatus: "pending",
+                  validationStatus: "pending" as const,
                   confidenceScore: 0,
                   aiReasoning: null,
                   manuallyVerified: false,
@@ -4169,7 +4171,9 @@ except Exception as e:
                   originalExtractedValue: null,
                   originalConfidenceScore: null,
                   originalAiReasoning: null
-                });
+                };
+                
+                await storage.createFieldValidation(newValidation);
               }
             }
           }
