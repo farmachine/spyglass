@@ -137,7 +137,7 @@ export interface IStorage {
   // Chat Messages
   getChatMessages(sessionId: string): Promise<ChatMessage[]>;
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
-
+  
   // Session Documents
   getSessionDocuments(sessionId: string): Promise<SessionDocument[]>;
   getSessionDocument(id: string): Promise<SessionDocument | undefined>;
@@ -1369,35 +1369,36 @@ export class MemStorage implements IStorage {
   async getSessionDocuments(sessionId: string): Promise<SessionDocument[]> {
     return Array.from(this.sessionDocuments.values())
       .filter(doc => doc.sessionId === sessionId)
-      .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
   async getSessionDocument(id: string): Promise<SessionDocument | undefined> {
     return this.sessionDocuments.get(id);
   }
 
-  async createSessionDocument(insertDocument: InsertSessionDocument): Promise<SessionDocument> {
+  async createSessionDocument(document: InsertSessionDocument): Promise<SessionDocument> {
     const id = this.generateUUID();
-    const document: SessionDocument = {
-      ...insertDocument,
+    const sessionDocument: SessionDocument = {
       id,
-      uploadedAt: new Date(),
-      processedAt: null,
+      ...document,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
-    this.sessionDocuments.set(id, document);
-    return document;
+    this.sessionDocuments.set(id, sessionDocument);
+    return sessionDocument;
   }
 
-  async updateSessionDocument(id: string, updateData: Partial<InsertSessionDocument>): Promise<SessionDocument | undefined> {
-    const document = this.sessionDocuments.get(id);
-    if (!document) return undefined;
-
-    const updatedDocument = { ...document, ...updateData };
-    if (updateData.extractionStatus === 'extracted' && !document.processedAt) {
-      updatedDocument.processedAt = new Date();
-    }
-    this.sessionDocuments.set(id, updatedDocument);
-    return updatedDocument;
+  async updateSessionDocument(id: string, document: Partial<InsertSessionDocument>): Promise<SessionDocument | undefined> {
+    const existing = this.sessionDocuments.get(id);
+    if (!existing) return undefined;
+    
+    const updated = { 
+      ...existing, 
+      ...document,
+      updatedAt: new Date() 
+    };
+    this.sessionDocuments.set(id, updated);
+    return updated;
   }
 
   async deleteSessionDocument(id: string): Promise<boolean> {
@@ -2343,57 +2344,41 @@ class PostgreSQLStorage implements IStorage {
 
   // Session Documents
   async getSessionDocuments(sessionId: string): Promise<SessionDocument[]> {
-    return this.retryOperation(async () => {
-      const result = await this.db
-        .select()
-        .from(sessionDocuments)
-        .where(eq(sessionDocuments.sessionId, sessionId))
-        .orderBy(sessionDocuments.uploadedAt);
-      return result;
-    });
+    const result = await this.db
+      .select()
+      .from(sessionDocuments)
+      .where(eq(sessionDocuments.sessionId, sessionId))
+      .orderBy(sessionDocuments.createdAt);
+    return result;
   }
 
   async getSessionDocument(id: string): Promise<SessionDocument | undefined> {
-    return this.retryOperation(async () => {
-      const result = await this.db
-        .select()
-        .from(sessionDocuments)
-        .where(eq(sessionDocuments.id, id))
-        .limit(1);
-      return result[0];
-    });
+    const result = await this.db
+      .select()
+      .from(sessionDocuments)
+      .where(eq(sessionDocuments.id, id));
+    return result[0];
   }
 
   async createSessionDocument(document: InsertSessionDocument): Promise<SessionDocument> {
-    return this.retryOperation(async () => {
-      const result = await this.db.insert(sessionDocuments).values(document).returning();
-      return result[0];
-    });
+    const result = await this.db.insert(sessionDocuments).values(document).returning();
+    return result[0];
   }
 
-  async updateSessionDocument(id: string, updateData: Partial<InsertSessionDocument>): Promise<SessionDocument | undefined> {
-    return this.retryOperation(async () => {
-      const updateWithTimestamp = { ...updateData };
-      if (updateData.extractionStatus === 'extracted') {
-        updateWithTimestamp.processedAt = new Date();
-      }
-      
-      const result = await this.db
-        .update(sessionDocuments)
-        .set(updateWithTimestamp)
-        .where(eq(sessionDocuments.id, id))
-        .returning();
-      return result[0];
-    });
+  async updateSessionDocument(id: string, document: Partial<InsertSessionDocument>): Promise<SessionDocument | undefined> {
+    const result = await this.db
+      .update(sessionDocuments)
+      .set({ ...document, updatedAt: new Date() })
+      .where(eq(sessionDocuments.id, id))
+      .returning();
+    return result[0];
   }
 
   async deleteSessionDocument(id: string): Promise<boolean> {
-    return this.retryOperation(async () => {
-      const result = await this.db
-        .delete(sessionDocuments)
-        .where(eq(sessionDocuments.id, id));
-      return result.rowCount > 0;
-    });
+    const result = await this.db
+      .delete(sessionDocuments)
+      .where(eq(sessionDocuments.id, id));
+    return result.rowCount > 0;
   }
 }
 

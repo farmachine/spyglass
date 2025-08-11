@@ -119,22 +119,6 @@ export const fieldValidations = pgTable("field_validations", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Session documents - stores uploaded documents and their extracted content
-export const sessionDocuments = pgTable("session_documents", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
-  fileName: text("file_name").notNull(),
-  fileType: text("file_type").notNull(), // 'pdf', 'excel', 'word', 'other'
-  mimeType: text("mime_type").notNull(),
-  fileSize: integer("file_size"), // File size in bytes
-  fileContent: text("file_content").notNull(), // Base64 encoded file content
-  extractedContent: text("extracted_content"), // Extracted text content
-  extractionStatus: text("extraction_status").default("pending").notNull(), // 'pending', 'extracted', 'failed'
-  extractionError: text("extraction_error"), // Error message if extraction failed
-  uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
-  processedAt: timestamp("processed_at"), // When text extraction completed
-});
-
 export const knowledgeDocuments = pgTable("knowledge_documents", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
@@ -166,6 +150,24 @@ export const chatMessages = pgTable("chat_messages", {
   role: text("role", { enum: ["user", "assistant"] }).notNull(),
   content: text("content").notNull(),
   timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
+// Session documents for storing uploaded files with extracted content
+export const sessionDocuments = pgTable("session_documents", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
+  fileName: text("file_name").notNull(),
+  originalFileName: text("original_file_name").notNull(),
+  fileType: text("file_type").notNull(), // 'pdf', 'excel', 'word'
+  mimeType: text("mime_type").notNull(),
+  fileSize: integer("file_size").notNull(),
+  fileContent: text("file_content").notNull(), // base64 encoded file data
+  extractedText: text("extracted_text"), // extracted text content
+  extractionStatus: text("extraction_status").default("pending").notNull(), // 'pending', 'extracted', 'failed'
+  extractionError: text("extraction_error"), // error message if extraction failed
+  uploadedBy: uuid("uploaded_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Insert schemas
@@ -236,8 +238,8 @@ export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
 
 export const insertSessionDocumentSchema = createInsertSchema(sessionDocuments).omit({
   id: true,
-  uploadedAt: true,
-  processedAt: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 // Types

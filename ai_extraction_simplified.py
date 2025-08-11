@@ -1481,53 +1481,8 @@ RETURN: Complete readable content from this document."""
                 else:
                     raise e  # Re-raise if not overload error or final attempt
         
-        # Handle response with proper error checking for finish_reason
-        if not response:
-            logging.error("No response received from Gemini API")
-            return ExtractionResult(success=False, error_message="No response received from Gemini API")
-        
-        # Check if response has candidates and if they were blocked
-        if hasattr(response, 'candidates') and response.candidates:
-            candidate = response.candidates[0]
-            if hasattr(candidate, 'finish_reason'):
-                finish_reason = candidate.finish_reason
-                if finish_reason == 1:  # SAFETY filter triggered
-                    logging.error("AI response was blocked by safety filters")
-                    return ExtractionResult(
-                        success=False, 
-                        error_message="AI response was blocked by safety filters. The document content may contain sensitive information that triggered content filtering. Please try with a different document or contact support.",
-                        extraction_prompt=final_prompt,
-                        ai_response=f"Finish reason: {finish_reason} (SAFETY)"
-                    )
-                elif finish_reason != 0 and finish_reason is not None:  # 0 = FINISH_REASON_STOP (normal completion)
-                    logging.error(f"AI response incomplete with finish_reason: {finish_reason}")
-                    return ExtractionResult(
-                        success=False, 
-                        error_message=f"AI response was incomplete (finish_reason: {finish_reason}). This may indicate the content was too large or triggered safety filters.",
-                        extraction_prompt=final_prompt,
-                        ai_response=f"Finish reason: {finish_reason}"
-                    )
-        
-        # Try to get response text safely
-        try:
-            if hasattr(response, 'text') and response.text:
-                response_text = response.text.strip()
-            else:
-                logging.error("No valid response text received from Gemini API")
-                return ExtractionResult(
-                    success=False, 
-                    error_message="No valid response text received from Gemini API - response object exists but has no accessible text",
-                    extraction_prompt=final_prompt,
-                    ai_response=str(response)
-                )
-        except Exception as text_error:
-            logging.error(f"Error accessing response text: {text_error}")
-            return ExtractionResult(
-                success=False, 
-                error_message=f"Error accessing response text: {text_error}. This usually indicates the AI response was blocked by safety filters.",
-                extraction_prompt=final_prompt,
-                ai_response=str(response)
-            )
+        if not response or not response.text:
+            return ExtractionResult(success=False, error_message="No response from AI")
         
         # Extract token usage information
         input_token_count = None
@@ -1565,7 +1520,7 @@ RETURN: Complete readable content from this document."""
             logging.info(f"TOKEN USAGE (fallback): Input tokens: {input_token_count}, Output tokens: {output_token_count}")
         
         # Parse JSON response - handle markdown code blocks
-        # Note: response_text was already extracted above with safety checks
+        response_text = response.text.strip()
         
         # Log raw AI response for debugging
         logging.info(f"STEP 2: Raw AI response length: {len(response_text)}")
@@ -1714,7 +1669,7 @@ RETURN: Complete readable content from this document."""
                 success=True, 
                 extracted_data=extracted_data,
                 extraction_prompt=final_prompt,
-                ai_response=response_text,
+                ai_response=response.text,
                 input_token_count=input_token_count,
                 output_token_count=output_token_count
             )
