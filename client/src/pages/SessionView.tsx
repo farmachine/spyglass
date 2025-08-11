@@ -343,8 +343,7 @@ const AIExtractionModal = ({
                 {(() => {
                   console.log('SessionDocuments in modal:', { 
                     sessionDocuments, 
-                    length: sessionDocuments?.length,
-                    documentsLoading 
+                    length: sessionDocuments?.length
                   });
                   return sessionDocuments.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No documents uploaded</p>
