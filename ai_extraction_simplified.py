@@ -901,12 +901,23 @@ def step1_extract_from_documents(
         if not additional_instructions:
             additional_instructions = "No additional instructions provided."
         
+        # Handle existing collection records exclusion
+        existing_records_text = ""
+        existing_collection_records = input_data.get('existing_collection_records', {})
+        if existing_collection_records:
+            existing_records_text = "\n\n**IMPORTANT - EXISTING COLLECTION RECORDS TO SKIP:**\n"
+            for collection_name, record_indexes in existing_collection_records.items():
+                if record_indexes:
+                    existing_records_text += f"- Collection '{collection_name}': Skip record indexes {record_indexes} (already extracted)\n"
+            existing_records_text += "\nYou MUST extract NEW records only. Do not extract the same record indexes listed above. Start from the next available record index.\n"
+            logging.info(f"EXCLUSION LOGIC: Skipping existing records: {existing_collection_records}")
+        
         # Use the imported prompt template with our schema, collections, verified context, and JSON schema
         full_prompt = json_schema_section + "\n" + EXTRACTION_PROMPT.format(
             verified_context=verified_context_text,
             schema_fields=schema_fields_text,
             collections=collections_text,
-            additional_instructions=additional_instructions
+            additional_instructions=additional_instructions + existing_records_text
         )
         
         # Generate field validation JSON structure

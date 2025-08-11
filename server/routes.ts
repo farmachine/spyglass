@@ -4563,6 +4563,29 @@ print(json.dumps(result))
         };
       }
 
+      // Get existing collection validations to exclude from new extraction
+      const existingCollectionValidations = allValidations.filter(validation => 
+        validation.validationType === 'collection_property' &&
+        (validation.validationStatus === 'verified' || validation.validationStatus === 'unverified')
+      );
+
+      // Build list of already extracted collection record indexes by collection
+      const existingCollectionRecords: Record<string, Set<number>> = {};
+      for (const validation of existingCollectionValidations) {
+        if (validation.collectionName && validation.recordIndex !== null) {
+          if (!existingCollectionRecords[validation.collectionName]) {
+            existingCollectionRecords[validation.collectionName] = new Set();
+          }
+          existingCollectionRecords[validation.collectionName].add(validation.recordIndex);
+        }
+      }
+
+      console.log('MODAL_EXTRACTION: Existing collection records to exclude:', 
+        Object.entries(existingCollectionRecords).map(([collection, indexes]) => 
+          `${collection}: ${Array.from(indexes).length} records (${Array.from(indexes).slice(0, 5).join(', ')}${Array.from(indexes).length > 5 ? '...' : ''})`
+        )
+      );
+
       // Filter schema and collections to only selected target fields
       const allProjectFields = [
         ...(project_data.schemaFields || []).map((field: any) => ({
@@ -4647,6 +4670,11 @@ print(json.dumps(result))
         session_name: project_data?.mainObjectName || "contract",
         validated_data_context: verifiedDataContext,
         is_subsequent_upload: Object.keys(verifiedDataContext).length > 0,
+        existing_collection_records: Object.fromEntries(
+          Object.entries(existingCollectionRecords).map(([collection, indexes]) => 
+            [collection, Array.from(indexes)]
+          )
+        ),
         additional_instructions: additionalInstructions || ""
       };
 
