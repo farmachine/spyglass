@@ -326,26 +326,25 @@ const AIExtractionModal = ({
   // Organize fields by category
   const organizeFields = () => {
     const schemaFields: typeof allProjectFields = [];
-    const collectionFieldsByCollection: Record<string, typeof allProjectFields> = {};
+    const collectionNames: string[] = [];
 
     allTargetFields.forEach(field => {
       if (field.id.includes('.')) {
         // Collection field
         const [collectionName] = field.id.split('.');
-        if (!collectionFieldsByCollection[collectionName]) {
-          collectionFieldsByCollection[collectionName] = [];
+        if (!collectionNames.includes(collectionName)) {
+          collectionNames.push(collectionName);
         }
-        collectionFieldsByCollection[collectionName].push(field);
       } else {
         // Schema field
         schemaFields.push(field);
       }
     });
 
-    return { schemaFields, collectionFieldsByCollection };
+    return { schemaFields, collectionNames };
   };
 
-  const { schemaFields, collectionFieldsByCollection } = organizeFields();
+  const { schemaFields, collectionNames } = organizeFields();
 
   // Add modal open effect to debug
   useEffect(() => {
@@ -432,7 +431,7 @@ const AIExtractionModal = ({
                   Select All
                 </Button>
               </div>
-              <div className="space-y-3 max-h-64 overflow-y-auto border rounded-lg p-3">
+              <div className="space-y-4 max-h-64 overflow-y-auto border rounded-lg p-3">
                 {allTargetFields.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No target fields available</p>
                 ) : (
@@ -472,40 +471,25 @@ const AIExtractionModal = ({
                       </div>
                     )}
 
-                    {/* Collection Fields Sections */}
-                    {Object.entries(collectionFieldsByCollection).map(([collectionName, fields]) => (
-                      <div key={collectionName} className="space-y-2">
-                        <button
-                          onClick={() => toggleSection(`collection-${collectionName}`)}
-                          className="flex items-center justify-between w-full p-2 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
-                        >
-                          <div className="flex items-center gap-2">
-                            {expandedSections.has(`collection-${collectionName}`) ? (
-                              <ChevronDown className="h-4 w-4" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4" />
-                            )}
-                            <span className="text-sm font-medium">{collectionName} ({fields.length})</span>
-                          </div>
-                        </button>
-                        {expandedSections.has(`collection-${collectionName}`) && (
-                          <div className="grid grid-cols-1 gap-2 pl-4">
-                            {fields.map((field) => (
-                              <div key={field.id} className="flex items-center space-x-2">
-                                <Checkbox
-                                  id={`collection-${field.id}`}
-                                  checked={selectedVerifiedFields.includes(field.id)}
-                                  onCheckedChange={() => handleVerifiedFieldToggle(field.id)}
-                                />
-                                <Label htmlFor={`collection-${field.id}`} className="text-sm">
-                                  {field.name.split(' - ')[1] || field.name}
-                                </Label>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                    {/* Collection Buttons - Horizontal Layout */}
+                    {collectionNames.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">Collections</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {collectionNames.map((collectionName) => (
+                            <Button
+                              key={collectionName}
+                              variant={selectedVerifiedFields.includes(collectionName) ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => handleVerifiedFieldToggle(collectionName)}
+                              className="text-xs"
+                            >
+                              {collectionName}
+                            </Button>
+                          ))}
+                        </div>
                       </div>
-                    ))}
+                    )}
                   </>
                 )}
               </div>
