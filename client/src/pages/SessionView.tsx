@@ -1489,13 +1489,13 @@ export default function SessionView() {
     }
 
     // Add collection properties (from all collections)
-    if (collections) {
-      collections.forEach(collection => {
+    if (project?.collections) {
+      project.collections.forEach(collection => {
         if (collection.properties) {
           collection.properties.forEach(property => {
             allFields.push({
-              id: `${collection.name}.${property.propertyName}`,
-              name: `${collection.name} - ${property.propertyName}`,
+              id: `${collection.collectionName}.${property.propertyName}`,
+              name: `${collection.collectionName} - ${property.propertyName}`,
               type: property.propertyType
             });
           });
