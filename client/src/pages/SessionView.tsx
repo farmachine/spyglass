@@ -419,10 +419,10 @@ const AIExtractionModal = ({
               </div>
             </div>
 
-            {/* All Available Target Fields - Hierarchical */}
+            {/* Reference Data - Hierarchical */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">All Available Target Fields</Label>
+                <Label className="text-sm font-medium">Reference Data</Label>
                 <Button 
                   variant="outline" 
                   size="sm" 
