@@ -411,11 +411,8 @@ const AIExtractionModal = ({
         <DialogHeader className="pb-4">
           <DialogTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
             <Wand2 className="h-7 w-7 text-slate-600" />
-            Extraction Wizard
+            Extraction Wizard - {sectionName}
           </DialogTitle>
-          <div className="text-lg font-medium text-slate-700 mt-1">
-            {sectionName}
-          </div>
           <DialogDescription className="text-base text-slate-600 mt-2 leading-relaxed">
             Configure your AI extraction to find specific data from your documents. Select source documents, reference data for context, and target the exact fields you want to extract.
           </DialogDescription>
@@ -481,7 +478,7 @@ const AIExtractionModal = ({
                 <div className="flex items-center gap-2">
                   <Database className="h-4 w-4 text-slate-600" />
                   <Label className="text-sm font-medium text-slate-700">Data</Label>
-                  <span className="text-xs text-slate-500">(Optional)</span>
+                  <span className="text-xs text-slate-500">(Verified only)</span>
                 </div>
                 <Button 
                   variant="outline" 
