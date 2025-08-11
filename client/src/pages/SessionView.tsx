@@ -419,20 +419,20 @@ const AIExtractionModal = ({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-6">
-          {/* Input Section */}
-          <div className="space-y-4 bg-slate-50 p-4 rounded-lg border-2 border-slate-200">
-            <div className="flex items-center gap-2 mb-3">
+          {/* Information Sources Section */}
+          <div className="space-y-3 bg-slate-50 p-3 rounded-lg border-2 border-slate-200">
+            <div className="flex items-center gap-2 mb-2">
               <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
-              <h3 className="text-lg font-semibold text-slate-800">Input Sources</h3>
+              <h3 className="text-lg font-semibold text-slate-800">Information Sources</h3>
             </div>
-            <p className="text-sm text-slate-600 mb-4">Choose which documents and existing verified data to use for context during extraction.</p>
+            <p className="text-sm text-slate-600 mb-3">Select documents and reference data for the AI to use during extraction.</p>
 
-            {/* Uploaded Documents */}
-            <div className="space-y-3">
+            {/* Documents */}
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-sm font-medium text-slate-700">Source Documents</Label>
-                  <p className="text-xs text-slate-500 mt-1">Select documents to extract data from</p>
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-slate-600" />
+                  <Label className="text-sm font-medium text-slate-700">Documents</Label>
                 </div>
                 <Button 
                   variant="outline" 
@@ -443,7 +443,7 @@ const AIExtractionModal = ({
                   Select All
                 </Button>
               </div>
-              <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto border rounded-lg p-3">
+              <div className="grid grid-cols-1 gap-2 max-h-24 overflow-y-auto border rounded p-2">
                 {(() => {
                   console.log('SessionDocuments in modal:', { 
                     sessionDocuments, 
@@ -472,12 +472,13 @@ const AIExtractionModal = ({
               </div>
             </div>
 
-            {/* Reference Data - Hierarchical */}
-            <div className="space-y-3">
+            {/* Data */}
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-sm font-medium text-slate-700">Reference Data (Optional)</Label>
-                  <p className="text-xs text-slate-500 mt-1">Use existing verified data to provide context and improve extraction accuracy</p>
+                <div className="flex items-center gap-2">
+                  <Database className="h-4 w-4 text-slate-600" />
+                  <Label className="text-sm font-medium text-slate-700">Data</Label>
+                  <span className="text-xs text-slate-500">(Optional)</span>
                 </div>
                 <Button 
                   variant="outline" 
@@ -488,23 +489,23 @@ const AIExtractionModal = ({
                   Select All
                 </Button>
               </div>
-              <div className="space-y-4 max-h-64 overflow-y-auto border rounded-lg p-3">
+              <div className="space-y-3 max-h-32 overflow-y-auto border rounded p-2">
                 {allTargetFields.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No target fields available</p>
+                  <p className="text-sm text-muted-foreground">No data available</p>
                 ) : (
                   <>
-                    {/* General Information Fields - Horizontal Layout */}
+                    {/* General Information Fields - Compact Layout */}
                     {schemaFields.length > 0 && (
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-gray-700">General Information</Label>
-                        <div className="flex flex-wrap gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium text-slate-600">General Information</Label>
+                        <div className="flex flex-wrap gap-1">
                           {schemaFields.map((field) => (
                             <Button
                               key={field.id}
                               variant={selectedVerifiedFields.includes(field.id) ? "default" : "outline"}
                               size="sm"
                               onClick={() => handleVerifiedFieldToggle(field.id)}
-                              className="text-xs"
+                              className="text-xs h-6 px-2"
                             >
                               {field.name}
                             </Button>
@@ -513,18 +514,18 @@ const AIExtractionModal = ({
                       </div>
                     )}
 
-                    {/* Collection Buttons - Horizontal Layout */}
+                    {/* Collection Buttons - Compact Layout */}
                     {collectionNames.length > 0 && (
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-gray-700">Collections</Label>
-                        <div className="flex flex-wrap gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium text-slate-600">Collections</Label>
+                        <div className="flex flex-wrap gap-1">
                           {collectionNames.map((collectionName) => (
                             <Button
                               key={collectionName}
                               variant={selectedVerifiedFields.includes(collectionName) ? "default" : "outline"}
                               size="sm"
                               onClick={() => handleVerifiedFieldToggle(collectionName)}
-                              className="text-xs"
+                              className="text-xs h-6 px-2"
                             >
                               {collectionName}
                             </Button>
