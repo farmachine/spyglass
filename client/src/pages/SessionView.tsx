@@ -408,7 +408,7 @@ const AIExtractionModal = ({
                             onCheckedChange={() => handleDocumentToggle(doc.id)}
                           />
                           <Label htmlFor={`doc-${doc.id}`} className="text-sm truncate">
-                            {doc.originalName || doc.filename || doc.name || `Document ${doc.id.slice(0, 8)}`}
+                            {doc.originalName || doc.filename || doc.name || doc.fileName || `Document ${doc.id.slice(0, 8)}`}
                           </Label>
                         </div>
                       );
@@ -436,38 +436,23 @@ const AIExtractionModal = ({
                   <p className="text-sm text-muted-foreground">No target fields available</p>
                 ) : (
                   <>
-                    {/* Schema Fields Section */}
+                    {/* General Information Fields - Horizontal Layout */}
                     {schemaFields.length > 0 && (
                       <div className="space-y-2">
-                        <button
-                          onClick={() => toggleSection('schema')}
-                          className="flex items-center justify-between w-full p-2 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors"
-                        >
-                          <div className="flex items-center gap-2">
-                            {expandedSections.has('schema') ? (
-                              <ChevronDown className="h-4 w-4" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4" />
-                            )}
-                            <span className="text-sm font-medium">Schema Fields ({schemaFields.length})</span>
-                          </div>
-                        </button>
-                        {expandedSections.has('schema') && (
-                          <div className="grid grid-cols-1 gap-2 pl-4">
-                            {schemaFields.map((field) => (
-                              <div key={field.id} className="flex items-center space-x-2">
-                                <Checkbox
-                                  id={`schema-${field.id}`}
-                                  checked={selectedVerifiedFields.includes(field.id)}
-                                  onCheckedChange={() => handleVerifiedFieldToggle(field.id)}
-                                />
-                                <Label htmlFor={`schema-${field.id}`} className="text-sm">
-                                  {field.name}
-                                </Label>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        <Label className="text-sm font-medium text-gray-700">General Information</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {schemaFields.map((field) => (
+                            <Button
+                              key={field.id}
+                              variant={selectedVerifiedFields.includes(field.id) ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => handleVerifiedFieldToggle(field.id)}
+                              className="text-xs"
+                            >
+                              {field.name}
+                            </Button>
+                          ))}
+                        </div>
                       </div>
                     )}
 
