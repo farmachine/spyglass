@@ -129,8 +129,8 @@ export default function SessionChat({ sessionId, session, validations }: Session
   return (
     <div className="fixed bottom-4 right-4 z-50">
       <Card 
-        className={`w-96 shadow-lg border-[#4F63A4]/20 ${
-          isMinimized ? 'h-auto' : 'h-[500px]'
+        className={`w-[768px] shadow-lg border-[#4F63A4]/20 ${
+          isMinimized ? 'h-auto' : 'h-[750px]'
         }`}
       >
         <CardHeader className="p-3 pb-2 border-b">
@@ -161,7 +161,7 @@ export default function SessionChat({ sessionId, session, validations }: Session
         </CardHeader>
 
         {!isMinimized && (
-          <CardContent className="p-0 flex flex-col h-[440px]">
+          <CardContent className="p-0 flex flex-col h-[690px]">
             <ScrollArea className="flex-1 p-3">
               <div className="space-y-2">
                 {isLoading ? (
