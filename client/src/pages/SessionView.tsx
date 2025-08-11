@@ -2376,7 +2376,7 @@ Thank you for your assistance.`;
                                         size="sm"
                                         variant="ghost"
                                         onClick={() => handleDownloadDocument(doc.id, doc.fileName)}
-                                        className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                        className="h-6 w-6 p-0 text-gray-600 hover:text-gray-700 hover:bg-gray-50"
                                         title="Download extracted content"
                                       >
                                         <Download className="h-3 w-3" />
