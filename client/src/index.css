@@ -104,12 +104,25 @@
   display: flex !important;
   flex-wrap: nowrap !important;
   overflow-x: auto !important;
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: #cbd5e1 transparent !important;
 }
 
 .folder-tabs .tabs-list::-webkit-scrollbar {
-  display: none;
+  height: 6px !important;
+}
+
+.folder-tabs .tabs-list::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.folder-tabs .tabs-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1 !important;
+  border-radius: 3px !important;
+}
+
+.folder-tabs .tabs-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8 !important;
 }
 
 .folder-tabs .tabs-trigger {
