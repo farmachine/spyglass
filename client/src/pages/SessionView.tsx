@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2 } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import * as XLSX from 'xlsx';
 import { Link } from "wouter";
@@ -2043,6 +2043,25 @@ Thank you for your assistance.`;
                     </div>
                   );
                 })}
+                
+                {/* Documents Tab */}
+                <div className="relative flex items-center mb-3">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white border-2 border-slate-300 relative z-10">
+                    <Folder className="h-4 w-4 text-slate-600" />
+                  </div>
+                  
+                  {/* Tab button */}
+                  <button
+                    onClick={() => setActiveTab('documents')}
+                    className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
+                      activeTab === 'documents' 
+                        ? 'bg-primary text-white font-medium shadow-sm' 
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal'
+                    }`}
+                  >
+                    <div className="truncate">Documents ({sessionDocuments?.length || 0})</div>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -2384,90 +2403,107 @@ Thank you for your assistance.`;
                       })}
                     </div>
 
-                    {/* Session Documents Section */}
-                    {sessionDocuments && sessionDocuments.length > 0 && (
-                      <div className="mt-8 pt-6 border-t border-gray-200">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                          <FolderOpen className="h-5 w-5" />
-                          Uploaded Documents ({sessionDocuments.length})
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {sessionDocuments.map((doc: any, index: number) => (
-                            <div 
-                              key={doc.id || index} 
-                              className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-gray-300 transition-colors group"
-                            >
-                              <div className="flex items-start gap-3">
-                                <div className="flex-shrink-0 mt-1">
-                                  {doc.mimeType?.includes('excel') || doc.mimeType?.includes('spreadsheet') ? (
-                                    <div className="w-8 h-8 bg-green-100 rounded flex items-center justify-center">
-                                      <span className="text-green-600 text-xs font-bold">XLS</span>
-                                    </div>
-                                  ) : doc.mimeType?.includes('word') || doc.mimeType?.includes('document') ? (
-                                    <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
-                                      <span className="text-blue-600 text-xs font-bold">DOC</span>
-                                    </div>
-                                  ) : doc.mimeType?.includes('pdf') ? (
-                                    <div className="w-8 h-8 bg-red-100 rounded flex items-center justify-center">
-                                      <span className="text-red-600 text-xs font-bold">PDF</span>
-                                    </div>
-                                  ) : (
-                                    <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
-                                      <span className="text-gray-600 text-xs font-bold">FILE</span>
-                                    </div>
+
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Documents Tab Content */}
+              {activeTab === 'documents' && (
+                <Card className="border-t-0 rounded-tl-none ml-0">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">Uploaded Documents</span>
+                      <Wand2 className="h-4 w-4 text-slate-400" />
+                    </CardTitle>
+                    <p className="text-sm text-gray-600">
+                      Documents uploaded and processed for this session.
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    {sessionDocuments && sessionDocuments.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {sessionDocuments.map((doc: any, index: number) => (
+                          <div 
+                            key={doc.id || index} 
+                            className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-gray-300 transition-colors group"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="flex-shrink-0 mt-1">
+                                {doc.mimeType?.includes('excel') || doc.mimeType?.includes('spreadsheet') ? (
+                                  <div className="w-8 h-8 bg-green-100 rounded flex items-center justify-center">
+                                    <span className="text-green-600 text-xs font-bold">XLS</span>
+                                  </div>
+                                ) : doc.mimeType?.includes('word') || doc.mimeType?.includes('document') ? (
+                                  <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                                    <span className="text-blue-600 text-xs font-bold">DOC</span>
+                                  </div>
+                                ) : doc.mimeType?.includes('pdf') ? (
+                                  <div className="w-8 h-8 bg-red-100 rounded flex items-center justify-center">
+                                    <span className="text-red-600 text-xs font-bold">PDF</span>
+                                  </div>
+                                ) : (
+                                  <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
+                                    <span className="text-gray-600 text-xs font-bold">FILE</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between">
+                                  <h4 className="font-medium text-gray-900 text-sm truncate" title={doc.fileName}>
+                                    {doc.fileName}
+                                  </h4>
+                                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleDownloadDocument(doc.id, doc.fileName)}
+                                      className="h-6 w-6 p-0 text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                                      title="Download extracted content"
+                                    >
+                                      <Download className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleDeleteDocument(doc.id)}
+                                      className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                      title="Delete document"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                                <div className="mt-1 space-y-1">
+                                  <p className="text-xs text-gray-500">
+                                    Size: {doc.fileSize ? `${Math.round(doc.fileSize / 1024)} KB` : 'Unknown'}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    Content: {doc.extractedContent ? `${doc.extractedContent.length} chars` : 'No content'}
+                                  </p>
+                                  {doc.extractedAt && (
+                                    <p className="text-xs text-gray-500">
+                                      Processed: {new Date(doc.extractedAt).toLocaleDateString()}
+                                    </p>
                                   )}
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-start justify-between">
-                                    <h4 className="font-medium text-gray-900 text-sm truncate" title={doc.fileName}>
-                                      {doc.fileName}
-                                    </h4>
-                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => handleDownloadDocument(doc.id, doc.fileName)}
-                                        className="h-6 w-6 p-0 text-gray-600 hover:text-gray-700 hover:bg-gray-50"
-                                        title="Download extracted content"
-                                      >
-                                        <Download className="h-3 w-3" />
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => handleDeleteDocument(doc.id)}
-                                        className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                        title="Delete document"
-                                      >
-                                        <Trash2 className="h-3 w-3" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                  <div className="mt-1 space-y-1">
-                                    <p className="text-xs text-gray-500">
-                                      Size: {doc.fileSize ? `${Math.round(doc.fileSize / 1024)} KB` : 'Unknown'}
-                                    </p>
-                                    <p className="text-xs text-gray-500">
-                                      Content: {doc.extractedContent ? `${doc.extractedContent.length} chars` : 'No content'}
-                                    </p>
-                                    {doc.extractedAt && (
-                                      <p className="text-xs text-gray-500">
-                                        Processed: {new Date(doc.extractedAt).toLocaleDateString()}
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
                               </div>
-                              {doc.extractedContent && doc.extractedContent.length > 0 && (
-                                <div className="mt-3 pt-3 border-t border-gray-200">
-                                  <p className="text-xs text-gray-600 line-clamp-2">
-                                    {doc.extractedContent.substring(0, 100)}{doc.extractedContent.length > 100 ? '...' : ''}
-                                  </p>
-                                </div>
-                              )}
                             </div>
-                          ))}
-                        </div>
+                            {doc.extractedContent && doc.extractedContent.length > 0 && (
+                              <div className="mt-3 pt-3 border-t border-gray-200">
+                                <p className="text-xs text-gray-600 line-clamp-2">
+                                  {doc.extractedContent.substring(0, 100)}{doc.extractedContent.length > 100 ? '...' : ''}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Folder className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">No documents uploaded yet</p>
+                        <p className="text-sm text-gray-400 mt-1">Upload documents using the upload button above</p>
                       </div>
                     )}
                   </CardContent>
