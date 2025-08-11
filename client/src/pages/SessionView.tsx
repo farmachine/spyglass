@@ -533,57 +533,51 @@ export default function SessionView() {
   const getVerifiedFields = () => {
     const verifiedData: { id: string; name: string; value: string }[] = [];
     
-    // Get verified schema fields (main object data)
+    // Get schema fields that have data (same as shown in session view)
     project?.schemaFields?.forEach(field => {
-      const validation = validations.find(v => v.fieldName === field.fieldName);
-      if (validation && (validation.validationStatus === 'verified' || validation.validationStatus === 'valid') && 
-          validation.extractedValue && validation.extractedValue !== 'null' && validation.extractedValue !== '') {
-        verifiedData.push({
-          id: field.id,
-          name: field.fieldName,
-          value: String(validation.extractedValue)
-        });
+      const originalValue = extractedData[field.fieldName];
+      const validation = getValidation(field.fieldName);
+      
+      // Show field if it has a value OR if there's a validation for it
+      if (originalValue !== undefined || validation) {
+        // Use validation's extractedValue (which includes manual edits), not the original extracted value
+        let displayValue = validation?.extractedValue ?? originalValue ?? null;
+        if (displayValue === "null" || displayValue === "undefined") {
+          displayValue = null;
+        }
+        
+        if (displayValue !== null && displayValue !== undefined && displayValue !== "") {
+          verifiedData.push({
+            id: field.id,
+            name: field.fieldName,
+            value: String(displayValue)
+          });
+        }
       }
     });
     
-    // Get verified collection items and their properties
+    // Get collection items (same as shown in session view)
     project?.collections?.forEach(collection => {
-      const collectionValidations = validations.filter(v => 
-        v.collectionName === collection.collectionName || 
-        (v.fieldName && v.fieldName.startsWith(collection.collectionName + '.'))
-      );
-      
-      // Group by record index
-      const recordMap = new Map<number, any>();
-      collectionValidations.forEach(v => {
-        if (v.recordIndex !== null && v.recordIndex !== undefined) {
-          if (!recordMap.has(v.recordIndex)) {
-            recordMap.set(v.recordIndex, {});
+      const collectionData = extractedData[collection.collectionName];
+      if (Array.isArray(collectionData) && collectionData.length > 0) {
+        collectionData.forEach((item, index) => {
+          // Check if this item has any meaningful data
+          const hasData = Object.values(item || {}).some(value => 
+            value !== null && value !== undefined && value !== ""
+          );
+          
+          if (hasData) {
+            verifiedData.push({
+              id: `${collection.id}-${index}`,
+              name: `${collection.collectionName} Item ${index + 1}`,
+              value: Object.entries(item || {})
+                .filter(([_, value]) => value !== null && value !== undefined && value !== "")
+                .map(([key, value]) => `${key}: ${value}`)
+                .join(', ')
+            });
           }
-          const record = recordMap.get(v.recordIndex);
-          if (v.validationStatus === 'verified' || v.validationStatus === 'valid') {
-            const propertyName = v.fieldName.split('.').pop() || v.fieldName;
-            record[propertyName] = v.extractedValue;
-          }
-        }
-      });
-      
-      // Add verified collection items
-      recordMap.forEach((record, index) => {
-        const hasVerifiedData = Object.values(record).some(value => 
-          value && value !== 'null' && value !== ''
-        );
-        if (hasVerifiedData) {
-          verifiedData.push({
-            id: `${collection.id}-${index}`,
-            name: `${collection.collectionName} Item ${index + 1}`,
-            value: Object.entries(record)
-              .filter(([_, value]) => value && value !== 'null' && value !== '')
-              .map(([key, value]) => `${key}: ${value}`)
-              .join(', ')
-          });
-        }
-      });
+        });
+      }
     });
     
     return verifiedData;
