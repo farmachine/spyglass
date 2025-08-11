@@ -1954,7 +1954,7 @@ Thank you for your assistance.`;
             </div>
             <div className="relative">
               {/* Vertical connecting line */}
-              <div className="absolute left-4 top-4 bottom-0 w-px bg-slate-200"></div>
+              <div className="absolute left-4 top-4 bottom-0 w-0.5 bg-slate-300"></div>
               
               <div className="space-y-3">
                 {/* General Information Tab */}
