@@ -502,6 +502,13 @@ export default function SessionView() {
     }
   });
 
+  // Query for session documents
+  const { data: sessionDocuments = [], isLoading: documentsLoading } = useQuery({
+    queryKey: ['/api/sessions', sessionId, 'documents'],
+    queryFn: () => apiRequest(`/api/sessions/${sessionId}/documents`),
+    enabled: !!sessionId,
+  });
+
   // Fetch project-level validations for statistics cards
   const { data: projectValidations = [] } = useQuery<FieldValidation[]>({
     queryKey: ['/api/validations/project', projectId],
@@ -2275,6 +2282,71 @@ Thank you for your assistance.`;
                         return null;
                       })}
                     </div>
+
+                    {/* Session Documents Section */}
+                    {sessionDocuments && sessionDocuments.length > 0 && (
+                      <div className="mt-8 pt-6 border-t border-gray-200">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                          <FolderOpen className="h-5 w-5" />
+                          Uploaded Documents ({sessionDocuments.length})
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {sessionDocuments.map((doc: any, index: number) => (
+                            <div 
+                              key={doc.id || index} 
+                              className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-gray-300 transition-colors"
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="flex-shrink-0 mt-1">
+                                  {doc.mimeType?.includes('excel') || doc.mimeType?.includes('spreadsheet') ? (
+                                    <div className="w-8 h-8 bg-green-100 rounded flex items-center justify-center">
+                                      <span className="text-green-600 text-xs font-bold">XLS</span>
+                                    </div>
+                                  ) : doc.mimeType?.includes('word') || doc.mimeType?.includes('document') ? (
+                                    <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                                      <span className="text-blue-600 text-xs font-bold">DOC</span>
+                                    </div>
+                                  ) : doc.mimeType?.includes('pdf') ? (
+                                    <div className="w-8 h-8 bg-red-100 rounded flex items-center justify-center">
+                                      <span className="text-red-600 text-xs font-bold">PDF</span>
+                                    </div>
+                                  ) : (
+                                    <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
+                                      <span className="text-gray-600 text-xs font-bold">FILE</span>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-medium text-gray-900 text-sm truncate" title={doc.fileName}>
+                                    {doc.fileName}
+                                  </h4>
+                                  <div className="mt-1 space-y-1">
+                                    <p className="text-xs text-gray-500">
+                                      Size: {doc.fileSize ? `${Math.round(doc.fileSize / 1024)} KB` : 'Unknown'}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                      Content: {doc.extractedContent ? `${doc.extractedContent.length} chars` : 'No content'}
+                                    </p>
+                                    {doc.extractedAt && (
+                                      <p className="text-xs text-gray-500">
+                                        Processed: {new Date(doc.extractedAt).toLocaleDateString()}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              {doc.extractedContent && doc.extractedContent.length > 0 && (
+                                <div className="mt-3 pt-3 border-t border-gray-200">
+                                  <p className="text-xs text-gray-600 line-clamp-2">
+                                    {doc.extractedContent.substring(0, 100)}{doc.extractedContent.length > 100 ? '...' : ''}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
