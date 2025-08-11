@@ -1953,8 +1953,10 @@ Thank you for your assistance.`;
               <h3 className="text-xs font-medium text-slate-700 uppercase tracking-wider">{project?.mainObjectName || "Session"} Information</h3>
             </div>
             <div className="relative">
-              {/* Vertical connecting line */}
-              <div className="absolute left-4 top-4 bottom-0 w-0.5 bg-slate-300"></div>
+              {/* Vertical connecting line - stops at last collection */}
+              <div className="absolute left-4 top-4 w-0.5 bg-slate-300" style={{ 
+                height: `${(project.collections.length + 1) * 48 - 12}px` 
+              }}></div>
               
               <div className="space-y-3">
                 {/* General Information Tab */}
@@ -2048,7 +2050,7 @@ Thank you for your assistance.`;
               {/* Documents Section - Separated */}
               <div className="mt-6 pt-4 border-t border-slate-200">
                 <div className="flex items-center mb-3">
-                  <Folder className="h-4 w-4 text-slate-600 mr-3" />
+                  <Folder className="h-5 w-5 text-slate-600 mr-3" />
                   
                   {/* Tab button */}
                   <button
