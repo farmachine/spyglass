@@ -411,7 +411,7 @@ const AIExtractionModal = ({
       <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader className="pb-4">
           <DialogTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
-            <Wand2 className="h-7 w-7 text-slate-600" />
+            <Wand2 className="h-7 w-7 text-blue-600" />
             Extraction Wizard - {sectionName}
           </DialogTitle>
           <DialogDescription className="text-base text-slate-600 mt-2 leading-relaxed">
@@ -2719,7 +2719,7 @@ Thank you for your assistance.`;
                         )}
                         className="h-8 w-8 p-0 hover:bg-slate-100"
                       >
-                        <Wand2 className="h-4 w-4 text-slate-400" />
+                        <Wand2 className="h-4 w-4 text-blue-600" />
                       </Button>
                     </CardTitle>
                     <p className="text-sm text-gray-600">
@@ -2937,21 +2937,6 @@ Thank you for your assistance.`;
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                       <span className="flex items-center gap-2">Uploaded Documents</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleOpenAIExtraction(
-                          'Documents',
-                          sessionDocuments?.map(doc => ({
-                            id: doc.id,
-                            name: doc.originalName || doc.fileName,
-                            type: 'document'
-                          })) || []
-                        )}
-                        className="h-8 w-8 p-0 hover:bg-slate-100"
-                      >
-                        <Wand2 className="h-4 w-4 text-slate-400" />
-                      </Button>
                     </CardTitle>
                     <p className="text-sm text-gray-600">
                       Documents uploaded and processed for this session.
@@ -2968,21 +2953,13 @@ Thank you for your assistance.`;
                             <div className="flex items-start gap-3">
                               <div className="flex-shrink-0 mt-1">
                                 {doc.mimeType?.includes('excel') || doc.mimeType?.includes('spreadsheet') ? (
-                                  <div className="w-8 h-8 bg-green-100 rounded flex items-center justify-center">
-                                    <span className="text-green-600 text-xs font-bold">XLS</span>
-                                  </div>
+                                  <FileText className="w-8 h-8 text-green-600" />
                                 ) : doc.mimeType?.includes('word') || doc.mimeType?.includes('document') ? (
-                                  <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
-                                    <span className="text-blue-600 text-xs font-bold">DOC</span>
-                                  </div>
+                                  <FileText className="w-8 h-8 text-blue-600" />
                                 ) : doc.mimeType?.includes('pdf') ? (
-                                  <div className="w-8 h-8 bg-red-100 rounded flex items-center justify-center">
-                                    <span className="text-red-600 text-xs font-bold">PDF</span>
-                                  </div>
+                                  <FileText className="w-8 h-8 text-red-600" />
                                 ) : (
-                                  <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
-                                    <span className="text-gray-600 text-xs font-bold">FILE</span>
-                                  </div>
+                                  <FileText className="w-8 h-8 text-gray-600" />
                                 )}
                               </div>
                               <div className="flex-1 min-w-0">
@@ -3091,7 +3068,7 @@ Thank you for your assistance.`;
                             )}
                             className="h-8 w-8 p-0 hover:bg-slate-100"
                           >
-                            <Wand2 className="h-4 w-4 text-slate-400" />
+                            <Wand2 className="h-4 w-4 text-blue-600" />
                           </Button>
                         </CardTitle>
                         <p className="text-sm text-gray-600">{collection.description}</p>
