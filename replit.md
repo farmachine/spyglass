@@ -57,6 +57,7 @@ Preferred communication style: Simple, everyday language.
 - **Dashboard Tile Swap**: Complete tile reordering functionality with "Move Left" and "Move Right" options in project settings dropdowns, enabling visual rearrangement of project tiles with persistent ordering state.
 - **Excel Extraction Optimization**: Significantly enhanced Excel processing capabilities with 4x increased document limits (800KB per document), 3x increased total content limits (1.5MB), intelligent graduated sampling for large sheets (up to 400 rows vs 90), 53% increased AI output tokens (100K), and removal of hard 100-record response limits for comprehensive data extraction.
 - **AI Chat Integration**: Fully functional real-time chat feature within session views using Gemini AI, with JWT-based authentication, persistent message storage, and context-aware responses based on session data and validation states.
+- **Document Upload Workflow Fix**: Resolved critical bug in AddDocumentsModal where the extract-text endpoint wasn't saving extracted data to sessions, causing "Session must have documents uploaded and processed" errors. Fixed by implementing proper text extraction pipeline with session data persistence and adding extract_text_only operation support in Python processing script.
 
 ### Key Architectural Decisions
 - **Monorepo Structure**: Single repository with shared types.
