@@ -152,6 +152,24 @@ export const chatMessages = pgTable("chat_messages", {
   timestamp: timestamp("timestamp").defaultNow().notNull(),
 });
 
+// Session documents for storing uploaded files with extracted content
+export const sessionDocuments = pgTable("session_documents", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
+  fileName: text("file_name").notNull(),
+  originalFileName: text("original_file_name").notNull(),
+  fileType: text("file_type").notNull(), // 'pdf', 'excel', 'word'
+  mimeType: text("mime_type").notNull(),
+  fileSize: integer("file_size").notNull(),
+  fileContent: text("file_content").notNull(), // base64 encoded file data
+  extractedText: text("extracted_text"), // extracted text content
+  extractionStatus: text("extraction_status").default("pending").notNull(), // 'pending', 'extracted', 'failed'
+  extractionError: text("extraction_error"), // error message if extraction failed
+  uploadedBy: uuid("uploaded_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({
   id: true,
@@ -218,6 +236,12 @@ export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
   timestamp: true,
 });
 
+export const insertSessionDocumentSchema = createInsertSchema(sessionDocuments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type Organization = typeof organizations.$inferSelect;
 export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
@@ -250,6 +274,8 @@ export type ProjectPublishing = typeof projectPublishing.$inferSelect;
 export type InsertProjectPublishing = z.infer<typeof insertProjectPublishingSchema>;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+export type SessionDocument = typeof sessionDocuments.$inferSelect;
+export type InsertSessionDocument = z.infer<typeof insertSessionDocumentSchema>;
 
 // Validation status types
 export type ValidationStatus = 'valid' | 'invalid' | 'pending' | 'manual';

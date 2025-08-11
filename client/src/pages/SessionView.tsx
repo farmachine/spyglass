@@ -27,6 +27,7 @@ import UserProfile from "@/components/UserProfile";
 import { EditFieldValueDialog } from "@/components/EditFieldValueDialog";
 import AddDocumentsModal from "@/components/AddDocumentsModal";
 import SessionChat from "@/components/SessionChat";
+import DocumentUpload from "@/components/DocumentUpload";
 
 import type { 
   ExtractionSession, 
@@ -2077,7 +2078,17 @@ Thank you for your assistance.`;
                     </p>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-6">
+                      {/* Document Storage Section */}
+                      <div>
+                        <h4 className="font-medium text-sm text-gray-700 mb-3">Session Documents</h4>
+                        <DocumentUpload sessionId={sessionId} />
+                      </div>
+
+                      {/* Extracted Fields Section */}
+                      <div>
+                        <h4 className="font-medium text-sm text-gray-700 mb-3">Extracted Fields</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {project.schemaFields
                         .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
                         .map((field) => {
@@ -2273,7 +2284,9 @@ Thank you for your assistance.`;
                           );
                         }
                         return null;
-                      })}
+                        })}
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
