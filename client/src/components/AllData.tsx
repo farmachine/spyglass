@@ -162,7 +162,9 @@ export default function AllData({ project }: AllDataProps) {
     
     const verified = sessionValidations.filter(v => v.validationStatus === 'valid' || v.validationStatus === 'verified').length;
     const total = sessionValidations.length;
-    const percentage = Math.round((verified / total) * 100);
+    // Only show 100% if truly 100% verified, otherwise round down to avoid confusion
+    const exactPercentage = (verified / total) * 100;
+    const percentage = verified === total ? 100 : Math.floor(exactPercentage);
     
     return { verified, total, percentage };
   };
