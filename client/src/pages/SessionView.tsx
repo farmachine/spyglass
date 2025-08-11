@@ -407,33 +407,38 @@ const AIExtractionModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Wand2 className="h-5 w-5 text-primary" />
-            AI Extraction for {sectionName}
+            <Wand2 className="h-5 w-5 text-slate-600" />
+            Extraction Wizard - {sectionName}
           </DialogTitle>
-          <DialogDescription>
-            Configure AI extraction sources, target fields, and provide additional instructions.
+          <DialogDescription className="text-sm text-slate-600">
+            Configure your AI extraction to find specific data from your documents. Select source documents, reference data for context, and target the exact fields you want to extract.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Extraction Sources Section */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium">Extraction Sources</h3>
+        <div className="flex-1 overflow-y-auto space-y-6">
+          {/* Input Section */}
+          <div className="space-y-4 bg-slate-50 p-4 rounded-lg border-2 border-slate-200">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
+              <h3 className="text-lg font-semibold text-slate-800">Input Sources</h3>
             </div>
+            <p className="text-sm text-slate-600 mb-4">Choose which documents and existing verified data to use for context during extraction.</p>
 
             {/* Uploaded Documents */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">Uploaded Documents</Label>
+                <div>
+                  <Label className="text-sm font-medium text-slate-700">Source Documents</Label>
+                  <p className="text-xs text-slate-500 mt-1">Select documents to extract data from</p>
+                </div>
                 <Button 
                   variant="outline" 
                   size="sm" 
                   onClick={selectAllDocuments}
-                  className="text-xs"
+                  className="text-xs text-slate-600 border-slate-300 hover:bg-slate-100"
                 >
                   Select All
                 </Button>
@@ -470,12 +475,15 @@ const AIExtractionModal = ({
             {/* Reference Data - Hierarchical */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">Reference Data</Label>
+                <div>
+                  <Label className="text-sm font-medium text-slate-700">Reference Data (Optional)</Label>
+                  <p className="text-xs text-slate-500 mt-1">Use existing verified data to provide context and improve extraction accuracy</p>
+                </div>
                 <Button 
                   variant="outline" 
                   size="sm" 
                   onClick={selectAllVerifiedFields}
-                  className="text-xs"
+                  className="text-xs text-slate-600 border-slate-300 hover:bg-slate-100"
                 >
                   Select All
                 </Button>
@@ -530,15 +538,24 @@ const AIExtractionModal = ({
             </div>
           </div>
 
-          {/* Target Fields Section */}
-          <div className="space-y-4">
+          {/* Output Section */}
+          <div className="space-y-4 bg-green-50 p-4 rounded-lg border-2 border-green-200">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
+              <h3 className="text-lg font-semibold text-slate-800">Target Fields</h3>
+            </div>
+            <p className="text-sm text-slate-600 mb-4">Select which specific fields you want the AI to extract. The AI will only extract data for the fields you choose.</p>
+            
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium">Target Fields</h3>
+              <div>
+                <Label className="text-sm font-medium text-slate-700">Fields to Extract</Label>
+                <p className="text-xs text-slate-500 mt-1">Choose the exact data points you want to find</p>
+              </div>
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={selectAllTargetFields}
-                className="text-xs"
+                className="text-xs text-slate-600 border-slate-300 hover:bg-slate-100"
               >
                 Select All
               </Button>
@@ -560,36 +577,44 @@ const AIExtractionModal = ({
           </div>
 
           {/* Additional Instructions Section */}
-          <div className="space-y-3">
-            <Label className="text-lg font-medium">Additional Instructions</Label>
-            <Textarea
-              placeholder="Provide any specific instructions for the AI extraction process..."
-              value={additionalInstructions}
-              onChange={(e) => setAdditionalInstructions(e.target.value)}
-              className="min-h-[100px]"
-            />
+          <div className="space-y-4 bg-amber-50 p-4 rounded-lg border-2 border-amber-200">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-6 h-6 bg-amber-500 text-white rounded-full flex items-center justify-center text-sm font-bold">3</div>
+              <h3 className="text-lg font-semibold text-slate-800">Additional Instructions</h3>
+            </div>
+            <p className="text-sm text-slate-600 mb-3">Provide specific guidance to help the AI understand exactly what you're looking for.</p>
+            
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-slate-700">Custom Instructions (Optional)</Label>
+              <Textarea
+                placeholder="Example: 'Look for column headers in the first row', 'Extract only active policies', 'Focus on dates in MM/DD/YYYY format'..."
+                value={additionalInstructions}
+                onChange={(e) => setAdditionalInstructions(e.target.value)}
+                className="min-h-[80px] bg-white border-slate-300"
+              />
+            </div>
           </div>
+        </div>
 
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button 
-              className="bg-primary hover:bg-primary/90"
-              disabled={selectedTargetFields.length === 0 || isExtracting}
-              onClick={handleRunExtraction}
-            >
-              {isExtracting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Extracting...
-                </>
-              ) : (
-                'Run AI Extraction'
-              )}
-            </Button>
-          </div>
+        {/* Action Buttons - Fixed at bottom */}
+        <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 bg-white">
+          <Button variant="outline" onClick={onClose} className="text-slate-600 border-slate-300 hover:bg-slate-50">
+            Cancel
+          </Button>
+          <Button 
+            className="bg-slate-700 hover:bg-slate-800 text-white"
+            disabled={selectedTargetFields.length === 0 || isExtracting}
+            onClick={handleRunExtraction}
+          >
+            {isExtracting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Extracting...
+              </>
+            ) : (
+              'Start Extraction'
+            )}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
