@@ -2099,6 +2099,39 @@ except Exception as e:
       if (!session) {
         return res.status(404).json({ success: false, error: 'Session not found' });
       }
+
+      // Store uploaded documents in database before processing
+      const storedDocuments = [];
+      for (const file of files || []) {
+        try {
+          // Calculate file size from base64 content
+          const fileSize = file.content ? Math.round(file.content.length * 0.75) : 0; // Approximate base64 to bytes
+          
+          // Determine file type from MIME type
+          let fileType = 'other';
+          if (file.type?.includes('pdf')) fileType = 'pdf';
+          else if (file.type?.includes('spreadsheet') || file.type?.includes('excel') || file.name?.toLowerCase().includes('.xls')) fileType = 'excel';
+          else if (file.type?.includes('word') || file.name?.toLowerCase().includes('.doc')) fileType = 'word';
+
+          const sessionDoc = await storage.createSessionDocument({
+            sessionId,
+            fileName: file.name,
+            fileType,
+            mimeType: file.type || 'application/octet-stream',
+            fileSize,
+            fileContent: file.content,
+            extractedContent: null,
+            extractionStatus: 'pending',
+            extractionError: null
+          });
+          
+          storedDocuments.push(sessionDoc);
+          console.log(`DOCUMENT STORAGE: Stored document ${file.name} with ID ${sessionDoc.id}`);
+        } catch (error) {
+          console.error(`Failed to store document ${file.name}:`, error);
+          // Continue with other files even if one fails
+        }
+      }
       
       // Convert frontend file format to Python script expected format
       const convertedFiles = (files || []).map((file: any) => ({
@@ -2143,6 +2176,29 @@ except Exception as e:
           const result = JSON.parse(output);
           console.log(`TEXT EXTRACTION: Extracted text from ${result.extracted_texts?.length || 0} documents`);
           
+          // Update stored documents with extracted content
+          if (result.extracted_texts && storedDocuments.length > 0) {
+            for (let i = 0; i < Math.min(result.extracted_texts.length, storedDocuments.length); i++) {
+              const extractedText = result.extracted_texts[i];
+              const storedDoc = storedDocuments[i];
+              
+              try {
+                await storage.updateSessionDocument(storedDoc.id, {
+                  extractedContent: extractedText.text || extractedText,
+                  extractionStatus: 'extracted',
+                  extractionError: null
+                });
+                console.log(`DOCUMENT STORAGE: Updated extraction for document ${storedDoc.fileName}`);
+              } catch (error) {
+                console.error(`Failed to update document ${storedDoc.fileName}:`, error);
+                await storage.updateSessionDocument(storedDoc.id, {
+                  extractionStatus: 'failed',
+                  extractionError: error instanceof Error ? error.message : 'Unknown error'
+                });
+              }
+            }
+          }
+          
           // Save extracted data to session
           await storage.updateExtractionSession(sessionId, {
             extractedData: JSON.stringify(result),
@@ -2170,6 +2226,57 @@ except Exception as e:
       res.status(500).json({ 
         success: false,
         error: "Text extraction failed",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Get session documents
+  app.get("/api/sessions/:sessionId/documents", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const documents = await storage.getSessionDocuments(sessionId);
+      res.json(documents);
+    } catch (error) {
+      console.error("Error retrieving session documents:", error);
+      res.status(500).json({ 
+        error: "Failed to retrieve session documents",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Get specific session document
+  app.get("/api/documents/:documentId", async (req, res) => {
+    try {
+      const documentId = req.params.documentId;
+      const document = await storage.getSessionDocument(documentId);
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      res.json(document);
+    } catch (error) {
+      console.error("Error retrieving document:", error);
+      res.status(500).json({ 
+        error: "Failed to retrieve document",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Delete session document
+  app.delete("/api/documents/:documentId", async (req, res) => {
+    try {
+      const documentId = req.params.documentId;
+      const deleted = await storage.deleteSessionDocument(documentId);
+      if (!deleted) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      res.json({ message: "Document deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting document:", error);
+      res.status(500).json({ 
+        error: "Failed to delete document",
         message: error instanceof Error ? error.message : "Unknown error"
       });
     }

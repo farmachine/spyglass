@@ -11,6 +11,7 @@ import {
   users,
   projectPublishing,
   chatMessages,
+  sessionDocuments,
   type Project, 
   type InsertProject,
   type ProjectSchemaField,
@@ -38,7 +39,9 @@ import {
   type ProjectPublishing,
   type InsertProjectPublishing,
   type ChatMessage,
-  type InsertChatMessage
+  type InsertChatMessage,
+  type SessionDocument,
+  type InsertSessionDocument
 } from "@shared/schema";
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
@@ -134,6 +137,13 @@ export interface IStorage {
   // Chat Messages
   getChatMessages(sessionId: string): Promise<ChatMessage[]>;
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+
+  // Session Documents
+  getSessionDocuments(sessionId: string): Promise<SessionDocument[]>;
+  getSessionDocument(id: string): Promise<SessionDocument | undefined>;
+  createSessionDocument(document: InsertSessionDocument): Promise<SessionDocument>;
+  updateSessionDocument(id: string, document: Partial<InsertSessionDocument>): Promise<SessionDocument | undefined>;
+  deleteSessionDocument(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -149,6 +159,7 @@ export class MemStorage implements IStorage {
   private fieldValidations: Map<string, FieldValidation>;
   private projectPublishing: Map<string, ProjectPublishing>;
   private chatMessages: Map<string, ChatMessage>;
+  private sessionDocuments: Map<string, SessionDocument>;
 
   constructor() {
     this.organizations = new Map();
@@ -163,6 +174,7 @@ export class MemStorage implements IStorage {
     this.fieldValidations = new Map();
     this.projectPublishing = new Map();
     this.chatMessages = new Map();
+    this.sessionDocuments = new Map();
     
     // Initialize with sample data for development
     this.initializeSampleData();
@@ -1352,6 +1364,45 @@ export class MemStorage implements IStorage {
     this.chatMessages.set(id, chatMessage);
     return chatMessage;
   }
+
+  // Session Documents
+  async getSessionDocuments(sessionId: string): Promise<SessionDocument[]> {
+    return Array.from(this.sessionDocuments.values())
+      .filter(doc => doc.sessionId === sessionId)
+      .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+  }
+
+  async getSessionDocument(id: string): Promise<SessionDocument | undefined> {
+    return this.sessionDocuments.get(id);
+  }
+
+  async createSessionDocument(insertDocument: InsertSessionDocument): Promise<SessionDocument> {
+    const id = this.generateUUID();
+    const document: SessionDocument = {
+      ...insertDocument,
+      id,
+      uploadedAt: new Date(),
+      processedAt: null,
+    };
+    this.sessionDocuments.set(id, document);
+    return document;
+  }
+
+  async updateSessionDocument(id: string, updateData: Partial<InsertSessionDocument>): Promise<SessionDocument | undefined> {
+    const document = this.sessionDocuments.get(id);
+    if (!document) return undefined;
+
+    const updatedDocument = { ...document, ...updateData };
+    if (updateData.extractionStatus === 'extracted' && !document.processedAt) {
+      updatedDocument.processedAt = new Date();
+    }
+    this.sessionDocuments.set(id, updatedDocument);
+    return updatedDocument;
+  }
+
+  async deleteSessionDocument(id: string): Promise<boolean> {
+    return this.sessionDocuments.delete(id);
+  }
 }
 
 // PostgreSQL Storage Implementation
@@ -2288,6 +2339,61 @@ class PostgreSQLStorage implements IStorage {
   async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
     const result = await this.db.insert(chatMessages).values(message).returning();
     return result[0];
+  }
+
+  // Session Documents
+  async getSessionDocuments(sessionId: string): Promise<SessionDocument[]> {
+    return this.retryOperation(async () => {
+      const result = await this.db
+        .select()
+        .from(sessionDocuments)
+        .where(eq(sessionDocuments.sessionId, sessionId))
+        .orderBy(sessionDocuments.uploadedAt);
+      return result;
+    });
+  }
+
+  async getSessionDocument(id: string): Promise<SessionDocument | undefined> {
+    return this.retryOperation(async () => {
+      const result = await this.db
+        .select()
+        .from(sessionDocuments)
+        .where(eq(sessionDocuments.id, id))
+        .limit(1);
+      return result[0];
+    });
+  }
+
+  async createSessionDocument(document: InsertSessionDocument): Promise<SessionDocument> {
+    return this.retryOperation(async () => {
+      const result = await this.db.insert(sessionDocuments).values(document).returning();
+      return result[0];
+    });
+  }
+
+  async updateSessionDocument(id: string, updateData: Partial<InsertSessionDocument>): Promise<SessionDocument | undefined> {
+    return this.retryOperation(async () => {
+      const updateWithTimestamp = { ...updateData };
+      if (updateData.extractionStatus === 'extracted') {
+        updateWithTimestamp.processedAt = new Date();
+      }
+      
+      const result = await this.db
+        .update(sessionDocuments)
+        .set(updateWithTimestamp)
+        .where(eq(sessionDocuments.id, id))
+        .returning();
+      return result[0];
+    });
+  }
+
+  async deleteSessionDocument(id: string): Promise<boolean> {
+    return this.retryOperation(async () => {
+      const result = await this.db
+        .delete(sessionDocuments)
+        .where(eq(sessionDocuments.id, id));
+      return result.rowCount > 0;
+    });
   }
 }
 

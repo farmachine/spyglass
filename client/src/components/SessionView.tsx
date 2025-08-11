@@ -11,6 +11,7 @@ import { Download, ChevronDown, ChevronRight } from "lucide-react";
 import ValidationIcon, { ValidationProgress } from "./ValidationIcon";
 import { apiRequest } from "@/lib/queryClient";
 import * as XLSX from 'xlsx';
+import { SessionDocuments } from "@/components/SessionDocuments";
 import type { 
   ExtractionSessionWithValidation, 
   FieldValidation,
@@ -296,6 +297,9 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
           manualFields={manualFields}
         />
       </div>
+
+      {/* Session Documents */}
+      <SessionDocuments sessionId={sessionId} />
 
       <Separator />
 
