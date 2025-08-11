@@ -1,3 +1,7 @@
+import { neon } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-http';
+import { eq, desc, and, inArray, sql as drizzleSql } from "drizzle-orm";
+
 import { 
   projects, 
   projectSchemaFields, 
@@ -43,9 +47,8 @@ import {
   type SessionDocument,
   type InsertSessionDocument
 } from "@shared/schema";
-import { neon } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-http';
-import { eq, count, sql, and, or, inArray } from 'drizzle-orm';
+import { db } from './db';
+import { count, or } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface IStorage {

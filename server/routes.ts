@@ -25,6 +25,45 @@ import { generateChatResponse } from "./chatService";
 import { authenticateToken, requireAdmin, generateToken, comparePassword, hashPassword, type AuthRequest } from "./auth";
 import { UserRole } from "@shared/schema";
 
+// Helper function to save uploaded documents and their extracted content
+async function saveDocumentsWithContent(sessionId: string, files: any[], userId: string, extractedTexts?: string[]) {
+  console.log(`Saving ${files.length} documents for session ${sessionId}`);
+  
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const extractedText = extractedTexts?.[i] || '';
+    
+    try {
+      // Determine file type based on MIME type
+      let fileType = 'unknown';
+      if (file.mime_type) {
+        if (file.mime_type.includes('pdf')) fileType = 'pdf';
+        else if (file.mime_type.includes('sheet') || file.mime_type.includes('excel')) fileType = 'excel';
+        else if (file.mime_type.includes('word') || file.mime_type.includes('document')) fileType = 'word';
+        else if (file.mime_type.includes('text')) fileType = 'text';
+      }
+      
+      // Create document record with extracted content
+      await storage.createSessionDocument({
+        sessionId,
+        fileName: file.file_name || `document_${i + 1}`,
+        originalFileName: file.file_name || `document_${i + 1}`,
+        fileType,
+        mimeType: file.mime_type || 'application/octet-stream',
+        fileSize: file.file_content ? Buffer.from(file.file_content.split(',')[1] || '', 'base64').length : 0,
+        fileContent: file.file_content || '',
+        extractedText: extractedText,
+        extractionStatus: extractedText ? 'extracted' : 'pending',
+        uploadedBy: userId
+      });
+      
+      console.log(`Saved document: ${file.file_name} with ${extractedText.length} chars of extracted text`);
+    } catch (error) {
+      console.error(`Failed to save document ${file.file_name}:`, error);
+    }
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication Routes
 
@@ -1909,6 +1948,16 @@ except Exception as e:
               outputTokenCount: 0
             });
             
+            // Save uploaded documents and their extracted content after extraction is completed
+            try {
+              const userId = 'system'; // Simple extraction doesn't require auth
+              await saveDocumentsWithContent(sessionId, convertedFiles, userId, extractedData.extracted_texts);
+              console.log(`Documents saved successfully for session ${sessionId} (simple extraction)`);
+            } catch (saveError) {
+              console.error('Failed to save documents (simple extraction):', saveError);
+              // Don't fail the extraction if document saving fails
+            }
+            
             // Create field validation records from extracted data
             await createFieldValidationRecords(sessionId, extractedData, project_data);
             
@@ -1975,6 +2024,17 @@ except Exception as e:
             inputTokenCount: extractedData.input_token_count,
             outputTokenCount: extractedData.output_token_count
           });
+          
+          // Save uploaded documents and their extracted content after extraction is completed
+          try {
+            // Get the user ID from the request (you'll need to add authentication to this route if not already there)
+            const userId = 'system'; // You may need to get this from auth context
+            await saveDocumentsWithContent(sessionId, convertedFiles, userId, extractedData.extracted_texts);
+            console.log(`Documents saved successfully for session ${sessionId}`);
+          } catch (saveError) {
+            console.error('Failed to save documents:', saveError);
+            // Don't fail the extraction if document saving fails
+          }
           
           // Create field validation records from extracted data
           await createFieldValidationRecords(sessionId, extractedData, project_data);
@@ -3571,6 +3631,16 @@ except Exception as e:
               status: "extracted",
               extractedData: JSON.stringify(aggregatedExtraction)
             });
+            
+            // Save uploaded documents and their extracted content after extraction is completed
+            try {
+              const userId = 'system'; // Single-step process doesn't require auth
+              await saveDocumentsWithContent(sessionId, convertedFiles, userId, result.extracted_texts);
+              console.log(`Documents saved successfully for session ${sessionId} (single-step process)`);
+            } catch (saveError) {
+              console.error('Failed to save documents (single-step process):', saveError);
+              // Don't fail the extraction if document saving fails
+            }
             
             // Create field validation records directly from AI results
             console.log(`SINGLE-STEP: Creating ${fieldValidations?.length || 0} field validation records`);
