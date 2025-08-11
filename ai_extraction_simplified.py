@@ -27,19 +27,16 @@ class ExtractionResult:
 
 # ValidationResult dataclass removed - validation now occurs only during extraction
 
-def extract_excel_with_python(file_content: str, file_name: str) -> str:
-    """Extract content from Excel files using Python libraries (pandas/openpyxl)"""
+def process_excel_file_content(file_content: str, file_name: str) -> str:
+    """Process Excel file content using existing pandas/openpyxl processing (same as used in main extraction)"""
     import base64
     import io
     
     try:
-        # Import required libraries
-        try:
-            import pandas as pd
-            import openpyxl
-            from openpyxl import load_workbook
-        except ImportError as e:
-            return f"Required libraries not available for Excel processing: {e}"
+        # Import required libraries (already available from existing system)
+        import pandas as pd
+        import openpyxl
+        from openpyxl import load_workbook
         
         # Convert base64 to bytes
         if file_content.startswith('data:'):
@@ -48,21 +45,25 @@ def extract_excel_with_python(file_content: str, file_name: str) -> str:
         file_bytes = base64.b64decode(file_content)
         file_buffer = io.BytesIO(file_bytes)
         
-        extracted_content = []
+        # Use the same approach as the existing Excel processing
+        extracted_content = ["Excel file content:"]
         
         try:
-            # Try to read with openpyxl first (for .xlsx files)
+            # Try openpyxl first for .xlsx files
             workbook = load_workbook(file_buffer, read_only=True, data_only=True)
             
             for sheet_name in workbook.sheetnames:
                 extracted_content.append(f"=== SHEET: {sheet_name} ===")
                 
                 worksheet = workbook[sheet_name]
+                row_count = 0
                 
-                # Get all data from the worksheet
-                rows_data = []
+                # Get data with limited rows for text representation (similar to existing pattern)
                 for row in worksheet.iter_rows(values_only=True):
-                    # Convert None values to empty strings and handle various data types
+                    if row_count > 50:  # Limit for text extraction phase
+                        break
+                        
+                    # Convert None values to empty strings
                     cleaned_row = []
                     for cell in row:
                         if cell is None:
@@ -72,49 +73,47 @@ def extract_excel_with_python(file_content: str, file_name: str) -> str:
                     
                     # Skip completely empty rows
                     if any(cell.strip() for cell in cleaned_row if cell):
-                        rows_data.append("\t".join(cleaned_row))
+                        extracted_content.append("    " + "    ".join(cleaned_row[:10]))  # First 10 columns
+                        row_count += 1
                 
-                # Add the rows to extracted content
-                extracted_content.extend(rows_data)
-                extracted_content.append("")  # Empty line between sheets
+                if row_count >= 50:
+                    extracted_content.append(f"    ... (showing first 50 rows of {sheet_name})")
             
             workbook.close()
             
         except Exception as openpyxl_error:
-            # Fallback to pandas
+            # Fallback to pandas (existing pattern)
             try:
-                file_buffer.seek(0)  # Reset buffer position
-                excel_data = pd.read_excel(file_buffer, sheet_name=None)  # Read all sheets
+                file_buffer.seek(0)
+                excel_data = pd.read_excel(file_buffer, sheet_name=None, nrows=50)  # Limit rows
                 
                 for sheet_name, df in excel_data.items():
                     extracted_content.append(f"=== SHEET: {sheet_name} ===")
                     
-                    # Convert DataFrame to string format
                     if not df.empty:
-                        # Get column headers
-                        headers = "\t".join(str(col) for col in df.columns)
+                        # Column headers
+                        headers = "    " + "    ".join(str(col) for col in df.columns[:10])
                         extracted_content.append(headers)
                         
-                        # Get all data rows
-                        for _, row in df.iterrows():
-                            row_data = "\t".join(str(val) if pd.notna(val) else "" for val in row)
+                        # Data rows (limit to first 50)
+                        for idx, (_, row) in enumerate(df.iterrows()):
+                            if idx >= 49:  # 0-based, so 49 = 50th row
+                                break
+                            row_data = "    " + "    ".join(str(val) if pd.notna(val) else "" for val in row[:10])
                             extracted_content.append(row_data)
-                    
-                    extracted_content.append("")  # Empty line between sheets
+                        
+                        if len(df) >= 50:
+                            extracted_content.append(f"    ... (showing first 50 rows of {sheet_name})")
                     
             except Exception as pandas_error:
-                return f"Failed to read Excel file with both openpyxl and pandas. openpyxl error: {openpyxl_error}, pandas error: {pandas_error}"
+                return f"Error reading Excel file: {pandas_error}"
         
-        result = "\n".join(extracted_content).strip()
-        
-        if not result:
-            return f"No data found in Excel file {file_name}"
-            
-        return result
+        result = "\n".join(extracted_content)
+        return result if result else f"No readable data in Excel file {file_name}"
         
     except Exception as e:
-        logging.error(f"Error extracting Excel content from {file_name}: {e}")
-        return f"Error extracting Excel content: {e}"
+        logging.error(f"Error processing Excel content from {file_name}: {e}")
+        return f"Error processing Excel file: {e}"
 
 def extract_pdf_with_gemini(file_content: str, file_name: str) -> str:
     """Extract content from PDF files using Gemini API"""
@@ -1721,8 +1720,8 @@ if __name__ == "__main__":
                     if file_content.startswith("data:"):
                         try:
                             if file_name.lower().endswith(('.xlsx', '.xls')) or 'spreadsheet' in mime_type:
-                                # Handle Excel files using Python libraries (Gemini doesn't support Excel MIME type)
-                                text_content = extract_excel_with_python(file_content, file_name)
+                                # Handle Excel files using existing pandas/openpyxl processing
+                                text_content = process_excel_file_content(file_content, file_name)
                                 if not text_content or text_content.strip() == "":
                                     text_content = f"No data could be extracted from {file_name}"
                             elif file_name.lower().endswith('.pdf') or 'pdf' in mime_type:
