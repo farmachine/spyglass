@@ -478,7 +478,10 @@ const AIExtractionModal = ({
                 <div className="flex items-center gap-2">
                   <Database className="h-4 w-4 text-slate-600" />
                   <Label className="text-sm font-medium text-slate-700">Data</Label>
-                  <span className="text-xs text-slate-500">(Verified only)</span>
+                  <div className="flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3 text-green-600" />
+                    <span className="text-xs text-slate-500">Verified Items only</span>
+                  </div>
                 </div>
                 <Button 
                   variant="outline" 
