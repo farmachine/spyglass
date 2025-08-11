@@ -2470,9 +2470,22 @@ Thank you for your assistance.`;
                 <div className="relative flex items-center">
                   {/* Circular icon */}
                   <div className={`relative z-10 w-8 h-8 rounded-full border-2 flex items-center justify-center ${
-                    activeTab === 'info' 
-                      ? 'bg-primary border-primary' 
-                      : 'bg-white border-slate-300'
+                    (() => {
+                      const infoValidations = validations.filter(v => !v.collectionName && !v.fieldName.includes('.'));
+                      const verifiedCount = infoValidations.filter(v => 
+                        v.validationStatus === 'verified' || 
+                        (v.validationStatus === 'valid' && v.manuallyVerified === true)
+                      ).length;
+                      const totalCount = infoValidations.length;
+                      
+                      if (totalCount > 0 && verifiedCount === totalCount) {
+                        return 'bg-white border-green-600';
+                      } else {
+                        return activeTab === 'info' 
+                          ? 'bg-primary border-primary' 
+                          : 'bg-white border-slate-300';
+                      }
+                    })()
                   }`}>
                     {(() => {
                       const infoValidations = validations.filter(v => !v.collectionName && !v.fieldName.includes('.'));
@@ -2525,9 +2538,11 @@ Thank you for your assistance.`;
                     <div key={collection.id} className="relative flex items-center">
                       {/* Circular icon */}
                       <div className={`relative z-10 w-8 h-8 rounded-full border-2 flex items-center justify-center ${
-                        activeTab === collection.collectionName 
-                          ? 'bg-primary border-primary' 
-                          : 'bg-white border-slate-300'
+                        totalCount > 0 && verifiedCount === totalCount
+                          ? 'bg-white border-green-600'
+                          : (activeTab === collection.collectionName 
+                              ? 'bg-primary border-primary' 
+                              : 'bg-white border-slate-300')
                       }`}>
                         {totalCount > 0 && verifiedCount === totalCount ? (
                           <Check className="w-4 h-4 text-green-600" />
