@@ -101,6 +101,15 @@
   margin-left: 0 !important;
   margin-right: 0 !important;
   z-index: 5 !important;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.folder-tabs .tabs-list::-webkit-scrollbar {
+  display: none;
 }
 
 .folder-tabs .tabs-trigger {
