@@ -256,7 +256,8 @@ const AIExtractionModal = ({
   sectionName,
   availableFields,
   sessionDocuments,
-  verifiedFields
+  verifiedFields,
+  allProjectFields = []
 }: { 
   isOpen: boolean; 
   onClose: () => void; 
@@ -264,6 +265,7 @@ const AIExtractionModal = ({
   availableFields: { id: string; name: string; type: string }[];
   sessionDocuments: any[];
   verifiedFields: { id: string; name: string; value: string }[];
+  allProjectFields?: { id: string; name: string; type: string }[];
 }) => {
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [selectedVerifiedFields, setSelectedVerifiedFields] = useState<string[]>([]);
@@ -298,8 +300,10 @@ const AIExtractionModal = ({
     setSelectedDocuments(sessionDocuments.map(doc => doc.id));
   };
 
+  const allTargetFields = allProjectFields;
+  
   const selectAllVerifiedFields = () => {
-    setSelectedVerifiedFields(verifiedFields.map(field => field.id));
+    setSelectedVerifiedFields(allTargetFields.map(field => field.id));
   };
 
   const selectAllTargetFields = () => {
@@ -378,10 +382,10 @@ const AIExtractionModal = ({
               </div>
             </div>
 
-            {/* Verified Fields */}
+            {/* All Available Target Fields */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">Verified Fields</Label>
+                <Label className="text-sm font-medium">All Available Target Fields</Label>
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -391,23 +395,20 @@ const AIExtractionModal = ({
                   Select All
                 </Button>
               </div>
-              <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto border rounded-lg p-3">
-                {verifiedFields.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No verified fields available</p>
+              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto border rounded-lg p-3">
+                {allTargetFields.length === 0 ? (
+                  <p className="text-sm text-muted-foreground col-span-2">No target fields available</p>
                 ) : (
-                  verifiedFields.map((field) => (
-                    <div key={field.id} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded">
+                  allTargetFields.map((field) => (
+                    <div key={field.id} className="flex items-center space-x-2">
                       <Checkbox
-                        id={`verified-${field.id}`}
+                        id={`all-target-${field.id}`}
                         checked={selectedVerifiedFields.includes(field.id)}
                         onCheckedChange={() => handleVerifiedFieldToggle(field.id)}
                       />
-                      <div className="flex-1">
-                        <Label htmlFor={`verified-${field.id}`} className="text-sm font-medium cursor-pointer">
-                          {field.name}
-                        </Label>
-                        <p className="text-xs text-gray-500 mt-1">{field.value}</p>
-                      </div>
+                      <Label htmlFor={`all-target-${field.id}`} className="text-sm truncate">
+                        {field.name}
+                      </Label>
                     </div>
                   ))
                 )}
@@ -1470,6 +1471,39 @@ export default function SessionView() {
   // Get all unverified fields for consolidated reasoning
   const getUnverifiedFields = () => {
     return validations.filter(v => v.validationStatus !== 'valid' && v.validationStatus !== 'verified');
+  };
+
+  // Get all project fields for AI extraction modal
+  const getAllProjectFields = () => {
+    const allFields: { id: string; name: string; type: string }[] = [];
+
+    // Add schema fields (General Information fields)
+    if (project?.schemaFields) {
+      project.schemaFields.forEach(field => {
+        allFields.push({
+          id: field.fieldName,
+          name: field.fieldName,
+          type: field.fieldType
+        });
+      });
+    }
+
+    // Add collection properties (from all collections)
+    if (collections) {
+      collections.forEach(collection => {
+        if (collection.properties) {
+          collection.properties.forEach(property => {
+            allFields.push({
+              id: `${collection.name}.${property.propertyName}`,
+              name: `${collection.name} - ${property.propertyName}`,
+              type: property.propertyType
+            });
+          });
+        }
+      });
+    }
+
+    return allFields;
   };
 
   // Generate human-readable field names for reports, using meaningful identifiers for list items  
@@ -3370,6 +3404,7 @@ Thank you for your assistance.`;
         availableFields={aiExtractionModal.availableFields}
         sessionDocuments={sessionDocuments || []}
         verifiedFields={getVerifiedFields()}
+        allProjectFields={getAllProjectFields()}
       />
 
       {/* Session Chat */}
