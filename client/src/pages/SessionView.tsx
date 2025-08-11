@@ -252,6 +252,8 @@ export default function SessionView() {
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [showReasoningDialog, setShowReasoningDialog] = useState(false);
+  const [isEditingSessionName, setIsEditingSessionName] = useState(false);
+  const [sessionNameValue, setSessionNameValue] = useState('');
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
   const [hasInitializedCollapsed, setHasInitializedCollapsed] = useState(false);
   const [editingDisplayNames, setEditingDisplayNames] = useState<Record<string, boolean>>({});
@@ -574,6 +576,56 @@ export default function SessionView() {
       console.error('Failed to update field:', error);
     }
   });
+
+  // Mutation to update session name
+  const updateSessionMutation = useMutation({
+    mutationFn: async (sessionName: string) => {
+      return apiRequest(`/api/sessions/${sessionId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ sessionName }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
+      setIsEditingSessionName(false);
+    },
+    onError: (error: any) => {
+      console.error('Failed to update session name:', error);
+    }
+  });
+
+  // Initialize session name value when session data loads
+  useEffect(() => {
+    if (session?.sessionName && !isEditingSessionName) {
+      setSessionNameValue(session.sessionName);
+    }
+  }, [session?.sessionName, isEditingSessionName]);
+
+  // Handlers for session name editing
+  const handleSessionNameEdit = () => {
+    setIsEditingSessionName(true);
+  };
+
+  const handleSessionNameSave = () => {
+    if (sessionNameValue.trim() && sessionNameValue !== session?.sessionName) {
+      updateSessionMutation.mutate(sessionNameValue.trim());
+    } else {
+      setIsEditingSessionName(false);
+    }
+  };
+
+  const handleSessionNameCancel = () => {
+    setSessionNameValue(session?.sessionName || '');
+    setIsEditingSessionName(false);
+  };
+
+  const handleSessionNameKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSessionNameSave();
+    } else if (e.key === 'Escape') {
+      handleSessionNameCancel();
+    }
+  };
 
   // Batch validation removed - validation now occurs only during extraction process
 
@@ -1852,7 +1904,47 @@ Thank you for your assistance.`;
                 </Link>
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center space-x-2">
-                    <h2 className="text-3xl font-bold">{session?.sessionName}</h2>
+                    {isEditingSessionName ? (
+                      <div className="flex items-center gap-2 flex-1">
+                        <Input
+                          value={sessionNameValue}
+                          onChange={(e) => setSessionNameValue(e.target.value)}
+                          onKeyDown={handleSessionNameKeyPress}
+                          className="text-3xl font-bold h-auto py-1 px-2 border-2 border-blue-500 focus:ring-2 focus:ring-blue-200"
+                          autoFocus
+                        />
+                        <Button
+                          size="sm"
+                          onClick={handleSessionNameSave}
+                          disabled={updateSessionMutation.isPending}
+                          className="shrink-0"
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleSessionNameCancel}
+                          disabled={updateSessionMutation.isPending}
+                          className="shrink-0"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-3xl font-bold">{session?.sessionName}</h2>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={handleSessionNameEdit}
+                          className="opacity-60 hover:opacity-100 p-1"
+                          title="Edit session name"
+                        >
+                          <Edit3 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
