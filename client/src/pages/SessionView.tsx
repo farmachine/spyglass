@@ -1793,7 +1793,6 @@ Thank you for your assistance.`;
   const verificationStats = getVerificationStatsForProject();
 
   const navItems = [
-    { id: "upload", label: `New ${project?.mainObjectName || "Session"}`, icon: Upload, href: `/projects/${projectId}?tab=upload` },
     { id: "data", label: `All ${project?.mainObjectName || "Session"}s`, icon: Database, href: `/projects/${projectId}?tab=all-data` },
     ...(canAccessConfigTabs ? [
       { id: "knowledge", label: "Knowledge/Rules", icon: Brain, href: `/projects/${projectId}?tab=knowledge` },
@@ -1952,14 +1951,9 @@ Thank you for your assistance.`;
               {/* Status and progress bar aligned to right */}
               <div className="flex items-center gap-3">
                 {getVerificationProgress().percentage === 100 ? (
-                  <div className="flex items-center gap-1">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span className="text-green-600 font-medium text-sm">Verified</span>
-                  </div>
+                  <CheckCircle className="h-4 w-4 text-green-600" />
                 ) : (
-                  <div className="flex items-center">
-                    <CheckCircle className="h-4 w-4 text-gray-400" />
-                  </div>
+                  <CheckCircle className="h-4 w-4 text-gray-400" />
                 )}
                 
                 {/* Session Verification Progress */}
