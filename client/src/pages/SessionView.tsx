@@ -377,15 +377,18 @@ const AIExtractionModal = ({
                   <p className="text-sm text-muted-foreground">No verified fields available</p>
                 ) : (
                   verifiedFields.map((field) => (
-                    <div key={field.id} className="flex items-center space-x-2">
+                    <div key={field.id} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded">
                       <Checkbox
                         id={`verified-${field.id}`}
                         checked={selectedVerifiedFields.includes(field.id)}
                         onCheckedChange={() => handleVerifiedFieldToggle(field.id)}
                       />
-                      <Label htmlFor={`verified-${field.id}`} className="text-sm truncate">
-                        {field.name}: {field.value}
-                      </Label>
+                      <div className="flex-1">
+                        <Label htmlFor={`verified-${field.id}`} className="text-sm font-medium cursor-pointer">
+                          {field.name}
+                        </Label>
+                        <p className="text-xs text-gray-500 mt-1">{field.value}</p>
+                      </div>
                     </div>
                   ))
                 )}
@@ -529,53 +532,41 @@ export default function SessionView() {
     setAiExtractionModal({ open: false, sectionName: '', availableFields: [] });
   };
 
-  // Helper function to get verified fields for the modal
+  // Helper function to get verified fields for the modal (mirrors sidebar structure)
   const getVerifiedFields = () => {
     const verifiedData: { id: string; name: string; value: string }[] = [];
     
-    // Get schema fields that have data (same as shown in session view)
-    project?.schemaFields?.forEach(field => {
+    // Add "General Information" if it has data
+    const hasSchemaData = project?.schemaFields?.some(field => {
       const originalValue = extractedData[field.fieldName];
       const validation = getValidation(field.fieldName);
-      
-      // Show field if it has a value OR if there's a validation for it
-      if (originalValue !== undefined || validation) {
-        // Use validation's extractedValue (which includes manual edits), not the original extracted value
-        let displayValue = validation?.extractedValue ?? originalValue ?? null;
-        if (displayValue === "null" || displayValue === "undefined") {
-          displayValue = null;
-        }
-        
-        if (displayValue !== null && displayValue !== undefined && displayValue !== "") {
-          verifiedData.push({
-            id: field.id,
-            name: field.fieldName,
-            value: String(displayValue)
-          });
-        }
-      }
+      const displayValue = validation?.extractedValue ?? originalValue ?? null;
+      return displayValue !== null && displayValue !== undefined && displayValue !== "" && 
+             displayValue !== "null" && displayValue !== "undefined";
     });
     
-    // Get collection items (same as shown in session view)
+    if (hasSchemaData) {
+      verifiedData.push({
+        id: 'general-information',
+        name: 'General Information',
+        value: 'Main schema fields with extracted data'
+      });
+    }
+    
+    // Add collection sections that have data (like "Column Name Mapping (60)")
     project?.collections?.forEach(collection => {
       const collectionData = extractedData[collection.collectionName];
-      if (Array.isArray(collectionData) && collectionData.length > 0) {
-        collectionData.forEach((item, index) => {
-          // Check if this item has any meaningful data
-          const hasData = Object.values(item || {}).some(value => 
-            value !== null && value !== undefined && value !== ""
-          );
-          
-          if (hasData) {
-            verifiedData.push({
-              id: `${collection.id}-${index}`,
-              name: `${collection.collectionName} Item ${index + 1}`,
-              value: Object.entries(item || {})
-                .filter(([_, value]) => value !== null && value !== undefined && value !== "")
-                .map(([key, value]) => `${key}: ${value}`)
-                .join(', ')
-            });
-          }
+      const itemCount = Array.isArray(collectionData) ? collectionData.filter(item => 
+        item && Object.values(item || {}).some(value => 
+          value !== null && value !== undefined && value !== ""
+        )
+      ).length : 0;
+      
+      if (itemCount > 0) {
+        verifiedData.push({
+          id: collection.id,
+          name: `${collection.collectionName} (${itemCount})`,
+          value: `Collection with ${itemCount} items containing data`
         });
       }
     });
