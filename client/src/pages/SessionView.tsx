@@ -637,6 +637,56 @@ export default function SessionView() {
 
   // Batch validation removed - validation now occurs only during extraction process
 
+  // Document action handlers
+  const handleDownloadDocument = async (documentId: string, fileName: string) => {
+    try {
+      const response = await fetch(`/api/sessions/documents/${documentId}/download?sessionId=${sessionId}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Download failed');
+      }
+
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = fileName?.replace(/\.[^/.]+$/, "") + '_extracted_content.txt' || 'document.txt';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Download failed:', error);
+    }
+  };
+
+  const deleteDocumentMutation = useMutation({
+    mutationFn: async (documentId: string) => {
+      return apiRequest(`/api/sessions/documents/${documentId}`, {
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      // Invalidate and refetch session documents
+      queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'documents'] });
+    },
+    onError: (error: any) => {
+      console.error('Failed to delete document:', error);
+    }
+  });
+
+  const handleDeleteDocument = (documentId: string) => {
+    if (confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
+      deleteDocumentMutation.mutate(documentId);
+    }
+  };
+
   // Handler for field verification changes
   const handleFieldVerification = (fieldName: string, isVerified: boolean) => {
     const validation = getValidation(fieldName);
@@ -2294,7 +2344,7 @@ Thank you for your assistance.`;
                           {sessionDocuments.map((doc: any, index: number) => (
                             <div 
                               key={doc.id || index} 
-                              className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-gray-300 transition-colors"
+                              className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-gray-300 transition-colors group"
                             >
                               <div className="flex items-start gap-3">
                                 <div className="flex-shrink-0 mt-1">
@@ -2317,9 +2367,31 @@ Thank you for your assistance.`;
                                   )}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-gray-900 text-sm truncate" title={doc.fileName}>
-                                    {doc.fileName}
-                                  </h4>
+                                  <div className="flex items-start justify-between">
+                                    <h4 className="font-medium text-gray-900 text-sm truncate" title={doc.fileName}>
+                                      {doc.fileName}
+                                    </h4>
+                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => handleDownloadDocument(doc.id, doc.fileName)}
+                                        className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                        title="Download extracted content"
+                                      >
+                                        <Download className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => handleDeleteDocument(doc.id)}
+                                        className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                        title="Delete document"
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
                                   <div className="mt-1 space-y-1">
                                     <p className="text-xs text-gray-500">
                                       Size: {doc.fileSize ? `${Math.round(doc.fileSize / 1024)} KB` : 'Unknown'}

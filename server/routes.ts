@@ -1545,6 +1545,57 @@ except Exception as e:
     }
   });
 
+  // Delete a session document
+  app.delete("/api/sessions/documents/:documentId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const documentId = req.params.documentId;
+      const success = await storage.deleteSessionDocument(documentId);
+      
+      if (success) {
+        res.json({ message: "Document deleted successfully" });
+      } else {
+        res.status(404).json({ message: "Document not found" });
+      }
+    } catch (error) {
+      console.error("Delete session document error:", error);
+      res.status(500).json({ message: "Failed to delete document" });
+    }
+  });
+
+  // Download a session document (return the extracted content as a text file)
+  app.get("/api/sessions/documents/:documentId/download", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const documentId = req.params.documentId;
+      const sessionId = req.query.sessionId as string;
+      
+      if (!sessionId) {
+        return res.status(400).json({ message: "Session ID is required" });
+      }
+      
+      // Get session documents for the specific session
+      const sessionDocs = await storage.getSessionDocuments(sessionId);
+      const document = sessionDocs.find(doc => doc.id === documentId);
+      
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      // Create a meaningful filename for the extracted content
+      const baseFileName = document.fileName?.replace(/\.[^/.]+$/, "") || `document_${documentId}`;
+      const fileName = `${baseFileName}_extracted_content.txt`;
+      
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      
+      // Return the extracted content as a downloadable text file
+      res.send(document.extractedContent || 'No content available');
+      
+    } catch (error) {
+      console.error("Download session document error:", error);
+      res.status(500).json({ message: "Failed to download document" });
+    }
+  });
+
   // Helper function to generate initial field validations for a new session
   const generateInitialFieldValidations = async (sessionId: string, projectId: string) => {
     try {
