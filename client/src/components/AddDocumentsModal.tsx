@@ -19,6 +19,7 @@ interface AddDocumentsModalProps {
   sessionId: string;
   projectId: string;
   onSuccess: () => void;
+  mode?: 'extract' | 'upload'; // 'extract' = full extraction workflow, 'upload' = documents only
 }
 
 const ACCEPTED_FILE_TYPES = [".pdf", ".docx", ".doc", ".xlsx", ".xls"];
@@ -45,7 +46,8 @@ export default function AddDocumentsModal({
   onClose, 
   sessionId, 
   projectId, 
-  onSuccess 
+  onSuccess,
+  mode = 'extract' 
 }: AddDocumentsModalProps) {
   const [selectedFiles, setSelectedFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
@@ -199,46 +201,61 @@ export default function AddDocumentsModal({
           index === i ? { ...f, progress: 60, status: "processing" as const } : f
         ));
 
-        // Step 1: Extract text from document
-        const textExtractionResponse = await apiRequest(`/api/sessions/${sessionId}/extract-text`, {
-          method: 'POST',
-          body: JSON.stringify({ files: [fileData] }),
-          headers: { 'Content-Type': 'application/json' }
-        });
+        if (mode === 'upload') {
+          // Upload mode: Only extract and save documents, no AI processing
+          const uploadResponse = await apiRequest(`/api/sessions/${sessionId}/upload-documents`, {
+            method: 'POST',
+            body: JSON.stringify({ files: [fileData] }),
+            headers: { 'Content-Type': 'application/json' }
+          });
 
-        if (!textExtractionResponse || !textExtractionResponse.success) {
-          throw new Error(textExtractionResponse?.error || textExtractionResponse?.message || `Failed to extract text from ${file.file.name}`);
-        }
+          if (!uploadResponse || !uploadResponse.success) {
+            throw new Error(uploadResponse?.error || uploadResponse?.message || `Failed to upload ${file.file.name}`);
+          }
+        } else {
+          // Extract mode: Full extraction workflow with AI processing
+          
+          // Step 1: Extract text from document
+          const textExtractionResponse = await apiRequest(`/api/sessions/${sessionId}/extract-text`, {
+            method: 'POST',
+            body: JSON.stringify({ files: [fileData] }),
+            headers: { 'Content-Type': 'application/json' }
+          });
 
-        // Update progress
-        setSelectedFiles(prev => prev.map((f, index) => 
-          index === i ? { ...f, progress: 80, status: "processing" as const } : f
-        ));
+          if (!textExtractionResponse || !textExtractionResponse.success) {
+            throw new Error(textExtractionResponse?.error || textExtractionResponse?.message || `Failed to extract text from ${file.file.name}`);
+          }
 
-        // Step 2: Run AI extraction to match content to existing schema fields
-        const extractionPayload: any = {};
-        
-        // Add target fields if any are selected
-        if (targetFields.size > 0) {
-          const targetFieldsData = {
-            schemaFields: Array.from(targetFields).filter(id => 
-              schemaFields.some(field => field.id === id)
-            ).map(id => schemaFields.find(field => field.id === id)!),
-            collectionProperties: Array.from(targetFields).filter(id => 
-              allProperties.some(prop => prop.id === id)
-            ).map(id => allProperties.find(prop => prop.id === id)!)
-          };
-          extractionPayload.targetFields = targetFieldsData;
-        }
-        
-        const aiExtractionResponse = await apiRequest(`/api/sessions/${sessionId}/ai-extraction`, {
-          method: 'POST',
-          body: JSON.stringify(extractionPayload),
-          headers: { 'Content-Type': 'application/json' }
-        });
+          // Update progress
+          setSelectedFiles(prev => prev.map((f, index) => 
+            index === i ? { ...f, progress: 80, status: "processing" as const } : f
+          ));
 
-        if (!aiExtractionResponse || !aiExtractionResponse.success) {
-          throw new Error(aiExtractionResponse?.error || aiExtractionResponse?.message || `Failed to process ${file.file.name} with AI`);
+          // Step 2: Run AI extraction to match content to existing schema fields
+          const extractionPayload: any = {};
+          
+          // Add target fields if any are selected
+          if (targetFields.size > 0) {
+            const targetFieldsData = {
+              schemaFields: Array.from(targetFields).filter(id => 
+                schemaFields.some(field => field.id === id)
+              ).map(id => schemaFields.find(field => field.id === id)!),
+              collectionProperties: Array.from(targetFields).filter(id => 
+                allProperties.some(prop => prop.id === id)
+              ).map(id => allProperties.find(prop => prop.id === id)!)
+            };
+            extractionPayload.targetFields = targetFieldsData;
+          }
+          
+          const aiExtractionResponse = await apiRequest(`/api/sessions/${sessionId}/ai-extraction`, {
+            method: 'POST',
+            body: JSON.stringify(extractionPayload),
+            headers: { 'Content-Type': 'application/json' }
+          });
+
+          if (!aiExtractionResponse || !aiExtractionResponse.success) {
+            throw new Error(aiExtractionResponse?.error || aiExtractionResponse?.message || `Failed to process ${file.file.name} with AI`);
+          }
         }
 
         // Update to completed
@@ -248,8 +265,10 @@ export default function AddDocumentsModal({
       }
 
       toast({
-        title: "Documents added successfully",
-        description: `${selectedFiles.length} document(s) have been processed and added to the session`,
+        title: mode === 'upload' ? "Documents uploaded successfully" : "Documents added successfully",
+        description: mode === 'upload' 
+          ? `${selectedFiles.length} document(s) have been uploaded and saved to the session`
+          : `${selectedFiles.length} document(s) have been processed and added to the session`,
       });
 
       // Clear files, target fields and close modal
@@ -350,15 +369,19 @@ export default function AddDocumentsModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
-            Add Documents to Session
+            {mode === 'upload' ? 'Upload Documents' : 'Add Documents to Session'}
           </DialogTitle>
           <DialogDescription>
-            Upload additional documents to extract more data for this session. Previously verified data will be preserved and used to guide the extraction.
+            {mode === 'upload' 
+              ? 'Upload documents to save them in the session. No data extraction will be performed.'
+              : 'Upload additional documents to extract more data for this session. Previously verified data will be preserved and used to guide the extraction.'
+            }
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4">
-          {/* Target Fields Section */}
+          {/* Target Fields Section - Only show in extract mode */}
+          {mode === 'extract' && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -531,6 +554,7 @@ export default function AddDocumentsModal({
               </div>
             )}
           </div>
+          )}
           
           <Separator />
           

@@ -27,6 +27,7 @@ import UserProfile from "@/components/UserProfile";
 
 import { EditFieldValueDialog } from "@/components/EditFieldValueDialog";
 import AddDocumentsModal from "@/components/AddDocumentsModal";
+import DocumentUploadModal from "@/components/DocumentUploadModal";
 import SessionChat from "@/components/SessionChat";
 
 import type { 
@@ -651,6 +652,9 @@ export default function SessionView() {
 
   // Add documents modal state
   const [addDocumentsModalOpen, setAddDocumentsModalOpen] = useState(false);
+  
+  // Document upload modal state (upload only, no AI processing)
+  const [documentUploadModalOpen, setDocumentUploadModalOpen] = useState(false);
   
   // AI extraction modal state
   const [aiExtractionModal, setAiExtractionModal] = useState<{
@@ -2679,9 +2683,18 @@ Thank you for your assistance.`;
                   variant="outline"
                   size="sm"
                   className="px-3 py-2"
-                  title="Add more documents to this session"
+                  title="Add more documents to this session with AI extraction"
                 >
                   <Upload className="h-4 w-4" />
+                </Button>
+                <Button
+                  onClick={() => setDocumentUploadModalOpen(true)}
+                  variant="outline"
+                  size="sm"
+                  className="px-3 py-2"
+                  title="Upload documents without AI processing"
+                >
+                  <Folder className="h-4 w-4" />
                 </Button>
                 <Button
                   onClick={handleExportToExcel}
@@ -3559,6 +3572,19 @@ Thank you for your assistance.`;
           // Refresh session data and validations after successful document upload
           queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
           queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+        }}
+      />
+
+      {/* Document Upload Modal (upload only, no AI processing) */}
+      <DocumentUploadModal
+        open={documentUploadModalOpen}
+        onClose={() => setDocumentUploadModalOpen(false)}
+        sessionId={sessionId!}
+        projectId={projectId!}
+        onSuccess={() => {
+          // Refresh session documents after successful upload
+          queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'documents'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
         }}
       />
 

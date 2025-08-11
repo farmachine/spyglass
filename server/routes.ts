@@ -4204,6 +4204,135 @@ except Exception as e:
   });
 
 
+  // Document-only upload endpoint - extract and save documents without AI processing
+  app.post("/api/sessions/:sessionId/upload-documents", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const { files } = req.body;
+      
+      console.log(`DOCUMENT UPLOAD: Starting document upload for session ${sessionId}`);
+      console.log(`Processing ${files?.length || 0} documents`);
+      
+      // Get session to verify it exists
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ success: false, error: 'Session not found' });
+      }
+      
+      // Convert frontend file format to Python script expected format
+      const convertedFiles = (files || []).map((file: any) => ({
+        file_name: file.name,
+        file_content: file.content, // This is the data URL from FileReader
+        mime_type: file.type
+      }));
+
+      // Call Python script for text extraction only (reusing existing logic)
+      const extractionData = {
+        step: "extract_text_only",
+        documents: convertedFiles
+      };
+      
+      const python = spawn('python3', ['ai_extraction_simplified.py']);
+      
+      python.stdin.write(JSON.stringify(extractionData));
+      python.stdin.end();
+      
+      let output = '';
+      let error = '';
+      
+      python.stdout.on('data', (data) => {
+        output += data.toString();
+      });
+      
+      python.stderr.on('data', (data) => {
+        error += data.toString();
+      });
+      
+      python.on('close', async (code) => {
+        if (code !== 0) {
+          console.error('DOCUMENT UPLOAD error:', error);
+          return res.status(500).json({ 
+            success: false,
+            error: "Document upload failed",
+            message: error || "Unknown error"
+          });
+        }
+        
+        try {
+          const result = JSON.parse(output);
+          console.log(`DOCUMENT UPLOAD: Extracted text from ${result.extracted_texts?.length || 0} documents`);
+          
+          let documentsAdded = 0;
+          
+          // Save each document with its extracted content to session documents table
+          if (result.extracted_texts && Array.isArray(result.extracted_texts)) {
+            for (const extractedText of result.extracted_texts) {
+              try {
+                // Find the original file to get size and MIME type
+                const originalFile = convertedFiles.find(f => f.file_name === extractedText.file_name);
+                
+                // Calculate file size from data URL if available
+                let fileSize = null;
+                if (originalFile?.file_content && originalFile.file_content.startsWith('data:')) {
+                  const base64Data = originalFile.file_content.split(',')[1];
+                  if (base64Data) {
+                    fileSize = Math.round((base64Data.length * 3) / 4); // Estimate original file size
+                  }
+                }
+                
+                // Create session document record
+                await storage.createSessionDocument({
+                  sessionId: sessionId,
+                  fileName: extractedText.file_name,
+                  fileSize: fileSize,
+                  mimeType: originalFile?.mime_type || 'application/octet-stream',
+                  extractedContent: extractedText.extracted_text || '',
+                  pageCount: extractedText.page_count || null,
+                  extractionMethod: extractedText.extraction_method || 'gemini'
+                });
+                
+                documentsAdded++;
+                console.log(`DOCUMENT UPLOAD: Saved document ${extractedText.file_name} to session ${sessionId}`);
+                
+              } catch (docError) {
+                console.error(`Error saving document ${extractedText.file_name}:`, docError);
+              }
+            }
+          }
+          
+          // Update session document count
+          await storage.updateExtractionSession(sessionId, {
+            documentCount: (session.documentCount || 0) + documentsAdded,
+            status: documentsAdded > 0 ? "documents_uploaded" : session.status
+          });
+          
+          res.json({ 
+            success: true,
+            message: `Successfully uploaded ${documentsAdded} documents`,
+            documentsAdded,
+            sessionId 
+          });
+          
+        } catch (parseError) {
+          console.error('DOCUMENT UPLOAD JSON parse error:', parseError);
+          res.status(500).json({ 
+            success: false,
+            error: "Failed to parse document upload results",
+            message: parseError instanceof Error ? parseError.message : "Unknown error"
+          });
+        }
+      });
+      
+    } catch (error) {
+      console.error("DOCUMENT UPLOAD ERROR:", error);
+      res.status(500).json({ 
+        success: false,
+        error: "Document upload failed",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Session Export Routes
   app.get("/api/sessions/:sessionId/export/xlsx", async (req, res) => {
     try {
