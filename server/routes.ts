@@ -4647,7 +4647,10 @@ ${JSON.stringify(targetFieldDefinitions, null, 2)}
 EXISTING RECORDS TO SKIP:
 ${skipInstructions}
 
-Extract up to 100 field validations. For collection properties, start from the next available index after existing records.
+${additionalInstructions ? `ADDITIONAL INSTRUCTIONS:
+${additionalInstructions}
+
+` : ''}Extract up to 100 field validations. For collection properties, start from the next available index after existing records.
 
 Return JSON in this format:
 {
