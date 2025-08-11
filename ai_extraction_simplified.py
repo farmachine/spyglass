@@ -123,10 +123,12 @@ def extract_pdf_with_gemini(file_content: str, file_name: str) -> str:
     from google.genai import types
     
     try:
-        api_key = os.environ.get("GEMINI_API_KEY")
+        # Try GEMINI_API_KEY first, then GOOGLE_API_KEY as fallback
+        api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
         if not api_key:
-            return f"GEMINI_API_KEY not found for extracting {file_name}"
+            return f"GEMINI_API_KEY or GOOGLE_API_KEY not found for extracting {file_name}"
         
+        logging.info(f"Using API key for PDF extraction: {'GEMINI_API_KEY' if os.environ.get('GEMINI_API_KEY') else 'GOOGLE_API_KEY'}")
         client = genai.Client(api_key=api_key)
         
         # Convert base64 to bytes
@@ -161,13 +163,19 @@ def extract_pdf_with_gemini(file_content: str, file_name: str) -> str:
         if response and response.text:
             content = response.text.strip()
             logging.info(f"Extracted {len(content)} characters from {file_name}")
+            logging.info(f"First 100 chars: {content[:100]}...")
             return content
+        elif response:
+            logging.warning(f"Gemini response exists but no text for {file_name}")
+            logging.warning(f"Response object: {str(response)[:200]}")
+            return f"No content extracted from {file_name} - Gemini response had no text"
         else:
-            logging.warning(f"Empty or no response from Gemini for {file_name}")
-            return f"No content extracted from {file_name} - Gemini returned empty response"
+            logging.warning(f"No response from Gemini for {file_name}")
+            return f"No content extracted from {file_name} - Gemini returned no response"
             
     except Exception as e:
         logging.error(f"Error extracting PDF content from {file_name}: {e}")
+        logging.error(f"Exception type: {type(e).__name__}")
         return f"Error extracting PDF content: {e}"
 
 def extract_document_with_gemini(file_content: str, file_name: str, mime_type: str) -> str:
@@ -1788,6 +1796,15 @@ if __name__ == "__main__":
                         "text_content": f"Error processing file: {e}",
                         "word_count": 0
                     })
+            
+            # Log the final extracted texts for debugging
+            logging.info(f"FINAL RESULT: {len(extracted_texts)} documents processed")
+            for i, text_info in enumerate(extracted_texts):
+                logging.info(f"Document {i+1}: {text_info['file_name']} - {text_info['word_count']} words, content length: {len(text_info.get('text_content', ''))}")
+                if text_info.get('text_content'):
+                    logging.info(f"Content preview: {text_info['text_content'][:200]}...")
+                else:
+                    logging.warning(f"Empty content for {text_info['file_name']}")
             
             print(json.dumps({
                 "success": True,

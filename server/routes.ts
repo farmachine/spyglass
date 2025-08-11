@@ -4259,8 +4259,26 @@ except Exception as e:
         }
         
         try {
+          // Log the raw output and error for debugging
+          if (error) {
+            console.log('DOCUMENT UPLOAD DEBUG - Python stderr:', error);
+          }
+          console.log('DOCUMENT UPLOAD DEBUG - Python stdout length:', output.length);
+          
           const result = JSON.parse(output);
           console.log(`DOCUMENT UPLOAD: Extracted text from ${result.extracted_texts?.length || 0} documents`);
+          
+          // Debug each extracted text
+          if (result.extracted_texts && Array.isArray(result.extracted_texts)) {
+            result.extracted_texts.forEach((extractedText: any, index: number) => {
+              console.log(`DOCUMENT UPLOAD DEBUG ${index + 1}: ${extractedText.file_name} - content length: ${extractedText.text_content?.length || 0}, word count: ${extractedText.word_count || 0}`);
+              if (extractedText.text_content && extractedText.text_content.length > 0) {
+                console.log(`DOCUMENT UPLOAD DEBUG ${index + 1} preview: ${extractedText.text_content.substring(0, 100)}...`);
+              } else {
+                console.log(`DOCUMENT UPLOAD DEBUG ${index + 1}: NO CONTENT EXTRACTED`);
+              }
+            });
+          }
           
           let documentsAdded = 0;
           
