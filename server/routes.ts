@@ -4586,208 +4586,144 @@ print(json.dumps(result))
         )
       );
 
-      // Filter schema and collections to only selected target fields
+      // Get the specific target fields that were selected
       const allProjectFields = [
-        ...(project_data.schemaFields || []).map((field: any) => ({
-          id: field.id,
-          name: field.fieldName,
-          type: field.fieldType || 'TEXT',
-          isSchema: true
-        })),
+        ...(project_data.schemaFields || []),
         ...(project_data.collections || []).flatMap((collection: any) => 
           (collection.properties || []).map((prop: any) => ({
-            id: prop.id,
-            name: `${collection.collectionName} - ${prop.propertyName}`,
-            type: prop.fieldType || 'TEXT',
+            ...prop,
             collectionName: collection.collectionName,
-            propertyName: prop.propertyName,
-            isCollection: true
+            isCollectionProperty: true
           }))
         )
       ];
 
-      const selectedFields = allProjectFields.filter(field => selectedTargetFields.includes(field.id));
+      const selectedTargetFieldsData = allProjectFields.filter(field => selectedTargetFields.includes(field.id));
       
-      // Separate selected fields back into schema and collections
-      const targetSchemaFields = selectedFields.filter(field => field.isSchema);
-      const targetCollectionFields = selectedFields.filter(field => field.isCollection);
-      
-      // Rebuild collections structure with only selected properties
-      const targetCollections = [...new Set(targetCollectionFields.map(field => field.collectionName))]
-        .map(collectionName => {
-          const originalCollection = project_data.collections.find((c: any) => c.collectionName === collectionName);
-          const selectedProperties = targetCollectionFields
-            .filter(field => field.collectionName === collectionName)
-            .map(field => {
-              // Find the property by ID instead of constructed name
-              return originalCollection?.properties.find((p: any) => p.id === field.id);
-            })
-            .filter(Boolean);
-
-          return {
-            ...originalCollection,
-            properties: selectedProperties
-          };
-        });
-
-      console.log('MODAL_EXTRACTION: All project fields available:', allProjectFields.map(f => ({ id: f.id, name: f.name })));
-      console.log('MODAL_EXTRACTION: Selected target field IDs:', selectedTargetFields);
-      console.log('MODAL_EXTRACTION: Filtered selected fields:', selectedFields.map(f => ({ id: f.id, name: f.name, propertyName: f.propertyName })));
-      console.log('MODAL_EXTRACTION: Target schema fields:', targetSchemaFields.length);
-      console.log('MODAL_EXTRACTION: Target collections:', targetCollections.map(c => ({ 
-        name: c.collectionName, 
-        properties: c.properties.map((p: any) => ({ id: p.id, name: p.propertyName }))
+      console.log('MODAL_EXTRACTION: Selected target fields:', selectedTargetFieldsData.map(f => ({ 
+        id: f.id, 
+        name: f.fieldName || f.propertyName, 
+        collection: f.collectionName 
       })));
 
-      // Get extraction rules and knowledge documents
-      let extractionRules = [];
-      let knowledgeDocuments = [];
-      
+      // Get document content from stored documents  
+      const documentContent = selectedDocumentContents.map(doc => doc.file_content).join('\n\n');
+
+      // Get reference data from existing validations
+      const referenceValidations = await storage.getFieldValidations(sessionId);
+      const referenceData = selectedVerifiedFields.map(fieldId => {
+        const validation = referenceValidations.find(v => v.fieldId === fieldId);
+        return validation ? `${validation.fieldName}: ${validation.extractedValue}` : '';
+      }).filter(Boolean).join('\n');
+
+      // Create field definitions for selected target fields only
+      const targetFieldDefinitions = selectedTargetFieldsData.map(field => ({
+        field_id: field.id,
+        field_name: field.collectionName 
+          ? `${field.collectionName}.${field.propertyName}` 
+          : field.fieldName,
+        field_type: field.fieldType || 'TEXT',
+        validation_instructions: field.validationInstructions || ''
+      }));
+
+      // Get indexes to skip for collections
+      const skipInstructions = Object.entries(existingCollectionRecords)
+        .map(([collection, indexes]) => 
+          `Skip ${collection} records with indexes: ${Array.from(indexes).join(', ')}`
+        ).join('\n');
+
+      // Create AI prompt
+      const prompt = `Extract data from the document content below. Use the reference data as context.
+
+DOCUMENT CONTENT:
+${documentContent}
+
+REFERENCE DATA (for context):
+${referenceData}
+
+TARGET FIELDS TO EXTRACT:
+${JSON.stringify(targetFieldDefinitions, null, 2)}
+
+EXISTING RECORDS TO SKIP:
+${skipInstructions}
+
+Extract up to 100 field validations. For collection properties, start from the next available index after existing records.
+
+Return JSON in this format:
+{
+  "field_validations": [
+    {
+      "field_id": "uuid",
+      "validation_type": "schema_field" or "collection_property", 
+      "data_type": "TEXT",
+      "field_name": "exact field name",
+      "collection_name": "collection name if applicable",
+      "extracted_value": "the extracted value",
+      "confidence_score": 0.95,
+      "validation_status": "unverified",
+      "ai_reasoning": "explanation",
+      "record_index": null or number for collections
+    }
+  ]
+}`;
+
+      console.log('MODAL_EXTRACTION: Calling Gemini API with prompt length:', prompt.length);
+
+      // Call Gemini API directly
       try {
-        extractionRules = await storage.getExtractionRules(session.projectId);
-      } catch (error) {
-        console.warn(`Failed to get extraction rules:`, error);
-      }
-      
-      try {
-        knowledgeDocuments = await storage.getKnowledgeDocuments(session.projectId);
-      } catch (error) {
-        console.warn(`Failed to get knowledge documents:`, error);
-      }
+        const { GoogleGenAI } = require('@google/genai');
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-      // Prepare data for Python extraction script
-      const extractionData = {
-        step: "extract",
-        session_id: sessionId,
-        files: selectedDocumentContents.map(doc => ({
-          file_name: doc.filename,
-          file_content: doc.file_content,
-          mime_type: 'text/plain' // Since we're using extracted text
-        })),
-        project_schema: {
-          schema_fields: targetSchemaFields,
-          collections: targetCollections
-        },
-        extraction_rules: extractionRules,
-        knowledge_documents: knowledgeDocuments,
-        session_name: project_data?.mainObjectName || "contract",
-        validated_data_context: verifiedDataContext,
-        is_subsequent_upload: Object.keys(verifiedDataContext).length > 0,
-        existing_collection_records: Object.fromEntries(
-          Object.entries(existingCollectionRecords).map(([collection, indexes]) => 
-            [collection, Array.from(indexes)]
-          )
-        ),
-        additional_instructions: additionalInstructions || ""
-      };
+        const response = await ai.models.generateContent({
+          model: "gemini-2.5-pro",
+          config: {
+            responseMimeType: "application/json"
+          },
+          contents: prompt,
+        });
 
-      console.log('MODAL_EXTRACTION: Running AI extraction with filtered data');
+        const aiResponse = response.text;
+        console.log('MODAL_EXTRACTION: AI response length:', aiResponse?.length || 0);
 
-      // Run the Python AI extraction script
-      const python = spawn('python3', ['ai_extraction_simplified.py']);
-      
-      python.stdin.write(JSON.stringify(extractionData));
-      python.stdin.end();
+        const result = JSON.parse(aiResponse);
+        const fieldValidations = result.field_validations || [];
 
-      let pythonOutput = '';
-      let pythonError = '';
+        console.log('MODAL_EXTRACTION: Processing', fieldValidations.length, 'field validations');
 
-      python.stdout.on('data', (data: any) => {
-        pythonOutput += data.toString();
-      });
+        // Save field validations to database
+        for (const validation of fieldValidations) {
+          const confidence = Math.round((validation.confidence_score || 0) * 100);
+          const autoVerify = confidence >= 80;
 
-      python.stderr.on('data', (data: any) => {
-        pythonError += data.toString();
-        console.log('MODAL_EXTRACTION Python stderr:', data.toString());
-      });
-
-      python.on('close', async (code: any) => {
-        if (code !== 0) {
-          console.error('MODAL_EXTRACTION: Python process failed with code:', code);
-          console.error('MODAL_EXTRACTION: Error output:', pythonError);
-          return res.status(500).json({ 
-            message: "AI extraction failed", 
-            error: pythonError || `Process exited with code ${code}`
+          await storage.createFieldValidation({
+            sessionId: sessionId,
+            fieldId: validation.field_id,
+            validationType: validation.validation_type,
+            dataType: validation.data_type,
+            fieldName: validation.field_name,
+            collectionName: validation.collection_name || null,
+            extractedValue: validation.extracted_value,
+            confidenceScore: confidence,
+            validationStatus: autoVerify ? 'verified' : 'unverified',
+            aiReasoning: validation.ai_reasoning,
+            recordIndex: validation.record_index || null
           });
         }
 
-        try {
-          const extractionResults = JSON.parse(pythonOutput);
-          console.log('MODAL_EXTRACTION: AI extraction successful');
+        res.json({
+          success: true,
+          message: `Successfully extracted ${fieldValidations.length} field validations`,
+          count: fieldValidations.length
+        });
 
-          if (extractionResults.success) {
-            // Update session with extraction results
-            await storage.updateExtractionSession(sessionId, {
-              status: "extracted",
-              extractedData: JSON.stringify(extractionResults.extracted_data),
-              extractionPrompt: extractionResults.extraction_prompt || null,
-              aiResponse: extractionResults.ai_response || null,
-              inputTokenCount: extractionResults.input_token_count || null,
-              outputTokenCount: extractionResults.output_token_count || null
-            });
-
-            // Create field validations from results
-            if (extractionResults.field_validations) {
-              for (const validation of extractionResults.field_validations) {
-                // Get auto-verification threshold for this field
-                let autoVerifyThreshold = 80; // Default threshold
-                
-                try {
-                  const matchingField = allProjectFields.find(f => 
-                    f.id === validation.field_id || f.name === validation.field_name
-                  );
-                  if (matchingField && matchingField.autoVerifyThreshold) {
-                    autoVerifyThreshold = matchingField.autoVerifyThreshold;
-                  }
-                } catch (error) {
-                  console.warn('Failed to get auto-verify threshold:', error);
-                }
-
-                // Auto-verify if confidence meets threshold
-                const confidenceValue = validation.confidence_score || validation.confidence || 0;
-                const shouldAutoVerify = (confidenceValue * 100) >= autoVerifyThreshold;
-
-                console.log(`MODAL_EXTRACTION: Field ${validation.field_name} - confidence: ${confidenceValue}, threshold: ${autoVerifyThreshold}, autoVerify: ${shouldAutoVerify}`);
-
-                // Create validation record
-                await storage.createFieldValidation({
-                  sessionId: sessionId,
-                  fieldId: validation.field_id,
-                  fieldName: validation.field_name,
-                  extractedValue: validation.extracted_value,
-                  confidence: Math.round((confidenceValue * 100)),
-                  validationStatus: shouldAutoVerify ? 'verified' : 'unverified',
-                  validationType: validation.validation_type || 'schema_field',
-                  collectionName: validation.collection_name || null,
-                  recordIndex: validation.record_index || null,
-                  aiReasoning: validation.ai_reasoning || null
-                });
-              }
-            }
-
-            res.json({ 
-              message: "Modal extraction completed successfully",
-              extractedFieldsCount: extractionResults.field_validations?.length || 0,
-              success: true
-            });
-
-          } else {
-            console.log('MODAL_EXTRACTION: Extraction failed:', extractionResults.error);
-            res.status(500).json({ 
-              message: "AI extraction failed",
-              error: extractionResults.error
-            });
-          }
-        } catch (parseError) {
-          console.error(`MODAL_EXTRACTION: Failed to parse Python output: ${parseError}`);
-          console.error(`MODAL_EXTRACTION: Raw output: ${pythonOutput}`);
-          res.status(500).json({
-            message: "Failed to parse extraction results",
-            error: parseError.message,
-            output: pythonOutput
-          });
-        }
-      });
+      } catch (error) {
+        console.error('MODAL_EXTRACTION: Gemini API error:', error);
+        res.status(500).json({
+          success: false,
+          message: 'Failed to extract data',
+          error: error.message
+        });
+      }
 
     } catch (error) {
       console.error("MODAL_EXTRACTION error:", error);
