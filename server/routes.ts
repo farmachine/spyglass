@@ -4350,7 +4350,7 @@ print(json.dumps(result))
   // Chat Routes
   
   // Get chat messages for a session
-  app.get("/api/sessions/:sessionId/chat", async (req, res) => {
+  app.get("/api/sessions/:sessionId/chat", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const sessionId = req.params.sessionId;
       const messages = await storage.getChatMessages(sessionId);
@@ -4362,7 +4362,7 @@ print(json.dumps(result))
   });
 
   // Send a chat message
-  app.post("/api/sessions/:sessionId/chat", async (req, res) => {
+  app.post("/api/sessions/:sessionId/chat", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const sessionId = req.params.sessionId;
       const { message } = req.body;
@@ -4371,8 +4371,8 @@ print(json.dumps(result))
         return res.status(400).json({ message: "Message content is required" });
       }
 
-      // Get current user from session
-      const userId = req.session?.user?.id;
+      // Get current user from JWT token (set by authenticateToken middleware)
+      const userId = req.user?.id;
       if (!userId) {
         return res.status(401).json({ message: "User not authenticated" });
       }
