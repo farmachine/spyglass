@@ -271,6 +271,7 @@ const AIExtractionModal = ({
   const [selectedVerifiedFields, setSelectedVerifiedFields] = useState<string[]>([]);
   const [selectedTargetFields, setSelectedTargetFields] = useState<string[]>([]);
   const [additionalInstructions, setAdditionalInstructions] = useState("");
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['schema']));
 
   const handleDocumentToggle = (docId: string) => {
     setSelectedDocuments(prev => 
@@ -309,6 +310,42 @@ const AIExtractionModal = ({
   const selectAllTargetFields = () => {
     setSelectedTargetFields(availableFields.map(field => field.id));
   };
+
+  const toggleSection = (sectionId: string) => {
+    setExpandedSections(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(sectionId)) {
+        newSet.delete(sectionId);
+      } else {
+        newSet.add(sectionId);
+      }
+      return newSet;
+    });
+  };
+
+  // Organize fields by category
+  const organizeFields = () => {
+    const schemaFields: typeof allProjectFields = [];
+    const collectionFieldsByCollection: Record<string, typeof allProjectFields> = {};
+
+    allTargetFields.forEach(field => {
+      if (field.id.includes('.')) {
+        // Collection field
+        const [collectionName] = field.id.split('.');
+        if (!collectionFieldsByCollection[collectionName]) {
+          collectionFieldsByCollection[collectionName] = [];
+        }
+        collectionFieldsByCollection[collectionName].push(field);
+      } else {
+        // Schema field
+        schemaFields.push(field);
+      }
+    });
+
+    return { schemaFields, collectionFieldsByCollection };
+  };
+
+  const { schemaFields, collectionFieldsByCollection } = organizeFields();
 
   // Add modal open effect to debug
   useEffect(() => {
@@ -382,7 +419,7 @@ const AIExtractionModal = ({
               </div>
             </div>
 
-            {/* All Available Target Fields */}
+            {/* All Available Target Fields - Hierarchical */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-medium">All Available Target Fields</Label>
@@ -395,22 +432,81 @@ const AIExtractionModal = ({
                   Select All
                 </Button>
               </div>
-              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto border rounded-lg p-3">
+              <div className="space-y-3 max-h-64 overflow-y-auto border rounded-lg p-3">
                 {allTargetFields.length === 0 ? (
-                  <p className="text-sm text-muted-foreground col-span-2">No target fields available</p>
+                  <p className="text-sm text-muted-foreground">No target fields available</p>
                 ) : (
-                  allTargetFields.map((field) => (
-                    <div key={field.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`all-target-${field.id}`}
-                        checked={selectedVerifiedFields.includes(field.id)}
-                        onCheckedChange={() => handleVerifiedFieldToggle(field.id)}
-                      />
-                      <Label htmlFor={`all-target-${field.id}`} className="text-sm truncate">
-                        {field.name}
-                      </Label>
-                    </div>
-                  ))
+                  <>
+                    {/* Schema Fields Section */}
+                    {schemaFields.length > 0 && (
+                      <div className="space-y-2">
+                        <button
+                          onClick={() => toggleSection('schema')}
+                          className="flex items-center justify-between w-full p-2 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            {expandedSections.has('schema') ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
+                            <span className="text-sm font-medium">Schema Fields ({schemaFields.length})</span>
+                          </div>
+                        </button>
+                        {expandedSections.has('schema') && (
+                          <div className="grid grid-cols-1 gap-2 pl-4">
+                            {schemaFields.map((field) => (
+                              <div key={field.id} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`schema-${field.id}`}
+                                  checked={selectedVerifiedFields.includes(field.id)}
+                                  onCheckedChange={() => handleVerifiedFieldToggle(field.id)}
+                                />
+                                <Label htmlFor={`schema-${field.id}`} className="text-sm">
+                                  {field.name}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Collection Fields Sections */}
+                    {Object.entries(collectionFieldsByCollection).map(([collectionName, fields]) => (
+                      <div key={collectionName} className="space-y-2">
+                        <button
+                          onClick={() => toggleSection(`collection-${collectionName}`)}
+                          className="flex items-center justify-between w-full p-2 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            {expandedSections.has(`collection-${collectionName}`) ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
+                            <span className="text-sm font-medium">{collectionName} ({fields.length})</span>
+                          </div>
+                        </button>
+                        {expandedSections.has(`collection-${collectionName}`) && (
+                          <div className="grid grid-cols-1 gap-2 pl-4">
+                            {fields.map((field) => (
+                              <div key={field.id} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`collection-${field.id}`}
+                                  checked={selectedVerifiedFields.includes(field.id)}
+                                  onCheckedChange={() => handleVerifiedFieldToggle(field.id)}
+                                />
+                                <Label htmlFor={`collection-${field.id}`} className="text-sm">
+                                  {field.name.split(' - ')[1] || field.name}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </>
                 )}
               </div>
             </div>
