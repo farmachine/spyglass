@@ -2028,7 +2028,8 @@ Thank you for your assistance.`;
                   {(() => {
                     const infoValidations = validations.filter(v => !v.collectionName && !v.fieldName.includes('.'));
                     const verifiedCount = infoValidations.filter(v => 
-                      v.validationStatus === 'verified' || v.manuallyVerified === true
+                      v.validationStatus === 'verified' || 
+                      (v.validationStatus === 'valid' && v.manuallyVerified === true)
                     ).length;
                     const totalCount = infoValidations.length;
                     
@@ -2036,7 +2037,7 @@ Thank you for your assistance.`;
                     if (verifiedCount === totalCount) {
                       return <Check className="w-4 h-4 ml-2 text-green-600" />;
                     } else {
-                      return <Check className="w-4 h-4 ml-2 text-white" />;
+                      return null; // Don't show any checkmark if not all verified
                     }
                   })()}
                 </TabsTrigger>
@@ -2051,7 +2052,8 @@ Thank you for your assistance.`;
                   
                   // Calculate verification status for this collection
                   const verifiedCount = collectionValidations.filter(v => 
-                    v.validationStatus === 'verified' || v.manuallyVerified === true
+                    v.validationStatus === 'verified' || 
+                    (v.validationStatus === 'valid' && v.manuallyVerified === true)
                   ).length;
                   const totalCount = collectionValidations.length;
                   
@@ -2060,13 +2062,9 @@ Thank you for your assistance.`;
                     <TabsTrigger key={collection.id} value={collection.collectionName} className="tabs-trigger">
                       {collection.collectionName} ({uniqueIndices.length})
                       {/* Collection verification indicator */}
-                      {totalCount > 0 && (() => {
-                        if (verifiedCount === totalCount) {
-                          return <Check className="w-4 h-4 ml-2 text-green-600" />;
-                        } else {
-                          return <Check className="w-4 h-4 ml-2 text-white" />;
-                        }
-                      })()}
+                      {totalCount > 0 && verifiedCount === totalCount && (
+                        <Check className="w-4 h-4 ml-2 text-green-600" />
+                      )}
                     </TabsTrigger>
                   );
                 })}
