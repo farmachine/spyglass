@@ -4530,7 +4530,7 @@ print(json.dumps(result))
         .filter(doc => selectedDocuments.includes(doc.id))
         .map(doc => ({
           filename: doc.originalName || doc.filename || doc.name || `Document ${doc.id.slice(0, 8)}`,
-          file_content: doc.extractedText || '',
+          file_content: doc.extractedContent || doc.extractedText || doc.content || '',
           mime_type: 'text/plain'
         }));
 
@@ -4674,7 +4674,7 @@ Return JSON in this format:
 
       // Call Gemini API directly
       try {
-        const { GoogleGenAI } = require('@google/genai');
+        const { GoogleGenAI } = await import('@google/genai');
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
         const response = await ai.models.generateContent({
