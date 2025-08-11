@@ -13,6 +13,10 @@ interface ChatContext {
 
 export async function generateChatResponse(message: string, context: ChatContext): Promise<string> {
   try {
+    // Separate schema fields from collection fields
+    const schemaValidations = context.validations.filter(v => v.validationType === 'schema_field');
+    const collectionValidations = context.validations.filter(v => v.validationType === 'collection_property');
+    
     // Calculate verification statistics
     const totalFields = context.validations.length;
     const verifiedFields = context.validations.filter(v => v.validationStatus === 'valid' || v.validationStatus === 'verified').length;
@@ -26,6 +30,16 @@ export async function generateChatResponse(message: string, context: ChatContext
       pending: context.validations.filter(v => v.validationStatus === 'pending').length,
       manual: context.validations.filter(v => v.validationStatus === 'manual').length,
     };
+
+    // Group collection validations by collection name for cross-validation analysis
+    const collectionGroups: { [key: string]: FieldValidation[] } = {};
+    collectionValidations.forEach(validation => {
+      const collectionName = validation.fieldName.split('.')[0];
+      if (!collectionGroups[collectionName]) {
+        collectionGroups[collectionName] = [];
+      }
+      collectionGroups[collectionName].push(validation);
+    });
 
     // Prepare context for AI
     const systemPrompt = `You are an AI assistant helping with document data extraction session analysis. You have access to the following session data:
@@ -46,11 +60,19 @@ VALIDATION STATISTICS:
   * Pending: ${statusCounts.pending}
   * Manual: ${statusCounts.manual}
 
-FIELD DETAILS:
-${context.validations.slice(0, 20).map(v => 
+SCHEMA FIELDS DATA:
+${schemaValidations.map(v => 
   `- ${v.fieldName}: ${v.extractedValue || 'No value'} (Status: ${v.validationStatus}, Confidence: ${v.confidenceScore}%)`
 ).join('\n')}
-${context.validations.length > 20 ? `... and ${context.validations.length - 20} more fields` : ''}
+
+COLLECTION DATA (Cross-validation capable):
+${Object.entries(collectionGroups).map(([collectionName, validations]) => {
+  const recordCount = Math.max(...validations.map(v => v.recordIndex || 0)) + 1;
+  return `\n${collectionName} Collection (${recordCount} records):
+${validations.slice(0, 10).map(v => 
+    `  - ${v.fieldName}: ${v.extractedValue || 'No value'} (Status: ${v.validationStatus}, Confidence: ${v.confidenceScore}%)`
+  ).join('\n')}${validations.length > 10 ? `\n  ... and ${validations.length - 10} more fields in this collection` : ''}`;
+}).join('\n')}
 
 PROJECT SCHEMA:
 ${context.projectFields.map(f => `- ${f.fieldName} (${f.fieldType}): ${f.description || 'No description'}`).join('\n')}
@@ -58,14 +80,19 @@ ${context.projectFields.map(f => `- ${f.fieldName} (${f.fieldType}): ${f.descrip
 COLLECTIONS:
 ${context.collections.map(c => `- ${c.collectionName}: ${c.description || 'No description'}`).join('\n')}
 
+You can perform cross-validation analysis on collection data by comparing values across records within collections and between different collections. You have access to all extracted data across all tabs/collections.
+
 Please provide helpful insights about this session data. Answer questions about:
 - Verification status and progress
 - Data quality and completeness
 - Specific field values and their confidence scores
 - Patterns in the extracted data
+- Cross-validation checks across collection records
+- Inconsistencies or conflicts between related data points
 - Suggestions for improving data quality
+- Comparative analysis across collection records
 
-Keep responses concise and focused on the user's question. Use the session data to provide accurate, specific information.`;
+Keep responses concise and focused on the user's question. Use the session data to provide accurate, specific information about ALL available data.`;
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
