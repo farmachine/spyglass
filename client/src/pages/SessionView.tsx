@@ -26,6 +26,7 @@ import UserProfile from "@/components/UserProfile";
 
 import { EditFieldValueDialog } from "@/components/EditFieldValueDialog";
 import AddDocumentsModal from "@/components/AddDocumentsModal";
+import SessionChat from "@/components/SessionChat";
 
 import type { 
   ExtractionSession, 
@@ -2779,6 +2780,15 @@ Thank you for your assistance.`;
           queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
         }}
       />
+
+      {/* Session Chat */}
+      {session && validations && (
+        <SessionChat
+          sessionId={sessionId!}
+          session={session}
+          validations={validations}
+        />
+      )}
     </div>
   );
 }

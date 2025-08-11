@@ -17,8 +17,10 @@ import {
   registerUserSchema,
   resetPasswordSchema,
   changePasswordApiSchema,
-  insertProjectPublishingSchema
+  insertProjectPublishingSchema,
+  insertChatMessageSchema
 } from "@shared/schema";
+import { generateChatResponse } from "./chatService";
 import { authenticateToken, requireAdmin, generateToken, comparePassword, hashPassword, type AuthRequest } from "./auth";
 import { UserRole } from "@shared/schema";
 
@@ -4344,6 +4346,71 @@ print(json.dumps(result))
   });
 
   // Add documents functionality now uses the same extract-text endpoint as NewUpload
+
+  // Chat Routes
+  
+  // Get chat messages for a session
+  app.get("/api/sessions/:sessionId/chat", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const messages = await storage.getChatMessages(sessionId);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error getting chat messages:", error);
+      res.status(500).json({ message: "Failed to get chat messages" });
+    }
+  });
+
+  // Send a chat message
+  app.post("/api/sessions/:sessionId/chat", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const { message } = req.body;
+      
+      if (!message || !message.trim()) {
+        return res.status(400).json({ message: "Message content is required" });
+      }
+
+      // Create user message
+      const userMessage = await storage.createChatMessage({
+        sessionId,
+        message: message.trim(),
+        isAI: false,
+      });
+
+      // Generate AI response context
+      const session = await storage.getExtractionSession(sessionId);
+      const validations = await storage.getFieldValidations(sessionId);
+      const project = session ? await storage.getProjectWithDetails(session.projectId) : null;
+
+      if (!session || !project) {
+        return res.status(404).json({ message: "Session or project not found" });
+      }
+
+      const context = {
+        session,
+        validations,
+        projectFields: project.projectSchemaFields || [],
+        collections: project.objectCollections || [],
+        collectionProperties: project.objectCollections?.flatMap(c => c.properties || []) || []
+      };
+
+      // Generate AI response
+      const aiResponseText = await generateChatResponse(message.trim(), context);
+
+      // Create AI message
+      const aiMessage = await storage.createChatMessage({
+        sessionId,
+        message: aiResponseText,
+        isAI: true,
+      });
+
+      res.json({ userMessage, aiMessage });
+    } catch (error) {
+      console.error("Error sending chat message:", error);
+      res.status(500).json({ message: "Failed to send chat message" });
+    }
+  });
 
   // Project Publishing Routes
   

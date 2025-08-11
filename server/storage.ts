@@ -10,6 +10,7 @@ import {
   organizations,
   users,
   projectPublishing,
+  chatMessages,
   type Project, 
   type InsertProject,
   type ProjectSchemaField,
@@ -35,7 +36,9 @@ import {
   type OrganizationWithUsers,
   type UserWithOrganization,
   type ProjectPublishing,
-  type InsertProjectPublishing
+  type InsertProjectPublishing,
+  type ChatMessage,
+  type InsertChatMessage
 } from "@shared/schema";
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
@@ -127,6 +130,10 @@ export interface IStorage {
   getProjectPublishedOrganizations(projectId: string): Promise<Organization[]>;
   publishProjectToOrganization(publishing: InsertProjectPublishing): Promise<ProjectPublishing>;
   unpublishProjectFromOrganization(projectId: string, organizationId: string): Promise<boolean>;
+
+  // Chat Messages
+  getChatMessages(sessionId: string): Promise<ChatMessage[]>;
+  createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
 }
 
 export class MemStorage implements IStorage {
@@ -141,6 +148,7 @@ export class MemStorage implements IStorage {
   private extractionRules: Map<string, ExtractionRule>;
   private fieldValidations: Map<string, FieldValidation>;
   private projectPublishing: Map<string, ProjectPublishing>;
+  private chatMessages: Map<string, ChatMessage>;
 
   constructor() {
     this.organizations = new Map();
@@ -154,6 +162,7 @@ export class MemStorage implements IStorage {
     this.extractionRules = new Map();
     this.fieldValidations = new Map();
     this.projectPublishing = new Map();
+    this.chatMessages = new Map();
     
     // Initialize with sample data for development
     this.initializeSampleData();
@@ -1325,6 +1334,24 @@ export class MemStorage implements IStorage {
   async getExtractionSessionWithValidations(sessionId: string): Promise<ExtractionSessionWithValidation | undefined> {
     return this.getSessionWithValidations(sessionId);
   }
+
+  // Chat Messages (MemStorage stubs)
+  async getChatMessages(sessionId: string): Promise<ChatMessage[]> {
+    return Array.from(this.chatMessages.values())
+      .filter(message => message.sessionId === sessionId)
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  }
+
+  async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
+    const id = this.generateUUID();
+    const chatMessage: ChatMessage = {
+      ...message,
+      id,
+      timestamp: new Date(),
+    };
+    this.chatMessages.set(id, chatMessage);
+    return chatMessage;
+  }
 }
 
 // PostgreSQL Storage Implementation
@@ -2246,6 +2273,21 @@ class PostgreSQLStorage implements IStorage {
         )
       );
     return result.rowCount > 0;
+  }
+
+  // Chat Messages
+  async getChatMessages(sessionId: string): Promise<ChatMessage[]> {
+    const result = await this.db
+      .select()
+      .from(chatMessages)
+      .where(eq(chatMessages.sessionId, sessionId))
+      .orderBy(chatMessages.timestamp);
+    return result;
+  }
+
+  async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
+    const result = await this.db.insert(chatMessages).values(message).returning();
+    return result[0];
   }
 }
 
