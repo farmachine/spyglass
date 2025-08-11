@@ -27,65 +27,91 @@ class ExtractionResult:
 
 # ValidationResult dataclass removed - validation now occurs only during extraction
 
-def extract_excel_with_gemini(file_content: str, file_name: str) -> str:
-    """Extract content from Excel files using Gemini API"""
+def extract_excel_with_python(file_content: str, file_name: str) -> str:
+    """Extract content from Excel files using Python libraries (pandas/openpyxl)"""
     import base64
-    import os
-    from google import genai
-    from google.genai import types
+    import io
     
     try:
-        api_key = os.environ.get("GEMINI_API_KEY")
-        if not api_key:
-            return f"GEMINI_API_KEY not found for extracting {file_name}"
-        
-        client = genai.Client(api_key=api_key)
+        # Import required libraries
+        try:
+            import pandas as pd
+            import openpyxl
+            from openpyxl import load_workbook
+        except ImportError as e:
+            return f"Required libraries not available for Excel processing: {e}"
         
         # Convert base64 to bytes
         if file_content.startswith('data:'):
             file_content = file_content.split(',')[1]
         
         file_bytes = base64.b64decode(file_content)
+        file_buffer = io.BytesIO(file_bytes)
         
-        # Excel extraction prompt
-        prompt = """Extract ALL data from this Excel file in a structured format. 
-        For each worksheet, show:
-        1. Worksheet name
-        2. All column headers
-        3. All data rows
+        extracted_content = []
         
-        Format like this:
-        === SHEET: [worksheet_name] ===
-        [Column headers separated by tabs]
-        [Data rows, one per line, columns separated by tabs]
-        
-        Extract EVERYTHING - don't truncate or limit the data."""
-        
-        # Determine MIME type based on file extension
-        mime_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        if file_name.lower().endswith('.xls'):
-            mime_type = "application/vnd.ms-excel"
-        
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=[
-                types.Part.from_bytes(
-                    data=file_bytes,
-                    mime_type=mime_type
-                ),
-                prompt
-            ],
-            config=types.GenerateContentConfig(
-                max_output_tokens=100000,  # Large token limit for Excel data
-                temperature=0.1
-            )
-        )
-        
-        if response and response.text:
-            return response.text.strip()
-        else:
-            return f"No content extracted from {file_name}"
+        try:
+            # Try to read with openpyxl first (for .xlsx files)
+            workbook = load_workbook(file_buffer, read_only=True, data_only=True)
             
+            for sheet_name in workbook.sheetnames:
+                extracted_content.append(f"=== SHEET: {sheet_name} ===")
+                
+                worksheet = workbook[sheet_name]
+                
+                # Get all data from the worksheet
+                rows_data = []
+                for row in worksheet.iter_rows(values_only=True):
+                    # Convert None values to empty strings and handle various data types
+                    cleaned_row = []
+                    for cell in row:
+                        if cell is None:
+                            cleaned_row.append("")
+                        else:
+                            cleaned_row.append(str(cell))
+                    
+                    # Skip completely empty rows
+                    if any(cell.strip() for cell in cleaned_row if cell):
+                        rows_data.append("\t".join(cleaned_row))
+                
+                # Add the rows to extracted content
+                extracted_content.extend(rows_data)
+                extracted_content.append("")  # Empty line between sheets
+            
+            workbook.close()
+            
+        except Exception as openpyxl_error:
+            # Fallback to pandas
+            try:
+                file_buffer.seek(0)  # Reset buffer position
+                excel_data = pd.read_excel(file_buffer, sheet_name=None)  # Read all sheets
+                
+                for sheet_name, df in excel_data.items():
+                    extracted_content.append(f"=== SHEET: {sheet_name} ===")
+                    
+                    # Convert DataFrame to string format
+                    if not df.empty:
+                        # Get column headers
+                        headers = "\t".join(str(col) for col in df.columns)
+                        extracted_content.append(headers)
+                        
+                        # Get all data rows
+                        for _, row in df.iterrows():
+                            row_data = "\t".join(str(val) if pd.notna(val) else "" for val in row)
+                            extracted_content.append(row_data)
+                    
+                    extracted_content.append("")  # Empty line between sheets
+                    
+            except Exception as pandas_error:
+                return f"Failed to read Excel file with both openpyxl and pandas. openpyxl error: {openpyxl_error}, pandas error: {pandas_error}"
+        
+        result = "\n".join(extracted_content).strip()
+        
+        if not result:
+            return f"No data found in Excel file {file_name}"
+            
+        return result
+        
     except Exception as e:
         logging.error(f"Error extracting Excel content from {file_name}: {e}")
         return f"Error extracting Excel content: {e}"
@@ -1695,8 +1721,8 @@ if __name__ == "__main__":
                     if file_content.startswith("data:"):
                         try:
                             if file_name.lower().endswith(('.xlsx', '.xls')) or 'spreadsheet' in mime_type:
-                                # Handle Excel files using Gemini
-                                text_content = extract_excel_with_gemini(file_content, file_name)
+                                # Handle Excel files using Python libraries (Gemini doesn't support Excel MIME type)
+                                text_content = extract_excel_with_python(file_content, file_name)
                                 if not text_content or text_content.strip() == "":
                                     text_content = f"No data could be extracted from {file_name}"
                             elif file_name.lower().endswith('.pdf') or 'pdf' in mime_type:
