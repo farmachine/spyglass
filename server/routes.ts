@@ -4530,7 +4530,8 @@ print(json.dumps(result))
         .filter(doc => selectedDocuments.includes(doc.id))
         .map(doc => ({
           filename: doc.originalName || doc.filename || doc.name || `Document ${doc.id.slice(0, 8)}`,
-          content: doc.extractedText || ''
+          file_content: doc.extractedText || '',
+          mime_type: 'text/plain'
         }));
 
       console.log('MODAL_EXTRACTION: Found document contents:', selectedDocumentContents.length);
@@ -4619,8 +4620,8 @@ print(json.dumps(result))
         session_id: sessionId,
         files: selectedDocumentContents.map(doc => ({
           filename: doc.filename,
-          content: doc.content,
-          mimeType: 'text/plain' // Since we're using extracted text
+          file_content: doc.file_content,
+          mime_type: 'text/plain' // Since we're using extracted text
         })),
         project_schema: {
           schema_fields: targetSchemaFields,
