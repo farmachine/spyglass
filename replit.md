@@ -56,6 +56,7 @@ Preferred communication style: Simple, everyday language.
 - **Enhanced Truncation Repair**: Improved JSON repair functionality for truncated Gemini API responses, with comprehensive parsing logic that recovers complete field validation objects and maintains data integrity during AI extraction failures.
 - **Dashboard Tile Swap**: Complete tile reordering functionality with "Move Left" and "Move Right" options in project settings dropdowns, enabling visual rearrangement of project tiles with persistent ordering state.
 - **Excel Extraction Optimization**: Significantly enhanced Excel processing capabilities with 4x increased document limits (800KB per document), 3x increased total content limits (1.5MB), intelligent graduated sampling for large sheets (up to 400 rows vs 90), 53% increased AI output tokens (100K), and removal of hard 100-record response limits for comprehensive data extraction.
+- **AI Chat Integration**: Fully functional real-time chat feature within session views using Gemini AI, with JWT-based authentication, persistent message storage, and context-aware responses based on session data and validation states.
 
 ### Key Architectural Decisions
 - **Monorepo Structure**: Single repository with shared types.
