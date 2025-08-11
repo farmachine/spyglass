@@ -81,7 +81,7 @@ export default function AllData({ project }: AllDataProps) {
     const sessionValidations = allValidations.filter(v => v.sessionId === sessionId);
     if (sessionValidations.length === 0) return 'pending';
     
-    const allVerified = sessionValidations.every(v => v.validationStatus === 'verified');
+    const allVerified = sessionValidations.every(v => v.validationStatus === 'valid' || v.validationStatus === 'verified');
     
     // Debug logging
     console.log(`Session ${sessionId} - Validations: ${sessionValidations.length}, All verified: ${allVerified}`);
