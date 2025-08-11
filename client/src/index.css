@@ -104,12 +104,13 @@
   display: flex !important;
   flex-wrap: nowrap !important;
   overflow-x: auto !important;
+  overflow-y: hidden !important;
   scrollbar-width: thin !important;
-  scrollbar-color: #cbd5e1 transparent !important;
+  scrollbar-color: #e2e8f0 transparent !important;
 }
 
 .folder-tabs .tabs-list::-webkit-scrollbar {
-  height: 6px !important;
+  height: 2px !important;
 }
 
 .folder-tabs .tabs-list::-webkit-scrollbar-track {
@@ -117,12 +118,12 @@
 }
 
 .folder-tabs .tabs-list::-webkit-scrollbar-thumb {
-  background: #cbd5e1 !important;
-  border-radius: 3px !important;
+  background: #e2e8f0 !important;
+  border-radius: 1px !important;
 }
 
 .folder-tabs .tabs-list::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8 !important;
+  background: #cbd5e1 !important;
 }
 
 .folder-tabs .tabs-trigger {
