@@ -2043,17 +2043,17 @@ Thank you for your assistance.`;
                     </div>
                   );
                 })}
-                
-                {/* Documents Tab */}
-                <div className="relative flex items-center mb-3">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white border-2 border-slate-300 relative z-10">
-                    <Folder className="h-4 w-4 text-slate-600" />
-                  </div>
+              </div>
+              
+              {/* Documents Section - Separated */}
+              <div className="mt-6 pt-4 border-t border-slate-200">
+                <div className="flex items-center mb-3">
+                  <Folder className="h-4 w-4 text-slate-600 mr-3" />
                   
                   {/* Tab button */}
                   <button
                     onClick={() => setActiveTab('documents')}
-                    className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
+                    className={`flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
                       activeTab === 'documents' 
                         ? 'bg-primary text-white font-medium shadow-sm' 
                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal'
