@@ -4630,11 +4630,14 @@ print(json.dumps(result))
           };
         });
 
-      console.log('MODAL_EXTRACTION: All project fields available:', allProjectFields.map(f => f.id));
+      console.log('MODAL_EXTRACTION: All project fields available:', allProjectFields.map(f => ({ id: f.id, name: f.name })));
       console.log('MODAL_EXTRACTION: Selected target field IDs:', selectedTargetFields);
-      console.log('MODAL_EXTRACTION: Filtered selected fields:', selectedFields.map(f => f.id));
+      console.log('MODAL_EXTRACTION: Filtered selected fields:', selectedFields.map(f => ({ id: f.id, name: f.name, propertyName: f.propertyName })));
       console.log('MODAL_EXTRACTION: Target schema fields:', targetSchemaFields.length);
-      console.log('MODAL_EXTRACTION: Target collections:', targetCollections.length);
+      console.log('MODAL_EXTRACTION: Target collections:', targetCollections.map(c => ({ 
+        name: c.collectionName, 
+        properties: c.properties.map((p: any) => ({ id: p.id, name: p.propertyName }))
+      })));
 
       // Get extraction rules and knowledge documents
       let extractionRules = [];
