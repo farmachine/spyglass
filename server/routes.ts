@@ -4704,6 +4704,10 @@ print(json.dumps(result))
 
   // Modal-based AI Extraction
   app.post("/api/sessions/:sessionId/modal-extraction", async (req, res) => {
+    // Set longer timeout for AI extraction
+    req.setTimeout(300000); // 5 minutes
+    res.setTimeout(300000);
+    
     try {
       const sessionId = req.params.sessionId;
       const { 
@@ -4895,7 +4899,19 @@ Return JSON in this format:
         const aiResponse = response.text;
         console.log('MODAL_EXTRACTION: AI response length:', aiResponse?.length || 0);
 
-        const result = JSON.parse(aiResponse);
+        if (!aiResponse || aiResponse.trim() === '') {
+          throw new Error('Empty response from AI');
+        }
+
+        let result;
+        try {
+          result = JSON.parse(aiResponse);
+        } catch (parseError) {
+          console.error('MODAL_EXTRACTION: JSON parse error:', parseError);
+          console.log('MODAL_EXTRACTION: Raw response:', aiResponse?.substring(0, 500));
+          throw new Error(`Failed to parse AI response: ${parseError.message}`);
+        }
+
         const fieldValidations = result.field_validations || [];
 
         console.log('MODAL_EXTRACTION: Processing', fieldValidations.length, 'field validations');
