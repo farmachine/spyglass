@@ -89,15 +89,14 @@ export default function SessionChat({ sessionId, session, validations }: Session
     );
   }
 
-  const chatHeight = isMinimized ? "52px" : "400px";
-
   return (
     <div className="fixed bottom-4 right-4 z-50">
       <Card 
-        className="w-80 shadow-lg border-[#4F63A4]/20"
-        style={{ height: chatHeight }}
+        className={`w-80 shadow-lg border-[#4F63A4]/20 ${
+          isMinimized ? 'h-auto' : 'h-96'
+        }`}
       >
-        <CardHeader className="p-3 pb-2">
+        <CardHeader className="p-3 pb-2 border-b">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Bot className="h-4 w-4 text-[#4F63A4]" />
@@ -107,7 +106,7 @@ export default function SessionChat({ sessionId, session, validations }: Session
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 w-6 p-0"
+                className="h-6 w-6 p-0 hover:bg-gray-100"
                 onClick={() => setIsMinimized(!isMinimized)}
               >
                 {isMinimized ? <Maximize2 className="h-3 w-3" /> : <Minimize2 className="h-3 w-3" />}
@@ -115,7 +114,7 @@ export default function SessionChat({ sessionId, session, validations }: Session
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 w-6 p-0"
+                className="h-6 w-6 p-0 hover:bg-gray-100"
                 onClick={() => setIsOpen(false)}
               >
                 <X className="h-3 w-3" />
@@ -125,15 +124,15 @@ export default function SessionChat({ sessionId, session, validations }: Session
         </CardHeader>
 
         {!isMinimized && (
-          <CardContent className="p-3 pt-0 flex flex-col h-full">
-            <ScrollArea className="flex-1 mb-3">
-              <div className="space-y-3">
+          <CardContent className="p-0 flex flex-col h-80">
+            <ScrollArea className="flex-1 p-3">
+              <div className="space-y-2">
                 {isLoading ? (
-                  <div className="text-sm text-gray-500 text-center py-4">
+                  <div className="text-xs text-gray-500 text-center py-8">
                     Loading messages...
                   </div>
                 ) : messages.length === 0 ? (
-                  <div className="text-sm text-gray-500 text-center py-4">
+                  <div className="text-xs text-gray-500 text-center py-8">
                     Ask me anything about this session's data!
                   </div>
                 ) : (
@@ -148,7 +147,7 @@ export default function SessionChat({ sessionId, session, validations }: Session
                         </div>
                       )}
                       <div
-                        className={`max-w-[75%] px-3 py-2 rounded-lg text-sm ${
+                        className={`max-w-[75%] px-2 py-1.5 rounded-lg text-xs leading-relaxed ${
                           !msg.isAI
                             ? 'bg-[#4F63A4] text-white'
                             : 'bg-gray-100 text-gray-900'
@@ -170,11 +169,11 @@ export default function SessionChat({ sessionId, session, validations }: Session
                     <div className="flex-shrink-0 w-6 h-6 bg-[#4F63A4] rounded-full flex items-center justify-center">
                       <Bot className="h-3 w-3 text-white" />
                     </div>
-                    <div className="bg-gray-100 text-gray-900 px-3 py-2 rounded-lg text-sm">
+                    <div className="bg-gray-100 text-gray-900 px-2 py-1.5 rounded-lg text-xs">
                       <div className="flex gap-1">
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></div>
+                        <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                        <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                       </div>
                     </div>
                   </div>
@@ -184,22 +183,27 @@ export default function SessionChat({ sessionId, session, validations }: Session
               </div>
             </ScrollArea>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 p-3 border-t bg-gray-50">
               <Input
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
                 placeholder="Ask about this session..."
-                className="flex-1 text-sm"
+                className="flex-1 text-xs h-8 bg-white"
                 disabled={sendMessageMutation.isPending}
               />
               <Button
                 onClick={handleSendMessage}
                 disabled={!message.trim() || sendMessageMutation.isPending}
                 size="sm"
-                className="bg-[#4F63A4] hover:bg-[#3d4f85] text-white px-3"
+                className="bg-[#4F63A4] hover:bg-[#3d4f85] text-white px-2 h-8"
               >
-                <Send className="h-4 w-4" />
+                <Send className="h-3 w-3" />
               </Button>
             </div>
           </CardContent>
