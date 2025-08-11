@@ -340,22 +340,29 @@ const AIExtractionModal = ({
                 </Button>
               </div>
               <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto border rounded-lg p-3">
-                {sessionDocuments.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No documents uploaded</p>
-                ) : (
-                  sessionDocuments.map((doc) => (
-                    <div key={doc.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`doc-${doc.id}`}
-                        checked={selectedDocuments.includes(doc.id)}
-                        onCheckedChange={() => handleDocumentToggle(doc.id)}
-                      />
-                      <Label htmlFor={`doc-${doc.id}`} className="text-sm truncate">
-                        {doc.originalName}
-                      </Label>
-                    </div>
-                  ))
-                )}
+                {(() => {
+                  console.log('SessionDocuments in modal:', { 
+                    sessionDocuments, 
+                    length: sessionDocuments?.length,
+                    documentsLoading 
+                  });
+                  return sessionDocuments.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No documents uploaded</p>
+                  ) : (
+                    sessionDocuments.map((doc) => (
+                      <div key={doc.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`doc-${doc.id}`}
+                          checked={selectedDocuments.includes(doc.id)}
+                          onCheckedChange={() => handleDocumentToggle(doc.id)}
+                        />
+                        <Label htmlFor={`doc-${doc.id}`} className="text-sm truncate">
+                          {doc.originalName}
+                        </Label>
+                      </div>
+                    ))
+                  );
+                })()}
               </div>
             </div>
 
@@ -536,14 +543,25 @@ export default function SessionView() {
   const getVerifiedFields = () => {
     const verifiedData: { id: string; name: string; value: string }[] = [];
     
+    console.log('getVerifiedFields Debug:', {
+      project: project?.name,
+      schemaFields: project?.schemaFields?.length,
+      collections: project?.collections?.length,
+      extractedData: Object.keys(extractedData || {}),
+      sessionDocuments: sessionDocuments?.length
+    });
+    
     // Add "General Information" if it has data
     const hasSchemaData = project?.schemaFields?.some(field => {
       const originalValue = extractedData[field.fieldName];
       const validation = getValidation(field.fieldName);
       const displayValue = validation?.extractedValue ?? originalValue ?? null;
+      console.log(`Schema field ${field.fieldName}:`, { originalValue, validation: !!validation, displayValue });
       return displayValue !== null && displayValue !== undefined && displayValue !== "" && 
              displayValue !== "null" && displayValue !== "undefined";
     });
+    
+    console.log('hasSchemaData:', hasSchemaData);
     
     if (hasSchemaData) {
       verifiedData.push({
@@ -562,6 +580,8 @@ export default function SessionView() {
         )
       ).length : 0;
       
+      console.log(`Collection ${collection.collectionName}:`, { collectionData, itemCount });
+      
       if (itemCount > 0) {
         verifiedData.push({
           id: collection.id,
@@ -571,6 +591,7 @@ export default function SessionView() {
       }
     });
     
+    console.log('Final verifiedData:', verifiedData);
     return verifiedData;
   };
 
