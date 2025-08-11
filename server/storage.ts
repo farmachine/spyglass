@@ -133,6 +133,8 @@ export interface IStorage {
   updateFieldValidation(id: string, validation: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined>;
   deleteFieldValidation(id: string): Promise<boolean>;
   getSessionWithValidations(sessionId: string): Promise<ExtractionSessionWithValidation | undefined>;
+  getValidationsByCollectionAndIndex(sessionId: string, collectionName: string, recordIndex: number): Promise<FieldValidation[]>;
+  getCollectionByName(collectionName: string): Promise<(ObjectCollection & { properties: CollectionProperty[] }) | undefined>;
 
   // Project Publishing
   getProjectPublishing(projectId: string): Promise<ProjectPublishing[]>;
@@ -1352,6 +1354,49 @@ export class MemStorage implements IStorage {
     return this.fieldValidations.delete(id);
   }
 
+  async getValidationsByCollectionAndIndex(sessionId: string, collectionName: string, recordIndex: number): Promise<FieldValidation[]> {
+    const validations = Array.from(this.fieldValidations.values())
+      .filter(validation => 
+        validation.sessionId === sessionId && 
+        validation.collectionName === collectionName && 
+        validation.recordIndex === recordIndex
+      );
+    
+    // Enhance with field names
+    const enhancedValidations = await Promise.all(validations.map(async (validation) => {
+      let fieldName = '';
+      
+      if (validation.validationType === 'schema_field') {
+        const schemaField = this.projectSchemaFields.get(validation.fieldId);
+        fieldName = schemaField?.fieldName || '';
+      } else if (validation.validationType === 'collection_property') {
+        const property = this.collectionProperties.get(validation.fieldId);
+        if (property && validation.recordIndex !== null) {
+          fieldName = `${collectionName}.${property.propertyName}[${validation.recordIndex}]`;
+        }
+      }
+      
+      return {
+        ...validation,
+        fieldName
+      };
+    }));
+    
+    return enhancedValidations;
+  }
+
+  async getCollectionByName(collectionName: string): Promise<(ObjectCollection & { properties: CollectionProperty[] }) | undefined> {
+    const collection = Array.from(this.objectCollections.values()).find(c => c.collectionName === collectionName);
+    if (!collection) return undefined;
+    
+    const properties = Array.from(this.collectionProperties.values()).filter(p => p.collectionId === collection.id);
+    
+    return {
+      ...collection,
+      properties
+    };
+  }
+
   async getSessionWithValidations(sessionId: string): Promise<ExtractionSessionWithValidation | undefined> {
     const session = this.extractionSessions.get(sessionId);
     if (!session) return undefined;
@@ -2273,6 +2318,100 @@ class PostgreSQLStorage implements IStorage {
     return {
       ...session,
       fieldValidations: validations
+    };
+  }
+
+  async getValidationsByCollectionAndIndex(sessionId: string, collectionName: string, recordIndex: number): Promise<FieldValidation[]> {
+    const result = await this.db
+      .select()
+      .from(fieldValidations)
+      .where(
+        and(
+          eq(fieldValidations.sessionId, sessionId),
+          eq(fieldValidations.collectionName, collectionName),
+          eq(fieldValidations.recordIndex, recordIndex)
+        )
+      );
+    
+    // Get all unique field IDs for batch processing
+    const schemaFieldIds = [...new Set(result.filter(v => v.validationType === 'schema_field').map(v => v.fieldId))];
+    const collectionPropertyIds = [...new Set(result.filter(v => v.validationType === 'collection_property').map(v => v.fieldId))];
+    
+    // Batch fetch schema field names
+    const schemaFieldsMap = new Map<string, string>();
+    if (schemaFieldIds.length > 0) {
+      const schemaFields = await this.db
+        .select({ id: projectSchemaFields.id, fieldName: projectSchemaFields.fieldName })
+        .from(projectSchemaFields)
+        .where(inArray(projectSchemaFields.id, schemaFieldIds));
+      
+      schemaFields.forEach(field => {
+        schemaFieldsMap.set(field.id, field.fieldName);
+      });
+    }
+    
+    // Batch fetch collection property names with collection names
+    const collectionPropertiesMap = new Map<string, { propertyName: string, collectionName: string }>();
+    if (collectionPropertyIds.length > 0) {
+      const propertiesWithCollections = await this.db
+        .select({ 
+          id: collectionProperties.id,
+          propertyName: collectionProperties.propertyName,
+          collectionName: objectCollections.collectionName 
+        })
+        .from(collectionProperties)
+        .innerJoin(objectCollections, eq(collectionProperties.collectionId, objectCollections.id))
+        .where(inArray(collectionProperties.id, collectionPropertyIds));
+      
+      propertiesWithCollections.forEach(prop => {
+        collectionPropertiesMap.set(prop.id, { 
+          propertyName: prop.propertyName, 
+          collectionName: prop.collectionName 
+        });
+      });
+    }
+    
+    // Enhance results with field names using the cached data
+    const enhancedValidations = result.map(validation => {
+      let fieldName = '';
+      
+      if (validation.validationType === 'schema_field') {
+        fieldName = schemaFieldsMap.get(validation.fieldId) || '';
+      } else if (validation.validationType === 'collection_property') {
+        const propInfo = collectionPropertiesMap.get(validation.fieldId);
+        if (propInfo && validation.recordIndex !== null) {
+          fieldName = `${propInfo.collectionName}.${propInfo.propertyName}[${validation.recordIndex}]`;
+        }
+      }
+      
+      return {
+        ...validation,
+        fieldName
+      };
+    });
+    
+    return enhancedValidations;
+  }
+
+  async getCollectionByName(collectionName: string): Promise<(ObjectCollection & { properties: CollectionProperty[] }) | undefined> {
+    const collectionResult = await this.db
+      .select()
+      .from(objectCollections)
+      .where(eq(objectCollections.collectionName, collectionName))
+      .limit(1);
+    
+    if (collectionResult.length === 0) return undefined;
+    
+    const collection = collectionResult[0];
+    
+    const properties = await this.db
+      .select()
+      .from(collectionProperties)
+      .where(eq(collectionProperties.collectionId, collection.id));
+    
+    return {
+      ...collection,
+      properties
     };
   }
 

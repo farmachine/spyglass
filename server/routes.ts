@@ -4129,6 +4129,56 @@ except Exception as e:
       if (!updatedValidation) {
         return res.status(404).json({ message: "Validation not found" });
       }
+
+      // If this is a collection field validation and we're creating/updating a value
+      // check if we need to create null validations for other properties in the same collection
+      if (updatedValidation.collectionName && updatedValidation.recordIndex !== null && updatedValidation.recordIndex !== undefined) {
+        try {
+          // Get all existing validations for this collection and record index
+          const existingValidations = await storage.getValidationsByCollectionAndIndex(
+            updatedValidation.sessionId, 
+            updatedValidation.collectionName, 
+            updatedValidation.recordIndex
+          );
+
+          // Get the collection properties to determine what fields should exist
+          const collection = await storage.getCollectionByName(updatedValidation.collectionName);
+          if (collection && collection.properties) {
+            const existingFieldNames = existingValidations.map(v => {
+              // Extract property name from field name (e.g., "Collection.Property[0]" -> "Property")
+              const match = v.fieldName.match(/\.([^[\]]+)(?:\[\d+\])?$/);
+              return match ? match[1] : v.fieldName;
+            });
+
+            // Create validations for missing properties
+            for (const property of collection.properties) {
+              if (!existingFieldNames.includes(property.propertyName)) {
+                const newFieldName = `${updatedValidation.collectionName}.${property.propertyName}[${updatedValidation.recordIndex}]`;
+                
+                await storage.createFieldValidation({
+                  sessionId: updatedValidation.sessionId,
+                  fieldName: newFieldName,
+                  collectionName: updatedValidation.collectionName,
+                  recordIndex: updatedValidation.recordIndex,
+                  extractedValue: null,
+                  validationStatus: "pending",
+                  confidenceScore: 0,
+                  aiReasoning: null,
+                  manuallyVerified: false,
+                  manuallyUpdated: false,
+                  originalExtractedValue: null,
+                  originalConfidenceScore: null,
+                  originalAiReasoning: null
+                });
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error creating null validations for new collection item:", error);
+          // Don't fail the main update if this fails - just log the error
+        }
+      }
+
       res.json(updatedValidation);
     } catch (error) {
       console.error("Update validation error:", error);
