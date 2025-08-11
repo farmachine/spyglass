@@ -307,7 +307,7 @@ const AIExtractionModal = ({
   };
 
   // Add modal open effect to debug
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       console.log('AI Extraction Modal opened for:', sectionName);
       console.log('Available fields:', availableFields);
