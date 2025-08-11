@@ -4299,15 +4299,20 @@ except Exception as e:
                 }
                 
                 // Create session document record
-                await storage.createSessionDocument({
+                const documentData = {
                   sessionId: sessionId,
                   fileName: extractedText.file_name,
                   fileSize: fileSize,
                   mimeType: originalFile?.mime_type || 'application/octet-stream',
-                  extractedContent: extractedText.extracted_text || '',
+                  extractedContent: extractedText.text_content || '',
                   pageCount: extractedText.page_count || null,
                   extractionMethod: extractedText.extraction_method || 'gemini'
-                });
+                };
+                
+                console.log(`DOCUMENT UPLOAD SAVE DEBUG: Content length being saved: ${documentData.extractedContent.length}`);
+                console.log(`DOCUMENT UPLOAD SAVE DEBUG: Content preview: ${documentData.extractedContent.substring(0, 100)}...`);
+                
+                await storage.createSessionDocument(documentData);
                 
                 documentsAdded++;
                 console.log(`DOCUMENT UPLOAD: Saved document ${extractedText.file_name} to session ${sessionId}`);
