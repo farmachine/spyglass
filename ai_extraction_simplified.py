@@ -27,6 +27,174 @@ class ExtractionResult:
 
 # ValidationResult dataclass removed - validation now occurs only during extraction
 
+def extract_excel_with_gemini(file_content: str, file_name: str) -> str:
+    """Extract content from Excel files using Gemini API"""
+    import base64
+    import os
+    from google import genai
+    from google.genai import types
+    
+    try:
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            return f"GEMINI_API_KEY not found for extracting {file_name}"
+        
+        client = genai.Client(api_key=api_key)
+        
+        # Convert base64 to bytes
+        if file_content.startswith('data:'):
+            file_content = file_content.split(',')[1]
+        
+        file_bytes = base64.b64decode(file_content)
+        
+        # Excel extraction prompt
+        prompt = """Extract ALL data from this Excel file in a structured format. 
+        For each worksheet, show:
+        1. Worksheet name
+        2. All column headers
+        3. All data rows
+        
+        Format like this:
+        === SHEET: [worksheet_name] ===
+        [Column headers separated by tabs]
+        [Data rows, one per line, columns separated by tabs]
+        
+        Extract EVERYTHING - don't truncate or limit the data."""
+        
+        # Determine MIME type based on file extension
+        mime_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        if file_name.lower().endswith('.xls'):
+            mime_type = "application/vnd.ms-excel"
+        
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[
+                types.Part.from_bytes(
+                    data=file_bytes,
+                    mime_type=mime_type
+                ),
+                prompt
+            ],
+            config=types.GenerateContentConfig(
+                max_output_tokens=100000,  # Large token limit for Excel data
+                temperature=0.1
+            )
+        )
+        
+        if response and response.text:
+            return response.text.strip()
+        else:
+            return f"No content extracted from {file_name}"
+            
+    except Exception as e:
+        logging.error(f"Error extracting Excel content from {file_name}: {e}")
+        return f"Error extracting Excel content: {e}"
+
+def extract_pdf_with_gemini(file_content: str, file_name: str) -> str:
+    """Extract content from PDF files using Gemini API"""
+    import base64
+    import os
+    from google import genai
+    from google.genai import types
+    
+    try:
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            return f"GEMINI_API_KEY not found for extracting {file_name}"
+        
+        client = genai.Client(api_key=api_key)
+        
+        # Convert base64 to bytes
+        if file_content.startswith('data:'):
+            file_content = file_content.split(',')[1]
+        
+        file_bytes = base64.b64decode(file_content)
+        
+        prompt = """Extract all text content from this PDF document. 
+        Return the complete text content exactly as it appears, preserving formatting and structure.
+        Do not summarize or modify the content - extract everything."""
+        
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[
+                types.Part.from_bytes(
+                    data=file_bytes,
+                    mime_type="application/pdf"
+                ),
+                prompt
+            ],
+            config=types.GenerateContentConfig(
+                max_output_tokens=50000,
+                temperature=0.1
+            )
+        )
+        
+        if response and response.text:
+            return response.text.strip()
+        else:
+            return f"No content extracted from {file_name}"
+            
+    except Exception as e:
+        logging.error(f"Error extracting PDF content from {file_name}: {e}")
+        return f"Error extracting PDF content: {e}"
+
+def extract_document_with_gemini(file_content: str, file_name: str, mime_type: str) -> str:
+    """Extract content from other document types using Gemini API"""
+    import base64
+    import os
+    from google import genai
+    from google.genai import types
+    
+    try:
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            return f"GEMINI_API_KEY not found for extracting {file_name}"
+        
+        client = genai.Client(api_key=api_key)
+        
+        # Convert base64 to bytes
+        if file_content.startswith('data:'):
+            file_content = file_content.split(',')[1]
+        
+        file_bytes = base64.b64decode(file_content)
+        
+        prompt = """Extract all text content from this document. 
+        Return the complete text content exactly as it appears, preserving formatting and structure.
+        Do not summarize or modify the content - extract everything."""
+        
+        # Map common file extensions to MIME types
+        if not mime_type or mime_type == 'application/octet-stream':
+            if file_name.lower().endswith('.docx'):
+                mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            elif file_name.lower().endswith('.doc'):
+                mime_type = "application/msword"
+            else:
+                mime_type = "application/octet-stream"
+        
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[
+                types.Part.from_bytes(
+                    data=file_bytes,
+                    mime_type=mime_type
+                ),
+                prompt
+            ],
+            config=types.GenerateContentConfig(
+                max_output_tokens=50000,
+                temperature=0.1
+            )
+        )
+        
+        if response and response.text:
+            return response.text.strip()
+        else:
+            return f"No content extracted from {file_name}"
+            
+    except Exception as e:
+        logging.error(f"Error extracting document content from {file_name}: {e}")
+        return f"Error extracting document content: {e}"
+
 def repair_truncated_json(response_text: str) -> Optional[str]:
     """
     Enhanced repair function for truncated JSON responses. Finds complete field validation objects
@@ -1521,14 +1689,34 @@ if __name__ == "__main__":
                 try:
                     file_name = doc.get("file_name", "unknown")
                     file_content = doc.get("file_content", "")
+                    mime_type = doc.get("mime_type", "")
                     
-                    # Simple text extraction placeholder - in real implementation, 
-                    # you'd decode base64 and extract text based on file type
+                    # Extract actual text based on file type
                     if file_content.startswith("data:"):
-                        # Base64 data URL - in production, decode and extract text
-                        text_content = f"Extracted text content from {file_name}"
-                        word_count = len(text_content.split())
+                        try:
+                            if file_name.lower().endswith(('.xlsx', '.xls')) or 'spreadsheet' in mime_type:
+                                # Handle Excel files using Gemini
+                                text_content = extract_excel_with_gemini(file_content, file_name)
+                                if not text_content or text_content.strip() == "":
+                                    text_content = f"No data could be extracted from {file_name}"
+                            elif file_name.lower().endswith('.pdf') or 'pdf' in mime_type:
+                                # Handle PDF files using Gemini
+                                text_content = extract_pdf_with_gemini(file_content, file_name)
+                                if not text_content or text_content.strip() == "":
+                                    text_content = f"No text could be extracted from {file_name}"
+                            else:
+                                # Handle other file types (DOCX, etc.)
+                                text_content = extract_document_with_gemini(file_content, file_name, mime_type)
+                                if not text_content or text_content.strip() == "":
+                                    text_content = f"No text could be extracted from {file_name}"
+                            
+                            word_count = len(text_content.split()) if text_content else 0
+                        except Exception as extract_error:
+                            logging.error(f"Failed to extract content from {file_name}: {extract_error}")
+                            text_content = f"Error extracting content from {file_name}: {str(extract_error)}"
+                            word_count = 0
                     else:
+                        # Handle plain text content
                         text_content = file_content[:1000]  # Truncate for safety
                         word_count = len(text_content.split())
                     
@@ -1539,10 +1727,10 @@ if __name__ == "__main__":
                     })
                     
                 except Exception as e:
-                    logging.error(f"Error extracting text from {doc.get('file_name', 'unknown')}: {e}")
+                    logging.error(f"Error processing {doc.get('file_name', 'unknown')}: {e}")
                     extracted_texts.append({
                         "file_name": doc.get("file_name", "unknown"),
-                        "text_content": f"Error extracting text: {e}",
+                        "text_content": f"Error processing file: {e}",
                         "word_count": 0
                     })
             
