@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, Send, X, Minimize2, Maximize2, Bot, User } from "lucide-react";
+import { MessageCircle, Send, X, Minimize2, Maximize2, Bot, User, Copy, Check } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import type { ChatMessage, FieldValidation, ExtractionSession } from "@shared/schema";
 
 interface SessionChatProps {
@@ -24,9 +25,11 @@ export default function SessionChat({ sessionId, session, validations }: Session
   const [isMinimized, setIsMinimized] = useState(false);
   const [message, setMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { toast } = useToast();
 
   // Fetch chat messages
   const { data: messages = [], isLoading } = useQuery({
@@ -69,6 +72,40 @@ export default function SessionChat({ sessionId, session, validations }: Session
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const copyToClipboard = async (content: string, messageId: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedMessageId(messageId);
+      setTimeout(() => setCopiedMessageId(null), 2000);
+      toast({
+        title: "Copied to clipboard",
+        description: "AI response has been copied to your clipboard.",
+      });
+    } catch (err) {
+      toast({
+        title: "Copy failed",
+        description: "Unable to copy to clipboard.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const formatMessageContent = (content: string) => {
+    // Split by double newlines for paragraphs, then by single newlines for line breaks
+    return content
+      .split('\n\n')
+      .map((paragraph, pIndex) => (
+        <div key={pIndex} className={pIndex > 0 ? "mt-3" : ""}>
+          {paragraph.split('\n').map((line, lIndex) => (
+            <div key={lIndex}>
+              {line}
+              {lIndex < paragraph.split('\n').length - 1 && <br />}
+            </div>
+          ))}
+        </div>
+      ));
   };
 
   // Auto-scroll to bottom when new messages arrive
@@ -146,14 +183,30 @@ export default function SessionChat({ sessionId, session, validations }: Session
                           <Bot className="h-3 w-3 text-white" />
                         </div>
                       )}
-                      <div
-                        className={`max-w-[80%] px-3 py-2 rounded-lg text-sm leading-relaxed ${
-                          msg.role === 'user'
-                            ? 'bg-[#4F63A4] text-white'
-                            : 'bg-gray-100 text-gray-900'
-                        }`}
-                      >
-                        {msg.content}
+                      <div className="flex flex-col max-w-[80%]">
+                        <div
+                          className={`px-3 py-2 rounded-lg text-sm leading-relaxed ${
+                            msg.role === 'user'
+                              ? 'bg-[#4F63A4] text-white'
+                              : 'bg-gray-100 text-gray-900'
+                          }`}
+                        >
+                          {msg.role === 'assistant' ? formatMessageContent(msg.content) : msg.content}
+                        </div>
+                        {msg.role === 'assistant' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="mt-1 h-6 w-6 p-0 self-end hover:bg-gray-200"
+                            onClick={() => copyToClipboard(msg.content, msg.id)}
+                          >
+                            {copiedMessageId === msg.id ? (
+                              <Check className="h-3 w-3 text-green-600" />
+                            ) : (
+                              <Copy className="h-3 w-3 text-gray-500" />
+                            )}
+                          </Button>
+                        )}
                       </div>
                       {msg.role === 'user' && (
                         <div className="flex-shrink-0 w-6 h-6 bg-gray-500 rounded-full flex items-center justify-center">

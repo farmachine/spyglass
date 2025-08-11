@@ -92,6 +92,13 @@ Please provide helpful insights about this session data. Answer questions about:
 - Suggestions for improving data quality
 - Comparative analysis across collection records
 
+FORMATTING GUIDELINES:
+- Use proper paragraph breaks (double newlines) between major topics
+- Use single newlines for line breaks within sections
+- Structure responses with clear sections when appropriate
+- Use bullet points with - when listing items
+- Keep responses well-organized and easy to read
+
 Keep responses concise and focused on the user's question. Use the session data to provide accurate, specific information about ALL available data.`;
 
     const response = await ai.models.generateContent({
