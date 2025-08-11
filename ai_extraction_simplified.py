@@ -896,11 +896,17 @@ def step1_extract_from_documents(
                 json_schema_section += "\n"
             json_schema_section += "  ]\n}\n```\n"
         
+        # Get additional instructions from input data
+        additional_instructions = input_data.get('additional_instructions', '')
+        if not additional_instructions:
+            additional_instructions = "No additional instructions provided."
+        
         # Use the imported prompt template with our schema, collections, verified context, and JSON schema
         full_prompt = json_schema_section + "\n" + EXTRACTION_PROMPT.format(
             verified_context=verified_context_text,
             schema_fields=schema_fields_text,
-            collections=collections_text
+            collections=collections_text,
+            additional_instructions=additional_instructions
         )
         
         # Generate field validation JSON structure

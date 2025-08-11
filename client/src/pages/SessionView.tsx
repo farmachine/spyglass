@@ -257,7 +257,8 @@ const AIExtractionModal = ({
   availableFields,
   sessionDocuments,
   verifiedFields,
-  allProjectFields = []
+  allProjectFields = [],
+  sessionId
 }: { 
   isOpen: boolean; 
   onClose: () => void; 
@@ -266,12 +267,15 @@ const AIExtractionModal = ({
   sessionDocuments: any[];
   verifiedFields: { id: string; name: string; value: string }[];
   allProjectFields?: { id: string; name: string; type: string }[];
+  sessionId: string;
 }) => {
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [selectedVerifiedFields, setSelectedVerifiedFields] = useState<string[]>([]);
   const [selectedTargetFields, setSelectedTargetFields] = useState<string[]>([]);
   const [additionalInstructions, setAdditionalInstructions] = useState("");
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['schema']));
+  const [isExtracting, setIsExtracting] = useState(false);
+  const queryClient = useQueryClient();
 
   const handleDocumentToggle = (docId: string) => {
     setSelectedDocuments(prev => 
@@ -321,6 +325,51 @@ const AIExtractionModal = ({
       }
       return newSet;
     });
+  };
+
+  // Run AI extraction with modal selections
+  const handleRunExtraction = async () => {
+    if (selectedTargetFields.length === 0) {
+      return;
+    }
+
+    setIsExtracting(true);
+    try {
+      const response = await apiRequest(`/api/sessions/${sessionId}/modal-extraction`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          selectedDocuments,
+          selectedVerifiedFields,
+          selectedTargetFields,
+          additionalInstructions
+        }),
+      });
+
+      if (response.success) {
+        // Refresh session data and validations
+        queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
+        queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+        
+        // Close modal and reset selections
+        onClose();
+        setSelectedDocuments([]);
+        setSelectedVerifiedFields([]);
+        setSelectedTargetFields([]);
+        setAdditionalInstructions("");
+        
+        // Success notification could be added here
+        console.log(`Extraction completed successfully! Extracted ${response.extractedFieldsCount} fields.`);
+      } else {
+        console.error('Extraction failed:', response.error);
+      }
+    } catch (error) {
+      console.error('Failed to run extraction:', error);
+    } finally {
+      setIsExtracting(false);
+    }
   };
 
   // Organize fields by category
@@ -528,9 +577,17 @@ const AIExtractionModal = ({
             </Button>
             <Button 
               className="bg-primary hover:bg-primary/90"
-              disabled={selectedTargetFields.length === 0}
+              disabled={selectedTargetFields.length === 0 || isExtracting}
+              onClick={handleRunExtraction}
             >
-              Run AI Extraction
+              {isExtracting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Extracting...
+                </>
+              ) : (
+                'Run AI Extraction'
+              )}
             </Button>
           </div>
         </div>
@@ -3470,6 +3527,7 @@ Thank you for your assistance.`;
         sessionDocuments={sessionDocuments || []}
         verifiedFields={getVerifiedFields()}
         allProjectFields={getAllProjectFields()}
+        sessionId={sessionId}
       />
 
       {/* Session Chat */}

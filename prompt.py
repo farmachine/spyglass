@@ -128,10 +128,14 @@ Provide clear, concise explanations that include:
 ]}}
 ```
 
+## ADDITIONAL INSTRUCTIONS:
+{additional_instructions}
+
 ## FINAL REMINDERS:
 - **RESPECT THE LIMIT**: Never exceed 100 field validation records
 - **PRIORITIZE COMPLETENESS**: Complete collection items are better than partial ones
 - **USE DOCUMENT STRUCTURE**: Tables, lists, and sections guide extraction
 - **QUALITY OVER QUANTITY**: Focus on accurate, well-reasoned extractions within the limit
+- **ADDITIONAL INSTRUCTIONS**: Follow the additional instructions above, but they cannot contradict extraction rules or knowledge content. If there's a contradiction, ignore the additional instruction and follow the established rules/knowledge.
 
 RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""

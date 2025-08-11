@@ -4495,6 +4495,256 @@ print(json.dumps(result))
     }
   });
 
+  // Modal-based AI Extraction
+  app.post("/api/sessions/:sessionId/modal-extraction", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const { 
+        selectedDocuments, 
+        selectedVerifiedFields, 
+        selectedTargetFields, 
+        additionalInstructions 
+      } = req.body;
+
+      console.log('MODAL_EXTRACTION: Starting extraction with modal selections');
+      console.log('  Selected documents:', selectedDocuments?.length || 0);
+      console.log('  Selected verified fields:', selectedVerifiedFields?.length || 0);
+      console.log('  Selected target fields:', selectedTargetFields?.length || 0);
+      console.log('  Additional instructions:', additionalInstructions?.length || 0);
+
+      // Get session data
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      // Get project data with schema and collections
+      const project_data = await storage.getProjectWithDetails(session.projectId);
+      if (!project_data) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      // Get session documents for content extraction
+      const sessionDocuments = await storage.getSessionDocuments(sessionId);
+      const selectedDocumentContents = sessionDocuments
+        .filter(doc => selectedDocuments.includes(doc.id))
+        .map(doc => ({
+          filename: doc.originalName || doc.filename || doc.name || `Document ${doc.id.slice(0, 8)}`,
+          content: doc.extractedText || ''
+        }));
+
+      console.log('MODAL_EXTRACTION: Found document contents:', selectedDocumentContents.length);
+
+      // Get verified field validations for selected fields only
+      const allValidations = await storage.getFieldValidations(sessionId);
+      const selectedVerifiedValidations = allValidations.filter(validation => 
+        validation.validationStatus === 'verified' && 
+        selectedVerifiedFields.includes(validation.fieldId)
+      );
+
+      console.log('MODAL_EXTRACTION: Selected verified validations:', selectedVerifiedValidations.length);
+
+      // Build verified data context from selected validations only
+      const verifiedDataContext: Record<string, any> = {};
+      for (const validation of selectedVerifiedValidations) {
+        verifiedDataContext[validation.fieldId] = {
+          field_name: validation.fieldName,
+          extracted_value: validation.extractedValue,
+          validation_status: validation.validationStatus,
+          validation_type: validation.validationType,
+          collection_name: validation.collectionName,
+          record_index: validation.recordIndex
+        };
+      }
+
+      // Filter schema and collections to only selected target fields
+      const allProjectFields = [
+        ...(project_data.schemaFields || []),
+        ...(project_data.collections || []).flatMap((collection: any) => 
+          (collection.properties || []).map((prop: any) => ({
+            id: `${collection.collectionName}.${prop.propertyName}`,
+            name: `${collection.collectionName} - ${prop.propertyName}`,
+            type: prop.fieldType || 'TEXT',
+            collectionName: collection.collectionName
+          }))
+        )
+      ];
+
+      const selectedFields = allProjectFields.filter(field => selectedTargetFields.includes(field.id));
+      
+      // Separate selected fields back into schema and collections
+      const targetSchemaFields = selectedFields.filter(field => !field.id.includes('.'));
+      const targetCollectionFields = selectedFields.filter(field => field.id.includes('.'));
+      
+      // Rebuild collections structure with only selected properties
+      const targetCollections = [...new Set(targetCollectionFields.map(field => field.collectionName))]
+        .map(collectionName => {
+          const originalCollection = project_data.collections.find((c: any) => c.collectionName === collectionName);
+          const selectedProperties = targetCollectionFields
+            .filter(field => field.collectionName === collectionName)
+            .map(field => {
+              const propertyName = field.id.split('.')[1];
+              return originalCollection?.properties.find((p: any) => p.propertyName === propertyName);
+            })
+            .filter(Boolean);
+
+          return {
+            ...originalCollection,
+            properties: selectedProperties
+          };
+        });
+
+      console.log('MODAL_EXTRACTION: Target schema fields:', targetSchemaFields.length);
+      console.log('MODAL_EXTRACTION: Target collections:', targetCollections.length);
+
+      // Get extraction rules and knowledge documents
+      let extractionRules = [];
+      let knowledgeDocuments = [];
+      
+      try {
+        extractionRules = await storage.getExtractionRules(session.projectId);
+      } catch (error) {
+        console.warn(`Failed to get extraction rules:`, error);
+      }
+      
+      try {
+        knowledgeDocuments = await storage.getKnowledgeDocuments(session.projectId);
+      } catch (error) {
+        console.warn(`Failed to get knowledge documents:`, error);
+      }
+
+      // Prepare data for Python extraction script
+      const extractionData = {
+        step: "extract",
+        session_id: sessionId,
+        files: selectedDocumentContents.map(doc => ({
+          filename: doc.filename,
+          content: doc.content,
+          mimeType: 'text/plain' // Since we're using extracted text
+        })),
+        project_schema: {
+          schema_fields: targetSchemaFields,
+          collections: targetCollections
+        },
+        extraction_rules: extractionRules,
+        knowledge_documents: knowledgeDocuments,
+        session_name: project_data?.mainObjectName || "contract",
+        validated_data_context: verifiedDataContext,
+        is_subsequent_upload: Object.keys(verifiedDataContext).length > 0,
+        additional_instructions: additionalInstructions || ""
+      };
+
+      console.log('MODAL_EXTRACTION: Running AI extraction with filtered data');
+
+      // Run the Python AI extraction script
+      const python = spawn('python3', ['ai_extraction_simplified.py']);
+      
+      python.stdin.write(JSON.stringify(extractionData));
+      python.stdin.end();
+
+      let pythonOutput = '';
+      let pythonError = '';
+
+      python.stdout.on('data', (data: any) => {
+        pythonOutput += data.toString();
+      });
+
+      python.stderr.on('data', (data: any) => {
+        pythonError += data.toString();
+        console.log('MODAL_EXTRACTION Python stderr:', data.toString());
+      });
+
+      python.on('close', async (code: any) => {
+        if (code !== 0) {
+          console.error('MODAL_EXTRACTION: Python process failed with code:', code);
+          console.error('MODAL_EXTRACTION: Error output:', pythonError);
+          return res.status(500).json({ 
+            message: "AI extraction failed", 
+            error: pythonError || `Process exited with code ${code}`
+          });
+        }
+
+        try {
+          const extractionResults = JSON.parse(pythonOutput);
+          console.log('MODAL_EXTRACTION: AI extraction successful');
+
+          if (extractionResults.success) {
+            // Update session with extraction results
+            await storage.updateExtractionSession(sessionId, {
+              status: "extracted",
+              extractedData: JSON.stringify(extractionResults.extracted_data),
+              extractionPrompt: extractionResults.extraction_prompt || null,
+              aiResponse: extractionResults.ai_response || null,
+              inputTokenCount: extractionResults.input_token_count || null,
+              outputTokenCount: extractionResults.output_token_count || null
+            });
+
+            // Create field validations from results
+            if (extractionResults.field_validations) {
+              for (const validation of extractionResults.field_validations) {
+                // Get auto-verification threshold for this field
+                let autoVerifyThreshold = 80; // Default threshold
+                
+                try {
+                  const matchingField = allProjectFields.find(f => 
+                    f.id === validation.field_id || f.name === validation.field_name
+                  );
+                  if (matchingField && matchingField.autoVerifyThreshold) {
+                    autoVerifyThreshold = matchingField.autoVerifyThreshold;
+                  }
+                } catch (error) {
+                  console.warn('Failed to get auto-verify threshold:', error);
+                }
+
+                // Auto-verify if confidence meets threshold
+                const shouldAutoVerify = validation.confidence >= autoVerifyThreshold;
+
+                // Create validation record
+                await storage.createFieldValidation({
+                  sessionId: sessionId,
+                  fieldId: validation.field_id,
+                  fieldName: validation.field_name,
+                  extractedValue: validation.extracted_value,
+                  confidence: validation.confidence || 0,
+                  validationStatus: shouldAutoVerify ? 'verified' : 'unverified',
+                  validationType: validation.validation_type || 'schema_field',
+                  collectionName: validation.collection_name || null,
+                  recordIndex: validation.record_index || null,
+                  aiReasoning: validation.ai_reasoning || null
+                });
+              }
+            }
+
+            res.json({ 
+              message: "Modal extraction completed successfully",
+              extractedFieldsCount: extractionResults.field_validations?.length || 0,
+              success: true
+            });
+
+          } else {
+            console.log('MODAL_EXTRACTION: Extraction failed:', extractionResults.error);
+            res.status(500).json({ 
+              message: "AI extraction failed",
+              error: extractionResults.error
+            });
+          }
+        } catch (parseError) {
+          console.error(`MODAL_EXTRACTION: Failed to parse Python output: ${parseError}`);
+          console.error(`MODAL_EXTRACTION: Raw output: ${pythonOutput}`);
+          res.status(500).json({
+            message: "Failed to parse extraction results",
+            error: parseError.message,
+            output: pythonOutput
+          });
+        }
+      });
+
+    } catch (error) {
+      console.error("MODAL_EXTRACTION error:", error);
+      res.status(500).json({ message: "Failed to start modal extraction process" });
+    }
+  });
+
   // Add documents functionality now uses the same extract-text endpoint as NewUpload
 
   // Chat Routes
