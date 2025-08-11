@@ -1949,13 +1949,32 @@ Thank you for your assistance.`;
           
           {/* Session Navigation - Only visible in session view */}
           <div className="border-t border-slate-200 p-4 flex-1">
+            {/* Documents Section - Session-specific */}
+            <div className="mb-6">
+              <div className="flex items-center mb-3">
+                <Folder className="h-5 w-5 text-slate-600 mr-3" />
+                
+                {/* Tab button */}
+                <button
+                  onClick={() => setActiveTab('documents')}
+                  className={`flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
+                    activeTab === 'documents' 
+                      ? 'bg-primary text-white font-medium shadow-sm' 
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal'
+                  }`}
+                >
+                  <div className="truncate">Documents ({sessionDocuments?.length || 0})</div>
+                </button>
+              </div>
+            </div>
+            
             <div className="mb-4">
               <h3 className="text-xs font-medium text-slate-700 uppercase tracking-wider">{project?.mainObjectName || "Session"} Information</h3>
             </div>
             <div className="relative">
               {/* Vertical connecting line - stops at last collection */}
               <div className="absolute left-4 top-4 w-0.5 bg-slate-300" style={{ 
-                height: `${(project.collections.length + 1) * 48 - 12}px` 
+                height: `${project.collections.length * 48 + 12}px` 
               }}></div>
               
               <div className="space-y-3">
@@ -2045,25 +2064,6 @@ Thank you for your assistance.`;
                     </div>
                   );
                 })}
-              </div>
-              
-              {/* Documents Section - Separated */}
-              <div className="mt-6 pt-4 border-t border-slate-200">
-                <div className="flex items-center mb-3">
-                  <Folder className="h-5 w-5 text-slate-600 mr-3" />
-                  
-                  {/* Tab button */}
-                  <button
-                    onClick={() => setActiveTab('documents')}
-                    className={`flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
-                      activeTab === 'documents' 
-                        ? 'bg-primary text-white font-medium shadow-sm' 
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal'
-                    }`}
-                  >
-                    <div className="truncate">Documents ({sessionDocuments?.length || 0})</div>
-                  </button>
-                </div>
               </div>
             </div>
           </div>
