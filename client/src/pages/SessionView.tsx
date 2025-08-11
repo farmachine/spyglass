@@ -531,14 +531,62 @@ export default function SessionView() {
 
   // Helper function to get verified fields for the modal
   const getVerifiedFields = () => {
-    return validations
-      .filter(v => v.validationStatus === 'verified' || v.validationStatus === 'valid')
-      .filter(v => v.extractedValue && v.extractedValue !== 'null' && v.extractedValue !== '')
-      .map(v => ({
-        id: v.id,
-        name: getFieldDisplayName(v.fieldName),
-        value: String(v.extractedValue)
-      }));
+    const verifiedData: { id: string; name: string; value: string }[] = [];
+    
+    // Get verified schema fields (main object data)
+    project?.schemaFields?.forEach(field => {
+      const validation = validations.find(v => v.fieldName === field.fieldName);
+      if (validation && (validation.validationStatus === 'verified' || validation.validationStatus === 'valid') && 
+          validation.extractedValue && validation.extractedValue !== 'null' && validation.extractedValue !== '') {
+        verifiedData.push({
+          id: field.id,
+          name: field.fieldName,
+          value: String(validation.extractedValue)
+        });
+      }
+    });
+    
+    // Get verified collection items and their properties
+    project?.collections?.forEach(collection => {
+      const collectionValidations = validations.filter(v => 
+        v.collectionName === collection.collectionName || 
+        (v.fieldName && v.fieldName.startsWith(collection.collectionName + '.'))
+      );
+      
+      // Group by record index
+      const recordMap = new Map<number, any>();
+      collectionValidations.forEach(v => {
+        if (v.recordIndex !== null && v.recordIndex !== undefined) {
+          if (!recordMap.has(v.recordIndex)) {
+            recordMap.set(v.recordIndex, {});
+          }
+          const record = recordMap.get(v.recordIndex);
+          if (v.validationStatus === 'verified' || v.validationStatus === 'valid') {
+            const propertyName = v.fieldName.split('.').pop() || v.fieldName;
+            record[propertyName] = v.extractedValue;
+          }
+        }
+      });
+      
+      // Add verified collection items
+      recordMap.forEach((record, index) => {
+        const hasVerifiedData = Object.values(record).some(value => 
+          value && value !== 'null' && value !== ''
+        );
+        if (hasVerifiedData) {
+          verifiedData.push({
+            id: `${collection.id}-${index}`,
+            name: `${collection.collectionName} Item ${index + 1}`,
+            value: Object.entries(record)
+              .filter(([_, value]) => value && value !== 'null' && value !== '')
+              .map(([key, value]) => `${key}: ${value}`)
+              .join(', ')
+          });
+        }
+      });
+    });
+    
+    return verifiedData;
   };
 
   // Handler to save edited field value
