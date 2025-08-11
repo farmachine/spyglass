@@ -139,6 +139,8 @@ def extract_pdf_with_gemini(file_content: str, file_name: str) -> str:
         Return the complete text content exactly as it appears, preserving formatting and structure.
         Do not summarize or modify the content - extract everything."""
         
+        logging.info(f"Sending PDF {file_name} to Gemini (size: {len(file_bytes)} bytes)")
+        
         response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=[
@@ -154,10 +156,15 @@ def extract_pdf_with_gemini(file_content: str, file_name: str) -> str:
             )
         )
         
+        logging.info(f"Gemini response received for {file_name}")
+        
         if response and response.text:
-            return response.text.strip()
+            content = response.text.strip()
+            logging.info(f"Extracted {len(content)} characters from {file_name}")
+            return content
         else:
-            return f"No content extracted from {file_name}"
+            logging.warning(f"Empty or no response from Gemini for {file_name}")
+            return f"No content extracted from {file_name} - Gemini returned empty response"
             
     except Exception as e:
         logging.error(f"Error extracting PDF content from {file_name}: {e}")
@@ -1743,9 +1750,15 @@ if __name__ == "__main__":
                                     text_content = f"No data could be extracted from {file_name}"
                             elif file_name.lower().endswith('.pdf') or 'pdf' in mime_type:
                                 # Handle PDF files using Gemini
+                                logging.info(f"Extracting PDF content from {file_name}")
                                 text_content = extract_pdf_with_gemini(file_content, file_name)
+                                logging.info(f"PDF extraction result for {file_name}: {len(text_content) if text_content else 0} characters")
                                 if not text_content or text_content.strip() == "":
                                     text_content = f"No text could be extracted from {file_name}"
+                                    logging.warning(f"Empty content returned for PDF {file_name}")
+                                else:
+                                    # Log first 200 characters to verify content
+                                    logging.info(f"PDF content preview: {text_content[:200]}...")
                             else:
                                 # Handle other file types (DOCX, etc.)
                                 text_content = extract_document_with_gemini(file_content, file_name, mime_type)
