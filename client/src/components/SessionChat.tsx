@@ -39,9 +39,9 @@ export default function SessionChat({ sessionId, session, validations }: Session
     mutationFn: async (content: string) => {
       const response = await apiRequest(`/api/sessions/${sessionId}/chat`, {
         method: 'POST',
-        body: {
+        body: JSON.stringify({
           message: content,
-        },
+        }),
       });
       return response;
     },
