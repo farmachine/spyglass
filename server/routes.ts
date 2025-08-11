@@ -18,51 +18,11 @@ import {
   resetPasswordSchema,
   changePasswordApiSchema,
   insertProjectPublishingSchema,
-  insertChatMessageSchema,
-  insertSessionDocumentSchema
+  insertChatMessageSchema
 } from "@shared/schema";
 import { generateChatResponse } from "./chatService";
 import { authenticateToken, requireAdmin, generateToken, comparePassword, hashPassword, type AuthRequest } from "./auth";
 import { UserRole } from "@shared/schema";
-
-// Helper function to save uploaded documents and their extracted content
-async function saveDocumentsWithContent(sessionId: string, files: any[], userId: string, extractedTexts?: string[]) {
-  console.log(`Saving ${files.length} documents for session ${sessionId}`);
-  
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    const extractedText = extractedTexts?.[i] || '';
-    
-    try {
-      // Determine file type based on MIME type
-      let fileType = 'unknown';
-      if (file.mime_type) {
-        if (file.mime_type.includes('pdf')) fileType = 'pdf';
-        else if (file.mime_type.includes('sheet') || file.mime_type.includes('excel')) fileType = 'excel';
-        else if (file.mime_type.includes('word') || file.mime_type.includes('document')) fileType = 'word';
-        else if (file.mime_type.includes('text')) fileType = 'text';
-      }
-      
-      // Create document record with extracted content
-      await storage.createSessionDocument({
-        sessionId,
-        fileName: file.file_name || `document_${i + 1}`,
-        originalFileName: file.file_name || `document_${i + 1}`,
-        fileType,
-        mimeType: file.mime_type || 'application/octet-stream',
-        fileSize: file.file_content ? Buffer.from(file.file_content.split(',')[1] || '', 'base64').length : 0,
-        fileContent: file.file_content || '',
-        extractedText: extractedText,
-        extractionStatus: extractedText ? 'extracted' : 'pending',
-        uploadedBy: userId
-      });
-      
-      console.log(`Saved document: ${file.file_name} with ${extractedText.length} chars of extracted text`);
-    } catch (error) {
-      console.error(`Failed to save document ${file.file_name}:`, error);
-    }
-  }
-}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication Routes
@@ -1948,16 +1908,6 @@ except Exception as e:
               outputTokenCount: 0
             });
             
-            // Save uploaded documents and their extracted content after extraction is completed
-            try {
-              const userId = 'system'; // Simple extraction doesn't require auth
-              await saveDocumentsWithContent(sessionId, convertedFiles, userId, extractedData.extracted_texts);
-              console.log(`Documents saved successfully for session ${sessionId} (simple extraction)`);
-            } catch (saveError) {
-              console.error('Failed to save documents (simple extraction):', saveError);
-              // Don't fail the extraction if document saving fails
-            }
-            
             // Create field validation records from extracted data
             await createFieldValidationRecords(sessionId, extractedData, project_data);
             
@@ -2024,17 +1974,6 @@ except Exception as e:
             inputTokenCount: extractedData.input_token_count,
             outputTokenCount: extractedData.output_token_count
           });
-          
-          // Save uploaded documents and their extracted content after extraction is completed
-          try {
-            // Get the user ID from the request (you'll need to add authentication to this route if not already there)
-            const userId = 'system'; // You may need to get this from auth context
-            await saveDocumentsWithContent(sessionId, convertedFiles, userId, extractedData.extracted_texts);
-            console.log(`Documents saved successfully for session ${sessionId}`);
-          } catch (saveError) {
-            console.error('Failed to save documents:', saveError);
-            // Don't fail the extraction if document saving fails
-          }
           
           // Create field validation records from extracted data
           await createFieldValidationRecords(sessionId, extractedData, project_data);
@@ -3632,16 +3571,6 @@ except Exception as e:
               extractedData: JSON.stringify(aggregatedExtraction)
             });
             
-            // Save uploaded documents and their extracted content after extraction is completed
-            try {
-              const userId = 'system'; // Single-step process doesn't require auth
-              await saveDocumentsWithContent(sessionId, convertedFiles, userId, result.extracted_texts);
-              console.log(`Documents saved successfully for session ${sessionId} (single-step process)`);
-            } catch (saveError) {
-              console.error('Failed to save documents (single-step process):', saveError);
-              // Don't fail the extraction if document saving fails
-            }
-            
             // Create field validation records directly from AI results
             console.log(`SINGLE-STEP: Creating ${fieldValidations?.length || 0} field validation records`);
             
@@ -4541,144 +4470,6 @@ print(json.dumps(result))
     } catch (error) {
       console.error("Error sending chat message:", error);
       res.status(500).json({ message: "Failed to send chat message" });
-    }
-  });
-
-  // Session Documents Routes
-  app.get("/api/sessions/:sessionId/documents", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const sessionId = req.params.sessionId;
-      const documents = await storage.getSessionDocuments(sessionId);
-      res.json(documents);
-    } catch (error) {
-      console.error("Error getting session documents:", error);
-      res.status(500).json({ message: "Failed to get session documents" });
-    }
-  });
-
-  app.post("/api/sessions/:sessionId/documents", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const sessionId = req.params.sessionId;
-      const { fileName, originalFileName, fileType, mimeType, fileSize, fileContent } = req.body;
-      
-      if (!fileName || !originalFileName || !fileType || !mimeType || !fileSize || !fileContent) {
-        return res.status(400).json({ message: "Missing required document fields" });
-      }
-
-      const userId = req.user?.id;
-      if (!userId) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
-
-      // Create document record
-      const document = await storage.createSessionDocument({
-        sessionId,
-        fileName,
-        originalFileName,
-        fileType,
-        mimeType,
-        fileSize,
-        fileContent,
-        uploadedBy: userId,
-        extractionStatus: "pending"
-      });
-
-      // Extract content from document
-      try {
-        let extractedText = "";
-        
-        if (fileType === "pdf" || fileType === "word") {
-          // Use existing Python text extraction
-          const extractResponse = await fetch("http://127.0.0.1:5001/api/extract-text-only", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              sessionId,
-              documents: [{
-                fileName: originalFileName,
-                fileContent: fileContent.split(",")[1] // Remove data URL prefix
-              }]
-            })
-          });
-
-          if (extractResponse.ok) {
-            const result = await extractResponse.json();
-            extractedText = result.extractedTexts?.[0] || "";
-          }
-        } else if (fileType === "excel") {
-          // Use Python for Excel processing
-          const extractResponse = await fetch("http://127.0.0.1:5001/api/extract-text-only", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              sessionId,
-              documents: [{
-                fileName: originalFileName,
-                fileContent: fileContent.split(",")[1] // Remove data URL prefix
-              }]
-            })
-          });
-
-          if (extractResponse.ok) {
-            const result = await extractResponse.json();
-            extractedText = result.extractedTexts?.[0] || "";
-          }
-        }
-
-        // Update document with extracted text
-        await storage.updateSessionDocument(document.id, {
-          extractedText,
-          extractionStatus: extractedText ? "extracted" : "failed",
-          extractionError: extractedText ? undefined : "Failed to extract content"
-        });
-
-        const updatedDocument = await storage.getSessionDocument(document.id);
-        res.json(updatedDocument);
-      } catch (extractError) {
-        console.error("Error extracting document content:", extractError);
-        await storage.updateSessionDocument(document.id, {
-          extractionStatus: "failed",
-          extractionError: "Content extraction failed"
-        });
-        
-        const updatedDocument = await storage.getSessionDocument(document.id);
-        res.json(updatedDocument);
-      }
-    } catch (error) {
-      console.error("Error creating session document:", error);
-      res.status(500).json({ message: "Failed to create session document" });
-    }
-  });
-
-  app.get("/api/documents/:id", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const documentId = req.params.id;
-      const document = await storage.getSessionDocument(documentId);
-      
-      if (!document) {
-        return res.status(404).json({ message: "Document not found" });
-      }
-
-      res.json(document);
-    } catch (error) {
-      console.error("Error getting document:", error);
-      res.status(500).json({ message: "Failed to get document" });
-    }
-  });
-
-  app.delete("/api/documents/:id", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const documentId = req.params.id;
-      const success = await storage.deleteSessionDocument(documentId);
-      
-      if (!success) {
-        return res.status(404).json({ message: "Document not found" });
-      }
-
-      res.json({ message: "Document deleted successfully" });
-    } catch (error) {
-      console.error("Error deleting document:", error);
-      res.status(500).json({ message: "Failed to delete document" });
     }
   });
 
