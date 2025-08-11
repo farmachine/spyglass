@@ -2679,22 +2679,13 @@ Thank you for your assistance.`;
                   <Info className="h-4 w-4" />
                 </Button>
                 <Button
-                  onClick={() => setAddDocumentsModalOpen(true)}
-                  variant="outline"
-                  size="sm"
-                  className="px-3 py-2"
-                  title="Add more documents to this session with AI extraction"
-                >
-                  <Upload className="h-4 w-4" />
-                </Button>
-                <Button
                   onClick={() => setDocumentUploadModalOpen(true)}
                   variant="outline"
                   size="sm"
                   className="px-3 py-2"
-                  title="Upload documents without AI processing"
+                  title="Add documents to session"
                 >
-                  <Folder className="h-4 w-4" />
+                  <Plus className="h-4 w-4" />
                 </Button>
                 <Button
                   onClick={handleExportToExcel}
