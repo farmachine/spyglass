@@ -1,6 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { eq, desc, and, inArray, sql as drizzleSql } from "drizzle-orm";
+import { eq, desc, and, inArray, sql } from "drizzle-orm";
 
 import { 
   projects, 
