@@ -139,23 +139,23 @@ export default function SessionChat({ sessionId, session, validations }: Session
                   messages.map((msg: ChatMessage) => (
                     <div
                       key={msg.id}
-                      className={`flex gap-2 ${!msg.isAI ? 'justify-end' : 'justify-start'}`}
+                      className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
-                      {msg.isAI && (
+                      {msg.role === 'assistant' && (
                         <div className="flex-shrink-0 w-6 h-6 bg-[#4F63A4] rounded-full flex items-center justify-center">
                           <Bot className="h-3 w-3 text-white" />
                         </div>
                       )}
                       <div
                         className={`max-w-[75%] px-2 py-1.5 rounded-lg text-xs leading-relaxed ${
-                          !msg.isAI
+                          msg.role === 'user'
                             ? 'bg-[#4F63A4] text-white'
                             : 'bg-gray-100 text-gray-900'
                         }`}
                       >
-                        {msg.message}
+                        {msg.content}
                       </div>
-                      {!msg.isAI && (
+                      {msg.role === 'user' && (
                         <div className="flex-shrink-0 w-6 h-6 bg-gray-500 rounded-full flex items-center justify-center">
                           <User className="h-3 w-3 text-white" />
                         </div>

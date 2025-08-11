@@ -4371,11 +4371,18 @@ print(json.dumps(result))
         return res.status(400).json({ message: "Message content is required" });
       }
 
+      // Get current user from session
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
       // Create user message
       const userMessage = await storage.createChatMessage({
         sessionId,
-        message: message.trim(),
-        isAI: false,
+        userId,
+        role: "user",
+        content: message.trim(),
       });
 
       // Generate AI response context
@@ -4401,8 +4408,9 @@ print(json.dumps(result))
       // Create AI message
       const aiMessage = await storage.createChatMessage({
         sessionId,
-        message: aiResponseText,
-        isAI: true,
+        userId,
+        role: "assistant", 
+        content: aiResponseText,
       });
 
       res.json({ userMessage, aiMessage });
