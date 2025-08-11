@@ -4535,6 +4535,11 @@ print(json.dumps(result))
         }));
 
       console.log('MODAL_EXTRACTION: Found document contents:', selectedDocumentContents.length);
+      console.log('MODAL_EXTRACTION: Document details:', selectedDocumentContents.map(doc => ({
+        filename: doc.filename,
+        contentLength: doc.file_content?.length || 0,
+        hasContent: !!doc.file_content && doc.file_content.length > 0
+      })));
 
       // Get verified field validations for selected fields only
       const allValidations = await storage.getFieldValidations(sessionId);
@@ -4595,6 +4600,9 @@ print(json.dumps(result))
           };
         });
 
+      console.log('MODAL_EXTRACTION: All project fields available:', allProjectFields.map(f => f.id));
+      console.log('MODAL_EXTRACTION: Selected target field IDs:', selectedTargetFields);
+      console.log('MODAL_EXTRACTION: Filtered selected fields:', selectedFields.map(f => f.id));
       console.log('MODAL_EXTRACTION: Target schema fields:', targetSchemaFields.length);
       console.log('MODAL_EXTRACTION: Target collections:', targetCollections.length);
 
@@ -4619,7 +4627,7 @@ print(json.dumps(result))
         step: "extract",
         session_id: sessionId,
         files: selectedDocumentContents.map(doc => ({
-          filename: doc.filename,
+          file_name: doc.filename,
           file_content: doc.file_content,
           mime_type: 'text/plain' // Since we're using extracted text
         })),
