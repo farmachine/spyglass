@@ -4713,7 +4713,10 @@ print(json.dumps(result))
                 }
 
                 // Auto-verify if confidence meets threshold
-                const shouldAutoVerify = validation.confidence >= autoVerifyThreshold;
+                const confidenceValue = validation.confidence_score || validation.confidence || 0;
+                const shouldAutoVerify = (confidenceValue * 100) >= autoVerifyThreshold;
+
+                console.log(`MODAL_EXTRACTION: Field ${validation.field_name} - confidence: ${confidenceValue}, threshold: ${autoVerifyThreshold}, autoVerify: ${shouldAutoVerify}`);
 
                 // Create validation record
                 await storage.createFieldValidation({
@@ -4721,7 +4724,7 @@ print(json.dumps(result))
                   fieldId: validation.field_id,
                   fieldName: validation.field_name,
                   extractedValue: validation.extracted_value,
-                  confidence: validation.confidence || 0,
+                  confidence: Math.round((confidenceValue * 100)),
                   validationStatus: shouldAutoVerify ? 'verified' : 'unverified',
                   validationType: validation.validation_type || 'schema_field',
                   collectionName: validation.collection_name || null,
