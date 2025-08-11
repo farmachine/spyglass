@@ -306,6 +306,16 @@ const AIExtractionModal = ({
     setSelectedTargetFields(availableFields.map(field => field.id));
   };
 
+  // Add modal open effect to debug
+  React.useEffect(() => {
+    if (isOpen) {
+      console.log('AI Extraction Modal opened for:', sectionName);
+      console.log('Available fields:', availableFields);
+      console.log('Session documents:', sessionDocuments);
+      console.log('Verified fields:', verifiedFields);
+    }
+  }, [isOpen, sectionName, availableFields, sessionDocuments, verifiedFields]);
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -526,6 +536,7 @@ export default function SessionView() {
 
   // Handler to open AI extraction modal
   const handleOpenAIExtraction = (sectionName: string, availableFields: { id: string; name: string; type: string }[]) => {
+    console.log('handleOpenAIExtraction called with:', { sectionName, availableFields });
     setAiExtractionModal({
       open: true,
       sectionName,
