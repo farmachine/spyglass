@@ -1922,7 +1922,7 @@ Thank you for your assistance.`;
 
       <div className="flex h-[calc(100vh-160px)]">
         {/* Sidebar */}
-        <div className="w-56 bg-slate-50 border-r border-slate-200 flex flex-col">
+        <div className="w-80 bg-slate-50 border-r border-slate-200 flex flex-col">
           <div className="p-4">
             <nav className="space-y-0.5">
               {navItems.map((item) => {
@@ -1950,7 +1950,7 @@ Thank you for your assistance.`;
           {/* Session Navigation - Only visible in session view */}
           <div className="border-t border-slate-200 p-4 flex-1">
             <div className="mb-4">
-              <h3 className="text-xs font-medium text-slate-700 uppercase tracking-wider">Session Sections</h3>
+              <h3 className="text-xs font-medium text-slate-700 uppercase tracking-wider">{project?.mainObjectName || "Session"} Information</h3>
             </div>
             <div className="relative">
               {/* Vertical connecting line */}
