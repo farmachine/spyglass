@@ -1928,8 +1928,7 @@ Thank you for your assistance.`;
 
             {/* Session Data Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="info" className="w-full folder-tabs">
-              <div className="w-full overflow-x-auto">
-                <TabsList className="w-full justify-start tabs-list min-w-max">
+              <TabsList className="w-full justify-start tabs-list">
                 <TabsTrigger value="info" className="tabs-trigger">
                   General Information
                   {/* Info tab verification indicator */}
@@ -1978,8 +1977,7 @@ Thank you for your assistance.`;
                     </TabsTrigger>
                   );
                 })}
-                </TabsList>
-              </div>
+              </TabsList>
               {/* Info Tab Content - Single Object View */}
               <TabsContent value="info" className="mt-0 px-0 ml-0">
                 <Card className="border-t-0 rounded-tl-none ml-0">

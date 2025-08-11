@@ -102,14 +102,7 @@
   margin-right: 0 !important;
   z-index: 5 !important;
   display: flex !important;
-  flex-wrap: nowrap !important;
-  overflow-x: auto !important;
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-}
-
-.folder-tabs .tabs-list::-webkit-scrollbar {
-  display: none;
+  flex-wrap: wrap !important;
 }
 
 .folder-tabs .tabs-trigger {
@@ -119,13 +112,21 @@
   border-bottom: none !important;
   border-radius: 12px 12px 0 0 !important;
   margin-right: 2px !important;
-  padding: 14px 24px !important;
+  padding: 8px 16px !important;
   font-weight: 600 !important;
   color: #64748b !important;
   transition: all 0.3s ease !important;
   z-index: 1 !important;
   box-shadow: none !important;
   min-height: 48px !important;
+  max-width: 180px !important;
+  line-height: 1.2 !important;
+  text-align: center !important;
+  word-wrap: break-word !important;
+  overflow: hidden !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 3 !important;
+  -webkit-box-orient: vertical !important;
 }
 
 .folder-tabs .tabs-trigger:first-child {
