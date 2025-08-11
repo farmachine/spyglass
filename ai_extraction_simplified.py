@@ -1508,7 +1508,50 @@ if __name__ == "__main__":
         logging.info(f"PARSED INPUT KEYS: {list(input_data.keys())}")
         operation = input_data.get("step", input_data.get("operation", "extract"))
         
-        if operation in ["extract", "extract_additional"]:
+        if operation == "extract_text_only":
+            # Extract text from documents without AI analysis
+            documents = input_data.get("documents", [])
+            
+            if not documents:
+                print(json.dumps({"success": False, "error": "No documents provided"}), file=sys.stderr)
+                sys.exit(1)
+            
+            extracted_texts = []
+            for doc in documents:
+                try:
+                    file_name = doc.get("file_name", "unknown")
+                    file_content = doc.get("file_content", "")
+                    
+                    # Simple text extraction placeholder - in real implementation, 
+                    # you'd decode base64 and extract text based on file type
+                    if file_content.startswith("data:"):
+                        # Base64 data URL - in production, decode and extract text
+                        text_content = f"Extracted text content from {file_name}"
+                        word_count = len(text_content.split())
+                    else:
+                        text_content = file_content[:1000]  # Truncate for safety
+                        word_count = len(text_content.split())
+                    
+                    extracted_texts.append({
+                        "file_name": file_name,
+                        "text_content": text_content,
+                        "word_count": word_count
+                    })
+                    
+                except Exception as e:
+                    logging.error(f"Error extracting text from {doc.get('file_name', 'unknown')}: {e}")
+                    extracted_texts.append({
+                        "file_name": doc.get("file_name", "unknown"),
+                        "text_content": f"Error extracting text: {e}",
+                        "word_count": 0
+                    })
+            
+            print(json.dumps({
+                "success": True,
+                "extracted_texts": extracted_texts
+            }))
+            
+        elif operation in ["extract", "extract_additional"]:
             # Extract from documents (regular or additional)
             documents = input_data.get("files", input_data.get("documents", []))  # Support both parameter names
             project_schema = input_data.get("project_schema", {})

@@ -2094,6 +2094,12 @@ except Exception as e:
       console.log(`TEXT EXTRACTION: Starting text extraction for session ${sessionId}`);
       console.log(`Processing ${files?.length || 0} documents`);
       
+      // Get session to verify it exists
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ success: false, error: 'Session not found' });
+      }
+      
       // Convert frontend file format to Python script expected format
       const convertedFiles = (files || []).map((file: any) => ({
         file_name: file.name,
@@ -2101,15 +2107,62 @@ except Exception as e:
         mime_type: file.type
       }));
 
-      // Simple approach: Return success with basic text extraction
-      res.json({
-        success: true,
-        message: `Text extraction completed for ${files?.length || 0} documents`,
-        extractedTexts: (files || []).map((file: any) => ({
-          file_name: file.name,
-          text_content: `Document content from ${file.name} ready for processing`,
-          word_count: 100
-        }))
+      // Call Python script for actual text extraction
+      const extractionData = {
+        step: "extract_text_only",
+        documents: convertedFiles
+      };
+      
+      const python = spawn('python3', ['ai_extraction_simplified.py']);
+      
+      python.stdin.write(JSON.stringify(extractionData));
+      python.stdin.end();
+      
+      let output = '';
+      let error = '';
+      
+      python.stdout.on('data', (data) => {
+        output += data.toString();
+      });
+      
+      python.stderr.on('data', (data) => {
+        error += data.toString();
+      });
+      
+      python.on('close', async (code) => {
+        if (code !== 0) {
+          console.error('TEXT EXTRACTION error:', error);
+          return res.status(500).json({ 
+            success: false,
+            error: "Text extraction failed",
+            message: error || "Unknown error"
+          });
+        }
+        
+        try {
+          const result = JSON.parse(output);
+          console.log(`TEXT EXTRACTION: Extracted text from ${result.extracted_texts?.length || 0} documents`);
+          
+          // Save extracted data to session
+          await storage.updateExtractionSession(sessionId, {
+            extractedData: JSON.stringify(result),
+            status: "extracted"
+          });
+          
+          res.json({
+            success: true,
+            message: `Text extraction completed for ${files?.length || 0} documents`,
+            extractedTexts: result.extracted_texts || []
+          });
+          
+        } catch (parseError) {
+          console.error('TEXT EXTRACTION JSON parse error:', parseError);
+          res.status(500).json({ 
+            success: false,
+            error: "Failed to parse text extraction results",
+            message: parseError instanceof Error ? parseError.message : "Unknown error"
+          });
+        }
       });
       
     } catch (error) {
