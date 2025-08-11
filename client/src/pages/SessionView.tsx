@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Textarea } from "@/components/ui/textarea";
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -248,6 +249,208 @@ const ValidationToggle = ({ fieldName, validation, onToggle }: {
   );
 };
 
+// AI Extraction Modal Component
+const AIExtractionModal = ({ 
+  isOpen, 
+  onClose, 
+  sectionName,
+  availableFields,
+  sessionDocuments,
+  verifiedFields
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  sectionName: string;
+  availableFields: { id: string; name: string; type: string }[];
+  sessionDocuments: any[];
+  verifiedFields: { id: string; name: string; value: string }[];
+}) => {
+  const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
+  const [selectedVerifiedFields, setSelectedVerifiedFields] = useState<string[]>([]);
+  const [selectedTargetFields, setSelectedTargetFields] = useState<string[]>([]);
+  const [additionalInstructions, setAdditionalInstructions] = useState("");
+
+  const handleDocumentToggle = (docId: string) => {
+    setSelectedDocuments(prev => 
+      prev.includes(docId) 
+        ? prev.filter(id => id !== docId)
+        : [...prev, docId]
+    );
+  };
+
+  const handleVerifiedFieldToggle = (fieldId: string) => {
+    setSelectedVerifiedFields(prev => 
+      prev.includes(fieldId) 
+        ? prev.filter(id => id !== fieldId)
+        : [...prev, fieldId]
+    );
+  };
+
+  const handleTargetFieldToggle = (fieldId: string) => {
+    setSelectedTargetFields(prev => 
+      prev.includes(fieldId) 
+        ? prev.filter(id => id !== fieldId)
+        : [...prev, fieldId]
+    );
+  };
+
+  const selectAllDocuments = () => {
+    setSelectedDocuments(sessionDocuments.map(doc => doc.id));
+  };
+
+  const selectAllVerifiedFields = () => {
+    setSelectedVerifiedFields(verifiedFields.map(field => field.id));
+  };
+
+  const selectAllTargetFields = () => {
+    setSelectedTargetFields(availableFields.map(field => field.id));
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Wand2 className="h-5 w-5 text-primary" />
+            AI Extraction for {sectionName}
+          </DialogTitle>
+          <DialogDescription>
+            Configure AI extraction sources, target fields, and provide additional instructions.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          {/* Extraction Sources Section */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium">Extraction Sources</h3>
+            </div>
+
+            {/* Uploaded Documents */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Uploaded Documents</Label>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={selectAllDocuments}
+                  className="text-xs"
+                >
+                  Select All
+                </Button>
+              </div>
+              <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto border rounded-lg p-3">
+                {sessionDocuments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No documents uploaded</p>
+                ) : (
+                  sessionDocuments.map((doc) => (
+                    <div key={doc.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`doc-${doc.id}`}
+                        checked={selectedDocuments.includes(doc.id)}
+                        onCheckedChange={() => handleDocumentToggle(doc.id)}
+                      />
+                      <Label htmlFor={`doc-${doc.id}`} className="text-sm truncate">
+                        {doc.originalName}
+                      </Label>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Verified Fields */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Verified Fields</Label>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={selectAllVerifiedFields}
+                  className="text-xs"
+                >
+                  Select All
+                </Button>
+              </div>
+              <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto border rounded-lg p-3">
+                {verifiedFields.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No verified fields available</p>
+                ) : (
+                  verifiedFields.map((field) => (
+                    <div key={field.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`verified-${field.id}`}
+                        checked={selectedVerifiedFields.includes(field.id)}
+                        onCheckedChange={() => handleVerifiedFieldToggle(field.id)}
+                      />
+                      <Label htmlFor={`verified-${field.id}`} className="text-sm truncate">
+                        {field.name}: {field.value}
+                      </Label>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Target Fields Section */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium">Target Fields</h3>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={selectAllTargetFields}
+                className="text-xs"
+              >
+                Select All
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border rounded-lg p-3">
+              {availableFields.map((field) => (
+                <div key={field.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`target-${field.id}`}
+                    checked={selectedTargetFields.includes(field.id)}
+                    onCheckedChange={() => handleTargetFieldToggle(field.id)}
+                  />
+                  <Label htmlFor={`target-${field.id}`} className="text-sm truncate">
+                    {field.name}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Additional Instructions Section */}
+          <div className="space-y-3">
+            <Label className="text-lg font-medium">Additional Instructions</Label>
+            <Textarea
+              placeholder="Provide any specific instructions for the AI extraction process..."
+              value={additionalInstructions}
+              onChange={(e) => setAdditionalInstructions(e.target.value)}
+              className="min-h-[100px]"
+            />
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button 
+              className="bg-primary hover:bg-primary/90"
+              disabled={selectedTargetFields.length === 0}
+            >
+              Run AI Extraction
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 export default function SessionView() {
   const { sessionId } = useParams(); // Remove projectId from params - we'll get it from session data
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -274,6 +477,13 @@ export default function SessionView() {
 
   // Add documents modal state
   const [addDocumentsModalOpen, setAddDocumentsModalOpen] = useState(false);
+  
+  // AI extraction modal state
+  const [aiExtractionModal, setAiExtractionModal] = useState<{
+    open: boolean;
+    sectionName: string;
+    availableFields: { id: string; name: string; type: string }[];
+  }>({ open: false, sectionName: '', availableFields: [] });
 
   // Helper function to find schema field data
   const findSchemaField = (validation: FieldValidation) => {
@@ -303,6 +513,32 @@ export default function SessionView() {
   // Handler to open edit dialog
   const handleEditField = (validation: FieldValidation) => {
     setEditFieldDialog({ open: true, validation });
+  };
+
+  // Handler to open AI extraction modal
+  const handleOpenAIExtraction = (sectionName: string, availableFields: { id: string; name: string; type: string }[]) => {
+    setAiExtractionModal({
+      open: true,
+      sectionName,
+      availableFields
+    });
+  };
+
+  // Handler to close AI extraction modal
+  const handleCloseAIExtraction = () => {
+    setAiExtractionModal({ open: false, sectionName: '', availableFields: [] });
+  };
+
+  // Helper function to get verified fields for the modal
+  const getVerifiedFields = () => {
+    return validations
+      .filter(v => v.validationStatus === 'verified' || v.validationStatus === 'valid')
+      .filter(v => v.extractedValue && v.extractedValue !== 'null' && v.extractedValue !== '')
+      .map(v => ({
+        id: v.id,
+        name: getFieldDisplayName(v.fieldName),
+        value: String(v.extractedValue)
+      }));
   };
 
   // Handler to save edited field value
@@ -2199,7 +2435,21 @@ Thank you for your assistance.`;
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                       <span className="flex items-center gap-2">General Information</span>
-                      <Wand2 className="h-4 w-4 text-slate-400" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleOpenAIExtraction(
+                          'General Information',
+                          project?.schemaFields?.map(field => ({
+                            id: field.id,
+                            name: field.fieldName,
+                            type: field.fieldType
+                          })) || []
+                        )}
+                        className="h-8 w-8 p-0 hover:bg-slate-100"
+                      >
+                        <Wand2 className="h-4 w-4 text-slate-400" />
+                      </Button>
                     </CardTitle>
                     <p className="text-sm text-gray-600">
                       Core information and fields extracted from this {(project.mainObjectName || "session").toLowerCase()}.
@@ -2416,7 +2666,21 @@ Thank you for your assistance.`;
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                       <span className="flex items-center gap-2">Uploaded Documents</span>
-                      <Wand2 className="h-4 w-4 text-slate-400" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleOpenAIExtraction(
+                          'Documents',
+                          sessionDocuments?.map(doc => ({
+                            id: doc.id,
+                            name: doc.originalName || doc.fileName,
+                            type: 'document'
+                          })) || []
+                        )}
+                        className="h-8 w-8 p-0 hover:bg-slate-100"
+                      >
+                        <Wand2 className="h-4 w-4 text-slate-400" />
+                      </Button>
                     </CardTitle>
                     <p className="text-sm text-gray-600">
                       Documents uploaded and processed for this session.
@@ -2543,7 +2807,21 @@ Thank you for your assistance.`;
                               {uniqueIndices.length} {uniqueIndices.length === 1 ? 'item' : 'items'}
                             </span>
                           </div>
-                          <Wand2 className="h-4 w-4 text-slate-400" />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleOpenAIExtraction(
+                              collection.collectionName,
+                              collection.properties?.map(prop => ({
+                                id: prop.id,
+                                name: prop.propertyName,
+                                type: prop.propertyType
+                              })) || []
+                            )}
+                            className="h-8 w-8 p-0 hover:bg-slate-100"
+                          >
+                            <Wand2 className="h-4 w-4 text-slate-400" />
+                          </Button>
                         </CardTitle>
                         <p className="text-sm text-gray-600">{collection.description}</p>
                       </CardHeader>
@@ -3015,6 +3293,16 @@ Thank you for your assistance.`;
           queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
           queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
         }}
+      />
+
+      {/* AI Extraction Modal */}
+      <AIExtractionModal
+        isOpen={aiExtractionModal.open}
+        onClose={handleCloseAIExtraction}
+        sectionName={aiExtractionModal.sectionName}
+        availableFields={aiExtractionModal.availableFields}
+        sessionDocuments={sessionDocuments || []}
+        verifiedFields={getVerifiedFields()}
       />
 
       {/* Session Chat */}
