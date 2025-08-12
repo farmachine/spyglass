@@ -4906,7 +4906,7 @@ print(json.dumps(result))
 
       // Format extraction rules for prompt
       const extractionRulesText = extractionRules.length > 0 
-        ? extractionRules.map(rule => `**${rule.fieldName}**: ${rule.ruleDescription}`).join('\n')
+        ? extractionRules.map(rule => `**${rule.targetField || rule.ruleName}**: ${rule.ruleContent}`).join('\n')
         : "No extraction rules defined for this project.";
 
       // Format knowledge documents for prompt  
@@ -4919,6 +4919,22 @@ print(json.dumps(result))
         .map(([collection, indexes]) => 
           `Skip ${collection} records with indexes: ${Array.from(indexes).join(', ')}`
         ).join('\n') || "No existing records to skip.";
+
+      // Build collection schemas for selected target collections
+      const selectedCollections = new Set(selectedTargetFieldsData
+        .filter(field => field.collectionName)
+        .map(field => field.collectionName));
+
+      const collectionsSchemaText = Array.from(selectedCollections).map(collectionName => {
+        const collection = project_data.collections?.find((c: any) => c.collectionName === collectionName);
+        if (!collection) return '';
+        
+        const properties = collection.properties?.map((prop: any) => 
+          `  * **${prop.propertyName}** (${prop.propertyType}): ${prop.validationInstructions || 'No specific instructions'}`
+        ).join('\n') || '';
+        
+        return `**${collectionName}**:\n${properties}`;
+      }).filter(Boolean).join('\n\n');
 
       // Use the consolidated prompt from prompt.py
       const { spawn } = await import('child_process');
@@ -4938,7 +4954,7 @@ prompt = create_wizard_modal_prompt(
     knowledge_documents=${JSON.stringify(knowledgeDocumentsText)},
     verified_context="",
     schema_fields="",
-    collections="",
+    collections=${JSON.stringify(collectionsSchemaText)},
     additional_instructions=${JSON.stringify(additionalInstructions || "")}
 )
 
@@ -5002,7 +5018,10 @@ ${extractionRulesText}
 KNOWLEDGE DOCUMENTS:
 ${knowledgeDocumentsText}
 
-${additionalInstructions ? `ADDITIONAL INSTRUCTIONS:
+${collectionsSchemaText ? `## COLLECTIONS TO EXTRACT:
+${collectionsSchemaText}
+
+` : ''}${additionalInstructions ? `ADDITIONAL INSTRUCTIONS:
 ${additionalInstructions}
 
 ` : ''}Extract up to 100 field validations. For collection properties, start from the next available index after existing records.
