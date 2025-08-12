@@ -52,76 +52,6 @@ def get_document_properties_from_db(document_ids, session_id):
     except Exception as e:
         return {"error": f"Database query failed: {str(e)}"}
 
-def get_target_fields_from_db(target_fields):
-    """Query database to get field descriptions from field IDs"""
-    try:
-        # Get database connection from environment
-        database_url = os.getenv('DATABASE_URL')
-        if not database_url:
-            return {"error": "DATABASE_URL not found"}
-        
-        # Connect to database
-        conn = psycopg2.connect(database_url)
-        cursor = conn.cursor()
-        
-        field_descriptions = []
-        
-        print(f"DEBUG: Processing {len(target_fields)} target fields")
-        
-        for field in target_fields:
-            field_id = field.get('id', '')
-            print(f"DEBUG: Processing field ID: {field_id}")
-            
-            # Check if it's a collection property (contains '.')
-            if '.' in field_id:
-                # Collection property: get from collection_properties table
-                property_id = field_id.split('.')[1]
-                print(f"DEBUG: Looking for collection property with ID: {property_id}")
-                query = """
-                SELECT property_name, description 
-                FROM collection_properties 
-                WHERE id = %s
-                """
-                cursor.execute(query, (property_id,))
-                result = cursor.fetchone()
-                print(f"DEBUG: Collection query result: {result}")
-                if result:
-                    property_name, description = result
-                    field_descriptions.append({
-                        "field_id": field_id,
-                        "name": property_name,
-                        "description": description or "",
-                        "type": "collection_property"
-                    })
-            else:
-                # Schema field: get from project_schema_fields table
-                print(f"DEBUG: Looking for schema field with ID: {field_id}")
-                query = """
-                SELECT field_name, description 
-                FROM project_schema_fields 
-                WHERE id = %s
-                """
-                cursor.execute(query, (field_id,))
-                result = cursor.fetchone()
-                print(f"DEBUG: Schema query result: {result}")
-                if result:
-                    field_name, description = result
-                    field_descriptions.append({
-                        "field_id": field_id,
-                        "name": field_name,
-                        "description": description or "",
-                        "type": "schema_field"
-                    })
-        
-        cursor.close()
-        conn.close()
-        
-        print(f"DEBUG: Final field_descriptions: {field_descriptions}")
-        return field_descriptions
-        
-    except Exception as e:
-        print(f"DEBUG: Database error: {str(e)}")
-        return {"error": f"Target fields query failed: {str(e)}"}
 
 def analyze_document_format_with_gemini(documents, target_fields_data=None):
     """Send document properties to Gemini and return raw response"""
@@ -173,12 +103,16 @@ def run_wizardry_with_gemini_analysis(data=None):
             print(json.dumps(documents))
             return
         
-        # Get target field descriptions from database
-        target_fields_data = get_target_fields_from_db(target_fields) if target_fields else []
-        
-        # Debug: Print raw target fields and processed data
-        print(f"DEBUG: Raw target_fields: {json.dumps(target_fields, indent=2)}")
-        print(f"DEBUG: Processed target_fields_data: {json.dumps(target_fields_data, indent=2)}")
+        # Extract field descriptions from the target fields data (no database query needed)
+        target_fields_data = []
+        if target_fields:
+            for field in target_fields:
+                target_fields_data.append({
+                    "field_id": field.get('id', ''),
+                    "name": field.get('propertyName') or field.get('fieldName', ''),
+                    "description": field.get('description', ''),
+                    "type": "collection_property" if field.get('collectionId') else "schema_field"
+                })
         
         # Analyze document formats with Gemini
         gemini_response = analyze_document_format_with_gemini(documents, target_fields_data)
