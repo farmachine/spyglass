@@ -519,38 +519,10 @@ export default function AddDocumentsModal({
                           const collectionProps = allProperties.filter(prop => prop.collectionName === collection.collectionName);
                           if (collectionProps.length === 0) return null;
                           
-                          console.log(`DEBUG MODAL: Collection ${collection.collectionName} properties:`, collectionProps.map(p => ({
-                            id: p.id,
-                            propertyName: p.propertyName,
-                            isIdentifier: p.isIdentifier,
-                            type: typeof p.isIdentifier
-                          })));
-                          
-                          const identifierProps = collectionProps.filter(prop => prop.isIdentifier);
-                          const regularProps = collectionProps.filter(prop => !prop.isIdentifier);
-                          
-                          console.log(`DEBUG MODAL: ${collection.collectionName} - identifierProps:`, identifierProps.length, identifierProps.map(p => p.propertyName));
-                          console.log(`DEBUG MODAL: ${collection.collectionName} - regularProps:`, regularProps.length, regularProps.map(p => p.propertyName));
-                          
                           return (
                             <div key={collection.id} className="border-l-2 border-blue-200 pl-3 space-y-2">
                               <div className="text-sm font-medium text-gray-700">{collection.collectionName}</div>
-                              
-                              {/* Identifier fields - shown as mandatory */}
-                              {identifierProps.map((prop) => (
-                                <div key={prop.id} className="flex items-center space-x-2 bg-amber-50 p-2 rounded">
-                                  <div className="w-4 h-4 bg-amber-500 rounded-sm flex items-center justify-center">
-                                    <span className="text-white text-xs font-bold">✓</span>
-                                  </div>
-                                  <Label className="text-sm flex-1">
-                                    {prop.propertyName}
-                                    <span className="text-xs text-amber-600 ml-2">(IDENTIFIER - Always included)</span>
-                                  </Label>
-                                </div>
-                              ))}
-                              
-                              {/* Regular properties - shown as checkboxes */}
-                              {regularProps.map((prop) => (
+                              {collectionProps.map((prop) => (
                                 <div key={prop.id} className="flex items-center space-x-2">
                                   <Checkbox
                                     id={`prop-${prop.id}`}

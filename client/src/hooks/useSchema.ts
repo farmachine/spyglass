@@ -152,26 +152,10 @@ export function useAllProjectProperties(projectId: string) {
       for (const collection of collections) {
         try {
           const properties = await apiRequest(`/api/collections/${collection.id}/properties`);
-          console.log(`DEBUG HOOK: Collection ${collection.collectionName} (${collection.id}) received properties:`, properties.map(p => ({
-            id: p.id,
-            propertyName: p.propertyName,
-            isIdentifier: p.isIdentifier,
-            type: typeof p.isIdentifier
-          })));
-          
-          const mappedProperties = properties.map(prop => ({
+          allProperties.push(...properties.map(prop => ({
             ...prop,
             collectionName: collection.collectionName,
-          }));
-          console.log(`DEBUG HOOK: Collection ${collection.collectionName} mapped properties:`, mappedProperties.map(p => ({
-            id: p.id,
-            propertyName: p.propertyName,
-            isIdentifier: p.isIdentifier,
-            collectionName: p.collectionName,
-            type: typeof p.isIdentifier
           })));
-          
-          allProperties.push(...mappedProperties);
         } catch (error) {
           console.warn(`Failed to fetch properties for collection ${collection.id}:`, error);
         }
