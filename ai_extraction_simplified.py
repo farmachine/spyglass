@@ -1008,7 +1008,7 @@ def step1_extract_from_documents(
                 target_collections=target_collections,
                 extraction_rules=extraction_rules,
                 knowledge_documents=knowledge_documents,
-                document_content=document_content.strip(),
+                documents=documents,  # Pass the document list instead of concatenated content
                 validated_reference_data=validated_reference_data,
                 additional_instructions=additional_instructions + existing_records_text
             )
