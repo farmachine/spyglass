@@ -85,6 +85,94 @@ def analyze_document_format_with_gemini(documents, target_fields_data=None):
     except Exception as e:
         return f"ERROR: Gemini analysis failed: {str(e)}"
 
+def extract_excel_columns(documents, target_fields):
+    """Extract all column headers from Excel documents and return formatted JSON"""
+    try:
+        extraction_results = []
+        
+        # Get collection name from target fields (assuming they're from the same collection)
+        collection_name = ""
+        if target_fields and len(target_fields) > 0:
+            # Look for collectionId in the target fields to get collection name
+            collection_id = target_fields[0].get('collectionId', '')
+            if collection_id:
+                # We'd need to query the database for collection name, but for now use a placeholder
+                collection_name = "Column Headers Collection"
+        
+        for document in documents:
+            content_preview = document.get('contentPreview', '')
+            
+            # Parse Excel content to extract column headers
+            if 'Sheet:' in content_preview:
+                # Split by sheets
+                sheet_sections = content_preview.split('=== Sheet:')
+                
+                for i, sheet_section in enumerate(sheet_sections):
+                    if not sheet_section.strip():
+                        continue
+                    
+                    lines = sheet_section.strip().split('\n')
+                    if len(lines) < 2:
+                        continue
+                    
+                    # Extract sheet name
+                    sheet_name = lines[0].split('===')[0].strip()
+                    
+                    # Get the first data line (column headers)
+                    header_line = lines[1] if len(lines) > 1 else ""
+                    
+                    # Split by tabs to get individual column headers
+                    columns = header_line.split('\t')
+                    
+                    # Create extraction results for each column
+                    for col_index, column_header in enumerate(columns):
+                        if column_header.strip():
+                            # Find matching target field for column heading
+                            column_field = None
+                            worksheet_field = None
+                            
+                            for field in target_fields:
+                                field_name = field.get('propertyName') or field.get('fieldName', '')
+                                if 'column' in field_name.lower() and 'heading' in field_name.lower():
+                                    column_field = field
+                                elif 'worksheet' in field_name.lower():
+                                    worksheet_field = field
+                            
+                            # Add column heading result
+                            if column_field:
+                                extraction_results.append({
+                                    "field_id": column_field.get('id', ''),
+                                    "validation_type": "collection_property",
+                                    "data_type": "TEXT",
+                                    "field_name": f"{column_field.get('propertyName', 'Column Heading')}[{col_index}]",
+                                    "collection_name": collection_name,
+                                    "extracted_value": column_header.strip(),
+                                    "confidence_score": 1.0,
+                                    "validation_status": "verified",
+                                    "ai_reasoning": "Extracted directly from the workbook using column extraction",
+                                    "record_index": col_index
+                                })
+                            
+                            # Add worksheet result for each column
+                            if worksheet_field:
+                                extraction_results.append({
+                                    "field_id": worksheet_field.get('id', ''),
+                                    "validation_type": "collection_property",
+                                    "data_type": "TEXT",
+                                    "field_name": f"{worksheet_field.get('propertyName', 'Worksheet')}[{col_index}]",
+                                    "collection_name": collection_name,
+                                    "extracted_value": sheet_name,
+                                    "confidence_score": 1.0,
+                                    "validation_status": "verified",
+                                    "ai_reasoning": "Extracted directly from the workbook using column extraction",
+                                    "record_index": col_index
+                                })
+        
+        return extraction_results
+        
+    except Exception as e:
+        return {"error": f"Excel column extraction failed: {str(e)}"}
+
 def run_wizardry_with_gemini_analysis(data=None):
     """Main function that gets documents from DB and analyzes them with Gemini"""
     if data and isinstance(data, dict):
@@ -132,6 +220,12 @@ def run_wizardry_with_gemini_analysis(data=None):
         
         # Print Gemini response
         print(gemini_response)
+        
+        # Check if Gemini recommends Excel Column Extraction
+        if "Excel Column Extraction" in gemini_response:
+            extraction_results = extract_excel_columns(documents, target_fields)
+            print("\n=== EXCEL COLUMN EXTRACTION RESULTS ===")
+            print(json.dumps(extraction_results, indent=2))
         
     else:
         print(json.dumps({"error": "Invalid data format. Expected object with document_ids and session_id"}))
