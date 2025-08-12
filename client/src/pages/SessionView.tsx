@@ -337,13 +337,7 @@ const AIExtractionModal = ({
     });
   };
 
-  // Simple extraction function
-  const runExtraction = (selectedDocuments: any[]) => {
-    console.log('The documents you selected are:');
-    console.log(JSON.stringify(selectedDocuments, null, 2));
-    return selectedDocuments;
-  };
-
+  // Log selected documents for testing (no extraction call)
   const handleRunExtraction = async () => {
     // Log selected document information as JSON with content preview
     const selectedDocumentInfo = sessionDocuments
@@ -433,10 +427,6 @@ const AIExtractionModal = ({
       global: globalRules,
       total: matchingRules.length
     }, null, 2));
-
-    // Call extraction function with document properties
-    const extractionResult = runExtraction(selectedDocumentInfo);
-    console.log('Extraction Result:', extractionResult);
   };
 
   // Organize fields by category
