@@ -334,6 +334,17 @@ const AIExtractionModal = ({
       return;
     }
 
+    // Log selected document information as JSON
+    const selectedDocumentInfo = sessionDocuments
+      ?.filter(doc => selectedDocuments.includes(doc.id))
+      .map(doc => ({
+        id: doc.id,
+        name: doc.originalName || doc.filename || doc.name || doc.fileName || `Document ${doc.id.slice(0, 8)}`,
+        type: doc.mimeType || doc.fileType || 'unknown'
+      })) || [];
+    
+    console.log('Selected Documents for Extraction:', JSON.stringify(selectedDocumentInfo, null, 2));
+
     setIsExtracting(true);
     try {
       const response = await apiRequest(`/api/sessions/${sessionId}/modal-extraction`, {
