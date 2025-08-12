@@ -328,12 +328,8 @@ const AIExtractionModal = ({
     });
   };
 
-  // Run AI extraction with modal selections
+  // Log selected documents for testing (no extraction call)
   const handleRunExtraction = async () => {
-    if (selectedTargetFields.length === 0) {
-      return;
-    }
-
     // Log selected document information as JSON
     const selectedDocumentInfo = sessionDocuments
       ?.filter(doc => selectedDocuments.includes(doc.id))
@@ -344,44 +340,6 @@ const AIExtractionModal = ({
       })) || [];
     
     console.log('Selected Documents for Extraction:', JSON.stringify(selectedDocumentInfo, null, 2));
-
-    setIsExtracting(true);
-    try {
-      const response = await apiRequest(`/api/sessions/${sessionId}/modal-extraction`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          selectedDocuments,
-          selectedVerifiedFields,
-          selectedTargetFields,
-          additionalInstructions
-        }),
-      });
-
-      if (response.success) {
-        // Refresh session data and validations
-        queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
-        queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
-        
-        // Close modal and reset selections
-        onClose();
-        setSelectedDocuments([]);
-        setSelectedVerifiedFields([]);
-        setSelectedTargetFields([]);
-        setAdditionalInstructions("");
-        
-        // Success notification could be added here
-        console.log(`Extraction completed successfully! Extracted ${response.extractedFieldsCount} fields.`);
-      } else {
-        console.error('Extraction failed:', response.error);
-      }
-    } catch (error) {
-      console.error('Failed to run extraction:', error);
-    } finally {
-      setIsExtracting(false);
-    }
   };
 
   // Organize fields by category
