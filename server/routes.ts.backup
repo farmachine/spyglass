@@ -17,8 +17,10 @@ import {
   registerUserSchema,
   resetPasswordSchema,
   changePasswordApiSchema,
-  insertProjectPublishingSchema
+  insertProjectPublishingSchema,
+  insertChatMessageSchema
 } from "@shared/schema";
+import { generateChatResponse } from "./chatService";
 import { authenticateToken, requireAdmin, generateToken, comparePassword, hashPassword, type AuthRequest } from "./auth";
 import { UserRole } from "@shared/schema";
 
@@ -811,6 +813,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const collection = await storage.createObjectCollection(result.data);
       
+      // Automatically create an identifier field for new collections
+      const identifierProperty = await storage.createCollectionProperty({
+        collectionId: collection.id,
+        propertyName: "ID",
+        propertyType: "TEXT",
+        description: "Unique identifier for items in this collection",
+        isIdentifier: true,
+        orderIndex: 0
+      });
+      
+      // Set this property as the collection's identifier field
+      await storage.setCollectionIdentifierField(collection.id, identifierProperty.id);
+      
       // Mark project as setup complete if this is the first collection
       const project = await storage.getProject(projectId);
       if (project && !project.isInitialSetupComplete) {
@@ -926,6 +941,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/properties/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = req.params.id; // Use string ID for UUID compatibility
+      
+      // Check if this is an identifier field before deletion
+      const property = await storage.getCollectionPropertyById(id);
+      if (property?.isIdentifier) {
+        return res.status(400).json({ message: "Cannot delete identifier field. Set another field as identifier first." });
+      }
+      
       const deleted = await storage.deleteCollectionProperty(id);
       if (!deleted) {
         return res.status(404).json({ message: "Property not found" });
@@ -933,6 +955,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Failed to delete property" });
+    }
+  });
+
+  // Collection identifier field management
+  app.post("/api/collections/:collectionId/set-identifier/:propertyId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { collectionId, propertyId } = req.params;
+      console.log(`Setting identifier field: collectionId=${collectionId}, propertyId=${propertyId}`);
+      
+      // Verify the property exists and belongs to the collection
+      const property = await storage.getCollectionPropertyById(propertyId);
+      console.log(`Property found:`, property);
+      if (!property || property.collectionId !== collectionId) {
+        console.log(`Property validation failed: property=${!!property}, collectionMatch=${property?.collectionId === collectionId}`);
+        return res.status(404).json({ message: "Property not found in this collection" });
+      }
+      
+      // Ensure property is TEXT type for identifier
+      if (property.propertyType !== 'TEXT') {
+        console.log(`Property type validation failed: ${property.propertyType} !== TEXT`);
+        return res.status(400).json({ message: "Identifier field must be a TEXT field" });
+      }
+      
+      const success = await storage.setCollectionIdentifierField(collectionId, propertyId);
+      console.log(`Set identifier field result:`, success);
+      if (!success) {
+        return res.status(500).json({ message: "Failed to set identifier field" });
+      }
+      
+      res.json({ message: "Identifier field set successfully" });
+    } catch (error) {
+      console.error("Error setting identifier field:", error);
+      res.status(500).json({ message: "Failed to set identifier field" });
+    }
+  });
+
+  app.get("/api/collections/:collectionId/identifier", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const collectionId = req.params.collectionId;
+      const identifierField = await storage.getCollectionIdentifierField(collectionId);
+      res.json(identifierField || null);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get identifier field" });
     }
   });
 
@@ -1531,6 +1596,69 @@ except Exception as e:
     }
   });
 
+  // Get session documents endpoint
+  app.get("/api/sessions/:sessionId/documents", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const documents = await storage.getSessionDocuments(sessionId);
+      res.json(documents);
+    } catch (error) {
+      console.error("Get session documents error:", error);
+      res.status(500).json({ message: "Failed to fetch session documents" });
+    }
+  });
+
+  // Delete a session document
+  app.delete("/api/sessions/documents/:documentId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const documentId = req.params.documentId;
+      const success = await storage.deleteSessionDocument(documentId);
+      
+      if (success) {
+        res.json({ message: "Document deleted successfully" });
+      } else {
+        res.status(404).json({ message: "Document not found" });
+      }
+    } catch (error) {
+      console.error("Delete session document error:", error);
+      res.status(500).json({ message: "Failed to delete document" });
+    }
+  });
+
+  // Download a session document (return the extracted content as a text file)
+  app.get("/api/sessions/documents/:documentId/download", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const documentId = req.params.documentId;
+      const sessionId = req.query.sessionId as string;
+      
+      if (!sessionId) {
+        return res.status(400).json({ message: "Session ID is required" });
+      }
+      
+      // Get session documents for the specific session
+      const sessionDocs = await storage.getSessionDocuments(sessionId);
+      const document = sessionDocs.find(doc => doc.id === documentId);
+      
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      // Create a meaningful filename for the extracted content
+      const baseFileName = document.fileName?.replace(/\.[^/.]+$/, "") || `document_${documentId}`;
+      const fileName = `${baseFileName}_extracted_content.txt`;
+      
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      
+      // Return the extracted content as a downloadable text file
+      res.send(document.extractedContent || 'No content available');
+      
+    } catch (error) {
+      console.error("Download session document error:", error);
+      res.status(500).json({ message: "Failed to download document" });
+    }
+  });
+
   // Helper function to generate initial field validations for a new session
   const generateInitialFieldValidations = async (sessionId: string, projectId: string) => {
     try {
@@ -2092,6 +2220,12 @@ except Exception as e:
       console.log(`TEXT EXTRACTION: Starting text extraction for session ${sessionId}`);
       console.log(`Processing ${files?.length || 0} documents`);
       
+      // Get session to verify it exists
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ success: false, error: 'Session not found' });
+      }
+      
       // Convert frontend file format to Python script expected format
       const convertedFiles = (files || []).map((file: any) => ({
         file_name: file.name,
@@ -2099,15 +2233,96 @@ except Exception as e:
         mime_type: file.type
       }));
 
-      // Simple approach: Return success with basic text extraction
-      res.json({
-        success: true,
-        message: `Text extraction completed for ${files?.length || 0} documents`,
-        extractedTexts: (files || []).map((file: any) => ({
-          file_name: file.name,
-          text_content: `Document content from ${file.name} ready for processing`,
-          word_count: 100
-        }))
+      // Call Python script for actual text extraction
+      const extractionData = {
+        step: "extract_text_only",
+        documents: convertedFiles
+      };
+      
+      const python = spawn('python3', ['ai_extraction_simplified.py']);
+      
+      python.stdin.write(JSON.stringify(extractionData));
+      python.stdin.end();
+      
+      let output = '';
+      let error = '';
+      
+      python.stdout.on('data', (data) => {
+        output += data.toString();
+      });
+      
+      python.stderr.on('data', (data) => {
+        error += data.toString();
+      });
+      
+      python.on('close', async (code) => {
+        if (code !== 0) {
+          console.error('TEXT EXTRACTION error:', error);
+          return res.status(500).json({ 
+            success: false,
+            error: "Text extraction failed",
+            message: error || "Unknown error"
+          });
+        }
+        
+        try {
+          const result = JSON.parse(output);
+          console.log(`TEXT EXTRACTION: Extracted text from ${result.extracted_texts?.length || 0} documents`);
+          
+          // Save each document with its extracted content to session documents table
+          if (result.extracted_texts && Array.isArray(result.extracted_texts)) {
+            for (const extractedText of result.extracted_texts) {
+              try {
+                // Find the original file to get size and MIME type
+                const originalFile = convertedFiles.find(f => f.file_name === extractedText.file_name);
+                
+                // Calculate file size from data URL if available
+                let fileSize = null;
+                if (originalFile?.file_content && originalFile.file_content.startsWith('data:')) {
+                  try {
+                    const base64Data = originalFile.file_content.split(',')[1];
+                    fileSize = Math.floor(base64Data.length * 0.75); // Approximate file size from base64
+                  } catch (e) {
+                    console.warn(`Could not calculate file size for ${extractedText.file_name}`);
+                  }
+                }
+                
+                await storage.createSessionDocument({
+                  sessionId: sessionId,
+                  fileName: extractedText.file_name,
+                  fileSize: fileSize,
+                  mimeType: originalFile?.mime_type || null,
+                  extractedContent: extractedText.text_content
+                });
+                
+                console.log(`Saved document: ${extractedText.file_name} with extracted content to session documents`);
+              } catch (docError) {
+                console.error(`Failed to save document ${extractedText.file_name}:`, docError);
+                // Continue with other documents even if one fails
+              }
+            }
+          }
+          
+          // Save extracted data to session
+          await storage.updateExtractionSession(sessionId, {
+            extractedData: JSON.stringify(result),
+            status: "extracted"
+          });
+          
+          res.json({
+            success: true,
+            message: `Text extraction completed for ${files?.length || 0} documents`,
+            extractedTexts: result.extracted_texts || []
+          });
+          
+        } catch (parseError) {
+          console.error('TEXT EXTRACTION JSON parse error:', parseError);
+          res.status(500).json({ 
+            success: false,
+            error: "Failed to parse text extraction results",
+            message: parseError instanceof Error ? parseError.message : "Unknown error"
+          });
+        }
       });
       
     } catch (error) {
@@ -2120,277 +2335,8 @@ except Exception as e:
     }
   });
   
-  // Placeholder for future inline Python extraction
-  app.post("/api/sessions/:sessionId/extract-text-advanced", async (req, res) => {
-    try {
-      const sessionId = req.params.sessionId;
-      const { files } = req.body;
-      
-      console.log(`ADVANCED TEXT EXTRACTION: Starting for session ${sessionId}`);
-      
-      // Use inline Python for advanced extraction
-      const python = spawn('python3', ['-c', `
-import sys
-import json
-import base64
-from google import genai
-from google.genai import types
-import os
 
-# Read input data
-input_data = json.loads(sys.stdin.read())
-documents = input_data.get('documents', [])
 
-client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
-
-extracted_texts = []
-
-for doc in documents:
-    try:
-        # Handle data URL format (data:application/pdf;base64,...)
-        if doc['file_content'].startswith('data:'):
-            content = doc['file_content'].split(',')[1]
-        else:
-            content = doc['file_content']
-        
-        file_name = doc['file_name']
-        mime_type = doc['mime_type']
-        binary_content = base64.b64decode(content)
-        
-        # Create specialized extraction prompts based on document type
-        if ('excel' in mime_type or 
-            'spreadsheet' in mime_type or 
-            'vnd.ms-excel' in mime_type or 
-            'vnd.openxmlformats-officedocument.spreadsheetml' in mime_type or
-            file_name.lower().endswith(('.xlsx', '.xls'))):
-            # Excel files are not supported by Gemini API - use CSV conversion approach
-            try:
-                import pandas as pd
-                import io
-                
-                # Read Excel file using pandas
-                excel_data = pd.read_excel(io.BytesIO(binary_content), sheet_name=None)
-                
-                extracted_content = f"Excel file content from {file_name}:\\n\\n"
-                
-                for sheet_name, df in excel_data.items():
-                    extracted_content += f"=== SHEET: {sheet_name} ===\\n"
-                    extracted_content += df.to_string(index=False, na_rep='')
-                    extracted_content += "\\n\\n"
-                
-                text_content = extracted_content
-                
-                extracted_texts.append({
-                    "file_name": file_name,
-                    "text_content": text_content,
-                    "word_count": len(text_content.split()) if text_content else 0
-                })
-                continue
-                
-            except Exception as pandas_error:
-                # If pandas fails, return error message
-                extracted_texts.append({
-                    "file_name": file_name,
-                    "text_content": f"Error processing Excel file: {str(pandas_error)}. Excel files require special processing that is currently not available.",
-                    "word_count": 0
-                })
-                continue
-
-        elif 'pdf' in mime_type or file_name.lower().endswith('.pdf'):
-            # PDF file - extract all text content
-            extraction_prompt = f"""Extract ALL text content from this PDF document ({file_name}).
-
-INSTRUCTIONS:
-- Extract all readable text from every page
-- Preserve document structure and formatting where possible
-- Include headers, body text, tables, lists, and any other textual content
-- Maintain logical flow and organization of information
-
-RETURN: Complete text content from this PDF document."""
-
-        elif ('word' in mime_type or 
-              'vnd.openxmlformats-officedocument.wordprocessingml' in mime_type or
-              'application/msword' in mime_type or
-              file_name.lower().endswith(('.docx', '.doc'))):
-            # Word document - extract all content
-            extraction_prompt = f"""Extract ALL content from this Word document ({file_name}).
-
-INSTRUCTIONS:
-- Extract all text content including body text, headers, footers, tables
-- Preserve document structure and formatting where possible
-- Include any embedded text, comments, or annotations
-- Maintain logical organization of the content
-
-RETURN: Complete text content from this Word document."""
-
-        else:
-            # Generic document extraction
-            extraction_prompt = f"""Extract all readable text content from this document ({file_name}).
-
-INSTRUCTIONS:
-- Extract all visible text and data
-- Preserve structure and organization where possible
-- Include tables, lists, and formatted content
-
-RETURN: Complete readable content from this document."""
-        
-        # Handle different file types based on Gemini API support
-        if 'pdf' in mime_type or file_name.lower().endswith('.pdf'):
-            # PDF files are fully supported by Gemini API
-            response = client.models.generate_content(
-                model="gemini-1.5-flash",
-                contents=[
-                    types.Part.from_bytes(
-                        data=binary_content,
-                        mime_type=mime_type
-                    ),
-                    extraction_prompt
-                ]
-            )
-            text_content = response.text if response.text else "No text could be extracted"
-        
-        elif ('word' in mime_type or 
-              'vnd.openxmlformats-officedocument.wordprocessingml' in mime_type or
-              'application/msword' in mime_type or
-              file_name.lower().endswith(('.docx', '.doc'))):
-            # Word document - use python-docx library fallback
-            try:
-                import io
-                from docx import Document
-                
-                # Create document from binary content
-                doc_stream = io.BytesIO(binary_content)
-                doc = Document(doc_stream)
-                
-                # Extract all text content
-                text_content_parts = []
-                for paragraph in doc.paragraphs:
-                    if paragraph.text.strip():
-                        text_content_parts.append(paragraph.text.strip())
-                
-                # Extract text from tables
-                for table in doc.tables:
-                    for row in table.rows:
-                        row_text = []
-                        for cell in row.cells:
-                            if cell.text.strip():
-                                row_text.append(cell.text.strip())
-                        if row_text:
-                            text_content_parts.append(" | ".join(row_text))
-                
-                text_content = "\\n".join(text_content_parts)
-                
-            except Exception as word_error:
-                text_content = f"Error extracting Word document: {str(word_error)}"
-        
-        elif ('excel' in mime_type or 
-              'spreadsheet' in mime_type or 
-              'vnd.ms-excel' in mime_type or 
-              'vnd.openxmlformats-officedocument.spreadsheetml' in mime_type or
-              file_name.lower().endswith(('.xlsx', '.xls'))):
-            # Excel file - use pandas/openpyxl libraries
-            try:
-                import io
-                import pandas as pd
-                
-                # Create Excel stream from binary content
-                excel_stream = io.BytesIO(binary_content)
-                
-                # Read all sheets
-                all_sheets = pd.read_excel(excel_stream, sheet_name=None, engine='openpyxl' if file_name.lower().endswith('.xlsx') else 'xlrd')
-                
-                text_content_parts = []
-                for sheet_name, df in all_sheets.items():
-                    text_content_parts.append(f"=== SHEET: {sheet_name} ===")
-                    # Convert dataframe to string representation
-                    sheet_text = df.to_string(index=False, na_rep='')
-                    text_content_parts.append(sheet_text)
-                
-                text_content = "\\n\\n".join(text_content_parts)
-                
-            except Exception as excel_error:
-                text_content = f"Error extracting Excel document: {str(excel_error)}"
-        
-        else:
-            # Unsupported format
-            text_content = f"Unsupported file format: {mime_type}. Only PDF, Word, and Excel files are supported."
-        
-        extracted_texts.append({
-            "file_name": file_name,
-            "text_content": text_content,
-            "word_count": len(text_content.split()) if text_content else 0
-        })
-        
-    except Exception as e:
-        extracted_texts.append({
-            "file_name": doc['file_name'],
-            "text_content": f"Error extracting text: {str(e)}",
-            "word_count": 0
-        })
-
-# Return results
-result = {
-    "success": True,
-    "extracted_texts": extracted_texts,
-    "total_documents": len(documents),
-    "total_word_count": sum(doc.get('word_count', 0) for doc in extracted_texts)
-}
-
-print(json.dumps(result))
-`]);
-      
-      python.stdin.write(JSON.stringify({ documents: convertedFiles }));
-      python.stdin.end();
-      
-      let output = '';
-      let error = '';
-      
-      python.stdout.on('data', (data: any) => {
-        output += data.toString();
-      });
-      
-      python.stderr.on('data', (data: any) => {
-        error += data.toString();
-      });
-      
-      await new Promise((resolve, reject) => {
-        python.on('close', async (code: any) => {
-          if (code !== 0) {
-            console.error('TEXT EXTRACTION error:', error);
-            return reject(new Error(`Text extraction failed: ${error}`));
-          }
-          
-          try {
-            const result = JSON.parse(output);
-            console.log(`TEXT EXTRACTION: Extracted text from ${result.total_documents} documents, ${result.total_word_count} words total`);
-            
-            // Store extracted text data in session
-            await storage.updateExtractionSession(sessionId, {
-              status: "text_extracted",
-              extractedData: JSON.stringify(result)
-            });
-            
-            resolve(result);
-            
-          } catch (parseError) {
-            console.error('TEXT EXTRACTION JSON parse error:', parseError);
-            console.error('Raw output:', output);
-            reject(new Error(`Invalid JSON response: ${parseError}`));
-          }
-        });
-      });
-      
-      res.json({
-        success: true,
-        message: "Text extraction completed successfully",
-        redirect: `/sessions/${sessionId}/schema-view`
-      });
-      
-    } catch (error) {
-      console.error("TEXT EXTRACTION error:", error);
-      res.status(500).json({ message: "Failed to extract text from documents", error: error.message });
-    }
-  });
 
   // Fix missing validation records for collection items
   app.post("/api/sessions/:sessionId/fix-missing-validations", async (req, res) => {
@@ -3108,6 +3054,37 @@ print(json.dumps(result))
         mime_type: extracted.mime_type || 'application/pdf'
       }));
 
+      // For field targeting, get existing validation data to provide context
+      let validatedDataContext = {};
+      if (targetFieldIds?.length > 0 || targetPropertyIds?.length > 0) {
+        console.log(`GEMINI EXTRACTION: Field targeting detected, retrieving existing validation data for context`);
+        try {
+          const existingValidations = await storage.getFieldValidations(sessionId);
+          if (existingValidations && existingValidations.length > 0) {
+            console.log(`GEMINI EXTRACTION: Found ${existingValidations.length} existing validation records for context`);
+            // Convert to the format expected by Python script (keyed by field_id)
+            const validationMap: any = {};
+            for (const validation of existingValidations) {
+              const key = `${validation.fieldId}_${validation.recordIndex || 0}`;
+              validationMap[key] = {
+                field_id: validation.fieldId,
+                field_name: validation.fieldName,
+                extracted_value: validation.extractedValue || '',
+                ai_reasoning: validation.aiReasoning || '',
+                confidence: validation.confidence,
+                validation_type: validation.validationType,
+                collection_name: validation.collectionName,
+                record_index: validation.recordIndex || 0,
+                validation_status: validation.validationStatus
+              };
+            }
+            validatedDataContext = validationMap;
+          }
+        } catch (error) {
+          console.log(`GEMINI EXTRACTION: Could not get existing validations: ${(error as any).message}`);
+        }
+      }
+
       // Send the data to Python script in correct format (using filtered fields)
       const pythonInput = JSON.stringify({
         operation: "extract",
@@ -3118,7 +3095,8 @@ print(json.dumps(result))
         },
         extraction_rules: extractionRules || [],
         knowledge_documents: knowledgeDocuments || [],
-        session_name: sessionId
+        session_name: sessionId,
+        validated_data_context: validatedDataContext
       });
       
       console.log(`GEMINI EXTRACTION: Sending ${filteredSchemaFields.length} schema fields and ${filteredCollections.length} collections to Python`);
@@ -4155,6 +4133,60 @@ print(json.dumps(result))
       if (!updatedValidation) {
         return res.status(404).json({ message: "Validation not found" });
       }
+
+      // If this is a collection field validation and we're creating/updating a value
+      // check if we need to create null validations for other properties in the same collection
+      if (updatedValidation.collectionName && updatedValidation.recordIndex !== null && updatedValidation.recordIndex !== undefined) {
+        try {
+          // Get all existing validations for this collection and record index
+          const existingValidations = await storage.getValidationsByCollectionAndIndex(
+            updatedValidation.sessionId, 
+            updatedValidation.collectionName, 
+            updatedValidation.recordIndex
+          );
+
+          // Get the collection properties to determine what fields should exist
+          const collection = await storage.getCollectionByName(updatedValidation.collectionName);
+          if (collection && collection.properties) {
+            const existingFieldNames = existingValidations.map(v => {
+              // Extract property name from field name (e.g., "Collection.Property[0]" -> "Property")
+              const match = v.fieldName.match(/\.([^[\]]+)(?:\[\d+\])?$/);
+              return match ? match[1] : v.fieldName;
+            });
+
+            // Create validations for missing properties
+            for (const property of collection.properties) {
+              if (!existingFieldNames.includes(property.propertyName)) {
+                const newFieldName = `${updatedValidation.collectionName}.${property.propertyName}[${updatedValidation.recordIndex}]`;
+                
+                const newValidation = {
+                  sessionId: updatedValidation.sessionId,
+                  validationType: "collection_property" as const,
+                  dataType: property.propertyType || "TEXT", // Use propertyType from collection property
+                  fieldId: property.id,
+                  collectionName: updatedValidation.collectionName,
+                  recordIndex: updatedValidation.recordIndex,
+                  extractedValue: null,
+                  validationStatus: "pending" as const,
+                  confidenceScore: 0,
+                  aiReasoning: null,
+                  manuallyVerified: false,
+                  manuallyUpdated: false,
+                  originalExtractedValue: null,
+                  originalConfidenceScore: null,
+                  originalAiReasoning: null
+                };
+                
+                await storage.createFieldValidation(newValidation);
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error creating null validations for new collection item:", error);
+          // Don't fail the main update if this fails - just log the error
+        }
+      }
+
       res.json(updatedValidation);
     } catch (error) {
       console.error("Update validation error:", error);
@@ -4172,6 +4204,159 @@ print(json.dumps(result))
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Failed to delete field validation" });
+    }
+  });
+
+
+  // Document-only upload endpoint - extract and save documents without AI processing
+  app.post("/api/sessions/:sessionId/upload-documents", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const { files } = req.body;
+      
+      console.log(`DOCUMENT UPLOAD: Starting document upload for session ${sessionId}`);
+      console.log(`Processing ${files?.length || 0} documents`);
+      
+      // Get session to verify it exists
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ success: false, error: 'Session not found' });
+      }
+      
+      // Convert frontend file format to Python script expected format
+      const convertedFiles = (files || []).map((file: any) => ({
+        file_name: file.name,
+        file_content: file.content, // This is the data URL from FileReader
+        mime_type: file.type
+      }));
+
+      // Call Python script for text extraction only (reusing existing logic)
+      const extractionData = {
+        step: "extract_text_only",
+        documents: convertedFiles
+      };
+      
+      const python = spawn('python3', ['ai_extraction_simplified.py']);
+      
+      python.stdin.write(JSON.stringify(extractionData));
+      python.stdin.end();
+      
+      let output = '';
+      let error = '';
+      
+      python.stdout.on('data', (data) => {
+        output += data.toString();
+      });
+      
+      python.stderr.on('data', (data) => {
+        error += data.toString();
+      });
+      
+      python.on('close', async (code) => {
+        if (code !== 0) {
+          console.error('DOCUMENT UPLOAD error:', error);
+          return res.status(500).json({ 
+            success: false,
+            error: "Document upload failed",
+            message: error || "Unknown error"
+          });
+        }
+        
+        try {
+          // Log the raw output and error for debugging
+          if (error) {
+            console.log('DOCUMENT UPLOAD DEBUG - Python stderr:', error);
+          }
+          console.log('DOCUMENT UPLOAD DEBUG - Python stdout length:', output.length);
+          
+          const result = JSON.parse(output);
+          console.log(`DOCUMENT UPLOAD: Extracted text from ${result.extracted_texts?.length || 0} documents`);
+          
+          // Debug each extracted text
+          if (result.extracted_texts && Array.isArray(result.extracted_texts)) {
+            result.extracted_texts.forEach((extractedText: any, index: number) => {
+              console.log(`DOCUMENT UPLOAD DEBUG ${index + 1}: ${extractedText.file_name} - content length: ${extractedText.text_content?.length || 0}, word count: ${extractedText.word_count || 0}`);
+              if (extractedText.text_content && extractedText.text_content.length > 0) {
+                console.log(`DOCUMENT UPLOAD DEBUG ${index + 1} preview: ${extractedText.text_content.substring(0, 100)}...`);
+              } else {
+                console.log(`DOCUMENT UPLOAD DEBUG ${index + 1}: NO CONTENT EXTRACTED`);
+              }
+            });
+          }
+          
+          let documentsAdded = 0;
+          
+          // Save each document with its extracted content to session documents table
+          if (result.extracted_texts && Array.isArray(result.extracted_texts)) {
+            for (const extractedText of result.extracted_texts) {
+              try {
+                // Find the original file to get size and MIME type
+                const originalFile = convertedFiles.find(f => f.file_name === extractedText.file_name);
+                
+                // Calculate file size from data URL if available
+                let fileSize = null;
+                if (originalFile?.file_content && originalFile.file_content.startsWith('data:')) {
+                  const base64Data = originalFile.file_content.split(',')[1];
+                  if (base64Data) {
+                    fileSize = Math.round((base64Data.length * 3) / 4); // Estimate original file size
+                  }
+                }
+                
+                // Create session document record
+                const documentData = {
+                  sessionId: sessionId,
+                  fileName: extractedText.file_name,
+                  fileSize: fileSize,
+                  mimeType: originalFile?.mime_type || 'application/octet-stream',
+                  extractedContent: extractedText.text_content || '',
+                  pageCount: extractedText.page_count || null,
+                  extractionMethod: extractedText.extraction_method || 'gemini'
+                };
+                
+                console.log(`DOCUMENT UPLOAD SAVE DEBUG: Content length being saved: ${documentData.extractedContent.length}`);
+                console.log(`DOCUMENT UPLOAD SAVE DEBUG: Content preview: ${documentData.extractedContent.substring(0, 100)}...`);
+                
+                await storage.createSessionDocument(documentData);
+                
+                documentsAdded++;
+                console.log(`DOCUMENT UPLOAD: Saved document ${extractedText.file_name} to session ${sessionId}`);
+                
+              } catch (docError) {
+                console.error(`Error saving document ${extractedText.file_name}:`, docError);
+              }
+            }
+          }
+          
+          // Update session document count
+          await storage.updateExtractionSession(sessionId, {
+            documentCount: (session.documentCount || 0) + documentsAdded,
+            status: documentsAdded > 0 ? "documents_uploaded" : session.status
+          });
+          
+          res.json({ 
+            success: true,
+            message: `Successfully uploaded ${documentsAdded} documents`,
+            documentsAdded,
+            sessionId 
+          });
+          
+        } catch (parseError) {
+          console.error('DOCUMENT UPLOAD JSON parse error:', parseError);
+          res.status(500).json({ 
+            success: false,
+            error: "Failed to parse document upload results",
+            message: parseError instanceof Error ? parseError.message : "Unknown error"
+          });
+        }
+      });
+      
+    } catch (error) {
+      console.error("DOCUMENT UPLOAD ERROR:", error);
+      res.status(500).json({ 
+        success: false,
+        error: "Document upload failed",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
@@ -4337,191 +4522,428 @@ print(json.dumps(results))
     }
   });
 
-  // AI Extraction Endpoint
-  app.post("/api/sessions/:sessionId/extract", async (req, res) => {
-    try {
-      const sessionId = req.params.sessionId;
-      console.log(`AI_EXTRACTION: Starting extraction for session ${sessionId}`);
-      
-      // Get session and project data
-      const session = await storage.getExtractionSession(sessionId);
-      if (!session) {
-        return res.status(404).json({ message: "Session not found" });
-      }
 
-      const projectId = session.projectId;
-      
-      // Get project schema data for AI processing
-      const project = await storage.getProject(projectId);
-      if (!project) {
-        return res.status(404).json({ message: "Project not found" });
-      }
 
-      const schemaFields = await storage.getProjectSchemaFields(projectId);
-      const collections = await storage.getObjectCollections(projectId);
-      const knowledgeDocuments = await storage.getKnowledgeDocuments(projectId);
-      const extractionRules = await storage.getExtractionRules(projectId);
+  // Chat Routes
 
-      // Get collection properties for each collection
-      const collectionsWithProperties = await Promise.all(
-        collections.map(async (collection) => {
-          const properties = await storage.getCollectionProperties(collection.id);
-          return { ...collection, properties };
-        })
+
+
+      // Get the specific target fields that were selected
+      const allProjectFields = [
+        ...(project_data.schemaFields || []),
+        ...(project_data.collections || []).flatMap((collection: any) => 
+          (collection.properties || []).map((prop: any) => ({
+            ...prop,
+            collectionName: collection.collectionName,
+            isCollectionProperty: true
+          }))
+        )
+      ];
+
+      // Extract field IDs from target field objects
+      const selectedTargetFieldIds = (selectedTargetFields || []).map(field => 
+        typeof field === 'string' ? field : field.id
       );
 
-      // Prepare data for Python extraction script
-      const extractionData = {
-        session_id: sessionId,
-        project_id: projectId,
-        schema_fields: schemaFields,
-        collections: collectionsWithProperties,
-        knowledge_documents: knowledgeDocuments,
-        extraction_rules: extractionRules,
-        session_data: {
-          files: JSON.parse(session.fileMetadata || '[]'),
-          documents: session.documents || []
-        }
-      };
+      console.log('MODAL_EXTRACTION: All project fields available:', allProjectFields.length);
+      console.log('MODAL_EXTRACTION: Sample field IDs:', allProjectFields.slice(0, 3).map(f => f.id));
+      console.log('MODAL_EXTRACTION: Target field IDs requested:', selectedTargetFieldIds);
 
-      console.log(`AI_EXTRACTION: Processing ${schemaFields.length} schema fields and ${collectionsWithProperties.length} collections`);
-
-      // Call Python AI extraction script
-      const { spawn } = await import('child_process');
-      let pythonOutput = '';
-      let pythonError = '';
-
-      const python = spawn('python3', ['-c', `
-import sys
-import json
-sys.path.append('.')
-from ai_extraction import run_full_document_extraction
-
-# Read input data
-input_data = json.loads(sys.stdin.read())
-
-# Run AI extraction
-result = run_full_document_extraction(input_data)
-
-# Output result
-print(json.dumps(result))
-`]);
-
-      python.stdin.write(JSON.stringify(extractionData));
-      python.stdin.end();
-
-      python.stdout.on('data', (data) => {
-        pythonOutput += data.toString();
-      });
-
-      python.stderr.on('data', (data) => {
-        pythonError += data.toString();
-      });
+      const selectedTargetFieldsData = allProjectFields.filter(field => selectedTargetFieldIds.includes(field.id));
       
-      python.on('close', async (code) => {
-        if (code !== 0) {
-          console.error(`AI_EXTRACTION: Python process failed with code ${code}`);
-          console.error(`AI_EXTRACTION: Error output: ${pythonError}`);
-          return res.status(500).json({ 
-            message: "AI extraction failed", 
-            error: pythonError,
-            code: code
-          });
-        }
+      console.log('MODAL_EXTRACTION: Selected target fields:', selectedTargetFieldsData.map(f => ({ 
+        id: f.id, 
+        name: f.fieldName || f.propertyName, 
+        collection: f.collectionName 
+      })));
 
-        try {
-          const extractionResults = JSON.parse(pythonOutput);
-          
-          if (extractionResults.success) {
-            console.log(`AI_EXTRACTION: Successfully processed ${extractionResults.total_fields_processed || 0} fields`);
-            
-            // Update session status to completed with debug data
-            await storage.updateExtractionSession(sessionId, {
-              status: 'completed',
-              extractedData: JSON.stringify(extractionResults.extracted_data || {}),
-              documentCount: extractionResults.document_count || 0,
-              extractionPrompt: extractionResults.extraction_prompt || null,
-              aiResponse: extractionResults.ai_response || null,
-              inputTokenCount: extractionResults.input_token_count || null,
-              outputTokenCount: extractionResults.output_token_count || null
-            });
+      // Get document content from stored documents  
+      const documentContent = selectedDocumentContents.map(doc => doc.file_content).join('\n\n');
 
-            // Create field validations from results
-            if (extractionResults.field_validations) {
-              for (const validation of extractionResults.field_validations) {
-                // Get auto-verification threshold for this field
-                let autoVerifyThreshold = 80; // Default threshold
-                
-                try {
-                  if (validation.validation_type === 'schema_field') {
-                    const schemaField = await storage.getProjectSchemaFieldById(validation.field_id);
-                    if (schemaField?.autoVerificationConfidence) {
-                      autoVerifyThreshold = schemaField.autoVerificationConfidence;
-                    }
-                  } else if (validation.validation_type === 'collection_property') {
-                    const collectionProperty = await storage.getCollectionPropertyById(validation.field_id);
-                    if (collectionProperty?.autoVerificationConfidence) {
-                      autoVerifyThreshold = collectionProperty.autoVerificationConfidence;
-                    }
-                  }
-                } catch (error) {
-                  console.warn(`Could not get auto-verification threshold for field ${validation.field_id}, using default 80`);
-                }
-                
-                // Determine validation status based on confidence score vs threshold
-                const confidenceScore = validation.confidence_score || 0;
-                const shouldAutoVerify = confidenceScore >= autoVerifyThreshold;
-                const validationStatus = shouldAutoVerify ? 'verified' : 'unverified';
-                
-                console.log(`Field ${validation.field_id}: confidence ${confidenceScore}% vs threshold ${autoVerifyThreshold}% = ${validationStatus}`);
-                
-                await storage.createFieldValidation({
-                  sessionId: sessionId,
-                  validationType: validation.validation_type || 'schema_field',
-                  dataType: validation.data_type || 'TEXT',
-                  fieldId: validation.field_id,
-                  collectionName: validation.collection_name || null,
-                  recordIndex: validation.record_index || 0,
-                  extractedValue: validation.extracted_value,
-                  validationStatus: validationStatus,
-                  aiReasoning: validation.ai_reasoning || '',
-                  manuallyVerified: false,
-                  confidenceScore: confidenceScore
-                });
-              }
-            }
-            
-            res.json({
-              success: true,
-              message: "AI extraction completed successfully",
-              extraction_results: extractionResults,
-              session_id: sessionId
-            });
+      // Get reference data from existing validations
+      const referenceValidations = await storage.getFieldValidations(sessionId);
+      const referenceData = (selectedVerifiedFields || []).map(fieldId => {
+        const validation = referenceValidations.find(v => v.fieldId === fieldId);
+        return validation ? `${validation.fieldName}: ${validation.extractedValue}` : '';
+      }).filter(Boolean).join('\n');
+
+      // Get extraction rules and knowledge documents for the project
+      const extractionRules = await storage.getExtractionRules(session.projectId);
+      const knowledgeDocuments = await storage.getKnowledgeDocuments(session.projectId);
+
+      // Create enhanced field definitions for selected target fields only
+      const targetFieldDefinitions = await Promise.all(selectedTargetFieldsData.map(async (field) => {
+        const fieldName = field.collectionName 
+          ? `${field.collectionName}.${field.propertyName}` 
+          : field.fieldName;
+
+        // Get extraction rules for this field
+        const fieldRules = extractionRules.filter(rule => 
+          rule.targetField === fieldName || 
+          rule.targetField === field.fieldName || 
+          rule.targetField === field.propertyName ||
+          !rule.targetField // Global rules
+        );
+
+        // Get knowledge documents for this field  
+        const fieldKnowledge = knowledgeDocuments.filter(doc =>
+          doc.targetField === fieldName ||
+          doc.targetField === field.fieldName ||
+          doc.targetField === field.propertyName ||
+          !doc.targetField // Global knowledge documents
+        );
+
+        return {
+          field_id: field.id,
+          field_name: fieldName,
+          field_type: field.fieldType || field.propertyType || 'TEXT',
+          description: field.validationInstructions || field.description || '',
+          extraction_rules: fieldRules.length > 0 
+            ? fieldRules.map(rule => `${rule.ruleName}: ${rule.ruleContent}`).join(' | ')
+            : 'No specific extraction rules for this field',
+          knowledge_document: fieldKnowledge.length > 0
+            ? fieldKnowledge.map(doc => `${doc.displayName}: ${doc.description || 'Standard reference document'}`).join(' | ')
+            : 'No specific knowledge documents for this field',
+          isIdentifier: field.isIdentifier || false,
+          collection_name: field.collectionName || null
+        };
+      }));
+
+      // Format extraction rules for prompt
+      const extractionRulesText = extractionRules.length > 0 
+        ? extractionRules.map(rule => `**${rule.targetField || rule.ruleName}**: ${rule.ruleContent}`).join('\n')
+        : "No extraction rules defined for this project.";
+
+      // Format knowledge documents for prompt  
+      const knowledgeDocumentsText = knowledgeDocuments.length > 0
+        ? knowledgeDocuments.map(doc => `**${doc.displayName}**: ${doc.content || 'No content available'}`).join('\n\n')
+        : "No knowledge documents available for this project.";
+
+      // Get indexes to skip for collections
+      const skipInstructions = Object.entries(existingCollectionRecords)
+        .map(([collection, indexes]) => 
+          `Skip ${collection} records with indexes: ${Array.from(indexes).join(', ')}`
+        ).join('\n') || "No existing records to skip.";
+
+      // Build collection schemas for selected target collections
+      const selectedCollections = new Set(selectedTargetFieldsData
+        .filter(field => field.collectionName)
+        .map(field => field.collectionName));
+
+      const collectionsSchemaText = Array.from(selectedCollections).map(collectionName => {
+        const collection = project_data.collections?.find((c: any) => c.collectionName === collectionName);
+        if (!collection) return '';
+        
+        const properties = collection.properties?.map((prop: any) => 
+          `  * **${prop.propertyName}** (${prop.propertyType}): ${prop.validationInstructions || 'No specific instructions'}`
+        ).join('\n') || '';
+        
+        return `**${collectionName}**:\n${properties}`;
+      }).filter(Boolean).join('\n\n');
+
+      // Format target fields for the prompt
+      const targetFieldsText = targetFieldDefinitions.map(field => {
+        const fieldText = `- **${field.field_name}** (${field.field_type}): ${field.description || 'No description provided'}`;
+        const ruleText = field.extraction_rules !== 'No specific extraction rules for this field' 
+          ? ` | RULES: ${field.extraction_rules}` 
+          : '';
+        const knowledgeText = field.knowledge_document !== 'No specific knowledge documents for this field'
+          ? ` | KNOWLEDGE: ${field.knowledge_document}`
+          : '';
+        const identifierText = field.isIdentifier ? ' | IDENTIFIER FIELD' : '';
+        const collectionText = field.collection_name ? ` | COLLECTION: ${field.collection_name}` : '';
+        
+        return `${fieldText}${ruleText}${knowledgeText}${identifierText}${collectionText}`;
+      }).join('\n');
+
+      // Use the consolidated prompt from prompt.py
+      const { spawn } = await import('child_process');
+      const createPromptScript = `
+import sys
+sys.path.append('.')
+from prompt import create_wizard_modal_prompt
+import json
+
+# Create the consolidated prompt
+prompt = create_wizard_modal_prompt(
+    document_content=${JSON.stringify(documentContent)},
+    reference_data=${JSON.stringify(referenceData)},
+    target_fields=${JSON.stringify(targetFieldsText)},
+    skip_records=${JSON.stringify(skipInstructions)},
+    extraction_rules=${JSON.stringify(extractionRulesText)},
+    knowledge_documents=${JSON.stringify(knowledgeDocumentsText)},
+    verified_context="",
+    schema_fields="",
+    collections=${JSON.stringify(collectionsSchemaText)},
+    additional_instructions=${JSON.stringify(additionalInstructions || "")}
+)
+
+print(prompt)
+`;
+
+      const prompt = await new Promise<string>((resolve, reject) => {
+        const python = spawn('python3', ['-c', createPromptScript]);
+        let stdout = '';
+        let stderr = '';
+
+        python.stdout.on('data', (data) => {
+          stdout += data.toString();
+        });
+
+        python.stderr.on('data', (data) => {
+          stderr += data.toString();
+        });
+
+        python.on('close', (code) => {
+          if (code === 0) {
+            resolve(stdout.trim());
           } else {
-            console.log('AI_EXTRACTION: Extraction failed:', extractionResults.error);
-            res.status(500).json({ 
-              message: "AI extraction failed",
-              error: extractionResults.error
-            });
+            console.error('Python prompt generation error:', stderr);
+            // Fallback to simple prompt if Python fails
+            // Fallback to enhanced prompt structure with all components
+            resolve(`You are an expert data extraction specialist. Extract data from the provided documents and return a JSON object with the exact structure specified below.
+
+## CRITICAL INSTRUCTIONS:
+1. **RESPONSE LIMIT**: Limit your response to no more than 100 field validation records total
+2. **SKIP EXISTING RECORDS**: For collection properties, skip record indexes that are already processed (as specified in EXISTING RECORDS TO SKIP section)
+3. **TARGET FIELD FOCUS**: Only extract data for the specific target fields listed in SELECTED TARGET FIELDS section below - ignore all other fields from the full schema
+4. **COLLECTION EXTRACTION**: For collections, create separate items with unique record_index values starting from the next available index after existing records
+5. **PRIORITIZE QUALITY**: If you must choose between quantity and completeness due to the 100-record limit, prioritize complete, accurate records
+6. APPLY EXTRACTION RULES - Rules modify extraction behavior, formatting, and validation
+7. **USE KNOWLEDGE DOCUMENTS**: Use knowledge documents for validation and context when available
+8. Return JSON with real extracted values only - do not create empty placeholder records
+
+## AI REASONING REQUIREMENTS:
+Provide clear, concise explanations that include:
+1. **Source Location**: Where you found the information (section, table, page)
+2. **Extraction Logic**: Why you chose this value (explicit statement, counting, inference)
+3. **Confidence Level**: High (explicit), Medium (contextual), Low (ambiguous)
+4. **Collection Context**: For collections, explain how items were grouped and extracted
+
+DOCUMENT CONTENT:
+${documentContent}
+
+REFERENCE DATA (for context):
+${referenceData}
+
+TARGET FIELDS TO EXTRACT:
+${JSON.stringify(allSchemaFieldDefinitions, null, 2)}
+
+SELECTED TARGET FIELDS (extract only these):
+${JSON.stringify(targetFieldDefinitions, null, 2)}
+
+EXISTING RECORDS TO SKIP:
+${skipInstructions}
+
+EXTRACTION RULES:
+${extractionRulesText}
+
+KNOWLEDGE DOCUMENTS:
+${knowledgeDocumentsText}
+
+${collectionsSchemaText ? `## COLLECTIONS TO EXTRACT:
+${collectionsSchemaText}
+
+` : ''}${additionalInstructions ? `ADDITIONAL INSTRUCTIONS:
+${additionalInstructions}
+
+` : ''}Extract up to 100 field validations. For collection properties, start from the next available index after existing records.
+
+Return JSON in this format:
+{
+  "field_validations": [
+    {
+      "field_id": "uuid",
+      "validation_type": "schema_field" or "collection_property", 
+      "data_type": "TEXT",
+      "field_name": "exact field name",
+      "collection_name": "collection name if applicable",
+      "extracted_value": "the extracted value",
+      "confidence_score": 0.95,
+      "validation_status": "unverified",
+      "ai_reasoning": "explanation",
+      "record_index": null or number for collections
+    }
+  ]
+}
+
+RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN`);
           }
+        });
+      });
+
+      // Debug: Log the full prompt BEFORE sending to AI
+      console.log('MODAL_EXTRACTION: Full prompt being sent to AI:');
+      console.log('='.repeat(80));
+      console.log(prompt);
+      console.log('='.repeat(80));
+      console.log('MODAL_EXTRACTION: Prompt length:', prompt.length);
+      
+      // Check which API key to use
+      const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        throw new Error('No API key found. Please set either GOOGLE_API_KEY or GEMINI_API_KEY');
+      }
+      
+      const usingKey = process.env.GOOGLE_API_KEY ? 'GOOGLE_API_KEY' : 'GEMINI_API_KEY';
+      console.log(`Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using ${usingKey}.`);
+
+      // Call Gemini API directly
+      try {
+        const { GoogleGenAI } = await import('@google/genai');
+        const ai = new GoogleGenAI({ apiKey: apiKey });
+
+        const response = await ai.models.generateContent({
+          model: "gemini-2.5-pro",
+          config: {
+            responseMimeType: "application/json"
+          },
+          contents: prompt,
+        });
+
+        const aiResponse = response.text;
+        console.log('MODAL_EXTRACTION: AI response length:', aiResponse?.length || 0);
+
+        // Save the prompt and response to the session for debug purposes
+        await storage.updateExtractionSession(sessionId, {
+          extractionPrompt: prompt,
+          aiResponse: aiResponse || 'Empty response',
+          inputTokenCount: null, // We don't get token counts from this API
+          outputTokenCount: null
+        });
+
+        if (!aiResponse || aiResponse.trim() === '') {
+          throw new Error('Empty response from AI');
+        }
+
+        let result;
+        try {
+          result = JSON.parse(aiResponse);
         } catch (parseError) {
-          console.error(`AI_EXTRACTION: Failed to parse Python output: ${parseError}`);
-          console.error(`AI_EXTRACTION: Raw output: ${pythonOutput}`);
-          res.status(500).json({
-            message: "Failed to parse extraction results",
-            error: parseError.message,
-            output: pythonOutput
+          console.error('MODAL_EXTRACTION: JSON parse error:', parseError);
+          console.log('MODAL_EXTRACTION: Raw response:', aiResponse?.substring(0, 500));
+          throw new Error(`Failed to parse AI response: ${parseError.message}`);
+        }
+
+        const fieldValidations = result.field_validations || [];
+
+        console.log('MODAL_EXTRACTION: Processing', fieldValidations.length, 'field validations');
+
+        // Save field validations to database
+        for (const validation of fieldValidations) {
+          const confidence = Math.round((validation.confidence_score || 0) * 100);
+          const autoVerify = confidence >= 80;
+
+          await storage.createFieldValidation({
+            sessionId: sessionId,
+            fieldId: validation.field_id,
+            validationType: validation.validation_type,
+            dataType: validation.data_type,
+            fieldName: validation.field_name,
+            collectionName: validation.collection_name || null,
+            extractedValue: validation.extracted_value,
+            confidenceScore: confidence,
+            validationStatus: autoVerify ? 'verified' : 'unverified',
+            aiReasoning: validation.ai_reasoning,
+            recordIndex: validation.record_index || null
           });
         }
-      });
+
+        res.json({
+          success: true,
+          message: `Successfully extracted ${fieldValidations.length} field validations`,
+          count: fieldValidations.length
+        });
+
+      } catch (error) {
+        console.error('MODAL_EXTRACTION: Gemini API error:', error);
+        res.status(500).json({
+          success: false,
+          message: 'Failed to extract data',
+          error: error.message
+        });
+      }
 
     } catch (error) {
-      console.error("AI_EXTRACTION error:", error);
-      res.status(500).json({ message: "Failed to start AI extraction process" });
+      console.error("MODAL_EXTRACTION error:", error);
+      res.status(500).json({ message: "Failed to start modal extraction process" });
     }
   });
 
   // Add documents functionality now uses the same extract-text endpoint as NewUpload
+
+  // Chat Routes
+  
+  // Get chat messages for a session
+  app.get("/api/sessions/:sessionId/chat", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const messages = await storage.getChatMessages(sessionId);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error getting chat messages:", error);
+      res.status(500).json({ message: "Failed to get chat messages" });
+    }
+  });
+
+  // Send a chat message
+  app.post("/api/sessions/:sessionId/chat", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const { message } = req.body;
+      
+      if (!message || !message.trim()) {
+        return res.status(400).json({ message: "Message content is required" });
+      }
+
+      // Get current user from JWT token (set by authenticateToken middleware)
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      // Create user message
+      const userMessage = await storage.createChatMessage({
+        sessionId,
+        userId,
+        role: "user",
+        content: message.trim(),
+      });
+
+      // Generate AI response context
+      const session = await storage.getExtractionSession(sessionId);
+      const validations = await storage.getFieldValidations(sessionId);
+      const project = session ? await storage.getProjectWithDetails(session.projectId) : null;
+
+      if (!session || !project) {
+        return res.status(404).json({ message: "Session or project not found" });
+      }
+
+      const context = {
+        session,
+        validations,
+        projectFields: project.projectSchemaFields || [],
+        collections: project.objectCollections || [],
+        collectionProperties: project.objectCollections?.flatMap(c => c.properties || []) || []
+      };
+
+      // Generate AI response
+      const aiResponseText = await generateChatResponse(message.trim(), context);
+
+      // Create AI message
+      const aiMessage = await storage.createChatMessage({
+        sessionId,
+        userId,
+        role: "assistant", 
+        content: aiResponseText,
+      });
+
+      res.json({ userMessage, aiMessage });
+    } catch (error) {
+      console.error("Error sending chat message:", error);
+      res.status(500).json({ message: "Failed to send chat message" });
+    }
+  });
 
   // Project Publishing Routes
   
