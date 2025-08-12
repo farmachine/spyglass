@@ -3,6 +3,7 @@ import sys
 import os
 import psycopg2
 from google import genai
+from all_prompts import DOCUMENT_FORMAT_ANALYSIS
 
 def get_document_properties_from_db(document_ids, session_id):
     """Query session_documents table to get document properties"""
@@ -62,11 +63,8 @@ def analyze_document_format_with_gemini(documents):
         # Initialize Gemini client
         client = genai.Client(api_key=api_key)
         
-        # Create simple prompt with document properties
-        prompt = f"""Analyze these documents and determine their format. For each document, return ONLY one word: "Excel", "Word", or "PDF".
-
-Documents:
-{json.dumps(documents, indent=2)}"""
+        # Use centralized prompt from all_prompts.py
+        prompt = DOCUMENT_FORMAT_ANALYSIS.format(documents=json.dumps(documents, indent=2))
         
         # Call Gemini API
         response = client.models.generate_content(
