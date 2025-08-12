@@ -1579,7 +1579,7 @@ RETURN: Complete readable content from this document."""
         # Save prompt to debug info immediately before AI call - this ensures debug info is saved even if extraction fails
         logging.info("MODAL_EXTRACTION: Saving prompt to debug info before AI call")
         debug_prompt = final_prompt
-        debug_session_id = data.get('session_id')
+        debug_session_id = input_data.get('session_id')
         
         # Retry logic for API overload situations in data extraction
         max_retries = 3
