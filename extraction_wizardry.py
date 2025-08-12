@@ -17,9 +17,9 @@ def get_document_properties_from_db(document_ids, session_id):
         
         # Query session_documents for the given document IDs
         query = """
-        SELECT id, "fileName", "mimeType", "extractedContent" 
+        SELECT id, file_name, mime_type, extracted_content 
         FROM session_documents 
-        WHERE id = ANY(%s) AND "sessionId" = %s
+        WHERE id = ANY(%s) AND session_id = %s
         """
         
         cursor.execute(query, (document_ids, session_id))
