@@ -4994,6 +4994,28 @@ ${additionalInstructions}
 
         console.log('MODAL_EXTRACTION: Processing', fieldValidations.length, 'field validations');
 
+        // Save debug information to debug page
+        try {
+          await storage.createDebugLog({
+            sessionId: sessionId,
+            logType: 'modal_extraction',
+            message: 'Modal Extraction Process',
+            metadata: {
+              prompt: prompt,
+              aiResponse: aiResponse,
+              selectedTargetFields: selectedTargetFieldsData.map(f => ({ 
+                id: f.id, 
+                name: f.fieldName || f.propertyName, 
+                collection: f.collectionName 
+              })),
+              extractedValidations: fieldValidations.length,
+              parsedResult: result
+            }
+          });
+        } catch (debugError) {
+          console.error('MODAL_EXTRACTION: Failed to save debug log:', debugError);
+        }
+
         // Save field validations to database
         for (const validation of fieldValidations) {
           const confidence = Math.round((validation.confidence_score || 0) * 100);
