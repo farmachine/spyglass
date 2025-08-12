@@ -472,7 +472,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       {/* Main Content - Full Width */}
       <div className="flex h-[calc(100vh-168px)]">
         {/* Sidebar */}
-        <div className="w-56 bg-slate-50 border-r border-slate-200">
+        <div className="w-64 bg-slate-50 border-r border-slate-200">
           <div className="p-4">
             <nav className="space-y-0.5">
               {navItems.map((item) => {
