@@ -66,19 +66,25 @@ def get_target_fields_from_db(target_fields):
         
         field_descriptions = []
         
+        print(f"DEBUG: Processing {len(target_fields)} target fields")
+        
         for field in target_fields:
             field_id = field.get('id', '')
+            print(f"DEBUG: Processing field ID: {field_id}")
             
             # Check if it's a collection property (contains '.')
             if '.' in field_id:
                 # Collection property: get from collection_properties table
+                property_id = field_id.split('.')[1]
+                print(f"DEBUG: Looking for collection property with ID: {property_id}")
                 query = """
                 SELECT property_name, description 
                 FROM collection_properties 
                 WHERE id = %s
                 """
-                cursor.execute(query, (field_id.split('.')[1],))
+                cursor.execute(query, (property_id,))
                 result = cursor.fetchone()
+                print(f"DEBUG: Collection query result: {result}")
                 if result:
                     property_name, description = result
                     field_descriptions.append({
@@ -89,6 +95,7 @@ def get_target_fields_from_db(target_fields):
                     })
             else:
                 # Schema field: get from project_schema_fields table
+                print(f"DEBUG: Looking for schema field with ID: {field_id}")
                 query = """
                 SELECT field_name, description 
                 FROM project_schema_fields 
@@ -96,6 +103,7 @@ def get_target_fields_from_db(target_fields):
                 """
                 cursor.execute(query, (field_id,))
                 result = cursor.fetchone()
+                print(f"DEBUG: Schema query result: {result}")
                 if result:
                     field_name, description = result
                     field_descriptions.append({
@@ -108,9 +116,11 @@ def get_target_fields_from_db(target_fields):
         cursor.close()
         conn.close()
         
+        print(f"DEBUG: Final field_descriptions: {field_descriptions}")
         return field_descriptions
         
     except Exception as e:
+        print(f"DEBUG: Database error: {str(e)}")
         return {"error": f"Target fields query failed: {str(e)}"}
 
 def analyze_document_format_with_gemini(documents, target_fields_data=None):
