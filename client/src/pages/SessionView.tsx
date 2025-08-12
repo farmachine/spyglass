@@ -359,6 +359,9 @@ const AIExtractionModal = ({
     
     console.log('Selected Documents for Extraction:', JSON.stringify(selectedDocumentInfo, null, 2));
 
+    // Log additional instructions
+    console.log('Additional Instructions:', additionalInstructions || '(none provided)');
+
     // Log selected target field objects with full schema details
     const selectedTargetFieldObjects = availableFields
       ?.filter(field => selectedTargetFields.includes(field.id))
