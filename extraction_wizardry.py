@@ -130,9 +130,8 @@ def extract_excel_columns(documents, target_fields):
                     # Get the first data line (column headers) - should be line 1
                     header_line = lines[1] if len(lines) > 1 else ""
                     
-                    # Split by multiple spaces/tabs to get individual column headers
-                    # Use regex to split on multiple whitespace characters
-                    columns = re.split(r'\s{2,}', header_line.strip())
+                    # Split by tabs to get individual column headers (Excel format uses tabs)
+                    columns = header_line.split('\t')
                     
                     # Create extraction results for each column in this sheet
                     for col_index, column_header in enumerate(columns):
