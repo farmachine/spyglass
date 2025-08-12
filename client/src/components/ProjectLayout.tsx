@@ -510,7 +510,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
             </nav>
 
             {/* Schema Navigation - Only show when Define Data tab is active */}
-            {activeTab === 'define-data' && (
+            {activeTab === 'define' && (
               <div className="mt-4 pt-4 border-t border-slate-200">
                 <div className="px-3 mb-2">
                   <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wider">
