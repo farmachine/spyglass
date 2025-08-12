@@ -4653,13 +4653,13 @@ print(json.dumps(results))
   // Run extraction wizardry Python script
   app.post("/api/run-wizardry", async (req, res) => {
     try {
-      const documents = req.body; // Get selected documents from request body
+      const requestData = req.body; // Get request data with document_ids and session_id
       
       const python = spawn('python3', ['extraction_wizardry.py']);
       
-      // Pass documents to Python script via stdin
-      if (documents && Array.isArray(documents) && documents.length > 0) {
-        python.stdin.write(JSON.stringify(documents));
+      // Pass request data to Python script via stdin
+      if (requestData && requestData.document_ids && requestData.session_id) {
+        python.stdin.write(JSON.stringify(requestData));
       }
       python.stdin.end();
       
