@@ -100,10 +100,10 @@ def run_wizardry_with_gemini_analysis(data=None):
         # Analyze document formats with Gemini
         gemini_response = analyze_document_format_with_gemini(documents)
         
-        # Print document properties and raw Gemini response
-        print("Document Properties:")
+        # Print document properties
         print(json.dumps(documents, indent=2))
-        print("\nGemini Analysis:")
+        
+        # Print Gemini response
         print(gemini_response)
         
     else:
