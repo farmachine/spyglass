@@ -4872,7 +4872,16 @@ print(json.dumps(result))
         )
       ];
 
-      const selectedTargetFieldsData = allProjectFields.filter(field => (selectedTargetFields || []).includes(field.id));
+      // Extract field IDs from target field objects
+      const selectedTargetFieldIds = (selectedTargetFields || []).map(field => 
+        typeof field === 'string' ? field : field.id
+      );
+
+      console.log('MODAL_EXTRACTION: All project fields available:', allProjectFields.length);
+      console.log('MODAL_EXTRACTION: Sample field IDs:', allProjectFields.slice(0, 3).map(f => f.id));
+      console.log('MODAL_EXTRACTION: Target field IDs requested:', selectedTargetFieldIds);
+
+      const selectedTargetFieldsData = allProjectFields.filter(field => selectedTargetFieldIds.includes(field.id));
       
       console.log('MODAL_EXTRACTION: Selected target fields:', selectedTargetFieldsData.map(f => ({ 
         id: f.id, 
@@ -4964,6 +4973,21 @@ print(json.dumps(result))
         return `**${collectionName}**:\n${properties}`;
       }).filter(Boolean).join('\n\n');
 
+      // Format target fields for the prompt
+      const targetFieldsText = targetFieldDefinitions.map(field => {
+        const fieldText = `- **${field.field_name}** (${field.field_type}): ${field.description || 'No description provided'}`;
+        const ruleText = field.extraction_rules !== 'No specific extraction rules for this field' 
+          ? ` | RULES: ${field.extraction_rules}` 
+          : '';
+        const knowledgeText = field.knowledge_document !== 'No specific knowledge documents for this field'
+          ? ` | KNOWLEDGE: ${field.knowledge_document}`
+          : '';
+        const identifierText = field.isIdentifier ? ' | IDENTIFIER FIELD' : '';
+        const collectionText = field.collection_name ? ` | COLLECTION: ${field.collection_name}` : '';
+        
+        return `${fieldText}${ruleText}${knowledgeText}${identifierText}${collectionText}`;
+      }).join('\n');
+
       // Use the consolidated prompt from prompt.py
       const { spawn } = await import('child_process');
       const createPromptScript = `
@@ -4976,10 +5000,10 @@ import json
 prompt = create_wizard_modal_prompt(
     document_content=${JSON.stringify(documentContent)},
     reference_data=${JSON.stringify(referenceData)},
-    target_fields=${JSON.stringify(JSON.stringify(targetFieldDefinitions, null, 2))},
+    target_fields=${JSON.stringify(targetFieldsText)},
     skip_records=${JSON.stringify(skipInstructions)},
-    extraction_rules="",
-    knowledge_documents="",
+    extraction_rules=${JSON.stringify(extractionRulesText)},
+    knowledge_documents=${JSON.stringify(knowledgeDocumentsText)},
     verified_context="",
     schema_fields="",
     collections=${JSON.stringify(collectionsSchemaText)},
