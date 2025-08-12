@@ -2,6 +2,7 @@ import json
 import sys
 import os
 import psycopg2
+import subprocess
 from google import genai
 from all_prompts import DOCUMENT_FORMAT_ANALYSIS
 
@@ -133,8 +134,83 @@ def run_wizardry_with_gemini_analysis(data=None):
         # Print Gemini response
         print(gemini_response)
         
+        # Check if AI recommends Excel Column Extraction and execute it
+        if "Excel Column Extraction" in gemini_response:
+            print("\n=== EXECUTING EXCEL COLUMN EXTRACTION ===")
+            execute_excel_column_extraction(session_id, documents)
+        
     else:
         print(json.dumps({"error": "Invalid data format. Expected object with document_ids and session_id"}))
+
+def execute_excel_column_extraction(session_id, documents):
+    """Execute Excel column extraction and save to field_validations database"""
+    try:
+        # Import the simple column extractor
+        from simple_column_extractor import extract_columns_from_excel_text
+        
+        # Get database connection
+        database_url = os.getenv('DATABASE_URL')
+        if not database_url:
+            print("ERROR: DATABASE_URL not found")
+            return
+        
+        conn = psycopg2.connect(database_url)
+        cursor = conn.cursor()
+        
+        # Process each document
+        record_index = 0
+        for doc in documents:
+            if doc.get('type') == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+                # Get full content from database
+                query = """
+                SELECT extracted_content FROM session_documents 
+                WHERE id = %s AND session_id = %s
+                """
+                cursor.execute(query, (doc['id'], session_id))
+                result = cursor.fetchone()
+                
+                if result and result[0]:
+                    content = result[0]
+                    file_name = doc['name']
+                    
+                    # Extract columns using simple_column_extractor logic
+                    columns = extract_columns_from_excel_text(content, file_name)
+                    
+                    # Save each column to field_validations
+                    for column_data in columns:
+                        # Insert field validation for column name only
+                        insert_query = """
+                        INSERT INTO field_validations 
+                        (field_id, field_name, extracted_value, ai_reasoning, confidence, 
+                         validation_type, collection_name, record_index, validation_status, session_id)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """
+                        
+                        values = (
+                            f"worksheet_name_{record_index}",  # field_id
+                            f"Column Name Mapping.Worksheet Name[{record_index}]",  # field_name
+                            column_data["column_name"],  # extracted_value
+                            f"Sheet name for column '{column_data['column_name']}'",  # ai_reasoning
+                            1.0,  # confidence
+                            "collection_property",  # validation_type
+                            "Column Name Mapping",  # collection_name
+                            record_index,  # record_index
+                            "verified",  # validation_status
+                            session_id  # session_id
+                        )
+                        
+                        cursor.execute(insert_query, values)
+                        record_index += 1
+        
+        # Commit changes
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        print(f"Successfully extracted and saved {record_index} columns to field_validations")
+        
+    except Exception as e:
+        print(f"ERROR in Excel column extraction: {str(e)}")
 
 def run_wizardry(data=None):
     # Call the new function with Gemini analysis
