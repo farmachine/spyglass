@@ -103,9 +103,9 @@ def extract_excel_columns(documents, target_fields):
             content_preview = document.get('contentPreview', '')
             
             # Parse Excel content to extract column headers from ALL sheets
-            if 'Sheet:' in content_preview:
-                # Split by sheets
-                sheet_sections = content_preview.split('=== Sheet:')
+            if 'SHEET:' in content_preview:
+                # Split by sheet sections
+                sheet_sections = content_preview.split('=== SHEET:')
                 
                 # Track global record index across all sheets
                 global_record_index = 0
@@ -122,11 +122,13 @@ def extract_excel_columns(documents, target_fields):
                     sheet_name_line = lines[0]
                     sheet_name = sheet_name_line.split('===')[0].strip()
                     
-                    # Get the first data line (column headers)
+                    # Get the first data line (column headers) - should be line 1
                     header_line = lines[1] if len(lines) > 1 else ""
                     
-                    # Split by tabs to get individual column headers
-                    columns = header_line.split('\t')
+                    # Split by multiple spaces/tabs to get individual column headers
+                    # Use regex to split on multiple whitespace characters
+                    import re
+                    columns = re.split(r'\s{2,}', header_line.strip())
                     
                     # Create extraction results for each column in this sheet
                     for col_index, column_header in enumerate(columns):
