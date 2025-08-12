@@ -944,84 +944,186 @@ def step1_extract_from_documents(
             existing_records_text += "\nYou MUST extract NEW records only. Do not extract the same record indexes listed above. Start from the next available record index.\n"
             logging.info(f"EXCLUSION LOGIC: Skipping existing records: {existing_collection_records}")
         
-        # Use different prompt builders based on operation type
+        # Filter schema fields and collections based on target selection for modal extraction
         if operation == "modal_extraction":
-            # Use streamlined modal extraction prompt
-            from modal_prompt_builder import build_modal_extraction_prompt
-            
-            # Build document content from processed documents
-            document_content = ""
-            for doc in documents:
-                file_content = doc.get('file_content', doc.get('content', doc.get('extractedContent', '')))
-                file_name = doc.get('file_name', doc.get('fileName', 'Unknown'))
-                document_content += f"\n\n=== DOCUMENT: {file_name} ===\n{file_content}"
-            
-            # Filter target fields - only include selected fields from input_data
             target_fields = input_data.get("target_fields", [])
-            target_schema_fields = []
-            target_collections = []
-            
-            # Get the selected field IDs
             selected_field_ids = set(target_fields)
             
-            # Filter schema fields to only selected ones
+            # Filter to only selected schema fields
+            filtered_schema_fields = []
             for field in project_schema.get("schema_fields", []):
                 if field.get("id") in selected_field_ids:
-                    target_schema_fields.append({
-                        "field_id": field.get("id"),
-                        "field_name": field.get("fieldName"),
-                        "field_type": field.get("fieldType", "TEXT"),
-                        "description": field.get("description"),
+                    field_name = field.get("fieldName", "Unknown Field")
+                    field_type = field.get("fieldType", "TEXT")
+                    field_description = field.get("description", "Extract this field")
+                    field_id = field.get("id")
+                    auto_verify_threshold = field.get("autoVerifyThreshold", 85)
+                    
+                    # Get field-specific extraction rules
+                    field_rules = []
+                    field_knowledge_names = []
+                    
+                    # Look for rules that target this field specifically
+                    for rule in extraction_rules:
+                        rule_target = rule.get('targetField')
+                        if not rule_target or rule_target == '' or rule_target is None:
+                            field_rules.append(rule.get('ruleText', ''))
+                        elif isinstance(rule_target, list):
+                            if (field_name in rule_target or 'All Fields' in rule_target):
+                                field_rules.append(rule.get('ruleText', ''))
+                        elif (rule_target == field_name or rule_target == 'All Fields'):
+                            field_rules.append(rule.get('ruleText', ''))
+                    
+                    # Look for knowledge documents that target this field specifically
+                    for doc in knowledge_documents:
+                        doc_target = doc.get('targetField')
+                        display_name = doc.get('displayName', doc.get('fileName', 'Unknown Document'))
+                        
+                        if not doc_target or doc_target == '' or doc_target is None:
+                            field_knowledge_names.append(display_name)
+                        elif isinstance(doc_target, list):
+                            if (field_name in doc_target or 'All Fields' in doc_target):
+                                field_knowledge_names.append(display_name)
+                        elif (doc_target == field_name or doc_target == 'All Fields'):
+                            field_knowledge_names.append(display_name)
+                    
+                    field_instruction = field_description
+                    if field_rules:
+                        field_instruction += " | RULE: " + " | RULE: ".join(field_rules)
+                    
+                    filtered_schema_fields.append({
+                        "field_id": field_id,
+                        "field_name": field_name,
+                        "field_type": field_type,
+                        "description": field_instruction,
+                        "auto_verification_confidence": auto_verify_threshold,
+                        "extraction_rules": field_rules,
+                        "knowledge_documents": field_knowledge_names,
                         "choices": field.get("choiceOptions")
                     })
             
-            # Filter collections and their properties to only selected ones  
+            # Filter to only selected collection properties
+            filtered_collections = []
             for collection in project_schema.get("collections", []):
+                collection_name = collection.get("collectionName", "Unknown Collection")
                 filtered_properties = []
+                
                 for prop in collection.get("collection_properties", []):
                     if prop.get("id") in selected_field_ids:
+                        prop_name = prop.get("propertyName", "Unknown Property")
+                        prop_type = prop.get("propertyType", "TEXT")
+                        prop_description = prop.get("description", "Extract this property")
+                        prop_id = prop.get("id")
+                        prop_auto_verify_threshold = prop.get("autoVerifyThreshold", 85)
+                        
+                        # Get property-specific extraction rules
+                        prop_rules = []
+                        prop_knowledge_names = []
+                        
+                        # Look for rules that target this property specifically
+                        for rule in extraction_rules:
+                            rule_target = rule.get('targetField')
+                            arrow_notation = f"{collection_name} --> {prop_name}"
+                            full_prop_name = f"{collection_name}.{prop_name}"
+                            
+                            if not rule_target or rule_target == '' or rule_target is None:
+                                prop_rules.append(rule.get('ruleText', ''))
+                            elif isinstance(rule_target, list):
+                                if (arrow_notation in rule_target or 
+                                    full_prop_name in rule_target or 
+                                    prop_name in rule_target or 
+                                    'All Fields' in rule_target):
+                                    prop_rules.append(rule.get('ruleText', ''))
+                            elif (arrow_notation == rule_target or 
+                                  full_prop_name == rule_target or 
+                                  prop_name == rule_target or 
+                                  rule_target == 'All Fields'):
+                                prop_rules.append(rule.get('ruleText', ''))
+                        
+                        # Look for knowledge documents that target this property specifically
+                        for doc in knowledge_documents:
+                            doc_target = doc.get('targetField')
+                            arrow_notation = f"{collection_name} --> {prop_name}"
+                            full_prop_name = f"{collection_name}.{prop_name}"
+                            display_name = doc.get('displayName', doc.get('fileName', 'Unknown Document'))
+                            
+                            if not doc_target or doc_target == '' or doc_target is None:
+                                prop_knowledge_names.append(display_name)
+                            elif isinstance(doc_target, list):
+                                if (arrow_notation in doc_target or 
+                                    full_prop_name in doc_target or 
+                                    prop_name in doc_target or 
+                                    'All Fields' in doc_target):
+                                    prop_knowledge_names.append(display_name)
+                            elif (arrow_notation == doc_target or 
+                                  full_prop_name == doc_target or 
+                                  prop_name == doc_target or 
+                                  doc_target == 'All Fields'):
+                                prop_knowledge_names.append(display_name)
+                        
+                        prop_instruction = prop_description
+                        if prop_rules:
+                            prop_instruction += " | RULE: " + " | RULE: ".join(prop_rules)
+                        
                         filtered_properties.append({
-                            "property_id": prop.get("id"),
-                            "property_name": prop.get("propertyName"),
-                            "property_type": prop.get("propertyType", "TEXT"),
-                            "description": prop.get("description"),
+                            "property_id": prop_id,
+                            "property_name": prop_name,
+                            "property_type": prop_type,
+                            "description": prop_instruction,
+                            "auto_verification_confidence": prop_auto_verify_threshold,
+                            "extraction_rules": prop_rules,
+                            "knowledge_documents": prop_knowledge_names,
                             "choices": prop.get("choiceOptions")
                         })
                 
-                if filtered_properties:  # Only include collections with selected properties
-                    target_collections.append({
-                        "collection_name": collection.get("collectionName"),
+                if filtered_properties:
+                    filtered_collections.append({
+                        "collection_name": collection_name,
                         "description": collection.get("description", ""),
                         "properties": filtered_properties
                     })
             
-            # Build validated reference data context
-            validated_reference_data = {}
-            for field_name, context in validated_data_context.items():
-                validated_reference_data[field_name] = {
-                    "extractedValue": context.get("value", ""),
-                    "confidence": context.get("confidence", 0)
-                }
+            # Build filtered schema sections for modal extraction
+            filtered_schema_fields_text = ""
+            if filtered_schema_fields:
+                for field in filtered_schema_fields:
+                    field_desc = f"- **{field['field_name']}** (ID: `{field['field_id']}`) - {field['field_type']}: {field['description']}"
+                    if field['field_type'] == 'CHOICE' and field.get('choices'):
+                        field_desc += f" Valid choices: {field['choices']}"
+                    if field.get('extraction_rules'):
+                        field_desc += f" | RULES: {field['extraction_rules']}"
+                    if field.get('knowledge_documents'):
+                        field_desc += f" | KNOWLEDGE DOCS: {field['knowledge_documents']}"
+                    filtered_schema_fields_text += field_desc + "\n"
             
-            full_prompt = build_modal_extraction_prompt(
-                target_schema_fields=target_schema_fields,
-                target_collections=target_collections,
-                extraction_rules=extraction_rules,
-                knowledge_documents=knowledge_documents,
-                documents=documents,  # Pass the document list instead of concatenated content
-                validated_reference_data=validated_reference_data,
-                additional_instructions=additional_instructions + existing_records_text
-            )
+            filtered_collections_text = ""
+            if filtered_collections:
+                for collection in filtered_collections:
+                    collection_desc = f"\n### {collection['collection_name']}:\n{collection.get('description', '')}\n"
+                    for prop in collection['properties']:
+                        prop_desc = f"  - **{prop['property_name']}** (ID: `{prop['property_id']}`) - {prop['property_type']}: {prop['description']}"
+                        if prop['property_type'] == 'CHOICE' and prop.get('choices'):
+                            prop_desc += f" Valid choices: {prop['choices']}"
+                        if prop.get('extraction_rules'):
+                            prop_desc += f" | RULES: {prop['extraction_rules']}"
+                        if prop.get('knowledge_documents'):
+                            prop_desc += f" | KNOWLEDGE DOCS: {prop['knowledge_documents']}"
+                        collection_desc += prop_desc + "\n"
+                    filtered_collections_text += collection_desc
             
-            logging.info(f"MODAL EXTRACTION: Generated streamlined prompt targeting {len(target_schema_fields)} schema fields and {len(target_collections)} collections")
-        else:
-            # Use the imported prompt template with our schema, collections, verified context, and JSON schema
-            full_prompt = json_schema_section + "\n" + EXTRACTION_PROMPT.format(
-                verified_context=verified_context_text,
-                schema_fields=schema_fields_text,
-                collections=collections_text,
-                additional_instructions=additional_instructions + existing_records_text
-            )
+            # Use filtered schema for modal extraction
+            schema_fields_text = filtered_schema_fields_text
+            collections_text = filtered_collections_text
+            
+            logging.info(f"MODAL EXTRACTION: Filtered to {len(filtered_schema_fields)} schema fields and {len(filtered_collections)} collections with rules and knowledge docs")
+
+        # Use the imported prompt template with schema, collections, verified context, and JSON schema
+        full_prompt = json_schema_section + "\n" + EXTRACTION_PROMPT.format(
+            verified_context=verified_context_text,
+            schema_fields=schema_fields_text,
+            collections=collections_text,
+            additional_instructions=additional_instructions + existing_records_text
+        )
         
         # Generate field validation JSON structure
         def generate_field_validation_example():
