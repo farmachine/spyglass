@@ -4968,7 +4968,6 @@ print(json.dumps(result))
       console.log('MODAL_EXTRACTION: Data prepared - knowledge docs:', extractionData.knowledge_documents.length);
 
       // Call the Python extraction script
-      const { spawn } = require('child_process');
       const pythonProcess = spawn('python3', ['ai_extraction_simplified.py'], {
         stdio: ['pipe', 'pipe', 'pipe']
       });
