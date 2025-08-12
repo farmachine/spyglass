@@ -4944,12 +4944,26 @@ Return JSON in this format:
   ]
 }`;
 
-      console.log('MODAL_EXTRACTION: Calling Gemini API with prompt length:', prompt.length);
+      // Debug: Log the full prompt BEFORE sending to AI
+      console.log('MODAL_EXTRACTION: Full prompt being sent to AI:');
+      console.log('='.repeat(80));
+      console.log(prompt);
+      console.log('='.repeat(80));
+      console.log('MODAL_EXTRACTION: Prompt length:', prompt.length);
+      
+      // Check which API key to use
+      const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        throw new Error('No API key found. Please set either GOOGLE_API_KEY or GEMINI_API_KEY');
+      }
+      
+      const usingKey = process.env.GOOGLE_API_KEY ? 'GOOGLE_API_KEY' : 'GEMINI_API_KEY';
+      console.log(`Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using ${usingKey}.`);
 
       // Call Gemini API directly
       try {
         const { GoogleGenAI } = await import('@google/genai');
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+        const ai = new GoogleGenAI({ apiKey: apiKey });
 
         const response = await ai.models.generateContent({
           model: "gemini-2.5-pro",
