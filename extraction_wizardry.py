@@ -33,16 +33,18 @@ def get_document_properties_from_db(document_ids, session_id):
         for row in results:
             doc_id, file_name, mime_type, extracted_content = row
             
-            # Create content preview (full content for Excel extraction)
+            # Create content preview (short preview for console, full content stored separately)
             content_preview = ""
             if extracted_content:
-                content_preview = extracted_content
+                # Show first 200 chars for console output
+                content_preview = extracted_content[:200] + "..." if len(extracted_content) > 200 else extracted_content
             
             documents.append({
                 "id": doc_id,
                 "name": file_name,
                 "type": mime_type or "unknown",
-                "contentPreview": content_preview
+                "contentPreview": content_preview,
+                "fullContent": extracted_content  # Store full content for processing
             })
         
         cursor.close()
@@ -101,12 +103,13 @@ def extract_excel_columns(documents, target_fields):
                 collection_name = "Column Headers Collection"
         
         for document in documents:
-            content_preview = document.get('contentPreview', '')
+            # Use full content for processing, contentPreview for display
+            full_content = document.get('fullContent', '')
             
             # Parse Excel content to extract column headers from ALL sheets
-            if 'SHEET:' in content_preview:
+            if 'SHEET:' in full_content:
                 # Split by sheet sections
-                sheet_sections = content_preview.split('=== SHEET:')
+                sheet_sections = full_content.split('=== SHEET:')
                 
                 # Track global record index across all sheets
                 global_record_index = 0
