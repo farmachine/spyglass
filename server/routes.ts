@@ -4894,10 +4894,6 @@ print(json.dumps(result))
     }
   });
 
-  // Create HTTP server and return it
-  const httpServer = createServer(app);
-  return httpServer;
-};
   // Modal-based AI Extraction
   app.post("/api/sessions/:sessionId/modal-extraction", async (req, res) => {
     // Set longer timeout for AI extraction
@@ -5142,3 +5138,8 @@ print(json.dumps(result))
       });
     }
   });
+
+  // Create HTTP server and return it
+  const httpServer = createServer(app);
+  return httpServer;
+};
