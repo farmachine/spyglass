@@ -4872,12 +4872,33 @@ print(json.dumps(result))
         )
       ];
 
-      const selectedTargetFieldsData = allProjectFields.filter(field => selectedTargetFields.includes(field.id));
+      // Auto-include identifier fields for any collections that have selected properties
+      const collectionsWithSelectedProperties = new Set(
+        allProjectFields
+          .filter(field => selectedTargetFields.includes(field.id) && field.collectionName)
+          .map(field => field.collectionName)
+      );
+
+      // Find identifier fields for these collections and add them to target fields
+      const identifierFields = allProjectFields.filter(field => 
+        field.isIdentifier && 
+        field.collectionName && 
+        collectionsWithSelectedProperties.has(field.collectionName)
+      );
+
+      // Combine selected fields with mandatory identifier fields
+      const allTargetFieldIds = new Set([
+        ...selectedTargetFields,
+        ...identifierFields.map(field => field.id)
+      ]);
+
+      const selectedTargetFieldsData = allProjectFields.filter(field => allTargetFieldIds.has(field.id));
       
       console.log('MODAL_EXTRACTION: Selected target fields:', selectedTargetFieldsData.map(f => ({ 
         id: f.id, 
         name: f.fieldName || f.propertyName, 
-        collection: f.collectionName 
+        collection: f.collectionName,
+        isIdentifier: f.isIdentifier || false
       })));
 
       // Get document content from stored documents (truncate if too large)
@@ -4896,17 +4917,36 @@ print(json.dumps(result))
         return validation ? `${validation.fieldName}: ${validation.extractedValue}` : '';
       }).filter(Boolean).join('\n');
 
-      // Create field definitions for selected target fields only
-      const targetFieldDefinitions = selectedTargetFieldsData.map(field => ({
-        field_id: field.id,
-        field_name: field.collectionName 
-          ? `${field.collectionName}.${field.propertyName}` 
-          : field.fieldName,
-        field_type: field.fieldType || 'TEXT',
-        validation_type: field.collectionName ? 'collection_property' : 'schema_field',
-        collection_name: field.collectionName || null,
-        validation_instructions: field.validationInstructions || ''
-      }));
+      // Create field definitions for selected target fields, separating identifiers
+      const identifierFieldDefinitions = selectedTargetFieldsData
+        .filter(field => field.isIdentifier)
+        .map(field => ({
+          field_id: field.id,
+          field_name: field.collectionName 
+            ? `${field.collectionName}.${field.propertyName}` 
+            : field.fieldName,
+          field_type: field.fieldType || 'TEXT',
+          validation_type: field.collectionName ? 'collection_property' : 'schema_field',
+          collection_name: field.collectionName || null,
+          validation_instructions: field.validationInstructions || '',
+          is_identifier: true
+        }));
+
+      const otherFieldDefinitions = selectedTargetFieldsData
+        .filter(field => !field.isIdentifier)
+        .map(field => ({
+          field_id: field.id,
+          field_name: field.collectionName 
+            ? `${field.collectionName}.${field.propertyName}` 
+            : field.fieldName,
+          field_type: field.fieldType || 'TEXT',
+          validation_type: field.collectionName ? 'collection_property' : 'schema_field',
+          collection_name: field.collectionName || null,
+          validation_instructions: field.validationInstructions || '',
+          is_identifier: false
+        }));
+
+      const targetFieldDefinitions = [...identifierFieldDefinitions, ...otherFieldDefinitions];
 
       // Get indexes to skip for collections
       const skipInstructions = Object.entries(existingCollectionRecords)
@@ -4914,15 +4954,26 @@ print(json.dumps(result))
           `Skip ${collection} records with indexes: ${Array.from(indexes).join(', ')}`
         ).join('\n');
 
-      // Create a simplified AI prompt focused on the specific target fields
-      const targetFieldsList = targetFieldDefinitions.map(field => 
+      // Create enhanced AI prompt with identifier-first extraction
+      const identifierFieldsList = identifierFieldDefinitions.map(field => 
+        `- ${field.field_name} (ID: ${field.field_id}) - IDENTIFIER FIELD`
+      ).join('\n');
+
+      const otherFieldsList = otherFieldDefinitions.map(field => 
         `- ${field.field_name} (ID: ${field.field_id})`
       ).join('\n');
 
-      const prompt = `Extract data for the following field(s) from this document:
+      const prompt = `Extract data for collection items from this document.
 
-TARGET FIELDS:
-${targetFieldsList}
+EXTRACTION PROCESS:
+1. FIRST: Find all instances of identifier fields to establish unique records
+2. THEN: For each identified record, extract the corresponding property values
+
+${identifierFieldsList ? `IDENTIFIER FIELDS (extract these first to identify unique records):
+${identifierFieldsList}
+
+` : ''}TARGET FIELDS TO EXTRACT:
+${otherFieldsList}
 
 DOCUMENT CONTENT:
 ${documentContent}
@@ -4932,6 +4983,9 @@ ${referenceData}
 
 ` : ''}${additionalInstructions ? `INSTRUCTIONS:
 ${additionalInstructions}
+
+` : ''}${skipInstructions ? `SKIP INSTRUCTIONS:
+${skipInstructions}
 
 ` : ''}Return ONLY valid JSON with this exact structure:
 {
@@ -4998,24 +5052,29 @@ ${additionalInstructions}
         console.log('MODAL_EXTRACTION: Prompt sent to AI:', prompt.substring(0, 500) + '...');
         console.log('MODAL_EXTRACTION: Full AI response:', aiResponse);
 
-        // Save field validations to database
+        // Save field validations to database with retry logic
         for (const validation of fieldValidations) {
           const confidence = Math.round((validation.confidence_score || 0) * 100);
           const autoVerify = confidence >= 80;
 
-          await storage.createFieldValidation({
-            sessionId: sessionId,
-            fieldId: validation.field_id,
-            validationType: validation.validation_type,
-            dataType: validation.data_type,
-            fieldName: validation.field_name,
-            collectionName: validation.collection_name || null,
-            extractedValue: validation.extracted_value,
-            confidenceScore: confidence,
-            validationStatus: autoVerify ? 'verified' : 'unverified',
-            aiReasoning: validation.ai_reasoning,
-            recordIndex: validation.record_index || null
-          });
+          try {
+            await storage.createFieldValidation({
+              sessionId: sessionId,
+              fieldId: validation.field_id,
+              validationType: validation.validation_type,
+              dataType: validation.data_type,
+              fieldName: validation.field_name,
+              collectionName: validation.collection_name || null,
+              extractedValue: validation.extracted_value,
+              confidenceScore: confidence,
+              validationStatus: autoVerify ? 'verified' : 'unverified',
+              aiReasoning: validation.ai_reasoning,
+              recordIndex: validation.record_index || null
+            });
+          } catch (dbError) {
+            console.error('MODAL_EXTRACTION: Database error saving validation:', dbError);
+            // Continue with other validations instead of failing completely
+          }
         }
 
         // Create missing validation entries for collection properties
@@ -5051,19 +5110,23 @@ ${additionalInstructions}
             // Create missing validation entries for properties not extracted
             for (const property of collection.properties) {
               if (!existingFieldIds.has(property.id)) {
-                await storage.createFieldValidation({
-                  sessionId: sessionId,
-                  fieldId: property.id,
-                  validationType: 'collection_property',
-                  dataType: property.propertyType,
-                  fieldName: `${collectionName}.${property.propertyName}`,
-                  collectionName: collectionName,
-                  extractedValue: null,
-                  confidenceScore: 0,
-                  validationStatus: 'unverified',
-                  aiReasoning: null,
-                  recordIndex: recordIndex
-                });
+                try {
+                  await storage.createFieldValidation({
+                    sessionId: sessionId,
+                    fieldId: property.id,
+                    validationType: 'collection_property',
+                    dataType: property.propertyType,
+                    fieldName: `${collectionName}.${property.propertyName}`,
+                    collectionName: collectionName,
+                    extractedValue: null,
+                    confidenceScore: 0,
+                    validationStatus: 'unverified',
+                    aiReasoning: null,
+                    recordIndex: recordIndex
+                  });
+                } catch (dbError) {
+                  console.error('MODAL_EXTRACTION: Database error creating missing validation:', dbError);
+                }
               }
             }
           }
