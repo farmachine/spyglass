@@ -369,9 +369,7 @@ def step1_extract_from_documents(
     session_name: str = "contract",
     validated_data_context: Optional[Dict[str, Any]] = None,
     extraction_notes: str = "",
-    is_subsequent_upload: bool = False,
-    operation: str = "extract",
-    input_data: Optional[Dict[str, Any]] = None
+    is_subsequent_upload: bool = False
 ) -> ExtractionResult:
     """
     STEP 1: Extract data from documents using AI
@@ -380,18 +378,11 @@ def step1_extract_from_documents(
         documents: List of document objects with file_content, file_name, mime_type
         project_schema: Schema definition with schema_fields and collections
         session_name: Name for the main object (default: "contract")
-        operation: Operation type (extract, extract_additional, modal_extraction)
-        input_data: Full input data for modal extraction context
     
     Returns:
         ExtractionResult with extracted JSON data
     """
     try:
-        # Set default values for None parameters
-        if input_data is None:
-            input_data = {}
-        if validated_data_context is None:
-            validated_data_context = {}
         # Check for API key
         api_key = os.environ.get("GEMINI_API_KEY")
         if not api_key:
@@ -406,22 +397,14 @@ def step1_extract_from_documents(
         
         logging.info(f"STEP 1: Starting extraction for {len(documents)} documents")
         
-        # Debug document content - handle different document structures
+        # Debug document content
         for i, doc in enumerate(documents):
-            logging.info(f"Document {i} structure: {list(doc.keys())}")
-            
-            # Try different content property names
-            content = doc.get('file_content', doc.get('content', doc.get('extractedContent', '')))
-            file_name = doc.get('file_name', doc.get('fileName', 'Unknown'))
-            
-            logging.info(f"Document {i}: {file_name} - Content length: {len(str(content))}")
-            if isinstance(content, str):
-                if 'Active Deferred' in content or 'Code Meanings' in content:
-                    logging.info(f"Document {i} contains code meanings - content preview: {content[:300]}...")
-                elif content:
-                    logging.info(f"Document {i} preview: {content[:200]}...")
-            else:
-                logging.info(f"Document {i} content type: {type(content)}")
+            content = doc.get('file_content', '')
+            logging.info(f"Document {i}: {doc.get('file_name', 'Unknown')} - Content length: {len(content)}")
+            if 'Active Deferred' in content or 'Code Meanings' in content:
+                logging.info(f"Document {i} contains code meanings - content preview: {content[:300]}...")
+            elif content:
+                logging.info(f"Document {i} preview: {content[:200]}...")
         
         # First, identify global extraction rules that apply to all fields
         global_rules = []
@@ -944,180 +927,7 @@ def step1_extract_from_documents(
             existing_records_text += "\nYou MUST extract NEW records only. Do not extract the same record indexes listed above. Start from the next available record index.\n"
             logging.info(f"EXCLUSION LOGIC: Skipping existing records: {existing_collection_records}")
         
-        # Filter schema fields and collections based on target selection for modal extraction
-        if operation == "modal_extraction":
-            target_fields = input_data.get("target_fields", [])
-            selected_field_ids = set(target_fields)
-            
-            # Filter to only selected schema fields
-            filtered_schema_fields = []
-            for field in project_schema.get("schema_fields", []):
-                if field.get("id") in selected_field_ids:
-                    field_name = field.get("fieldName", "Unknown Field")
-                    field_type = field.get("fieldType", "TEXT")
-                    field_description = field.get("description", "Extract this field")
-                    field_id = field.get("id")
-                    auto_verify_threshold = field.get("autoVerifyThreshold", 85)
-                    
-                    # Get field-specific extraction rules
-                    field_rules = []
-                    field_knowledge_names = []
-                    
-                    # Look for rules that target this field specifically
-                    for rule in extraction_rules:
-                        rule_target = rule.get('targetField')
-                        if not rule_target or rule_target == '' or rule_target is None:
-                            field_rules.append(rule.get('ruleText', ''))
-                        elif isinstance(rule_target, list):
-                            if (field_name in rule_target or 'All Fields' in rule_target):
-                                field_rules.append(rule.get('ruleText', ''))
-                        elif (rule_target == field_name or rule_target == 'All Fields'):
-                            field_rules.append(rule.get('ruleText', ''))
-                    
-                    # Look for knowledge documents that target this field specifically
-                    for doc in knowledge_documents:
-                        doc_target = doc.get('targetField')
-                        display_name = doc.get('displayName', doc.get('fileName', 'Unknown Document'))
-                        
-                        if not doc_target or doc_target == '' or doc_target is None:
-                            field_knowledge_names.append(display_name)
-                        elif isinstance(doc_target, list):
-                            if (field_name in doc_target or 'All Fields' in doc_target):
-                                field_knowledge_names.append(display_name)
-                        elif (doc_target == field_name or doc_target == 'All Fields'):
-                            field_knowledge_names.append(display_name)
-                    
-                    field_instruction = field_description
-                    if field_rules:
-                        field_instruction += " | RULE: " + " | RULE: ".join(field_rules)
-                    
-                    filtered_schema_fields.append({
-                        "field_id": field_id,
-                        "field_name": field_name,
-                        "field_type": field_type,
-                        "description": field_instruction,
-                        "auto_verification_confidence": auto_verify_threshold,
-                        "extraction_rules": field_rules,
-                        "knowledge_documents": field_knowledge_names,
-                        "choices": field.get("choiceOptions")
-                    })
-            
-            # Filter to only selected collection properties
-            filtered_collections = []
-            for collection in project_schema.get("collections", []):
-                collection_name = collection.get("collectionName", "Unknown Collection")
-                filtered_properties = []
-                
-                for prop in collection.get("collection_properties", []):
-                    if prop.get("id") in selected_field_ids:
-                        prop_name = prop.get("propertyName", "Unknown Property")
-                        prop_type = prop.get("propertyType", "TEXT")
-                        prop_description = prop.get("description", "Extract this property")
-                        prop_id = prop.get("id")
-                        prop_auto_verify_threshold = prop.get("autoVerifyThreshold", 85)
-                        
-                        # Get property-specific extraction rules
-                        prop_rules = []
-                        prop_knowledge_names = []
-                        
-                        # Look for rules that target this property specifically
-                        for rule in extraction_rules:
-                            rule_target = rule.get('targetField')
-                            arrow_notation = f"{collection_name} --> {prop_name}"
-                            full_prop_name = f"{collection_name}.{prop_name}"
-                            
-                            if not rule_target or rule_target == '' or rule_target is None:
-                                prop_rules.append(rule.get('ruleText', ''))
-                            elif isinstance(rule_target, list):
-                                if (arrow_notation in rule_target or 
-                                    full_prop_name in rule_target or 
-                                    prop_name in rule_target or 
-                                    'All Fields' in rule_target):
-                                    prop_rules.append(rule.get('ruleText', ''))
-                            elif (arrow_notation == rule_target or 
-                                  full_prop_name == rule_target or 
-                                  prop_name == rule_target or 
-                                  rule_target == 'All Fields'):
-                                prop_rules.append(rule.get('ruleText', ''))
-                        
-                        # Look for knowledge documents that target this property specifically
-                        for doc in knowledge_documents:
-                            doc_target = doc.get('targetField')
-                            arrow_notation = f"{collection_name} --> {prop_name}"
-                            full_prop_name = f"{collection_name}.{prop_name}"
-                            display_name = doc.get('displayName', doc.get('fileName', 'Unknown Document'))
-                            
-                            if not doc_target or doc_target == '' or doc_target is None:
-                                prop_knowledge_names.append(display_name)
-                            elif isinstance(doc_target, list):
-                                if (arrow_notation in doc_target or 
-                                    full_prop_name in doc_target or 
-                                    prop_name in doc_target or 
-                                    'All Fields' in doc_target):
-                                    prop_knowledge_names.append(display_name)
-                            elif (arrow_notation == doc_target or 
-                                  full_prop_name == doc_target or 
-                                  prop_name == doc_target or 
-                                  doc_target == 'All Fields'):
-                                prop_knowledge_names.append(display_name)
-                        
-                        prop_instruction = prop_description
-                        if prop_rules:
-                            prop_instruction += " | RULE: " + " | RULE: ".join(prop_rules)
-                        
-                        filtered_properties.append({
-                            "property_id": prop_id,
-                            "property_name": prop_name,
-                            "property_type": prop_type,
-                            "description": prop_instruction,
-                            "auto_verification_confidence": prop_auto_verify_threshold,
-                            "extraction_rules": prop_rules,
-                            "knowledge_documents": prop_knowledge_names,
-                            "choices": prop.get("choiceOptions")
-                        })
-                
-                if filtered_properties:
-                    filtered_collections.append({
-                        "collection_name": collection_name,
-                        "description": collection.get("description", ""),
-                        "properties": filtered_properties
-                    })
-            
-            # Build filtered schema sections for modal extraction
-            filtered_schema_fields_text = ""
-            if filtered_schema_fields:
-                for field in filtered_schema_fields:
-                    field_desc = f"- **{field['field_name']}** (ID: `{field['field_id']}`) - {field['field_type']}: {field['description']}"
-                    if field['field_type'] == 'CHOICE' and field.get('choices'):
-                        field_desc += f" Valid choices: {field['choices']}"
-                    if field.get('extraction_rules'):
-                        field_desc += f" | RULES: {field['extraction_rules']}"
-                    if field.get('knowledge_documents'):
-                        field_desc += f" | KNOWLEDGE DOCS: {field['knowledge_documents']}"
-                    filtered_schema_fields_text += field_desc + "\n"
-            
-            filtered_collections_text = ""
-            if filtered_collections:
-                for collection in filtered_collections:
-                    collection_desc = f"\n### {collection['collection_name']}:\n{collection.get('description', '')}\n"
-                    for prop in collection['properties']:
-                        prop_desc = f"  - **{prop['property_name']}** (ID: `{prop['property_id']}`) - {prop['property_type']}: {prop['description']}"
-                        if prop['property_type'] == 'CHOICE' and prop.get('choices'):
-                            prop_desc += f" Valid choices: {prop['choices']}"
-                        if prop.get('extraction_rules'):
-                            prop_desc += f" | RULES: {prop['extraction_rules']}"
-                        if prop.get('knowledge_documents'):
-                            prop_desc += f" | KNOWLEDGE DOCS: {prop['knowledge_documents']}"
-                        collection_desc += prop_desc + "\n"
-                    filtered_collections_text += collection_desc
-            
-            # Use filtered schema for modal extraction
-            schema_fields_text = filtered_schema_fields_text
-            collections_text = filtered_collections_text
-            
-            logging.info(f"MODAL EXTRACTION: Filtered to {len(filtered_schema_fields)} schema fields and {len(filtered_collections)} collections with rules and knowledge docs")
-
-        # Use the imported prompt template with schema, collections, verified context, and JSON schema
+        # Use the imported prompt template with our schema, collections, verified context, and JSON schema
         full_prompt = json_schema_section + "\n" + EXTRACTION_PROMPT.format(
             verified_context=verified_context_text,
             schema_fields=schema_fields_text,
@@ -1351,10 +1161,9 @@ REQUIRED OUTPUT FORMAT - Field Validation JSON Structure:
         processed_docs = 0
         
         for doc in documents:
-            # Handle different document property names (modal extraction vs regular extraction)
-            file_content = doc.get('file_content', doc.get('content', doc.get('extractedContent', '')))
-            file_name = doc.get('file_name', doc.get('fileName', 'Unknown'))
-            mime_type = doc.get('mime_type', doc.get('mimeType', 'application/octet-stream'))
+            file_content = doc['file_content']
+            file_name = doc['file_name']
+            mime_type = doc['mime_type']
             
             logging.info(f"STEP 1: Processing document: {file_name} ({mime_type})")
             
@@ -1587,7 +1396,7 @@ RETURN: Complete readable content from this document."""
                                 
                                 text_content = []
                                 total_content_size = 0
-                                MAX_CONTENT_SIZE = 200000  # Reduced to 200KB per document to prevent Gemini blocks
+                                MAX_CONTENT_SIZE = 800000  # Increased to 800KB per document for better Excel coverage
                                 
                                 for sheet_name, df in all_sheets.items():
                                     text_content.append(f"=== SHEET: {sheet_name} ===")
@@ -1665,8 +1474,8 @@ RETURN: Complete readable content from this document."""
         
         logging.info(f"STEP 1 COMPLETE: Processed {processed_docs} documents, extracted total of {len(extracted_content_text)} characters from all documents")
         
-        # Check total content size and truncate if needed to prevent Gemini API blocks
-        MAX_TOTAL_CONTENT = 500000  # Reduced to 500KB to prevent Gemini API blocks
+        # Check total content size and truncate if needed to prevent timeouts
+        MAX_TOTAL_CONTENT = 2500000  # Increased to 2.5MB total limit for very large Excel processing
         if len(extracted_content_text) > MAX_TOTAL_CONTENT:
             logging.warning(f"Total content size ({len(extracted_content_text)} chars) exceeds limit ({MAX_TOTAL_CONTENT}), truncating...")
             extracted_content_text = extracted_content_text[:MAX_TOTAL_CONTENT] + "\n\n[CONTENT TRUNCATED - Document set too large for single processing]"
@@ -1677,11 +1486,6 @@ RETURN: Complete readable content from this document."""
         # STEP 2: DATA EXTRACTION FROM CONTENT
         logging.info(f"=== STEP 2: DATA EXTRACTION ===")
         logging.info(f"Making data extraction call with {len(extracted_content_text)} characters of extracted content")
-        
-        # Save prompt to debug info immediately before AI call - this ensures debug info is saved even if extraction fails
-        logging.info("MODAL_EXTRACTION: Saving prompt to debug info before AI call")
-        debug_prompt = final_prompt
-        debug_session_id = input_data.get('session_id')
         
         # Retry logic for API overload situations in data extraction
         max_retries = 3
@@ -1707,81 +1511,10 @@ RETURN: Complete readable content from this document."""
                     retry_delay *= 2  # Exponential backoff
                     continue
                 else:
-                    # AI generation failed - return debug info
-                    logging.error(f"AI generation failed after {attempt + 1} attempts: {e}")
-                    return ExtractionResult(
-                        success=False, 
-                        error_message=f"AI generation failed: {str(e)}",
-                        extraction_prompt=debug_prompt,
-                        ai_response=None,
-                        input_token_count=None,
-                        output_token_count=None
-                    )
+                    raise e  # Re-raise if not overload error or final attempt
         
-        # Better response validation and error handling
-        if not response:
-            return ExtractionResult(
-                success=False, 
-                error_message="No response from AI",
-                extraction_prompt=debug_prompt,
-                ai_response=None,
-                input_token_count=None,
-                output_token_count=None
-            )
-        
-        # Check if response has candidates and they have content
-        if not hasattr(response, 'candidates') or not response.candidates:
-            return ExtractionResult(
-                success=False, 
-                error_message="No candidates in AI response",
-                extraction_prompt=debug_prompt,
-                ai_response=None,
-                input_token_count=None,
-                output_token_count=None
-            )
-        
-        # Check finish reason
-        candidate = response.candidates[0]
-        if hasattr(candidate, 'finish_reason') and candidate.finish_reason != 1:
-            finish_reason_map = {
-                1: "STOP (Natural completion)",
-                2: "MAX_TOKENS (Token limit reached)",
-                3: "SAFETY (Content blocked)",
-                4: "RECITATION (Repeated content)",
-                5: "OTHER (Other reason)"
-            }
-            finish_reason_text = finish_reason_map.get(candidate.finish_reason, f"Unknown ({candidate.finish_reason})")
-            
-            return ExtractionResult(
-                success=False, 
-                error_message=f"AI response blocked or incomplete. Finish reason: {finish_reason_text}. This usually means the prompt is too long or contains filtered content.",
-                extraction_prompt=debug_prompt,
-                ai_response=f"Response blocked - Finish reason: {finish_reason_text}",
-                input_token_count=None,
-                output_token_count=None
-            )
-        
-        # Try to get text content safely
-        try:
-            response_text = response.text
-            if not response_text:
-                return ExtractionResult(
-                    success=False, 
-                    error_message="Empty response from AI",
-                    extraction_prompt=debug_prompt,
-                    ai_response="Empty response",
-                    input_token_count=None,
-                    output_token_count=None
-                )
-        except Exception as e:
-            return ExtractionResult(
-                success=False, 
-                error_message=f"Error accessing response text: {str(e)}",
-                extraction_prompt=debug_prompt,
-                ai_response=f"Error accessing response: {str(e)}",
-                input_token_count=None,
-                output_token_count=None
-            )
+        if not response or not response.text:
+            return ExtractionResult(success=False, error_message="No response from AI")
         
         # Extract token usage information
         input_token_count = None
@@ -1976,25 +1709,11 @@ RETURN: Complete readable content from this document."""
         except json.JSONDecodeError as e:
             logging.error(f"Failed to parse AI response as JSON: {e}")
             logging.error(f"Cleaned response: {response_text}")
-            return ExtractionResult(
-                success=False, 
-                error_message=f"Invalid JSON response: {e}",
-                extraction_prompt=debug_prompt,
-                ai_response=response_text if 'response_text' in locals() else None,
-                input_token_count=input_token_count if 'input_token_count' in locals() else None,
-                output_token_count=output_token_count if 'output_token_count' in locals() else None
-            )
+            return ExtractionResult(success=False, error_message=f"Invalid JSON response: {e}")
             
     except Exception as e:
         logging.error(f"STEP 1 extraction failed: {e}")
-        return ExtractionResult(
-            success=False, 
-            error_message=str(e),
-            extraction_prompt=debug_prompt if 'debug_prompt' in locals() else None,
-            ai_response=None,
-            input_token_count=None,
-            output_token_count=None
-        )
+        return ExtractionResult(success=False, error_message=str(e))
 
 # Validation function removed - validation now occurs only during extraction process
 
@@ -2012,7 +1731,7 @@ if __name__ == "__main__":
         
         # Log parsed data structure
         logging.info(f"PARSED INPUT KEYS: {list(input_data.keys())}")
-        operation = input_data.get("step", input_data.get("operation", input_data.get("mode", "extract")))
+        operation = input_data.get("step", input_data.get("operation", "extract"))
         
         if operation == "extract_text_only":
             # Extract text from documents without AI analysis
@@ -2092,42 +1811,19 @@ if __name__ == "__main__":
                 "extracted_texts": extracted_texts
             }))
             
-        elif operation in ["extract", "extract_additional", "modal_extraction"]:
-            # Extract from documents (regular, additional, or modal extraction)
-            documents = input_data.get("files", input_data.get("documents", input_data.get("session_documents", [])))  # Support multiple parameter names
-            
-            # Handle different data structures for modal extraction vs regular extraction
-            if operation == "modal_extraction":
-                # Modal extraction sends data directly at root level
-                project_schema = {
-                    "schema_fields": input_data.get("schema_fields", []),
-                    "collections": input_data.get("collections", [])
-                }
-                extraction_rules = input_data.get("extraction_rules", [])
-                knowledge_documents = input_data.get("knowledge_documents", [])
-                validated_data_context = {}  # Build from existing_field_validations
-                existing_validations = input_data.get("existing_field_validations", [])
-                
-                # Convert existing validations to validated_data_context format
-                for validation in existing_validations:
-                    field_key = validation.get('field_name', 'Unknown')
-                    validated_data_context[field_key] = validation
-                    
-                extraction_notes = input_data.get("additional_instructions", "")
-                is_subsequent_upload = False
-            else:
-                # Regular extraction uses nested project_schema structure
-                project_schema = input_data.get("project_schema", {})
-                extraction_rules = input_data.get("extraction_rules", [])
-                knowledge_documents = input_data.get("knowledge_documents", [])
-                validated_data_context = input_data.get("validated_data_context", {})
-                extraction_notes = input_data.get("extraction_notes", "")
-                is_subsequent_upload = input_data.get("is_subsequent_upload", False)
-                
+        elif operation in ["extract", "extract_additional"]:
+            # Extract from documents (regular or additional)
+            documents = input_data.get("files", input_data.get("documents", []))  # Support both parameter names
+            project_schema = input_data.get("project_schema", {})
+            extraction_rules = input_data.get("extraction_rules", [])
+            knowledge_documents = input_data.get("knowledge_documents", [])
             session_name = input_data.get("session_name", "contract")
+            validated_data_context = input_data.get("validated_data_context", {})  # New context for subsequent uploads
+            extraction_notes = input_data.get("extraction_notes", "")  # Special extraction instructions
+            is_subsequent_upload = input_data.get("is_subsequent_upload", False)  # Flag for upload type
             
             # Call the extraction function with new parameters
-            result = step1_extract_from_documents(documents, project_schema, extraction_rules, knowledge_documents, session_name, validated_data_context, extraction_notes, is_subsequent_upload, operation, input_data)
+            result = step1_extract_from_documents(documents, project_schema, extraction_rules, knowledge_documents, session_name, validated_data_context, extraction_notes, is_subsequent_upload)
             
             if result.success:
                 print(json.dumps({

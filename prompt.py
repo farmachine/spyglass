@@ -13,9 +13,8 @@ EXTRACTION_PROMPT = """You are an expert data extraction specialist. Extract dat
 8. APPLY EXTRACTION RULES - Rules modify extraction behavior, formatting, and validation
 9. **USE KNOWLEDGE DOCUMENTS**: When knowledge_documents are listed for a field/collection/property, use ONLY those specific documents for validation and context
 10. **COLLECTION EXTRACTION**: For collections, create separate items with unique record_index values (0, 1, 2, etc.)
-11. **IDENTIFIER-FIRST WORKFLOW**: When extracting collections, always extract identifier properties first to establish item identity, then extract remaining properties to complete each record
-12. Return JSON with real extracted values only - do not create empty placeholder records
-13. **PRIORITIZE QUALITY**: If you must choose between quantity and completeness due to the 100-record limit, prioritize complete, accurate records
+11. Return JSON with real extracted values only - do not create empty placeholder records
+12. **PRIORITIZE QUALITY**: If you must choose between quantity and completeness due to the 100-record limit, prioritize complete, accurate records
 
 ## KNOWLEDGE DOCUMENT TARGETING:
 - **Field-Specific Targeting**: Each field/collection/property has a knowledge_documents array listing which documents apply to it
@@ -35,16 +34,9 @@ EXTRACTION_PROMPT = """You are an expert data extraction specialist. Extract dat
 
 ### Extraction Strategy:
 1. **Find Related Sections**: Look for document sections, tables, or lists containing collection items
-2. **Prioritize Identifier Properties**: ALWAYS extract identifier properties FIRST for each collection item to establish the unique identity and enable proper item creation/updating
-3. **Extract Systematically**: Process items in order, maintaining completeness within the 100-record limit
-4. **Map Properties**: Match document content to schema properties using headers and context
-5. **Complete Non-Identifier Properties**: After establishing identifiers, extract all remaining properties for each collection item
-6. **Prioritize Complete Records**: Ensure each collection item has all required properties filled
-
-### Identifier-First Processing:
-- **Step 1**: For each collection, identify and extract all identifier properties first (these create the collection item records)
-- **Step 2**: For each established collection item, extract all non-identifier properties to complete the record
-- **Benefit**: This approach ensures proper collection item creation and prevents orphaned or incomplete records
+2. **Extract Systematically**: Process items in order, maintaining completeness within the 100-record limit
+3. **Map Properties**: Match document content to schema properties using headers and context
+4. **Prioritize Complete Records**: Ensure each collection item has all required properties filled
 
 ## DOCUMENT SET ANALYSIS: 
 You are processing multiple documents simultaneously. Extract comprehensively from the entire document set.
@@ -112,9 +104,8 @@ Provide clear, concise explanations that include:
 
 **EXTRACTION PRIORITY ORDER:**
 1. All schema fields first (highest priority)
-2. For each collection: Extract ALL identifier properties first to establish collection items
-3. For each established collection item: Extract all non-identifier properties to complete the record
-4. If space allows, additional collection items following the same identifier-first approach
+2. Complete collection items in order of importance
+3. If space allows, additional collection items with all properties
 
 **CRITICAL**: 
 1. Use the EXACT field_id values provided in the schema above. Do not generate your own field IDs.

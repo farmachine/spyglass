@@ -1,7 +1,7 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import type { FieldValidation, ExtractionSession, ProjectSchemaField, ObjectCollection, CollectionProperty } from "@shared/schema";
 
-const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 interface ChatContext {
   session: ExtractionSession;
@@ -101,14 +101,15 @@ FORMATTING GUIDELINES:
 
 Keep responses concise and focused on the user's question. Use the session data to provide accurate, specific information about ALL available data.`;
 
-    const model = ai.getGenerativeModel({ 
+    const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      systemInstruction: systemPrompt,
+      config: {
+        systemInstruction: systemPrompt,
+      },
+      contents: message,
     });
 
-    const response = await model.generateContent(message);
-
-    return response.response?.candidates?.[0]?.content?.parts?.[0]?.text || "I apologize, but I couldn't generate a response. Please try again.";
+    return response.text || "I apologize, but I couldn't generate a response. Please try again.";
   } catch (error) {
     console.error("Chat AI response error:", error);
     return "I'm having trouble processing your request right now. Please try again in a moment.";

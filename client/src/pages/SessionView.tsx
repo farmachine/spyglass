@@ -3060,7 +3060,7 @@ Thank you for your assistance.`;
                             size="sm"
                             onClick={() => handleOpenAIExtraction(
                               collection.collectionName,
-                              collection.properties?.filter(prop => !prop.isIdentifier).map(prop => ({
+                              collection.properties?.map(prop => ({
                                 id: prop.id,
                                 name: prop.propertyName,
                                 type: prop.propertyType
