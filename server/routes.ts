@@ -5011,13 +5011,24 @@ Return JSON in this format:
           count: fieldValidations.length
         });
 
-      } catch (error) {
+      } catch (error: any) {
         console.error('MODAL_EXTRACTION: Gemini API error:', error);
-        res.status(500).json({
-          success: false,
-          message: 'Failed to extract data',
-          error: error.message
-        });
+        
+        // Handle quota/rate limit errors specifically
+        if (error.status === 429 || error.message?.includes('quota') || error.message?.includes('RESOURCE_EXHAUSTED')) {
+          res.status(429).json({
+            success: false,
+            message: 'API quota exceeded',
+            error: 'The Google API quota has been exceeded. Please check your billing details or wait for the quota to reset.',
+            isQuotaError: true
+          });
+        } else {
+          res.status(500).json({
+            success: false,
+            message: 'Failed to extract data',
+            error: error.message
+          });
+        }
       }
 
     } catch (error) {
