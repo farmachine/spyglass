@@ -387,12 +387,17 @@ const AIExtractionModal = ({
     
     console.log('Selected Target Field Objects:', JSON.stringify(selectedTargetFieldObjects, null, 2));
 
-    // Find extraction rules that target the selected fields
+    // Find extraction rules that target the selected fields or are global rules
     const matchingRules = extractionRules.filter((rule: any) => {
+      const targetField = rule.targetField || '';
+      
+      // Include global rules (rules with blank/null target field)
+      if (!targetField.trim()) {
+        return true;
+      }
+      
       // Check if any selected field matches the rule's target field
       return selectedTargetFieldObjects.some((field: any) => {
-        const targetField = rule.targetField || '';
-        
         // For schema fields, match by fieldName
         if (field.fieldName && targetField.includes(field.fieldName)) {
           return true;
@@ -410,7 +415,15 @@ const AIExtractionModal = ({
       });
     });
 
-    console.log('Matching Extraction Rules:', JSON.stringify(matchingRules, null, 2));
+    // Separate targeted and global rules for clearer logging
+    const targetedRules = matchingRules.filter((rule: any) => rule.targetField?.trim());
+    const globalRules = matchingRules.filter((rule: any) => !rule.targetField?.trim());
+    
+    console.log('Matching Extraction Rules:', JSON.stringify({
+      targeted: targetedRules,
+      global: globalRules,
+      total: matchingRules.length
+    }, null, 2));
   };
 
   // Organize fields by category
