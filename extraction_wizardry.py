@@ -103,16 +103,23 @@ def run_wizardry_with_gemini_analysis(data=None):
             print(json.dumps(documents))
             return
         
-        # Extract field descriptions from the target fields data (no database query needed)
+        # Extract complete field data from the target fields (no database query needed)
         target_fields_data = []
         if target_fields:
             for field in target_fields:
-                target_fields_data.append({
+                field_data = {
                     "field_id": field.get('id', ''),
                     "name": field.get('propertyName') or field.get('fieldName', ''),
                     "description": field.get('description', ''),
+                    "property_type": field.get('propertyType') or field.get('fieldType', ''),
+                    "auto_verification_confidence": field.get('autoVerificationConfidence', 80),
+                    "choice_options": field.get('choiceOptions', []),
+                    "is_identifier": field.get('isIdentifier', False),
+                    "order_index": field.get('orderIndex', 0),
+                    "collection_id": field.get('collectionId', ''),
                     "type": "collection_property" if field.get('collectionId') else "schema_field"
-                })
+                }
+                target_fields_data.append(field_data)
         
         # Analyze document formats with Gemini
         gemini_response = analyze_document_format_with_gemini(documents, target_fields_data)
