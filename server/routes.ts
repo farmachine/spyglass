@@ -4949,7 +4949,7 @@ Return JSON in this format:
       // Call Gemini API directly
       try {
         const { GoogleGenAI } = await import('@google/genai');
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+        const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY });
 
         const response = await ai.models.generateContent({
           model: "gemini-2.5-pro",
@@ -4961,8 +4961,14 @@ Return JSON in this format:
 
         const aiResponse = response.text;
         console.log('MODAL_EXTRACTION: AI response length:', aiResponse?.length || 0);
+        console.log('MODAL_EXTRACTION: Response object:', JSON.stringify({
+          candidates: response.candidates?.length || 0,
+          hasText: !!response.text,
+          responseKeys: Object.keys(response)
+        }));
 
         if (!aiResponse || aiResponse.trim() === '') {
+          console.log('MODAL_EXTRACTION: Full response object:', JSON.stringify(response, null, 2));
           throw new Error('Empty response from AI');
         }
 
