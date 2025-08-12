@@ -124,14 +124,14 @@ def analyze_document_format_with_gemini(documents, target_fields_data=None):
         # Initialize Gemini client
         client = genai.Client(api_key=api_key)
         
-        # Build prompt with documents and target fields
-        prompt_content = f"Documents to analyze:\n{json.dumps(documents, indent=2)}"
+        # Use centralized prompt from all_prompts.py with both placeholders
+        documents_content = json.dumps(documents, indent=2)
+        target_fields_content = json.dumps(target_fields_data, indent=2) if target_fields_data and not isinstance(target_fields_data, dict) else "No target fields provided"
         
-        if target_fields_data and not isinstance(target_fields_data, dict):
-            prompt_content += f"\n\nTarget Fields for Extraction:\n{json.dumps(target_fields_data, indent=2)}"
-        
-        # Use centralized prompt from all_prompts.py
-        prompt = DOCUMENT_FORMAT_ANALYSIS.format(documents=prompt_content)
+        prompt = DOCUMENT_FORMAT_ANALYSIS.format(
+            documents=documents_content,
+            target_fields=target_fields_content
+        )
         
         # Call Gemini API
         response = client.models.generate_content(
