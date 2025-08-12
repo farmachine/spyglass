@@ -4683,12 +4683,18 @@ print(json.dumps(results))
           });
         }
         
-        // Return the output directly as it's already formatted by Python
-        res.json({ 
-          message: "Document properties printed successfully",
-          output: output.trim(),
-          success: true
-        });
+        try {
+          // Try to parse the JSON output from Python and return it directly
+          const parsedOutput = JSON.parse(output.trim());
+          res.json(parsedOutput);
+        } catch (parseError) {
+          // If parsing fails, return the raw output
+          res.json({ 
+            message: "Document properties printed successfully",
+            output: output.trim(),
+            success: true
+          });
+        }
       });
       
     } catch (error) {
