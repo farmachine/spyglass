@@ -456,28 +456,63 @@ export default function DefineData({ project }: DefineDataProps) {
         </div>
       )}
 
-      {/* Tab-Based Data Structure Layout */}
+      {/* Sidebar-Based Data Structure Layout */}
       {allDataItems.length > 0 && (
-        <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="main-data" className="w-full folder-tabs">
-          <TabsList className="w-full justify-start tabs-list">
-            <TabsTrigger value="main-data" className="tabs-trigger">{project.mainObjectName || "Session"} Data</TabsTrigger>
-            {safeCollections.map((collection) => (
-              <TabsTrigger key={collection.id} value={collection.collectionName} className="tabs-trigger">
-                {collection.collectionName}
-              </TabsTrigger>
-            ))}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setCollectionDialog({ open: true, collection: null })}
-              className="h-10 px-3 rounded-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </TabsList>
+        <div className="flex h-[calc(100vh-200px)] border border-gray-200 rounded-lg overflow-hidden">
+          {/* Left Sidebar */}
+          <div className="w-64 bg-slate-50 border-r border-slate-200 flex-shrink-0">
+            <div className="p-4">
+              <nav className="space-y-1">
+                {/* Main Data Tab */}
+                <button
+                  onClick={() => setActiveTab('main-data')}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
+                    activeTab === 'main-data'
+                      ? "bg-primary text-white font-medium shadow-sm"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
+                  }`}
+                >
+                  <Database className={`h-4 w-4 ${
+                    activeTab === 'main-data' ? "text-white" : "text-slate-500"
+                  }`} />
+                  {project.mainObjectName || "Session"} Data
+                </button>
+
+                {/* Collection Tabs */}
+                {safeCollections.map((collection) => (
+                  <button
+                    key={collection.id}
+                    onClick={() => setActiveTab(collection.collectionName)}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
+                      activeTab === collection.collectionName
+                        ? "bg-primary text-white font-medium shadow-sm"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
+                    }`}
+                  >
+                    <Tag className={`h-4 w-4 ${
+                      activeTab === collection.collectionName ? "text-white" : "text-slate-500"
+                    }`} />
+                    {collection.collectionName}
+                  </button>
+                ))}
+
+                {/* Add Collection Button */}
+                <button
+                  onClick={() => setCollectionDialog({ open: true, collection: null })}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal border-2 border-dashed border-slate-300 hover:border-slate-400 mt-2"
+                >
+                  <Plus className="h-4 w-4 text-slate-500" />
+                  Add Collection
+                </button>
+              </nav>
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="flex-1 overflow-auto bg-white p-6">
 
           {/* Main Data Tab Content */}
-          <TabsContent value="main-data" className="mt-0 px-0 ml-0">
+          {activeTab === 'main-data' && (
             <Card className="border-t-0 rounded-tl-none ml-0">
               <CardHeader>
                 <div className="space-y-3">
@@ -706,11 +741,11 @@ export default function DefineData({ project }: DefineDataProps) {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          )}
 
           {/* Individual Collection Tabs */}
-          {safeCollections.map((collection) => (
-            <TabsContent key={collection.id} value={collection.collectionName} className="mt-0 px-0 ml-0">
+          {safeCollections.map((collection) => activeTab === collection.collectionName && (
+            <div key={collection.id}>
               <Card className="border-t-0 rounded-tl-none ml-0">
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -794,9 +829,11 @@ export default function DefineData({ project }: DefineDataProps) {
                   />
                 </CardContent>
               </Card>
-            </TabsContent>
+            </div>
           ))}
-        </Tabs>
+          
+          </div>
+        </div>
       )}
 
       {/* Dialogs */}
