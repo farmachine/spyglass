@@ -142,16 +142,16 @@ export function useCollectionProperties(collectionId: string) {
 // Get all properties for all collections in a project (for target fields)
 export function useAllProjectProperties(projectId: string) {
   return useQuery({
-    queryKey: ["/api/projects", projectId, "all-properties", Date.now()],
+    queryKey: ["/api/projects", projectId, "all-properties"],
     queryFn: async () => {
       // First get all collections for the project
-      const collections = await apiRequest(`/api/projects/${projectId}/collections?_t=${Date.now()}`);
+      const collections = await apiRequest(`/api/projects/${projectId}/collections`);
       
       // Then get properties for each collection
       const allProperties = [];
       for (const collection of collections) {
         try {
-          const properties = await apiRequest(`/api/collections/${collection.id}/properties?_t=${Date.now()}`);
+          const properties = await apiRequest(`/api/collections/${collection.id}/properties`);
           console.log(`DEBUG HOOK: Collection ${collection.collectionName} (${collection.id}) received properties:`, properties.map(p => ({
             id: p.id,
             propertyName: p.propertyName,
@@ -180,8 +180,6 @@ export function useAllProjectProperties(projectId: string) {
       return allProperties;
     },
     enabled: !!projectId,
-    staleTime: 0, // Always fetch fresh data
-    gcTime: 0,    // Don't cache results
   });
 }
 
