@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Upload, Database, Brain, Settings, FolderOpen, Home as HomeIcon, TrendingUp, Edit3, Check, X, AlertTriangle, CheckCircle, User, List } from "lucide-react";
+import { ArrowLeft, Upload, Database, Brain, Settings, FolderOpen, Home as HomeIcon, TrendingUp, Edit3, Check, X, AlertTriangle, CheckCircle, User, List, Plus } from "lucide-react";
 import { WaveIcon, FlowIcon, StreamIcon, TideIcon, ShipIcon, DropletIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,6 +33,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<ActiveTab>("data");
   const [schemaActiveTab, setSchemaActiveTab] = useState<string>("main-data");
+  const [addCollectionCallback, setAddCollectionCallback] = useState<(() => void) | null>(null);
   const { data: project, isLoading, error } = useProject(projectId);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -310,7 +311,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       case "knowledge":
         return <KnowledgeRules project={project} />;
       case "define":
-        return <DefineData project={project} activeTab={schemaActiveTab} onTabChange={setSchemaActiveTab} />;
+        return <DefineData project={project} activeTab={schemaActiveTab} onTabChange={setSchemaActiveTab} onSetAddCollectionCallback={setAddCollectionCallback} />;
       case "publishing":
         return <Publishing project={project} />;
       default:
@@ -472,7 +473,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       {/* Main Content - Full Width */}
       <div className="flex h-[calc(100vh-168px)]">
         {/* Sidebar */}
-        <div className="w-64 bg-slate-50 border-r border-slate-200">
+        <div className="w-72 bg-slate-50 border-r border-slate-200">
           <div className="p-4">
             <nav className="space-y-0.5">
               {navItems.map((item) => {
@@ -546,6 +547,19 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                       {collection.collectionName}
                     </button>
                   ))}
+
+                  {/* Add List Button */}
+                  <button
+                    onClick={() => {
+                      if (addCollectionCallback) {
+                        addCollectionCallback();
+                      }
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-600 transition-all duration-200"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add List
+                  </button>
                 </nav>
               </div>
             )}

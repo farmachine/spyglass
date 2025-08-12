@@ -48,9 +48,10 @@ interface DefineDataProps {
   project: ProjectWithDetails;
   activeTab: string;
   onTabChange: (tab: string) => void;
+  onSetAddCollectionCallback?: (callback: () => void) => void;
 }
 
-export default function DefineData({ project, activeTab, onTabChange }: DefineDataProps) {
+export default function DefineData({ project, activeTab, onTabChange, onSetAddCollectionCallback }: DefineDataProps) {
   const [schemaFieldDialog, setSchemaFieldDialog] = useState<{ open: boolean; field?: ProjectSchemaField | null }>({ open: false });
   const [collectionDialog, setCollectionDialog] = useState<{ open: boolean; collection?: ObjectCollection | null }>({ open: false });
   const [propertyDialog, setPropertyDialog] = useState<{ open: boolean; property?: CollectionProperty | null; collectionId?: string; collectionName?: string }>({ open: false });
@@ -70,6 +71,15 @@ export default function DefineData({ project, activeTab, onTabChange }: DefineDa
     setMainObjectName(project.mainObjectName || "Session");
     setMainObjectDescription(project.mainObjectDescription || "");
   }, [project.mainObjectName, project.mainObjectDescription]);
+
+  // Set up the add collection callback for the sidebar
+  useEffect(() => {
+    if (onSetAddCollectionCallback) {
+      onSetAddCollectionCallback(() => {
+        setCollectionDialog({ open: true, collection: null });
+      });
+    }
+  }, [onSetAddCollectionCallback]);
   
   // AI Query state
   const [aiQuery, setAiQuery] = useState("");
