@@ -4976,18 +4976,27 @@ ${additionalInstructions}
           responseKeys: Object.keys(response)
         }));
 
-        // Save debug information even if AI response is empty
+        if (!aiResponse || aiResponse.trim() === '') {
+          console.log('MODAL_EXTRACTION: Full response object:', JSON.stringify(response, null, 2));
+          
+          // Save debug information even for empty AI response
+          await storage.updateExtractionSession(sessionId, {
+            extractionPrompt: prompt,
+            aiResponse: 'Empty response from AI - Model returned no text content',
+            inputTokenCount: response.response?.usageMetadata?.promptTokenCount || null,
+            outputTokenCount: response.response?.usageMetadata?.totalTokenCount || null
+          });
+          
+          throw new Error('Empty response from AI');
+        }
+
+        // Save debug information for successful response
         await storage.updateExtractionSession(sessionId, {
           extractionPrompt: prompt,
-          aiResponse: aiResponse || 'Empty response from AI',
+          aiResponse: aiResponse,
           inputTokenCount: response.response?.usageMetadata?.promptTokenCount || null,
           outputTokenCount: response.response?.usageMetadata?.totalTokenCount || null
         });
-
-        if (!aiResponse || aiResponse.trim() === '') {
-          console.log('MODAL_EXTRACTION: Full response object:', JSON.stringify(response, null, 2));
-          throw new Error('Empty response from AI');
-        }
 
         let result;
         try {
@@ -5085,6 +5094,19 @@ ${additionalInstructions}
 
       } catch (error) {
         console.error('MODAL_EXTRACTION: Gemini API error:', error);
+        
+        // Save debug information even when Gemini API fails
+        try {
+          await storage.updateExtractionSession(sessionId, {
+            extractionPrompt: prompt,
+            aiResponse: `Gemini API Error: ${error.message}`,
+            inputTokenCount: null,
+            outputTokenCount: null
+          });
+        } catch (debugSaveError) {
+          console.error('MODAL_EXTRACTION: Failed to save debug info:', debugSaveError);
+        }
+        
         res.status(500).json({
           success: false,
           message: 'Failed to extract data',
