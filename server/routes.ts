@@ -5063,13 +5063,13 @@ print(json.dumps(result))
           if (schemaField) {
             // This is a schema field (global field)
             console.log('MODAL_EXTRACTION: Saving schema field validation:', validation.field_id);
-            await storage.createOrUpdateFieldValidation(sessionId, {
+            await storage.createFieldValidation({
+              sessionId: sessionId,
               fieldId: validation.field_id,
               extractedValue: validation.extracted_value || '',
               confidence: confidence,
               isVerified: false,
-              collectionId: null,
-              collectionRecordIndex: null
+              validationType: 'schema_field'
             });
           } else {
             // This might be a collection property - find the collection and property
@@ -5082,18 +5082,24 @@ print(json.dumps(result))
                 console.log('MODAL_EXTRACTION: Saving collection property validation:', validation.field_id, 'for collection:', collection.id);
                 
                 // Find the highest existing record index for this collection to avoid duplicates
-                const existingRecords = existing_validations.filter(v => v.collectionId === collection.id);
+                const collectionName = collection.collectionName || collection.name || 'Unknown Collection';
+                const existingRecords = existing_validations.filter(v => 
+                  v.validationType === 'collection_property' && 
+                  (v.collectionName === collectionName || v.collectionId === collection.id)
+                );
                 const maxIndex = existingRecords.length > 0 
-                  ? Math.max(...existingRecords.map(v => v.collectionRecordIndex || 0))
+                  ? Math.max(...existingRecords.map(v => v.recordIndex || v.collectionRecordIndex || 0))
                   : -1;
                 
-                await storage.createOrUpdateFieldValidation(sessionId, {
+                await storage.createFieldValidation({
+                  sessionId: sessionId,
                   fieldId: validation.field_id,
                   extractedValue: validation.extracted_value || '',
                   confidence: confidence,
                   isVerified: false,
-                  collectionId: collection.id,
-                  collectionRecordIndex: validation.collection_record_index !== undefined 
+                  validationType: 'collection_property',
+                  collectionName: collection.collectionName || collection.name || 'Unknown Collection',
+                  recordIndex: validation.collection_record_index !== undefined 
                     ? validation.collection_record_index 
                     : maxIndex + 1
                 });
