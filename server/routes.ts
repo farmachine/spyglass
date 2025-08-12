@@ -4775,8 +4775,8 @@ print(json.dumps(result))
       const sessionId = req.params.sessionId;
       const { 
         selectedDocuments, 
-        selectedVerifiedFields, 
-        selectedTargetFields, 
+        referenceData: selectedVerifiedFields, 
+        targetFields: selectedTargetFields, 
         additionalInstructions 
       } = req.body;
 
@@ -4801,7 +4801,7 @@ print(json.dumps(result))
       // Get session documents for content extraction
       const sessionDocuments = await storage.getSessionDocuments(sessionId);
       const selectedDocumentContents = sessionDocuments
-        .filter(doc => selectedDocuments.includes(doc.id))
+        .filter(doc => (selectedDocuments || []).includes(doc.id))
         .map(doc => ({
           filename: doc.originalName || doc.filename || doc.name || `Document ${doc.id.slice(0, 8)}`,
           file_content: doc.extractedContent || doc.extractedText || doc.content || '',
@@ -4819,7 +4819,7 @@ print(json.dumps(result))
       const allValidations = await storage.getFieldValidations(sessionId);
       const selectedVerifiedValidations = allValidations.filter(validation => 
         validation.validationStatus === 'verified' && 
-        selectedVerifiedFields.includes(validation.fieldId)
+        (selectedVerifiedFields || []).includes(validation.fieldId)
       );
 
       console.log('MODAL_EXTRACTION: Selected verified validations:', selectedVerifiedValidations.length);
@@ -4872,7 +4872,7 @@ print(json.dumps(result))
         )
       ];
 
-      const selectedTargetFieldsData = allProjectFields.filter(field => selectedTargetFields.includes(field.id));
+      const selectedTargetFieldsData = allProjectFields.filter(field => (selectedTargetFields || []).includes(field.id));
       
       console.log('MODAL_EXTRACTION: Selected target fields:', selectedTargetFieldsData.map(f => ({ 
         id: f.id, 
@@ -4885,7 +4885,7 @@ print(json.dumps(result))
 
       // Get reference data from existing validations
       const referenceValidations = await storage.getFieldValidations(sessionId);
-      const referenceData = selectedVerifiedFields.map(fieldId => {
+      const referenceData = (selectedVerifiedFields || []).map(fieldId => {
         const validation = referenceValidations.find(v => v.fieldId === fieldId);
         return validation ? `${validation.fieldName}: ${validation.extractedValue}` : '';
       }).filter(Boolean).join('\n');
