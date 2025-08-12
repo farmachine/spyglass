@@ -316,7 +316,7 @@ export default function AllData({ project }: AllDataProps) {
               <p className="mt-1 text-sm text-gray-500">
                 Click "New {project.mainObjectName || "Session"}" to create your first extraction session
               </p>
-              <div className="mt-4">
+              <div className="mt-4 flex justify-center">
                 <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
                   <DialogTrigger asChild>
                     <Button 
