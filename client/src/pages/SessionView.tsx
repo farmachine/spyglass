@@ -427,6 +427,33 @@ const AIExtractionModal = ({
       global: globalRules,
       total: matchingRules.length
     }, null, 2));
+
+    // Call the extraction wizardry Python script
+    try {
+      const extractionData = {
+        selectedDocuments: selectedDocumentInfo,
+        selectedFields: selectedTargetFieldObjects,
+        extractionRules: {
+          targeted: targetedRules,
+          global: globalRules,
+          total: matchingRules.length
+        },
+        additionalInstructions: additionalInstructions
+      };
+
+      const response = await fetch('/api/run-extraction-wizard', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(extractionData)
+      });
+
+      const result = await response.json();
+      console.log('Extraction Wizardry Result:', result);
+    } catch (error) {
+      console.error('Error running extraction wizardry:', error);
+    }
   };
 
   // Organize fields by category
