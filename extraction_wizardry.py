@@ -1,6 +1,7 @@
 import json
 import sys
 import os
+import re
 import psycopg2
 from google import genai
 from all_prompts import DOCUMENT_FORMAT_ANALYSIS
@@ -32,10 +33,10 @@ def get_document_properties_from_db(document_ids, session_id):
         for row in results:
             doc_id, file_name, mime_type, extracted_content = row
             
-            # Create content preview (first 200 characters)
+            # Create content preview (full content for Excel extraction)
             content_preview = ""
             if extracted_content:
-                content_preview = extracted_content[:200] + "..." if len(extracted_content) > 200 else extracted_content
+                content_preview = extracted_content
             
             documents.append({
                 "id": doc_id,
@@ -127,7 +128,6 @@ def extract_excel_columns(documents, target_fields):
                     
                     # Split by multiple spaces/tabs to get individual column headers
                     # Use regex to split on multiple whitespace characters
-                    import re
                     columns = re.split(r'\s{2,}', header_line.strip())
                     
                     # Create extraction results for each column in this sheet
