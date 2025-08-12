@@ -2,6 +2,7 @@ import json
 import sys
 import os
 import psycopg2
+from google import genai
 
 def get_document_properties_from_db(document_ids, session_id):
     """Query session_documents table to get document properties"""
@@ -50,7 +51,75 @@ def get_document_properties_from_db(document_ids, session_id):
     except Exception as e:
         return {"error": f"Database query failed: {str(e)}"}
 
-def run_wizardry(data=None):
+def analyze_document_format_with_gemini(documents):
+    """Use Google Gemini to analyze document format from document properties"""
+    try:
+        # Get API key from environment
+        api_key = os.getenv('GEMINI_API_KEY')
+        if not api_key:
+            return {"error": "GEMINI_API_KEY not found"}
+        
+        # Initialize Gemini client
+        client = genai.Client(api_key=api_key)
+        
+        # Prepare document information for analysis
+        document_info = []
+        for doc in documents:
+            doc_summary = {
+                "name": doc.get("name", "Unknown"),
+                "type": doc.get("type", "unknown"),
+                "content_preview": doc.get("contentPreview", "")[:500]  # First 500 chars
+            }
+            document_info.append(doc_summary)
+        
+        # Create prompt for Gemini
+        prompt = f"""
+        Analyze these documents and determine their format. For each document, return ONLY one word: "Excel", "Word", or "PDF".
+        
+        Documents to analyze:
+        {json.dumps(document_info, indent=2)}
+        
+        For each document, respond with exactly one of these formats:
+        - Excel (for spreadsheets, .xlsx, .xls files)
+        - Word (for text documents, .docx, .doc files) 
+        - PDF (for PDF documents)
+        
+        Respond with a JSON array where each element corresponds to the format of each document in order.
+        Example: ["Excel", "PDF", "Word"]
+        """
+        
+        # Call Gemini API
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt
+        )
+        
+        # Parse response
+        if response.text:
+            try:
+                formats = json.loads(response.text.strip())
+                return {
+                    "document_formats": formats,
+                    "documents_analyzed": len(documents),
+                    "gemini_response": response.text.strip()
+                }
+            except json.JSONDecodeError:
+                # Fallback: try to extract formats from plain text response
+                text_response = response.text.strip()
+                return {
+                    "document_formats": text_response,
+                    "documents_analyzed": len(documents),
+                    "gemini_response": text_response,
+                    "note": "Could not parse as JSON, returning raw response"
+                }
+        else:
+            return {"error": "Empty response from Gemini"}
+            
+    except Exception as e:
+        return {"error": f"Gemini analysis failed: {str(e)}"}
+
+def run_wizardry_with_gemini_analysis(data=None):
+    """Main function that gets documents from DB and analyzes them with Gemini"""
     if data and isinstance(data, dict):
         document_ids = data.get('document_ids', [])
         session_id = data.get('session_id')
@@ -61,10 +130,28 @@ def run_wizardry(data=None):
         
         # Get document properties from database
         documents = get_document_properties_from_db(document_ids, session_id)
-        print(json.dumps(documents, indent=2))
+        
+        if isinstance(documents, dict) and "error" in documents:
+            print(json.dumps(documents))
+            return
+        
+        # Analyze document formats with Gemini
+        analysis_result = analyze_document_format_with_gemini(documents)
+        
+        # Combine document properties with Gemini analysis
+        result = {
+            "documents": documents,
+            "gemini_analysis": analysis_result
+        }
+        
+        print(json.dumps(result, indent=2))
         
     else:
         print(json.dumps({"error": "Invalid data format. Expected object with document_ids and session_id"}))
+
+def run_wizardry(data=None):
+    # Call the new function with Gemini analysis
+    run_wizardry_with_gemini_analysis(data)
 
 if __name__ == "__main__":
     # Read JSON data from stdin if available
