@@ -4236,7 +4236,7 @@ except Exception as e:
         documents: convertedFiles
       };
       
-      const python = spawn('python3', ['ai_extraction_simplified.py']);
+      const python = spawn('python3', ['document_extractor.py']);
       
       python.stdin.write(JSON.stringify(extractionData));
       python.stdin.end();
