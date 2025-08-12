@@ -280,6 +280,13 @@ const AIExtractionModal = ({
   const [isExtracting, setIsExtracting] = useState(false);
   const queryClient = useQueryClient();
 
+  // Fetch extraction rules for the project
+  const { data: extractionRules = [] } = useQuery({
+    queryKey: ["/api/projects", project?.id, "rules"],
+    queryFn: () => apiRequest(`/api/projects/${project?.id}/rules`),
+    enabled: !!project?.id
+  });
+
   const handleDocumentToggle = (docId: string) => {
     setSelectedDocuments(prev => 
       prev.includes(docId) 
@@ -370,6 +377,29 @@ const AIExtractionModal = ({
       }) || [];
     
     console.log('Selected Target Field Objects:', JSON.stringify(selectedTargetFieldObjects, null, 2));
+
+    // Find extraction rules that target the selected fields
+    const matchingRules = extractionRules.filter((rule: any) => {
+      // Check if any selected field matches the rule's target field
+      return selectedTargetFieldObjects.some((field: any) => {
+        // For schema fields, match by fieldName
+        if (field.fieldName && rule.targetField === field.fieldName) {
+          return true;
+        }
+        // For collection properties, match by propertyName
+        if (field.propertyName && rule.targetField === field.propertyName) {
+          return true;
+        }
+        // Also check by field name from availableFields
+        const originalField = availableFields.find(af => af.id === field.id);
+        if (originalField && rule.targetField === originalField.name) {
+          return true;
+        }
+        return false;
+      });
+    });
+
+    console.log('Matching Extraction Rules:', JSON.stringify(matchingRules, null, 2));
   };
 
   // Organize fields by category
