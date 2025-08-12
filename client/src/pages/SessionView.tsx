@@ -21,7 +21,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
 import ExtractlyLogo from "@/components/ExtractlyLogo";
 import ValidationIcon from "@/components/ValidationIcon";
 import UserProfile from "@/components/UserProfile";
@@ -278,7 +277,6 @@ const AIExtractionModal = ({
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['schema']));
   const [isExtracting, setIsExtracting] = useState(false);
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   const handleDocumentToggle = (docId: string) => {
     setSelectedDocuments(prev => 
@@ -363,27 +361,9 @@ const AIExtractionModal = ({
         setSelectedTargetFields([]);
         setAdditionalInstructions("");
         
-        // Success notification
-        toast({
-          title: "Extraction completed",
-          description: `Successfully extracted ${response.count || 0} field validations`,
-          variant: "default",
-        });
+        // Success notification could be added here
+        console.log(`Extraction completed successfully! Extracted ${response.extractedFieldsCount} fields.`);
       } else {
-        // Handle specific error types
-        if (response.isQuotaError) {
-          toast({
-            title: "API quota exceeded",
-            description: "The Google API quota has been exceeded. Please check your billing details or wait for the quota to reset.",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Extraction failed",
-            description: response.error || "An error occurred during extraction",
-            variant: "destructive",
-          });
-        }
         console.error('Extraction failed:', response.error);
       }
     } catch (error) {
