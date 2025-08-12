@@ -4969,6 +4969,7 @@ ${additionalInstructions}
 
         const aiResponse = response.response?.candidates?.[0]?.content?.parts?.[0]?.text;
         console.log('MODAL_EXTRACTION: AI response length:', aiResponse?.length || 0);
+        console.log('MODAL_EXTRACTION: Raw AI response:', aiResponse?.substring(0, 1000));
         console.log('MODAL_EXTRACTION: Response object:', JSON.stringify({
           candidates: response.response?.candidates?.length || 0,
           hasText: !!aiResponse,
