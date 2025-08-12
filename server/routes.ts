@@ -4976,6 +4976,14 @@ Return JSON in this format:
         const aiResponse = response.text;
         console.log('MODAL_EXTRACTION: AI response length:', aiResponse?.length || 0);
 
+        // Save the prompt and response to the session for debug purposes
+        await storage.updateSession(sessionId, {
+          extractionPrompt: prompt,
+          aiResponse: aiResponse || 'Empty response',
+          inputTokenCount: null, // We don't get token counts from this API
+          outputTokenCount: null
+        });
+
         if (!aiResponse || aiResponse.trim() === '') {
           throw new Error('Empty response from AI');
         }
