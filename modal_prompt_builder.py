@@ -172,7 +172,8 @@ Each field validation MUST include detailed ai_reasoning that explains:
 - For collections: Include collection_name and collection_record_index 
 - Confidence as integer percentage (0-100)
 - Include extraction_rules and knowledge_documents arrays for each field
-- Extract ALL items found, don't limit artificially
+- LIMIT OUTPUT TO MAXIMUM 100 field validations to prevent response overflow
+- Prioritize the most relevant and confident extractions if limiting is needed
 - If no data found for a field, use null value with confidence 0
 - AI reasoning is MANDATORY for every field validation"""
 
