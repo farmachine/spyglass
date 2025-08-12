@@ -5075,7 +5075,9 @@ print(json.dumps(result))
             // This might be a collection property - find the collection and property
             let found = false;
             for (const collection of project_data.collections || []) {
-              const property = collection.collection_properties.find(p => p.id === validation.field_id);
+              // Handle different collection property names (collection_properties vs properties)
+              const properties = collection.collection_properties || collection.properties || [];
+              const property = properties.find(p => p.id === validation.field_id);
               if (property) {
                 console.log('MODAL_EXTRACTION: Saving collection property validation:', validation.field_id, 'for collection:', collection.id);
                 
