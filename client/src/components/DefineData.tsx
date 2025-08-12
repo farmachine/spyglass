@@ -75,9 +75,10 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
   // Set up the add collection callback for the sidebar
   useEffect(() => {
     if (onSetAddCollectionCallback) {
-      onSetAddCollectionCallback(() => {
+      const handleAddCollection = () => {
         setCollectionDialog({ open: true, collection: null });
-      });
+      };
+      onSetAddCollectionCallback(handleAddCollection);
     }
   }, [onSetAddCollectionCallback]);
   

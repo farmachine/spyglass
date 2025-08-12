@@ -33,7 +33,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<ActiveTab>("data");
   const [schemaActiveTab, setSchemaActiveTab] = useState<string>("main-data");
-  const [addCollectionCallback, setAddCollectionCallback] = useState<(() => void) | null>(null);
+  const addCollectionCallbackRef = useRef<(() => void) | null>(null);
   const { data: project, isLoading, error } = useProject(projectId);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -311,7 +311,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       case "knowledge":
         return <KnowledgeRules project={project} />;
       case "define":
-        return <DefineData project={project} activeTab={schemaActiveTab} onTabChange={setSchemaActiveTab} onSetAddCollectionCallback={setAddCollectionCallback} />;
+        return <DefineData project={project} activeTab={schemaActiveTab} onTabChange={setSchemaActiveTab} onSetAddCollectionCallback={(callback) => { addCollectionCallbackRef.current = callback; }} />;
       case "publishing":
         return <Publishing project={project} />;
       default:
@@ -551,8 +551,8 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                   {/* Add List Button */}
                   <button
                     onClick={() => {
-                      if (addCollectionCallback) {
-                        addCollectionCallback();
+                      if (addCollectionCallbackRef.current) {
+                        addCollectionCallbackRef.current();
                       }
                     }}
                     className="w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-600 transition-all duration-200"
