@@ -4900,14 +4900,89 @@ print(json.dumps(result))
         validation_instructions: field.validationInstructions || ''
       }));
 
+      // Get extraction rules and knowledge documents for the project
+      const extractionRules = await storage.getExtractionRules(session.projectId);
+      const knowledgeDocuments = await storage.getKnowledgeDocuments(session.projectId);
+
+      // Format extraction rules for prompt
+      const extractionRulesText = extractionRules.length > 0 
+        ? extractionRules.map(rule => `**${rule.fieldName}**: ${rule.ruleDescription}`).join('\n')
+        : "No extraction rules defined for this project.";
+
+      // Format knowledge documents for prompt  
+      const knowledgeDocumentsText = knowledgeDocuments.length > 0
+        ? knowledgeDocuments.map(doc => `**${doc.displayName}**: ${doc.content || 'No content available'}`).join('\n\n')
+        : "No knowledge documents available for this project.";
+
       // Get indexes to skip for collections
       const skipInstructions = Object.entries(existingCollectionRecords)
         .map(([collection, indexes]) => 
           `Skip ${collection} records with indexes: ${Array.from(indexes).join(', ')}`
-        ).join('\n');
+        ).join('\n') || "No existing records to skip.";
 
-      // Create AI prompt
-      const prompt = `Extract data from the document content below. Use the reference data as context.
+      // Use the consolidated prompt from prompt.py
+      const { spawn } = await import('child_process');
+      const createPromptScript = `
+import sys
+sys.path.append('.')
+from prompt import create_wizard_modal_prompt
+import json
+
+# Create the consolidated prompt
+prompt = create_wizard_modal_prompt(
+    document_content=${JSON.stringify(documentContent)},
+    reference_data=${JSON.stringify(referenceData)},
+    target_fields=${JSON.stringify(JSON.stringify(targetFieldDefinitions, null, 2))},
+    skip_records=${JSON.stringify(skipInstructions)},
+    extraction_rules=${JSON.stringify(extractionRulesText)},
+    knowledge_documents=${JSON.stringify(knowledgeDocumentsText)},
+    verified_context="",
+    schema_fields="",
+    collections="",
+    additional_instructions=${JSON.stringify(additionalInstructions || "")}
+)
+
+print(prompt)
+`;
+
+      const prompt = await new Promise<string>((resolve, reject) => {
+        const python = spawn('python3', ['-c', createPromptScript]);
+        let stdout = '';
+        let stderr = '';
+
+        python.stdout.on('data', (data) => {
+          stdout += data.toString();
+        });
+
+        python.stderr.on('data', (data) => {
+          stderr += data.toString();
+        });
+
+        python.on('close', (code) => {
+          if (code === 0) {
+            resolve(stdout.trim());
+          } else {
+            console.error('Python prompt generation error:', stderr);
+            // Fallback to simple prompt if Python fails
+            // Fallback to enhanced prompt structure with all components
+            resolve(`You are an expert data extraction specialist. Extract data from the provided documents and return a JSON object with the exact structure specified below.
+
+## CRITICAL INSTRUCTIONS:
+1. **RESPONSE LIMIT**: Limit your response to no more than 100 field validation records total
+2. **SKIP EXISTING RECORDS**: For collection properties, skip record indexes that are already processed (as specified in EXISTING RECORDS TO SKIP section)
+3. **TARGET FIELD FOCUS**: Only extract data for the specific target fields provided - ignore all other potential fields
+4. **COLLECTION EXTRACTION**: For collections, create separate items with unique record_index values starting from the next available index after existing records
+5. **PRIORITIZE QUALITY**: If you must choose between quantity and completeness due to the 100-record limit, prioritize complete, accurate records
+6. APPLY EXTRACTION RULES - Rules modify extraction behavior, formatting, and validation
+7. **USE KNOWLEDGE DOCUMENTS**: Use knowledge documents for validation and context when available
+8. Return JSON with real extracted values only - do not create empty placeholder records
+
+## AI REASONING REQUIREMENTS:
+Provide clear, concise explanations that include:
+1. **Source Location**: Where you found the information (section, table, page)
+2. **Extraction Logic**: Why you chose this value (explicit statement, counting, inference)
+3. **Confidence Level**: High (explicit), Medium (contextual), Low (ambiguous)
+4. **Collection Context**: For collections, explain how items were grouped and extracted
 
 DOCUMENT CONTENT:
 ${documentContent}
@@ -4920,6 +4995,12 @@ ${JSON.stringify(targetFieldDefinitions, null, 2)}
 
 EXISTING RECORDS TO SKIP:
 ${skipInstructions}
+
+EXTRACTION RULES:
+${extractionRulesText}
+
+KNOWLEDGE DOCUMENTS:
+${knowledgeDocumentsText}
 
 ${additionalInstructions ? `ADDITIONAL INSTRUCTIONS:
 ${additionalInstructions}
@@ -4942,7 +5023,12 @@ Return JSON in this format:
       "record_index": null or number for collections
     }
   ]
-}`;
+}
+
+RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN`);
+          }
+        });
+      });
 
       // Debug: Log the full prompt BEFORE sending to AI
       console.log('MODAL_EXTRACTION: Full prompt being sent to AI:');

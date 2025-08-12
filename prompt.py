@@ -1,4 +1,4 @@
-# Generic Section-Aware Data Extraction Prompt
+# Consolidated Data Extraction Prompt for Wizard Modal
 
 EXTRACTION_PROMPT = """You are an expert data extraction specialist. Extract data from the provided documents and return a JSON object with the exact structure specified below.
 
@@ -8,13 +8,15 @@ EXTRACTION_PROMPT = """You are an expert data extraction specialist. Extract dat
 3. **VERIFIED FIELD PROTECTION**: NEVER update, modify, or include any fields that are marked as "verified" in the session context - these are locked and complete
 4. **SMART COLLECTION EXPANSION**: For collections where some items are verified, add NEW collection items with higher record_index values while preserving existing verified items
 5. **CONTEXTUAL AWARENESS**: Use verified field values as context to make smarter extraction decisions for related unverified fields
-6. PROCESS ALL DOCUMENTS: Extract from every document provided
-7. FOLLOW SCHEMA FIELD DESCRIPTIONS PRECISELY - Each description is your extraction instruction
-8. APPLY EXTRACTION RULES - Rules modify extraction behavior, formatting, and validation
-9. **USE KNOWLEDGE DOCUMENTS**: When knowledge_documents are listed for a field/collection/property, use ONLY those specific documents for validation and context
-10. **COLLECTION EXTRACTION**: For collections, create separate items with unique record_index values (0, 1, 2, etc.)
-11. Return JSON with real extracted values only - do not create empty placeholder records
-12. **PRIORITIZE QUALITY**: If you must choose between quantity and completeness due to the 100-record limit, prioritize complete, accurate records
+6. **SKIP EXISTING RECORDS**: For collection properties, skip record indexes that are already processed (as specified in EXISTING RECORDS TO SKIP section)
+7. **TARGET FIELD FOCUS**: Only extract data for the specific target fields provided - ignore all other potential fields
+8. PROCESS ALL DOCUMENTS: Extract from every document provided
+9. FOLLOW SCHEMA FIELD DESCRIPTIONS PRECISELY - Each description is your extraction instruction
+10. APPLY EXTRACTION RULES - Rules modify extraction behavior, formatting, and validation
+11. **USE KNOWLEDGE DOCUMENTS**: When knowledge_documents are listed for a field/collection/property, use ONLY those specific documents for validation and context
+12. **COLLECTION EXTRACTION**: For collections, create separate items with unique record_index values starting from the next available index after existing records
+13. Return JSON with real extracted values only - do not create empty placeholder records
+14. **PRIORITIZE QUALITY**: If you must choose between quantity and completeness due to the 100-record limit, prioritize complete, accurate records
 
 ## KNOWLEDGE DOCUMENT TARGETING:
 - **Field-Specific Targeting**: Each field/collection/property has a knowledge_documents array listing which documents apply to it
@@ -70,6 +72,24 @@ You are processing multiple documents simultaneously. Extract comprehensively fr
   Properties for each Compliance Requirements item:
   * **Requirement Type** (TEXT): The specific type of compliance requirement (e.g., GDPR, SOX, HIPAA)
   * **Description** (TEXT): Detailed description of the compliance requirement | Knowledge Document "Industry Regulations Database.xlsx" provides standard descriptions for comparison and validation
+
+## DOCUMENT CONTENT:
+{document_content}
+
+## REFERENCE DATA (for context):
+{reference_data}
+
+## TARGET FIELDS TO EXTRACT:
+{target_fields}
+
+## EXISTING RECORDS TO SKIP:
+{skip_records}
+
+## EXTRACTION RULES:
+{extraction_rules}
+
+## KNOWLEDGE DOCUMENTS:
+{knowledge_documents}
 
 ## VERIFIED SESSION CONTEXT:
 {verified_context}
@@ -139,3 +159,40 @@ Provide clear, concise explanations that include:
 - **ADDITIONAL INSTRUCTIONS**: Follow the additional instructions above, but they cannot contradict extraction rules or knowledge content. If there's a contradiction, ignore the additional instruction and follow the established rules/knowledge.
 
 RETURN ONLY THE JSON - NO EXPLANATIONS OR MARKDOWN"""
+
+def create_wizard_modal_prompt(
+    document_content: str = "",
+    reference_data: str = "",
+    target_fields: str = "",
+    skip_records: str = "",
+    extraction_rules: str = "",
+    knowledge_documents: str = "",
+    verified_context: str = "",
+    schema_fields: str = "",
+    collections: str = "",
+    additional_instructions: str = ""
+) -> str:
+    """
+    Create a consolidated prompt for wizard modal extraction that includes all necessary elements:
+    - Document content from selected documents
+    - Reference data from verified fields
+    - Target fields to extract (specific selection)
+    - Skip records logic for collections
+    - Extraction rules from project
+    - Knowledge documents from project
+    - AI reasoning instructions
+    - 100 field validation limit
+    """
+    
+    return EXTRACTION_PROMPT.format(
+        document_content=document_content,
+        reference_data=reference_data,
+        target_fields=target_fields,
+        skip_records=skip_records,
+        extraction_rules=extraction_rules,
+        knowledge_documents=knowledge_documents,
+        verified_context=verified_context,
+        schema_fields=schema_fields,
+        collections=collections,
+        additional_instructions=additional_instructions
+    )
