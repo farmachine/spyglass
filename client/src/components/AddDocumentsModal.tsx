@@ -519,8 +519,18 @@ export default function AddDocumentsModal({
                           const collectionProps = allProperties.filter(prop => prop.collectionName === collection.collectionName);
                           if (collectionProps.length === 0) return null;
                           
+                          console.log(`DEBUG MODAL: Collection ${collection.collectionName} properties:`, collectionProps.map(p => ({
+                            id: p.id,
+                            propertyName: p.propertyName,
+                            isIdentifier: p.isIdentifier,
+                            type: typeof p.isIdentifier
+                          })));
+                          
                           const identifierProps = collectionProps.filter(prop => prop.isIdentifier);
                           const regularProps = collectionProps.filter(prop => !prop.isIdentifier);
+                          
+                          console.log(`DEBUG MODAL: ${collection.collectionName} - identifierProps:`, identifierProps.length, identifierProps.map(p => p.propertyName));
+                          console.log(`DEBUG MODAL: ${collection.collectionName} - regularProps:`, regularProps.length, regularProps.map(p => p.propertyName));
                           
                           return (
                             <div key={collection.id} className="border-l-2 border-blue-200 pl-3 space-y-2">
