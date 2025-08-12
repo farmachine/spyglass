@@ -46,9 +46,11 @@ import type {
 
 interface DefineDataProps {
   project: ProjectWithDetails;
+  activeTab: string;
+  onTabChange: (tab: string) => void;
 }
 
-export default function DefineData({ project }: DefineDataProps) {
+export default function DefineData({ project, activeTab, onTabChange }: DefineDataProps) {
   const [schemaFieldDialog, setSchemaFieldDialog] = useState<{ open: boolean; field?: ProjectSchemaField | null }>({ open: false });
   const [collectionDialog, setCollectionDialog] = useState<{ open: boolean; collection?: ObjectCollection | null }>({ open: false });
   const [propertyDialog, setPropertyDialog] = useState<{ open: boolean; property?: CollectionProperty | null; collectionId?: string; collectionName?: string }>({ open: false });
@@ -57,7 +59,7 @@ export default function DefineData({ project }: DefineDataProps) {
   const [mainObjectDescription, setMainObjectDescription] = useState(project.mainObjectDescription || "");
   const [isEditingMainObjectName, setIsEditingMainObjectName] = useState(false);
   const [isEditingMainObjectDescription, setIsEditingMainObjectDescription] = useState(false);
-  const [activeTab, setActiveTab] = useState('main-data');
+
   
   // Update local state when project prop changes (needed for database updates)
   useEffect(() => {
@@ -245,7 +247,7 @@ export default function DefineData({ project }: DefineDataProps) {
       });
       
       // Navigate to the determined tab immediately
-      setActiveTab(targetTab);
+      onTabChange(targetTab);
       setDeleteDialog({ open: false });
       
       // Perform the actual deletion in the background
@@ -373,7 +375,7 @@ export default function DefineData({ project }: DefineDataProps) {
   // When collection is created, automatically switch to that tab
   const handleCollectionCreateWithTabSwitch = async (data: any) => {
     await handleCreateCollection(data);
-    setActiveTab(data.collectionName);
+    onTabChange(data.collectionName);
   };
 
   return (
@@ -456,61 +458,9 @@ export default function DefineData({ project }: DefineDataProps) {
         </div>
       )}
 
-      {/* Sidebar-Based Data Structure Layout */}
+      {/* Data Structure Content */}
       {allDataItems.length > 0 && (
-        <div className="flex h-[calc(100vh-200px)] border border-gray-200 rounded-lg overflow-hidden">
-          {/* Left Sidebar */}
-          <div className="w-64 bg-slate-50 border-r border-slate-200 flex-shrink-0">
-            <div className="p-4">
-              <nav className="space-y-1">
-                {/* Main Data Tab */}
-                <button
-                  onClick={() => setActiveTab('main-data')}
-                  className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
-                    activeTab === 'main-data'
-                      ? "bg-primary text-white font-medium shadow-sm"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
-                  }`}
-                >
-                  <Database className={`h-4 w-4 ${
-                    activeTab === 'main-data' ? "text-white" : "text-slate-500"
-                  }`} />
-                  {project.mainObjectName || "Session"} Data
-                </button>
-
-                {/* Collection Tabs */}
-                {safeCollections.map((collection) => (
-                  <button
-                    key={collection.id}
-                    onClick={() => setActiveTab(collection.collectionName)}
-                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
-                      activeTab === collection.collectionName
-                        ? "bg-primary text-white font-medium shadow-sm"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
-                    }`}
-                  >
-                    <Tag className={`h-4 w-4 ${
-                      activeTab === collection.collectionName ? "text-white" : "text-slate-500"
-                    }`} />
-                    {collection.collectionName}
-                  </button>
-                ))}
-
-                {/* Add Collection Button */}
-                <button
-                  onClick={() => setCollectionDialog({ open: true, collection: null })}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal border-2 border-dashed border-slate-300 hover:border-slate-400 mt-2"
-                >
-                  <Plus className="h-4 w-4 text-slate-500" />
-                  Add Collection
-                </button>
-              </nav>
-            </div>
-          </div>
-
-          {/* Main Content */}
-          <div className="flex-1 overflow-auto bg-white p-6">
-
+        <div>
           {/* Main Data Tab Content */}
           {activeTab === 'main-data' && (
             <Card className="border-t-0 rounded-tl-none ml-0">
@@ -831,8 +781,6 @@ export default function DefineData({ project }: DefineDataProps) {
               </Card>
             </div>
           ))}
-          
-          </div>
         </div>
       )}
 

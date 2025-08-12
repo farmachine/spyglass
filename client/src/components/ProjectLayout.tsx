@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Upload, Database, Brain, Settings, FolderOpen, Home as HomeIcon, TrendingUp, Edit3, Check, X, AlertTriangle, CheckCircle } from "lucide-react";
+import { ArrowLeft, Upload, Database, Brain, Settings, FolderOpen, Home as HomeIcon, TrendingUp, Edit3, Check, X, AlertTriangle, CheckCircle, User, List } from "lucide-react";
 import { WaveIcon, FlowIcon, StreamIcon, TideIcon, ShipIcon, DropletIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,6 +32,7 @@ type ActiveTab = "data" | "knowledge" | "define" | "publishing";
 export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<ActiveTab>("data");
+  const [schemaActiveTab, setSchemaActiveTab] = useState<string>("main-data");
   const { data: project, isLoading, error } = useProject(projectId);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -309,7 +310,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       case "knowledge":
         return <KnowledgeRules project={project} />;
       case "define":
-        return <DefineData project={project} />;
+        return <DefineData project={project} activeTab={schemaActiveTab} onTabChange={setSchemaActiveTab} />;
       case "publishing":
         return <Publishing project={project} />;
       default:
@@ -507,6 +508,47 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                 );
               })}
             </nav>
+
+            {/* Schema Navigation - Only show when Define Data tab is active */}
+            {activeTab === 'define-data' && (
+              <div className="mt-4 pt-4 border-t border-slate-200">
+                <div className="px-3 mb-2">
+                  <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    SCHEMA INFORMATION
+                  </h3>
+                </div>
+                <nav className="space-y-0.5">
+                  {/* Main Data Section */}
+                  <button
+                    onClick={() => setSchemaActiveTab('main-data')}
+                    className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
+                      schemaActiveTab === 'main-data'
+                        ? "bg-primary text-white font-medium shadow-sm"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
+                    }`}
+                  >
+                    <User className="h-4 w-4" />
+                    General Information
+                  </button>
+
+                  {/* Collection Sections */}
+                  {project.collections?.map((collection) => (
+                    <button
+                      key={collection.id}
+                      onClick={() => setSchemaActiveTab(collection.collectionName)}
+                      className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
+                        schemaActiveTab === collection.collectionName
+                          ? "bg-primary text-white font-medium shadow-sm"
+                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
+                      }`}
+                    >
+                      <List className="h-4 w-4" />
+                      {collection.collectionName}
+                    </button>
+                  ))}
+                </nav>
+              </div>
+            )}
           </div>
         </div>
 
