@@ -4994,27 +4994,9 @@ ${additionalInstructions}
 
         console.log('MODAL_EXTRACTION: Processing', fieldValidations.length, 'field validations');
 
-        // Save debug information to debug page
-        try {
-          await storage.createDebugLog({
-            sessionId: sessionId,
-            logType: 'modal_extraction',
-            message: 'Modal Extraction Process',
-            metadata: {
-              prompt: prompt,
-              aiResponse: aiResponse,
-              selectedTargetFields: selectedTargetFieldsData.map(f => ({ 
-                id: f.id, 
-                name: f.fieldName || f.propertyName, 
-                collection: f.collectionName 
-              })),
-              extractedValidations: fieldValidations.length,
-              parsedResult: result
-            }
-          });
-        } catch (debugError) {
-          console.error('MODAL_EXTRACTION: Failed to save debug log:', debugError);
-        }
+        // Save debug information to console for now
+        console.log('MODAL_EXTRACTION: Prompt sent to AI:', prompt.substring(0, 500) + '...');
+        console.log('MODAL_EXTRACTION: Full AI response:', aiResponse);
 
         // Save field validations to database
         for (const validation of fieldValidations) {
@@ -5034,6 +5016,57 @@ ${additionalInstructions}
             aiReasoning: validation.ai_reasoning,
             recordIndex: validation.record_index || null
           });
+        }
+
+        // Create missing validation entries for collection properties
+        // Group validations by collection and record index
+        const collectionValidations = fieldValidations.filter(v => v.validation_type === 'collection_property');
+        const collectionsByRecordIndex: Record<string, Record<number, any[]>> = {};
+        
+        for (const validation of collectionValidations) {
+          const collectionName = validation.collection_name;
+          const recordIndex = validation.record_index || 0;
+          
+          if (collectionName) {
+            if (!collectionsByRecordIndex[collectionName]) {
+              collectionsByRecordIndex[collectionName] = {};
+            }
+            if (!collectionsByRecordIndex[collectionName][recordIndex]) {
+              collectionsByRecordIndex[collectionName][recordIndex] = [];
+            }
+            collectionsByRecordIndex[collectionName][recordIndex].push(validation);
+          }
+        }
+
+        // For each collection record, ensure all properties have validation entries
+        for (const [collectionName, records] of Object.entries(collectionsByRecordIndex)) {
+          // Get all properties for this collection
+          const collection = await storage.getCollectionByName(collectionName);
+          if (!collection || !collection.properties) continue;
+
+          for (const [recordIndexStr, existingValidations] of Object.entries(records)) {
+            const recordIndex = parseInt(recordIndexStr);
+            const existingFieldIds = new Set(existingValidations.map(v => v.field_id));
+
+            // Create missing validation entries for properties not extracted
+            for (const property of collection.properties) {
+              if (!existingFieldIds.has(property.id)) {
+                await storage.createFieldValidation({
+                  sessionId: sessionId,
+                  fieldId: property.id,
+                  validationType: 'collection_property',
+                  dataType: property.propertyType,
+                  fieldName: `${collectionName}.${property.propertyName}`,
+                  collectionName: collectionName,
+                  extractedValue: null,
+                  confidenceScore: 0,
+                  validationStatus: 'unverified',
+                  aiReasoning: null,
+                  recordIndex: recordIndex
+                });
+              }
+            }
+          }
         }
 
         res.json({
