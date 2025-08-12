@@ -4890,6 +4890,10 @@ print(json.dumps(result))
         return validation ? `${validation.fieldName}: ${validation.extractedValue}` : '';
       }).filter(Boolean).join('\n');
 
+      // Get extraction rules and knowledge documents for the project
+      const extractionRules = await storage.getExtractionRules(session.projectId);
+      const knowledgeDocuments = await storage.getKnowledgeDocuments(session.projectId);
+
       // Create enhanced field definitions for selected target fields only
       const targetFieldDefinitions = await Promise.all(selectedTargetFieldsData.map(async (field) => {
         const fieldName = field.collectionName 
@@ -4927,10 +4931,6 @@ print(json.dumps(result))
           collection_name: field.collectionName || null
         };
       }));
-
-      // Get extraction rules and knowledge documents for the project
-      const extractionRules = await storage.getExtractionRules(session.projectId);
-      const knowledgeDocuments = await storage.getKnowledgeDocuments(session.projectId);
 
       // Format extraction rules for prompt
       const extractionRulesText = extractionRules.length > 0 
