@@ -4890,7 +4890,27 @@ print(json.dumps(result))
         return validation ? `${validation.fieldName}: ${validation.extractedValue}` : '';
       }).filter(Boolean).join('\n');
 
-      // Create field definitions for selected target fields only
+      // Create field definitions for ALL schema fields (not just selected ones)
+      const allSchemaFieldDefinitions = [
+        // Schema fields
+        ...(project_data.schemaFields || []).map((field: any) => ({
+          field_id: field.id,
+          field_name: field.fieldName,
+          field_type: field.fieldType || 'TEXT',
+          validation_instructions: field.validationInstructions || ''
+        })),
+        // Collection properties
+        ...(project_data.collections || []).flatMap((collection: any) => 
+          (collection.properties || []).map((prop: any) => ({
+            field_id: prop.id,
+            field_name: `${collection.collectionName}.${prop.propertyName}`,
+            field_type: prop.propertyType || 'TEXT',
+            validation_instructions: prop.validationInstructions || ''
+          }))
+        )
+      ];
+
+      // Create field definitions for selected target fields only (for reference)
       const targetFieldDefinitions = selectedTargetFieldsData.map(field => ({
         field_id: field.id,
         field_name: field.collectionName 
@@ -4948,7 +4968,8 @@ import json
 prompt = create_wizard_modal_prompt(
     document_content=${JSON.stringify(documentContent)},
     reference_data=${JSON.stringify(referenceData)},
-    target_fields=${JSON.stringify(JSON.stringify(targetFieldDefinitions, null, 2))},
+    target_fields=${JSON.stringify(JSON.stringify(allSchemaFieldDefinitions, null, 2))},
+    selected_fields=${JSON.stringify(JSON.stringify(targetFieldDefinitions, null, 2))},
     skip_records=${JSON.stringify(skipInstructions)},
     extraction_rules=${JSON.stringify(extractionRulesText)},
     knowledge_documents=${JSON.stringify(knowledgeDocumentsText)},
@@ -4986,7 +5007,7 @@ print(prompt)
 ## CRITICAL INSTRUCTIONS:
 1. **RESPONSE LIMIT**: Limit your response to no more than 100 field validation records total
 2. **SKIP EXISTING RECORDS**: For collection properties, skip record indexes that are already processed (as specified in EXISTING RECORDS TO SKIP section)
-3. **TARGET FIELD FOCUS**: Only extract data for the specific target fields provided - ignore all other potential fields
+3. **TARGET FIELD FOCUS**: Only extract data for the specific target fields listed in SELECTED TARGET FIELDS section below - ignore all other fields from the full schema
 4. **COLLECTION EXTRACTION**: For collections, create separate items with unique record_index values starting from the next available index after existing records
 5. **PRIORITIZE QUALITY**: If you must choose between quantity and completeness due to the 100-record limit, prioritize complete, accurate records
 6. APPLY EXTRACTION RULES - Rules modify extraction behavior, formatting, and validation
@@ -5007,6 +5028,9 @@ REFERENCE DATA (for context):
 ${referenceData}
 
 TARGET FIELDS TO EXTRACT:
+${JSON.stringify(allSchemaFieldDefinitions, null, 2)}
+
+SELECTED TARGET FIELDS (extract only these):
 ${JSON.stringify(targetFieldDefinitions, null, 2)}
 
 EXISTING RECORDS TO SKIP:

@@ -82,6 +82,9 @@ You are processing multiple documents simultaneously. Extract comprehensively fr
 ## TARGET FIELDS TO EXTRACT:
 {target_fields}
 
+## SELECTED TARGET FIELDS (extract only these):
+{selected_fields}
+
 ## EXISTING RECORDS TO SKIP:
 {skip_records}
 
@@ -164,6 +167,7 @@ def create_wizard_modal_prompt(
     document_content: str = "",
     reference_data: str = "",
     target_fields: str = "",
+    selected_fields: str = "",
     skip_records: str = "",
     extraction_rules: str = "",
     knowledge_documents: str = "",
@@ -188,6 +192,7 @@ def create_wizard_modal_prompt(
         document_content=document_content,
         reference_data=reference_data,
         target_fields=target_fields,
+        selected_fields=selected_fields,
         skip_records=skip_records,
         extraction_rules=extraction_rules,
         knowledge_documents=knowledge_documents,
