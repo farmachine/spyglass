@@ -339,14 +339,23 @@ const AIExtractionModal = ({
 
   // Log selected documents for testing (no extraction call)
   const handleRunExtraction = async () => {
-    // Log selected document information as JSON
+    // Log selected document information as JSON with content preview
     const selectedDocumentInfo = sessionDocuments
       ?.filter(doc => selectedDocuments.includes(doc.id))
-      .map(doc => ({
-        id: doc.id,
-        name: doc.originalName || doc.filename || doc.name || doc.fileName || `Document ${doc.id.slice(0, 8)}`,
-        type: doc.mimeType || doc.fileType || 'unknown'
-      })) || [];
+      .map(doc => {
+        // Truncate content to first 200 characters for logging
+        const content = doc.content || doc.extractedText || '';
+        const truncatedContent = content.length > 200 
+          ? content.substring(0, 200) + '...' 
+          : content;
+        
+        return {
+          id: doc.id,
+          name: doc.originalName || doc.filename || doc.name || doc.fileName || `Document ${doc.id.slice(0, 8)}`,
+          type: doc.mimeType || doc.fileType || 'unknown',
+          contentPreview: truncatedContent
+        };
+      }) || [];
     
     console.log('Selected Documents for Extraction:', JSON.stringify(selectedDocumentInfo, null, 2));
 
