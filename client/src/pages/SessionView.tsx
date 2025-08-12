@@ -436,31 +436,22 @@ const AIExtractionModal = ({
                 </Button>
               </div>
               <div className="grid grid-cols-1 gap-2 max-h-24 overflow-y-auto border rounded p-2">
-                {(() => {
-                  console.log('SessionDocuments in modal:', { 
-                    sessionDocuments, 
-                    length: sessionDocuments?.length
-                  });
-                  return sessionDocuments.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No documents uploaded</p>
-                  ) : (
-                    sessionDocuments.map((doc) => {
-                      console.log('Individual document:', doc);
-                      return (
-                        <div key={doc.id} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`doc-${doc.id}`}
-                            checked={selectedDocuments.includes(doc.id)}
-                            onCheckedChange={() => handleDocumentToggle(doc.id)}
-                          />
-                          <Label htmlFor={`doc-${doc.id}`} className="text-sm truncate">
-                            {doc.originalName || doc.filename || doc.name || doc.fileName || `Document ${doc.id.slice(0, 8)}`}
-                          </Label>
-                        </div>
-                      );
-                    })
-                  );
-                })()}
+                {sessionDocuments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No documents uploaded</p>
+                ) : (
+                  sessionDocuments.map((doc) => (
+                    <div key={doc.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`doc-${doc.id}`}
+                        checked={selectedDocuments.includes(doc.id)}
+                        onCheckedChange={() => handleDocumentToggle(doc.id)}
+                      />
+                      <Label htmlFor={`doc-${doc.id}`} className="text-sm truncate">
+                        {doc.originalName || doc.filename || doc.name || doc.fileName || `Document ${doc.id.slice(0, 8)}`}
+                      </Label>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
