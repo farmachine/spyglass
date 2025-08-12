@@ -428,21 +428,14 @@ const AIExtractionModal = ({
       total: matchingRules.length
     }, null, 2));
 
-    // Run the extraction wizardry Python script with selected data
+    // Run the extraction wizardry Python script with selected documents only
     try {
-      const selectedDataForWizardry = {
-        documents: selectedDocuments,
-        target_fields: selectedTargetFields,
-        additional_instructions: additionalInstructions,
-        extraction_rules: matchingRules
-      };
-      
       const response = await apiRequest('/api/run-wizardry', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(selectedDataForWizardry),
+        body: JSON.stringify(selectedDocuments),
       });
       console.log('Wizardry Result:', response);
     } catch (error) {
