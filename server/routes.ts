@@ -4965,11 +4965,11 @@ ${additionalInstructions}
 
         const response = await model.generateContent(prompt);
 
-        const aiResponse = response.text;
+        const aiResponse = response.response?.candidates?.[0]?.content?.parts?.[0]?.text;
         console.log('MODAL_EXTRACTION: AI response length:', aiResponse?.length || 0);
         console.log('MODAL_EXTRACTION: Response object:', JSON.stringify({
-          candidates: response.candidates?.length || 0,
-          hasText: !!response.text,
+          candidates: response.response?.candidates?.length || 0,
+          hasText: !!aiResponse,
           responseKeys: Object.keys(response)
         }));
 

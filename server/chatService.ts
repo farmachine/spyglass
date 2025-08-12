@@ -108,7 +108,7 @@ Keep responses concise and focused on the user's question. Use the session data 
 
     const response = await model.generateContent(message);
 
-    return response.text || "I apologize, but I couldn't generate a response. Please try again.";
+    return response.response?.candidates?.[0]?.content?.parts?.[0]?.text || "I apologize, but I couldn't generate a response. Please try again.";
   } catch (error) {
     console.error("Chat AI response error:", error);
     return "I'm having trouble processing your request right now. Please try again in a moment.";
