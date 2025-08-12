@@ -1731,7 +1731,7 @@ if __name__ == "__main__":
         
         # Log parsed data structure
         logging.info(f"PARSED INPUT KEYS: {list(input_data.keys())}")
-        operation = input_data.get("step", input_data.get("operation", "extract"))
+        operation = input_data.get("step", input_data.get("operation", input_data.get("mode", "extract")))
         
         if operation == "extract_text_only":
             # Extract text from documents without AI analysis
@@ -1811,16 +1811,39 @@ if __name__ == "__main__":
                 "extracted_texts": extracted_texts
             }))
             
-        elif operation in ["extract", "extract_additional"]:
-            # Extract from documents (regular or additional)
-            documents = input_data.get("files", input_data.get("documents", []))  # Support both parameter names
-            project_schema = input_data.get("project_schema", {})
-            extraction_rules = input_data.get("extraction_rules", [])
-            knowledge_documents = input_data.get("knowledge_documents", [])
+        elif operation in ["extract", "extract_additional", "modal_extraction"]:
+            # Extract from documents (regular, additional, or modal extraction)
+            documents = input_data.get("files", input_data.get("documents", input_data.get("session_documents", [])))  # Support multiple parameter names
+            
+            # Handle different data structures for modal extraction vs regular extraction
+            if operation == "modal_extraction":
+                # Modal extraction sends data directly at root level
+                project_schema = {
+                    "schema_fields": input_data.get("schema_fields", []),
+                    "collections": input_data.get("collections", [])
+                }
+                extraction_rules = input_data.get("extraction_rules", [])
+                knowledge_documents = input_data.get("knowledge_documents", [])
+                validated_data_context = {}  # Build from existing_field_validations
+                existing_validations = input_data.get("existing_field_validations", [])
+                
+                # Convert existing validations to validated_data_context format
+                for validation in existing_validations:
+                    field_key = validation.get('field_name', 'Unknown')
+                    validated_data_context[field_key] = validation
+                    
+                extraction_notes = input_data.get("additional_instructions", "")
+                is_subsequent_upload = False
+            else:
+                # Regular extraction uses nested project_schema structure
+                project_schema = input_data.get("project_schema", {})
+                extraction_rules = input_data.get("extraction_rules", [])
+                knowledge_documents = input_data.get("knowledge_documents", [])
+                validated_data_context = input_data.get("validated_data_context", {})
+                extraction_notes = input_data.get("extraction_notes", "")
+                is_subsequent_upload = input_data.get("is_subsequent_upload", False)
+                
             session_name = input_data.get("session_name", "contract")
-            validated_data_context = input_data.get("validated_data_context", {})  # New context for subsequent uploads
-            extraction_notes = input_data.get("extraction_notes", "")  # Special extraction instructions
-            is_subsequent_upload = input_data.get("is_subsequent_upload", False)  # Flag for upload type
             
             # Call the extraction function with new parameters
             result = step1_extract_from_documents(documents, project_schema, extraction_rules, knowledge_documents, session_name, validated_data_context, extraction_notes, is_subsequent_upload)
