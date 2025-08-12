@@ -344,7 +344,7 @@ const AIExtractionModal = ({
       ?.filter(doc => selectedDocuments.includes(doc.id))
       .map(doc => {
         // Truncate content to first 200 characters for logging
-        const content = doc.content || doc.extractedText || '';
+        const content = doc.extractedContent || doc.content || doc.extractedText || '';
         const truncatedContent = content.length > 200 
           ? content.substring(0, 200) + '...' 
           : content;
