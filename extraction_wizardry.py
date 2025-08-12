@@ -33,11 +33,12 @@ def get_document_properties_from_db(document_ids, session_id):
         for row in results:
             doc_id, file_name, mime_type, extracted_content = row
             
-            # Create content preview (short preview for console, full content stored separately)
+            # Create content preview (very short preview for console, full content stored separately)
             content_preview = ""
             if extracted_content:
-                # Show first 200 chars for console output
-                content_preview = extracted_content[:200] + "..." if len(extracted_content) > 200 else extracted_content
+                # Show only first few lines with sheet names for console output
+                lines = extracted_content.split('\n')[:3]
+                content_preview = '\n'.join(lines) + "..." if len(extracted_content) > 100 else extracted_content
             
             documents.append({
                 "id": doc_id,
@@ -105,6 +106,11 @@ def extract_excel_columns(documents, target_fields):
         for document in documents:
             # Use full content for processing, contentPreview for display
             full_content = document.get('fullContent', '')
+            
+            print(f"DEBUG: Document has full content length: {len(full_content)}")
+            print(f"DEBUG: Looking for 'SHEET:' in content: {'SHEET:' in full_content}")
+            if full_content:
+                print(f"DEBUG: First 100 chars of content: {full_content[:100]}")
             
             # Parse Excel content to extract column headers from ALL sheets
             if 'SHEET:' in full_content:
