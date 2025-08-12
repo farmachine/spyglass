@@ -71,18 +71,22 @@ export default function CollectionCard({
 
   // Mutation for setting identifier field
   const setIdentifierField = useMutation({
-    mutationFn: ({ collectionId, propertyId }: { collectionId: string; propertyId: string }) =>
-      apiRequest(`/api/collections/${collectionId}/set-identifier/${propertyId}`, {
+    mutationFn: ({ collectionId, propertyId }: { collectionId: string; propertyId: string }) => {
+      console.log('Setting identifier field:', { collectionId, propertyId });
+      return apiRequest(`/api/collections/${collectionId}/set-identifier/${propertyId}`, {
         method: "POST",
-      }),
-    onSuccess: () => {
+      });
+    },
+    onSuccess: (data) => {
+      console.log('Identifier field set successfully:', data);
       queryClient.invalidateQueries({ queryKey: ["/api/collections", collection.id, "properties"] });
       toast({
         title: "Success",
         description: "Identifier field updated successfully.",
       });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Error setting identifier field:', error);
       toast({
         title: "Error",
         description: "Failed to set identifier field. Please try again.",
@@ -251,11 +255,6 @@ export default function CollectionCard({
                                       <Key className="h-4 w-4 text-blue-600" />
                                     )}
                                     {property.propertyName}
-                                    {property.isIdentifier && (
-                                      <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800 border-blue-300">
-                                        ID
-                                      </Badge>
-                                    )}
                                   </div>
                                 </TableCell>
                                 <TableCell>
@@ -276,31 +275,33 @@ export default function CollectionCard({
                                     <Button 
                                       variant="ghost" 
                                       size="sm"
+                                      className="h-8 w-8 p-0"
                                       onClick={() => onEditProperty(property)}
                                     >
                                       <Edit className="h-4 w-4" />
                                     </Button>
-                                    {!property.isIdentifier && (
+                                    {!property.isIdentifier && property.propertyType === 'TEXT' && (
                                       <Button 
                                         variant="ghost" 
                                         size="sm" 
-                                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                        className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
                                         onClick={() => setIdentifierField.mutate({ collectionId: collection.id, propertyId: property.id })}
                                         title="Set as identifier field"
                                       >
                                         <Key className="h-4 w-4" />
                                       </Button>
                                     )}
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      className="text-red-600"
-                                      onClick={() => onDeleteProperty(property.id, property.propertyName)}
-                                      disabled={property.isIdentifier}
-                                      title={property.isIdentifier ? "Cannot delete identifier field. Set another field as identifier first." : "Delete property"}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
+                                    {!property.isIdentifier && (
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                        onClick={() => onDeleteProperty(property.id, property.propertyName)}
+                                        title="Delete property"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    )}
                                   </div>
                                 </TableCell>
                               </TableRow>
