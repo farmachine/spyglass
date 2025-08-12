@@ -338,6 +338,26 @@ const AIExtractionModal = ({
   };
 
   // Log selected documents for testing (no extraction call)
+  // Simple extraction function
+  const runExtraction = (
+    selectedDocuments: any[],
+    selectedFields: any[],
+    extractionRules: any,
+    additionalInstructions: string
+  ) => {
+    console.log('The documents you selected are:');
+    console.log(JSON.stringify(selectedDocuments, null, 2));
+    
+    return {
+      status: "success",
+      message: "The documents you selected are:",
+      documents: selectedDocuments,
+      fieldCount: selectedFields.length,
+      ruleCount: extractionRules.total,
+      additionalInstructions: additionalInstructions || "(none provided)"
+    };
+  };
+
   const handleRunExtraction = async () => {
     // Log selected document information as JSON with content preview
     const selectedDocumentInfo = sessionDocuments
@@ -428,32 +448,19 @@ const AIExtractionModal = ({
       total: matchingRules.length
     }, null, 2));
 
-    // Call the extraction wizardry Python script
-    try {
-      const extractionData = {
-        selectedDocuments: selectedDocumentInfo,
-        selectedFields: selectedTargetFieldObjects,
-        extractionRules: {
-          targeted: targetedRules,
-          global: globalRules,
-          total: matchingRules.length
-        },
-        additionalInstructions: additionalInstructions
-      };
-
-      const response = await fetch('/api/run-extraction-wizard', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(extractionData)
-      });
-
-      const result = await response.json();
-      console.log('Extraction Wizardry Result:', result);
-    } catch (error) {
-      console.error('Error running extraction wizardry:', error);
-    }
+    // Call extraction function with document properties
+    const extractionResult = await runExtraction(
+      selectedDocumentInfo,
+      selectedTargetFieldObjects,
+      {
+        targeted: targetedRules,
+        global: globalRules,
+        total: matchingRules.length
+      },
+      additionalInstructions
+    );
+    
+    console.log('Extraction Result:', extractionResult);
   };
 
   // Organize fields by category
