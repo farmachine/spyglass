@@ -63,6 +63,7 @@ export const objectCollections = pgTable("object_collections", {
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   collectionName: text("collection_name").notNull(),
   description: text("description"),
+  identifierFieldId: uuid("identifier_field_id"), // references collectionProperties.id for the identifier field
   orderIndex: integer("order_index").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -75,6 +76,7 @@ export const collectionProperties = pgTable("collection_properties", {
   description: text("description"),
   autoVerificationConfidence: integer("auto_verification_confidence").default(80), // 0-100 threshold for auto verification
   choiceOptions: jsonb("choice_options"), // Array of choice options for CHOICE type fields
+  isIdentifier: boolean("is_identifier").default(false).notNull(), // marks this property as the identifier field
   orderIndex: integer("order_index").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

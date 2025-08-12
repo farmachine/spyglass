@@ -100,6 +100,8 @@ export interface IStorage {
   createCollectionProperty(property: InsertCollectionProperty): Promise<CollectionProperty>;
   updateCollectionProperty(id: string, property: Partial<InsertCollectionProperty>): Promise<CollectionProperty | undefined>;
   deleteCollectionProperty(id: string): Promise<boolean>;
+  setCollectionIdentifierField(collectionId: string, propertyId: string): Promise<boolean>;
+  getCollectionIdentifierField(collectionId: string): Promise<CollectionProperty | undefined>;
 
   // Extraction Sessions
   getExtractionSessions(projectId: string): Promise<ExtractionSession[]>;
@@ -1151,6 +1153,38 @@ export class MemStorage implements IStorage {
     return this.collectionProperties.get(id);
   }
 
+  async setCollectionIdentifierField(collectionId: string, propertyId: string): Promise<boolean> {
+    // First, remove identifier flag from all other properties in this collection
+    for (const [id, property] of this.collectionProperties.entries()) {
+      if (property.collectionId === collectionId) {
+        this.collectionProperties.set(id, { ...property, isIdentifier: false });
+      }
+    }
+    
+    // Set the new identifier property
+    const property = this.collectionProperties.get(propertyId);
+    if (property && property.collectionId === collectionId) {
+      this.collectionProperties.set(propertyId, { ...property, isIdentifier: true });
+      
+      // Update the collection's identifier field reference
+      const collection = this.objectCollections.get(collectionId);
+      if (collection) {
+        this.objectCollections.set(collectionId, { ...collection, identifierFieldId: propertyId });
+      }
+      return true;
+    }
+    return false;
+  }
+
+  async getCollectionIdentifierField(collectionId: string): Promise<CollectionProperty | undefined> {
+    for (const property of this.collectionProperties.values()) {
+      if (property.collectionId === collectionId && property.isIdentifier) {
+        return property;
+      }
+    }
+    return undefined;
+  }
+
   // Extraction Sessions
   async getExtractionSessions(projectId: string): Promise<ExtractionSession[]> {
     return Array.from(this.extractionSessions.values())
@@ -2140,6 +2174,39 @@ class PostgreSQLStorage implements IStorage {
       .delete(collectionProperties)
       .where(eq(collectionProperties.id, id));
     return result.rowCount > 0;
+  }
+
+  async setCollectionIdentifierField(collectionId: string, propertyId: string): Promise<boolean> {
+    // First, remove identifier flag from all other properties in this collection
+    await this.db
+      .update(collectionProperties)
+      .set({ isIdentifier: false })
+      .where(eq(collectionProperties.collectionId, collectionId));
+    
+    // Set the new identifier property
+    await this.db
+      .update(collectionProperties)
+      .set({ isIdentifier: true })
+      .where(eq(collectionProperties.id, propertyId));
+    
+    // Update the collection's identifier field reference
+    await this.db
+      .update(objectCollections)
+      .set({ identifierFieldId: propertyId })
+      .where(eq(objectCollections.id, collectionId));
+    
+    return true;
+  }
+
+  async getCollectionIdentifierField(collectionId: string): Promise<CollectionProperty | undefined> {
+    const result = await this.db
+      .select()
+      .from(collectionProperties)
+      .where(and(
+        eq(collectionProperties.collectionId, collectionId),
+        eq(collectionProperties.isIdentifier, true)
+      ));
+    return result[0];
   }
 
   // Extraction Sessions

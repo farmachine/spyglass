@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Edit, Trash2, Plus, GripVertical, ChevronDown, ChevronRight } from "lucide-react";
+import { Edit, Trash2, Plus, GripVertical, ChevronDown, ChevronRight, Key } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -67,6 +67,28 @@ export default function CollectionCard({
         body: JSON.stringify(property),
       }),
     // No onSuccess invalidation - rely on optimistic updates only
+  });
+
+  // Mutation for setting identifier field
+  const setIdentifierField = useMutation({
+    mutationFn: ({ collectionId, propertyId }: { collectionId: string; propertyId: string }) =>
+      apiRequest(`/api/collections/${collectionId}/set-identifier/${propertyId}`, {
+        method: "POST",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/collections", collection.id, "properties"] });
+      toast({
+        title: "Success",
+        description: "Identifier field updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to set identifier field. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   // Drag and drop handler for reordering collection properties
@@ -213,7 +235,7 @@ export default function CollectionCard({
                               <TableRow 
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
-                                className={snapshot.isDragging ? "opacity-50" : ""}
+                                className={`${snapshot.isDragging ? "opacity-50" : ""} ${property.isIdentifier ? "bg-blue-50 border border-blue-200" : ""}`}
                               >
                                 <TableCell>
                                   <div
@@ -223,7 +245,19 @@ export default function CollectionCard({
                                     <GripVertical className="h-4 w-4 text-gray-400" />
                                   </div>
                                 </TableCell>
-                                <TableCell className="font-medium">{property.propertyName}</TableCell>
+                                <TableCell className="font-medium">
+                                  <div className="flex items-center gap-2">
+                                    {property.isIdentifier && (
+                                      <Key className="h-4 w-4 text-blue-600" />
+                                    )}
+                                    {property.propertyName}
+                                    {property.isIdentifier && (
+                                      <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800 border-blue-300">
+                                        ID
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </TableCell>
                                 <TableCell>
                                   <Badge className={fieldTypeColors[property.propertyType as keyof typeof fieldTypeColors]}>
                                     {property.propertyType}
@@ -246,11 +280,24 @@ export default function CollectionCard({
                                     >
                                       <Edit className="h-4 w-4" />
                                     </Button>
+                                    {!property.isIdentifier && (
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                        onClick={() => setIdentifierField.mutate({ collectionId: collection.id, propertyId: property.id })}
+                                        title="Set as identifier field"
+                                      >
+                                        <Key className="h-4 w-4" />
+                                      </Button>
+                                    )}
                                     <Button 
                                       variant="ghost" 
                                       size="sm" 
                                       className="text-red-600"
                                       onClick={() => onDeleteProperty(property.id, property.propertyName)}
+                                      disabled={property.isIdentifier}
+                                      title={property.isIdentifier ? "Cannot delete identifier field. Set another field as identifier first." : "Delete property"}
                                     >
                                       <Trash2 className="h-4 w-4" />
                                     </Button>

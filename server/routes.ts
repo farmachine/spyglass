@@ -813,6 +813,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const collection = await storage.createObjectCollection(result.data);
       
+      // Automatically create an identifier field for new collections
+      const identifierProperty = await storage.createCollectionProperty({
+        collectionId: collection.id,
+        propertyName: "ID",
+        propertyType: "TEXT",
+        description: "Unique identifier for items in this collection",
+        isIdentifier: true,
+        orderIndex: 0
+      });
+      
+      // Set this property as the collection's identifier field
+      await storage.setCollectionIdentifierField(collection.id, identifierProperty.id);
+      
       // Mark project as setup complete if this is the first collection
       const project = await storage.getProject(projectId);
       if (project && !project.isInitialSetupComplete) {
@@ -928,6 +941,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/properties/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = req.params.id; // Use string ID for UUID compatibility
+      
+      // Check if this is an identifier field before deletion
+      const property = await storage.getCollectionPropertyById(id);
+      if (property?.isIdentifier) {
+        return res.status(400).json({ message: "Cannot delete identifier field. Set another field as identifier first." });
+      }
+      
       const deleted = await storage.deleteCollectionProperty(id);
       if (!deleted) {
         return res.status(404).json({ message: "Property not found" });
@@ -935,6 +955,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Failed to delete property" });
+    }
+  });
+
+  // Collection identifier field management
+  app.post("/api/collections/:collectionId/set-identifier/:propertyId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { collectionId, propertyId } = req.params;
+      
+      // Verify the property exists and belongs to the collection
+      const property = await storage.getCollectionPropertyById(propertyId);
+      if (!property || property.collectionId !== collectionId) {
+        return res.status(404).json({ message: "Property not found in this collection" });
+      }
+      
+      // Ensure property is TEXT type for identifier
+      if (property.propertyType !== 'TEXT') {
+        return res.status(400).json({ message: "Identifier field must be a TEXT field" });
+      }
+      
+      const success = await storage.setCollectionIdentifierField(collectionId, propertyId);
+      if (!success) {
+        return res.status(500).json({ message: "Failed to set identifier field" });
+      }
+      
+      res.json({ message: "Identifier field set successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to set identifier field" });
+    }
+  });
+
+  app.get("/api/collections/:collectionId/identifier", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const collectionId = req.params.collectionId;
+      const identifierField = await storage.getCollectionIdentifierField(collectionId);
+      res.json(identifierField || null);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get identifier field" });
     }
   });
 

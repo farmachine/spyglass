@@ -29,7 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Key } from "lucide-react";
 import type { CollectionProperty } from "@shared/schema";
 
 const propertyTypes = ["TEXT", "NUMBER", "DATE", "CHOICE"] as const;
@@ -102,11 +102,20 @@ export default function PropertyDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
             {property ? "Edit Property" : "Add Property"}
+            {property?.isIdentifier && (
+              <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
+                <Key className="h-3 w-3 mr-1" />
+                Identifier Field
+              </Badge>
+            )}
           </DialogTitle>
           <DialogDescription>
-            Add a property to the "{collectionName}" collection. The description helps the AI understand what data to extract for this property.
+            {property?.isIdentifier 
+              ? `Editing the identifier field for "${collectionName}" collection. This field uniquely identifies items in the collection and must remain as TEXT type.`
+              : `Add a property to the "${collectionName}" collection. The description helps the AI understand what data to extract for this property.`
+            }
           </DialogDescription>
         </DialogHeader>
         
@@ -132,7 +141,7 @@ export default function PropertyDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Property Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={property?.isIdentifier}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select property type" />
@@ -140,11 +149,16 @@ export default function PropertyDialog({
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="TEXT">Text</SelectItem>
-                      <SelectItem value="NUMBER">Number</SelectItem>
-                      <SelectItem value="DATE">Date</SelectItem>
-                      <SelectItem value="CHOICE">Choice</SelectItem>
+                      {!property?.isIdentifier && <SelectItem value="NUMBER">Number</SelectItem>}
+                      {!property?.isIdentifier && <SelectItem value="DATE">Date</SelectItem>}
+                      {!property?.isIdentifier && <SelectItem value="CHOICE">Choice</SelectItem>}
                     </SelectContent>
                   </Select>
+                  {property?.isIdentifier && (
+                    <p className="text-sm text-muted-foreground">
+                      Identifier fields must be TEXT type and cannot be changed.
+                    </p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
