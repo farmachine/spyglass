@@ -397,14 +397,22 @@ def step1_extract_from_documents(
         
         logging.info(f"STEP 1: Starting extraction for {len(documents)} documents")
         
-        # Debug document content
+        # Debug document content - handle different document structures
         for i, doc in enumerate(documents):
-            content = doc.get('file_content', '')
-            logging.info(f"Document {i}: {doc.get('file_name', 'Unknown')} - Content length: {len(content)}")
-            if 'Active Deferred' in content or 'Code Meanings' in content:
-                logging.info(f"Document {i} contains code meanings - content preview: {content[:300]}...")
-            elif content:
-                logging.info(f"Document {i} preview: {content[:200]}...")
+            logging.info(f"Document {i} structure: {list(doc.keys())}")
+            
+            # Try different content property names
+            content = doc.get('file_content', doc.get('content', doc.get('extractedContent', '')))
+            file_name = doc.get('file_name', doc.get('fileName', 'Unknown'))
+            
+            logging.info(f"Document {i}: {file_name} - Content length: {len(str(content))}")
+            if isinstance(content, str):
+                if 'Active Deferred' in content or 'Code Meanings' in content:
+                    logging.info(f"Document {i} contains code meanings - content preview: {content[:300]}...")
+                elif content:
+                    logging.info(f"Document {i} preview: {content[:200]}...")
+            else:
+                logging.info(f"Document {i} content type: {type(content)}")
         
         # First, identify global extraction rules that apply to all fields
         global_rules = []
@@ -1161,9 +1169,10 @@ REQUIRED OUTPUT FORMAT - Field Validation JSON Structure:
         processed_docs = 0
         
         for doc in documents:
-            file_content = doc['file_content']
-            file_name = doc['file_name']
-            mime_type = doc['mime_type']
+            # Handle different document property names (modal extraction vs regular extraction)
+            file_content = doc.get('file_content', doc.get('content', doc.get('extractedContent', '')))
+            file_name = doc.get('file_name', doc.get('fileName', 'Unknown'))
+            mime_type = doc.get('mime_type', doc.get('mimeType', 'application/octet-stream'))
             
             logging.info(f"STEP 1: Processing document: {file_name} ({mime_type})")
             
