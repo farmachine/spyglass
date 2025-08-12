@@ -106,9 +106,7 @@ Keep responses concise and focused on the user's question. Use the session data 
       systemInstruction: systemPrompt,
     });
 
-    const response = await model.generateContent([{
-      parts: [{ text: message }]
-    }]);
+    const response = await model.generateContent(message);
 
     return response.text || "I apologize, but I couldn't generate a response. Please try again.";
   } catch (error) {

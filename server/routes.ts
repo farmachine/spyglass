@@ -4963,9 +4963,7 @@ ${additionalInstructions}
           }
         });
 
-        const response = await model.generateContent([{
-          parts: [{ text: prompt }]
-        }]);
+        const response = await model.generateContent(prompt);
 
         const aiResponse = response.text;
         console.log('MODAL_EXTRACTION: AI response length:', aiResponse?.length || 0);
