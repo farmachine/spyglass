@@ -382,17 +382,19 @@ const AIExtractionModal = ({
     const matchingRules = extractionRules.filter((rule: any) => {
       // Check if any selected field matches the rule's target field
       return selectedTargetFieldObjects.some((field: any) => {
+        const targetField = rule.targetField || '';
+        
         // For schema fields, match by fieldName
-        if (field.fieldName && rule.targetField === field.fieldName) {
+        if (field.fieldName && targetField.includes(field.fieldName)) {
           return true;
         }
         // For collection properties, match by propertyName
-        if (field.propertyName && rule.targetField === field.propertyName) {
+        if (field.propertyName && targetField.includes(field.propertyName)) {
           return true;
         }
         // Also check by field name from availableFields
         const originalField = availableFields.find(af => af.id === field.id);
-        if (originalField && rule.targetField === originalField.name) {
+        if (originalField && targetField.includes(originalField.name)) {
           return true;
         }
         return false;
