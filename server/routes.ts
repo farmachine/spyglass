@@ -4956,12 +4956,14 @@ ${additionalInstructions}
         const { GoogleGenAI } = await import('@google/genai');
         const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY });
 
-        const response = await ai.models.generateContent({
+        const response = await ai.generateContent({
           model: "gemini-2.5-pro",
-          config: {
+          generationConfig: {
             responseMimeType: "application/json"
           },
-          contents: prompt,
+          contents: [{
+            parts: [{ text: prompt }]
+          }],
         });
 
         const aiResponse = response.text;
