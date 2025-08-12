@@ -2295,7 +2295,7 @@ class PostgreSQLStorage implements IStorage {
     const result = await this.db.insert(extractionRules).values(rule).returning();
     return result[0];
   }
-  async updateExtractionRule(id: number, rule: Partial<InsertExtractionRule>): Promise<ExtractionRule | undefined> {
+  async updateExtractionRule(id: string, rule: Partial<InsertExtractionRule>): Promise<ExtractionRule | undefined> {
     const result = await this.db
       .update(extractionRules)
       .set(rule)
@@ -2304,7 +2304,7 @@ class PostgreSQLStorage implements IStorage {
     return result[0];
   }
 
-  async deleteExtractionRule(id: number): Promise<boolean> {
+  async deleteExtractionRule(id: string): Promise<boolean> {
     const result = await this.db
       .delete(extractionRules)
       .where(eq(extractionRules.id, id));

@@ -4890,34 +4890,42 @@ print(json.dumps(result))
         return validation ? `${validation.fieldName}: ${validation.extractedValue}` : '';
       }).filter(Boolean).join('\n');
 
-      // Create field definitions for ALL schema fields (not just selected ones)
-      const allSchemaFieldDefinitions = [
-        // Schema fields
-        ...(project_data.schemaFields || []).map((field: any) => ({
-          field_id: field.id,
-          field_name: field.fieldName,
-          field_type: field.fieldType || 'TEXT',
-          validation_instructions: field.validationInstructions || ''
-        })),
-        // Collection properties
-        ...(project_data.collections || []).flatMap((collection: any) => 
-          (collection.properties || []).map((prop: any) => ({
-            field_id: prop.id,
-            field_name: `${collection.collectionName}.${prop.propertyName}`,
-            field_type: prop.propertyType || 'TEXT',
-            validation_instructions: prop.validationInstructions || ''
-          }))
-        )
-      ];
-
-      // Create field definitions for selected target fields only (for reference)
-      const targetFieldDefinitions = selectedTargetFieldsData.map(field => ({
-        field_id: field.id,
-        field_name: field.collectionName 
+      // Create enhanced field definitions for selected target fields only
+      const targetFieldDefinitions = await Promise.all(selectedTargetFieldsData.map(async (field) => {
+        const fieldName = field.collectionName 
           ? `${field.collectionName}.${field.propertyName}` 
-          : field.fieldName,
-        field_type: field.fieldType || 'TEXT',
-        validation_instructions: field.validationInstructions || ''
+          : field.fieldName;
+
+        // Get extraction rules for this field
+        const fieldRules = extractionRules.filter(rule => 
+          rule.targetField === fieldName || 
+          rule.targetField === field.fieldName || 
+          rule.targetField === field.propertyName ||
+          !rule.targetField // Global rules
+        );
+
+        // Get knowledge documents for this field  
+        const fieldKnowledge = knowledgeDocuments.filter(doc =>
+          doc.targetField === fieldName ||
+          doc.targetField === field.fieldName ||
+          doc.targetField === field.propertyName ||
+          !doc.targetField // Global knowledge documents
+        );
+
+        return {
+          field_id: field.id,
+          field_name: fieldName,
+          field_type: field.fieldType || field.propertyType || 'TEXT',
+          description: field.validationInstructions || field.description || '',
+          extraction_rules: fieldRules.length > 0 
+            ? fieldRules.map(rule => `${rule.ruleName}: ${rule.ruleContent}`).join(' | ')
+            : 'No specific extraction rules for this field',
+          knowledge_document: fieldKnowledge.length > 0
+            ? fieldKnowledge.map(doc => `${doc.displayName}: ${doc.description || 'Standard reference document'}`).join(' | ')
+            : 'No specific knowledge documents for this field',
+          isIdentifier: field.isIdentifier || false,
+          collection_name: field.collectionName || null
+        };
       }));
 
       // Get extraction rules and knowledge documents for the project
@@ -4968,11 +4976,10 @@ import json
 prompt = create_wizard_modal_prompt(
     document_content=${JSON.stringify(documentContent)},
     reference_data=${JSON.stringify(referenceData)},
-    target_fields=${JSON.stringify(JSON.stringify(allSchemaFieldDefinitions, null, 2))},
-    selected_fields=${JSON.stringify(JSON.stringify(targetFieldDefinitions, null, 2))},
+    target_fields=${JSON.stringify(JSON.stringify(targetFieldDefinitions, null, 2))},
     skip_records=${JSON.stringify(skipInstructions)},
-    extraction_rules=${JSON.stringify(extractionRulesText)},
-    knowledge_documents=${JSON.stringify(knowledgeDocumentsText)},
+    extraction_rules="",
+    knowledge_documents="",
     verified_context="",
     schema_fields="",
     collections=${JSON.stringify(collectionsSchemaText)},
