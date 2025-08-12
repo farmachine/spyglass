@@ -427,6 +427,16 @@ const AIExtractionModal = ({
       global: globalRules,
       total: matchingRules.length
     }, null, 2));
+
+    // Run the extraction wizardry Python script
+    try {
+      const response = await apiRequest('/api/run-wizardry', {
+        method: 'POST',
+      });
+      console.log('Wizardry Result:', response);
+    } catch (error) {
+      console.error('Error running wizardry:', error);
+    }
   };
 
   // Organize fields by category

@@ -4650,6 +4650,44 @@ print(json.dumps(results))
     }
   });
 
+  // Run extraction wizardry Python script
+  app.post("/api/run-wizardry", async (req, res) => {
+    try {
+      const python = spawn('python3', ['extraction_wizardry.py']);
+      
+      let output = '';
+      let error = '';
+      
+      python.stdout.on('data', (data: any) => {
+        output += data.toString();
+      });
+      
+      python.stderr.on('data', (data: any) => {
+        error += data.toString();
+      });
+      
+      python.on('close', (code: any) => {
+        if (code !== 0) {
+          console.error('Wizardry script error:', error);
+          return res.status(500).json({ 
+            message: "Wizardry script failed", 
+            error: error 
+          });
+        }
+        
+        // Return the result from the Python script
+        res.json({ 
+          message: output.trim() || "that's wizardry!",
+          success: true
+        });
+      });
+      
+    } catch (error) {
+      console.error("Wizardry execution error:", error);
+      res.status(500).json({ message: "Failed to run wizardry script" });
+    }
+  });
+
   // Create HTTP server and return it
   const httpServer = createServer(app);
   return httpServer;
