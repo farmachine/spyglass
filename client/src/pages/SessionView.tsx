@@ -337,25 +337,11 @@ const AIExtractionModal = ({
     });
   };
 
-  // Log selected documents for testing (no extraction call)
   // Simple extraction function
-  const runExtraction = (
-    selectedDocuments: any[],
-    selectedFields: any[],
-    extractionRules: any,
-    additionalInstructions: string
-  ) => {
+  const runExtraction = (selectedDocuments: any[]) => {
     console.log('The documents you selected are:');
     console.log(JSON.stringify(selectedDocuments, null, 2));
-    
-    return {
-      status: "success",
-      message: "The documents you selected are:",
-      documents: selectedDocuments,
-      fieldCount: selectedFields.length,
-      ruleCount: extractionRules.total,
-      additionalInstructions: additionalInstructions || "(none provided)"
-    };
+    return selectedDocuments;
   };
 
   const handleRunExtraction = async () => {
@@ -449,17 +435,7 @@ const AIExtractionModal = ({
     }, null, 2));
 
     // Call extraction function with document properties
-    const extractionResult = await runExtraction(
-      selectedDocumentInfo,
-      selectedTargetFieldObjects,
-      {
-        targeted: targetedRules,
-        global: globalRules,
-        total: matchingRules.length
-      },
-      additionalInstructions
-    );
-    
+    const extractionResult = runExtraction(selectedDocumentInfo);
     console.log('Extraction Result:', extractionResult);
   };
 
