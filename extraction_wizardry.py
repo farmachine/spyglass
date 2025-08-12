@@ -102,12 +102,15 @@ def extract_excel_columns(documents, target_fields):
         for document in documents:
             content_preview = document.get('contentPreview', '')
             
-            # Parse Excel content to extract column headers
+            # Parse Excel content to extract column headers from ALL sheets
             if 'Sheet:' in content_preview:
                 # Split by sheets
                 sheet_sections = content_preview.split('=== Sheet:')
                 
-                for i, sheet_section in enumerate(sheet_sections):
+                # Track global record index across all sheets
+                global_record_index = 0
+                
+                for sheet_index, sheet_section in enumerate(sheet_sections):
                     if not sheet_section.strip():
                         continue
                     
@@ -115,8 +118,9 @@ def extract_excel_columns(documents, target_fields):
                     if len(lines) < 2:
                         continue
                     
-                    # Extract sheet name
-                    sheet_name = lines[0].split('===')[0].strip()
+                    # Extract sheet name (remove trailing '===')
+                    sheet_name_line = lines[0]
+                    sheet_name = sheet_name_line.split('===')[0].strip()
                     
                     # Get the first data line (column headers)
                     header_line = lines[1] if len(lines) > 1 else ""
@@ -124,7 +128,7 @@ def extract_excel_columns(documents, target_fields):
                     # Split by tabs to get individual column headers
                     columns = header_line.split('\t')
                     
-                    # Create extraction results for each column
+                    # Create extraction results for each column in this sheet
                     for col_index, column_header in enumerate(columns):
                         if column_header.strip():
                             # Find matching target field for column heading
@@ -144,13 +148,13 @@ def extract_excel_columns(documents, target_fields):
                                     "field_id": column_field.get('id', ''),
                                     "validation_type": "collection_property",
                                     "data_type": "TEXT",
-                                    "field_name": f"{column_field.get('propertyName', 'Column Heading')}[{col_index}]",
+                                    "field_name": f"{column_field.get('propertyName', 'Column Heading')}[{global_record_index}]",
                                     "collection_name": collection_name,
                                     "extracted_value": column_header.strip(),
                                     "confidence_score": 1.0,
                                     "validation_status": "verified",
-                                    "ai_reasoning": "Extracted directly from the workbook using column extraction",
-                                    "record_index": col_index
+                                    "ai_reasoning": f"Extracted directly from sheet '{sheet_name}' using column extraction",
+                                    "record_index": global_record_index
                                 })
                             
                             # Add worksheet result for each column
@@ -159,14 +163,17 @@ def extract_excel_columns(documents, target_fields):
                                     "field_id": worksheet_field.get('id', ''),
                                     "validation_type": "collection_property",
                                     "data_type": "TEXT",
-                                    "field_name": f"{worksheet_field.get('propertyName', 'Worksheet')}[{col_index}]",
+                                    "field_name": f"{worksheet_field.get('propertyName', 'Worksheet')}[{global_record_index}]",
                                     "collection_name": collection_name,
                                     "extracted_value": sheet_name,
                                     "confidence_score": 1.0,
                                     "validation_status": "verified",
-                                    "ai_reasoning": "Extracted directly from the workbook using column extraction",
-                                    "record_index": col_index
+                                    "ai_reasoning": f"Extracted sheet name for column '{column_header.strip()}' using column extraction",
+                                    "record_index": global_record_index
                                 })
+                            
+                            # Increment global record index for each column across all sheets
+                            global_record_index += 1
         
         return extraction_results
         
