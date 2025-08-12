@@ -5058,7 +5058,7 @@ print(json.dumps(result))
 
         try {
           // Check if this is a collection field by finding the schema field
-          const schemaField = project_data.schema_fields.find(f => f.id === validation.field_id);
+          const schemaField = (project_data.schema_fields || []).find(f => f.id === validation.field_id);
           
           if (schemaField) {
             // This is a schema field (global field)

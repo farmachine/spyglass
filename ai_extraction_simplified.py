@@ -369,7 +369,9 @@ def step1_extract_from_documents(
     session_name: str = "contract",
     validated_data_context: Optional[Dict[str, Any]] = None,
     extraction_notes: str = "",
-    is_subsequent_upload: bool = False
+    is_subsequent_upload: bool = False,
+    operation: str = "extract",
+    input_data: Optional[Dict[str, Any]] = None
 ) -> ExtractionResult:
     """
     STEP 1: Extract data from documents using AI
@@ -378,11 +380,18 @@ def step1_extract_from_documents(
         documents: List of document objects with file_content, file_name, mime_type
         project_schema: Schema definition with schema_fields and collections
         session_name: Name for the main object (default: "contract")
+        operation: Operation type (extract, extract_additional, modal_extraction)
+        input_data: Full input data for modal extraction context
     
     Returns:
         ExtractionResult with extracted JSON data
     """
     try:
+        # Set default values for None parameters
+        if input_data is None:
+            input_data = {}
+        if validated_data_context is None:
+            validated_data_context = {}
         # Check for API key
         api_key = os.environ.get("GEMINI_API_KEY")
         if not api_key:
@@ -935,13 +944,84 @@ def step1_extract_from_documents(
             existing_records_text += "\nYou MUST extract NEW records only. Do not extract the same record indexes listed above. Start from the next available record index.\n"
             logging.info(f"EXCLUSION LOGIC: Skipping existing records: {existing_collection_records}")
         
-        # Use the imported prompt template with our schema, collections, verified context, and JSON schema
-        full_prompt = json_schema_section + "\n" + EXTRACTION_PROMPT.format(
-            verified_context=verified_context_text,
-            schema_fields=schema_fields_text,
-            collections=collections_text,
-            additional_instructions=additional_instructions + existing_records_text
-        )
+        # Use different prompt builders based on operation type
+        if operation == "modal_extraction":
+            # Use streamlined modal extraction prompt
+            from modal_prompt_builder import build_modal_extraction_prompt
+            
+            # Build document content from processed documents
+            document_content = ""
+            for doc in documents:
+                file_content = doc.get('file_content', doc.get('content', doc.get('extractedContent', '')))
+                file_name = doc.get('file_name', doc.get('fileName', 'Unknown'))
+                document_content += f"\n\n=== DOCUMENT: {file_name} ===\n{file_content}"
+            
+            # Filter target fields - only include selected fields from input_data
+            target_fields = input_data.get("target_fields", [])
+            target_schema_fields = []
+            target_collections = []
+            
+            # Get the selected field IDs
+            selected_field_ids = set(target_fields)
+            
+            # Filter schema fields to only selected ones
+            for field in project_schema.get("schema_fields", []):
+                if field.get("id") in selected_field_ids:
+                    target_schema_fields.append({
+                        "field_id": field.get("id"),
+                        "field_name": field.get("fieldName"),
+                        "field_type": field.get("fieldType", "TEXT"),
+                        "description": field.get("description"),
+                        "choices": field.get("choiceOptions")
+                    })
+            
+            # Filter collections and their properties to only selected ones  
+            for collection in project_schema.get("collections", []):
+                filtered_properties = []
+                for prop in collection.get("collection_properties", []):
+                    if prop.get("id") in selected_field_ids:
+                        filtered_properties.append({
+                            "property_id": prop.get("id"),
+                            "property_name": prop.get("propertyName"),
+                            "property_type": prop.get("propertyType", "TEXT"),
+                            "description": prop.get("description"),
+                            "choices": prop.get("choiceOptions")
+                        })
+                
+                if filtered_properties:  # Only include collections with selected properties
+                    target_collections.append({
+                        "collection_name": collection.get("collectionName"),
+                        "description": collection.get("description", ""),
+                        "properties": filtered_properties
+                    })
+            
+            # Build validated reference data context
+            validated_reference_data = {}
+            for field_name, context in validated_data_context.items():
+                validated_reference_data[field_name] = {
+                    "extractedValue": context.get("value", ""),
+                    "confidence": context.get("confidence", 0)
+                }
+            
+            full_prompt = build_modal_extraction_prompt(
+                target_schema_fields=target_schema_fields,
+                target_collections=target_collections,
+                extraction_rules=extraction_rules,
+                knowledge_documents=knowledge_documents,
+                document_content=document_content.strip(),
+                validated_reference_data=validated_reference_data,
+                additional_instructions=additional_instructions + existing_records_text
+            )
+            
+            logging.info(f"MODAL EXTRACTION: Generated streamlined prompt targeting {len(target_schema_fields)} schema fields and {len(target_collections)} collections")
+        else:
+            # Use the imported prompt template with our schema, collections, verified context, and JSON schema
+            full_prompt = json_schema_section + "\n" + EXTRACTION_PROMPT.format(
+                verified_context=verified_context_text,
+                schema_fields=schema_fields_text,
+                collections=collections_text,
+                additional_instructions=additional_instructions + existing_records_text
+            )
         
         # Generate field validation JSON structure
         def generate_field_validation_example():
@@ -1855,7 +1935,7 @@ if __name__ == "__main__":
             session_name = input_data.get("session_name", "contract")
             
             # Call the extraction function with new parameters
-            result = step1_extract_from_documents(documents, project_schema, extraction_rules, knowledge_documents, session_name, validated_data_context, extraction_notes, is_subsequent_upload)
+            result = step1_extract_from_documents(documents, project_schema, extraction_rules, knowledge_documents, session_name, validated_data_context, extraction_notes, is_subsequent_upload, operation, input_data)
             
             if result.success:
                 print(json.dumps({
