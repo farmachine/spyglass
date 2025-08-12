@@ -107,15 +107,10 @@ def extract_excel_columns(documents, target_fields):
             # Use full content for processing, contentPreview for display
             full_content = document.get('fullContent', '')
             
-            print(f"DEBUG: Document has full content length: {len(full_content)}")
-            print(f"DEBUG: Looking for 'SHEET:' in content: {'SHEET:' in full_content}")
-            if full_content:
-                print(f"DEBUG: First 100 chars of content: {full_content[:100]}")
-            
             # Parse Excel content to extract column headers from ALL sheets
-            if 'SHEET:' in full_content:
+            if 'Sheet:' in full_content:
                 # Split by sheet sections
-                sheet_sections = full_content.split('=== SHEET:')
+                sheet_sections = full_content.split('=== Sheet:')
                 
                 # Track global record index across all sheets
                 global_record_index = 0
