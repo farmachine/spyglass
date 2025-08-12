@@ -101,13 +101,14 @@ FORMATTING GUIDELINES:
 
 Keep responses concise and focused on the user's question. Use the session data to provide accurate, specific information about ALL available data.`;
 
-    const response = await ai.generateContent({
+    const model = ai.getGenerativeModel({ 
       model: "gemini-2.5-flash",
       systemInstruction: systemPrompt,
-      contents: [{
-        parts: [{ text: message }]
-      }],
     });
+
+    const response = await model.generateContent([{
+      parts: [{ text: message }]
+    }]);
 
     return response.text || "I apologize, but I couldn't generate a response. Please try again.";
   } catch (error) {

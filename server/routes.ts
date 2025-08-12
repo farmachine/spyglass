@@ -4956,15 +4956,16 @@ ${additionalInstructions}
         const { GoogleGenAI } = await import('@google/genai');
         const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY });
 
-        const response = await ai.generateContent({
+        const model = ai.getGenerativeModel({ 
           model: "gemini-2.5-pro",
           generationConfig: {
             responseMimeType: "application/json"
-          },
-          contents: [{
-            parts: [{ text: prompt }]
-          }],
+          }
         });
+
+        const response = await model.generateContent([{
+          parts: [{ text: prompt }]
+        }]);
 
         const aiResponse = response.text;
         console.log('MODAL_EXTRACTION: AI response length:', aiResponse?.length || 0);
