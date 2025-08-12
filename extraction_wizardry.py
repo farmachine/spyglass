@@ -166,6 +166,10 @@ def run_wizardry_with_gemini_analysis(data=None):
         # Get target field descriptions from database
         target_fields_data = get_target_fields_from_db(target_fields) if target_fields else []
         
+        # Debug: Print raw target fields and processed data
+        print(f"DEBUG: Raw target_fields: {json.dumps(target_fields, indent=2)}")
+        print(f"DEBUG: Processed target_fields_data: {json.dumps(target_fields_data, indent=2)}")
+        
         # Analyze document formats with Gemini
         gemini_response = analyze_document_format_with_gemini(documents, target_fields_data)
         
