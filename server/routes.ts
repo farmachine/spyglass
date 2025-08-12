@@ -889,6 +889,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const collectionId = req.params.collectionId;
       const properties = await storage.getCollectionProperties(collectionId);
       
+      // Debug: Log the actual properties being returned
+      console.log(`DEBUG SERVER: Collection ${collectionId} properties:`, properties.map(p => ({
+        id: p.id,
+        propertyName: p.propertyName,
+        isIdentifier: p.isIdentifier,
+        type: typeof p.isIdentifier
+      })));
+      
       // Add cache-busting headers to ensure fresh data
       res.set({
         'Cache-Control': 'no-cache, no-store, must-revalidate',
