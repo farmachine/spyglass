@@ -1576,6 +1576,11 @@ RETURN: Complete readable content from this document."""
         logging.info(f"=== STEP 2: DATA EXTRACTION ===")
         logging.info(f"Making data extraction call with {len(extracted_content_text)} characters of extracted content")
         
+        # Save prompt to debug info immediately before AI call - this ensures debug info is saved even if extraction fails
+        logging.info("MODAL_EXTRACTION: Saving prompt to debug info before AI call")
+        debug_prompt = final_prompt
+        debug_session_id = operation_data.get('session_id')
+        
         # Retry logic for API overload situations in data extraction
         max_retries = 3
         retry_delay = 2  # Start with 2 seconds
@@ -1600,7 +1605,16 @@ RETURN: Complete readable content from this document."""
                     retry_delay *= 2  # Exponential backoff
                     continue
                 else:
-                    raise e  # Re-raise if not overload error or final attempt
+                    # AI generation failed - return debug info
+                    logging.error(f"AI generation failed after {attempt + 1} attempts: {e}")
+                    return ExtractionResult(
+                        success=False, 
+                        error_message=f"AI generation failed: {str(e)}",
+                        extraction_prompt=debug_prompt,
+                        ai_response=None,
+                        input_token_count=None,
+                        output_token_count=None
+                    )
         
         if not response or not response.text:
             return ExtractionResult(success=False, error_message="No response from AI")
@@ -1798,11 +1812,25 @@ RETURN: Complete readable content from this document."""
         except json.JSONDecodeError as e:
             logging.error(f"Failed to parse AI response as JSON: {e}")
             logging.error(f"Cleaned response: {response_text}")
-            return ExtractionResult(success=False, error_message=f"Invalid JSON response: {e}")
+            return ExtractionResult(
+                success=False, 
+                error_message=f"Invalid JSON response: {e}",
+                extraction_prompt=debug_prompt,
+                ai_response=response_text if 'response_text' in locals() else None,
+                input_token_count=input_token_count if 'input_token_count' in locals() else None,
+                output_token_count=output_token_count if 'output_token_count' in locals() else None
+            )
             
     except Exception as e:
         logging.error(f"STEP 1 extraction failed: {e}")
-        return ExtractionResult(success=False, error_message=str(e))
+        return ExtractionResult(
+            success=False, 
+            error_message=str(e),
+            extraction_prompt=debug_prompt if 'debug_prompt' in locals() else None,
+            ai_response=None,
+            input_token_count=None,
+            output_token_count=None
+        )
 
 # Validation function removed - validation now occurs only during extraction process
 
