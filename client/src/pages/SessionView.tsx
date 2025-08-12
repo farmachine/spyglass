@@ -259,7 +259,8 @@ const AIExtractionModal = ({
   sessionDocuments,
   verifiedFields,
   allProjectFields = [],
-  sessionId
+  sessionId,
+  project
 }: { 
   isOpen: boolean; 
   onClose: () => void; 
@@ -269,6 +270,7 @@ const AIExtractionModal = ({
   verifiedFields: { id: string; name: string; value: string }[];
   allProjectFields?: { id: string; name: string; type: string }[];
   sessionId: string;
+  project?: any;
 }) => {
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [selectedVerifiedFields, setSelectedVerifiedFields] = useState<string[]>([]);
@@ -341,9 +343,31 @@ const AIExtractionModal = ({
     
     console.log('Selected Documents for Extraction:', JSON.stringify(selectedDocumentInfo, null, 2));
 
-    // Log selected target field objects (using available field data)
+    // Log selected target field objects with full schema details
     const selectedTargetFieldObjects = availableFields
-      ?.filter(field => selectedTargetFields.includes(field.id)) || [];
+      ?.filter(field => selectedTargetFields.includes(field.id))
+      .map(field => {
+        // Find the full schema field object with all properties
+        const schemaField = project?.schemaFields?.find(sf => sf.id === field.id);
+        if (schemaField) {
+          return schemaField;
+        }
+        
+        // Check if it's a collection property
+        for (const collection of project?.collections || []) {
+          const property = collection.properties?.find(p => p.id === field.id);
+          if (property) {
+            return {
+              ...property,
+              collectionName: collection.name,
+              collectionId: collection.id
+            };
+          }
+        }
+        
+        // Fallback to basic field info if not found in schema
+        return field;
+      }) || [];
     
     console.log('Selected Target Field Objects:', JSON.stringify(selectedTargetFieldObjects, null, 2));
   };
@@ -3541,6 +3565,7 @@ Thank you for your assistance.`;
         verifiedFields={getVerifiedFields()}
         allProjectFields={getAllProjectFields()}
         sessionId={sessionId}
+        project={project}
       />
 
       {/* Session Chat */}
