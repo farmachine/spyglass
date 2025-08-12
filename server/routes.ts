@@ -4998,6 +4998,14 @@ ${additionalInstructions}
         console.log('MODAL_EXTRACTION: Prompt sent to AI:', prompt.substring(0, 500) + '...');
         console.log('MODAL_EXTRACTION: Full AI response:', aiResponse);
 
+        // Update session with debug information
+        await storage.updateExtractionSession(sessionId, {
+          extractionPrompt: prompt,
+          aiResponse: aiResponse,
+          inputTokenCount: null, // Modal extraction doesn't track token counts yet
+          outputTokenCount: null
+        });
+
         // Save field validations to database
         for (const validation of fieldValidations) {
           const confidence = Math.round((validation.confidence_score || 0) * 100);
