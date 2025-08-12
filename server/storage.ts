@@ -1123,6 +1123,10 @@ export class MemStorage implements IStorage {
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }
 
+  async getCollectionPropertyById(id: string): Promise<CollectionProperty | undefined> {
+    return this.collectionProperties.get(id);
+  }
+
   async createCollectionProperty(insertProperty: InsertCollectionProperty): Promise<CollectionProperty> {
     const id = this.generateUUID();
     const property: CollectionProperty = {
@@ -2155,6 +2159,15 @@ class PostgreSQLStorage implements IStorage {
       .where(eq(collectionProperties.collectionId, collectionId))
       .orderBy(collectionProperties.orderIndex);
     return result;
+  }
+
+  async getCollectionPropertyById(id: string): Promise<CollectionProperty | undefined> {
+    const result = await this.db
+      .select()
+      .from(collectionProperties)
+      .where(eq(collectionProperties.id, id))
+      .limit(1);
+    return result[0];
   }
   async createCollectionProperty(property: InsertCollectionProperty): Promise<CollectionProperty> { 
     const result = await this.db.insert(collectionProperties).values(property).returning();

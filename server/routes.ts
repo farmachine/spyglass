@@ -962,25 +962,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/collections/:collectionId/set-identifier/:propertyId", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { collectionId, propertyId } = req.params;
+      console.log(`Setting identifier field: collectionId=${collectionId}, propertyId=${propertyId}`);
       
       // Verify the property exists and belongs to the collection
       const property = await storage.getCollectionPropertyById(propertyId);
+      console.log(`Property found:`, property);
       if (!property || property.collectionId !== collectionId) {
+        console.log(`Property validation failed: property=${!!property}, collectionMatch=${property?.collectionId === collectionId}`);
         return res.status(404).json({ message: "Property not found in this collection" });
       }
       
       // Ensure property is TEXT type for identifier
       if (property.propertyType !== 'TEXT') {
+        console.log(`Property type validation failed: ${property.propertyType} !== TEXT`);
         return res.status(400).json({ message: "Identifier field must be a TEXT field" });
       }
       
       const success = await storage.setCollectionIdentifierField(collectionId, propertyId);
+      console.log(`Set identifier field result:`, success);
       if (!success) {
         return res.status(500).json({ message: "Failed to set identifier field" });
       }
       
       res.json({ message: "Identifier field set successfully" });
     } catch (error) {
+      console.error("Error setting identifier field:", error);
       res.status(500).json({ message: "Failed to set identifier field" });
     }
   });
