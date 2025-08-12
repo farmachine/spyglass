@@ -4653,7 +4653,15 @@ print(json.dumps(results))
   // Run extraction wizardry Python script
   app.post("/api/run-wizardry", async (req, res) => {
     try {
+      const selectedData = req.body; // Get selected data from request body
+      
       const python = spawn('python3', ['extraction_wizardry.py']);
+      
+      // Pass selected data to Python script via stdin
+      if (selectedData && Object.keys(selectedData).length > 0) {
+        python.stdin.write(JSON.stringify(selectedData));
+      }
+      python.stdin.end();
       
       let output = '';
       let error = '';
@@ -4675,11 +4683,20 @@ print(json.dumps(results))
           });
         }
         
-        // Return the result from the Python script
-        res.json({ 
-          message: output.trim() || "that's wizardry!",
-          success: true
-        });
+        try {
+          // Try to parse JSON output from Python script
+          const result = JSON.parse(output.trim());
+          res.json({ 
+            ...result,
+            success: true
+          });
+        } catch (parseError) {
+          // Fallback to plain text if JSON parsing fails
+          res.json({ 
+            message: output.trim() || "that's wizardry!",
+            success: true
+          });
+        }
       });
       
     } catch (error) {
