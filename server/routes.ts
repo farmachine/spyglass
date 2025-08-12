@@ -4976,6 +4976,14 @@ ${additionalInstructions}
           responseKeys: Object.keys(response)
         }));
 
+        // Save debug information even if AI response is empty
+        await storage.updateExtractionSession(sessionId, {
+          extractionPrompt: prompt,
+          aiResponse: aiResponse || 'Empty response from AI',
+          inputTokenCount: response.response?.usageMetadata?.promptTokenCount || null,
+          outputTokenCount: response.response?.usageMetadata?.totalTokenCount || null
+        });
+
         if (!aiResponse || aiResponse.trim() === '') {
           console.log('MODAL_EXTRACTION: Full response object:', JSON.stringify(response, null, 2));
           throw new Error('Empty response from AI');
@@ -4997,14 +5005,6 @@ ${additionalInstructions}
         // Save debug information to console for now
         console.log('MODAL_EXTRACTION: Prompt sent to AI:', prompt.substring(0, 500) + '...');
         console.log('MODAL_EXTRACTION: Full AI response:', aiResponse);
-
-        // Update session with debug information
-        await storage.updateExtractionSession(sessionId, {
-          extractionPrompt: prompt,
-          aiResponse: aiResponse,
-          inputTokenCount: null, // Modal extraction doesn't track token counts yet
-          outputTokenCount: null
-        });
 
         // Save field validations to database
         for (const validation of fieldValidations) {
