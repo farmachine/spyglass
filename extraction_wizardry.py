@@ -88,10 +88,10 @@ def get_target_fields_from_db(target_fields):
                         "type": "collection_property"
                     })
             else:
-                # Schema field: get from schema_fields table
+                # Schema field: get from project_schema_fields table
                 query = """
                 SELECT field_name, description 
-                FROM schema_fields 
+                FROM project_schema_fields 
                 WHERE id = %s
                 """
                 cursor.execute(query, (field_id,))
