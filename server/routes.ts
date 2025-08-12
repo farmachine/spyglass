@@ -4880,14 +4880,8 @@ print(json.dumps(result))
         collection: f.collectionName 
       })));
 
-      // Get document content from stored documents (truncate if too large)
-      let documentContent = selectedDocumentContents.map(doc => doc.file_content).join('\n\n');
-      
-      // Truncate document content if it's too large (keep under 8000 characters for token limits)
-      if (documentContent.length > 8000) {
-        documentContent = documentContent.substring(0, 8000) + '\n\n[CONTENT TRUNCATED - SHOWING FIRST 8000 CHARACTERS]';
-        console.log('MODAL_EXTRACTION: Document content truncated from', selectedDocumentContents.map(doc => doc.file_content).join('\n\n').length, 'to', documentContent.length, 'characters');
-      }
+      // Get document content from stored documents  
+      const documentContent = selectedDocumentContents.map(doc => doc.file_content).join('\n\n');
 
       // Get reference data from existing validations
       const referenceValidations = await storage.getFieldValidations(sessionId);
@@ -4912,39 +4906,40 @@ print(json.dumps(result))
           `Skip ${collection} records with indexes: ${Array.from(indexes).join(', ')}`
         ).join('\n');
 
-      // Create a simplified AI prompt focused on the specific target fields
-      const targetFieldsList = targetFieldDefinitions.map(field => 
-        `- ${field.field_name} (ID: ${field.field_id})`
-      ).join('\n');
-
-      const prompt = `Extract data for the following field(s) from this document:
-
-TARGET FIELDS:
-${targetFieldsList}
+      // Create AI prompt
+      const prompt = `Extract data from the document content below. Use the reference data as context.
 
 DOCUMENT CONTENT:
 ${documentContent}
 
-${referenceData ? `REFERENCE DATA:
+REFERENCE DATA (for context):
 ${referenceData}
 
-` : ''}${additionalInstructions ? `INSTRUCTIONS:
+TARGET FIELDS TO EXTRACT:
+${JSON.stringify(targetFieldDefinitions, null, 2)}
+
+EXISTING RECORDS TO SKIP:
+${skipInstructions}
+
+${additionalInstructions ? `ADDITIONAL INSTRUCTIONS:
 ${additionalInstructions}
 
-` : ''}Return ONLY valid JSON with this exact structure:
+` : ''}Extract up to 100 field validations. For collection properties, start from the next available index after existing records.
+
+Return JSON in this format:
 {
   "field_validations": [
     {
-      "field_id": "${targetFieldDefinitions[0]?.field_id || 'uuid'}",
-      "validation_type": "schema_field",
+      "field_id": "uuid",
+      "validation_type": "schema_field" or "collection_property", 
       "data_type": "TEXT",
-      "field_name": "${targetFieldDefinitions[0]?.field_name || 'field name'}",
-      "collection_name": null,
-      "extracted_value": "extracted value here",
+      "field_name": "exact field name",
+      "collection_name": "collection name if applicable",
+      "extracted_value": "the extracted value",
       "confidence_score": 0.95,
       "validation_status": "unverified",
-      "ai_reasoning": "brief explanation",
-      "record_index": null
+      "ai_reasoning": "explanation",
+      "record_index": null or number for collections
     }
   ]
 }`;
