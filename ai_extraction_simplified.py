@@ -1587,7 +1587,7 @@ RETURN: Complete readable content from this document."""
                                 
                                 text_content = []
                                 total_content_size = 0
-                                MAX_CONTENT_SIZE = 800000  # Increased to 800KB per document for better Excel coverage
+                                MAX_CONTENT_SIZE = 200000  # Reduced to 200KB per document to prevent Gemini blocks
                                 
                                 for sheet_name, df in all_sheets.items():
                                     text_content.append(f"=== SHEET: {sheet_name} ===")
@@ -1665,8 +1665,8 @@ RETURN: Complete readable content from this document."""
         
         logging.info(f"STEP 1 COMPLETE: Processed {processed_docs} documents, extracted total of {len(extracted_content_text)} characters from all documents")
         
-        # Check total content size and truncate if needed to prevent timeouts
-        MAX_TOTAL_CONTENT = 2500000  # Increased to 2.5MB total limit for very large Excel processing
+        # Check total content size and truncate if needed to prevent Gemini API blocks
+        MAX_TOTAL_CONTENT = 500000  # Reduced to 500KB to prevent Gemini API blocks
         if len(extracted_content_text) > MAX_TOTAL_CONTENT:
             logging.warning(f"Total content size ({len(extracted_content_text)} chars) exceeds limit ({MAX_TOTAL_CONTENT}), truncating...")
             extracted_content_text = extracted_content_text[:MAX_TOTAL_CONTENT] + "\n\n[CONTENT TRUNCATED - Document set too large for single processing]"
@@ -1718,8 +1718,70 @@ RETURN: Complete readable content from this document."""
                         output_token_count=None
                     )
         
-        if not response or not response.text:
-            return ExtractionResult(success=False, error_message="No response from AI")
+        # Better response validation and error handling
+        if not response:
+            return ExtractionResult(
+                success=False, 
+                error_message="No response from AI",
+                extraction_prompt=debug_prompt,
+                ai_response=None,
+                input_token_count=None,
+                output_token_count=None
+            )
+        
+        # Check if response has candidates and they have content
+        if not hasattr(response, 'candidates') or not response.candidates:
+            return ExtractionResult(
+                success=False, 
+                error_message="No candidates in AI response",
+                extraction_prompt=debug_prompt,
+                ai_response=None,
+                input_token_count=None,
+                output_token_count=None
+            )
+        
+        # Check finish reason
+        candidate = response.candidates[0]
+        if hasattr(candidate, 'finish_reason') and candidate.finish_reason != 1:
+            finish_reason_map = {
+                1: "STOP (Natural completion)",
+                2: "MAX_TOKENS (Token limit reached)",
+                3: "SAFETY (Content blocked)",
+                4: "RECITATION (Repeated content)",
+                5: "OTHER (Other reason)"
+            }
+            finish_reason_text = finish_reason_map.get(candidate.finish_reason, f"Unknown ({candidate.finish_reason})")
+            
+            return ExtractionResult(
+                success=False, 
+                error_message=f"AI response blocked or incomplete. Finish reason: {finish_reason_text}. This usually means the prompt is too long or contains filtered content.",
+                extraction_prompt=debug_prompt,
+                ai_response=f"Response blocked - Finish reason: {finish_reason_text}",
+                input_token_count=None,
+                output_token_count=None
+            )
+        
+        # Try to get text content safely
+        try:
+            response_text = response.text
+            if not response_text:
+                return ExtractionResult(
+                    success=False, 
+                    error_message="Empty response from AI",
+                    extraction_prompt=debug_prompt,
+                    ai_response="Empty response",
+                    input_token_count=None,
+                    output_token_count=None
+                )
+        except Exception as e:
+            return ExtractionResult(
+                success=False, 
+                error_message=f"Error accessing response text: {str(e)}",
+                extraction_prompt=debug_prompt,
+                ai_response=f"Error accessing response: {str(e)}",
+                input_token_count=None,
+                output_token_count=None
+            )
         
         # Extract token usage information
         input_token_count = None
