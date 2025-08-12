@@ -145,9 +145,11 @@ def extract_text_from_document(file_data: Dict[str, Any]) -> Dict[str, Any]:
     except Exception as e:
         return {
             'file_name': file_name,
-            'extracted_text': '',
+            'text_content': '',
             'error': f'Base64 decode failed: {str(e)}',
-            'file_size': 0
+            'file_size': 0,
+            'word_count': 0,
+            'extraction_method': 'failed'
         }
     
     file_size = len(file_content)
@@ -165,25 +167,31 @@ def extract_text_from_document(file_data: Dict[str, Any]) -> Dict[str, Any]:
         else:
             return {
                 'file_name': file_name,
-                'extracted_text': '',
+                'text_content': '',
                 'error': f'Unsupported file type: {mime_type} ({file_ext})',
-                'file_size': file_size
+                'file_size': file_size,
+                'word_count': 0,
+                'extraction_method': 'unsupported'
             }
         
         return {
             'file_name': file_name,
-            'extracted_text': extracted_text,
+            'text_content': extracted_text,
             'file_size': file_size,
-            'mime_type': mime_type
+            'mime_type': mime_type,
+            'word_count': len(extracted_text.split()) if extracted_text else 0,
+            'extraction_method': 'direct'
         }
         
     except Exception as e:
         return {
             'file_name': file_name,
-            'extracted_text': '',
+            'text_content': '',
             'error': str(e),
             'file_size': file_size,
-            'mime_type': mime_type
+            'mime_type': mime_type,
+            'word_count': 0,
+            'extraction_method': 'failed'
         }
 
 def main():
