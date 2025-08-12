@@ -4953,8 +4953,8 @@ ${additionalInstructions}
 
       // Call Gemini API directly
       try {
-        const { GoogleGenAI } = await import('@google/genai');
-        const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY });
+        const { GoogleGenerativeAI } = await import('@google/generative-ai');
+        const ai = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY);
 
         const model = ai.getGenerativeModel({ 
           model: "gemini-2.5-pro",
