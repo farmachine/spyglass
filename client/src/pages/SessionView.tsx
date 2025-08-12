@@ -443,6 +443,10 @@ const AIExtractionModal = ({
         body: JSON.stringify(requestData),
       });
       console.log('Wizardry Result:', response);
+      if (response.output) {
+        console.log('Python Script Output:');
+        console.log(response.output);
+      }
     } catch (error) {
       console.error('Error running wizardry:', error);
     }
