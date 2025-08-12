@@ -4903,6 +4903,8 @@ print(json.dumps(result))
           ? `${field.collectionName}.${field.propertyName}` 
           : field.fieldName,
         field_type: field.fieldType || 'TEXT',
+        validation_type: field.collectionName ? 'collection_property' : 'schema_field',
+        collection_name: field.collectionName || null,
         validation_instructions: field.validationInstructions || ''
       }));
 
@@ -4936,10 +4938,10 @@ ${additionalInstructions}
   "field_validations": [
     {
       "field_id": "${targetFieldDefinitions[0]?.field_id || 'uuid'}",
-      "validation_type": "schema_field",
+      "validation_type": "${targetFieldDefinitions[0]?.validation_type || 'schema_field'}",
       "data_type": "TEXT",
       "field_name": "${targetFieldDefinitions[0]?.field_name || 'field name'}",
-      "collection_name": null,
+      "collection_name": ${targetFieldDefinitions[0]?.collection_name ? `"${targetFieldDefinitions[0].collection_name}"` : 'null'},
       "extracted_value": "extracted value here",
       "confidence_score": 0.95,
       "validation_status": "unverified",
