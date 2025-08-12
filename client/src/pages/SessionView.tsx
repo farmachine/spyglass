@@ -341,31 +341,9 @@ const AIExtractionModal = ({
     
     console.log('Selected Documents for Extraction:', JSON.stringify(selectedDocumentInfo, null, 2));
 
-    // Log selected target field objects from project schema
+    // Log selected target field objects (using available field data)
     const selectedTargetFieldObjects = availableFields
-      ?.filter(field => selectedTargetFields.includes(field.id))
-      .map(field => {
-        // Find the full schema field object with all properties
-        const schemaField = project?.schemaFields?.find(sf => sf.id === field.id);
-        if (schemaField) {
-          return schemaField;
-        }
-        
-        // Check if it's a collection property
-        for (const collection of project?.collections || []) {
-          const property = collection.properties?.find(p => p.id === field.id);
-          if (property) {
-            return {
-              ...property,
-              collectionName: collection.name,
-              collectionId: collection.id
-            };
-          }
-        }
-        
-        // Fallback to basic field info if not found in schema
-        return field;
-      }) || [];
+      ?.filter(field => selectedTargetFields.includes(field.id)) || [];
     
     console.log('Selected Target Field Objects:', JSON.stringify(selectedTargetFieldObjects, null, 2));
   };
