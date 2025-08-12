@@ -428,11 +428,12 @@ const AIExtractionModal = ({
       total: matchingRules.length
     }, null, 2));
 
-    // Run the extraction wizardry Python script with document IDs and session ID
+    // Run the extraction wizardry Python script with document IDs, session ID, and target fields
     try {
       const requestData = {
         document_ids: selectedDocuments,
-        session_id: sessionId
+        session_id: sessionId,
+        target_fields: selectedTargetFieldObjects
       };
       
       const response = await apiRequest('/api/run-wizardry', {

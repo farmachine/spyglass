@@ -83,6 +83,7 @@ def run_wizardry_with_gemini_analysis(data=None):
     if data and isinstance(data, dict):
         document_ids = data.get('document_ids', [])
         session_id = data.get('session_id')
+        target_fields = data.get('target_fields', [])
         
         if not document_ids or not session_id:
             print(json.dumps({"error": "Missing document_ids or session_id"}))
@@ -100,6 +101,9 @@ def run_wizardry_with_gemini_analysis(data=None):
         
         # Print document properties
         print(json.dumps(documents, indent=2))
+        
+        # Print target fields
+        print(json.dumps(target_fields, indent=2))
         
         # Print Gemini response
         print(gemini_response)
