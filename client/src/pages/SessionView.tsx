@@ -703,25 +703,14 @@ export default function SessionView() {
   const getVerifiedFields = () => {
     const verifiedData: { id: string; name: string; value: string }[] = [];
     
-    console.log('getVerifiedFields Debug:', {
-      project: project?.name,
-      schemaFields: project?.schemaFields?.length,
-      collections: project?.collections?.length,
-      extractedData: Object.keys(extractedData || {}),
-      sessionDocuments: sessionDocuments?.length
-    });
-    
     // Add "General Information" if it has data
     const hasSchemaData = project?.schemaFields?.some(field => {
       const originalValue = extractedData[field.fieldName];
       const validation = getValidation(field.fieldName);
       const displayValue = validation?.extractedValue ?? originalValue ?? null;
-      console.log(`Schema field ${field.fieldName}:`, { originalValue, validation: !!validation, displayValue });
       return displayValue !== null && displayValue !== undefined && displayValue !== "" && 
              displayValue !== "null" && displayValue !== "undefined";
     });
-    
-    console.log('hasSchemaData:', hasSchemaData);
     
     if (hasSchemaData) {
       verifiedData.push({
@@ -740,7 +729,7 @@ export default function SessionView() {
         )
       ).length : 0;
       
-      console.log(`Collection ${collection.collectionName}:`, { collectionData, itemCount });
+
       
       if (itemCount > 0) {
         verifiedData.push({
@@ -751,7 +740,6 @@ export default function SessionView() {
       }
     });
     
-    console.log('Final verifiedData:', verifiedData);
     return verifiedData;
   };
 
