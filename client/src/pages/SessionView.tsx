@@ -395,15 +395,7 @@ const AIExtractionModal = ({
 
   const { schemaFields, collectionNames } = organizeFields();
 
-  // Add modal open effect to debug
-  useEffect(() => {
-    if (isOpen) {
-      console.log('AI Extraction Modal opened for:', sectionName);
-      console.log('Available fields:', availableFields);
-      console.log('Session documents:', sessionDocuments);
-      console.log('Verified fields:', verifiedFields);
-    }
-  }, [isOpen, sectionName, availableFields, sessionDocuments, verifiedFields]);
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
