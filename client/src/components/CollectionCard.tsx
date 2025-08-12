@@ -251,10 +251,10 @@ export default function CollectionCard({
                                 </TableCell>
                                 <TableCell className="font-medium">
                                   <div className="flex items-center gap-2">
+                                    {property.propertyName}
                                     {property.isIdentifier && (
                                       <Key className="h-4 w-4 text-blue-600" />
                                     )}
-                                    {property.propertyName}
                                   </div>
                                 </TableCell>
                                 <TableCell>
