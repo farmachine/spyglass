@@ -348,7 +348,7 @@ export default function AddDocumentsModal({
     if (type === 'schema') {
       schemaFields.forEach(field => newTargetFields.add(field.id));
     } else {
-      allProperties.forEach(prop => newTargetFields.add(prop.id));
+      allProperties.filter(prop => !prop.isIdentifier).forEach(prop => newTargetFields.add(prop.id));
     }
     setTargetFields(newTargetFields);
   };
@@ -358,7 +358,7 @@ export default function AddDocumentsModal({
     if (type === 'schema') {
       schemaFields.forEach(field => newTargetFields.delete(field.id));
     } else {
-      allProperties.forEach(prop => newTargetFields.delete(prop.id));
+      allProperties.filter(prop => !prop.isIdentifier).forEach(prop => newTargetFields.delete(prop.id));
     }
     setTargetFields(newTargetFields);
   };
@@ -490,7 +490,7 @@ export default function AddDocumentsModal({
                           ) : (
                             <ChevronRight className="h-4 w-4" />
                           )}
-                          <span className="text-sm font-medium">Collection Properties ({allProperties.length})</span>
+                          <span className="text-sm font-medium">Collection Properties ({allProperties.filter(prop => !prop.isIdentifier).length})</span>
                         </CollapsibleTrigger>
                         <div className="flex gap-1">
                           <Button
@@ -516,7 +516,9 @@ export default function AddDocumentsModal({
                       
                       <CollapsibleContent className="space-y-3">
                         {collections.map((collection) => {
-                          const collectionProps = allProperties.filter(prop => prop.collectionName === collection.collectionName);
+                          const collectionProps = allProperties.filter(prop => 
+                            prop.collectionName === collection.collectionName && !prop.isIdentifier
+                          );
                           if (collectionProps.length === 0) return null;
                           
                           return (
