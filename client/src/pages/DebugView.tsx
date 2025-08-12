@@ -8,6 +8,168 @@ import { ArrowLeft, Bug, Copy, Check } from "lucide-react";
 import { useState } from "react";
 import type { ExtractionSession } from "@shared/schema";
 
+// Component to display parsed schema fields from the extraction prompt
+function SchemaFieldsDisplay({ session }: { session: ExtractionSession }) {
+  const [parsedFields, setParsedFields] = useState<any[]>([]);
+
+  // Parse the extraction prompt to extract schema field information
+  const parseSchemaFields = () => {
+    if (!session.extractionPrompt) return [];
+
+    try {
+      const prompt = session.extractionPrompt;
+      
+      // Look for JSON schema section in the prompt
+      const jsonSchemaMatch = prompt.match(/```json\s*\n([\s\S]*?)\n```/);
+      if (!jsonSchemaMatch) return [];
+
+      const jsonContent = jsonSchemaMatch[1];
+      const schema = JSON.parse(jsonContent);
+      
+      const fields: any[] = [];
+      
+      // Extract schema fields
+      if (schema.schema_fields) {
+        schema.schema_fields.forEach((field: any) => {
+          fields.push({
+            ...field,
+            type: 'schema_field',
+            collection_name: null
+          });
+        });
+      }
+      
+      // Extract collection properties
+      if (schema.collections) {
+        schema.collections.forEach((collection: any) => {
+          if (collection.properties) {
+            collection.properties.forEach((prop: any) => {
+              fields.push({
+                ...prop,
+                type: 'collection_property',
+                collection_name: collection.collection_name
+              });
+            });
+          }
+        });
+      }
+      
+      return fields;
+    } catch (error) {
+      console.error('Error parsing schema fields:', error);
+      return [];
+    }
+  };
+
+  const fields = parseSchemaFields();
+
+  if (fields.length === 0) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        <p>No schema fields found in extraction prompt.</p>
+        <p className="text-sm mt-2">Schema information should be available after running an extraction.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Summary */}
+      <div className="flex gap-4 p-3 bg-blue-50 rounded-lg">
+        <div className="text-sm">
+          <span className="font-medium">Total Fields:</span> {fields.length}
+        </div>
+        <div className="text-sm">
+          <span className="font-medium">Schema Fields:</span> {fields.filter(f => f.type === 'schema_field').length}
+        </div>
+        <div className="text-sm">
+          <span className="font-medium">Collection Properties:</span> {fields.filter(f => f.type === 'collection_property').length}
+        </div>
+      </div>
+
+      {/* Fields List */}
+      <div className="space-y-4">
+        {fields.map((field, index) => (
+          <Card key={index} className="border-l-4 border-l-blue-500">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base">
+                    {field.collection_name ? `${field.collection_name}.${field.field_name || field.property_name}` : field.field_name}
+                  </CardTitle>
+                  <div className="flex gap-2 mt-1">
+                    <span className={`text-xs px-2 py-1 rounded ${field.type === 'schema_field' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                      {field.type === 'schema_field' ? 'Schema Field' : 'Collection Property'}
+                    </span>
+                    <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">
+                      {field.field_type || field.property_type}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  ID: {field.field_id || field.property_id}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-3">
+              {/* Description */}
+              {field.description && (
+                <div>
+                  <h4 className="text-sm font-medium mb-1">Description</h4>
+                  <p className="text-sm text-muted-foreground">{field.description}</p>
+                </div>
+              )}
+              
+              {/* Choices for CHOICE fields */}
+              {(field.field_type === 'CHOICE' || field.property_type === 'CHOICE') && field.choices && (
+                <div>
+                  <h4 className="text-sm font-medium mb-1">Choices</h4>
+                  <div className="flex flex-wrap gap-1">
+                    {field.choices.map((choice: string, i: number) => (
+                      <span key={i} className="text-xs px-2 py-1 rounded bg-orange-100 text-orange-700">
+                        {choice}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Extraction Rules */}
+              {field.extraction_rules && field.extraction_rules.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium mb-1">Extraction Rules</h4>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    {field.extraction_rules.map((rule: string, i: number) => (
+                      <li key={i} className="flex items-start">
+                        <span className="text-orange-500 mr-2">•</span>
+                        {rule}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {/* Knowledge Documents */}
+              {field.knowledge_documents && field.knowledge_documents.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium mb-1">Knowledge Documents</h4>
+                  <div className="flex flex-wrap gap-1">
+                    {field.knowledge_documents.map((doc: string, i: number) => (
+                      <span key={i} className="text-xs px-2 py-1 rounded bg-purple-100 text-purple-700">
+                        {doc}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function DebugView() {
   const { sessionId } = useParams();
   const [copiedPrompt, setCopiedPrompt] = useState(false);
@@ -108,8 +270,11 @@ export default function DebugView() {
           </CardContent>
         </Card>
       ) : (
-        <Tabs defaultValue="prompt" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs defaultValue="schema" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="schema" className="flex items-center gap-2">
+              Schema Fields
+            </TabsTrigger>
             <TabsTrigger value="prompt" className="flex items-center gap-2">
               AI Prompt
               {session.extractionPrompt && (
@@ -137,6 +302,20 @@ export default function DebugView() {
               )}
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="schema">
+            <Card>
+              <CardHeader>
+                <CardTitle>Target Schema Fields</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Fields selected for extraction with their extraction rules and knowledge documents
+                </p>
+              </CardHeader>
+              <CardContent>
+                <SchemaFieldsDisplay session={session} />
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="prompt">
             <Card>
