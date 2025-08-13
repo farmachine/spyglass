@@ -135,16 +135,12 @@ def clean_json_and_extract_identifiers(extraction_result, target_fields_data):
                         'property_name': field.get('name')
                     })
         
-        # Extract all values from the cleaned results for identifier results
+        # Extract all field_validation objects from the cleaned results for identifier results
         if isinstance(cleaned_result, list):
             for result_item in cleaned_result:
-                if isinstance(result_item, dict) and 'extracted_value' in result_item:
-                    # Create a record with the extracted value
-                    identifier_record = {
-                        'extracted_value': result_item['extracted_value'],
-                        'record_index': result_item.get('record_index', 0)
-                    }
-                    identifier_results.append(identifier_record)
+                if isinstance(result_item, dict):
+                    # Return the complete field_validation object
+                    identifier_results.append(result_item)
         
         return {
             'cleaned_results': cleaned_result,
