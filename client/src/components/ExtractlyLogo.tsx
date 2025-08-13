@@ -29,7 +29,7 @@ export default function ExtractlyLogo({ className = "", showText = true, size = 
           {/* First wave line */}
           <path
             d="M2 6 Q6 3 10 6 Q14 9 18 6 Q20 5 22 6"
-            stroke="#6B9EFF"
+            stroke="#4F63A4"
             strokeWidth="1.5"
             strokeLinecap="round"
             fill="none"
@@ -38,7 +38,7 @@ export default function ExtractlyLogo({ className = "", showText = true, size = 
           {/* Second wave line */}
           <path
             d="M2 10 Q6 7 10 10 Q14 13 18 10 Q20 9 22 10"
-            stroke="#7DD3FC"
+            stroke="#6366F1"
             strokeWidth="1.5"
             strokeLinecap="round"
             fill="none"
@@ -52,7 +52,7 @@ export default function ExtractlyLogo({ className = "", showText = true, size = 
     <button
       onClick={handleClick}
       className={`flex items-center space-x-5 transition-all duration-200 hover:opacity-80 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-xl ${className}`}
-      aria-label="extrapl_ - Go to Dashboard"
+      aria-label="Extractly - Go to Dashboard"
     >
       {/* Logo SVG */}
       <div className="relative">
@@ -66,12 +66,12 @@ export default function ExtractlyLogo({ className = "", showText = true, size = 
         >
           <defs>
             <linearGradient id="waveGradient1" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#6B9EFF" />
-              <stop offset="100%" stopColor="#7DD3FC" />
+              <stop offset="0%" stopColor="#4F63A4" />
+              <stop offset="100%" stopColor="#3F4B85" />
             </linearGradient>
             <linearGradient id="waveGradient2" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#7DD3FC" />
-              <stop offset="100%" stopColor="#6B9EFF" />
+              <stop offset="0%" stopColor="#6366F1" />
+              <stop offset="100%" stopColor="#4F63A4" />
             </linearGradient>
           </defs>
           
@@ -98,8 +98,8 @@ export default function ExtractlyLogo({ className = "", showText = true, size = 
       {/* App name */}
       {showText && (
         <div className="flex flex-col">
-          <span className="text-3xl font-bold text-primary leading-tight tracking-wide font-mono">
-            extrapl_
+          <span className="text-3xl font-bold text-foreground leading-tight tracking-tight">
+            Extractly
           </span>
         </div>
       )}
