@@ -109,6 +109,17 @@ def extract_excel_columns(documents, target_fields):
                     'fileName': document.get('name', 'Unknown')
                 })
         
+        # Debug: Check session data format before calling extractor
+        print(f"\n=== DEBUG: SESSION DATA FORMAT ===")
+        print(f"Session data keys: {list(session_data.keys())}")
+        if 'extractedTexts' in session_data:
+            print(f"Number of extracted texts: {len(session_data['extractedTexts'])}")
+            for i, text_data in enumerate(session_data['extractedTexts']):
+                content = text_data.get('content', '')
+                print(f"Text {i}: {text_data.get('fileName', 'Unknown')} - Content length: {len(content)}")
+                print(f"Content preview: {content[:100]}...")
+        print("=== END DEBUG ===\n")
+        
         # Call simple_column_extractor module with start_index 0 and target fields
         extraction_result = simple_extraction_main(session_data, start_index=0, target_fields=target_fields)
         

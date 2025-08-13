@@ -15,10 +15,10 @@ def extract_columns_from_excel_text(content: str, file_name: str) -> List[Dict[s
     results = []
     
     if 'Excel file content' not in content:
-        print(f"STATUS: No Excel content found in document {file_name}", file=sys.stderr)
+        print(f"STATUS: No Excel content found in document {file_name}")
         return results
     
-    print(f"STATUS: Processing Excel document {file_name}", file=sys.stderr)
+    print(f"STATUS: Processing Excel document {file_name}")
     
     lines = content.split('\n')
     current_sheet = None
@@ -31,11 +31,11 @@ def extract_columns_from_excel_text(content: str, file_name: str) -> List[Dict[s
             sheet_match = re.search(r'=== (?:SHEET|Sheet): (.+?) ===', line)
             if sheet_match:
                 current_sheet = sheet_match.group(1).strip()
-                print(f"STATUS: Found sheet '{current_sheet}'", file=sys.stderr)
+                print(f"STATUS: Found sheet '{current_sheet}'")
             continue
             
         elif current_sheet and line and not line.startswith('===') and not line.startswith('Row'):
-            print(f"STATUS: Found potential header row in {current_sheet}: '{line[:100]}...'", file=sys.stderr)
+            print(f"STATUS: Found potential header row in {current_sheet}: '{line[:100]}...'")
             
             # This is likely a header row with column names
             # Split by tabs first (Excel format uses tabs between columns)
@@ -45,7 +45,7 @@ def extract_columns_from_excel_text(content: str, file_name: str) -> List[Dict[s
             if len(columns) <= 1:
                 columns = [col.strip() for col in re.split(r'\s{4,}', line) if col.strip()]
             
-            print(f"STATUS: Extracted {len(columns)} potential columns: {columns[:5]}", file=sys.stderr)
+            print(f"STATUS: Extracted {len(columns)} potential columns: {columns[:5]}")
             
             # Process each column (filter out row numbers and short strings)
             for column_name in columns:
@@ -59,7 +59,7 @@ def extract_columns_from_excel_text(content: str, file_name: str) -> List[Dict[s
                         "worksheet_name": current_sheet,
                         "source_file": file_name
                     })
-                    print(f"STATUS: Added column '{column_name}' from sheet '{current_sheet}'", file=sys.stderr)
+                    print(f"STATUS: Added column '{column_name}' from sheet '{current_sheet}'")
             
             # Only process first meaningful row per sheet for headers
             current_sheet = None
@@ -70,7 +70,7 @@ def simple_extraction_main(session_data: Dict[str, Any], start_index: int = 0, t
     """
     Main function for simple column extraction
     """
-    print("STATUS: Starting simple column extraction", file=sys.stderr)
+    print("STATUS: Starting simple column extraction")
     
     all_columns = []
     
@@ -169,7 +169,7 @@ def simple_extraction_main(session_data: Dict[str, Any], start_index: int = 0, t
                 "record_index": record_index
             })
     
-    print(f"STATUS: Simple extraction completed - {len(all_columns)} columns extracted, {len(field_validations)} validations created", file=sys.stderr)
+    print(f"STATUS: Simple extraction completed - {len(all_columns)} columns extracted, {len(field_validations)} validations created")
     
     return {
         "success": True,
@@ -191,7 +191,7 @@ if __name__ == "__main__":
             result = simple_extraction_main(session_data, start_index)
             print(json.dumps(result))
         except Exception as e:
-            print(f"STATUS: Simple extraction failed - {str(e)}", file=sys.stderr)
+            print(f"STATUS: Simple extraction failed - {str(e)}")
             print(json.dumps({
                 "success": False,
                 "error": f"Simple extraction failed: {str(e)}",
