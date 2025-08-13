@@ -290,26 +290,26 @@ export default function AllData({ project }: AllDataProps) {
         </div>
       </div>
 
-      {/* Sessions Table */}
+      {/* Content area with proper padding */}
       <div className="p-6">
-        {/* Header with Create Button */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{project.mainObjectName || "Session"} Extraction Sessions</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-              View extracted data and manage all extraction sessions for this project
-            </p>
-          </div>
-          <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-            <DialogTrigger asChild>
-              <Button 
-                onClick={handleCreateNewSession}
-                className="flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                New {project.mainObjectName || "Session"}
-              </Button>
-            </DialogTrigger>
+        <div className="mb-8">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{project.mainObjectName || "Session"} Extraction Sessions</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                View extracted data and manage all extraction sessions for this project
+              </p>
+            </div>
+            <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+              <DialogTrigger asChild>
+                <Button 
+                  onClick={handleCreateNewSession}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  New {project.mainObjectName || "Session"}
+                </Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Create New {project.mainObjectName || "Session"}</DialogTitle>
@@ -352,8 +352,10 @@ export default function AllData({ project }: AllDataProps) {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
+        {/* Sessions Table */}
       <Card className="!bg-white dark:!bg-gray-800 border-gray-200 dark:border-gray-700">
         <CardContent className="!bg-white dark:!bg-gray-800">
           {project.sessions.length === 0 ? (
@@ -363,6 +365,60 @@ export default function AllData({ project }: AllDataProps) {
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 Click "New {project.mainObjectName || "Session"}" to create your first extraction session
               </p>
+              <div className="mt-4 flex justify-center">
+                <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      onClick={handleCreateNewSession}
+                      className="flex items-center gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      New {project.mainObjectName || "Session"}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Create New {project.mainObjectName || "Session"}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="sessionName2">Name</Label>
+                        <Input
+                          id="sessionName2"
+                          value={sessionName}
+                          onChange={(e) => setSessionName(e.target.value)}
+                          placeholder={`Enter ${(project.mainObjectName || "session").toLowerCase()} name`}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleSubmitCreate();
+                            }
+                            if (e.key === 'Escape') {
+                              handleCancelCreate();
+                            }
+                          }}
+                          autoFocus
+                        />
+                      </div>
+                      <div className="flex justify-end space-x-2">
+                        <Button 
+                          variant="outline" 
+                          onClick={handleCancelCreate}
+                          disabled={createSessionMutation.isPending}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={handleSubmitCreate}
+                          disabled={createSessionMutation.isPending || !sessionName.trim()}
+                        >
+                          {createSessionMutation.isPending ? "Creating..." : "Create"}
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
           ) : (
             <div className="rounded-md border border-gray-200 dark:border-gray-700">
