@@ -472,9 +472,10 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
 
       {/* Main Content - Full Width */}
       <div className="flex h-[calc(100vh-168px)]">
-        {/* Sidebar */}
-        <div className="w-72 bg-slate-50 border-r border-slate-200">
-          <div className="p-4">
+        {/* Sidebar - Hidden for All Data tab */}
+        {activeTab !== 'data' && (
+          <div className="w-72 bg-slate-50 border-r border-slate-200">
+            <div className="p-4">
             <nav className="space-y-0.5">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -563,8 +564,9 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                 </nav>
               </div>
             )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Main Content */}
         <div className="flex-1 overflow-auto p-8">
