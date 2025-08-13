@@ -1261,7 +1261,20 @@ export default function SessionView() {
     if (!pendingExtractionData) return;
     
     try {
-      // Invalidate and refetch validation data to save to database
+      // Call the new endpoint to save extraction results to database
+      const response = await apiRequest(`/api/sessions/${pendingExtractionData.sessionId}/save-extraction-results`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          extractionResults: pendingExtractionData.response.extractionResults
+        }),
+      });
+      
+      console.log('DEBUG SAVE RESPONSE:', response);
+      
+      // Invalidate and refetch validation data to show new results
       await queryClient.invalidateQueries({ queryKey: ['/api/sessions', pendingExtractionData.sessionId, 'validations'] });
       await queryClient.refetchQueries({ queryKey: ['/api/sessions', pendingExtractionData.sessionId, 'validations'] });
       
