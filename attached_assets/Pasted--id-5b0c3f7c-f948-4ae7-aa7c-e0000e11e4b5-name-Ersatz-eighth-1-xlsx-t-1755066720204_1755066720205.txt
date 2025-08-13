@@ -1,0 +1,355 @@
+[
+  {
+    "id": "5b0c3f7c-f948-4ae7-aa7c-e0000e11e4b5",
+    "name": "Ersatz eighth (1).xlsx",
+    "type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "contentPreview": "=== Sheet: New_Pensioners ===\nOld Member's Reference No\tMember's Reference No\tEmployer Code\tSex Code\tDate of Birth\tDate Became Pensioner\tCode For Previous Status\tType Of Retirement\tDate Of Exit From A..."
+  }
+]
+[
+  {
+    "field_id": "34580f0d-321f-498a-b1c0-6162ad831122",
+    "name": "Column Heading",
+    "description": "Please just look for the first row in each workbook. This will give you the column name. This should only look at row 1 in each sheet.",
+    "property_type": "TEXT",
+    "auto_verification_confidence": 80,
+    "choice_options": [],
+    "is_identifier": true,
+    "order_index": 0,
+    "collection_id": "ee9d75f7-026e-4f59-ad7a-329295c54505",
+    "type": "collection_property"
+  }
+]
+Excel Column Extraction
+Extraction wizard says: [
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[0]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Old Member's Reference No",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 0
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[1]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Member's Reference No",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 1
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[2]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Employer Code",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 2
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[3]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Sex Code",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 3
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[4]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Date of Birth",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 4
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[5]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Date Became Pensioner",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 5
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[6]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Code For Previous Status",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 6
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[7]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Type Of Retirement",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 7
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[8]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Date Of Exit From Active Service",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 8
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[9]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Annual Pre-6.4.1988 GMP Component At Date Of Exit From Active Service",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 9
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[10]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Annual Post-5.4.1988 GMP Component At Date Of Exit From Active Service",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 10
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[11]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Annual Pre-6.4.1988 GMP Component At Date Of This Valuation",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 11
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[12]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Annual Post-5.4.1988 GMP Component At Date Of This Valuation",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 12
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[13]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Total Pension Payable From Scheme At Last Valuation",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 13
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[14]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Total Pension Payable From Scheme At This Valuation",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 14
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[15]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Component Of Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 15
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[16]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Contingent Widow(er)'s Sex Code",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 16
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[17]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Contingent Widow(er)'s Date Of Birth",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 17
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[18]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Contingent Widow(er)'s Pension At This Valuation",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 18
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[19]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 19
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[20]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Date Of Exit From Pensioner Status",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 20
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[21]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Code For Exit From Pensioner Status",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 21
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[22]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Old Supplementary Fund Indicator",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 22
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[23]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Married Indicator",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 23
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[24]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Old Supplementary Fund Pension",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 24
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[25]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Component Of Pension At This Valuation Subject To RPI capped at 2.5% pa",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 25
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[26]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 2.5% pa",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 26
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[27]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Non-increasing pension",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 27
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[28]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Non-increasing TV-in pension",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 28
+  },
+  {
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Name Mapping.ColumnHeading[29]",
+    "collection_name": "Column Name Mapping",
+    "extracted_value": "Component Of Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former",
+    "confidence_score": 1.0,
+    "validation_status": "unverified",
+    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
+    "record_index": 29
+  }
+]

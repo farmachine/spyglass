@@ -27,13 +27,14 @@ def excel_column_extraction(document_ids, session_id, target_fields_data):
         results = cursor.fetchall()
         
         extraction_results = []
+        record_index = 0  # Global index counter for all columns across all sheets
         
         for row in results:
             doc_id, file_name, mime_type, extracted_content = row
             
             # Process Excel content
             if mime_type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-                # Parse the extracted content to get column names
+                # Parse the extracted content to get column names from all sheets
                 lines = extracted_content.split('\n')
                 current_sheet = None
                 
@@ -44,38 +45,27 @@ def excel_column_extraction(document_ids, session_id, target_fields_data):
                         # This should be the first row with column headers
                         column_headers = line.split('\t')
                         
-                        # Create extraction results for each target field
+                        # Create extraction results for Column Heading field only
                         for field_data in target_fields_data:
                             if field_data.get('name') == 'Column Heading':
                                 # Extract each column heading
-                                for index, column_name in enumerate(column_headers):
+                                for column_name in column_headers:
                                     if column_name.strip():  # Skip empty columns
                                         extraction_results.append({
                                             "validation_type": "collection_property",
                                             "data_type": field_data.get('property_type', 'TEXT'),
-                                            "field_name": f"Column Name Mapping.ColumnHeading[{index}]",
+                                            "field_name": f"Column Name Mapping.ColumnHeading[{record_index}]",
                                             "collection_name": "Column Name Mapping",
                                             "extracted_value": column_name.strip(),
                                             "confidence_score": 1.0,
                                             "validation_status": "unverified",
                                             "ai_reasoning": "Extracted directly from excel using column extraction wizard",
-                                            "record_index": index
+                                            "record_index": record_index
                                         })
-                            
-                            elif field_data.get('name') == 'Worksheet':
-                                # Extract worksheet name
-                                extraction_results.append({
-                                    "validation_type": "collection_property",
-                                    "data_type": field_data.get('property_type', 'TEXT'),
-                                    "field_name": f"Column Name Mapping.Worksheet[0]",
-                                    "collection_name": "Column Name Mapping",
-                                    "extracted_value": current_sheet,
-                                    "confidence_score": 1.0,
-                                    "validation_status": "unverified",
-                                    "ai_reasoning": "Extracted directly from excel using column extraction wizard",
-                                    "record_index": 0
-                                })
-                        break  # Only process first row
+                                        record_index += 1
+                        
+                        # Move to next line to continue processing other sheets
+                        current_sheet = None
         
         cursor.close()
         conn.close()
