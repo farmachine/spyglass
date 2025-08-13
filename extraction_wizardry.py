@@ -109,8 +109,8 @@ def extract_excel_columns(documents, target_fields):
                     'fileName': document.get('name', 'Unknown')
                 })
         
-        # Call simple_column_extractor module with start_index 0
-        extraction_result = simple_extraction_main(session_data, start_index=0)
+        # Call simple_column_extractor module with start_index 0 and target fields
+        extraction_result = simple_extraction_main(session_data, start_index=0, target_fields=target_fields)
         
         # Return the field validations from simple_column_extractor
         return extraction_result.get('field_validations', [])

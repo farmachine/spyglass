@@ -57,7 +57,7 @@ def extract_columns_from_excel_text(content: str, file_name: str) -> List[Dict[s
     
     return results
 
-def simple_extraction_main(session_data: Dict[str, Any], start_index: int = 0, target_fields: List[Dict[str, Any]] = None) -> Dict[str, Any]:
+def simple_extraction_main(session_data: Dict[str, Any], start_index: int = 0) -> Dict[str, Any]:
     """
     Main function for simple column extraction
     """
@@ -72,63 +72,62 @@ def simple_extraction_main(session_data: Dict[str, Any], start_index: int = 0, t
         columns = extract_columns_from_excel_text(content, file_name)
         all_columns.extend(columns)
     
-    # Create field validations using proper target field IDs
+    # Create field validations
     field_validations = []
-    
-    # Get field mappings from target_fields if provided
-    field_mapping = {}
-    collection_name = "Column Name Mapping"
-    
-    if target_fields:
-        for field in target_fields:
-            field_name = field.get('propertyName') or field.get('fieldName', '')
-            field_id = field.get('id', '')
-            if field_id:
-                if 'column' in field_name.lower() and 'heading' in field_name.lower():
-                    field_mapping['column_heading'] = field_id
-                elif 'worksheet' in field_name.lower() and 'name' in field_name.lower():
-                    field_mapping['worksheet_name'] = field_id
-                elif 'standardised' in field_name.lower() or 'standard' in field_name.lower():
-                    field_mapping['standardised_column'] = field_id
-                elif 'reasoning' in field_name.lower():
-                    field_mapping['reasoning'] = field_id
-                    
-                # Get collection name from first field
-                if not collection_name or collection_name == "Column Name Mapping":
-                    collection_name = field.get('collectionName', 'Column Name Mapping')
     
     for i, column_data in enumerate(all_columns):
         record_index = start_index + i
         
         # Column Heading field
-        if 'column_heading' in field_mapping:
-            field_validations.append({
-                "field_id": field_mapping['column_heading'],
-                "validation_type": "collection_property",
-                "data_type": "TEXT",
-                "field_name": f"Column Heading[{record_index}]",
-                "collection_name": collection_name,
-                "extracted_value": f"{column_data['column_name']} ({column_data['worksheet_name']})",
-                "confidence_score": 100,
-                "validation_status": "verified",
-                "ai_reasoning": f"Extracted directly from sheet '{column_data['worksheet_name']}' using column extraction",
-                "record_index": record_index
-            })
+        field_validations.append({
+            "field_id": f"column_heading_{record_index}",
+            "field_name": f"Column Name Mapping.Column Heading[{record_index}]",
+            "extracted_value": column_data["column_name"],
+            "ai_reasoning": f"Direct extraction: Column '{column_data['column_name']}' from sheet '{column_data['worksheet_name']}'",
+            "confidence": 1.0,
+            "validation_type": "collection_property",
+            "collection_name": "Column Name Mapping",
+            "record_index": record_index,
+            "validation_status": "verified"
+        })
         
         # Worksheet Name field  
-        if 'worksheet_name' in field_mapping:
-            field_validations.append({
-                "field_id": field_mapping['worksheet_name'],
-                "validation_type": "collection_property", 
-                "data_type": "TEXT",
-                "field_name": f"Worksheet Name[{record_index}]",
-                "collection_name": collection_name,
-                "extracted_value": column_data['worksheet_name'],
-                "confidence_score": 100,
-                "validation_status": "verified",
-                "ai_reasoning": f"Extracted worksheet name for column '{column_data['column_name']}'",
-                "record_index": record_index
-            })
+        field_validations.append({
+            "field_id": f"worksheet_name_{record_index}",
+            "field_name": f"Column Name Mapping.Worksheet Name[{record_index}]",
+            "extracted_value": column_data["worksheet_name"],
+            "ai_reasoning": f"Sheet name for column '{column_data['column_name']}'",
+            "confidence": 1.0,
+            "validation_type": "collection_property",
+            "collection_name": "Column Name Mapping", 
+            "record_index": record_index,
+            "validation_status": "verified"
+        })
+        
+        # Create empty placeholders for other properties
+        field_validations.append({
+            "field_id": f"standardised_column_{record_index}",
+            "field_name": f"Column Name Mapping.Standardised Column Name[{record_index}]",
+            "extracted_value": None,
+            "ai_reasoning": "Requires manual mapping or AI analysis",
+            "confidence": 0.0,
+            "validation_type": "collection_property",
+            "collection_name": "Column Name Mapping",
+            "record_index": record_index,
+            "validation_status": "unverified"
+        })
+        
+        field_validations.append({
+            "field_id": f"reasoning_{record_index}",
+            "field_name": f"Column Name Mapping.Reasoning[{record_index}]",
+            "extracted_value": None,
+            "ai_reasoning": "Requires reasoning for standardization",
+            "confidence": 0.0,
+            "validation_type": "collection_property",
+            "collection_name": "Column Name Mapping",
+            "record_index": record_index,
+            "validation_status": "unverified"
+        })
     
     return {
         "success": True,
