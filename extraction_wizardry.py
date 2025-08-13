@@ -250,9 +250,6 @@ def run_wizardry_with_gemini_analysis(data=None):
         # Filter identifier targets early for use in both display and Gemini analysis
         identifier_targets = [field for field in target_fields_data if field.get('is_identifier', False)]
         
-        # Analyze document formats with Gemini using only identifier targets
-        gemini_response = analyze_document_format_with_gemini(documents, identifier_targets)
-        
         # Print document properties
         print("\n" + "=" * 80)
         print("DOCUMENT CONTENT FOR THIS EXTRACTION")
@@ -274,7 +271,10 @@ def run_wizardry_with_gemini_analysis(data=None):
         print(json.dumps(identifier_targets, indent=2))
         print("=" * 80)
         
-        # Print Gemini response first
+        # Analyze document formats with Gemini using only identifier targets
+        gemini_response = analyze_document_format_with_gemini(documents, identifier_targets)
+        
+        # Print Gemini response
         print("\n" + "=" * 80)
         print("GEMINI ANALYSIS")
         print("=" * 80)
