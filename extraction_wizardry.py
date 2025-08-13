@@ -279,17 +279,21 @@ def run_wizardry_with_gemini_analysis(data=None):
             # Get document IDs from the documents data
             document_ids = [doc['id'] for doc in documents]
             excel_result = excel_column_extraction(document_ids, session_id, target_fields_data)
-            print(json.dumps(excel_result, indent=2))
             
             # Clean JSON and extract identifiers
             processed_results = clean_json_and_extract_identifiers(excel_result, target_fields_data)
             if 'error' not in processed_results:
+                # Show record count instead of raw output
+                record_count = len(processed_results['cleaned_results']) if isinstance(processed_results['cleaned_results'], list) else 0
+                print(f"Found {record_count} records")
+                
+                # Show identifier results with proper header
                 print("\n" + "=" * 80)
                 print("IDENTIFIER RESULTS")
                 print("=" * 80)
                 print(json.dumps(processed_results['identifier_results'], indent=2))
             else:
-                print(f"\nError processing results: {processed_results['error']}")
+                print(f"Error processing results: {processed_results['error']}")
         elif "Excel Sheet Extraction" in gemini_response:
             print(f"\nGemini decided to use Excel Sheet Extraction wizard")
             print("\n" + "=" * 80)
