@@ -22,6 +22,7 @@ import UserProfile from "./UserProfile";
 import Breadcrumb from "./Breadcrumb";
 import ExtractlyLogo from "./ExtractlyLogo";
 import WavePattern from "./WavePattern";
+import { AppHeader } from "./AppHeader";
 
 interface ProjectLayoutProps {
   projectId: string;
@@ -320,9 +321,10 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <AppHeader />
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="w-full px-6 py-4">
           <div className="flex items-center justify-between w-full">
             <ExtractlyLogo />

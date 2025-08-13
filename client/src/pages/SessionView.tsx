@@ -24,6 +24,7 @@ import { apiRequest } from "@/lib/queryClient";
 import ExtractlyLogo from "@/components/ExtractlyLogo";
 import ValidationIcon from "@/components/ValidationIcon";
 import UserProfile from "@/components/UserProfile";
+import { AppHeader } from "@/components/AppHeader";
 
 import { EditFieldValueDialog } from "@/components/EditFieldValueDialog";
 import AddDocumentsModal from "@/components/AddDocumentsModal";
@@ -2405,9 +2406,10 @@ Thank you for your assistance.`;
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <AppHeader />
       {/* Header - Match ProjectLayout exactly */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="w-full px-6 py-4">
           <div className="flex items-center justify-between w-full">
             <ExtractlyLogo />

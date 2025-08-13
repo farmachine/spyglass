@@ -12,6 +12,7 @@ import { loginSchema } from "@shared/schema";
 import { z } from "zod";
 import ExtractlyLogo from "@/components/ExtractlyLogo";
 import WavePattern from "@/components/WavePattern";
+import { AppHeader } from "@/components/AppHeader";
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
@@ -42,6 +43,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
+      <AppHeader />
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-6">
           <div className="flex justify-center">

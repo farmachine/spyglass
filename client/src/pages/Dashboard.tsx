@@ -19,6 +19,7 @@ import CreateProjectDialog from "@/components/CreateProjectDialog";
 import UserProfile from "@/components/UserProfile";
 import ExtractlyLogo from "@/components/ExtractlyLogo";
 import WavePattern from "@/components/WavePattern";
+import { AppHeader } from "@/components/AppHeader";
 
 export default function Dashboard() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -248,9 +249,10 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+    <div className="h-screen bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden">
+      <AppHeader />
       {/* Fixed Header - Updated Layout */}
-      <div className="bg-white border-b border-gray-200 shadow-sm flex-shrink-0 z-10">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm flex-shrink-0 z-10">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
             <ExtractlyLogo />
