@@ -150,11 +150,14 @@ def run_wizardry_with_gemini_analysis(data=None):
         
         # Get all collection properties for collections involved in target fields
         collection_ids = list(set([field.get('collectionId') for field in target_fields if field.get('collectionId')]))
+        print(f"DEBUG: Found collection IDs: {collection_ids}")
         if collection_ids:
             all_collection_properties = get_all_collection_properties(collection_ids)
-            print("All Collection Properties:")
+            print("ALL COLLECTION PROPERTIES:")
             print(json.dumps(all_collection_properties, indent=2))
             print("=" * 80)
+        else:
+            print("No collection IDs found in target fields")
         
         # Get document properties from database
         documents = get_document_properties_from_db(document_ids, session_id)
