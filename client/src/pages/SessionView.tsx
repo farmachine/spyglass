@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import * as XLSX from 'xlsx';
 import { Link } from "wouter";
@@ -15,7 +15,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -431,8 +430,6 @@ const AIExtractionModal = ({
 
     // Run the extraction wizardry Python script with document IDs, session ID, and target fields
     try {
-      setIsExtracting(true);
-      
       const requestData = {
         document_ids: selectedDocuments,
         session_id: sessionId,
@@ -446,25 +443,13 @@ const AIExtractionModal = ({
         },
         body: JSON.stringify(requestData),
       });
-      
-      // If extraction results were saved to database, refresh the validations
-      if (response.extractionResults && response.extractionResults.length > 0) {
-        
-        // Invalidate and refetch validation data
-        await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
-        await queryClient.refetchQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
-        
-        // Also invalidate project-level validations for statistics
-        await queryClient.invalidateQueries({ queryKey: ['/api/validations/project', project?.id] });
-        
-        // Close the modal after successful extraction
-        onClose();
+      console.log('Wizardry Result:', response);
+      if (response.output) {
+        console.log('Python Script Output:');
+        console.log(response.output);
       }
-      
     } catch (error) {
       console.error('Error running wizardry:', error);
-    } finally {
-      setIsExtracting(false);
     }
   };
 
@@ -1206,52 +1191,9 @@ export default function SessionView() {
     }
   });
 
-  const deleteAllCollectionDataMutation = useMutation({
-    mutationFn: async (collectionName: string) => {
-      // Get all validations for this collection
-      const collectionValidations = validations.filter(v => 
-        v.collectionName === collectionName || 
-        (v.fieldName && v.fieldName.startsWith(collectionName + '.'))
-      );
-      
-      // Delete all validations for this collection
-      const deletePromises = collectionValidations.map(validation => 
-        apiRequest(`/api/validations/${validation.id}`, {
-          method: 'DELETE',
-        })
-      );
-      
-      return Promise.all(deletePromises);
-    },
-    onSuccess: () => {
-      // Invalidate and refetch session validations
-      queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/validations/project', projectId] });
-    },
-    onError: (error: any) => {
-      console.error('Failed to delete collection data:', error);
-    }
-  });
-
   const handleDeleteDocument = (documentId: string) => {
     if (confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
       deleteDocumentMutation.mutate(documentId);
-    }
-  };
-
-  const handleDeleteAllCollectionData = (collectionName: string) => {
-    const collectionValidations = validations.filter(v => 
-      v.collectionName === collectionName || 
-      (v.fieldName && v.fieldName.startsWith(collectionName + '.'))
-    );
-    
-    if (collectionValidations.length === 0) {
-      alert('No data to delete for this collection.');
-      return;
-    }
-    
-    if (confirm(`Are you sure you want to delete all ${collectionValidations.length} items from ${collectionName}? This action cannot be undone.`)) {
-      deleteAllCollectionDataMutation.mutate(collectionName);
     }
   };
 
@@ -3164,45 +3106,21 @@ Thank you for your assistance.`;
                               {uniqueIndices.length} {uniqueIndices.length === 1 ? 'item' : 'items'}
                             </span>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleOpenAIExtraction(
-                                collection.collectionName,
-                                collection.properties?.map(prop => ({
-                                  id: prop.id,
-                                  name: prop.propertyName,
-                                  type: prop.propertyType
-                                })) || []
-                              )}
-                              className="h-8 w-8 p-0 hover:bg-slate-100"
-                              title="AI extraction"
-                            >
-                              <Wand2 className="h-4 w-4 text-blue-600" />
-                            </Button>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 hover:bg-slate-100"
-                                >
-                                  <MoreHorizontal className="h-4 w-4 text-gray-600" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={() => handleDeleteAllCollectionData(collection.collectionName)}
-                                  disabled={uniqueIndices.length === 0}
-                                  className="cursor-pointer text-red-600 focus:text-red-600 disabled:text-gray-400 disabled:cursor-not-allowed"
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete All Data ({uniqueIndices.length} items)
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleOpenAIExtraction(
+                              collection.collectionName,
+                              collection.properties?.map(prop => ({
+                                id: prop.id,
+                                name: prop.propertyName,
+                                type: prop.propertyType
+                              })) || []
+                            )}
+                            className="h-8 w-8 p-0 hover:bg-slate-100"
+                          >
+                            <Wand2 className="h-4 w-4 text-blue-600" />
+                          </Button>
                         </CardTitle>
                         <p className="text-sm text-gray-600">{collection.description}</p>
                       </CardHeader>
