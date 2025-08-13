@@ -243,14 +243,16 @@ export default function AllData({ project }: AllDataProps) {
 
   return (
     <div>
-      <div className="mb-8">
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{project.mainObjectName || "Session"} Extraction Sessions</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-              View extracted data and manage all extraction sessions for this project
-            </p>
-          </div>
+      {/* Page Title Panel - Match SessionView exactly */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
+        <div className="w-full px-6 py-6">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{project.mainObjectName || "Session"} Extraction Sessions</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                View extracted data and manage all extraction sessions for this project
+              </p>
+            </div>
           <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
             <DialogTrigger asChild>
               <Button 
@@ -303,8 +305,12 @@ export default function AllData({ project }: AllDataProps) {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
       </div>
+      
+      {/* Content area with proper padding */}
+      <div className="p-6">
 
       {/* Sessions Table */}
       <Card className="!bg-white dark:!bg-gray-800 border-gray-200 dark:border-gray-700">
@@ -449,6 +455,7 @@ export default function AllData({ project }: AllDataProps) {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
