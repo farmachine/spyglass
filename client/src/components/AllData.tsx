@@ -307,13 +307,13 @@ export default function AllData({ project }: AllDataProps) {
       </div>
 
       {/* Sessions Table */}
-      <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-        <CardContent>
+      <Card className="!bg-white dark:!bg-gray-800 border-gray-200 dark:border-gray-700">
+        <CardContent className="!bg-white dark:!bg-gray-800">
           {project.sessions.length === 0 ? (
             <div className="text-center py-8">
               <Database className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No {(project.mainObjectName || "session").toLowerCase()} extractions</h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 Click "New {project.mainObjectName || "Session"}" to create your first extraction session
               </p>
               <div className="mt-4 flex justify-center">
@@ -373,8 +373,8 @@ export default function AllData({ project }: AllDataProps) {
             </div>
           ) : (
             <div className="rounded-md border border-gray-200 dark:border-gray-700">
-              <Table className="bg-white dark:bg-gray-800">
-                <TableHeader className="bg-gray-50 dark:bg-gray-700">
+              <Table className="!bg-white dark:!bg-gray-800">
+                <TableHeader className="!bg-gray-50 dark:!bg-gray-700">
                   <TableRow className="border-b border-gray-200 dark:border-gray-600">
                     <SortableHeader field="sessionName">Session Name</SortableHeader>
                     <SortableHeader field="documentCount" className="py-3 w-24">Docs</SortableHeader>
@@ -387,15 +387,15 @@ export default function AllData({ project }: AllDataProps) {
                     <SortableHeader field="createdAt" className="py-3 w-32">Created</SortableHeader>
                   </TableRow>
                 </TableHeader>
-                <TableBody className="bg-white dark:bg-gray-800">
+                <TableBody className="!bg-white dark:!bg-gray-800">
                 {sortedSessions.map((session) => {
                   if (!session || !session.id) return null;
                   const progress = getSessionProgress(session.id);
                   const verificationStatus = getVerificationStatus(session.id);
                   
                   return (
-                    <TableRow key={session.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800">
-                      <TableCell className="py-3 bg-white dark:bg-gray-800">
+                    <TableRow key={session.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-600 !bg-white dark:!bg-gray-800">
+                      <TableCell className="py-3 !bg-white dark:!bg-gray-800">
                         <Link href={`/projects/${project.id}/sessions/${session.id}`}>
                           <div className="cursor-pointer hover:text-primary transition-colors">
                             <p className="font-medium text-sm text-gray-900 dark:text-white">{session.sessionName || 'Untitled Session'}</p>
@@ -407,10 +407,10 @@ export default function AllData({ project }: AllDataProps) {
                           </div>
                         </Link>
                       </TableCell>
-                      <TableCell className="py-3 text-sm text-gray-900 dark:text-white">
+                      <TableCell className="py-3 text-sm text-gray-900 dark:text-white !bg-white dark:!bg-gray-800">
                         {session.documentCount || 0}
                       </TableCell>
-                      <TableCell className="py-3 bg-white dark:bg-gray-800">
+                      <TableCell className="py-3 !bg-white dark:!bg-gray-800">
                         <div className="flex items-center gap-2">
                           <div className="w-20 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
                             <div 
@@ -426,7 +426,7 @@ export default function AllData({ project }: AllDataProps) {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="py-3 text-center bg-white dark:bg-gray-800">
+                      <TableCell className="py-3 text-center !bg-white dark:!bg-gray-800">
                         <div className="flex justify-center">
                           {verificationStatus === 'verified' ? (
                             <CheckCircle className="h-4 w-4 text-green-600" />
@@ -435,7 +435,7 @@ export default function AllData({ project }: AllDataProps) {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="py-3 bg-white dark:bg-gray-800">
+                      <TableCell className="py-3 !bg-white dark:!bg-gray-800">
                         <div className="text-xs text-muted-foreground dark:text-gray-400">
                           {session.createdAt ? formatDate(session.createdAt).split(',')[0] : 'Unknown'}
                         </div>
