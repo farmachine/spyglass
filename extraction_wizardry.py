@@ -112,6 +112,11 @@ def extract_excel_columns(documents, target_fields):
         # Call simple_column_extractor module with start_index 0 and target fields
         extraction_result = simple_extraction_main(session_data, start_index=0, target_fields=target_fields)
         
+        # Log the raw JSON response from simple_column_extractor
+        print(f"\n=== RAW JSON RESPONSE FROM SIMPLE_COLUMN_EXTRACTOR ===")
+        print(json.dumps(extraction_result, indent=2))
+        print("=== END RAW JSON RESPONSE ===\n")
+        
         # Return the field validations from simple_column_extractor
         return extraction_result.get('field_validations', [])
         
@@ -163,8 +168,9 @@ def run_wizardry_with_gemini_analysis(data=None):
         # Check if Gemini recommends Excel Column Extraction
         if "Excel Column Extraction" in gemini_response:
             extraction_results = extract_excel_columns(documents, target_fields)
-            print("\n=== EXCEL COLUMN EXTRACTION RESULTS ===")
+            print("\n=== FINAL EXTRACTION RESULTS FOR DATABASE SAVE ===")
             print(json.dumps(extraction_results, indent=2))
+            print("=== END FINAL EXTRACTION RESULTS ===\n")
         
     else:
         print(json.dumps({"error": "Invalid data format. Expected object with document_ids and session_id"}))

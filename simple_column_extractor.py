@@ -61,6 +61,7 @@ def simple_extraction_main(session_data: Dict[str, Any], start_index: int = 0, t
     """
     Main function for simple column extraction
     """
+    print("STATUS: Starting simple column extraction", file=sys.stderr)
     
     all_columns = []
     
@@ -159,6 +160,8 @@ def simple_extraction_main(session_data: Dict[str, Any], start_index: int = 0, t
                 "record_index": record_index
             })
     
+    print(f"STATUS: Simple extraction completed - {len(all_columns)} columns extracted, {len(field_validations)} validations created", file=sys.stderr)
+    
     return {
         "success": True,
         "message": f"Simple extraction completed: {len(all_columns)} columns extracted",
@@ -179,6 +182,7 @@ if __name__ == "__main__":
             result = simple_extraction_main(session_data, start_index)
             print(json.dumps(result))
         except Exception as e:
+            print(f"STATUS: Simple extraction failed - {str(e)}", file=sys.stderr)
             print(json.dumps({
                 "success": False,
                 "error": f"Simple extraction failed: {str(e)}",
