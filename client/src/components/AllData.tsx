@@ -242,9 +242,9 @@ export default function AllData({ project }: AllDataProps) {
   }, [project.sessions, sortField, sortDirection, allValidations]);
 
   return (
-    <div className="bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div className="bg-gray-50 dark:bg-gray-900 min-h-screen w-full">
       {/* Page Title - Match SessionView exactly */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 w-full">
         <div className="w-full px-6 py-6">
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-3 flex-1 mr-6">
@@ -291,9 +291,9 @@ export default function AllData({ project }: AllDataProps) {
       </div>
 
       {/* Content area with proper padding */}
-      <div className="p-6">
-        <div className="mb-8">
-          <div className="flex items-start justify-between">
+      <div className="p-6 w-full">
+        <div className="mb-8 w-full">
+          <div className="flex items-start justify-between w-full">
             <div>
               <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{project.mainObjectName || "Session"} Extraction Sessions</h2>
               <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
@@ -356,8 +356,8 @@ export default function AllData({ project }: AllDataProps) {
         </div>
 
         {/* Sessions Table */}
-        <Card className="!bg-white dark:!bg-gray-800 border-gray-200 dark:border-gray-700">
-          <CardContent className="!bg-white dark:!bg-gray-800">
+        <Card className="!bg-white dark:!bg-gray-800 border-gray-200 dark:border-gray-700 w-full">
+          <CardContent className="!bg-white dark:!bg-gray-800 p-0">
             {project.sessions.length === 0 ? (
               <div className="text-center py-8">
                 <Database className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
@@ -421,8 +421,8 @@ export default function AllData({ project }: AllDataProps) {
               </div>
             </div>
           ) : (
-            <div className="rounded-md border border-gray-200 dark:border-gray-700">
-              <Table className="!bg-white dark:!bg-gray-800">
+            <div className="w-full">
+              <Table className="!bg-white dark:!bg-gray-800 w-full">
                 <TableHeader className="!bg-gray-50 dark:!bg-gray-700">
                   <TableRow className="border-b border-gray-200 dark:border-gray-600">
                     <SortableHeader field="sessionName">Session Name</SortableHeader>
