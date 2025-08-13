@@ -4691,7 +4691,7 @@ print(json.dumps(results))
               
               // Collect all lines until we hit another section or end
               for (let j = jsonStart; j < outputLines.length; j++) {
-                if (outputLines[j].startsWith('===') || outputLines[j].trim() === '') {
+                if (outputLines[j].startsWith('===')) {
                   break;
                 }
                 jsonLines.push(outputLines[j]);
@@ -4704,6 +4704,7 @@ print(json.dumps(results))
                   break;
                 } catch (parseError) {
                   console.error('Failed to parse extraction results JSON:', parseError);
+                  console.error('JSON string was:', jsonString);
                 }
               }
             }
