@@ -52,7 +52,7 @@ export default function ExtractlyLogo({ className = "", showText = true, size = 
     <button
       onClick={handleClick}
       className={`flex items-center space-x-5 transition-all duration-200 hover:opacity-80 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-xl ${className}`}
-      aria-label="Extractly - Go to Dashboard"
+      aria-label="extrapl_ - Go to Dashboard"
     >
       {/* Logo SVG */}
       <div className="relative">
@@ -98,8 +98,8 @@ export default function ExtractlyLogo({ className = "", showText = true, size = 
       {/* App name */}
       {showText && (
         <div className="flex flex-col">
-          <span className="text-3xl font-bold text-foreground leading-tight tracking-tight">
-            Extractly
+          <span className="text-3xl font-bold text-foreground leading-tight tracking-tight" style={{ fontFamily: 'Questrial, sans-serif' }}>
+            extrapl_
           </span>
         </div>
       )}

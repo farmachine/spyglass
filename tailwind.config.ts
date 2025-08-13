@@ -6,7 +6,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Poppins', 'system-ui', 'sans-serif'],
+        sans: ['Questrial', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         lg: "var(--radius)",
