@@ -190,10 +190,10 @@ export default function Dashboard() {
           <div className="mx-auto w-24 h-24 bg-secondary/20 rounded-full flex items-center justify-center mb-4">
             <WaveIcon className="h-8 w-8 text-primary" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
             {hasSearchQuery ? "No matching projects" : "No active projects"}
           </h3>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 dark:text-gray-300 mb-6">
             {hasSearchQuery 
               ? "Try adjusting your search or check 'Show Deactivated' to see more projects."
               : hasActiveProjects 
@@ -210,10 +210,10 @@ export default function Dashboard() {
         <div className="mx-auto w-24 h-24 bg-secondary/20 rounded-full flex items-center justify-center mb-4">
           <WaveIcon className="h-8 w-8 text-primary" />
         </div>
-        <h3 className="text-lg font-medium text-gray-900 mb-2">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
           No projects yet
         </h3>
-        <p className="text-gray-600 mb-6">
+        <p className="text-gray-600 dark:text-gray-300 mb-6">
           {isAdmin 
             ? "Get started by creating your first data extraction project"
             : "Contact your administrator to create projects"
@@ -233,12 +233,12 @@ export default function Dashboard() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Card className="w-full max-w-md">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <Card className="w-full max-w-md bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
           <CardContent className="pt-6">
             <div className="text-center">
-              <h2 className="text-lg font-semibold text-red-600 mb-2">Error Loading Projects</h2>
-              <p className="text-sm text-gray-600">
+              <h2 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-2">Error Loading Projects</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 Failed to load projects. Please try again later.
               </p>
             </div>
@@ -283,54 +283,54 @@ export default function Dashboard() {
       </div>
 
       {/* Fixed Dashboard Header and Controls */}
-      <div className="bg-white border-b border-gray-200 flex-shrink-0 z-10">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-6">
           {/* Page Title and Statistics */}
           <div className="mb-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <LayoutDashboard className="h-8 w-8 text-primary" />
-                <h2 className="text-3xl font-bold">Dashboard</h2>
+                <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h2>
               </div>
               
               {/* Statistics Cards */}
               <div className="flex items-center space-x-4">
                 {statisticsLoading ? (
                   <>
-                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <Skeleton className="h-6 w-6 rounded" />
                       <Skeleton className="h-6 w-8" />
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <Skeleton className="h-6 w-6 rounded" />
                       <Skeleton className="h-6 w-8" />
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <Skeleton className="h-6 w-6 rounded" />
                       <Skeleton className="h-6 w-8" />
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <Skeleton className="h-6 w-6 rounded" />
                       <Skeleton className="h-6 w-8" />
                     </div>
                   </>
                 ) : statistics ? (
                   <>
-                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <TrendingUp className="h-6 w-6 text-primary" />
-                      <span className="text-xl font-bold text-gray-900">{statistics?.totalProjects || 0}</span>
+                      <span className="text-xl font-bold text-gray-900 dark:text-white">{statistics?.totalProjects || 0}</span>
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
-                      <Database className="h-6 w-6 text-slate-700" />
-                      <span className="text-xl font-bold text-gray-900">{statistics?.totalSessions || 0}</span>
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <Database className="h-6 w-6 text-slate-700 dark:text-slate-300" />
+                      <span className="text-xl font-bold text-gray-900 dark:text-white">{statistics?.totalSessions || 0}</span>
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <CheckCircle className="h-6 w-6 text-gray-400" />
-                      <span className="text-xl font-bold text-gray-900">{statistics?.unverifiedSessions || 0}</span>
+                      <span className="text-xl font-bold text-gray-900 dark:text-white">{statistics?.unverifiedSessions || 0}</span>
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <CheckCircle className="h-6 w-6 text-green-600" />
-                      <span className="text-xl font-bold text-gray-900">{statistics?.verifiedSessions || 0}</span>
+                      <span className="text-xl font-bold text-gray-900 dark:text-white">{statistics?.verifiedSessions || 0}</span>
                     </div>
                   </>
                 ) : null}
@@ -364,7 +364,7 @@ export default function Dashboard() {
                   />
                   <Label 
                     htmlFor="show-deactivated"
-                    className="text-sm text-gray-600 cursor-pointer"
+                    className="text-sm text-gray-600 dark:text-gray-300 cursor-pointer"
                   >
                     Show Deactivated
                   </Label>
@@ -386,13 +386,13 @@ export default function Dashboard() {
       </div>
 
       {/* Scrollable Project Content Area */}
-      <div className="flex-1 overflow-y-auto bg-gray-50">
+      <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-6 py-6">
           {renderProjectsContent()}
         </div>
         
         {/* Blue footer with fade */}
-        <div className="h-32 bg-gradient-to-t from-blue-50 to-white"></div>
+        <div className="h-32 bg-gradient-to-t from-blue-50 dark:from-gray-800 to-white dark:to-gray-900"></div>
       </div>
 
       <CreateProjectDialog

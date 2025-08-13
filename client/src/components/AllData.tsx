@@ -242,7 +242,7 @@ export default function AllData({ project }: AllDataProps) {
   }, [project.sessions, sortField, sortDirection, allValidations]);
 
   return (
-    <div>
+    <div className="bg-gray-50 dark:bg-gray-900 min-h-screen">
       {/* Page Title - Match SessionView exactly */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
         <div className="w-full px-6 py-6">
@@ -257,7 +257,7 @@ export default function AllData({ project }: AllDataProps) {
                   {project.description ? (
                     <p className="text-sm text-gray-600 dark:text-gray-300">{project.description}</p>
                   ) : (
-                    <p className="text-sm text-gray-400">No description</p>
+                    <p className="text-sm text-gray-400 dark:text-gray-500">No description</p>
                   )}
                 </div>
               </div>
@@ -266,19 +266,19 @@ export default function AllData({ project }: AllDataProps) {
             {/* Statistics Cards - Match SessionView exactly */}
             {project.sessions.length > 0 && (
               <div className="flex gap-3 flex-shrink-0 ml-auto">
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <Database className="h-6 w-6 text-slate-700 dark:text-slate-300" />
                   <span className="text-xl font-bold text-gray-900 dark:text-white">{project.sessions.length}</span>
                 </div>
 
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <CheckCircle className="h-6 w-6 text-gray-400" />
                   <span className="text-xl font-bold text-gray-900 dark:text-white">
                     {getVerificationStats().in_progress + getVerificationStats().pending}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <CheckCircle className="h-6 w-6 text-green-600" />
                   <span className="text-xl font-bold text-gray-900 dark:text-white">
                     {getVerificationStats().verified}
