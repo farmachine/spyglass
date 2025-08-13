@@ -242,7 +242,56 @@ export default function AllData({ project }: AllDataProps) {
   }, [project.sessions, sortField, sortDirection, allValidations]);
 
   return (
-    <div className="bg-gray-50 dark:bg-gray-900 min-h-screen p-6">
+    <div className="bg-gray-50 dark:bg-gray-900 min-h-screen">
+      {/* Page Title - Match SessionView exactly */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
+        <div className="w-full px-6 py-6">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start space-x-3 flex-1 mr-6">
+              <TrendingUp className="h-8 w-8 text-primary mt-1" />
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center space-x-2">
+                  <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{project.name}</h2>
+                </div>
+                <div className="flex items-start space-x-2">
+                  {project.description ? (
+                    <p className="text-sm text-gray-600 dark:text-gray-300">{project.description}</p>
+                  ) : (
+                    <p className="text-sm text-gray-400 dark:text-gray-500">No description</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Statistics Cards - Match SessionView exactly */}
+            {project.sessions.length > 0 && (
+              <div className="flex gap-3 flex-shrink-0 ml-auto">
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <Database className="h-6 w-6 text-slate-700 dark:text-slate-300" />
+                  <span className="text-xl font-bold text-gray-900 dark:text-white">{project.sessions.length}</span>
+                </div>
+
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <CheckCircle className="h-6 w-6 text-gray-400" />
+                  <span className="text-xl font-bold text-gray-900 dark:text-white">
+                    {getVerificationStats().in_progress + getVerificationStats().pending}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                  <span className="text-xl font-bold text-gray-900 dark:text-white">
+                    {getVerificationStats().verified}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Content area with proper padding */}
+      <div className="p-6">
         <div className="mb-8">
           <div className="flex items-start justify-between">
             <div>
