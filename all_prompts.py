@@ -45,6 +45,17 @@ REQUIREMENTS:
 5. Handle multiple sheets if present
 6. Include proper error handling
 7. Return an empty list if no data can be extracted
+8. CRITICAL: Each extracted record must have a unique, incrementing record_index starting from 0. Every single extracted value must have a different index number (0, 1, 2, 3, etc.)
+
+EXAMPLE INDEX PATTERN:
+```
+record_index = 0
+for each_extracted_value:
+    # Create result with current index
+    result = {"record_index": record_index, ...}
+    results.append(result)
+    record_index += 1  # Increment for next record
+```
 
 CRITICAL: Generate ONLY the Python function code with no markdown formatting, no ```python blocks, no explanations, no comments outside the function. Start directly with 'def extract_excel_data(' and end with the return statement.
 
