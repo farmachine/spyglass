@@ -102,9 +102,9 @@ def get_all_collection_properties(collection_ids):
         query = """
         SELECT cp.id, cp.collection_id, cp.property_name, cp.property_type, cp.description, 
                cp.auto_verification_confidence, cp.choice_options, cp.is_identifier, 
-               cp.order_index, pc.collection_name
+               cp.order_index, oc.collection_name
         FROM collection_properties cp
-        JOIN project_collections pc ON cp.collection_id = pc.id
+        JOIN object_collections oc ON cp.collection_id = oc.id
         WHERE cp.collection_id = ANY(%s::uuid[])
         ORDER BY cp.collection_id, cp.order_index
         """
@@ -139,7 +139,8 @@ def get_all_collection_properties(collection_ids):
 
 def run_wizardry_with_gemini_analysis(data=None):
     """Main function that gets documents from DB and analyzes them with Gemini"""
-    # First, get all collection properties for collections involved in target fields
+    
+    # FIRST: Display all collection properties at the very beginning
     if data and isinstance(data, dict):
         target_fields = data.get('target_fields', [])
         collection_ids = list(set([field.get('collectionId') for field in target_fields if field.get('collectionId')]))
