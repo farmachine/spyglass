@@ -116,27 +116,27 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
 
 
   return (
-    <div>
+    <div className="bg-slate-900 dark:bg-slate-900 min-h-screen">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Knowledge & Rules</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <h2 className="text-2xl font-semibold text-gray-100 dark:text-gray-100">Knowledge & Rules</h2>
+          <p className="text-sm text-gray-400 dark:text-gray-400 mt-1">
             Manage extraction rules and knowledge base for this project
           </p>
         </div>
       </div>
 
       <Tabs defaultValue="knowledge" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="knowledge">Knowledge Base</TabsTrigger>
-          <TabsTrigger value="rules">Extraction Rules</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 bg-slate-800 dark:bg-slate-800 border-slate-700">
+          <TabsTrigger value="knowledge" className="text-slate-300 data-[state=active]:bg-slate-700 data-[state=active]:text-white">Knowledge Base</TabsTrigger>
+          <TabsTrigger value="rules" className="text-slate-300 data-[state=active]:bg-slate-700 data-[state=active]:text-white">Extraction Rules</TabsTrigger>
         </TabsList>
 
         <TabsContent value="knowledge" className="mt-6">
-          <Card>
+          <Card className="bg-slate-800 dark:bg-slate-800 border-slate-700 dark:border-slate-700">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-gray-100 dark:text-gray-100">
                   <BookOpen className="h-5 w-5" />
                   Knowledge Documents ({knowledgeDocuments.length})
                 </CardTitle>
@@ -145,23 +145,23 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
                     setEditingDocument(null);
                     setKnowledgeDialogOpen(true);
                   }}
-                  className=""
+                  className="bg-primary hover:bg-primary/90"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Document
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="text-gray-300 dark:text-gray-300">
               {knowledgeLoading ? (
                 <div className="text-center py-8">Loading knowledge documents...</div>
               ) : knowledgeDocuments.length === 0 ? (
                 <div className="text-center py-8">
-                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  <FileText className="h-12 w-12 text-gray-500 dark:text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-100 dark:text-gray-100 mb-2">
                     No knowledge documents uploaded
                   </h3>
-                  <p className="text-sm text-gray-600 mb-6">
+                  <p className="text-sm text-gray-400 dark:text-gray-400 mb-6">
                     Upload reference documents, policies, and guidelines to improve extraction accuracy
                   </p>
                   <Button
@@ -170,6 +170,7 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
                       setEditingDocument(null);
                       setKnowledgeDialogOpen(true);
                     }}
+                    className="border-slate-600 text-gray-300 hover:bg-slate-700 hover:text-white"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Upload Knowledge Documents
@@ -178,19 +179,19 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
               ) : (
                 <div className="space-y-4">
                   {knowledgeDocuments.map((doc) => (
-                    <div key={doc.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                    <div key={doc.id} className="border border-slate-600 dark:border-slate-600 rounded-lg p-4 hover:bg-slate-700 dark:hover:bg-slate-700 bg-slate-750 dark:bg-slate-750">
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-3">
-                          <FileIcon className="h-5 w-5 text-blue-600 mt-1" />
+                          <FileIcon className="h-5 w-5 text-blue-400 mt-1" />
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-medium text-gray-900">{doc.displayName || doc.fileName}</h4>
-                              <Badge variant="secondary" className="text-xs">
+                              <h4 className="font-medium text-gray-100 dark:text-gray-100">{doc.displayName || doc.fileName}</h4>
+                              <Badge variant="secondary" className="text-xs bg-slate-600 text-gray-300">
                                 {doc.fileType.toUpperCase()}
                               </Badge>
                             </div>
-                            <p className="text-sm text-gray-600 mb-2">{doc.description}</p>
-                            <div className="flex items-center gap-4 text-xs text-gray-500">
+                            <p className="text-sm text-gray-400 dark:text-gray-400 mb-2">{doc.description}</p>
+                            <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-500">
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
                                 {new Date(doc.uploadedAt).toLocaleDateString()}
@@ -208,6 +209,7 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
                               setKnowledgeDialogOpen(true);
                             }}
                             disabled={deletingDocId === doc.id}
+                            className="text-gray-300 hover:text-white hover:bg-slate-600"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -216,6 +218,7 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
                             size="sm"
                             onClick={() => handleDeleteKnowledgeDocument(doc.id)}
                             disabled={deletingDocId === doc.id}
+                            className="text-gray-300 hover:text-white hover:bg-slate-600"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -230,10 +233,10 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
         </TabsContent>
 
         <TabsContent value="rules" className="mt-6">
-          <Card>
+          <Card className="bg-slate-800 dark:bg-slate-800 border-slate-700 dark:border-slate-700">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-gray-100 dark:text-gray-100">
                   <Brain className="h-5 w-5" />
                   Extraction Rules ({extractionRules.length})
                 </CardTitle>
@@ -249,16 +252,16 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="text-gray-300 dark:text-gray-300">
               {rulesLoading ? (
                 <div className="text-center py-8">Loading extraction rules...</div>
               ) : extractionRules.length === 0 ? (
                 <div className="text-center py-8">
-                  <Brain className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  <Brain className="h-12 w-12 text-gray-500 dark:text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-100 dark:text-gray-100 mb-2">
                     No extraction rules defined
                   </h3>
-                  <p className="text-sm text-gray-600 mb-6">
+                  <p className="text-sm text-gray-400 dark:text-gray-400 mb-6">
                     Define custom rules for data validation, classification, and formatting
                   </p>
                   <Button
@@ -267,6 +270,7 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
                       setEditingRule(null);
                       setRuleDialogOpen(true);
                     }}
+                    className="border-slate-600 text-gray-300 hover:bg-slate-700 hover:text-white"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Create Extraction Rule
@@ -275,27 +279,27 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
               ) : (
                 <div className="space-y-4">
                   {extractionRules.map((rule) => (
-                    <div key={rule.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                    <div key={rule.id} className="border border-slate-600 dark:border-slate-600 rounded-lg p-4 hover:bg-slate-700 dark:hover:bg-slate-700 bg-slate-750 dark:bg-slate-750">
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-3">
                           <div className="flex items-center gap-2 mt-1">
                             {rule.isActive ? (
-                              <CheckCircle className="h-5 w-5 text-green-600" />
+                              <CheckCircle className="h-5 w-5 text-green-400" />
                             ) : (
-                              <XCircle className="h-5 w-5 text-gray-400" />
+                              <XCircle className="h-5 w-5 text-gray-500" />
                             )}
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-medium text-gray-900">{rule.ruleName}</h4>
+                              <h4 className="font-medium text-gray-100 dark:text-gray-100">{rule.ruleName}</h4>
                               {rule.targetField && (
-                                <Badge variant="outline" className="text-xs">
+                                <Badge variant="outline" className="text-xs border-slate-600 text-gray-300">
                                   Target: {rule.targetField}
                                 </Badge>
                               )}
                             </div>
-                            <p className="text-sm text-gray-600 mb-2">{rule.ruleContent}</p>
-                            <div className="flex items-center gap-4 text-xs text-gray-500">
+                            <p className="text-sm text-gray-400 dark:text-gray-400 mb-2">{rule.ruleContent}</p>
+                            <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-500">
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
                                 {new Date(rule.createdAt).toLocaleDateString()}
@@ -313,6 +317,7 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
                               setRuleDialogOpen(true);
                             }}
                             disabled={deletingRuleId === rule.id}
+                            className="text-gray-300 hover:text-white hover:bg-slate-600"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -320,6 +325,7 @@ export default function KnowledgeRules({ project }: KnowledgeRulesProps) {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDeleteExtractionRule(rule.id)}
+                            className="text-gray-300 hover:text-white hover:bg-slate-600"
                             disabled={deletingRuleId === rule.id}
                           >
                             <Trash2 className="h-4 w-4" />

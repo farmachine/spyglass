@@ -390,29 +390,29 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-slate-900 dark:bg-slate-900 min-h-screen">
       {/* Welcome Banner - Show only when no data items exist */}
       {allDataItems.length === 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+        <div className="bg-slate-800 dark:bg-slate-800 border border-slate-600 dark:border-slate-600 rounded-lg p-6 mb-6">
           <div className="flex items-center justify-center mb-4">
-            <div className="bg-blue-100 p-3 rounded-full">
-              <Settings className="h-8 w-8 text-blue-600" />
+            <div className="bg-slate-700 dark:bg-slate-700 p-3 rounded-full">
+              <Settings className="h-8 w-8 text-blue-400" />
             </div>
           </div>
-          <h3 className="text-xl font-semibold text-blue-900 mb-2 text-center">
+          <h3 className="text-xl font-semibold text-gray-100 dark:text-gray-100 mb-2 text-center">
             Welcome! Let's define your data structure
           </h3>
-          <p className="text-blue-700 mb-4 text-center">
+          <p className="text-gray-400 dark:text-gray-400 mb-4 text-center">
             To start extracting data from your {project.mainObjectName || "Session"} documents, you'll need to define what information you want to capture.
           </p>
           
           {/* AI Schema Generation Section */}
-          <div className="bg-white border border-blue-200 rounded-lg p-4 mb-4 mx-auto max-w-2xl">
+          <div className="bg-slate-700 dark:bg-slate-700 border border-slate-600 dark:border-slate-600 rounded-lg p-4 mb-4 mx-auto max-w-2xl">
             <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="h-5 w-5 text-purple-600" />
-              <h4 className="font-semibold text-purple-900">Generate with AI</h4>
+              <Sparkles className="h-5 w-5 text-purple-400" />
+              <h4 className="font-semibold text-purple-300">Generate with AI</h4>
             </div>
-            <p className="text-sm text-gray-600 mb-3">
+            <p className="text-sm text-gray-400 dark:text-gray-400 mb-3">
               Describe what data you want to collect and AI will create the complete schema for you.
             </p>
             <div className="space-y-3">
@@ -421,7 +421,7 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
                 value={aiQuery}
                 onChange={(e) => setAiQuery(e.target.value)}
                 rows={3}
-                className="resize-none"
+                className="resize-none bg-slate-600 border-slate-500 text-gray-200 placeholder:text-gray-400"
                 disabled={isGenerating}
               />
               <Button
@@ -445,14 +445,14 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
           </div>
           
           <div className="text-center mb-4">
-            <span className="text-gray-500 text-sm">or build manually</span>
+            <span className="text-gray-500 dark:text-gray-500 text-sm">or build manually</span>
           </div>
           
           <div className="flex justify-center gap-3">
             <Button 
               variant="outline"
               onClick={() => setSchemaFieldDialog({ open: true, field: null })}
-              className="bg-white hover:bg-blue-50"
+              className="bg-slate-700 border-slate-600 text-gray-300 hover:bg-slate-600 hover:text-white"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Field
@@ -460,7 +460,7 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
             <Button 
               variant="outline"
               onClick={() => setCollectionDialog({ open: true, collection: null })}
-              className="bg-white hover:bg-blue-50"
+              className="bg-slate-700 border-slate-600 text-gray-300 hover:bg-slate-600 hover:text-white"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add List
@@ -474,7 +474,7 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
         <div>
           {/* Main Data Tab Content */}
           {activeTab === 'main-data' && (
-            <Card className="border-t-0 rounded-tl-none ml-0">
+            <Card className="border-t-0 rounded-tl-none ml-0 bg-slate-800 dark:bg-slate-800 border-slate-700 dark:border-slate-700">
               <CardHeader>
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
@@ -509,18 +509,18 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 flex-1">
-                        <CardTitle className="text-xl">
+                        <CardTitle className="text-xl text-gray-100 dark:text-gray-100">
                           {project.mainObjectName || "Session"} Fields
                         </CardTitle>
                         <Button 
                           size="sm" 
                           variant="ghost" 
                           onClick={() => setIsEditingMainObjectName(true)}
-                          className="h-6 w-6 p-0"
+                          className="h-6 w-6 p-0 text-gray-300 hover:text-white hover:bg-slate-600"
                         >
                           <Edit className="h-3 w-3" />
                         </Button>
-                        <Badge variant="secondary" className="bg-gray-100 text-gray-600">
+                        <Badge variant="secondary" className="bg-slate-600 text-gray-300">
                           {safeSchemaFields.length} fields
                         </Badge>
                       </div>
@@ -565,7 +565,7 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
                       </div>
                     ) : (
                       <div className="flex items-start gap-2">
-                        <p className="text-sm text-gray-600 flex-1">
+                        <p className="text-sm text-gray-400 dark:text-gray-400 flex-1">
                           {project.mainObjectDescription || 
                             `Core fields extracted from your ${project.mainObjectName || "Session"} documents.`
                           }
@@ -574,7 +574,7 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
                           size="sm" 
                           variant="ghost" 
                           onClick={() => setIsEditingMainObjectDescription(true)}
-                          className="h-6 w-6 p-0 flex-shrink-0"
+                          className="h-6 w-6 p-0 flex-shrink-0 text-gray-300 hover:text-white hover:bg-slate-600"
                         >
                           <Edit className="h-3 w-3" />
                         </Button>
@@ -583,7 +583,7 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="text-gray-300 dark:text-gray-300">
                 {schemaFieldsLoading ? (
                   <div className="text-center py-8">
                     <div className="animate-spin h-12 w-12 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
@@ -591,15 +591,16 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
                   </div>
                 ) : safeSchemaFields.length === 0 ? (
                   <div className="text-center py-8">
-                    <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    <Settings className="h-12 w-12 text-gray-500 dark:text-gray-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-100 dark:text-gray-100 mb-2">
                       No fields defined
                     </h3>
-                    <p className="text-sm text-gray-600 mb-6">
+                    <p className="text-sm text-gray-400 dark:text-gray-400 mb-6">
                       Add fields to extract data from your {project.mainObjectName || "Session"} documents
                     </p>
                     <Button 
                       onClick={() => setSchemaFieldDialog({ open: true, field: null })}
+                      className="bg-primary hover:bg-primary/90"
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       Add Field
@@ -690,11 +691,11 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
                 )}
 
                 {/* Add Field Button */}
-                <div className="mt-6 pt-6 border-t">
+                <div className="mt-6 pt-6 border-t border-slate-600">
                   <Button 
                     variant="outline"
                     onClick={() => setSchemaFieldDialog({ open: true, field: null })}
-                    className="w-full"
+                    className="w-full bg-slate-700 border-slate-600 text-gray-300 hover:bg-slate-600 hover:text-white"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Field
@@ -707,22 +708,22 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
           {/* Individual Collection Tabs */}
           {safeCollections.map((collection) => activeTab === collection.collectionName && (
             <div key={collection.id}>
-              <Card className="border-t-0 rounded-tl-none ml-0">
+              <Card className="border-t-0 rounded-tl-none ml-0 bg-slate-800 dark:bg-slate-800 border-slate-700 dark:border-slate-700">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2 flex-1">
-                      <CardTitle className="text-xl">
+                      <CardTitle className="text-xl text-gray-100 dark:text-gray-100">
                         {collection.collectionName}
                       </CardTitle>
                       <Button 
                         size="sm" 
                         variant="ghost" 
                         onClick={() => setCollectionDialog({ open: true, collection })}
-                        className="h-6 w-6 p-0"
+                        className="h-6 w-6 p-0 text-gray-300 hover:text-white hover:bg-slate-600"
                       >
                         <Edit className="h-3 w-3" />
                       </Button>
-                      <Badge variant="secondary" className="bg-gray-100 text-gray-600">
+                      <Badge variant="secondary" className="bg-slate-600 text-gray-300">
                         {collection.properties?.length || 0} properties
                       </Badge>
                     </div>
@@ -730,7 +731,7 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
                       <Button 
                         size="sm" 
                         variant="ghost" 
-                        className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-900"
                         onClick={() => setDeleteDialog({ 
                           open: true, 
                           type: "collection", 
@@ -744,20 +745,20 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
                   </div>
                   
                   <div className="flex items-start gap-2">
-                    <p className="text-sm text-gray-600 flex-1">
+                    <p className="text-sm text-gray-400 dark:text-gray-400 flex-1">
                       {collection.description || `List of items extracted from your ${project.mainObjectName || "Session"} documents.`}
                     </p>
                     <Button 
                       size="sm" 
                       variant="ghost" 
                       onClick={() => setCollectionDialog({ open: true, collection })}
-                      className="h-6 w-6 p-0 flex-shrink-0"
+                      className="h-6 w-6 p-0 flex-shrink-0 text-gray-300 hover:text-white hover:bg-slate-600"
                     >
                       <Edit className="h-3 w-3" />
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="text-gray-300 dark:text-gray-300">
                   <CollectionCard
                     collection={collection}
                     fieldTypeColors={fieldTypeColors}
