@@ -126,7 +126,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
         return;
       }
 
-      console.log('Starting DIRECT database Excel export for session:', session.id);
+      // Starting DIRECT database Excel export
 
       // Use the new direct API endpoint that bypasses frontend filtering
       const response = await fetch(`/api/sessions/${session.id}/direct-excel-data`);
@@ -135,7 +135,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
       }
 
       const excelData = await response.json();
-      console.log('Received Excel data from server:', excelData);
+      // Received Excel data from server
 
       // Create Excel workbook using server data
       const workbook = XLSX.utils.book_new();
@@ -151,7 +151,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
 
       // Create collection sheets using server data
       Object.entries(excelData.collections).forEach(([collectionName, collectionData]: [string, any]) => {
-        console.log(`Creating Excel sheet for ${collectionName}:`, collectionData);
+        // Creating Excel sheet for collection
         
         // Build worksheet data with headers and records
         const worksheetData = [
@@ -159,7 +159,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
           ...collectionData.records
         ];
         
-        console.log(`Worksheet data for ${collectionName}:`, worksheetData);
+        // Building worksheet data
         
         const collectionSheet = XLSX.utils.aoa_to_sheet(worksheetData);
         XLSX.utils.book_append_sheet(workbook, collectionSheet, collectionName);
@@ -169,7 +169,7 @@ export default function SessionView({ sessionId, project }: SessionViewProps) {
       const timestamp = new Date().toISOString().split('T')[0];
       const filename = `${session.sessionName.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.xlsx`;
 
-    console.log('Exporting Excel file:', filename);
+    // Exporting Excel file
     
     // Export the file
     XLSX.writeFile(workbook, filename);
