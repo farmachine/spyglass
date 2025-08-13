@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -13,7 +14,7 @@ import { useLocation } from "wouter";
 import { useProject } from "@/hooks/useProjects";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
-import type { FieldValidation } from "@/types/api";
+import type { FieldValidation } from "@shared/schema";
 import AllData from "./AllData";
 import KnowledgeRules from "./KnowledgeRules";
 import DefineData from "./DefineData";
@@ -474,9 +475,10 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
 
       {/* Main Content - Full Width */}
       <div className="flex h-[calc(100vh-168px)]">
-        {/* Sidebar */}
-        <div className="w-72 bg-slate-50 border-r border-slate-200">
-          <div className="p-4">
+        {/* Sidebar - Hide when activeTab is "data" */}
+        {activeTab !== "data" && (
+          <div className="w-72 bg-slate-50 border-r border-slate-200">
+            <div className="p-4">
             <nav className="space-y-0.5">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -565,12 +567,70 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                 </nav>
               </div>
             )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Main Content */}
-        <div className="flex-1 overflow-auto p-8">
+        <div className={`flex-1 overflow-auto ${activeTab === "data" ? "p-0" : "p-8"} relative`}>
           {renderActiveContent()}
+          
+          {/* Settings Icon - Only show when activeTab is "data" and user has access */}
+          {activeTab === "data" && (canAccessConfigTabs || canAccessPublishing) && (
+            <div className="fixed bottom-6 left-6">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="lg"
+                    className="rounded-full w-14 h-14 bg-primary hover:bg-primary/90 shadow-lg"
+                  >
+                    <Settings className="h-6 w-6" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="top" align="start" className="w-56">
+                  {canAccessConfigTabs && (
+                    <>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          userNavigatedRef.current = true;
+                          sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
+                          setActiveTab("define");
+                        }}
+                        className="flex items-center gap-2"
+                      >
+                        <StreamIcon className="h-4 w-4" />
+                        Define Data
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          userNavigatedRef.current = true;
+                          sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
+                          setActiveTab("knowledge");
+                        }}
+                        className="flex items-center gap-2"
+                      >
+                        <TideIcon className="h-4 w-4" />
+                        Knowledge Base
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  {canAccessPublishing && (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        userNavigatedRef.current = true;
+                        sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
+                        setActiveTab("publishing");
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <ShipIcon className="h-4 w-4" />
+                      Publishing
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
         </div>
       </div>
     </div>
