@@ -257,6 +257,14 @@ def run_wizardry_with_gemini_analysis(data=None):
         print(json.dumps(target_fields_data, indent=2))
         print("=" * 80)
         
+        # Filter and display identifier targets
+        identifier_targets = [field for field in target_fields_data if field.get('is_identifier', False)]
+        print("\n" + "=" * 80)
+        print("IDENTIFIER TARGET")
+        print("=" * 80)
+        print(json.dumps(identifier_targets, indent=2))
+        print("=" * 80)
+        
         # Print Gemini response first
         print("\n" + "=" * 80)
         print("GEMINI ANALYSIS")
