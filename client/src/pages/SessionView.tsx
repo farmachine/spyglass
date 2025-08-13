@@ -24,7 +24,6 @@ import { apiRequest } from "@/lib/queryClient";
 import ExtractlyLogo from "@/components/ExtractlyLogo";
 import ValidationIcon from "@/components/ValidationIcon";
 import UserProfile from "@/components/UserProfile";
-import { AppHeader } from "@/components/AppHeader";
 
 import { EditFieldValueDialog } from "@/components/EditFieldValueDialog";
 import AddDocumentsModal from "@/components/AddDocumentsModal";
@@ -2406,10 +2405,9 @@ Thank you for your assistance.`;
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <AppHeader />
+    <div className="min-h-screen bg-gray-50">
       {/* Header - Match ProjectLayout exactly */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+      <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="w-full px-6 py-4">
           <div className="flex items-center justify-between w-full">
             <ExtractlyLogo />
@@ -2419,18 +2417,18 @@ Thank you for your assistance.`;
       </div>
 
       {/* Page Title - Match ProjectLayout exactly */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
+      <div className="bg-white border-b border-gray-100">
         <div className="w-full px-6 py-6">
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-3 flex-1 mr-6">
               <TrendingUp className="h-8 w-8 text-primary mt-1" />
               <div className="flex-1 space-y-2">
                 <div className="flex items-center space-x-2">
-                  <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{project.name}</h2>
+                  <h2 className="text-3xl font-bold">{project.name}</h2>
                 </div>
                 <div className="flex items-start space-x-2">
                   {project.description ? (
-                    <p className="text-sm text-gray-600 dark:text-gray-300">{project.description}</p>
+                    <p className="text-sm text-gray-600">{project.description}</p>
                   ) : (
                     <p className="text-sm text-gray-400">No description</p>
                   )}
@@ -2441,21 +2439,21 @@ Thank you for your assistance.`;
             {/* Statistics Cards - Match ProjectLayout exactly */}
             {project.sessions.length > 0 && (
               <div className="flex gap-3 flex-shrink-0 ml-auto">
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <Database className="h-6 w-6 text-slate-700 dark:text-slate-300" />
-                  <span className="text-xl font-bold text-gray-900 dark:text-white">{project.sessions.length}</span>
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                  <Database className="h-6 w-6 text-slate-700" />
+                  <span className="text-xl font-bold text-gray-900">{project.sessions.length}</span>
                 </div>
 
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
                   <CheckCircle className="h-6 w-6 text-gray-400" />
-                  <span className="text-xl font-bold text-gray-900 dark:text-white">
+                  <span className="text-xl font-bold text-gray-900">
                     {verificationStats.in_progress + verificationStats.pending}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
                   <CheckCircle className="h-6 w-6 text-green-600" />
-                  <span className="text-xl font-bold text-gray-900 dark:text-white">
+                  <span className="text-xl font-bold text-gray-900">
                     {verificationStats.verified}
                   </span>
                 </div>
@@ -2467,7 +2465,7 @@ Thank you for your assistance.`;
 
       <div className="flex h-[calc(100vh-160px)]">
         {/* Sidebar */}
-        <div className="w-80 bg-slate-50 dark:bg-gray-800 border-r border-slate-200 dark:border-gray-700 flex flex-col">
+        <div className="w-80 bg-slate-50 border-r border-slate-200 flex flex-col">
           <div className="p-4">
             <nav className="space-y-0.5">
               {navItems.map((item) => {
@@ -2480,7 +2478,7 @@ Thank you for your assistance.`;
                       className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
                         isActive
                           ? "bg-primary text-white font-medium shadow-sm"
-                          : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 font-normal"
+                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
                       }`}
                     >
                       <Icon className={`h-4 w-4 ${isActive ? "text-white" : "text-slate-500"}`} />
@@ -2493,7 +2491,7 @@ Thank you for your assistance.`;
           </div>
           
           {/* Session Navigation - Only visible in session view */}
-          <div className="border-t border-slate-200 dark:border-slate-600 p-4 flex-1">
+          <div className="border-t border-slate-200 p-4 flex-1">
             {/* Documents Section - Session-specific */}
             <div className="mb-6">
               <div className="flex items-center mb-3">
@@ -2514,7 +2512,7 @@ Thank you for your assistance.`;
             </div>
             
             <div className="mb-4">
-              <h3 className="text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">{project?.mainObjectName || "Session"} Information</h3>
+              <h3 className="text-xs font-medium text-slate-700 uppercase tracking-wider">{project?.mainObjectName || "Session"} Information</h3>
             </div>
             <div className="relative">
               {/* Vertical connecting line - stops at last collection */}
@@ -2568,7 +2566,7 @@ Thank you for your assistance.`;
                     className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
                       activeTab === 'info' 
                         ? 'bg-primary text-white font-medium shadow-sm' 
-                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 font-normal'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal'
                     }`}
                   >
                     General Information
@@ -2616,7 +2614,7 @@ Thank you for your assistance.`;
                         className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
                           activeTab === collection.collectionName 
                             ? 'bg-primary text-white font-medium shadow-sm' 
-                            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 font-normal'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal'
                         }`}
                       >
                         <div className="truncate">{collection.collectionName} ({uniqueIndices.length})</div>
@@ -2630,7 +2628,7 @@ Thank you for your assistance.`;
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 p-8 overflow-x-hidden bg-white dark:bg-gray-900">
+        <div className="flex-1 p-8 overflow-x-hidden">
           <div className="w-full">
             {/* Session Review Header - Now styled like page header */}
             <div className="flex items-center justify-between mb-8">
@@ -2671,7 +2669,7 @@ Thank you for your assistance.`;
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
-                        <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{session?.sessionName}</h2>
+                        <h2 className="text-3xl font-bold">{session?.sessionName}</h2>
                         <Button
                           size="sm"
                           variant="ghost"
@@ -2697,7 +2695,7 @@ Thank you for your assistance.`;
                 
                 {/* Session Verification Progress */}
                 <div className="flex items-center gap-2">
-                  <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div className="w-24 bg-gray-200 rounded-full h-2">
                     <div 
                       className={`h-2 rounded-full transition-all duration-300 ${
                         getVerificationProgress().percentage === 100 ? 'bg-green-600' : 
@@ -2755,9 +2753,9 @@ Thank you for your assistance.`;
             <div className="w-full">
               {/* Info Tab Content - Single Object View */}
               {activeTab === 'info' && (
-                <Card className="border-t-0 rounded-tl-none ml-0 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                <Card className="border-t-0 rounded-tl-none ml-0">
                   <CardHeader>
-                    <CardTitle className="flex items-center justify-between text-gray-900 dark:text-white">
+                    <CardTitle className="flex items-center justify-between">
                       <span className="flex items-center gap-2">General Information</span>
                       <Button
                         variant="ghost"
@@ -2775,7 +2773,7 @@ Thank you for your assistance.`;
                         <Wand2 className="h-4 w-4 text-blue-600" />
                       </Button>
                     </CardTitle>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                    <p className="text-sm text-gray-600">
                       Core information and fields extracted from this {(project.mainObjectName || "session").toLowerCase()}.
                     </p>
                   </CardHeader>
@@ -2872,7 +2870,7 @@ Thank you for your assistance.`;
                                   // Return empty div to maintain consistent spacing
                                   return <div className="w-3 h-3 flex-shrink-0"></div>;
                                 })()}
-                                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                <Label className="text-sm font-medium text-gray-700">
                                   {field.fieldName}
                                 </Label>
                               </div>
@@ -2986,12 +2984,12 @@ Thank you for your assistance.`;
 
               {/* Documents Tab Content */}
               {activeTab === 'documents' && (
-                <Card className="border-t-0 rounded-tl-none ml-0 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                <Card className="border-t-0 rounded-tl-none ml-0">
                   <CardHeader>
-                    <CardTitle className="flex items-center justify-between text-gray-900 dark:text-white">
+                    <CardTitle className="flex items-center justify-between">
                       <span className="flex items-center gap-2">Uploaded Documents</span>
                     </CardTitle>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                    <p className="text-sm text-gray-600">
                       Documents uploaded and processed for this session.
                     </p>
                   </CardHeader>
@@ -3001,7 +2999,7 @@ Thank you for your assistance.`;
                         {sessionDocuments.map((doc: any, index: number) => (
                           <div 
                             key={doc.id || index} 
-                            className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 transition-colors group"
+                            className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-gray-300 transition-colors group"
                           >
                             <div className="flex items-start gap-3">
                               <div className="flex-shrink-0 mt-1">
@@ -3017,7 +3015,7 @@ Thank you for your assistance.`;
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-start justify-between">
-                                  <h4 className="font-medium text-gray-900 dark:text-white text-sm truncate" title={doc.fileName}>
+                                  <h4 className="font-medium text-gray-900 text-sm truncate" title={doc.fileName}>
                                     {doc.fileName}
                                   </h4>
                                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
@@ -3099,12 +3097,12 @@ Thank you for your assistance.`;
 
                 return activeTab === collection.collectionName ? (
                   <div key={collection.id} className="mt-0 px-0 ml-0">
-                    <Card className="border-t-0 rounded-tl-none ml-0 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                    <Card className="border-t-0 rounded-tl-none ml-0">
                       <CardHeader>
-                        <CardTitle className="flex items-center justify-between text-gray-900 dark:text-white">
+                        <CardTitle className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             {collection.collectionName}
-                            <span className="text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
+                            <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
                               {uniqueIndices.length} {uniqueIndices.length === 1 ? 'item' : 'items'}
                             </span>
                           </div>
@@ -3124,10 +3122,10 @@ Thank you for your assistance.`;
                             <Wand2 className="h-4 w-4 text-blue-600" />
                           </Button>
                         </CardTitle>
-                        <p className="text-sm text-gray-600 dark:text-gray-300">{collection.description}</p>
+                        <p className="text-sm text-gray-600">{collection.description}</p>
                       </CardHeader>
                       <CardContent>
-                        <Table className="session-table dark:text-white">
+                        <Table className="session-table">
                           <TableHeader>
                             <TableRow>
 
@@ -3136,7 +3134,7 @@ Thank you for your assistance.`;
                                 .map((property) => (
                                 <TableHead 
                                   key={property.id} 
-                                  className="relative border-r border-gray-300 dark:border-gray-600"
+                                  className="relative border-r border-gray-300"
                                   style={{ 
                                     width: `${columnWidths[`${collection.id}-${property.id}`] || (
                                       property.fieldType === 'TEXTAREA' ? 400 : 
@@ -3154,7 +3152,7 @@ Thank you for your assistance.`;
                                   <div className="flex items-center justify-between group">
                                     <button
                                       onClick={() => handleSort(property.propertyName, collection.id)}
-                                      className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 px-2 py-1 rounded flex-1 min-w-0"
+                                      className="flex items-center gap-2 hover:bg-gray-100 px-2 py-1 rounded flex-1 min-w-0"
                                     >
                                       <span className="truncate">{property.propertyName}</span>
                                       {getSortIcon(property.propertyName, collection.id)}
@@ -3166,7 +3164,7 @@ Thank you for your assistance.`;
                                   </div>
                                 </TableHead>
                               ))}
-                              <TableHead className="w-24 border-r border-gray-300 dark:border-gray-600" style={{ width: '96px', minWidth: '96px', maxWidth: '96px' }}>
+                              <TableHead className="w-24 border-r border-gray-300" style={{ width: '96px', minWidth: '96px', maxWidth: '96px' }}>
                                 <div className="flex items-center justify-center gap-3 px-2">
                                   {(() => {
                                     // Handle empty collections

@@ -6,7 +6,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -14,7 +13,7 @@ import { useLocation } from "wouter";
 import { useProject } from "@/hooks/useProjects";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
-import type { FieldValidation } from "@shared/schema";
+import type { FieldValidation } from "@/types/api";
 import AllData from "./AllData";
 import KnowledgeRules from "./KnowledgeRules";
 import DefineData from "./DefineData";
@@ -23,7 +22,6 @@ import UserProfile from "./UserProfile";
 import Breadcrumb from "./Breadcrumb";
 import ExtractlyLogo from "./ExtractlyLogo";
 import WavePattern from "./WavePattern";
-import { AppHeader } from "./AppHeader";
 
 interface ProjectLayoutProps {
   projectId: string;
@@ -42,12 +40,6 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const queryClient = useQueryClient();
   const userNavigatedRef = useRef(false);
   const initialTabSetRef = useRef(false);
-
-  // Fetch project validations for statistics
-  const { data: projectValidations = [] } = useQuery({
-    queryKey: ['/api/validations/project', projectId],
-    enabled: !!projectId,
-  });
   
   // Editing states
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -85,6 +77,31 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
     refetchOnWindowFocus: false,
     staleTime: 0
   });
+
+  // Calculate verification statistics
+  const getVerificationStats = () => {
+    if (!project) return { verified: 0, in_progress: 0, pending: 0 };
+    
+    const stats = { verified: 0, in_progress: 0, pending: 0 };
+    
+    for (const session of project.sessions) {
+      const sessionValidations = allValidations.filter(v => v.sessionId === session.id);
+      if (sessionValidations.length === 0) {
+        stats.pending++;
+      } else {
+        const allVerified = sessionValidations.every(v => v.validationStatus === 'valid' || v.validationStatus === 'verified');
+        if (allVerified) {
+          stats.verified++;
+        } else {
+          stats.in_progress++;
+        }
+      }
+    }
+    
+    return stats;
+  };
+
+  const verificationStats = getVerificationStats();
 
   // Read URL parameters and handle initial tab setup
   useEffect(() => {
@@ -287,28 +304,6 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
     ] : []),
   ];
 
-  // Calculate verification stats for statistics cards (same logic as SessionView)
-  const getVerificationStatusForProject = (sessionId: string): 'verified' | 'in_progress' | 'pending' => {
-    const sessionValidations = projectValidations.filter((v: FieldValidation) => v.sessionId === sessionId);
-    if (sessionValidations.length === 0) return 'pending';
-    
-    const allVerified = sessionValidations.every((v: FieldValidation) => v.validationStatus === 'valid' || v.validationStatus === 'verified');
-    return allVerified ? 'verified' : 'in_progress';
-  };
-
-  const getVerificationStatsForProject = () => {
-    const stats = { verified: 0, in_progress: 0, pending: 0 };
-    
-    for (const projectSession of project?.sessions || []) {
-      const status = getVerificationStatusForProject(projectSession.id);
-      stats[status]++;
-    }
-    
-    return stats;
-  };
-
-  const verificationStats = getVerificationStatsForProject();
-
   const renderActiveContent = () => {
     switch (activeTab) {
       case "data":
@@ -325,10 +320,9 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <AppHeader />
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+      <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="w-full px-6 py-4">
           <div className="flex items-center justify-between w-full">
             <ExtractlyLogo />
@@ -337,44 +331,136 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
         </div>
       </div>
 
-      {/* Page Title - Full Width like SessionView */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
+      {/* Page Title */}
+      <div className="bg-white border-b border-gray-100">
         <div className="w-full px-6 py-6">
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-3 flex-1 mr-6">
               <TrendingUp className="h-8 w-8 text-primary mt-1" />
               <div className="flex-1 space-y-2">
+                {/* Project Title */}
                 <div className="flex items-center space-x-2">
-                  <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{project.name}</h2>
-                </div>
-                <div className="flex items-start space-x-2">
-                  {project.description ? (
-                    <p className="text-sm text-gray-600 dark:text-gray-300">{project.description}</p>
+                  {isEditingTitle ? (
+                    <div className="flex items-center space-x-2 flex-1">
+                      <Input
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className="text-2xl font-bold border-primary"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleTitleSave();
+                          if (e.key === 'Escape') handleTitleCancel();
+                        }}
+                        autoFocus
+                      />
+                      <Button
+                        size="sm"
+                        onClick={handleTitleSave}
+                        disabled={!editTitle.trim() || updateProjectMutation.isPending}
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleTitleCancel}
+                        disabled={updateProjectMutation.isPending}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
                   ) : (
-                    <p className="text-sm text-gray-400">No description</p>
+                    <div className="flex items-center space-x-2 flex-1 group">
+                      <h2 className="text-3xl font-bold">{project.name}</h2>
+                      {canEditProject && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={handleTitleEdit}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Edit3 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Project Description */}
+                <div className="flex items-start space-x-2">
+                  {isEditingDescription ? (
+                    <div className="flex items-start space-x-2 flex-1">
+                      <Textarea
+                        value={editDescription}
+                        onChange={(e) => setEditDescription(e.target.value)}
+                        className="text-sm text-gray-600 border-primary min-h-[60px]"
+                        placeholder="Add a project description..."
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && e.ctrlKey) handleDescriptionSave();
+                          if (e.key === 'Escape') handleDescriptionCancel();
+                        }}
+                        autoFocus
+                      />
+                      <div className="flex flex-col space-y-1">
+                        <Button
+                          size="sm"
+                          onClick={handleDescriptionSave}
+                          disabled={updateProjectMutation.isPending}
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleDescriptionCancel}
+                          disabled={updateProjectMutation.isPending}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-start space-x-2 flex-1 group">
+                      {project.description ? (
+                        <p className="text-sm text-gray-600">{project.description}</p>
+                      ) : canEditProject ? (
+                        <p className="text-sm text-gray-400 italic">Click to add description</p>
+                      ) : (
+                        <p className="text-sm text-gray-400">No description</p>
+                      )}
+                      {canEditProject && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={handleDescriptionEdit}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Edit3 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
             </div>
 
             {/* Statistics Cards */}
-            {project.sessions?.length > 0 && (
+            {project.sessions.length > 0 && (
               <div className="flex gap-3 flex-shrink-0 ml-auto">
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <Database className="h-6 w-6 text-slate-700 dark:text-slate-300" />
-                  <span className="text-xl font-bold text-gray-900 dark:text-white">{project.sessions.length}</span>
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                  <Database className="h-6 w-6 text-slate-700" />
+                  <span className="text-xl font-bold text-gray-900">{project.sessions.length}</span>
                 </div>
 
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
                   <CheckCircle className="h-6 w-6 text-gray-400" />
-                  <span className="text-xl font-bold text-gray-900 dark:text-white">
+                  <span className="text-xl font-bold text-gray-900">
                     {verificationStats.in_progress + verificationStats.pending}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
                   <CheckCircle className="h-6 w-6 text-green-600" />
-                  <span className="text-xl font-bold text-gray-900 dark:text-white">
+                  <span className="text-xl font-bold text-gray-900">
                     {verificationStats.verified}
                   </span>
                 </div>
@@ -386,8 +472,8 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
 
       {/* Main Content - Full Width */}
       <div className="flex h-[calc(100vh-168px)]">
-        {/* Session-style Sidebar */}
-        <div className="w-80 bg-slate-50 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col">
+        {/* Sidebar */}
+        <div className="w-72 bg-slate-50 border-r border-slate-200">
           <div className="p-4">
             <nav className="space-y-0.5">
               {navItems.map((item) => {
@@ -409,14 +495,14 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                     disabled={isDisabled}
                     className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
                       isDisabled
-                        ? "text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-50 font-normal"
+                        ? "text-slate-400 cursor-not-allowed opacity-50 font-normal"
                         : isActive
                         ? "bg-primary text-white font-medium shadow-sm"
-                        : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 font-normal"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
                     }`}
                   >
                     <Icon className={`h-4 w-4 ${
-                      isDisabled ? "text-slate-300 dark:text-slate-600" : isActive ? "text-white" : "text-slate-500 dark:text-slate-400"
+                      isDisabled ? "text-slate-300" : isActive ? "text-white" : "text-slate-500"
                     }`} />
                     {item.label}
                   </button>
@@ -424,84 +510,64 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
               })}
             </nav>
 
-          </div>
-          
-          {/* Project Navigation - Session-style with sections */}
-          <div className="border-t border-slate-200 dark:border-slate-600 p-4 flex-1">
-            <div className="mb-4">
-              <h3 className="text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                {project?.mainObjectName || "Project"} Information
-              </h3>
-            </div>
-            <div className="relative">
-              {/* Vertical connecting line - stops at last collection */}
-              <div className="absolute left-4 top-4 w-0.5 bg-slate-300 dark:bg-slate-600" style={{ 
-                height: `${(project.collections?.length || 0) * 48 + 12}px` 
-              }}></div>
-              
-              <div className="space-y-3">
-                {/* General Information */}
-                <div className="relative">
-                  <div className="absolute left-2 top-3 w-4 h-0.5 bg-slate-300 dark:bg-slate-600"></div>
-                  <div className="flex items-center space-x-2 ml-8">
-                    <User className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+            {/* Schema Navigation - Only show when Define Data tab is active */}
+            {activeTab === 'define' && (
+              <div className="mt-4 pt-4 border-t border-slate-200">
+                <div className="px-3 mb-2">
+                  <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    SCHEMA INFORMATION
+                  </h3>
+                </div>
+                <nav className="space-y-0.5">
+                  {/* Main Data Section */}
+                  <button
+                    onClick={() => setSchemaActiveTab('main-data')}
+                    className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
+                      schemaActiveTab === 'main-data'
+                        ? "bg-primary text-white font-medium shadow-sm"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
+                    }`}
+                  >
+                    <User className="h-4 w-4" />
+                    General Information
+                  </button>
+
+                  {/* Collection Sections */}
+                  {project.collections?.map((collection) => (
                     <button
-                      onClick={() => setSchemaActiveTab('main-data')}
-                      className={`flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
-                        schemaActiveTab === 'main-data' && activeTab === 'define'
-                          ? 'bg-primary text-white font-medium shadow-sm' 
-                          : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 font-normal'
+                      key={collection.id}
+                      onClick={() => setSchemaActiveTab(collection.collectionName)}
+                      className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
+                        schemaActiveTab === collection.collectionName
+                          ? "bg-primary text-white font-medium shadow-sm"
+                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
                       }`}
                     >
-                      General Information
+                      <List className="h-4 w-4" />
+                      {collection.collectionName}
                     </button>
-                  </div>
-                </div>
+                  ))}
 
-                {/* Collections */}
-                {project.collections?.map((collection, index) => (
-                  <div key={collection.id} className="relative">
-                    <div className="absolute left-2 top-3 w-4 h-0.5 bg-slate-300 dark:bg-slate-600"></div>
-                    <div className="flex items-center space-x-2 ml-8">
-                      <List className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-                      <button
-                        onClick={() => setSchemaActiveTab(collection.collectionName)}
-                        className={`flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
-                          schemaActiveTab === collection.collectionName && activeTab === 'define'
-                            ? 'bg-primary text-white font-medium shadow-sm' 
-                            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 font-normal'
-                        }`}
-                      >
-                        <div className="truncate">{collection.collectionName}</div>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Add Collection Button */}
-                <div className="relative">
-                  <div className="absolute left-2 top-3 w-4 h-0.5 bg-slate-300 dark:bg-slate-600"></div>
-                  <div className="flex items-center space-x-2 ml-8">
-                    <Plus className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-                    <button
-                      onClick={() => {
-                        if (addCollectionCallbackRef.current) {
-                          addCollectionCallbackRef.current();
-                        }
-                      }}
-                      className="flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 font-normal border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500"
-                    >
-                      <div className="truncate">Add Collection</div>
-                    </button>
-                  </div>
-                </div>
+                  {/* Add List Button */}
+                  <button
+                    onClick={() => {
+                      if (addCollectionCallbackRef.current) {
+                        addCollectionCallbackRef.current();
+                      }
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-600 transition-all duration-200"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add List
+                  </button>
+                </nav>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
         {/* Main Content */}
-        <div className={`flex-1 overflow-auto ${activeTab === "data" ? "p-0" : "p-8"} relative`}>
+        <div className="flex-1 overflow-auto p-8">
           {renderActiveContent()}
         </div>
       </div>

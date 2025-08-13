@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Database, CheckCircle, Clock, ExternalLink, Calendar, AlertCircle, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle, Plus, TrendingUp } from "lucide-react";
+import { Database, CheckCircle, Clock, ExternalLink, Calendar, AlertCircle, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -181,7 +181,7 @@ export default function AllData({ project }: AllDataProps) {
 
     return (
       <TableHead 
-        className={`${className} cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 select-none text-gray-900 dark:text-gray-200`}
+        className={`${className} cursor-pointer hover:bg-gray-50 select-none`}
         onClick={() => handleSort(field)}
       >
         <div className="flex items-center gap-1">
@@ -242,68 +242,25 @@ export default function AllData({ project }: AllDataProps) {
   }, [project.sessions, sortField, sortDirection, allValidations]);
 
   return (
-    <div className="bg-gray-50 dark:bg-gray-900 min-h-screen w-full">
-      {/* Page Title - Match SessionView exactly */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 w-full">
-        <div className="w-full px-6 py-6">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start space-x-3 flex-1 mr-6">
-              <TrendingUp className="h-8 w-8 text-primary mt-1" />
-              <div className="flex-1 space-y-2">
-                <div className="flex items-center space-x-2">
-                  <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{project.name}</h2>
-                </div>
-                <div className="flex items-start space-x-2">
-                  {project.description ? (
-                    <p className="text-sm text-gray-600 dark:text-gray-300">{project.description}</p>
-                  ) : (
-                    <p className="text-sm text-gray-400 dark:text-gray-500">No description</p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Statistics Cards - Match SessionView exactly */}
-            {project.sessions.length > 0 && (
-              <div className="flex gap-3 flex-shrink-0 ml-auto">
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <Database className="h-6 w-6 text-slate-700 dark:text-slate-300" />
-                  <span className="text-xl font-bold text-gray-900 dark:text-white">{project.sessions.length}</span>
-                </div>
-
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-gray-400" />
-                  <span className="text-xl font-bold text-gray-900 dark:text-white">
-                    {getVerificationStats().in_progress + getVerificationStats().pending}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-green-600" />
-                  <span className="text-xl font-bold text-gray-900 dark:text-white">
-                    {getVerificationStats().verified}
-                  </span>
-                </div>
-              </div>
-            )}
+    <div>
+      <div className="mb-8">
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-2xl font-semibold text-gray-900">{project.mainObjectName || "Session"} Extraction Sessions</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              View extracted data and manage all extraction sessions for this project
+            </p>
           </div>
-        </div>
-      </div>
-
-      {/* Content area with proper padding */}
-      <div className="p-6 w-full">
-        <div className="mb-8 w-full">
-          <div className="flex items-start justify-between w-full">
-            <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-              <DialogTrigger asChild>
-                <Button 
-                  onClick={handleCreateNewSession}
-                  className="flex items-center gap-2 ml-auto"
-                >
-                  <Plus className="h-4 w-4" />
-                  New {project.mainObjectName || "Session"}
-                </Button>
-              </DialogTrigger>
+          <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+            <DialogTrigger asChild>
+              <Button 
+                onClick={handleCreateNewSession}
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                New {project.mainObjectName || "Session"}
+              </Button>
+            </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Create New {project.mainObjectName || "Session"}</DialogTitle>
@@ -346,19 +303,19 @@ export default function AllData({ project }: AllDataProps) {
               </div>
             </DialogContent>
           </Dialog>
-          </div>
         </div>
+      </div>
 
-        {/* Sessions Table */}
-        <Card className="!bg-white dark:!bg-gray-800 border-gray-200 dark:border-gray-700 w-full">
-          <CardContent className="!bg-white dark:!bg-gray-800 p-0">
-            {project.sessions.length === 0 ? (
-              <div className="text-center py-8">
-                <Database className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No {(project.mainObjectName || "session").toLowerCase()} extractions</h3>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Click "New {project.mainObjectName || "Session"}" to create your first extraction session
-                </p>
+      {/* Sessions Table */}
+      <Card>
+        <CardContent>
+          {project.sessions.length === 0 ? (
+            <div className="text-center py-8">
+              <Database className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No {(project.mainObjectName || "session").toLowerCase()} extractions</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Click "New {project.mainObjectName || "Session"}" to create your first extraction session
+              </p>
               <div className="mt-4 flex justify-center">
                 <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
                   <DialogTrigger asChild>
@@ -415,10 +372,10 @@ export default function AllData({ project }: AllDataProps) {
               </div>
             </div>
           ) : (
-            <div className="w-full">
-              <Table className="!bg-white dark:!bg-gray-800 w-full">
-                <TableHeader className="!bg-gray-50 dark:!bg-gray-700">
-                  <TableRow className="border-b border-gray-200 dark:border-gray-600">
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
                     <SortableHeader field="sessionName">Session Name</SortableHeader>
                     <SortableHeader field="documentCount" className="py-3 w-24">Docs</SortableHeader>
                     <SortableHeader field="progress" className="py-3 w-32">Progress</SortableHeader>
@@ -430,32 +387,32 @@ export default function AllData({ project }: AllDataProps) {
                     <SortableHeader field="createdAt" className="py-3 w-32">Created</SortableHeader>
                   </TableRow>
                 </TableHeader>
-                <TableBody className="!bg-white dark:!bg-gray-800">
+                <TableBody>
                 {sortedSessions.map((session) => {
                   if (!session || !session.id) return null;
                   const progress = getSessionProgress(session.id);
                   const verificationStatus = getVerificationStatus(session.id);
                   
                   return (
-                    <TableRow key={session.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-600 !bg-white dark:!bg-gray-800">
-                      <TableCell className="py-3 !bg-white dark:!bg-gray-800">
+                    <TableRow key={session.id} className="hover:bg-gray-50">
+                      <TableCell className="py-3">
                         <Link href={`/projects/${project.id}/sessions/${session.id}`}>
                           <div className="cursor-pointer hover:text-primary transition-colors">
-                            <p className="font-medium text-sm text-gray-900 dark:text-white">{session.sessionName || 'Untitled Session'}</p>
+                            <p className="font-medium text-sm">{session.sessionName || 'Untitled Session'}</p>
                             {session.description && (
-                              <p className="text-xs text-muted-foreground dark:text-gray-400 truncate max-w-[200px]">
+                              <p className="text-xs text-muted-foreground truncate max-w-[200px]">
                                 {session.description}
                               </p>
                             )}
                           </div>
                         </Link>
                       </TableCell>
-                      <TableCell className="py-3 text-sm text-gray-900 dark:text-white !bg-white dark:!bg-gray-800">
+                      <TableCell className="py-3 text-sm">
                         {session.documentCount || 0}
                       </TableCell>
-                      <TableCell className="py-3 !bg-white dark:!bg-gray-800">
+                      <TableCell className="py-3">
                         <div className="flex items-center gap-2">
-                          <div className="w-20 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                          <div className="w-20 bg-gray-200 rounded-full h-2.5">
                             <div 
                               className={`h-2.5 rounded-full transition-all duration-300 ${
                                 progress.percentage === 100 ? 'bg-green-600' : 
@@ -464,12 +421,12 @@ export default function AllData({ project }: AllDataProps) {
                               style={{ width: `${progress.percentage}%` }}
                             />
                           </div>
-                          <span className="text-xs font-medium text-gray-700 dark:text-gray-300 min-w-[32px]">
+                          <span className="text-xs font-medium text-gray-700 min-w-[32px]">
                             {progress.percentage}%
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="py-3 text-center !bg-white dark:!bg-gray-800">
+                      <TableCell className="py-3 text-center">
                         <div className="flex justify-center">
                           {verificationStatus === 'verified' ? (
                             <CheckCircle className="h-4 w-4 text-green-600" />
@@ -478,8 +435,8 @@ export default function AllData({ project }: AllDataProps) {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="py-3 !bg-white dark:!bg-gray-800">
-                        <div className="text-xs text-muted-foreground dark:text-gray-400">
+                      <TableCell className="py-3">
+                        <div className="text-xs text-muted-foreground">
                           {session.createdAt ? formatDate(session.createdAt).split(',')[0] : 'Unknown'}
                         </div>
                       </TableCell>
@@ -492,7 +449,6 @@ export default function AllData({ project }: AllDataProps) {
           )}
         </CardContent>
       </Card>
-      </div>
     </div>
   );
 }

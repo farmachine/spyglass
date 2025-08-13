@@ -106,33 +106,33 @@ export default function Publishing({ project }: PublishingProps) {
   }
 
   return (
-    <div className="space-y-8 bg-slate-900 dark:bg-slate-900 min-h-screen">
+    <div className="space-y-8">
       <div className="mb-8">
-        <h2 className="text-2xl font-semibold text-gray-100 dark:text-gray-100">Project Publishing</h2>
-        <p className="text-sm text-gray-400 dark:text-gray-400 mt-1">
+        <h2 className="text-2xl font-semibold text-gray-900">Project Publishing</h2>
+        <p className="text-sm text-gray-600 mt-1">
           Manage which organizations have access to this project
         </p>
       </div>
 
       {/* Publish to New Organization */}
-      <Card className="bg-slate-800 dark:bg-slate-800 border-slate-700 dark:border-slate-700">
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-gray-100 dark:text-gray-100">
-            <Plus className="h-5 w-5 text-blue-400" />
+          <CardTitle className="flex items-center gap-2">
+            <Plus className="h-5 w-5 text-blue-600" />
             Publish to Organization
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 text-gray-300 dark:text-gray-300">
+        <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="organization-select" className="text-gray-200 dark:text-gray-200">Select Organization</Label>
+            <Label htmlFor="organization-select">Select Organization</Label>
             <div className="flex gap-3 mt-2">
               <Select value={selectedOrganizationId} onValueChange={setSelectedOrganizationId}>
-                <SelectTrigger className="flex-1 bg-slate-700 border-slate-600 text-gray-300">
+                <SelectTrigger className="flex-1">
                   <SelectValue placeholder="Choose an organization..." />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-700 border-slate-600">
+                <SelectContent>
                   {availableOrganizations.map((org: Organization) => (
-                    <SelectItem key={org.id} value={org.id} className="text-gray-300 hover:bg-slate-600">
+                    <SelectItem key={org.id} value={org.id}>
                       {org.name}
                     </SelectItem>
                   ))}
@@ -141,7 +141,7 @@ export default function Publishing({ project }: PublishingProps) {
               <Button 
                 onClick={handlePublish}
                 disabled={!selectedOrganizationId || publishMutation.isPending}
-                className="bg-primary hover:bg-primary/90"
+                className=""
               >
                 {publishMutation.isPending ? "Publishing..." : "Publish"}
               </Button>
@@ -149,7 +149,7 @@ export default function Publishing({ project }: PublishingProps) {
           </div>
           
           {availableOrganizations.length === 0 && (
-            <div className="text-sm text-gray-400 bg-slate-700 p-3 rounded">
+            <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded">
               All organizations already have access to this project.
             </div>
           )}
@@ -157,47 +157,47 @@ export default function Publishing({ project }: PublishingProps) {
       </Card>
 
       {/* Published Organizations */}
-      <Card className="bg-slate-800 dark:bg-slate-800 border-slate-700 dark:border-slate-700">
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-gray-100 dark:text-gray-100">
-            <Building className="h-5 w-5 text-green-400" />
+          <CardTitle className="flex items-center gap-2">
+            <Building className="h-5 w-5 text-green-600" />
             Published Organizations
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-gray-300 dark:text-gray-300">
+        <CardContent>
           {publishedOrganizations.length === 0 ? (
             <div className="text-center py-8">
-              <Users className="mx-auto h-12 w-12 text-gray-500 dark:text-gray-500" />
-              <h3 className="mt-2 text-sm font-medium text-gray-100 dark:text-gray-100">No organizations</h3>
-              <p className="mt-1 text-sm text-gray-400 dark:text-gray-400">
+              <Users className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No organizations</h3>
+              <p className="mt-1 text-sm text-gray-500">
                 This project hasn't been published to any organizations yet.
               </p>
             </div>
           ) : (
             <div className="space-y-3">
               {publishedOrganizations.map((org: Organization) => (
-                <div key={org.id} className="flex items-center justify-between p-4 border border-slate-600 rounded-lg bg-slate-750 dark:bg-slate-750">
+                <div key={org.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
                   <div className="flex items-center gap-3">
                     <div className={`flex-shrink-0 p-2 rounded-lg ${
                       org.type === 'primary' 
-                        ? 'bg-slate-600' 
-                        : 'bg-blue-900'
+                        ? 'bg-gray-100' 
+                        : 'bg-blue-100'
                     }`}>
                       <Building className={`h-5 w-5 ${
                         org.type === 'primary' 
-                          ? 'text-gray-300' 
-                          : 'text-blue-400'
+                          ? 'text-black' 
+                          : 'text-blue-600'
                       }`} />
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-100 dark:text-gray-100">{org.name}</h4>
+                      <h4 className="font-medium text-gray-900">{org.name}</h4>
                       {org.description && (
-                        <p className="text-sm text-gray-400 dark:text-gray-400">{org.description}</p>
+                        <p className="text-sm text-gray-600">{org.description}</p>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Badge variant="default" className="bg-green-900 text-green-300 border-green-700">
+                    <Badge variant="default" className="bg-green-100 text-green-800">
                       <CheckCircle className="h-3 w-3 mr-1" />
                       Published
                     </Badge>
@@ -206,7 +206,7 @@ export default function Publishing({ project }: PublishingProps) {
                       size="sm"
                       onClick={() => handleUnpublish(org.id)}
                       disabled={unpublishMutation.isPending}
-                      className="text-red-400 hover:text-red-300 hover:bg-red-900 border-red-700"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
