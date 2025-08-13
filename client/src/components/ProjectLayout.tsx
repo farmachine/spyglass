@@ -338,10 +338,9 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
 
       {/* Main Content - Full Width */}
       <div className="flex h-[calc(100vh-168px)]">
-        {/* Sidebar - Hide when activeTab is "data" */}
-        {activeTab !== "data" && (
-          <div className="w-72 bg-slate-50 border-r border-slate-200">
-            <div className="p-4">
+        {/* Unified Sidebar - Always visible */}
+        <div className="w-72 bg-slate-50 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700">
+          <div className="p-4">
             <nav className="space-y-0.5">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -362,14 +361,14 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                     disabled={isDisabled}
                     className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
                       isDisabled
-                        ? "text-slate-400 cursor-not-allowed opacity-50 font-normal"
+                        ? "text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-50 font-normal"
                         : isActive
                         ? "bg-primary text-white font-medium shadow-sm"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
+                        : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 font-normal"
                     }`}
                   >
                     <Icon className={`h-4 w-4 ${
-                      isDisabled ? "text-slate-300" : isActive ? "text-white" : "text-slate-500"
+                      isDisabled ? "text-slate-300 dark:text-slate-600" : isActive ? "text-white" : "text-slate-500 dark:text-slate-400"
                     }`} />
                     {item.label}
                   </button>
@@ -379,9 +378,9 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
 
             {/* Schema Navigation - Only show when Define Data tab is active */}
             {activeTab === 'define' && (
-              <div className="mt-4 pt-4 border-t border-slate-200">
+              <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-600">
                 <div className="px-3 mb-2">
-                  <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <h3 className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     SCHEMA INFORMATION
                   </h3>
                 </div>
@@ -392,7 +391,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                     className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
                       schemaActiveTab === 'main-data'
                         ? "bg-primary text-white font-medium shadow-sm"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
+                        : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 font-normal"
                     }`}
                   >
                     <User className="h-4 w-4" />
@@ -407,7 +406,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                       className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
                         schemaActiveTab === collection.collectionName
                           ? "bg-primary text-white font-medium shadow-sm"
-                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
+                          : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 font-normal"
                       }`}
                     >
                       <List className="h-4 w-4" />
@@ -422,7 +421,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                         addCollectionCallbackRef.current();
                       }
                     }}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-600 transition-all duration-200"
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300 transition-all duration-200"
                   >
                     <Plus className="h-4 w-4" />
                     Add List
@@ -430,9 +429,8 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                 </nav>
               </div>
             )}
-            </div>
           </div>
-        )}
+        </div>
 
         {/* Main Content */}
         <div className={`flex-1 overflow-auto ${activeTab === "data" ? "p-0" : "p-8"} relative`}>
