@@ -4644,7 +4644,7 @@ print(json.dumps(results))
     }
   });
 
-  // Run extraction wizardry Python script (extract only, no save)
+  // Run extraction wizardry Python script
   app.post("/api/run-wizardry", async (req, res) => {
     try {
       const requestData = req.body; // Get request data with document_ids and session_id
@@ -4715,7 +4715,34 @@ print(json.dumps(results))
           
           if (extractionResults && Array.isArray(extractionResults) && extractionResults.length > 0) {
             console.log('Sample extraction result:', JSON.stringify(extractionResults[0], null, 2));
-            console.log('DEBUG MODE: Skipping automatic database save - waiting for frontend confirmation');
+            
+            // Save extraction results to database
+            let savedCount = 0;
+            let errorCount = 0;
+            
+            for (const result of extractionResults) {
+              try {
+                await storage.createFieldValidation({
+                  sessionId: requestData.session_id,
+                  validationType: result.validation_type || 'collection_property',
+                  dataType: result.data_type || 'TEXT',
+                  fieldId: result.field_id,
+                  collectionName: result.collection_name,
+                  recordIndex: result.record_index,
+                  extractedValue: result.extracted_value,
+                  validationStatus: result.validation_status || 'verified',
+                  aiReasoning: result.ai_reasoning,
+                  manuallyVerified: false,
+                  confidenceScore: Math.round((result.confidence_score || 1.0) * 100)
+                });
+                savedCount++;
+              } catch (dbError) {
+                console.error('Failed to save field validation:', dbError);
+                errorCount++;
+              }
+            }
+            
+            console.log(`Database save results: ${savedCount} saved successfully, ${errorCount} errors`);
           } else {
             console.log('No extraction results to save to database');
           }
@@ -4741,58 +4768,6 @@ print(json.dumps(results))
     } catch (error) {
       console.error("Wizardry execution error:", error);
       res.status(500).json({ message: "Failed to run wizardry script" });
-    }
-  });
-
-  // DEBUG: Save extraction results to database after user confirmation
-  app.post("/api/sessions/:sessionId/save-extraction-results", async (req, res) => {
-    try {
-      const sessionId = req.params.sessionId;
-      const { extractionResults } = req.body;
-      
-      console.log(`DEBUG SAVE: Saving ${extractionResults?.length || 0} extraction results to database`);
-      
-      if (!extractionResults || !Array.isArray(extractionResults)) {
-        return res.status(400).json({ error: 'No extraction results provided' });
-      }
-      
-      let savedCount = 0;
-      let errorCount = 0;
-      
-      for (const result of extractionResults) {
-        try {
-          await storage.createFieldValidation({
-            sessionId: sessionId,
-            validationType: result.validation_type || 'collection_property',
-            dataType: result.data_type || 'TEXT',
-            fieldId: result.field_id,
-            collectionName: result.collection_name,
-            recordIndex: result.record_index,
-            extractedValue: result.extracted_value,
-            validationStatus: result.validation_status || 'verified',
-            aiReasoning: result.ai_reasoning,
-            manuallyVerified: false,
-            confidenceScore: Math.round((result.confidence_score || 1.0) * 100)
-          });
-          savedCount++;
-        } catch (dbError) {
-          console.error('Failed to save field validation:', dbError);
-          errorCount++;
-        }
-      }
-      
-      console.log(`DEBUG SAVE: Database save results: ${savedCount} saved successfully, ${errorCount} errors`);
-      
-      res.json({ 
-        success: true,
-        savedCount,
-        errorCount,
-        message: `Saved ${savedCount} extraction results to database`
-      });
-      
-    } catch (error) {
-      console.error("Error saving extraction results:", error);
-      res.status(500).json({ error: 'Failed to save extraction results' });
     }
   });
 

@@ -261,9 +261,7 @@ const AIExtractionModal = ({
   verifiedFields,
   allProjectFields = [],
   sessionId,
-  project,
-  setPendingExtractionData,
-  setDebugModalOpen
+  project
 }: { 
   isOpen: boolean; 
   onClose: () => void; 
@@ -274,8 +272,6 @@ const AIExtractionModal = ({
   allProjectFields?: { id: string; name: string; type: string }[];
   sessionId: string;
   project?: any;
-  setPendingExtractionData: (data: any) => void;
-  setDebugModalOpen: (open: boolean) => void;
 }) => {
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [selectedVerifiedFields, setSelectedVerifiedFields] = useState<string[]>([]);
@@ -443,7 +439,6 @@ const AIExtractionModal = ({
         target_fields: selectedTargetFieldObjects
       };
       
-      // First, run extraction without saving to database
       const response = await apiRequest('/api/run-wizardry', {
         method: 'POST',
         headers: {
@@ -452,17 +447,19 @@ const AIExtractionModal = ({
         body: JSON.stringify(requestData),
       });
       
-      // Immediately show debugging modal when extraction completes
+      // If extraction results were saved to database, refresh the validations
       if (response.extractionResults && response.extractionResults.length > 0) {
-        setPendingExtractionData({
-          response,
-          sessionId,
-          projectId: project?.id
-        });
-        setDebugModalOpen(true);
+        
+        // Invalidate and refetch validation data
+        await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+        await queryClient.refetchQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+        
+        // Also invalidate project-level validations for statistics
+        await queryClient.invalidateQueries({ queryKey: ['/api/validations/project', project?.id] });
+        
+        // Close the modal after successful extraction
+        onClose();
       }
-      
-      onClose(); // Close the AI extraction modal
       
     } catch (error) {
       console.error('Error running wizardry:', error);
@@ -724,10 +721,6 @@ export default function SessionView() {
     fieldName: string;
     confidenceScore: number;
   } | null>(null);
-  
-  // Debugging modal state (temporary for development)
-  const [debugModalOpen, setDebugModalOpen] = useState(false);
-  const [pendingExtractionData, setPendingExtractionData] = useState<any>(null);
   
   // Edit field dialog state
   const [editFieldDialog, setEditFieldDialog] = useState<{
@@ -1260,44 +1253,6 @@ export default function SessionView() {
     if (confirm(`Are you sure you want to delete all ${collectionValidations.length} items from ${collectionName}? This action cannot be undone.`)) {
       deleteAllCollectionDataMutation.mutate(collectionName);
     }
-  };
-
-  // Handler to confirm and save extraction data to database
-  const handleConfirmSaveData = async () => {
-    if (!pendingExtractionData) return;
-    
-    try {
-      // Call the new endpoint to save extraction results to database
-      const response = await apiRequest(`/api/sessions/${pendingExtractionData.sessionId}/save-extraction-results`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          extractionResults: pendingExtractionData.response.extractionResults
-        }),
-      });
-      
-      console.log('DEBUG SAVE RESPONSE:', response);
-      
-      // Invalidate and refetch validation data to show new results
-      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', pendingExtractionData.sessionId, 'validations'] });
-      await queryClient.refetchQueries({ queryKey: ['/api/sessions', pendingExtractionData.sessionId, 'validations'] });
-      
-      // Also invalidate project-level validations for statistics
-      await queryClient.invalidateQueries({ queryKey: ['/api/validations/project', pendingExtractionData.projectId] });
-      
-      setDebugModalOpen(false);
-      setPendingExtractionData(null);
-    } catch (error) {
-      console.error('Error saving data to database:', error);
-    }
-  };
-
-  // Handler to cancel saving data to database
-  const handleCancelSaveData = () => {
-    setDebugModalOpen(false);
-    setPendingExtractionData(null);
   };
 
   // Handler for field verification changes
@@ -3755,57 +3710,6 @@ Thank you for your assistance.`;
           validations={validations}
         />
       )}
-
-      {/* DEBUG MODAL - Temporary for development */}
-      <Dialog open={debugModalOpen} onOpenChange={setDebugModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
-          <DialogHeader className="pb-4">
-            <DialogTitle className="flex items-center gap-3 text-2xl font-bold text-red-600">
-              <Bug className="h-7 w-7 text-red-600" />
-              DEBUG: Confirm Database Write
-            </DialogTitle>
-            <DialogDescription className="text-base text-slate-600 mt-2 leading-relaxed">
-              The extraction has completed successfully. Review the data below and decide whether to save it to the database.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="flex-1 overflow-y-auto space-y-4">
-            {pendingExtractionData && (
-              <>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-semibold text-lg mb-2">Extraction Summary</h3>
-                  <p><strong>Session ID:</strong> {pendingExtractionData.sessionId}</p>
-                  <p><strong>Project ID:</strong> {pendingExtractionData.projectId}</p>
-                  <p><strong>Total Results:</strong> {pendingExtractionData.response?.extractionResults?.length || 0}</p>
-                </div>
-                
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <h3 className="font-semibold text-lg mb-2">Extraction Results Preview</h3>
-                  <pre className="text-sm bg-white p-3 rounded border overflow-x-auto max-h-96">
-                    {JSON.stringify(pendingExtractionData.response, null, 2)}
-                  </pre>
-                </div>
-              </>
-            )}
-          </div>
-          
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button
-              variant="outline"
-              onClick={handleCancelSaveData}
-              className="px-6"
-            >
-              Cancel - Don't Save
-            </Button>
-            <Button
-              onClick={handleConfirmSaveData}
-              className="px-6 bg-green-600 hover:bg-green-700"
-            >
-              Confirm - Save to Database
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
