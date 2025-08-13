@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus, MoreHorizontal } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import * as XLSX from 'xlsx';
 import { Link } from "wouter";
@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -3167,16 +3168,6 @@ Thank you for your assistance.`;
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDeleteAllCollectionData(collection.collectionName)}
-                              className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
-                              title="Delete all collection data"
-                              disabled={uniqueIndices.length === 0}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
                               onClick={() => handleOpenAIExtraction(
                                 collection.collectionName,
                                 collection.properties?.map(prop => ({
@@ -3190,6 +3181,27 @@ Thank you for your assistance.`;
                             >
                               <Wand2 className="h-4 w-4 text-blue-600" />
                             </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 hover:bg-slate-100"
+                                >
+                                  <MoreHorizontal className="h-4 w-4 text-gray-600" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => handleDeleteAllCollectionData(collection.collectionName)}
+                                  disabled={uniqueIndices.length === 0}
+                                  className="cursor-pointer text-red-600 focus:text-red-600 disabled:text-gray-400 disabled:cursor-not-allowed"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete All Data ({uniqueIndices.length} items)
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </CardTitle>
                         <p className="text-sm text-gray-600">{collection.description}</p>
