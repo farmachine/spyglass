@@ -3,58 +3,64 @@
 @tailwind utilities;
 
 :root {
-  /* Clean Professional Theme - Flow Capture */
-  --background: hsl(210, 40%, 98%); /* #F8FAFC */
-  --foreground: hsl(223, 84%, 18%); /* #0F172A */
-  --muted: hsl(210, 40%, 96%); /* Light gray for subtle backgrounds */
-  --muted-foreground: hsl(215, 25%, 45%); /* #64748B */
-  --popover: hsl(0, 0%, 100%); /* #FFFFFF */
-  --popover-foreground: hsl(223, 84%, 18%); /* #0F172A */
-  --card: hsl(0, 0%, 100%); /* #FFFFFF */
-  --card-foreground: hsl(223, 84%, 18%); /* #0F172A */
-  --border: hsl(214, 32%, 91%); /* Light border */
-  --input: hsl(214, 32%, 91%); /* Light input border */
-  --primary: hsl(225, 35%, 48%); /* #4F63A4 - Slate Blue */
-  --primary-foreground: hsl(0, 0%, 100%); /* White text on primary */
-  --secondary: hsl(199, 95%, 74%); /* #BAE6FD - Lighter blue */
-  --secondary-foreground: hsl(223, 84%, 18%); /* Dark text on light secondary */
-  --accent: hsl(199, 95%, 74%); /* #BAE6FD */
-  --accent-foreground: hsl(223, 84%, 18%); /* #0F172A */
+  /* extrapl Theme - Modern Tech Design with Dark Navy */
+  --background: hsl(216, 24%, 12%); /* Dark navy background */
+  --foreground: hsl(0, 0%, 98%); /* Light text */
+  --muted: hsl(216, 24%, 18%); /* Dark muted background */
+  --muted-foreground: hsl(216, 12%, 65%); /* Light muted text */
+  --popover: hsl(216, 24%, 15%); /* Dark popover */
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(216, 24%, 15%); /* Dark card background */
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(216, 24%, 25%); /* Dark border */
+  --input: hsl(216, 24%, 20%); /* Dark input border */
+  --primary: hsl(177, 82%, 45%); /* #40E0D0 - Cyan/Teal for buttons */
+  --primary-foreground: hsl(216, 24%, 12%); /* Dark text on cyan */
+  --secondary: hsl(217, 91%, 65%); /* #4F7CFF - Blue accent */
+  --secondary-foreground: hsl(0, 0%, 100%); /* White text on blue */
+  --accent: hsl(177, 82%, 35%); /* Darker cyan */
+  --accent-foreground: hsl(0, 0%, 98%);
   --destructive: hsl(0, 84%, 60%); /* #EF4444 - Error Red */
   --destructive-foreground: hsl(0, 0%, 100%);
-  --ring: hsl(225, 35%, 48%); /* Primary slate blue for focus rings */
+  --ring: hsl(177, 82%, 45%); /* Cyan for focus rings */
   --radius: 0.5rem;
   
-  /* Custom Flow Capture colors */
-  --success: hsl(142, 76%, 36%); /* #22C55E - Success Green */
-  --warning: hsl(25, 95%, 53%); /* #FB923C - Warning Orange */
+  /* extrapl brand colors */
+  --extrapl-cyan: hsl(177, 82%, 45%); /* #40E0D0 - Teal for buttons */
+  --extrapl-blue: hsl(217, 91%, 65%); /* #4F7CFF */
+  --extrapl-navy: hsl(216, 24%, 12%); /* Main background navy */
+  --success: hsl(142, 76%, 36%); /* #22C55E */
+  --warning: hsl(25, 95%, 53%); /* #FB923C */
 }
 
 .dark {
-  --background: hsl(240, 10%, 3.9%);
-  --foreground: hsl(0, 0%, 98%);
-  --muted: hsl(240, 3.7%, 15.9%);
-  --muted-foreground: hsl(240, 5%, 64.9%);
-  --popover: hsl(240, 10%, 3.9%);
+  --background: hsl(216, 24%, 8%); /* Dark navy background */
+  --foreground: hsl(0, 0%, 98%); /* Light text */
+  --muted: hsl(216, 24%, 12%); /* Dark muted background */
+  --muted-foreground: hsl(216, 12%, 65%); /* Light muted text */
+  --popover: hsl(216, 24%, 10%);
   --popover-foreground: hsl(0, 0%, 98%);
-  --card: hsl(240, 10%, 3.9%);
+  --card: hsl(216, 24%, 10%); /* Dark card background */
   --card-foreground: hsl(0, 0%, 98%);
-  --border: hsl(240, 3.7%, 15.9%);
-  --input: hsl(240, 3.7%, 15.9%);
-  --primary: hsl(225, 35%, 48%); /* Keep slate blue in dark mode */
-  --primary-foreground: hsl(0, 0%, 100%);
-  --secondary: hsl(240, 3.7%, 15.9%);
-  --secondary-foreground: hsl(0, 0%, 98%);
-  --accent: hsl(240, 3.7%, 15.9%);
-  --accent-foreground: hsl(0, 0%, 98%);
-  --destructive: hsl(0, 62.8%, 30.6%);
+  --border: hsl(216, 24%, 18%); /* Dark border */
+  --input: hsl(216, 24%, 18%); /* Dark input border */
+  --primary: hsl(177, 82%, 45%); /* Bright cyan/teal */
+  --primary-foreground: hsl(216, 24%, 12%); /* Dark text on cyan */
+  --secondary: hsl(217, 91%, 65%); /* Blue accent */
+  --secondary-foreground: hsl(0, 0%, 100%);
+  --accent: hsl(216, 24%, 15%); /* Dark accent */
+  --accent-foreground: hsl(177, 82%, 45%); /* Cyan text */
+  --destructive: hsl(0, 62.8%, 50%);
   --destructive-foreground: hsl(0, 0%, 98%);
-  --ring: hsl(225, 35%, 48%); /* Slate blue for focus rings */
+  --ring: hsl(177, 82%, 45%); /* Cyan for focus rings */
   --radius: 0.5rem;
   
-  /* Custom Flow Capture colors for dark mode */
-  --success: hsl(142, 76%, 36%);
-  --warning: hsl(25, 95%, 53%);
+  /* extrapl brand colors for dark mode */
+  --extrapl-cyan: hsl(177, 82%, 55%); /* Brighter cyan in dark */
+  --extrapl-blue: hsl(217, 91%, 70%); /* Brighter blue in dark */
+  --extrapl-navy: hsl(216, 24%, 15%);
+  --success: hsl(142, 76%, 45%);
+  --warning: hsl(25, 95%, 60%);
 }
 
 @layer base {
@@ -307,36 +313,87 @@ body.column-resizing * {
   .border-success {
     border-color: hsl(var(--success));
   }
+  
+  /* extrapl brand utilities */
+  .text-extrapl-cyan {
+    color: hsl(var(--extrapl-cyan));
+  }
+  
+  .bg-extrapl-cyan {
+    background-color: hsl(var(--extrapl-cyan));
+  }
+  
+  .border-extrapl-cyan {
+    border-color: hsl(var(--extrapl-cyan));
+  }
+  
+  .text-extrapl-blue {
+    color: hsl(var(--extrapl-blue));
+  }
+  
+  .bg-extrapl-blue {
+    background-color: hsl(var(--extrapl-blue));
+  }
+  
+  .border-extrapl-blue {
+    border-color: hsl(var(--extrapl-blue));
+  }
+  
+  .text-extrapl-navy {
+    color: hsl(var(--extrapl-navy));
+  }
+  
+  .bg-extrapl-navy {
+    background-color: hsl(var(--extrapl-navy));
+  }
+  
+  /* Gradient text for brand name */
+  .text-extrapl-gradient {
+    background: linear-gradient(135deg, hsl(var(--extrapl-blue)), hsl(var(--extrapl-cyan)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
 }
 
-/* Custom button styles to ensure sea-blue color */
+/* extrapl brand button styles */
 @layer components {
   .btn-primary {
-    background-color: hsl(199, 89%, 48%); /* #0EA5E9 - Sea Blue */
-    color: white;
+    background-color: hsl(var(--extrapl-cyan));
+    color: hsl(var(--primary-foreground));
     border: none;
   }
   
   .btn-primary:hover {
-    background-color: hsl(199, 89%, 42%); /* Darker sea blue on hover */
+    background-color: hsl(177, 82%, 40%); /* Darker cyan on hover */
   }
   
   .btn-primary:focus {
-    ring-color: hsl(199, 89%, 48%);
+    ring-color: hsl(var(--extrapl-cyan));
+  }
+  
+  .btn-secondary {
+    background-color: hsl(var(--extrapl-blue));
+    color: hsl(var(--secondary-foreground));
+    border: none;
+  }
+  
+  .btn-secondary:hover {
+    background-color: hsl(217, 91%, 60%); /* Darker blue on hover */
   }
 }
 
-/* Override any existing button classes to use sea blue */
+/* Override any existing button classes to use extrapl colors */
 @layer base {
   button[class*="bg-blue"],
   .bg-blue-600,
   .bg-blue-700 {
-    background-color: hsl(199, 89%, 48%) !important;
+    background-color: hsl(var(--extrapl-cyan)) !important;
   }
   
   button[class*="bg-blue"]:hover,
   .bg-blue-600:hover,
   .bg-blue-700:hover {
-    background-color: hsl(199, 89%, 42%) !important;
+    background-color: hsl(177, 82%, 40%) !important;
   }
 }

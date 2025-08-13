@@ -26,23 +26,33 @@ export default function ExtractlyLogo({ className = "", showText = true, size = 
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
-          {/* First wave line */}
-          <path
-            d="M2 6 Q6 3 10 6 Q14 9 18 6 Q20 5 22 6"
-            stroke="#4F63A4"
-            strokeWidth="1.5"
-            strokeLinecap="round"
+          {/* Simple extraction icon for small size */}
+          <rect
+            x="2"
+            y="5"
+            width="6"
+            height="6"
+            rx="1"
+            stroke="#40E0D0"
+            strokeWidth="1"
             fill="none"
           />
-          
-          {/* Second wave line */}
           <path
-            d="M2 10 Q6 7 10 10 Q14 13 18 10 Q20 9 22 10"
-            stroke="#6366F1"
+            d="M9 8 L12 8"
+            stroke="#40E0D0"
             strokeWidth="1.5"
             strokeLinecap="round"
+          />
+          <path
+            d="M14 6 L16 8 L14 10"
+            stroke="#4F7CFF"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
             fill="none"
           />
+          <line x1="18" y1="7" x2="22" y2="7" stroke="#40E0D0" strokeWidth="1" strokeLinecap="round"/>
+          <line x1="18" y1="9" x2="22" y2="9" stroke="#40E0D0" strokeWidth="1" strokeLinecap="round"/>
         </svg>
       </div>
     );
@@ -65,41 +75,62 @@ export default function ExtractlyLogo({ className = "", showText = true, size = 
           className="drop-shadow-md"
         >
           <defs>
-            <linearGradient id="waveGradient1" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#4F63A4" />
-              <stop offset="100%" stopColor="#3F4B85" />
+            <linearGradient id="extraplGradient1" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#40E0D0" />
+              <stop offset="100%" stopColor="#20B2AA" />
             </linearGradient>
-            <linearGradient id="waveGradient2" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#6366F1" />
-              <stop offset="100%" stopColor="#4F63A4" />
+            <linearGradient id="extraplGradient2" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#4F7CFF" />
+              <stop offset="100%" stopColor="#40E0D0" />
             </linearGradient>
           </defs>
           
-          {/* First wave line */}
-          <path
-            d="M5 15 Q20 8 35 15 Q50 22 65 15 Q72 12 75 15"
-            stroke="url(#waveGradient1)"
-            strokeWidth="4"
-            strokeLinecap="round"
+          {/* Rounded rectangle background */}
+          <rect
+            x="2"
+            y="2"
+            width="76"
+            height="36"
+            rx="8"
+            ry="8"
+            stroke="url(#extraplGradient1)"
+            strokeWidth="3"
             fill="none"
           />
           
-          {/* Second wave line */}
+          {/* Document icon */}
+          <rect
+            x="15"
+            y="12"
+            width="20"
+            height="16"
+            rx="2"
+            fill="url(#extraplGradient1)"
+            opacity="0.8"
+          />
+          
+          {/* Extraction arrows */}
           <path
-            d="M5 25 Q20 18 35 25 Q50 32 65 25 Q72 22 75 25"
-            stroke="url(#waveGradient2)"
-            strokeWidth="4"
+            d="M40 15 L50 20 L40 25"
+            stroke="url(#extraplGradient2)"
+            strokeWidth="3"
             strokeLinecap="round"
+            strokeLinejoin="round"
             fill="none"
           />
+          
+          {/* Data lines */}
+          <line x1="55" y1="16" x2="65" y2="16" stroke="url(#extraplGradient1)" strokeWidth="2" strokeLinecap="round"/>
+          <line x1="55" y1="20" x2="65" y2="20" stroke="url(#extraplGradient1)" strokeWidth="2" strokeLinecap="round"/>
+          <line x1="55" y1="24" x2="65" y2="24" stroke="url(#extraplGradient1)" strokeWidth="2" strokeLinecap="round"/>
         </svg>
       </div>
       
       {/* App name */}
       {showText && (
         <div className="flex flex-col">
-          <span className="text-3xl font-bold text-foreground leading-tight tracking-tight">
-            Extractly
+          <span className="text-3xl font-bold text-extrapl-gradient leading-tight tracking-tight">
+            extrapl
           </span>
         </div>
       )}
