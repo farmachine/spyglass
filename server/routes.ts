@@ -4709,9 +4709,14 @@ print(json.dumps(results))
             }
           }
           
-          // Console log the extraction results status
+          // Console log the extraction results status and forward Python output
           console.log('=== SIMPLE COLUMN EXTRACTOR RESULTS ===');
           console.log(`Extraction results found: ${extractionResults && Array.isArray(extractionResults) ? extractionResults.length : 0} items`);
+          
+          // Forward Python output to console (for debugging)
+          console.log('=== PYTHON OUTPUT ===');
+          console.log(output);
+          console.log('=== END PYTHON OUTPUT ===');
           
           if (extractionResults && Array.isArray(extractionResults) && extractionResults.length > 0) {
             console.log('Sample extraction result:', JSON.stringify(extractionResults[0], null, 2));
