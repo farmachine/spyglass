@@ -129,35 +129,6 @@ def simple_extraction_main(session_data: Dict[str, Any], start_index: int = 0, t
                 "ai_reasoning": f"Extracted worksheet name for column '{column_data['column_name']}'",
                 "record_index": record_index
             })
-        
-        # Create null validations for remaining collection properties
-        if 'standardised_column' in field_mapping:
-            field_validations.append({
-                "field_id": field_mapping['standardised_column'],
-                "validation_type": "collection_property",
-                "data_type": "TEXT", 
-                "field_name": f"Standardised Column Name[{record_index}]",
-                "collection_name": collection_name,
-                "extracted_value": None,
-                "confidence_score": 0,
-                "validation_status": "unverified",
-                "ai_reasoning": "Requires manual mapping or AI analysis for standardisation",
-                "record_index": record_index
-            })
-            
-        if 'reasoning' in field_mapping:
-            field_validations.append({
-                "field_id": field_mapping['reasoning'],
-                "validation_type": "collection_property",
-                "data_type": "TEXT",
-                "field_name": f"Reasoning[{record_index}]", 
-                "collection_name": collection_name,
-                "extracted_value": None,
-                "confidence_score": 0,
-                "validation_status": "unverified",
-                "ai_reasoning": "Requires reasoning for standardisation process",
-                "record_index": record_index
-            })
     
     return {
         "success": True,
