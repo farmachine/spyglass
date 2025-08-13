@@ -32,14 +32,19 @@ def extract_columns_from_excel_text(content: str, file_name: str) -> List[Dict[s
             
         elif current_sheet and line and not line.startswith('===') and not line.startswith('Row'):
             # This is likely a header row with column names
-            # Split by multiple spaces or tabs to get columns
-            columns = [col.strip() for col in re.split(r'\s{2,}|\t+', line) if col.strip()]
+            # Split by tabs first (Excel format uses tabs between columns)
+            columns = [col.strip() for col in line.split('\t') if col.strip()]
+            
+            # If no tabs found, fall back to splitting by multiple spaces
+            if len(columns) <= 1:
+                columns = [col.strip() for col in re.split(r'\s{2,}', line) if col.strip()]
             
             # Process each column (filter out row numbers and short strings)
             for column_name in columns:
                 if (len(column_name) > 2 and 
                     not column_name.isdigit() and 
-                    not re.match(r'^Row\s+\d+', column_name)):
+                    not re.match(r'^Row\s+\d+', column_name) and
+                    not re.match(r'^\d{4}-\d{2}-\d{2}', column_name)):  # Skip date values
                     
                     results.append({
                         "column_name": column_name,
