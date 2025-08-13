@@ -4674,7 +4674,7 @@ print(json.dumps(results))
         error += data.toString();
       });
       
-      python.on('close', (code: any) => {
+      python.on('close', async (code: any) => {
         if (code !== 0) {
           console.error('Wizardry script error:', error);
           return res.status(500).json({ 
@@ -4683,12 +4683,81 @@ print(json.dumps(results))
           });
         }
         
-        // Return the complete output from Python script (includes both document properties and Gemini analysis)
-        res.json({ 
-          message: "Wizardry analysis completed",
-          output: output.trim(),
-          success: true
-        });
+        try {
+          // Parse the output to extract results
+          const outputLines = output.trim().split('\n');
+          let extractionResults = [];
+          
+          // Look for the EXCEL COLUMN EXTRACTION RESULTS section
+          for (let i = 0; i < outputLines.length; i++) {
+            if (outputLines[i].includes('=== EXCEL COLUMN EXTRACTION RESULTS ===')) {
+              // The next lines should contain the JSON results
+              let jsonStart = i + 1;
+              let jsonLines = [];
+              
+              // Collect all lines until we hit another section or end
+              for (let j = jsonStart; j < outputLines.length; j++) {
+                if (outputLines[j].startsWith('===') || outputLines[j].trim() === '') {
+                  break;
+                }
+                jsonLines.push(outputLines[j]);
+              }
+              
+              if (jsonLines.length > 0) {
+                try {
+                  const jsonString = jsonLines.join('\n');
+                  extractionResults = JSON.parse(jsonString);
+                  break;
+                } catch (parseError) {
+                  console.error('Failed to parse extraction results JSON:', parseError);
+                }
+              }
+            }
+          }
+          
+          // Save extraction results to database if they exist
+          if (extractionResults && Array.isArray(extractionResults) && extractionResults.length > 0) {
+            console.log(`Saving ${extractionResults.length} extraction results to database`);
+            
+            for (const result of extractionResults) {
+              try {
+                await storage.createFieldValidation({
+                  sessionId: requestData.session_id,
+                  validationType: result.validation_type || 'collection_property',
+                  dataType: result.data_type || 'TEXT',
+                  fieldId: result.field_id,
+                  collectionName: result.collection_name,
+                  recordIndex: result.record_index,
+                  extractedValue: result.extracted_value,
+                  validationStatus: result.validation_status || 'verified',
+                  aiReasoning: result.ai_reasoning,
+                  manuallyVerified: false,
+                  confidenceScore: Math.round((result.confidence_score || 1.0) * 100)
+                });
+              } catch (dbError) {
+                console.error('Failed to save field validation:', dbError);
+              }
+            }
+            
+            console.log('Successfully saved extraction results to database');
+          }
+          
+          // Return the complete output from Python script (includes both document properties and Gemini analysis)
+          res.json({ 
+            message: "Wizardry analysis completed",
+            output: output.trim(),
+            extractionResults: extractionResults,
+            success: true
+          });
+        } catch (processError) {
+          console.error('Error processing wizardry results:', processError);
+          // Still return success but without saved results
+          res.json({ 
+            message: "Wizardry analysis completed",
+            output: output.trim(),
+            success: true
+          });
+        }
       });
       
     } catch (error) {
