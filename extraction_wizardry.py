@@ -155,7 +155,7 @@ def extract_excel_columns(documents, target_fields):
                                     "data_type": "TEXT",
                                     "field_name": f"{column_field.get('propertyName', 'Column Heading')}[{global_record_index}]",
                                     "collection_name": collection_name,
-                                    "extracted_value": column_header.strip(),
+                                    "extracted_value": f"{column_header.strip()} ({sheet_name})",
                                     "confidence_score": 1.0,
                                     "validation_status": "verified",
                                     "ai_reasoning": f"Extracted directly from sheet '{sheet_name}' using column extraction",
