@@ -261,7 +261,9 @@ const AIExtractionModal = ({
   verifiedFields,
   allProjectFields = [],
   sessionId,
-  project
+  project,
+  setPendingExtractionData,
+  setDebugModalOpen
 }: { 
   isOpen: boolean; 
   onClose: () => void; 
@@ -272,6 +274,8 @@ const AIExtractionModal = ({
   allProjectFields?: { id: string; name: string; type: string }[];
   sessionId: string;
   project?: any;
+  setPendingExtractionData: (data: any) => void;
+  setDebugModalOpen: (open: boolean) => void;
 }) => {
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [selectedVerifiedFields, setSelectedVerifiedFields] = useState<string[]>([]);
