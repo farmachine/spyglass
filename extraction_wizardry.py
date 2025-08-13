@@ -208,18 +208,41 @@ def run_wizardry_with_gemini_analysis(data=None):
         print(json.dumps(target_fields_data, indent=2))
         print("=" * 80)
         
-        # Print Gemini response
+        # Print Gemini response first
         print("\n" + "=" * 80)
-        print("RESULTS FROM EXTRACTION")
+        print("GEMINI ANALYSIS")
         print("=" * 80)
         print(gemini_response)
+        print("=" * 80)
         
         # Check if Gemini recommends Excel Column Extraction
         if "Excel Column Extraction" in gemini_response:
+            print(f"\nGemini decided to use Excel Column Extraction wizard")
+            print("\n" + "=" * 80)
+            print("RESULTS FROM EXTRACTION")
+            print("=" * 80)
             # Get document IDs from the documents data
             document_ids = [doc['id'] for doc in documents]
             excel_result = excel_column_extraction(document_ids, session_id, target_fields_data)
-            print(f"\nExtraction wizard says: {json.dumps(excel_result, indent=2)}")
+            print(json.dumps(excel_result, indent=2))
+        elif "Excel Sheet Extraction" in gemini_response:
+            print(f"\nGemini decided to use Excel Sheet Extraction wizard")
+            print("\n" + "=" * 80)
+            print("RESULTS FROM EXTRACTION")
+            print("=" * 80)
+            print("Excel Sheet Extraction not yet implemented")
+        elif "AI Extraction" in gemini_response:
+            print(f"\nGemini decided to use AI Extraction wizard")
+            print("\n" + "=" * 80)
+            print("RESULTS FROM EXTRACTION")
+            print("=" * 80)
+            print("AI Extraction not yet implemented")
+        else:
+            print(f"\nGemini did not recommend a specific extraction method")
+            print("\n" + "=" * 80)
+            print("RESULTS FROM EXTRACTION")
+            print("=" * 80)
+            print("No extraction performed")
         print("=" * 80)
         
     else:
