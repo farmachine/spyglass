@@ -98,7 +98,7 @@ export default function ExtractlyLogo({ className = "", showText = true, size = 
       {/* App name */}
       {showText && (
         <div className="flex flex-col">
-          <span className="text-3xl font-bold text-foreground leading-tight tracking-tight" style={{ fontFamily: 'Roboto, sans-serif' }}>
+          <span className="text-3xl font-bold text-foreground leading-tight tracking-tight" style={{ fontFamily: 'Roboto Mono, monospace' }}>
             extrapl_
           </span>
         </div>

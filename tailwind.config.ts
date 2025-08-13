@@ -6,7 +6,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Roboto', 'system-ui', 'sans-serif'],
+        sans: ['Roboto Mono', 'system-ui', 'monospace'],
       },
       borderRadius: {
         lg: "var(--radius)",
