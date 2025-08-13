@@ -72,63 +72,84 @@ def get_documents_for_analysis(document_ids, session_id):
         return None
 
 def analyze_extraction_requirements(documents, target_fields_data):
-    """Use Gemini to analyze documents and create extraction plan"""
-    try:
-        print("\n" + "=" * 80)
-        print("AI CONDUCTOR: CREATING EXTRACTION PLAN")
-        print("=" * 80)
-        
-        # Initialize Gemini client
-        client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"))
-        
-        # Format data for prompt
-        documents_json = json.dumps(documents, indent=2)
-        target_fields_json = json.dumps(target_fields_data, indent=2)
-        
-        # Generate extraction plan using Gemini
-        prompt = DOCUMENT_FORMAT_ANALYSIS.format(
-            documents=documents_json,
-            target_fields=target_fields_json
-        )
-        
-        # Log the analysis prompt
-        print("ANALYSIS PROMPT:")
-        print(prompt[:800] + "..." if len(prompt) > 800 else prompt)
-        print("=" * 80)
-        
-        response = client.models.generate_content(
-            model="gemini-2.5-pro",
-            contents=prompt
-        )
-        
-        analysis_result = response.text
-        
-        print("\nAI CONDUCTOR ANALYSIS:")
-        print("=" * 80)
-        print(f"Response type: {type(analysis_result)}")
-        print(f"Response content: {analysis_result}")
-        print("=" * 80)
-        
-        # Check if response is None or empty
-        if analysis_result is None:
-            print("ERROR: Gemini returned None response - falling back to simple extraction")
-            # Fallback to simple extraction based on document type
-            documents_format = determine_document_format_from_filenames(documents)
-            return create_fallback_extraction_plan(documents_format)
-        
-        if not analysis_result or not analysis_result.strip():
-            print("ERROR: Gemini returned empty response - falling back to simple extraction")
-            documents_format = determine_document_format_from_filenames(documents)
-            return create_fallback_extraction_plan(documents_format)
-        
-        # Parse the analysis result
-        extraction_plan = parse_extraction_plan(analysis_result)
-        
-        return extraction_plan
-        
-    except Exception as e:
-        print(f"Error in extraction requirements analysis: {e}")
-        return {"error": str(e)}
+    """Use Gemini to analyze documents and create extraction plan with retry logic"""
+    import time
+    
+    max_retries = 3
+    base_delay = 2  # seconds
+    
+    for attempt in range(max_retries):
+        try:
+            print("\n" + "=" * 80)
+            print(f"AI CONDUCTOR: CREATING EXTRACTION PLAN (Attempt {attempt + 1}/{max_retries})")
+            print("=" * 80)
+            
+            # Initialize Gemini client
+            client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"))
+            
+            # Format data for prompt
+            documents_json = json.dumps(documents, indent=2)
+            target_fields_json = json.dumps(target_fields_data, indent=2)
+            
+            # Generate extraction plan using Gemini
+            prompt = DOCUMENT_FORMAT_ANALYSIS.format(
+                documents=documents_json,
+                target_fields=target_fields_json
+            )
+            
+            # Log the analysis prompt on first attempt only
+            if attempt == 0:
+                print("ANALYSIS PROMPT:")
+                print(prompt[:800] + "..." if len(prompt) > 800 else prompt)
+                print("=" * 80)
+            
+            response = client.models.generate_content(
+                model="gemini-2.5-pro",
+                contents=prompt
+            )
+            
+            analysis_result = response.text
+            
+            print(f"\nAI CONDUCTOR ANALYSIS (Attempt {attempt + 1}):")
+            print("=" * 80)
+            print(f"Response type: {type(analysis_result)}")
+            print(f"Response content: {analysis_result}")
+            print("=" * 80)
+            
+            # Check if response is valid
+            if analysis_result is not None and analysis_result.strip():
+                # Parse the analysis result
+                extraction_plan = parse_extraction_plan(analysis_result)
+                if 'error' not in extraction_plan:
+                    return extraction_plan
+                else:
+                    print(f"Failed to parse on attempt {attempt + 1}: {extraction_plan['error']}")
+            else:
+                print(f"Empty/None response on attempt {attempt + 1}")
+            
+            # If this was the last attempt, fall back
+            if attempt == max_retries - 1:
+                break
+                
+            # Wait before retry with exponential backoff
+            delay = base_delay * (2 ** attempt)
+            print(f"Retrying in {delay} seconds...")
+            time.sleep(delay)
+            
+        except Exception as e:
+            print(f"Error on attempt {attempt + 1}: {e}")
+            if attempt == max_retries - 1:
+                break
+            
+            # Wait before retry
+            delay = base_delay * (2 ** attempt)
+            print(f"Retrying in {delay} seconds...")
+            time.sleep(delay)
+    
+    # All attempts failed - use fallback
+    print("ERROR: All Gemini attempts failed - falling back to simple extraction")
+    documents_format = determine_document_format_from_filenames(documents)
+    return create_fallback_extraction_plan(documents_format)
 
 def parse_extraction_plan(analysis_result):
     """Parse the Gemini analysis into executable steps"""
