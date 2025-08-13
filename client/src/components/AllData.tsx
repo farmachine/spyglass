@@ -181,7 +181,7 @@ export default function AllData({ project }: AllDataProps) {
 
     return (
       <TableHead 
-        className={`${className} cursor-pointer hover:bg-gray-50 select-none`}
+        className={`${className} cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 select-none`}
         onClick={() => handleSort(field)}
       >
         <div className="flex items-center gap-1">
@@ -246,8 +246,8 @@ export default function AllData({ project }: AllDataProps) {
       <div className="mb-8">
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-2xl font-semibold text-gray-900">{project.mainObjectName || "Session"} Extraction Sessions</h2>
-            <p className="text-sm text-gray-600 mt-1">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{project.mainObjectName || "Session"} Extraction Sessions</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
               View extracted data and manage all extraction sessions for this project
             </p>
           </div>
@@ -307,12 +307,12 @@ export default function AllData({ project }: AllDataProps) {
       </div>
 
       {/* Sessions Table */}
-      <Card>
+      <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
         <CardContent>
           {project.sessions.length === 0 ? (
             <div className="text-center py-8">
               <Database className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No {(project.mainObjectName || "session").toLowerCase()} extractions</h3>
+              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No {(project.mainObjectName || "session").toLowerCase()} extractions</h3>
               <p className="mt-1 text-sm text-gray-500">
                 Click "New {project.mainObjectName || "Session"}" to create your first extraction session
               </p>
@@ -372,7 +372,7 @@ export default function AllData({ project }: AllDataProps) {
               </div>
             </div>
           ) : (
-            <div className="rounded-md border">
+            <div className="rounded-md border border-gray-200 dark:border-gray-700">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -394,13 +394,13 @@ export default function AllData({ project }: AllDataProps) {
                   const verificationStatus = getVerificationStatus(session.id);
                   
                   return (
-                    <TableRow key={session.id} className="hover:bg-gray-50">
+                    <TableRow key={session.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                       <TableCell className="py-3">
                         <Link href={`/projects/${project.id}/sessions/${session.id}`}>
                           <div className="cursor-pointer hover:text-primary transition-colors">
-                            <p className="font-medium text-sm">{session.sessionName || 'Untitled Session'}</p>
+                            <p className="font-medium text-sm text-gray-900 dark:text-white">{session.sessionName || 'Untitled Session'}</p>
                             {session.description && (
-                              <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                              <p className="text-xs text-muted-foreground dark:text-gray-400 truncate max-w-[200px]">
                                 {session.description}
                               </p>
                             )}
@@ -412,7 +412,7 @@ export default function AllData({ project }: AllDataProps) {
                       </TableCell>
                       <TableCell className="py-3">
                         <div className="flex items-center gap-2">
-                          <div className="w-20 bg-gray-200 rounded-full h-2.5">
+                          <div className="w-20 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
                             <div 
                               className={`h-2.5 rounded-full transition-all duration-300 ${
                                 progress.percentage === 100 ? 'bg-green-600' : 
@@ -421,7 +421,7 @@ export default function AllData({ project }: AllDataProps) {
                               style={{ width: `${progress.percentage}%` }}
                             />
                           </div>
-                          <span className="text-xs font-medium text-gray-700 min-w-[32px]">
+                          <span className="text-xs font-medium text-gray-700 dark:text-gray-300 min-w-[32px]">
                             {progress.percentage}%
                           </span>
                         </div>
