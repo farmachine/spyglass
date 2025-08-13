@@ -1205,9 +1205,52 @@ export default function SessionView() {
     }
   });
 
+  const deleteAllCollectionDataMutation = useMutation({
+    mutationFn: async (collectionName: string) => {
+      // Get all validations for this collection
+      const collectionValidations = validations.filter(v => 
+        v.collectionName === collectionName || 
+        (v.fieldName && v.fieldName.startsWith(collectionName + '.'))
+      );
+      
+      // Delete all validations for this collection
+      const deletePromises = collectionValidations.map(validation => 
+        apiRequest(`/api/validations/${validation.id}`, {
+          method: 'DELETE',
+        })
+      );
+      
+      return Promise.all(deletePromises);
+    },
+    onSuccess: () => {
+      // Invalidate and refetch session validations
+      queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/validations/project', projectId] });
+    },
+    onError: (error: any) => {
+      console.error('Failed to delete collection data:', error);
+    }
+  });
+
   const handleDeleteDocument = (documentId: string) => {
     if (confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
       deleteDocumentMutation.mutate(documentId);
+    }
+  };
+
+  const handleDeleteAllCollectionData = (collectionName: string) => {
+    const collectionValidations = validations.filter(v => 
+      v.collectionName === collectionName || 
+      (v.fieldName && v.fieldName.startsWith(collectionName + '.'))
+    );
+    
+    if (collectionValidations.length === 0) {
+      alert('No data to delete for this collection.');
+      return;
+    }
+    
+    if (confirm(`Are you sure you want to delete all ${collectionValidations.length} items from ${collectionName}? This action cannot be undone.`)) {
+      deleteAllCollectionDataMutation.mutate(collectionName);
     }
   };
 
@@ -3120,21 +3163,34 @@ Thank you for your assistance.`;
                               {uniqueIndices.length} {uniqueIndices.length === 1 ? 'item' : 'items'}
                             </span>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenAIExtraction(
-                              collection.collectionName,
-                              collection.properties?.map(prop => ({
-                                id: prop.id,
-                                name: prop.propertyName,
-                                type: prop.propertyType
-                              })) || []
-                            )}
-                            className="h-8 w-8 p-0 hover:bg-slate-100"
-                          >
-                            <Wand2 className="h-4 w-4 text-blue-600" />
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteAllCollectionData(collection.collectionName)}
+                              className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
+                              title="Delete all collection data"
+                              disabled={uniqueIndices.length === 0}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenAIExtraction(
+                                collection.collectionName,
+                                collection.properties?.map(prop => ({
+                                  id: prop.id,
+                                  name: prop.propertyName,
+                                  type: prop.propertyType
+                                })) || []
+                              )}
+                              className="h-8 w-8 p-0 hover:bg-slate-100"
+                              title="AI extraction"
+                            >
+                              <Wand2 className="h-4 w-4 text-blue-600" />
+                            </Button>
+                          </div>
                         </CardTitle>
                         <p className="text-sm text-gray-600">{collection.description}</p>
                       </CardHeader>
