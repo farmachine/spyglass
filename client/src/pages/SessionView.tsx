@@ -2419,18 +2419,18 @@ Thank you for your assistance.`;
       </div>
 
       {/* Page Title - Match ProjectLayout exactly */}
-      <div className="bg-white border-b border-gray-100">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
         <div className="w-full px-6 py-6">
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-3 flex-1 mr-6">
               <TrendingUp className="h-8 w-8 text-primary mt-1" />
               <div className="flex-1 space-y-2">
                 <div className="flex items-center space-x-2">
-                  <h2 className="text-3xl font-bold">{project.name}</h2>
+                  <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{project.name}</h2>
                 </div>
                 <div className="flex items-start space-x-2">
                   {project.description ? (
-                    <p className="text-sm text-gray-600">{project.description}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">{project.description}</p>
                   ) : (
                     <p className="text-sm text-gray-400">No description</p>
                   )}
@@ -2441,21 +2441,21 @@ Thank you for your assistance.`;
             {/* Statistics Cards - Match ProjectLayout exactly */}
             {project.sessions.length > 0 && (
               <div className="flex gap-3 flex-shrink-0 ml-auto">
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
-                  <Database className="h-6 w-6 text-slate-700" />
-                  <span className="text-xl font-bold text-gray-900">{project.sessions.length}</span>
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <Database className="h-6 w-6 text-slate-700 dark:text-slate-300" />
+                  <span className="text-xl font-bold text-gray-900 dark:text-white">{project.sessions.length}</span>
                 </div>
 
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
                   <CheckCircle className="h-6 w-6 text-gray-400" />
-                  <span className="text-xl font-bold text-gray-900">
+                  <span className="text-xl font-bold text-gray-900 dark:text-white">
                     {verificationStats.in_progress + verificationStats.pending}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
                   <CheckCircle className="h-6 w-6 text-green-600" />
-                  <span className="text-xl font-bold text-gray-900">
+                  <span className="text-xl font-bold text-gray-900 dark:text-white">
                     {verificationStats.verified}
                   </span>
                 </div>
@@ -2467,7 +2467,7 @@ Thank you for your assistance.`;
 
       <div className="flex h-[calc(100vh-160px)]">
         {/* Sidebar */}
-        <div className="w-80 bg-slate-50 border-r border-slate-200 flex flex-col">
+        <div className="w-80 bg-slate-50 dark:bg-gray-800 border-r border-slate-200 dark:border-gray-700 flex flex-col">
           <div className="p-4">
             <nav className="space-y-0.5">
               {navItems.map((item) => {
@@ -2480,7 +2480,7 @@ Thank you for your assistance.`;
                       className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
                         isActive
                           ? "bg-primary text-white font-medium shadow-sm"
-                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
+                          : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 font-normal"
                       }`}
                     >
                       <Icon className={`h-4 w-4 ${isActive ? "text-white" : "text-slate-500"}`} />
@@ -2493,7 +2493,7 @@ Thank you for your assistance.`;
           </div>
           
           {/* Session Navigation - Only visible in session view */}
-          <div className="border-t border-slate-200 p-4 flex-1">
+          <div className="border-t border-slate-200 dark:border-slate-600 p-4 flex-1">
             {/* Documents Section - Session-specific */}
             <div className="mb-6">
               <div className="flex items-center mb-3">
@@ -2514,7 +2514,7 @@ Thank you for your assistance.`;
             </div>
             
             <div className="mb-4">
-              <h3 className="text-xs font-medium text-slate-700 uppercase tracking-wider">{project?.mainObjectName || "Session"} Information</h3>
+              <h3 className="text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">{project?.mainObjectName || "Session"} Information</h3>
             </div>
             <div className="relative">
               {/* Vertical connecting line - stops at last collection */}
@@ -2568,7 +2568,7 @@ Thank you for your assistance.`;
                     className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
                       activeTab === 'info' 
                         ? 'bg-primary text-white font-medium shadow-sm' 
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 font-normal'
                     }`}
                   >
                     General Information
@@ -2616,7 +2616,7 @@ Thank you for your assistance.`;
                         className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
                           activeTab === collection.collectionName 
                             ? 'bg-primary text-white font-medium shadow-sm' 
-                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal'
+                            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 font-normal'
                         }`}
                       >
                         <div className="truncate">{collection.collectionName} ({uniqueIndices.length})</div>
@@ -2630,7 +2630,7 @@ Thank you for your assistance.`;
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 p-8 overflow-x-hidden">
+        <div className="flex-1 p-8 overflow-x-hidden bg-white dark:bg-gray-900">
           <div className="w-full">
             {/* Session Review Header - Now styled like page header */}
             <div className="flex items-center justify-between mb-8">
@@ -2671,7 +2671,7 @@ Thank you for your assistance.`;
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
-                        <h2 className="text-3xl font-bold">{session?.sessionName}</h2>
+                        <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{session?.sessionName}</h2>
                         <Button
                           size="sm"
                           variant="ghost"
@@ -2697,7 +2697,7 @@ Thank you for your assistance.`;
                 
                 {/* Session Verification Progress */}
                 <div className="flex items-center gap-2">
-                  <div className="w-24 bg-gray-200 rounded-full h-2">
+                  <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                     <div 
                       className={`h-2 rounded-full transition-all duration-300 ${
                         getVerificationProgress().percentage === 100 ? 'bg-green-600' : 
