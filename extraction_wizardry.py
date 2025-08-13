@@ -6,6 +6,7 @@ import psycopg2
 from google import genai
 from all_prompts import DOCUMENT_FORMAT_ANALYSIS
 from excel_wizard import excel_column_extraction
+from ai_extraction_wizard import ai_document_extraction
 
 def get_document_properties_from_db(document_ids, session_id):
     """Query session_documents table to get document properties"""
@@ -331,7 +332,39 @@ def run_wizardry_with_gemini_analysis(data=None):
             print("\n" + "=" * 80)
             print("RESULTS FROM EXTRACTION")
             print("=" * 80)
-            print("AI Extraction not yet implemented")
+            # Get document IDs from the documents data
+            document_ids = [doc['id'] for doc in documents]
+            # Pass only identifier targets to AI extraction
+            ai_result = ai_document_extraction(document_ids, session_id, identifier_targets)
+            
+            # Clean JSON and extract identifiers
+            processed_results = clean_json_and_extract_identifiers(ai_result, identifier_targets)
+            if 'error' not in processed_results:
+                # Show record count instead of raw output
+                record_count = len(processed_results['cleaned_results']) if isinstance(processed_results['cleaned_results'], list) else 0
+                print(f"Found {record_count} records")
+                
+                # Show identifier results with proper header
+                print("\n" + "=" * 80)
+                print("IDENTIFIER RESULTS")
+                print("=" * 80)
+                print(json.dumps(processed_results['identifier_results'], indent=2))
+                
+                # Create and display IDENTIFIER REFERENCES array
+                identifier_references = []
+                for result in processed_results['identifier_results']:
+                    if 'extracted_value' in result and 'field_name' in result:
+                        # Split field_name on dot and take the part after the collection name
+                        field_name_parts = result['field_name'].split('.')
+                        field_name_only = field_name_parts[-1] if len(field_name_parts) > 1 else result['field_name']
+                        identifier_references.append({field_name_only: result['extracted_value']})
+                
+                print("\n" + "=" * 80)
+                print("IDENTIFIER REFERENCES")
+                print("=" * 80)
+                print(json.dumps(identifier_references, indent=2))
+            else:
+                print(f"Error processing AI extraction results: {processed_results['error']}")
         else:
             print(f"\nGemini did not recommend a specific extraction method")
             print("\n" + "=" * 80)
