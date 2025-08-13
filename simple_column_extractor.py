@@ -100,7 +100,7 @@ def simple_extraction_main(session_data: Dict[str, Any], start_index: int = 0, t
     for i, column_data in enumerate(all_columns):
         record_index = start_index + i
         
-        # Column Heading field
+        # Column Heading field - only extract column names
         if 'column_heading' in field_mapping:
             field_validations.append({
                 "field_id": field_mapping['column_heading'],
@@ -108,14 +108,14 @@ def simple_extraction_main(session_data: Dict[str, Any], start_index: int = 0, t
                 "data_type": "TEXT",
                 "field_name": f"Column Heading[{record_index}]",
                 "collection_name": collection_name,
-                "extracted_value": f"{column_data['column_name']} ({column_data['worksheet_name']})",
+                "extracted_value": column_data['column_name'],
                 "confidence_score": 100,
                 "validation_status": "verified",
-                "ai_reasoning": f"Extracted directly from sheet '{column_data['worksheet_name']}' using column extraction",
+                "ai_reasoning": f"Extracted column name '{column_data['column_name']}' from sheet '{column_data['worksheet_name']}'",
                 "record_index": record_index
             })
         
-        # Worksheet Name field  
+        # Create null validation for Worksheet Name (not extracted by simple extractor)
         if 'worksheet_name' in field_mapping:
             field_validations.append({
                 "field_id": field_mapping['worksheet_name'],
@@ -123,10 +123,10 @@ def simple_extraction_main(session_data: Dict[str, Any], start_index: int = 0, t
                 "data_type": "TEXT",
                 "field_name": f"Worksheet Name[{record_index}]",
                 "collection_name": collection_name,
-                "extracted_value": column_data['worksheet_name'],
-                "confidence_score": 100,
-                "validation_status": "verified",
-                "ai_reasoning": f"Extracted worksheet name for column '{column_data['column_name']}'",
+                "extracted_value": None,
+                "confidence_score": 0,
+                "validation_status": "unverified",
+                "ai_reasoning": "Worksheet name requires manual entry or AI extraction",
                 "record_index": record_index
             })
         
