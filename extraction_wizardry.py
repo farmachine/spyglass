@@ -74,6 +74,13 @@ def analyze_document_format_with_gemini(documents, target_fields_data=None, max_
         target_fields=target_fields_content
     )
     
+    # Log the prompt before sending to Gemini
+    print("\n" + "=" * 80)
+    print("GEMINI PROMPT")
+    print("=" * 80)
+    print(prompt)
+    print("=" * 80)
+    
     # Retry logic for Gemini API calls
     for attempt in range(max_retries):
         try:
@@ -240,8 +247,11 @@ def run_wizardry_with_gemini_analysis(data=None):
                 }
                 target_fields_data.append(field_data)
         
-        # Analyze document formats with Gemini
-        gemini_response = analyze_document_format_with_gemini(documents, target_fields_data)
+        # Filter identifier targets early for use in both display and Gemini analysis
+        identifier_targets = [field for field in target_fields_data if field.get('is_identifier', False)]
+        
+        # Analyze document formats with Gemini using only identifier targets
+        gemini_response = analyze_document_format_with_gemini(documents, identifier_targets)
         
         # Print document properties
         print("\n" + "=" * 80)
@@ -257,8 +267,7 @@ def run_wizardry_with_gemini_analysis(data=None):
         print(json.dumps(target_fields_data, indent=2))
         print("=" * 80)
         
-        # Filter and display identifier targets
-        identifier_targets = [field for field in target_fields_data if field.get('is_identifier', False)]
+        # Display identifier targets
         print("\n" + "=" * 80)
         print("IDENTIFIER TARGET")
         print("=" * 80)
