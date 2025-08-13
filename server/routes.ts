@@ -4722,6 +4722,10 @@ print(json.dumps(results))
           if (extractionResults && Array.isArray(extractionResults) && extractionResults.length > 0) {
             console.log('Sample extraction result:', JSON.stringify(extractionResults[0], null, 2));
             
+            // DATABASE SAVE TEMPORARILY DISABLED FOR DEBUGGING
+            console.log(`Would save ${extractionResults.length} extraction results to database (disabled for debugging)`);
+            
+            /* COMMENTED OUT FOR DEBUGGING
             // Save extraction results to database
             let savedCount = 0;
             let errorCount = 0;
@@ -4749,6 +4753,7 @@ print(json.dumps(results))
             }
             
             console.log(`Database save results: ${savedCount} saved successfully, ${errorCount} errors`);
+            */
           } else {
             console.log('No extraction results to save to database');
           }
