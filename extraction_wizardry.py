@@ -170,6 +170,21 @@ def run_wizardry_with_gemini_analysis(data=None):
                 }
                 target_fields_data.append(field_data)
         
+        # Console log all collection properties for debugging
+        print(f"\n=== ALL COLLECTION PROPERTIES ===")
+        collection_properties = [field for field in target_fields_data if field.get('type') == 'collection_property']
+        print(f"Total collection properties: {len(collection_properties)}")
+        for i, prop in enumerate(collection_properties):
+            print(f"Property {i+1}:")
+            print(f"  Field ID: {prop.get('field_id', '')}")
+            print(f"  Name: {prop.get('name', '')}")
+            print(f"  Description: {prop.get('description', '')}")
+            print(f"  Type: {prop.get('property_type', '')}")
+            print(f"  Collection ID: {prop.get('collection_id', '')}")
+            print(f"  Is Identifier: {prop.get('is_identifier', False)}")
+            print(f"  Order Index: {prop.get('order_index', 0)}")
+        print("=== END ALL COLLECTION PROPERTIES ===\n")
+        
         # Analyze document formats with Gemini
         gemini_response = analyze_document_format_with_gemini(documents, target_fields_data)
         
