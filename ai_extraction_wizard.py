@@ -4,7 +4,7 @@ import json
 from google import genai
 from all_prompts import AI_DOCUMENT_EXTRACTION
 
-def ai_document_extraction(documents, session_id, target_fields_data):
+def ai_document_extraction(document_ids, session_id, target_fields_data):
     """Extract data from documents using AI analysis based on field descriptions"""
     try:
         # Get database connection from environment
@@ -43,18 +43,26 @@ def ai_document_extraction(documents, session_id, target_fields_data):
         cursor.execute(knowledge_query, (project_id,))
         knowledge_results = cursor.fetchall()
         
+        # Query session_documents for the given document IDs
+        documents_query = """
+        SELECT id, file_name, mime_type, extracted_content 
+        FROM session_documents 
+        WHERE id = ANY(%s::uuid[]) AND session_id = %s
+        """
+        cursor.execute(documents_query, (document_ids, session_id))
+        documents_results = cursor.fetchall()
+        
         cursor.close()
         conn.close()
         
-        # Use documents passed from extraction_wizardry.py (they already have the content loaded)
+        # Format documents for prompt
         documents_content = []
-        for doc in documents:
-            content = doc.get('content', doc.get('extracted_content', ''))
+        for doc_id, file_name, mime_type, extracted_content in documents_results:
             documents_content.append({
-                "id": str(doc['id']),
-                "file_name": doc['file_name'],
-                "mime_type": doc['mime_type'],
-                "content": content[:2000] + "..." if len(content) > 2000 else content
+                "id": str(doc_id),
+                "file_name": file_name,
+                "mime_type": mime_type,
+                "content": extracted_content[:2000] + "..." if len(extracted_content) > 2000 else extracted_content
             })
         
         # Format extraction rules
