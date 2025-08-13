@@ -131,11 +131,11 @@ def perform_ai_extraction(documents, target_fields_data, extraction_rules, knowl
             print(f"Extraction rules: {len(extraction_rules['global']) + len(extraction_rules['targeted'])}")
             print(f"Knowledge documents: {len(knowledge_documents)}")
             
-            # Log the AI extraction prompt
+            # Log the complete AI extraction prompt
             print("\n" + "=" * 80)
-            print("AI EXTRACTION PROMPT")
+            print("AI EXTRACTION PROMPT (COMPLETE)")
             print("=" * 80)
-            print(prompt[:1000] + "..." if len(prompt) > 1000 else prompt)
+            print(prompt)
             print("=" * 80)
             
             response = client.models.generate_content(
