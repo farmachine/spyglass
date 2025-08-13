@@ -86,6 +86,57 @@ def analyze_document_format_with_gemini(documents, target_fields_data=None):
     except Exception as e:
         return f"ERROR: Gemini analysis failed: {str(e)}"
 
+def get_all_collection_properties(collection_ids):
+    """Get all properties for the given collection IDs"""
+    try:
+        # Get database connection from environment
+        database_url = os.getenv('DATABASE_URL')
+        if not database_url:
+            return {"error": "DATABASE_URL not found"}
+        
+        # Connect to database
+        conn = psycopg2.connect(database_url)
+        cursor = conn.cursor()
+        
+        # Query collection_properties for all properties in the collections
+        query = """
+        SELECT cp.id, cp.collection_id, cp.property_name, cp.property_type, cp.description, 
+               cp.auto_verification_confidence, cp.choice_options, cp.is_identifier, 
+               cp.order_index, c.collection_name
+        FROM collection_properties cp
+        JOIN collections c ON cp.collection_id = c.id
+        WHERE cp.collection_id = ANY(%s::uuid[])
+        ORDER BY cp.collection_id, cp.order_index
+        """
+        
+        cursor.execute(query, (collection_ids,))
+        results = cursor.fetchall()
+        
+        # Format results
+        all_properties = []
+        for row in results:
+            prop_id, collection_id, property_name, property_type, description, confidence, choice_options, is_identifier, order_index, collection_name = row
+            all_properties.append({
+                "id": str(prop_id),
+                "collection_id": str(collection_id),
+                "collection_name": collection_name,
+                "property_name": property_name,
+                "property_type": property_type,
+                "description": description or "",
+                "auto_verification_confidence": confidence,
+                "choice_options": choice_options or [],
+                "is_identifier": is_identifier,
+                "order_index": order_index
+            })
+        
+        cursor.close()
+        conn.close()
+        
+        return all_properties
+        
+    except Exception as e:
+        return {"error": f"Collection properties query failed: {str(e)}"}
+
 def run_wizardry_with_gemini_analysis(data=None):
     """Main function that gets documents from DB and analyzes them with Gemini"""
     if data and isinstance(data, dict):
@@ -96,6 +147,14 @@ def run_wizardry_with_gemini_analysis(data=None):
         if not document_ids or not session_id:
             print(json.dumps({"error": "Missing document_ids or session_id"}))
             return
+        
+        # Get all collection properties for collections involved in target fields
+        collection_ids = list(set([field.get('collectionId') for field in target_fields if field.get('collectionId')]))
+        if collection_ids:
+            all_collection_properties = get_all_collection_properties(collection_ids)
+            print("All Collection Properties:")
+            print(json.dumps(all_collection_properties, indent=2))
+            print("=" * 80)
         
         # Get document properties from database
         documents = get_document_properties_from_db(document_ids, session_id)
