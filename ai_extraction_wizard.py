@@ -16,8 +16,8 @@ def ai_document_extraction(document_ids, session_id, target_fields_data):
         conn = psycopg2.connect(database_url)
         cursor = conn.cursor()
         
-        # Get project ID from session
-        session_query = "SELECT project_id FROM sessions WHERE id = %s"
+        # Get project ID from extraction_sessions
+        session_query = "SELECT project_id FROM extraction_sessions WHERE id = %s"
         cursor.execute(session_query, (session_id,))
         session_result = cursor.fetchone()
         if not session_result:
