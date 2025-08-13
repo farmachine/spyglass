@@ -42,6 +42,12 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const queryClient = useQueryClient();
   const userNavigatedRef = useRef(false);
   const initialTabSetRef = useRef(false);
+
+  // Fetch project validations for statistics
+  const { data: projectValidations = [] } = useQuery({
+    queryKey: ['/api/validations/project', projectId],
+    enabled: !!projectId,
+  });
   
   // Editing states
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -79,31 +85,6 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
     refetchOnWindowFocus: false,
     staleTime: 0
   });
-
-  // Calculate verification statistics
-  const getVerificationStats = () => {
-    if (!project) return { verified: 0, in_progress: 0, pending: 0 };
-    
-    const stats = { verified: 0, in_progress: 0, pending: 0 };
-    
-    for (const session of project.sessions) {
-      const sessionValidations = allValidations.filter(v => v.sessionId === session.id);
-      if (sessionValidations.length === 0) {
-        stats.pending++;
-      } else {
-        const allVerified = sessionValidations.every(v => v.validationStatus === 'valid' || v.validationStatus === 'verified');
-        if (allVerified) {
-          stats.verified++;
-        } else {
-          stats.in_progress++;
-        }
-      }
-    }
-    
-    return stats;
-  };
-
-  const verificationStats = getVerificationStats();
 
   // Read URL parameters and handle initial tab setup
   useEffect(() => {
@@ -306,6 +287,28 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
     ] : []),
   ];
 
+  // Calculate verification stats for statistics cards (same logic as SessionView)
+  const getVerificationStatusForProject = (sessionId: string): 'verified' | 'in_progress' | 'pending' => {
+    const sessionValidations = projectValidations.filter((v: FieldValidation) => v.sessionId === sessionId);
+    if (sessionValidations.length === 0) return 'pending';
+    
+    const allVerified = sessionValidations.every((v: FieldValidation) => v.validationStatus === 'valid' || v.validationStatus === 'verified');
+    return allVerified ? 'verified' : 'in_progress';
+  };
+
+  const getVerificationStatsForProject = () => {
+    const stats = { verified: 0, in_progress: 0, pending: 0 };
+    
+    for (const projectSession of project?.sessions || []) {
+      const status = getVerificationStatusForProject(projectSession.id);
+      stats[status]++;
+    }
+    
+    return stats;
+  };
+
+  const verificationStats = getVerificationStatsForProject();
+
   const renderActiveContent = () => {
     switch (activeTab) {
       case "data":
@@ -334,7 +337,52 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
         </div>
       </div>
 
+      {/* Page Title - Full Width like SessionView */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
+        <div className="w-full px-6 py-6">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start space-x-3 flex-1 mr-6">
+              <TrendingUp className="h-8 w-8 text-primary mt-1" />
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center space-x-2">
+                  <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{project.name}</h2>
+                </div>
+                <div className="flex items-start space-x-2">
+                  {project.description ? (
+                    <p className="text-sm text-gray-600 dark:text-gray-300">{project.description}</p>
+                  ) : (
+                    <p className="text-sm text-gray-400">No description</p>
+                  )}
+                </div>
+              </div>
+            </div>
 
+            {/* Statistics Cards */}
+            {project.sessions?.length > 0 && (
+              <div className="flex gap-3 flex-shrink-0 ml-auto">
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <Database className="h-6 w-6 text-slate-700 dark:text-slate-300" />
+                  <span className="text-xl font-bold text-gray-900 dark:text-white">{project.sessions.length}</span>
+                </div>
+
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <CheckCircle className="h-6 w-6 text-gray-400" />
+                  <span className="text-xl font-bold text-gray-900 dark:text-white">
+                    {verificationStats.in_progress + verificationStats.pending}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                  <span className="text-xl font-bold text-gray-900 dark:text-white">
+                    {verificationStats.verified}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Main Content - Full Width */}
       <div className="flex h-[calc(100vh-168px)]">
