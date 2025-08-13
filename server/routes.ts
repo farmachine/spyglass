@@ -1025,7 +1025,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Extract text content from PDFs using Gemini API
       if (result.data.fileType === 'pdf' && result.data.content) {
         try {
-          console.log('DEBUG: Processing knowledge document PDF content extraction with Gemini');
+
           
           // Use Gemini API for PDF text extraction
           const { spawn } = await import('child_process');
@@ -1097,10 +1097,6 @@ except Exception as e:
           
           await new Promise((resolve, reject) => {
             python.on('close', (code) => {
-              console.log(`DEBUG: Gemini extraction process completed with code: ${code}`);
-              console.log(`DEBUG: Extracted text length: ${extractedText.length}`);
-              console.log(`DEBUG: Extracted text preview: ${extractedText.substring(0, 500)}`);
-              
               if (errorOutput) {
                 console.log(`DEBUG: Error output: ${errorOutput}`);
               }
@@ -1110,11 +1106,10 @@ except Exception as e:
                   !extractedText.includes('GEMINI_API_KEY_MISSING') &&
                   !extractedText.includes('GEMINI_EXTRACTION_ERROR')) {
                 processedData.content = extractedText.trim();
-                console.log('DEBUG: Knowledge document Gemini processing successful, extracted', extractedText.length, 'characters of text');
+
                 resolve(extractedText);
               } else {
-                console.log('DEBUG: Gemini text extraction failed or returned no content, code:', code);
-                console.log('DEBUG: Raw extracted text:', JSON.stringify(extractedText));
+
                 // Leave content empty so user can manually add text
                 processedData.content = "";
                 resolve("no_content");
@@ -1191,7 +1186,7 @@ except Exception as e:
         return res.status(400).json({ message: "Document must be a PDF with content to reprocess" });
       }
 
-      console.log('DEBUG: Re-processing knowledge document with Gemini:', document.displayName);
+
 
       // Use Gemini API for PDF text extraction
       const { spawn } = await import('child_process');
@@ -1263,9 +1258,8 @@ except Exception as e:
       
       await new Promise((resolve, reject) => {
         python.on('close', async (code) => {
-          console.log(`DEBUG: Gemini reprocessing completed with code: ${code}`);
-          console.log(`DEBUG: Extracted text length: ${extractedText.length}`);
-          console.log(`DEBUG: Extracted text preview: ${extractedText.substring(0, 500)}`);
+
+
           
           if (errorOutput) {
             console.log(`DEBUG: Error output: ${errorOutput}`);
@@ -1569,7 +1563,7 @@ except Exception as e:
         });
       });
 
-      console.log('Final Excel data structure ready for export');
+
       res.json(excelData);
       
     } catch (error) {
@@ -4717,8 +4711,6 @@ print(json.dumps(results))
           
           // Save extraction results to database if they exist
           if (extractionResults && Array.isArray(extractionResults) && extractionResults.length > 0) {
-            console.log(`Saving ${extractionResults.length} extraction results to database`);
-            
             for (const result of extractionResults) {
               try {
                 await storage.createFieldValidation({
@@ -4738,8 +4730,6 @@ print(json.dumps(results))
                 console.error('Failed to save field validation:', dbError);
               }
             }
-            
-            console.log('Successfully saved extraction results to database');
           }
           
           // Return the complete output from Python script (includes both document properties and Gemini analysis)

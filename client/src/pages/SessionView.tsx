@@ -446,15 +446,8 @@ const AIExtractionModal = ({
         body: JSON.stringify(requestData),
       });
       
-      console.log('Wizardry Result:', response);
-      if (response.output) {
-        console.log('Python Script Output:');
-        console.log(response.output);
-      }
-      
       // If extraction results were saved to database, refresh the validations
       if (response.extractionResults && response.extractionResults.length > 0) {
-        console.log(`Successfully extracted ${response.extractionResults.length} items, refreshing validation data`);
         
         // Invalidate and refetch validation data
         await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });

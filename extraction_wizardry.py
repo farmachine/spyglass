@@ -224,12 +224,6 @@ def run_wizardry_with_gemini_analysis(data=None):
         # Analyze document formats with Gemini
         gemini_response = analyze_document_format_with_gemini(documents, target_fields_data)
         
-        # Print document properties
-        print(json.dumps(documents, indent=2))
-        
-        # Print target field descriptions from database
-        print(json.dumps(target_fields_data, indent=2))
-        
         # Print Gemini response
         print(gemini_response)
         
