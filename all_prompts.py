@@ -18,45 +18,34 @@ Just return the name of the extraction process to use.
 """
 
 # Excel function generation prompt
-EXCEL_FUNCTION_GENERATOR = """You are an expert Python developer specializing in Excel data extraction. Generate a Python function that extracts data from Excel content based on the provided field descriptions.
+EXCEL_FUNCTION_GENERATOR = """You must generate a complete Python function that extracts data from Excel content.
 
 TARGET FIELDS TO EXTRACT:
 {target_fields}
 
-REQUIREMENTS:
-1. The function should be named `extract_excel_data(extracted_content, target_fields_data)`
-2. The extracted_content parameter contains Excel data in this format:
-   - Lines starting with "=== Sheet: SheetName ===" indicate sheet boundaries
-   - Following lines contain tab-separated values (TSV format)
-   - First row typically contains headers
-3. Return results in this exact JSON format for each extracted value:
-   {{
-       "validation_type": "collection_property",
-       "data_type": field_data.get('property_type', 'TEXT'),
-       "field_name": "CollectionName.FieldName[record_index]",
-       "collection_name": "CollectionName",
-       "extracted_value": "actual_extracted_value",
-       "confidence_score": 0.95,
-       "validation_status": "unverified",
-       "ai_reasoning": "Explanation of extraction logic",
-       "record_index": index_number
-   }}
-4. Use the field descriptions to determine extraction logic
-5. Handle multiple sheets if present
-6. Include proper error handling
-7. Return an empty list if no data can be extracted
-8. CRITICAL: Each extracted record must have a unique, incrementing record_index starting from 0. Every single extracted value must have a different index number (0, 1, 2, 3, etc.)
+MANDATORY REQUIREMENTS:
+1. Function name MUST be: extract_excel_data(extracted_content, target_fields_data)
+2. Input format: extracted_content has lines like "=== Sheet: Name ===" followed by tab-separated rows
+3. Output format: Return a list of dictionaries, each with these exact keys:
+   - "validation_type": "collection_property"
+   - "data_type": field's property_type or "TEXT"
+   - "field_name": "CollectionName.FieldName[INDEX]" 
+   - "collection_name": field's collection name
+   - "extracted_value": the actual extracted data
+   - "confidence_score": 0.95
+   - "validation_status": "unverified"
+   - "ai_reasoning": brief explanation
+   - "record_index": unique number starting from 0
 
-EXAMPLE INDEX PATTERN:
-```
-record_index = 0
-for each_extracted_value:
-    # Create result with current index
-    result = {"record_index": record_index, ...}
-    results.append(result)
-    record_index += 1  # Increment for next record
-```
+CRITICAL INDEXING RULE:
+- Use record_index = 0 at start
+- For each extracted value: add record_index to result, then increment by 1
+- Every result must have different index: 0, 1, 2, 3, etc.
 
-CRITICAL: Generate ONLY the Python function code with no markdown formatting, no ```python blocks, no explanations, no comments outside the function. Start directly with 'def extract_excel_data(' and end with the return statement.
+RESPONSE FORMAT:
+- Start with: def extract_excel_data(extracted_content, target_fields_data):
+- End with: return results
+- NO markdown, NO explanations, NO ```python blocks
+- ONLY the complete function code
 
 """

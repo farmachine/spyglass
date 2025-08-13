@@ -8,54 +8,72 @@ from all_prompts import EXCEL_FUNCTION_GENERATOR
 
 def generate_excel_extraction_function(target_fields_data):
     """Generate a custom Excel extraction function using Gemini based on field descriptions"""
-    try:
-        # Initialize Gemini client
-        client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"))
-        
-        # Format target fields for the prompt
-        target_fields_json = json.dumps(target_fields_data, indent=2)
-        
-        # Generate the extraction function using Gemini
-        prompt = EXCEL_FUNCTION_GENERATOR.format(target_fields=target_fields_json)
-        
-        print("\n" + "=" * 80)
-        print("GENERATING EXCEL EXTRACTION FUNCTION")
-        print("=" * 80)
-        print("Target fields:", len(target_fields_data))
-        
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt
-        )
-        
-        generated_function = response.text
-        
-        # Clean the generated function from markdown formatting
-        if generated_function:
-            # Remove markdown code blocks if present
-            generated_function = generated_function.strip()
-            if generated_function.startswith('```python'):
-                generated_function = generated_function.replace('```python', '').strip()
-            if generated_function.startswith('```'):
-                generated_function = generated_function.replace('```', '').strip()
-            if generated_function.endswith('```'):
-                generated_function = generated_function.replace('```', '').strip()
-        
-        print("Generated function length:", len(generated_function) if generated_function else 0)
-        
-        # Log the generated function for debugging
-        print("\n" + "-" * 40)
-        print("GENERATED FUNCTION CODE:")
-        print("-" * 40)
-        print(generated_function[:500] + "..." if len(generated_function) > 500 else generated_function)
-        print("-" * 40)
-        print("=" * 80)
-        
-        return generated_function
-        
-    except Exception as e:
-        print(f"Error generating Excel function: {e}")
-        return None
+    max_retries = 3
+    
+    for attempt in range(max_retries):
+        try:
+            # Initialize Gemini client
+            client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"))
+            
+            # Format target fields for the prompt
+            target_fields_json = json.dumps(target_fields_data, indent=2)
+            
+            # Generate the extraction function using Gemini
+            prompt = EXCEL_FUNCTION_GENERATOR.format(target_fields=target_fields_json)
+            
+            print("\n" + "=" * 80)
+            print(f"GENERATING EXCEL EXTRACTION FUNCTION (Attempt {attempt + 1}/{max_retries})")
+            print("=" * 80)
+            print("Target fields:", len(target_fields_data))
+            
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt
+            )
+            
+            generated_function = response.text
+            
+            # Clean the generated function from markdown formatting
+            if generated_function:
+                # Remove markdown code blocks if present
+                generated_function = generated_function.strip()
+                if generated_function.startswith('```python'):
+                    generated_function = generated_function.replace('```python', '').strip()
+                if generated_function.startswith('```'):
+                    generated_function = generated_function.replace('```', '').strip()
+                if generated_function.endswith('```'):
+                    generated_function = generated_function.replace('```', '').strip()
+            
+            # Validate the generated function
+            if not generated_function or len(generated_function) < 50 or not generated_function.startswith('def extract_excel_data'):
+                print(f"Invalid generated function (attempt {attempt + 1}): '{generated_function[:100] if generated_function else 'None'}...'")
+                if attempt < max_retries - 1:
+                    print("Retrying...")
+                    continue
+                else:
+                    print("Max retries reached. Using fallback.")
+                    return None
+            
+            print("Generated function length:", len(generated_function) if generated_function else 0)
+            
+            # Log the generated function for debugging
+            print("\n" + "-" * 40)
+            print("GENERATED FUNCTION CODE:")
+            print("-" * 40)
+            print(generated_function[:500] + "..." if len(generated_function) > 500 else generated_function)
+            print("-" * 40)
+            print("=" * 80)
+            
+            return generated_function
+            
+        except Exception as e:
+            print(f"Error generating Excel function (attempt {attempt + 1}): {e}")
+            if attempt < max_retries - 1:
+                print("Retrying...")
+                continue
+            else:
+                print("Max retries reached.")
+                return None
 
 def excel_column_extraction(document_ids, session_id, target_fields_data):
     """Extract column data from Excel documents using AI-generated function"""
