@@ -23,9 +23,9 @@ def extract_columns_from_excel_text(content: str, file_name: str) -> List[Dict[s
     for line in lines:
         line = line.strip()
         
-        if line.startswith('=== SHEET:'):
+        if line.startswith('=== Sheet:'):
             # Extract sheet name
-            sheet_match = re.search(r'=== SHEET: (.+?) ===', line)
+            sheet_match = re.search(r'=== Sheet: (.+?) ===', line)
             if sheet_match:
                 current_sheet = sheet_match.group(1).strip()
             continue

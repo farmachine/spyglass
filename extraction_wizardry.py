@@ -5,6 +5,7 @@ import re
 import psycopg2
 from google import genai
 from all_prompts import DOCUMENT_FORMAT_ANALYSIS
+from simple_column_extractor import simple_extraction_main
 
 def get_document_properties_from_db(document_ids, session_id):
     """Query session_documents table to get document properties"""
@@ -90,97 +91,29 @@ def analyze_document_format_with_gemini(documents, target_fields_data=None):
         return f"ERROR: Gemini analysis failed: {str(e)}"
 
 def extract_excel_columns(documents, target_fields):
-    """Extract all column headers from Excel documents and return formatted JSON"""
+    """Extract all column headers from Excel documents using simple_column_extractor.py"""
     try:
-        extraction_results = []
-        
-        # Get collection name from target fields (assuming they're from the same collection)
-        collection_name = ""
-        if target_fields and len(target_fields) > 0:
-            # Look for collectionId in the target fields to get collection name
-            collection_id = target_fields[0].get('collectionId', '')
-            if collection_id:
-                # We'd need to query the database for collection name, but for now use a placeholder
-                collection_name = "Column Headers Collection"
+        # Format documents data for simple_column_extractor
+        session_data = {
+            'extractedTexts': []
+        }
         
         for document in documents:
-            # Use full content for processing, contentPreview for display
+            # Use full content for processing
             full_content = document.get('fullContent', '')
-            
-            # Parse Excel content to extract column headers from ALL sheets
-            if 'Sheet:' in full_content:
-                # Split by sheet sections
-                sheet_sections = full_content.split('=== Sheet:')
-                
-                # Track global record index across all sheets
-                global_record_index = 0
-                
-                for sheet_index, sheet_section in enumerate(sheet_sections):
-                    if not sheet_section.strip():
-                        continue
-                    
-                    lines = sheet_section.strip().split('\n')
-                    if len(lines) < 2:
-                        continue
-                    
-                    # Extract sheet name (remove trailing '===')
-                    sheet_name_line = lines[0]
-                    sheet_name = sheet_name_line.split('===')[0].strip()
-                    
-                    # Get the first data line (column headers) - should be line 1
-                    header_line = lines[1] if len(lines) > 1 else ""
-                    
-                    # Split by tabs to get individual column headers (Excel format uses tabs)
-                    columns = header_line.split('\t')
-                    
-                    # Create extraction results for each column in this sheet
-                    for col_index, column_header in enumerate(columns):
-                        if column_header.strip():
-                            # Find matching target field for column heading
-                            column_field = None
-                            worksheet_field = None
-                            
-                            for field in target_fields:
-                                field_name = field.get('propertyName') or field.get('fieldName', '')
-                                if 'column' in field_name.lower() and 'heading' in field_name.lower():
-                                    column_field = field
-                                elif 'worksheet' in field_name.lower():
-                                    worksheet_field = field
-                            
-                            # Add column heading result
-                            if column_field:
-                                extraction_results.append({
-                                    "field_id": column_field.get('id', ''),
-                                    "validation_type": "collection_property",
-                                    "data_type": "TEXT",
-                                    "field_name": f"{column_field.get('propertyName', 'Column Heading')}[{global_record_index}]",
-                                    "collection_name": collection_name,
-                                    "extracted_value": f"{column_header.strip()} ({sheet_name})",
-                                    "confidence_score": 1.0,
-                                    "validation_status": "verified",
-                                    "ai_reasoning": f"Extracted directly from sheet '{sheet_name}' using column extraction",
-                                    "record_index": global_record_index
-                                })
-                            
-                            # Add worksheet result for each column
-                            if worksheet_field:
-                                extraction_results.append({
-                                    "field_id": worksheet_field.get('id', ''),
-                                    "validation_type": "collection_property",
-                                    "data_type": "TEXT",
-                                    "field_name": f"{worksheet_field.get('propertyName', 'Worksheet')}[{global_record_index}]",
-                                    "collection_name": collection_name,
-                                    "extracted_value": sheet_name,
-                                    "confidence_score": 1.0,
-                                    "validation_status": "verified",
-                                    "ai_reasoning": f"Extracted sheet name for column '{column_header.strip()}' using column extraction",
-                                    "record_index": global_record_index
-                                })
-                            
-                            # Increment global record index for each column across all sheets
-                            global_record_index += 1
+            if full_content:
+                # Add the "Excel file content:" prefix that simple_column_extractor expects
+                formatted_content = "Excel file content:\n" + full_content
+                session_data['extractedTexts'].append({
+                    'content': formatted_content,
+                    'fileName': document.get('name', 'Unknown')
+                })
         
-        return extraction_results
+        # Call simple_column_extractor module with start_index 0
+        extraction_result = simple_extraction_main(session_data, start_index=0)
+        
+        # Return the field validations from simple_column_extractor
+        return extraction_result.get('field_validations', [])
         
     except Exception as e:
         return {"error": f"Excel column extraction failed: {str(e)}"}
