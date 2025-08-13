@@ -300,8 +300,10 @@ def run_wizardry_with_gemini_analysis(data=None):
                 identifier_references = []
                 for result in processed_results['identifier_results']:
                     if 'extracted_value' in result and 'field_name' in result:
-                        # Use the actual field_name from the result (e.g. "Column Name Mapping.ColumnHeading[2]")
-                        identifier_references.append({result['field_name']: result['extracted_value']})
+                        # Split field_name on dot and take the part after the collection name
+                        field_name_parts = result['field_name'].split('.')
+                        field_name_only = field_name_parts[-1] if len(field_name_parts) > 1 else result['field_name']
+                        identifier_references.append({field_name_only: result['extracted_value']})
                 
                 print("\n" + "=" * 80)
                 print("IDENTIFIER REFERENCES")
