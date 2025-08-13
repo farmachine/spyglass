@@ -294,17 +294,11 @@ export default function AllData({ project }: AllDataProps) {
       <div className="p-6 w-full">
         <div className="mb-8 w-full">
           <div className="flex items-start justify-between w-full">
-            <div>
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{project.mainObjectName || "Session"} Extraction Sessions</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                View extracted data and manage all extraction sessions for this project
-              </p>
-            </div>
             <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
               <DialogTrigger asChild>
                 <Button 
                   onClick={handleCreateNewSession}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 ml-auto"
                 >
                   <Plus className="h-4 w-4" />
                   New {project.mainObjectName || "Session"}
