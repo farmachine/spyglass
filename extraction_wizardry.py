@@ -136,8 +136,10 @@ def run_wizardry_with_gemini_analysis(data=None):
         
         # Check if Gemini recommends Excel Column Extraction
         if "Excel Column Extraction" in gemini_response:
-            excel_result = excel_column_extraction()
-            print(f"Extraction wizard says: {excel_result}")
+            # Get document IDs from the documents data
+            document_ids = [doc['id'] for doc in documents]
+            excel_result = excel_column_extraction(document_ids, session_id, target_fields_data)
+            print(f"Extraction wizard says: {json.dumps(excel_result, indent=2)}")
         
     else:
         print(json.dumps({"error": "Invalid data format. Expected object with document_ids and session_id"}))
