@@ -1,6 +1,7 @@
 import json
 import sys
 import os
+import time
 import psycopg2
 from google import genai
 from all_prompts import DOCUMENT_FORMAT_ANALYSIS
@@ -54,37 +55,54 @@ def get_document_properties_from_db(document_ids, session_id):
         return {"error": f"Database query failed: {str(e)}"}
 
 
-def analyze_document_format_with_gemini(documents, target_fields_data=None):
-    """Send document properties to Gemini and return raw response"""
-    try:
-        # Get API key from environment
-        api_key = os.getenv('GEMINI_API_KEY')
-        if not api_key:
-            return "ERROR: GEMINI_API_KEY not found"
-        
-        # Initialize Gemini client
-        client = genai.Client(api_key=api_key)
-        
-        # Use centralized prompt from all_prompts.py with both placeholders
-        documents_content = json.dumps(documents, indent=2)
-        target_fields_content = json.dumps(target_fields_data, indent=2) if target_fields_data and not isinstance(target_fields_data, dict) else "No target fields provided"
-        
-        prompt = DOCUMENT_FORMAT_ANALYSIS.format(
-            documents=documents_content,
-            target_fields=target_fields_content
-        )
-        
-        # Call Gemini API
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt
-        )
-        
-        # Return raw response text
-        return response.text or "ERROR: Empty response from Gemini"
+def analyze_document_format_with_gemini(documents, target_fields_data=None, max_retries=3):
+    """Send document properties to Gemini and return raw response with retry logic"""
+    # Get API key from environment
+    api_key = os.getenv('GEMINI_API_KEY')
+    if not api_key:
+        return "ERROR: GEMINI_API_KEY not found"
+    
+    # Initialize Gemini client
+    client = genai.Client(api_key=api_key)
+    
+    # Use centralized prompt from all_prompts.py with both placeholders
+    documents_content = json.dumps(documents, indent=2)
+    target_fields_content = json.dumps(target_fields_data, indent=2) if target_fields_data and not isinstance(target_fields_data, dict) else "No target fields provided"
+    
+    prompt = DOCUMENT_FORMAT_ANALYSIS.format(
+        documents=documents_content,
+        target_fields=target_fields_content
+    )
+    
+    # Retry logic for Gemini API calls
+    for attempt in range(max_retries):
+        try:
+            # Call Gemini API
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt
+            )
             
-    except Exception as e:
-        return f"ERROR: Gemini analysis failed: {str(e)}"
+            # Return raw response text if successful
+            return response.text or "ERROR: Empty response from Gemini"
+            
+        except Exception as e:
+            error_msg = str(e)
+            print(f"Gemini API attempt {attempt + 1} failed: {error_msg}")
+            
+            # Check if it's a 503 (overloaded) error
+            if "503" in error_msg or "overloaded" in error_msg.lower():
+                if attempt < max_retries - 1:  # Not the last attempt
+                    wait_time = (attempt + 1) * 2  # Exponential backoff: 2, 4, 6 seconds
+                    print(f"Waiting {wait_time} seconds before retry...")
+                    time.sleep(wait_time)
+                    continue
+            
+            # For non-503 errors or last attempt, return error immediately
+            return f"ERROR: Gemini analysis failed: {error_msg}"
+    
+    # This should never be reached, but just in case
+    return "ERROR: All Gemini API retry attempts failed"
 
 def get_all_collection_properties(collection_ids):
     """Get all properties for the given collection IDs"""
