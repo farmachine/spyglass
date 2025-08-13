@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Dashboard from "@/pages/Dashboard";
 import ProjectView from "@/pages/ProjectView";
+import UnifiedProjectView from "@/pages/UnifiedProjectView";
 // import SessionReview from "@/pages/SessionReview";
 import SessionView from "@/pages/SessionView";
 import DocumentTextView from "@/pages/DocumentTextView";
@@ -31,12 +32,12 @@ function Router() {
       </Route>
       <Route path="/projects/:id">
         <ProtectedRoute>
-          <ProjectView />
+          <UnifiedProjectView />
         </ProtectedRoute>
       </Route>
       <Route path="/projects/:projectId/sessions/:sessionId">
         <ProtectedRoute>
-          <SessionView />
+          <UnifiedProjectView />
         </ProtectedRoute>
       </Route>
       <Route path="/sessions/:sessionId/text-view">

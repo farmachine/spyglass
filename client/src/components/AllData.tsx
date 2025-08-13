@@ -246,7 +246,7 @@ export default function AllData({ project }: AllDataProps) {
       <div className="mb-8">
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{project.mainObjectName || "Session"} Extraction Sessions</h2>
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{project.mainObjectName || "Session"}s</h2>
             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
               View extracted data and manage all extraction sessions for this project
             </p>
