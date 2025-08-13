@@ -102,9 +102,9 @@ def get_all_collection_properties(collection_ids):
         query = """
         SELECT cp.id, cp.collection_id, cp.property_name, cp.property_type, cp.description, 
                cp.auto_verification_confidence, cp.choice_options, cp.is_identifier, 
-               cp.order_index, c.collection_name
+               cp.order_index, pc.collection_name
         FROM collection_properties cp
-        JOIN collections c ON cp.collection_id = c.id
+        JOIN project_collections pc ON cp.collection_id = pc.id
         WHERE cp.collection_id = ANY(%s::uuid[])
         ORDER BY cp.collection_id, cp.order_index
         """
@@ -139,16 +139,9 @@ def get_all_collection_properties(collection_ids):
 
 def run_wizardry_with_gemini_analysis(data=None):
     """Main function that gets documents from DB and analyzes them with Gemini"""
+    # First, get all collection properties for collections involved in target fields
     if data and isinstance(data, dict):
-        document_ids = data.get('document_ids', [])
-        session_id = data.get('session_id')
         target_fields = data.get('target_fields', [])
-        
-        if not document_ids or not session_id:
-            print(json.dumps({"error": "Missing document_ids or session_id"}))
-            return
-        
-        # Get all collection properties for collections involved in target fields
         collection_ids = list(set([field.get('collectionId') for field in target_fields if field.get('collectionId')]))
         print(f"DEBUG: Found collection IDs: {collection_ids}")
         if collection_ids:
@@ -158,6 +151,15 @@ def run_wizardry_with_gemini_analysis(data=None):
             print("=" * 80)
         else:
             print("No collection IDs found in target fields")
+    
+    if data and isinstance(data, dict):
+        document_ids = data.get('document_ids', [])
+        session_id = data.get('session_id')
+        target_fields = data.get('target_fields', [])
+        
+        if not document_ids or not session_id:
+            print(json.dumps({"error": "Missing document_ids or session_id"}))
+            return
         
         # Get document properties from database
         documents = get_document_properties_from_db(document_ids, session_id)
