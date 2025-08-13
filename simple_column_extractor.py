@@ -15,7 +15,10 @@ def extract_columns_from_excel_text(content: str, file_name: str) -> List[Dict[s
     results = []
     
     if 'Excel file content' not in content:
+        print(f"STATUS: No Excel content found in document {file_name}", file=sys.stderr)
         return results
+    
+    print(f"STATUS: Processing Excel document {file_name}", file=sys.stderr)
     
     lines = content.split('\n')
     current_sheet = None
@@ -23,21 +26,26 @@ def extract_columns_from_excel_text(content: str, file_name: str) -> List[Dict[s
     for line in lines:
         line = line.strip()
         
-        if line.startswith('=== Sheet:'):
-            # Extract sheet name
-            sheet_match = re.search(r'=== Sheet: (.+?) ===', line)
+        if line.startswith('=== SHEET:') or line.startswith('=== Sheet:'):
+            # Extract sheet name (handle both SHEET and Sheet formats)
+            sheet_match = re.search(r'=== (?:SHEET|Sheet): (.+?) ===', line)
             if sheet_match:
                 current_sheet = sheet_match.group(1).strip()
+                print(f"STATUS: Found sheet '{current_sheet}'", file=sys.stderr)
             continue
             
         elif current_sheet and line and not line.startswith('===') and not line.startswith('Row'):
+            print(f"STATUS: Found potential header row in {current_sheet}: '{line[:100]}...'", file=sys.stderr)
+            
             # This is likely a header row with column names
             # Split by tabs first (Excel format uses tabs between columns)
             columns = [col.strip() for col in line.split('\t') if col.strip()]
             
-            # If no tabs found, fall back to splitting by multiple spaces
+            # If no tabs found, fall back to splitting by multiple spaces (4+ spaces)
             if len(columns) <= 1:
-                columns = [col.strip() for col in re.split(r'\s{2,}', line) if col.strip()]
+                columns = [col.strip() for col in re.split(r'\s{4,}', line) if col.strip()]
+            
+            print(f"STATUS: Extracted {len(columns)} potential columns: {columns[:5]}", file=sys.stderr)
             
             # Process each column (filter out row numbers and short strings)
             for column_name in columns:
@@ -51,6 +59,7 @@ def extract_columns_from_excel_text(content: str, file_name: str) -> List[Dict[s
                         "worksheet_name": current_sheet,
                         "source_file": file_name
                     })
+                    print(f"STATUS: Added column '{column_name}' from sheet '{current_sheet}'", file=sys.stderr)
             
             # Only process first meaningful row per sheet for headers
             current_sheet = None
