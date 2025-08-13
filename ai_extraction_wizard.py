@@ -123,20 +123,20 @@ def perform_ai_extraction(documents, target_fields_data, extraction_rules, knowl
                 knowledge_documents=knowledge_documents_json
             )
             
-            print("\n" + "=" * 80)
-            print(f"PERFORMING AI DOCUMENT EXTRACTION (Attempt {attempt + 1}/{max_retries})")
-            print("=" * 80)
-            print(f"Documents: {len(documents)}")
-            print(f"Target fields: {len(target_fields_data)}")
-            print(f"Extraction rules: {len(extraction_rules['global']) + len(extraction_rules['targeted'])}")
-            print(f"Knowledge documents: {len(knowledge_documents)}")
+            print("\n" + "=" * 80, flush=True)
+            print(f"PERFORMING AI DOCUMENT EXTRACTION (Attempt {attempt + 1}/{max_retries})", flush=True)
+            print("=" * 80, flush=True)
+            print(f"Documents: {len(documents)}", flush=True)
+            print(f"Target fields: {len(target_fields_data)}", flush=True)
+            print(f"Extraction rules: {len(extraction_rules['global']) + len(extraction_rules['targeted'])}", flush=True)
+            print(f"Knowledge documents: {len(knowledge_documents)}", flush=True)
             
             # Log the complete AI extraction prompt
-            print("\n" + "=" * 80)
-            print("AI EXTRACTION PROMPT (COMPLETE)")
-            print("=" * 80)
-            print(prompt)
-            print("=" * 80)
+            print("\n" + "=" * 80, flush=True)
+            print("AI EXTRACTION PROMPT (COMPLETE)", flush=True)
+            print("=" * 80, flush=True)
+            print(prompt, flush=True)
+            print("=" * 80, flush=True)
             
             response = client.models.generate_content(
                 model="gemini-2.5-pro",
@@ -160,11 +160,13 @@ def perform_ai_extraction(documents, target_fields_data, extraction_rules, knowl
             try:
                 extraction_results = json.loads(extracted_data)
                 if isinstance(extraction_results, list):
-                    print(f"Successfully extracted {len(extraction_results)} records")
-                    print("=" * 80)
+                    print(f"Successfully extracted {len(extraction_results)} records", flush=True)
+                    print("AI EXTRACTION RESPONSE:", flush=True)
+                    print(json.dumps(extraction_results[:2], indent=2), flush=True)  # Show first 2 records
+                    print("=" * 80, flush=True)
                     return extraction_results
                 else:
-                    print(f"Invalid response format (attempt {attempt + 1}): Expected array, got {type(extraction_results)}")
+                    print(f"Invalid response format (attempt {attempt + 1}): Expected array, got {type(extraction_results)}", flush=True)
                     if attempt < max_retries - 1:
                         continue
                     else:
