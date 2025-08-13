@@ -11,72 +11,67 @@ from ai_extraction_wizard import ai_document_extraction
 def log_remaining_collection_fields(extracted_results, target_fields_data):
     """Log which collection fields have been extracted and which remain to be processed"""
     try:
-        print("\n" + "=" * 80)
-        print("EXTRACTION PROGRESS TRACKING")
-        print("=" * 80)
+        print("\n" + "=" * 80, flush=True)
+        print("EXTRACTION PROGRESS TRACKING", flush=True)
+        print("=" * 80, flush=True)
         
-        # Group target fields by collection
-        collections_data = {}
-        for field in target_fields_data:
-            collection_id = field.get('collectionId')
-            if collection_id:
-                collection_name = field.get('collection_name', f'Collection_{collection_id[:8]}')
-                if collection_name not in collections_data:
-                    collections_data[collection_name] = {
-                        'total_fields': [],
-                        'extracted_fields': [],
-                        'remaining_fields': []
-                    }
-                collections_data[collection_name]['total_fields'].append({
-                    'field_name': field.get('property_name', field.get('field_name', 'Unknown')),
-                    'description': field.get('description', ''),
-                    'is_identifier': field.get('is_identifier', False)
-                })
+        # Debug: Show what data we received
+        print(f"DEBUG: Received {len(extracted_results)} extracted results", flush=True)
+        print(f"DEBUG: Received {len(target_fields_data)} target fields", flush=True)
         
-        # Track which fields were extracted
+        if not target_fields_data:
+            print("No target fields data provided", flush=True)
+            return
+            
+        # Create a simple field tracking list
+        field_tracking = []
         extracted_field_names = set()
+        
+        # Get extracted field names
         for result in extracted_results:
             field_name = result.get('field_name', '')
             if '.' in field_name:
-                # Extract just the property name (after the dot)
                 property_name = field_name.split('.')[-1]
                 extracted_field_names.add(property_name)
             else:
                 extracted_field_names.add(field_name)
         
-        # Categorize fields as extracted or remaining
-        for collection_name, data in collections_data.items():
-            for field in data['total_fields']:
-                field_name = field['field_name']
-                if field_name in extracted_field_names:
-                    data['extracted_fields'].append(field)
-                else:
-                    data['remaining_fields'].append(field)
-        
-        # Log the results
-        for collection_name, data in collections_data.items():
-            print(f"\n📋 COLLECTION: {collection_name}")
-            print(f"   Total Fields: {len(data['total_fields'])}")
-            print(f"   Extracted: {len(data['extracted_fields'])}")
-            print(f"   Remaining: {len(data['remaining_fields'])}")
+        # Process each target field
+        for i, field in enumerate(target_fields_data):
+            field_name = field.get('property_name', field.get('field_name', f'Field_{i}'))
+            schema_index = field.get('schema_index', i)
+            is_extracted = field_name in extracted_field_names
             
-            if data['extracted_fields']:
-                print(f"\n   ✅ EXTRACTED FIELDS ({len(data['extracted_fields'])}):")
-                for field in data['extracted_fields']:
-                    identifier_mark = " [IDENTIFIER]" if field['is_identifier'] else ""
-                    print(f"      • {field['field_name']}{identifier_mark}")
-            
-            if data['remaining_fields']:
-                print(f"\n   ⏳ REMAINING FIELDS TO EXTRACT ({len(data['remaining_fields'])}):")
-                for field in data['remaining_fields']:
-                    identifier_mark = " [IDENTIFIER]" if field['is_identifier'] else ""
-                    description = f" - {field['description'][:50]}..." if field['description'] else ""
-                    print(f"      • {field['field_name']}{identifier_mark}{description}")
+            field_tracking.append({
+                'field_name': field_name,
+                'schema_index': schema_index,
+                'extracted': is_extracted,
+                'collection_name': field.get('collection_name', 'Unknown Collection')
+            })
         
-        print("\n" + "=" * 80)
+        # Group by collection and show results
+        current_collection = None
+        for field_info in field_tracking:
+            if field_info['collection_name'] != current_collection:
+                current_collection = field_info['collection_name']
+                print(f"\n🔗 COLLECTION: {current_collection}", flush=True)
+            
+            status = "✅ EXTRACTED" if field_info['extracted'] else "⏳ NOT EXTRACTED"
+            print(f"   [{field_info['schema_index']:2d}] {field_info['field_name']} - {status}", flush=True)
+        
+        # Summary stats
+        total_fields = len(field_tracking)
+        extracted_count = sum(1 for f in field_tracking if f['extracted'])
+        remaining_count = total_fields - extracted_count
+        
+        print(f"\n📊 SUMMARY:", flush=True)
+        print(f"   Total Target Fields: {total_fields}", flush=True)
+        print(f"   Extracted: {extracted_count}", flush=True)
+        print(f"   Remaining: {remaining_count}", flush=True)
+        print("=" * 80, flush=True)
         
     except Exception as e:
-        print(f"Error logging remaining fields: {e}")
+        print(f"Error logging remaining fields: {e}", flush=True)
 
 def get_document_properties_from_db(document_ids, session_id):
     """Query session_documents table to get document properties"""
