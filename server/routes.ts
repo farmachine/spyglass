@@ -4709,8 +4709,17 @@ print(json.dumps(results))
             }
           }
           
-          // Save extraction results to database if they exist
+          // Console log the extraction results status
+          console.log('=== SIMPLE COLUMN EXTRACTOR RESULTS ===');
+          console.log(`Extraction results found: ${extractionResults && Array.isArray(extractionResults) ? extractionResults.length : 0} items`);
+          
           if (extractionResults && Array.isArray(extractionResults) && extractionResults.length > 0) {
+            console.log('Sample extraction result:', JSON.stringify(extractionResults[0], null, 2));
+            
+            // Save extraction results to database
+            let savedCount = 0;
+            let errorCount = 0;
+            
             for (const result of extractionResults) {
               try {
                 await storage.createFieldValidation({
@@ -4726,10 +4735,16 @@ print(json.dumps(results))
                   manuallyVerified: false,
                   confidenceScore: Math.round((result.confidence_score || 1.0) * 100)
                 });
+                savedCount++;
               } catch (dbError) {
                 console.error('Failed to save field validation:', dbError);
+                errorCount++;
               }
             }
+            
+            console.log(`Database save results: ${savedCount} saved successfully, ${errorCount} errors`);
+          } else {
+            console.log('No extraction results to save to database');
           }
           
           // Return the complete output from Python script (includes both document properties and Gemini analysis)
