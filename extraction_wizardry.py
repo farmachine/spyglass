@@ -33,12 +33,15 @@ def get_document_properties_from_db(document_ids, session_id):
         for row in results:
             doc_id, file_name, mime_type, extracted_content = row
             
-            # Create content preview (very short preview for console, full content stored separately)
+            # Create content preview (minimal info for console, full content stored separately)
             content_preview = ""
             if extracted_content:
-                # Show only first few lines with sheet names for console output
-                lines = extracted_content.split('\n')[:3]
-                content_preview = '\n'.join(lines) + "..." if len(extracted_content) > 100 else extracted_content
+                # Show only document type and length for console output
+                if 'SHEET:' in extracted_content:
+                    sheet_count = extracted_content.count('=== SHEET:')
+                    content_preview = f"Excel file with {sheet_count} sheets ({len(extracted_content)} chars)"
+                else:
+                    content_preview = f"Document content ({len(extracted_content)} chars)"
             
             documents.append({
                 "id": doc_id,
