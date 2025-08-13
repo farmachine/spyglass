@@ -4,6 +4,7 @@ import os
 import psycopg2
 from google import genai
 from all_prompts import DOCUMENT_FORMAT_ANALYSIS
+from excel_wizard import excel_column_extraction
 
 def get_document_properties_from_db(document_ids, session_id):
     """Query session_documents table to get document properties"""
@@ -132,6 +133,11 @@ def run_wizardry_with_gemini_analysis(data=None):
         
         # Print Gemini response
         print(gemini_response)
+        
+        # Check if Gemini recommends Excel Column Extraction
+        if "Excel Column Extraction" in gemini_response:
+            excel_result = excel_column_extraction()
+            print(f"Extraction wizard says: {excel_result}")
         
     else:
         print(json.dumps({"error": "Invalid data format. Expected object with document_ids and session_id"}))
