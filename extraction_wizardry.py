@@ -139,20 +139,6 @@ def get_all_collection_properties(collection_ids):
 
 def run_wizardry_with_gemini_analysis(data=None):
     """Main function that gets documents from DB and analyzes them with Gemini"""
-    
-    # FIRST: Display all collection properties at the very beginning
-    if data and isinstance(data, dict):
-        target_fields = data.get('target_fields', [])
-        collection_ids = list(set([field.get('collectionId') for field in target_fields if field.get('collectionId')]))
-        print(f"DEBUG: Found collection IDs: {collection_ids}")
-        if collection_ids:
-            all_collection_properties = get_all_collection_properties(collection_ids)
-            print("ALL COLLECTION PROPERTIES:")
-            print(json.dumps(all_collection_properties, indent=2))
-            print("=" * 80)
-        else:
-            print("No collection IDs found in target fields")
-    
     if data and isinstance(data, dict):
         document_ids = data.get('document_ids', [])
         session_id = data.get('session_id')
@@ -210,6 +196,19 @@ def run_wizardry_with_gemini_analysis(data=None):
         print(json.dumps({"error": "Invalid data format. Expected object with document_ids and session_id"}))
 
 def run_wizardry(data=None):
+    # FIRST: Display all collection properties at the very beginning
+    if data and isinstance(data, dict):
+        target_fields = data.get('target_fields', [])
+        collection_ids = list(set([field.get('collectionId') for field in target_fields if field.get('collectionId')]))
+        print(f"DEBUG: Found collection IDs: {collection_ids}")
+        if collection_ids:
+            all_collection_properties = get_all_collection_properties(collection_ids)
+            print("ALL COLLECTION PROPERTIES:")
+            print(json.dumps(all_collection_properties, indent=2))
+            print("=" * 80)
+        else:
+            print("No collection IDs found in target fields")
+    
     # Call the new function with Gemini analysis
     run_wizardry_with_gemini_analysis(data)
 
