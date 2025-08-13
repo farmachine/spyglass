@@ -7,7 +7,6 @@ from google import genai
 from all_prompts import DOCUMENT_FORMAT_ANALYSIS
 from excel_wizard import excel_column_extraction
 from ai_extraction_wizard import ai_document_extraction
-from ai_conductor import ai_conductor
 
 def get_document_properties_from_db(document_ids, session_id):
     """Query session_documents table to get document properties"""
@@ -273,24 +272,29 @@ def run_wizardry_with_gemini_analysis(data=None):
         print(json.dumps(identifier_targets, indent=2))
         print("=" * 80)
         
-        # Use AI Conductor for orchestrated extraction
+        # Analyze document formats with Gemini using only identifier targets
+        gemini_response = analyze_document_format_with_gemini(documents, identifier_targets)
+        
+        # Print Gemini response
         print("\n" + "=" * 80)
-        print("STARTING AI CONDUCTOR ORCHESTRATION")
+        print("GEMINI ANALYSIS")
+        print("=" * 80)
+        print(gemini_response)
         print("=" * 80)
         
-        # Get document IDs from the documents data
-        document_ids = [doc['id'] for doc in documents]
-        
-        # Run AI Conductor orchestration
-        extraction_result = ai_conductor(document_ids, session_id, identifier_targets)
-        
-        # Process results from AI Conductor
-        if isinstance(extraction_result, dict) and 'error' in extraction_result:
-            print(f"AI Conductor failed: {extraction_result['error']}")
-            return {"message": "Wizardry analysis completed", "error": extraction_result['error']}
-        elif isinstance(extraction_result, list):
+        # Check if Gemini recommends Excel Column Extraction
+        if "Excel Column Extraction" in gemini_response:
+            print(f"\nGemini decided to use Excel Column Extraction wizard")
+            print("\n" + "=" * 80)
+            print("RESULTS FROM EXTRACTION")
+            print("=" * 80)
+            # Get document IDs from the documents data
+            document_ids = [doc['id'] for doc in documents]
+            # Pass only identifier targets to excel extraction
+            excel_result = excel_column_extraction(document_ids, session_id, identifier_targets)
+            
             # Clean JSON and extract identifiers
-            processed_results = clean_json_and_extract_identifiers(extraction_result, identifier_targets)
+            processed_results = clean_json_and_extract_identifiers(excel_result, identifier_targets)
             if 'error' not in processed_results:
                 # Show record count instead of raw output
                 record_count = len(processed_results['cleaned_results']) if isinstance(processed_results['cleaned_results'], list) else 0
@@ -315,14 +319,58 @@ def run_wizardry_with_gemini_analysis(data=None):
                 print("IDENTIFIER REFERENCES")
                 print("=" * 80)
                 print(json.dumps(identifier_references, indent=2))
-                print("=" * 80)
-                
-                return {"message": "Wizardry analysis completed", "results": processed_results}
             else:
-                return {"message": "Wizardry analysis completed", "error": processed_results['error']}
+                print(f"Error processing results: {processed_results['error']}")
+        elif "Excel Sheet Extraction" in gemini_response:
+            print(f"\nGemini decided to use Excel Sheet Extraction wizard")
+            print("\n" + "=" * 80)
+            print("RESULTS FROM EXTRACTION")
+            print("=" * 80)
+            print("Excel Sheet Extraction not yet implemented")
+        elif "AI Extraction" in gemini_response:
+            print(f"\nGemini decided to use AI Extraction wizard")
+            print("\n" + "=" * 80)
+            print("RESULTS FROM EXTRACTION")
+            print("=" * 80)
+            # Get document IDs from the documents data
+            document_ids = [doc['id'] for doc in documents]
+            # Pass document IDs and identifier targets to AI extraction
+            ai_result = ai_document_extraction(document_ids, session_id, identifier_targets)
+            
+            # Clean JSON and extract identifiers
+            processed_results = clean_json_and_extract_identifiers(ai_result, identifier_targets)
+            if 'error' not in processed_results:
+                # Show record count instead of raw output
+                record_count = len(processed_results['cleaned_results']) if isinstance(processed_results['cleaned_results'], list) else 0
+                print(f"Found {record_count} records")
+                
+                # Show identifier results with proper header
+                print("\n" + "=" * 80)
+                print("IDENTIFIER RESULTS")
+                print("=" * 80)
+                print(json.dumps(processed_results['identifier_results'], indent=2))
+                
+                # Create and display IDENTIFIER REFERENCES array
+                identifier_references = []
+                for result in processed_results['identifier_results']:
+                    if 'extracted_value' in result and 'field_name' in result:
+                        # Split field_name on dot and take the part after the collection name
+                        field_name_parts = result['field_name'].split('.')
+                        field_name_only = field_name_parts[-1] if len(field_name_parts) > 1 else result['field_name']
+                        identifier_references.append({field_name_only: result['extracted_value']})
+                
+                print("\n" + "=" * 80)
+                print("IDENTIFIER REFERENCES")
+                print("=" * 80)
+                print(json.dumps(identifier_references, indent=2))
+            else:
+                print(f"Error processing AI extraction results: {processed_results['error']}")
         else:
-            print(f"AI Conductor returned unexpected format: {type(extraction_result)}")
-            return {"message": "Wizardry analysis completed", "error": "Unexpected result format from AI Conductor"}
+            print(f"\nGemini did not recommend a specific extraction method")
+            print("\n" + "=" * 80)
+            print("RESULTS FROM EXTRACTION")
+            print("=" * 80)
+            print("No extraction performed")
         print("=" * 80)
         
     else:

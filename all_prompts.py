@@ -9,22 +9,12 @@ Fields to extract:
 
 Then based on the format, look at the provided descriptions of the target field and determine which of the following extraction processes to use:
 
-- Excel Extraction: Any excel function that can be done without AI. (I.e. Extract a list of columns from an excel sheet; Extract the worksheet names; Extract a deduplicated list of values from a set of columns)
-- AI Extraction: Uses AI to read the document and extract the data based on a set of instructions.
+- Excel Column Extraction: Extracts a list of all columns within an excel document.
+- Excel Sheet Extraction: Extracts all sheets within an excel document.
+- AI Extraction: Uses AI to extract the data from the document.
 
-If you see that the task should be done using one or a combination of these two methods, then describe the sequence i.e.
-1. Excel Extraction: Extract all the columns from the excel
-2. AI Extraction: Use AI to compare the extracted column names based on a set of instructions in the knowledge documents
-3. Excel Extraction: extract all the columns that were not found in the AI extraction.
+Just return the name of the extraction process to use.
 
-Output format:
-```
-DOCUMENT_FORMAT: [Excel/Word/PDF]
-EXTRACTION_SEQUENCE:
-1. [Method]: [Description]
-2. [Method]: [Description]
-3. [Method]: [Description]
-```
 """
 
 # Excel function generation prompt
