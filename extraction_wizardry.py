@@ -300,7 +300,9 @@ def run_wizardry_with_gemini_analysis(data=None):
                 identifier_references = []
                 for i, result in enumerate(processed_results['identifier_results']):
                     if 'extracted_value' in result:
-                        identifier_references.append({f"field_name[{i}]": result['extracted_value']})
+                        # Use the actual field name from identifier targets
+                        field_name = identifier_targets[0]['name'] if identifier_targets else 'Column Heading'
+                        identifier_references.append({f"{field_name}[{i}]": result['extracted_value']})
                 
                 print("\n" + "=" * 80)
                 print("IDENTIFIER REFERENCES")
