@@ -294,7 +294,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const showWelcomeFlow = !hasDataItems;
 
   const navItems = [
-    { id: "data" as const, label: `Back to All ${project.mainObjectName || "Session"}s`, icon: FlowIcon, disabled: showWelcomeFlow },
+    { id: "data" as const, label: `All ${project.mainObjectName || "Session"}s`, icon: FlowIcon, disabled: showWelcomeFlow },
     ...(canAccessConfigTabs ? [
       { id: "knowledge" as const, label: "Knowledge/Rules", icon: TideIcon, disabled: showWelcomeFlow },
       { id: "define" as const, label: "Define Data", icon: StreamIcon, disabled: false }, // Define Data always enabled
