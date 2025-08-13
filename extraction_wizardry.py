@@ -135,18 +135,16 @@ def clean_json_and_extract_identifiers(extraction_result, target_fields_data):
                         'property_name': field.get('name')
                     })
         
-        # Extract identifier values from the cleaned results
-        if isinstance(cleaned_result, list) and identifier_fields:
+        # Extract all values from the cleaned results for identifier results
+        if isinstance(cleaned_result, list):
             for result_item in cleaned_result:
-                if isinstance(result_item, dict):
-                    identifier_record = {}
-                    for id_field in identifier_fields:
-                        # Use extracted_value which contains the actual extracted data
-                        if 'extracted_value' in result_item:
-                            identifier_record[id_field['property_name']] = result_item['extracted_value']
-                    
-                    if identifier_record:  # Only add if we found identifier values
-                        identifier_results.append(identifier_record)
+                if isinstance(result_item, dict) and 'extracted_value' in result_item:
+                    # Create a record with the extracted value
+                    identifier_record = {
+                        'extracted_value': result_item['extracted_value'],
+                        'record_index': result_item.get('record_index', 0)
+                    }
+                    identifier_results.append(identifier_record)
         
         return {
             'cleaned_results': cleaned_result,
