@@ -295,6 +295,17 @@ def run_wizardry_with_gemini_analysis(data=None):
                 print("IDENTIFIER RESULTS")
                 print("=" * 80)
                 print(json.dumps(processed_results['identifier_results'], indent=2))
+                
+                # Create and display IDENTIFIER REFERENCES array
+                identifier_references = []
+                for i, result in enumerate(processed_results['identifier_results']):
+                    if 'extracted_value' in result:
+                        identifier_references.append({f"extracted_value[{i}]": result['extracted_value']})
+                
+                print("\n" + "=" * 80)
+                print("IDENTIFIER REFERENCES")
+                print("=" * 80)
+                print(json.dumps(identifier_references, indent=2))
             else:
                 print(f"Error processing results: {processed_results['error']}")
         elif "Excel Sheet Extraction" in gemini_response:
