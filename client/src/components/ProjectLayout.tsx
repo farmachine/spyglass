@@ -338,8 +338,8 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
 
       {/* Main Content - Full Width */}
       <div className="flex h-[calc(100vh-168px)]">
-        {/* Unified Sidebar - Always visible */}
-        <div className="w-72 bg-slate-50 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700">
+        {/* Session-style Sidebar */}
+        <div className="w-80 bg-slate-50 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col">
           <div className="p-4">
             <nav className="space-y-0.5">
               {navItems.map((item) => {
@@ -376,122 +376,85 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
               })}
             </nav>
 
-            {/* Schema Navigation - Only show when Define Data tab is active */}
-            {activeTab === 'define' && (
-              <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-600">
-                <div className="px-3 mb-2">
-                  <h3 className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    SCHEMA INFORMATION
-                  </h3>
-                </div>
-                <nav className="space-y-0.5">
-                  {/* Main Data Section */}
-                  <button
-                    onClick={() => setSchemaActiveTab('main-data')}
-                    className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
-                      schemaActiveTab === 'main-data'
-                        ? "bg-primary text-white font-medium shadow-sm"
-                        : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 font-normal"
-                    }`}
-                  >
-                    <User className="h-4 w-4" />
-                    General Information
-                  </button>
-
-                  {/* Collection Sections */}
-                  {project.collections?.map((collection) => (
+          </div>
+          
+          {/* Project Navigation - Session-style with sections */}
+          <div className="border-t border-slate-200 dark:border-slate-600 p-4 flex-1">
+            <div className="mb-4">
+              <h3 className="text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                {project?.mainObjectName || "Project"} Information
+              </h3>
+            </div>
+            <div className="relative">
+              {/* Vertical connecting line - stops at last collection */}
+              <div className="absolute left-4 top-4 w-0.5 bg-slate-300 dark:bg-slate-600" style={{ 
+                height: `${(project.collections?.length || 0) * 48 + 12}px` 
+              }}></div>
+              
+              <div className="space-y-3">
+                {/* General Information */}
+                <div className="relative">
+                  <div className="absolute left-2 top-3 w-4 h-0.5 bg-slate-300 dark:bg-slate-600"></div>
+                  <div className="flex items-center space-x-2 ml-8">
+                    <User className="h-4 w-4 text-slate-500 dark:text-slate-400" />
                     <button
-                      key={collection.id}
-                      onClick={() => setSchemaActiveTab(collection.collectionName)}
-                      className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
-                        schemaActiveTab === collection.collectionName
-                          ? "bg-primary text-white font-medium shadow-sm"
-                          : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 font-normal"
+                      onClick={() => setSchemaActiveTab('main-data')}
+                      className={`flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
+                        schemaActiveTab === 'main-data' && activeTab === 'define'
+                          ? 'bg-primary text-white font-medium shadow-sm' 
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 font-normal'
                       }`}
                     >
-                      <List className="h-4 w-4" />
-                      {collection.collectionName}
+                      General Information
                     </button>
-                  ))}
+                  </div>
+                </div>
 
-                  {/* Add List Button */}
-                  <button
-                    onClick={() => {
-                      if (addCollectionCallbackRef.current) {
-                        addCollectionCallbackRef.current();
-                      }
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300 transition-all duration-200"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add List
-                  </button>
-                </nav>
+                {/* Collections */}
+                {project.collections?.map((collection, index) => (
+                  <div key={collection.id} className="relative">
+                    <div className="absolute left-2 top-3 w-4 h-0.5 bg-slate-300 dark:bg-slate-600"></div>
+                    <div className="flex items-center space-x-2 ml-8">
+                      <List className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                      <button
+                        onClick={() => setSchemaActiveTab(collection.collectionName)}
+                        className={`flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
+                          schemaActiveTab === collection.collectionName && activeTab === 'define'
+                            ? 'bg-primary text-white font-medium shadow-sm' 
+                            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 font-normal'
+                        }`}
+                      >
+                        <div className="truncate">{collection.collectionName}</div>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Add Collection Button */}
+                <div className="relative">
+                  <div className="absolute left-2 top-3 w-4 h-0.5 bg-slate-300 dark:bg-slate-600"></div>
+                  <div className="flex items-center space-x-2 ml-8">
+                    <Plus className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                    <button
+                      onClick={() => {
+                        if (addCollectionCallbackRef.current) {
+                          addCollectionCallbackRef.current();
+                        }
+                      }}
+                      className="flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 font-normal border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500"
+                    >
+                      <div className="truncate">Add Collection</div>
+                    </button>
+                  </div>
+                </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
 
         {/* Main Content */}
         <div className={`flex-1 overflow-auto ${activeTab === "data" ? "p-0" : "p-8"} relative`}>
           {renderActiveContent()}
-          
-          {/* Settings Icon - Only show when activeTab is "data" and user has access */}
-          {activeTab === "data" && (canAccessConfigTabs || canAccessPublishing) && (
-            <div className="fixed bottom-6 left-6">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    size="lg"
-                    className="rounded-full w-14 h-14 bg-primary hover:bg-primary/90 shadow-lg"
-                  >
-                    <Settings className="h-6 w-6" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent side="top" align="start" className="w-56">
-                  {canAccessConfigTabs && (
-                    <>
-                      <DropdownMenuItem
-                        onClick={() => {
-                          userNavigatedRef.current = true;
-                          sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
-                          setActiveTab("define");
-                        }}
-                        className="flex items-center gap-2"
-                      >
-                        <StreamIcon className="h-4 w-4" />
-                        Define Data
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => {
-                          userNavigatedRef.current = true;
-                          sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
-                          setActiveTab("knowledge");
-                        }}
-                        className="flex items-center gap-2"
-                      >
-                        <TideIcon className="h-4 w-4" />
-                        Knowledge Base
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                  {canAccessPublishing && (
-                    <DropdownMenuItem
-                      onClick={() => {
-                        userNavigatedRef.current = true;
-                        sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
-                        setActiveTab("publishing");
-                      }}
-                      className="flex items-center gap-2"
-                    >
-                      <ShipIcon className="h-4 w-4" />
-                      Publishing
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          )}
         </div>
       </div>
     </div>
