@@ -356,15 +356,15 @@ export default function AllData({ project }: AllDataProps) {
         </div>
 
         {/* Sessions Table */}
-      <Card className="!bg-white dark:!bg-gray-800 border-gray-200 dark:border-gray-700">
-        <CardContent className="!bg-white dark:!bg-gray-800">
-          {project.sessions.length === 0 ? (
-            <div className="text-center py-8">
-              <Database className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No {(project.mainObjectName || "session").toLowerCase()} extractions</h3>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Click "New {project.mainObjectName || "Session"}" to create your first extraction session
-              </p>
+        <Card className="!bg-white dark:!bg-gray-800 border-gray-200 dark:border-gray-700">
+          <CardContent className="!bg-white dark:!bg-gray-800">
+            {project.sessions.length === 0 ? (
+              <div className="text-center py-8">
+                <Database className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No {(project.mainObjectName || "session").toLowerCase()} extractions</h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Click "New {project.mainObjectName || "Session"}" to create your first extraction session
+                </p>
               <div className="mt-4 flex justify-center">
                 <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
                   <DialogTrigger asChild>
