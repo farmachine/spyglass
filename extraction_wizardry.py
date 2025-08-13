@@ -177,12 +177,23 @@ def run_wizardry_with_gemini_analysis(data=None):
         gemini_response = analyze_document_format_with_gemini(documents, target_fields_data)
         
         # Print document properties
+        print("\n" + "=" * 80)
+        print("DOCUMENT CONTENT FOR THIS EXTRACTION")
+        print("=" * 80)
         print(json.dumps(documents, indent=2))
+        print("=" * 80)
         
         # Print target field descriptions from database
+        print("\n" + "=" * 80)
+        print("TARGET PROPERTIES FOR THIS EXTRACTION")
+        print("=" * 80)
         print(json.dumps(target_fields_data, indent=2))
+        print("=" * 80)
         
         # Print Gemini response
+        print("\n" + "=" * 80)
+        print("RESULTS FROM EXTRACTION")
+        print("=" * 80)
         print(gemini_response)
         
         # Check if Gemini recommends Excel Column Extraction
@@ -190,7 +201,8 @@ def run_wizardry_with_gemini_analysis(data=None):
             # Get document IDs from the documents data
             document_ids = [doc['id'] for doc in documents]
             excel_result = excel_column_extraction(document_ids, session_id, target_fields_data)
-            print(f"Extraction wizard says: {json.dumps(excel_result, indent=2)}")
+            print(f"\nExtraction wizard says: {json.dumps(excel_result, indent=2)}")
+        print("=" * 80)
         
     else:
         print(json.dumps({"error": "Invalid data format. Expected object with document_ids and session_id"}))
@@ -203,7 +215,9 @@ def run_wizardry(data=None):
         print(f"DEBUG: Found collection IDs: {collection_ids}")
         if collection_ids:
             all_collection_properties = get_all_collection_properties(collection_ids)
-            print("ALL COLLECTION PROPERTIES:")
+            print("\n" + "=" * 80)
+            print("ALL PROPERTIES ASSOCIATED WITH THE EXTRACTION")
+            print("=" * 80)
             print(json.dumps(all_collection_properties, indent=2))
             print("=" * 80)
         else:
