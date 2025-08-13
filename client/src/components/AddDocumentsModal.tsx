@@ -276,7 +276,7 @@ export default function AddDocumentsModal({
       setTargetFields(new Set());
       setShowTargetFields(false);
       onSuccess();
-      // onClose(); // COMMENTED OUT FOR DEBUGGING - modal stays open after extraction
+      onClose();
 
     } catch (error) {
       console.error('Upload error:', error);

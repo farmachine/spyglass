@@ -15,10 +15,7 @@ def extract_columns_from_excel_text(content: str, file_name: str) -> List[Dict[s
     results = []
     
     if 'Excel file content' not in content:
-        print(f"STATUS: No Excel content found in document {file_name}")
         return results
-    
-    print(f"STATUS: Processing Excel document {file_name}")
     
     lines = content.split('\n')
     current_sheet = None
@@ -26,51 +23,39 @@ def extract_columns_from_excel_text(content: str, file_name: str) -> List[Dict[s
     for line in lines:
         line = line.strip()
         
-        if line.startswith('=== SHEET:') or line.startswith('=== Sheet:'):
-            # Extract sheet name (handle both SHEET and Sheet formats)
-            sheet_match = re.search(r'=== (?:SHEET|Sheet): (.+?) ===', line)
+        if line.startswith('=== SHEET:'):
+            # Extract sheet name
+            sheet_match = re.search(r'=== SHEET: (.+?) ===', line)
             if sheet_match:
                 current_sheet = sheet_match.group(1).strip()
-                print(f"STATUS: Found sheet '{current_sheet}'")
             continue
             
         elif current_sheet and line and not line.startswith('===') and not line.startswith('Row'):
-            print(f"STATUS: Found potential header row in {current_sheet}: '{line[:100]}...'")
-            
             # This is likely a header row with column names
-            # Split by tabs first (Excel format uses tabs between columns)
-            columns = [col.strip() for col in line.split('\t') if col.strip()]
-            
-            # If no tabs found, fall back to splitting by multiple spaces (4+ spaces)
-            if len(columns) <= 1:
-                columns = [col.strip() for col in re.split(r'\s{4,}', line) if col.strip()]
-            
-            print(f"STATUS: Extracted {len(columns)} potential columns: {columns[:5]}")
+            # Split by multiple spaces or tabs to get columns
+            columns = [col.strip() for col in re.split(r'\s{2,}|\t+', line) if col.strip()]
             
             # Process each column (filter out row numbers and short strings)
             for column_name in columns:
                 if (len(column_name) > 2 and 
                     not column_name.isdigit() and 
-                    not re.match(r'^Row\s+\d+', column_name) and
-                    not re.match(r'^\d{4}-\d{2}-\d{2}', column_name)):  # Skip date values
+                    not re.match(r'^Row\s+\d+', column_name)):
                     
                     results.append({
                         "column_name": column_name,
                         "worksheet_name": current_sheet,
                         "source_file": file_name
                     })
-                    print(f"STATUS: Added column '{column_name}' from sheet '{current_sheet}'")
             
             # Only process first meaningful row per sheet for headers
             current_sheet = None
     
     return results
 
-def simple_extraction_main(session_data: Dict[str, Any], start_index: int = 0, target_fields: List[Dict[str, Any]] = None) -> Dict[str, Any]:
+def simple_extraction_main(session_data: Dict[str, Any], start_index: int = 0) -> Dict[str, Any]:
     """
     Main function for simple column extraction
     """
-    print("STATUS: Starting simple column extraction")
     
     all_columns = []
     
@@ -82,94 +67,62 @@ def simple_extraction_main(session_data: Dict[str, Any], start_index: int = 0, t
         columns = extract_columns_from_excel_text(content, file_name)
         all_columns.extend(columns)
     
-    # Create field validations using proper target field IDs
+    # Create field validations
     field_validations = []
-    
-    # Get field mappings from target_fields if provided
-    field_mapping = {}
-    collection_name = "Column Name Mapping"
-    
-    if target_fields:
-        for field in target_fields:
-            field_name = field.get('propertyName') or field.get('fieldName', '')
-            field_id = field.get('id', '')
-            if field_id:
-                if 'column' in field_name.lower() and 'heading' in field_name.lower():
-                    field_mapping['column_heading'] = field_id
-                elif 'worksheet' in field_name.lower() and 'name' in field_name.lower():
-                    field_mapping['worksheet_name'] = field_id
-                elif 'standardised' in field_name.lower() or 'standard' in field_name.lower():
-                    field_mapping['standardised_column'] = field_id
-                elif 'reasoning' in field_name.lower():
-                    field_mapping['reasoning'] = field_id
-                    
-                # Get collection name from first field
-                if not collection_name or collection_name == "Column Name Mapping":
-                    collection_name = field.get('collectionName', 'Column Name Mapping')
     
     for i, column_data in enumerate(all_columns):
         record_index = start_index + i
         
-        # Column Heading field - only extract column names
-        if 'column_heading' in field_mapping:
-            field_validations.append({
-                "field_id": field_mapping['column_heading'],
-                "validation_type": "collection_property",
-                "data_type": "TEXT",
-                "field_name": f"Column Heading[{record_index}]",
-                "collection_name": collection_name,
-                "extracted_value": column_data['column_name'],
-                "confidence_score": 100,
-                "validation_status": "verified",
-                "ai_reasoning": f"Extracted column name '{column_data['column_name']}' from sheet '{column_data['worksheet_name']}'",
-                "record_index": record_index
-            })
+        # Column Heading field
+        field_validations.append({
+            "field_id": f"column_heading_{record_index}",
+            "field_name": f"Column Name Mapping.Column Heading[{record_index}]",
+            "extracted_value": column_data["column_name"],
+            "ai_reasoning": f"Direct extraction: Column '{column_data['column_name']}' from sheet '{column_data['worksheet_name']}'",
+            "confidence": 1.0,
+            "validation_type": "collection_property",
+            "collection_name": "Column Name Mapping",
+            "record_index": record_index,
+            "validation_status": "verified"
+        })
         
-        # Create null validation for Worksheet Name (not extracted by simple extractor)
-        if 'worksheet_name' in field_mapping:
-            field_validations.append({
-                "field_id": field_mapping['worksheet_name'],
-                "validation_type": "collection_property", 
-                "data_type": "TEXT",
-                "field_name": f"Worksheet Name[{record_index}]",
-                "collection_name": collection_name,
-                "extracted_value": None,
-                "confidence_score": 0,
-                "validation_status": "unverified",
-                "ai_reasoning": "Worksheet name requires manual entry or AI extraction",
-                "record_index": record_index
-            })
+        # Worksheet Name field  
+        field_validations.append({
+            "field_id": f"worksheet_name_{record_index}",
+            "field_name": f"Column Name Mapping.Worksheet Name[{record_index}]",
+            "extracted_value": column_data["worksheet_name"],
+            "ai_reasoning": f"Sheet name for column '{column_data['column_name']}'",
+            "confidence": 1.0,
+            "validation_type": "collection_property",
+            "collection_name": "Column Name Mapping", 
+            "record_index": record_index,
+            "validation_status": "verified"
+        })
         
-        # Create null validations for remaining collection properties
-        if 'standardised_column' in field_mapping:
-            field_validations.append({
-                "field_id": field_mapping['standardised_column'],
-                "validation_type": "collection_property",
-                "data_type": "TEXT", 
-                "field_name": f"Standardised Column Name[{record_index}]",
-                "collection_name": collection_name,
-                "extracted_value": None,
-                "confidence_score": 0,
-                "validation_status": "unverified",
-                "ai_reasoning": "Requires manual mapping or AI analysis for standardisation",
-                "record_index": record_index
-            })
-            
-        if 'reasoning' in field_mapping:
-            field_validations.append({
-                "field_id": field_mapping['reasoning'],
-                "validation_type": "collection_property",
-                "data_type": "TEXT",
-                "field_name": f"Reasoning[{record_index}]", 
-                "collection_name": collection_name,
-                "extracted_value": None,
-                "confidence_score": 0,
-                "validation_status": "unverified",
-                "ai_reasoning": "Requires reasoning for standardisation process",
-                "record_index": record_index
-            })
-    
-    print(f"STATUS: Simple extraction completed - {len(all_columns)} columns extracted, {len(field_validations)} validations created")
+        # Create empty placeholders for other properties
+        field_validations.append({
+            "field_id": f"standardised_column_{record_index}",
+            "field_name": f"Column Name Mapping.Standardised Column Name[{record_index}]",
+            "extracted_value": None,
+            "ai_reasoning": "Requires manual mapping or AI analysis",
+            "confidence": 0.0,
+            "validation_type": "collection_property",
+            "collection_name": "Column Name Mapping",
+            "record_index": record_index,
+            "validation_status": "unverified"
+        })
+        
+        field_validations.append({
+            "field_id": f"reasoning_{record_index}",
+            "field_name": f"Column Name Mapping.Reasoning[{record_index}]",
+            "extracted_value": None,
+            "ai_reasoning": "Requires reasoning for standardization",
+            "confidence": 0.0,
+            "validation_type": "collection_property",
+            "collection_name": "Column Name Mapping",
+            "record_index": record_index,
+            "validation_status": "unverified"
+        })
     
     return {
         "success": True,
@@ -191,7 +144,6 @@ if __name__ == "__main__":
             result = simple_extraction_main(session_data, start_index)
             print(json.dumps(result))
         except Exception as e:
-            print(f"STATUS: Simple extraction failed - {str(e)}")
             print(json.dumps({
                 "success": False,
                 "error": f"Simple extraction failed: {str(e)}",
