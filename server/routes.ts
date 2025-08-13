@@ -1025,7 +1025,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Extract text content from PDFs using Gemini API
       if (result.data.fileType === 'pdf' && result.data.content) {
         try {
-          console.log('DEBUG: Processing knowledge document PDF content extraction with Gemini');
+
           
           // Use Gemini API for PDF text extraction
           const { spawn } = await import('child_process');
@@ -1097,10 +1097,6 @@ except Exception as e:
           
           await new Promise((resolve, reject) => {
             python.on('close', (code) => {
-              console.log(`DEBUG: Gemini extraction process completed with code: ${code}`);
-              console.log(`DEBUG: Extracted text length: ${extractedText.length}`);
-              console.log(`DEBUG: Extracted text preview: ${extractedText.substring(0, 500)}`);
-              
               if (errorOutput) {
                 console.log(`DEBUG: Error output: ${errorOutput}`);
               }
@@ -1110,11 +1106,10 @@ except Exception as e:
                   !extractedText.includes('GEMINI_API_KEY_MISSING') &&
                   !extractedText.includes('GEMINI_EXTRACTION_ERROR')) {
                 processedData.content = extractedText.trim();
-                console.log('DEBUG: Knowledge document Gemini processing successful, extracted', extractedText.length, 'characters of text');
+
                 resolve(extractedText);
               } else {
-                console.log('DEBUG: Gemini text extraction failed or returned no content, code:', code);
-                console.log('DEBUG: Raw extracted text:', JSON.stringify(extractedText));
+
                 // Leave content empty so user can manually add text
                 processedData.content = "";
                 resolve("no_content");
@@ -1191,7 +1186,7 @@ except Exception as e:
         return res.status(400).json({ message: "Document must be a PDF with content to reprocess" });
       }
 
-      console.log('DEBUG: Re-processing knowledge document with Gemini:', document.displayName);
+
 
       // Use Gemini API for PDF text extraction
       const { spawn } = await import('child_process');
@@ -1263,9 +1258,8 @@ except Exception as e:
       
       await new Promise((resolve, reject) => {
         python.on('close', async (code) => {
-          console.log(`DEBUG: Gemini reprocessing completed with code: ${code}`);
-          console.log(`DEBUG: Extracted text length: ${extractedText.length}`);
-          console.log(`DEBUG: Extracted text preview: ${extractedText.substring(0, 500)}`);
+
+
           
           if (errorOutput) {
             console.log(`DEBUG: Error output: ${errorOutput}`);
@@ -1569,7 +1563,7 @@ except Exception as e:
         });
       });
 
-      console.log('Final Excel data structure ready for export');
+
       res.json(excelData);
       
     } catch (error) {
@@ -4674,7 +4668,7 @@ print(json.dumps(results))
         error += data.toString();
       });
       
-      python.on('close', (code: any) => {
+      python.on('close', async (code: any) => {
         if (code !== 0) {
           console.error('Wizardry script error:', error);
           return res.status(500).json({ 
@@ -4683,12 +4677,103 @@ print(json.dumps(results))
           });
         }
         
-        // Return the complete output from Python script (includes both document properties and Gemini analysis)
-        res.json({ 
-          message: "Wizardry analysis completed",
-          output: output.trim(),
-          success: true
-        });
+        try {
+          // Parse the output to extract results
+          const outputLines = output.trim().split('\n');
+          let extractionResults = [];
+          
+          // Look for the EXCEL COLUMN EXTRACTION RESULTS section
+          for (let i = 0; i < outputLines.length; i++) {
+            if (outputLines[i].includes('=== EXCEL COLUMN EXTRACTION RESULTS ===')) {
+              // The next lines should contain the JSON results
+              let jsonStart = i + 1;
+              let jsonLines = [];
+              
+              // Collect all lines until we hit another section or end
+              for (let j = jsonStart; j < outputLines.length; j++) {
+                if (outputLines[j].startsWith('===')) {
+                  break;
+                }
+                jsonLines.push(outputLines[j]);
+              }
+              
+              if (jsonLines.length > 0) {
+                try {
+                  const jsonString = jsonLines.join('\n');
+                  extractionResults = JSON.parse(jsonString);
+                  break;
+                } catch (parseError) {
+                  console.error('Failed to parse extraction results JSON:', parseError);
+                  console.error('JSON string was:', jsonString);
+                }
+              }
+            }
+          }
+          
+          // Console log the extraction results status and forward Python output
+          console.log('=== SIMPLE COLUMN EXTRACTOR RESULTS ===');
+          console.log(`Extraction results found: ${extractionResults && Array.isArray(extractionResults) ? extractionResults.length : 0} items`);
+          
+          // Forward Python output to console (for debugging)
+          console.log('=== PYTHON OUTPUT ===');
+          console.log(output);
+          console.log('=== END PYTHON OUTPUT ===');
+          
+          if (extractionResults && Array.isArray(extractionResults) && extractionResults.length > 0) {
+            console.log('Sample extraction result:', JSON.stringify(extractionResults[0], null, 2));
+            
+            // DATABASE SAVE TEMPORARILY DISABLED FOR DEBUGGING
+            console.log(`Would save ${extractionResults.length} extraction results to database (disabled for debugging)`);
+            
+            /* COMMENTED OUT FOR DEBUGGING
+            // Save extraction results to database
+            let savedCount = 0;
+            let errorCount = 0;
+            
+            for (const result of extractionResults) {
+              try {
+                await storage.createFieldValidation({
+                  sessionId: requestData.session_id,
+                  validationType: result.validation_type || 'collection_property',
+                  dataType: result.data_type || 'TEXT',
+                  fieldId: result.field_id,
+                  collectionName: result.collection_name,
+                  recordIndex: result.record_index,
+                  extractedValue: result.extracted_value,
+                  validationStatus: result.validation_status || 'verified',
+                  aiReasoning: result.ai_reasoning,
+                  manuallyVerified: false,
+                  confidenceScore: Math.round((result.confidence_score || 1.0) * 100)
+                });
+                savedCount++;
+              } catch (dbError) {
+                console.error('Failed to save field validation:', dbError);
+                errorCount++;
+              }
+            }
+            
+            console.log(`Database save results: ${savedCount} saved successfully, ${errorCount} errors`);
+            */
+          } else {
+            console.log('No extraction results to save to database');
+          }
+          
+          // Return the complete output from Python script (includes both document properties and Gemini analysis)
+          res.json({ 
+            message: "Wizardry analysis completed",
+            output: output.trim(),
+            extractionResults: extractionResults,
+            success: true
+          });
+        } catch (processError) {
+          console.error('Error processing wizardry results:', processError);
+          // Still return success but without saved results
+          res.json({ 
+            message: "Wizardry analysis completed",
+            output: output.trim(),
+            success: true
+          });
+        }
       });
       
     } catch (error) {

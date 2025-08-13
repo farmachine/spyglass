@@ -1,0 +1,24 @@
+{
+    "field_id": "34580f0d-321f-498a-b1c0-6162ad831122",
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Heading[4]",
+    "collection_name": "Column Headers Collection",
+    "extracted_value": "Valuation Record Type\tWidow(er)'s Reference No\tDeceased Member's Reference No\tBeneficiary's Code\tWidow(er)'s Date Of Birth\tDate Became Widow(er) Beneficiary\tCode For Previous Status Of Deceased Member\tDate Deceased Member Became Pensioner\tWidow(er)'s Annual Pre-6.4.1988 GMP Component At Date Of This Valuation\tWidow(er)'s Annual Post-5.4.1988 GMP Component At Date Of This Valuation\tTotal Widow(er)'s Pension Payable From Scheme At This Valuation\tTotal Widow(er)'s Pension Payable From Scheme At Last Valuation\tComponent Of Widow(er)'s Pension At This Valuation Subject To RPI capped at 5% pa\tDate Of Exit From Widow(er) Beneficiary Status\tCode For Exit From Widow(er) Beneficiary Status\tWidow's Allotment At Valuation Date Included In Pension\tOld Supplementary Fund Indicator\tOld Supplementary Fund Pension\tComponent Of Widow(er)'s Pension At This Valuation Subject To RPI capped at 2.5% pa\tSection B Indicator\tComponent Of Widow(er)'s Pension At This Valuation Subject To CPI capped at 2.5% pa\tPostcode",
+    "confidence_score": 1.0,
+    "validation_status": "verified",
+    "ai_reasoning": "Extracted directly from sheet 'Widows' using column extraction",
+    "record_index": 4
+  },
+  {
+    "field_id": "34580f0d-321f-498a-b1c0-6162ad831122",
+    "validation_type": "collection_property",
+    "data_type": "TEXT",
+    "field_name": "Column Heading[5]",
+    "collection_name": "Column Headers Collection",
+    "extracted_value": "Valuation Record Type\tChild's Reference No\tDeceased members reference no\tChild's Date of Birth\tDate Child'sPension Commenced\tCode For Previous Status Of Deceased Member\tChild's Pension Payable From Scheme At This Valuation\tComponent Of Child's Pension At This Valuation Subject To RPI capped at 5% pa\tDate Child's Pension Is To Cease Or Has Ceased\tOld Supplementary Fund Indicator\tOld Supplementary Fund Pension\tSection B Indicator\tComponent Of Child's Pension At This Valuation Subject To RPI capped at 2_5% pa\tComponent of Child\u2019s Pension At This Valuation Subject to CPI capped at 2_5% pa",
+    "confidence_score": 1.0,
+    "validation_status": "verified",
+    "ai_reasoning": "Extracted directly from sheet 'Children' using column extraction",
+    "record_index": 5
+  }
