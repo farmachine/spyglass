@@ -8,7 +8,7 @@ from all_prompts import DOCUMENT_FORMAT_ANALYSIS
 from excel_wizard import excel_column_extraction
 from ai_extraction_wizard import ai_document_extraction
 
-def log_remaining_collection_fields(extracted_results, target_fields_data):
+def log_remaining_collection_fields(extracted_results, all_collection_properties):
     """Log which collection fields have been extracted and which remain to be processed"""
     try:
         print("\n" + "=" * 80, flush=True)
@@ -17,17 +17,14 @@ def log_remaining_collection_fields(extracted_results, target_fields_data):
         
         # Debug: Show what data we received
         print(f"DEBUG: Received {len(extracted_results)} extracted results", flush=True)
-        print(f"DEBUG: Received {len(target_fields_data)} target fields", flush=True)
+        print(f"DEBUG: Received {len(all_collection_properties)} collection properties", flush=True)
         
-        if not target_fields_data:
-            print("No target fields data provided", flush=True)
+        if not all_collection_properties:
+            print("No collection properties data provided", flush=True)
             return
             
-        # Create a simple field tracking list
-        field_tracking = []
-        extracted_field_names = set()
-        
         # Get extracted field names
+        extracted_field_names = set()
         for result in extracted_results:
             field_name = result.get('field_name', '')
             if '.' in field_name:
@@ -36,36 +33,43 @@ def log_remaining_collection_fields(extracted_results, target_fields_data):
             else:
                 extracted_field_names.add(field_name)
         
-        # Process each target field
-        for i, field in enumerate(target_fields_data):
-            field_name = field.get('property_name', field.get('field_name', f'Field_{i}'))
-            schema_index = field.get('schema_index', i)
-            is_extracted = field_name in extracted_field_names
-            
-            field_tracking.append({
-                'field_name': field_name,
-                'schema_index': schema_index,
-                'extracted': is_extracted,
-                'collection_name': field.get('collection_name', 'Unknown Collection')
-            })
-        
-        # Group by collection and show results
+        # Group properties by collection and show results
         current_collection = None
-        for field_info in field_tracking:
-            if field_info['collection_name'] != current_collection:
-                current_collection = field_info['collection_name']
-                print(f"\n🔗 COLLECTION: {current_collection}", flush=True)
+        field_count = 0
+        extracted_count = 0
+        
+        for prop in all_collection_properties:
+            collection_name = prop.get('collection_name', 'Unknown Collection')
+            property_name = prop.get('property_name', 'Unknown Property')
+            order_index = prop.get('order_index', 0)
+            is_identifier = prop.get('is_identifier', False)
+            description = prop.get('description', '')
             
-            status = "✅ EXTRACTED" if field_info['extracted'] else "⏳ NOT EXTRACTED"
-            print(f"   [{field_info['schema_index']:2d}] {field_info['field_name']} - {status}", flush=True)
+            # Check if this field was extracted
+            is_extracted = property_name in extracted_field_names
+            if is_extracted:
+                extracted_count += 1
+            field_count += 1
+            
+            # Print collection header if changed
+            if collection_name != current_collection:
+                if current_collection is not None:
+                    print("", flush=True)  # Add space between collections
+                current_collection = collection_name
+                print(f"🔗 COLLECTION: {collection_name}", flush=True)
+            
+            # Show field status
+            status = "✅ EXTRACTED" if is_extracted else "⏳ NOT EXTRACTED"
+            identifier_mark = " [IDENTIFIER]" if is_identifier else ""
+            description_snippet = f" - {description[:40]}..." if description else ""
+            
+            print(f"   [{order_index:2d}] {property_name}{identifier_mark} - {status}{description_snippet}", flush=True)
         
         # Summary stats
-        total_fields = len(field_tracking)
-        extracted_count = sum(1 for f in field_tracking if f['extracted'])
-        remaining_count = total_fields - extracted_count
+        remaining_count = field_count - extracted_count
         
         print(f"\n📊 SUMMARY:", flush=True)
-        print(f"   Total Target Fields: {total_fields}", flush=True)
+        print(f"   Total Collection Fields: {field_count}", flush=True)
         print(f"   Extracted: {extracted_count}", flush=True)
         print(f"   Remaining: {remaining_count}", flush=True)
         print("=" * 80, flush=True)
@@ -316,6 +320,14 @@ def run_wizardry_with_gemini_analysis(data=None):
         # Filter identifier targets early for use in both display and Gemini analysis
         identifier_targets = [field for field in target_fields_data if field.get('is_identifier', False)]
         
+        # Get all collection properties for progress tracking
+        collection_ids = list(set([field.get('collection_id') for field in target_fields_data if field.get('collection_id')]))
+        all_collection_properties = []
+        if collection_ids:
+            all_properties_result = get_all_collection_properties(collection_ids)
+            if isinstance(all_properties_result, list):
+                all_collection_properties = all_properties_result
+        
         # Print document properties
         print("\n" + "=" * 80)
         print("DOCUMENT CONTENT FOR THIS EXTRACTION")
@@ -386,7 +398,7 @@ def run_wizardry_with_gemini_analysis(data=None):
                 print(json.dumps(identifier_references, indent=2))
                 
                 # Log remaining unextracted collection fields
-                log_remaining_collection_fields(processed_results.get('identifier_results', []), identifier_targets)
+                log_remaining_collection_fields(processed_results.get('identifier_results', []), all_collection_properties)
             else:
                 print(f"Error processing results: {processed_results['error']}")
         elif "Excel Sheet Extraction" in gemini_response:
@@ -433,7 +445,7 @@ def run_wizardry_with_gemini_analysis(data=None):
                 print(json.dumps(identifier_references, indent=2))
                 
                 # Log remaining unextracted collection fields
-                log_remaining_collection_fields(processed_results.get('identifier_results', []), target_fields_data)
+                log_remaining_collection_fields(processed_results.get('identifier_results', []), all_collection_properties)
             else:
                 print(f"Error processing AI extraction results: {processed_results['error']}")
         else:
