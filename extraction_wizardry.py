@@ -107,11 +107,17 @@ def analyze_document_format_with_gemini(documents, target_fields_data=None, max_
 def clean_json_and_extract_identifiers(extraction_result, target_fields_data):
     """Clean JSON results and create Identifier Results array"""
     try:
+        print(f"\nDEBUG: extraction_result type: {type(extraction_result)}")
+        print(f"DEBUG: extraction_result: {extraction_result}")
+        
         # Parse the extraction result if it's a string
         if isinstance(extraction_result, str):
             cleaned_result = json.loads(extraction_result)
         else:
             cleaned_result = extraction_result
+        
+        print(f"DEBUG: cleaned_result type: {type(cleaned_result)}")
+        print(f"DEBUG: cleaned_result: {cleaned_result}")
         
         # Clean the JSON by trimming whitespace from string values
         if isinstance(cleaned_result, list):
@@ -126,8 +132,12 @@ def clean_json_and_extract_identifiers(extraction_result, target_fields_data):
         
         # Find identifier fields from target_fields_data
         identifier_fields = []
+        print(f"DEBUG: target_fields_data: {target_fields_data}")
+        
         if target_fields_data:
             for field in target_fields_data:
+                print(f"DEBUG: field: {field}")
+                print(f"DEBUG: is_identifier: {field.get('is_identifier', False)}")
                 if field.get('is_identifier', False):
                     identifier_fields.append({
                         'field_id': field.get('field_id'),
@@ -135,18 +145,26 @@ def clean_json_and_extract_identifiers(extraction_result, target_fields_data):
                         'property_name': field.get('name')
                     })
         
+        print(f"DEBUG: identifier_fields: {identifier_fields}")
+        
         # Extract identifier values from the cleaned results
         if isinstance(cleaned_result, list) and identifier_fields:
             for result_item in cleaned_result:
                 if isinstance(result_item, dict):
+                    print(f"DEBUG: result_item: {result_item}")
                     identifier_record = {}
                     for id_field in identifier_fields:
                         field_name = id_field['property_name']
+                        print(f"DEBUG: Looking for field_name: {field_name} in result_item")
                         if field_name in result_item:
                             identifier_record[field_name] = result_item[field_name]
+                            print(f"DEBUG: Found {field_name}: {result_item[field_name]}")
                     
                     if identifier_record:  # Only add if we found identifier values
                         identifier_results.append(identifier_record)
+                        print(f"DEBUG: Added identifier_record: {identifier_record}")
+        
+        print(f"DEBUG: Final identifier_results: {identifier_results}")
         
         return {
             'cleaned_results': cleaned_result,
@@ -154,6 +172,7 @@ def clean_json_and_extract_identifiers(extraction_result, target_fields_data):
         }
         
     except Exception as e:
+        print(f"DEBUG: Exception in clean_json_and_extract_identifiers: {str(e)}")
         return {
             'error': f"Failed to clean JSON and extract identifiers: {str(e)}",
             'original_result': extraction_result
