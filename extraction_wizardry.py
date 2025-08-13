@@ -280,10 +280,11 @@ def run_wizardry_with_gemini_analysis(data=None):
             print("=" * 80)
             # Get document IDs from the documents data
             document_ids = [doc['id'] for doc in documents]
-            excel_result = excel_column_extraction(document_ids, session_id, target_fields_data)
+            # Pass only identifier targets to excel extraction
+            excel_result = excel_column_extraction(document_ids, session_id, identifier_targets)
             
             # Clean JSON and extract identifiers
-            processed_results = clean_json_and_extract_identifiers(excel_result, target_fields_data)
+            processed_results = clean_json_and_extract_identifiers(excel_result, identifier_targets)
             if 'error' not in processed_results:
                 # Show record count instead of raw output
                 record_count = len(processed_results['cleaned_results']) if isinstance(processed_results['cleaned_results'], list) else 0
