@@ -104,6 +104,61 @@ def analyze_document_format_with_gemini(documents, target_fields_data=None, max_
     # This should never be reached, but just in case
     return "ERROR: All Gemini API retry attempts failed"
 
+def clean_json_and_extract_identifiers(extraction_result, target_fields_data):
+    """Clean JSON results and create Identifier Results array"""
+    try:
+        # Parse the extraction result if it's a string
+        if isinstance(extraction_result, str):
+            cleaned_result = json.loads(extraction_result)
+        else:
+            cleaned_result = extraction_result
+        
+        # Clean the JSON by trimming whitespace from string values
+        if isinstance(cleaned_result, list):
+            for item in cleaned_result:
+                if isinstance(item, dict):
+                    for key, value in item.items():
+                        if isinstance(value, str):
+                            item[key] = value.strip()
+        
+        # Create Identifier Results array
+        identifier_results = []
+        
+        # Find identifier fields from target_fields_data
+        identifier_fields = []
+        if target_fields_data:
+            for field in target_fields_data:
+                if field.get('is_identifier', False):
+                    identifier_fields.append({
+                        'field_id': field.get('field_id'),
+                        'name': field.get('name'),
+                        'property_name': field.get('name')
+                    })
+        
+        # Extract identifier values from the cleaned results
+        if isinstance(cleaned_result, list) and identifier_fields:
+            for result_item in cleaned_result:
+                if isinstance(result_item, dict):
+                    identifier_record = {}
+                    for id_field in identifier_fields:
+                        field_name = id_field['property_name']
+                        if field_name in result_item:
+                            identifier_record[field_name] = result_item[field_name]
+                    
+                    if identifier_record:  # Only add if we found identifier values
+                        identifier_results.append(identifier_record)
+        
+        return {
+            'cleaned_results': cleaned_result,
+            'identifier_results': identifier_results
+        }
+        
+    except Exception as e:
+        return {
+            'error': f"Failed to clean JSON and extract identifiers: {str(e)}",
+            'original_result': extraction_result
+        }
+
 def get_all_collection_properties(collection_ids):
     """Get all properties for the given collection IDs"""
     try:
@@ -225,6 +280,16 @@ def run_wizardry_with_gemini_analysis(data=None):
             document_ids = [doc['id'] for doc in documents]
             excel_result = excel_column_extraction(document_ids, session_id, target_fields_data)
             print(json.dumps(excel_result, indent=2))
+            
+            # Clean JSON and extract identifiers
+            processed_results = clean_json_and_extract_identifiers(excel_result, target_fields_data)
+            if 'error' not in processed_results:
+                print("\n" + "=" * 80)
+                print("IDENTIFIER RESULTS")
+                print("=" * 80)
+                print(json.dumps(processed_results['identifier_results'], indent=2))
+            else:
+                print(f"\nError processing results: {processed_results['error']}")
         elif "Excel Sheet Extraction" in gemini_response:
             print(f"\nGemini decided to use Excel Sheet Extraction wizard")
             print("\n" + "=" * 80)
