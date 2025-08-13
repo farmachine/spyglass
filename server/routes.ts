@@ -4644,7 +4644,7 @@ print(json.dumps(results))
     }
   });
 
-  // Run extraction wizardry Python script
+  // Run extraction wizardry Python script (extract only, no save)
   app.post("/api/run-wizardry", async (req, res) => {
     try {
       const requestData = req.body; // Get request data with document_ids and session_id

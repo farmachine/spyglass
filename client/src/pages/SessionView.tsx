@@ -439,6 +439,7 @@ const AIExtractionModal = ({
         target_fields: selectedTargetFieldObjects
       };
       
+      // First, run extraction without saving to database
       const response = await apiRequest('/api/run-wizardry', {
         method: 'POST',
         headers: {
@@ -447,7 +448,7 @@ const AIExtractionModal = ({
         body: JSON.stringify(requestData),
       });
       
-      // Show debugging modal with extraction results before saving to database
+      // Immediately show debugging modal when extraction completes
       if (response.extractionResults && response.extractionResults.length > 0) {
         setPendingExtractionData({
           response,
@@ -455,8 +456,9 @@ const AIExtractionModal = ({
           projectId: project?.id
         });
         setDebugModalOpen(true);
-        onClose(); // Close the AI extraction modal
       }
+      
+      onClose(); // Close the AI extraction modal
       
     } catch (error) {
       console.error('Error running wizardry:', error);
