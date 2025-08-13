@@ -293,11 +293,8 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const hasDataItems = project.schemaFields.length > 0 || project.collections.length > 0;
   const showWelcomeFlow = !hasDataItems;
 
-  const mainNavItems = [
+  const navItems = [
     { id: "data" as const, label: `Back to All ${project.mainObjectName || "Session"}s`, icon: FlowIcon, disabled: showWelcomeFlow },
-  ];
-
-  const configNavItems = [
     ...(canAccessConfigTabs ? [
       { id: "knowledge" as const, label: "Knowledge/Rules", icon: TideIcon, disabled: showWelcomeFlow },
       { id: "define" as const, label: "Define Data", icon: StreamIcon, disabled: false }, // Define Data always enabled
@@ -477,10 +474,10 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       <div className="flex h-[calc(100vh-168px)]">
         {/* Sidebar - Hidden for All Data tab */}
         {activeTab !== 'data' && (
-          <div className="w-72 bg-slate-50 border-r border-slate-200 flex flex-col">
-            <div className="p-4 flex-1">
+          <div className="w-72 bg-slate-50 border-r border-slate-200">
+            <div className="p-4">
             <nav className="space-y-0.5">
-              {mainNavItems.map((item) => {
+              {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
                 const isDisabled = item.disabled;
@@ -513,44 +510,6 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                 );
               })}
             </nav>
-
-            </div>
-            {/* Configuration Navigation - Always show at bottom */}
-            <div className="p-4 pt-2 border-t border-slate-200">
-              <nav className="space-y-0.5">
-                {configNavItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = activeTab === item.id;
-                  const isDisabled = item.disabled;
-                  
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => {
-                        if (!isDisabled) {
-                          userNavigatedRef.current = true;
-                          sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
-                          setActiveTab(item.id);
-                        }
-                      }}
-                      disabled={isDisabled}
-                      className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
-                        isDisabled
-                          ? "text-slate-400 cursor-not-allowed opacity-50 font-normal"
-                          : isActive
-                          ? "bg-primary text-white font-medium shadow-sm"
-                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
-                      }`}
-                    >
-                      <Icon className={`h-4 w-4 ${
-                        isDisabled ? "text-slate-300" : isActive ? "text-white" : "text-slate-500"
-                      }`} />
-                      {item.label}
-                    </button>
-                  );
-                })}
-              </nav>
-            </div>
 
             {/* Schema Navigation - Only show when Define Data tab is active */}
             {activeTab === 'define' && (
@@ -605,6 +564,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                 </nav>
               </div>
             )}
+            </div>
           </div>
         )}
 
