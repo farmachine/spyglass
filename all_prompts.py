@@ -46,6 +46,6 @@ REQUIREMENTS:
 6. Include proper error handling
 7. Return an empty list if no data can be extracted
 
-Generate ONLY the Python function code, no explanations or markdown formatting.
+CRITICAL: Generate ONLY the Python function code with no markdown formatting, no ```python blocks, no explanations, no comments outside the function. Start directly with 'def extract_excel_data(' and end with the return statement.
 
 """

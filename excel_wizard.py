@@ -29,7 +29,26 @@ def generate_excel_extraction_function(target_fields_data):
         )
         
         generated_function = response.text
+        
+        # Clean the generated function from markdown formatting
+        if generated_function:
+            # Remove markdown code blocks if present
+            generated_function = generated_function.strip()
+            if generated_function.startswith('```python'):
+                generated_function = generated_function.replace('```python', '').strip()
+            if generated_function.startswith('```'):
+                generated_function = generated_function.replace('```', '').strip()
+            if generated_function.endswith('```'):
+                generated_function = generated_function.replace('```', '').strip()
+        
         print("Generated function length:", len(generated_function) if generated_function else 0)
+        
+        # Log the generated function for debugging
+        print("\n" + "-" * 40)
+        print("GENERATED FUNCTION CODE:")
+        print("-" * 40)
+        print(generated_function[:500] + "..." if len(generated_function) > 500 else generated_function)
+        print("-" * 40)
         print("=" * 80)
         
         return generated_function
@@ -103,9 +122,14 @@ def excel_column_extraction(document_ids, session_id, target_fields_data):
                         
                     print("=" * 80)
                     
+                except SyntaxError as syntax_error:
+                    print(f"Syntax Error in generated function: {syntax_error}")
+                    print(f"Error at line {syntax_error.lineno}: {syntax_error.text}")
+                    print("Falling back to simple column extraction")
+                    fallback_results = simple_column_extraction(extracted_content, target_fields_data)
+                    all_extraction_results.extend(fallback_results)
                 except Exception as func_error:
-                    print(f"Error executing generated function: {func_error}")
-                    # Fallback to simple extraction if generated function fails
+                    print(f"Runtime error executing generated function: {func_error}")
                     print("Falling back to simple column extraction")
                     fallback_results = simple_column_extraction(extracted_content, target_fields_data)
                     all_extraction_results.extend(fallback_results)
