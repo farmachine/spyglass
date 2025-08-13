@@ -105,8 +105,21 @@ def analyze_extraction_requirements(documents, target_fields_data):
         
         print("\nAI CONDUCTOR ANALYSIS:")
         print("=" * 80)
-        print(analysis_result)
+        print(f"Response type: {type(analysis_result)}")
+        print(f"Response content: {analysis_result}")
         print("=" * 80)
+        
+        # Check if response is None or empty
+        if analysis_result is None:
+            print("ERROR: Gemini returned None response - falling back to simple extraction")
+            # Fallback to simple extraction based on document type
+            documents_format = determine_document_format_from_filenames(documents)
+            return create_fallback_extraction_plan(documents_format)
+        
+        if not analysis_result or not analysis_result.strip():
+            print("ERROR: Gemini returned empty response - falling back to simple extraction")
+            documents_format = determine_document_format_from_filenames(documents)
+            return create_fallback_extraction_plan(documents_format)
         
         # Parse the analysis result
         extraction_plan = parse_extraction_plan(analysis_result)
@@ -120,6 +133,9 @@ def analyze_extraction_requirements(documents, target_fields_data):
 def parse_extraction_plan(analysis_result):
     """Parse the Gemini analysis into executable steps"""
     try:
+        if not analysis_result:
+            return {"error": "No analysis result to parse"}
+        
         lines = analysis_result.strip().split('\n')
         document_format = None
         extraction_steps = []
@@ -208,3 +224,48 @@ def execute_extraction_sequence(extraction_plan, document_ids, session_id, targe
     except Exception as e:
         print(f"Error executing extraction sequence: {e}")
         return {"error": str(e)}
+
+def determine_document_format_from_filenames(documents):
+    """Determine document format from file extensions"""
+    try:
+        for doc in documents:
+            file_name = doc.get('file_name', '').lower()
+            if file_name.endswith(('.xlsx', '.xls')):
+                return 'Excel'
+            elif file_name.endswith(('.pdf')):
+                return 'PDF'
+            elif file_name.endswith(('.docx', '.doc')):
+                return 'Word'
+        return 'Unknown'
+    except Exception as e:
+        print(f"Error determining document format: {e}")
+        return 'Unknown'
+
+def create_fallback_extraction_plan(document_format):
+    """Create a simple extraction plan based on document format"""
+    try:
+        print(f"FALLBACK: Creating extraction plan for {document_format} documents")
+        
+        if document_format == 'Excel':
+            return {
+                "document_format": "Excel",
+                "extraction_steps": [
+                    {
+                        "method": "Excel Extraction",
+                        "description": "Extract data using Excel operations"
+                    }
+                ]
+            }
+        else:
+            return {
+                "document_format": document_format,
+                "extraction_steps": [
+                    {
+                        "method": "AI Extraction", 
+                        "description": "Extract data using AI analysis"
+                    }
+                ]
+            }
+    except Exception as e:
+        print(f"Error creating fallback extraction plan: {e}")
+        return {"error": f"Failed to create fallback plan: {e}"}
