@@ -4652,10 +4652,28 @@ print(json.dumps(results))
 
   // Run extraction wizardry Python script
   app.post("/api/run-wizardry", async (req, res) => {
+    let processCompleted = false;
+    
     try {
       const requestData = req.body; // Get request data with document_ids and session_id
       
-      const python = spawn('python3', ['extraction_wizardry.py']);
+      console.log(`Starting wizardry extraction for session: ${requestData?.session_id}`);
+      
+      const python = spawn('python3', ['ai_conductor.py']);
+      
+      // Set timeout for Python process (4.5 minutes to allow for 3 retry attempts)
+      const timeout = setTimeout(() => {
+        if (!processCompleted) {
+          console.log('Python process timeout - killing process');
+          python.kill('SIGTERM');
+          if (!res.headersSent) {
+            res.status(504).json({ 
+              message: "Extraction process timed out", 
+              error: "The AI extraction process took too long and was terminated"
+            });
+          }
+        }
+      }, 270000); // 4.5 minutes
       
       // Pass request data to Python script via stdin
       if (requestData && requestData.document_ids && requestData.session_id) {
@@ -4667,33 +4685,62 @@ print(json.dumps(results))
       let error = '';
       
       python.stdout.on('data', (data: any) => {
-        output += data.toString();
+        const chunk = data.toString();
+        output += chunk;
+        // Log progress to console for debugging
+        if (chunk.includes('AI CONDUCTOR') || chunk.includes('ERROR') || chunk.includes('FALLBACK')) {
+          console.log('Python output:', chunk.trim());
+        }
       });
       
       python.stderr.on('data', (data: any) => {
-        error += data.toString();
+        const chunk = data.toString();
+        error += chunk;
+        console.error('Python error:', chunk.trim());
       });
       
       python.on('close', (code: any) => {
+        processCompleted = true;
+        clearTimeout(timeout);
+        
         if (code !== 0) {
           console.error('Wizardry script error:', error);
-          return res.status(500).json({ 
-            message: "Wizardry script failed", 
-            error: error 
-          });
+          if (!res.headersSent) {
+            return res.status(500).json({ 
+              message: "Wizardry script failed", 
+              error: error,
+              code: code
+            });
+          }
         }
         
-        // Return the complete output from Python script (includes both document properties and Gemini analysis)
-        res.json({ 
-          message: "Wizardry analysis completed",
-          output: output.trim(),
-          success: true
-        });
+        if (!res.headersSent) {
+          // Return the complete output from Python script
+          res.json({ 
+            message: "Wizardry analysis completed",
+            output: output.trim(),
+            success: true
+          });
+        }
+      });
+      
+      python.on('error', (err: any) => {
+        processCompleted = true;
+        clearTimeout(timeout);
+        console.error('Python process error:', err);
+        if (!res.headersSent) {
+          res.status(500).json({ 
+            message: "Failed to start wizardry script", 
+            error: err.message 
+          });
+        }
       });
       
     } catch (error) {
       console.error("Wizardry execution error:", error);
-      res.status(500).json({ message: "Failed to run wizardry script" });
+      if (!res.headersSent) {
+        res.status(500).json({ message: "Failed to run wizardry script" });
+      }
     }
   });
 
