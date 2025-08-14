@@ -583,8 +583,22 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
         )}
 
         {/* Main Content */}
-        <div className="flex-1 overflow-auto p-8">
+        <div className="flex-1 overflow-auto p-8 relative">
           {renderActiveContent()}
+          
+          {/* Floating Settings Button - Only show on All Data tab */}
+          {activeTab === 'data' && canAccessConfigTabs && (
+            <div className="fixed bottom-6 left-6 z-10">
+              <button
+                onClick={() => setLocation(`/projects/${project.id}/admin`)}
+                className="flex items-center gap-2 px-4 py-3 bg-primary text-white rounded-lg shadow-lg hover:bg-primary/90 transition-all duration-200"
+                title="Project Admin Settings"
+              >
+                <Settings className="h-5 w-5" />
+                <span className="text-sm font-medium">Project Admin</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
