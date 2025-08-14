@@ -691,6 +691,7 @@ const AIExtractionModal = ({
 
 export default function SessionView() {
   const { sessionId } = useParams(); // Remove projectId from params - we'll get it from session data
+  const [showSessionsList, setShowSessionsList] = useState(false);
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [showReasoningDialog, setShowReasoningDialog] = useState(false);
@@ -2394,7 +2395,18 @@ Thank you for your assistance.`;
   const verificationStats = getVerificationStatsForProject();
 
   const navItems = [
-    { id: "data", label: `All ${project?.mainObjectName || "Session"}s`, icon: Database, href: `/projects/${projectId}?tab=all-data` },
+    { 
+      id: "back", 
+      label: "Back to Project", 
+      icon: ArrowLeft, 
+      action: () => window.location.href = `/project/${projectId}` 
+    },
+    { 
+      id: "data", 
+      label: `All ${project?.mainObjectName || "Session"}s`, 
+      icon: Database, 
+      action: () => setShowSessionsList(!showSessionsList) 
+    },
   ];
 
   return (
@@ -2463,21 +2475,21 @@ Thank you for your assistance.`;
             <nav className="space-y-0.5">
               {navItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = false; // No highlighting since it navigates away
+                const isActive = item.id === "data" && showSessionsList;
                 
                 return (
-                  <Link key={item.id} href={item.href}>
-                    <button
-                      className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
-                        isActive
-                          ? "bg-primary text-white font-medium shadow-sm"
-                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
-                      }`}
-                    >
-                      <Icon className={`h-4 w-4 ${isActive ? "text-white" : "text-slate-500"}`} />
-                      {item.label}
-                    </button>
-                  </Link>
+                  <button
+                    key={item.id}
+                    onClick={item.action}
+                    className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
+                      isActive
+                        ? "bg-primary text-white font-medium shadow-sm"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
+                    }`}
+                  >
+                    <Icon className={`h-4 w-4 ${isActive ? "text-white" : "text-slate-500"}`} />
+                    {item.label}
+                  </button>
                 );
               })}
             </nav>
@@ -2756,8 +2768,89 @@ Thank you for your assistance.`;
 
             {/* Session Data Content - Now controlled by sidebar navigation */}
             <div className="w-full">
-              {/* Info Tab Content - Single Object View */}
-              {activeTab === 'info' && (
+              {/* Sessions List View */}
+              {showSessionsList && project && (
+                <div className="p-6">
+                  <div className="mb-6">
+                    <h2 className="text-2xl font-bold text-gray-900">All {project.mainObjectName || "Session"}s</h2>
+                    <p className="text-gray-600 mt-1">
+                      View and manage all {(project.mainObjectName || "session").toLowerCase()}s in this project
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {project.sessions.map((projectSession) => {
+                      // Get verification stats for this session
+                      const sessionValidations = validations?.filter(v => v.sessionId === projectSession.id) || [];
+                      const totalFields = getAllProjectFields().length;
+                      const verifiedFields = sessionValidations.filter(v => v.validationStatus === 'verified' || v.validationStatus === 'valid').length;
+                      const progressPercentage = totalFields > 0 ? Math.round((verifiedFields / totalFields) * 100) : 0;
+                      
+                      return (
+                        <div key={projectSession.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3">
+                                <Link href={`/sessions/${projectSession.id}`}>
+                                  <h3 className="font-semibold text-lg text-blue-600 hover:text-blue-800 cursor-pointer">
+                                    {projectSession.sessionName}
+                                  </h3>
+                                </Link>
+                                {progressPercentage === 100 && (
+                                  <CheckCircle className="h-5 w-5 text-green-600" />
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-500 mt-1">
+                                Created {new Date(projectSession.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                            
+                            <div className="flex items-center gap-4">
+                              {/* Progress indicator */}
+                              <div className="flex items-center gap-2">
+                                <div className="w-20 bg-gray-200 rounded-full h-2">
+                                  <div 
+                                    className={`h-2 rounded-full transition-all duration-300 ${
+                                      progressPercentage === 100 ? 'bg-green-600' : 
+                                      progressPercentage > 0 ? 'bg-blue-600' : 'bg-gray-400'
+                                    }`}
+                                    style={{ width: `${progressPercentage}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs font-medium text-gray-700 min-w-[28px]">
+                                  {progressPercentage}%
+                                </span>
+                              </div>
+                              
+                              {/* Session actions */}
+                              <Link href={`/sessions/${projectSession.id}`}>
+                                <Button variant="outline" size="sm">
+                                  <Edit className="h-4 w-4 mr-1" />
+                                  Open
+                                </Button>
+                              </Link>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    
+                    {project.sessions.length === 0 && (
+                      <div className="text-center py-12">
+                        <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No {project.mainObjectName || "Session"}s Yet</h3>
+                        <p className="text-gray-500">Start by creating your first {(project.mainObjectName || "session").toLowerCase()}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Regular Session Content - Only show when not showing sessions list */}
+              {!showSessionsList && (
+                <>
+                  {/* Info Tab Content - Single Object View */}
+                  {activeTab === 'info' && (
                 <Card className="border-t-0 rounded-tl-none ml-0">
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
@@ -3585,6 +3678,12 @@ Thank you for your assistance.`;
           collectionProperty={findCollectionProperty(editFieldDialog.validation)}
         />
       )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Add Documents Modal */}
       <AddDocumentsModal
