@@ -36,9 +36,10 @@ export function JobProgress({ sessionId, onJobComplete }: JobProgressProps) {
   // Fetch jobs for this session
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ['/api/sessions', sessionId, 'jobs'],
-    refetchInterval: (data: Job[] | undefined) => {
+    refetchInterval: (data) => {
       // Refresh every 2 seconds if there are running or pending jobs
-      const hasActiveJobs = data?.some(job => 
+      const jobArray = Array.isArray(data) ? data : [];
+      const hasActiveJobs = jobArray.some((job: Job) => 
         job.status === 'running' || job.status === 'pending'
       );
       return hasActiveJobs ? 2000 : false;
@@ -47,7 +48,8 @@ export function JobProgress({ sessionId, onJobComplete }: JobProgressProps) {
 
   useEffect(() => {
     // Check for completed jobs and trigger callback
-    const completedJobs = jobs.filter((job: Job) => 
+    const jobArray = Array.isArray(jobs) ? jobs : [];
+    const completedJobs = jobArray.filter((job: Job) => 
       job.status === 'completed' && job.results
     );
     
@@ -127,14 +129,16 @@ export function JobProgress({ sessionId, onJobComplete }: JobProgressProps) {
     );
   }
 
-  if (jobs.length === 0) {
+  const jobArray = Array.isArray(jobs) ? jobs : [];
+
+  if (jobArray.length === 0) {
     return null;
   }
 
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-medium">Extraction Jobs</h3>
-      {jobs.map((job: Job) => (
+      {jobArray.map((job: Job) => (
         <Card key={job.id}>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
