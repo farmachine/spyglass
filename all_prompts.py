@@ -60,15 +60,21 @@ CRITICAL INDEXING RULE:
 - Every result must have different index: 0, 1, 2, 3, etc.
 
 RESPONSE FORMAT:
-Return a JSON object with:
-{{
-    "function_name": "descriptive_name_for_this_extraction",
-    "description": "detailed description of what this function does",
-    "tags": ["tag1", "tag2", "tag3"], // relevant tags for searching
-    "function_code": "def extract_excel_data(extracted_content, target_fields_data):\n    # Your complete function here\n    return results"
-}}
+Return ONLY a valid JSON object in this exact format:
 
-NO markdown, NO extra explanations, ONLY the JSON object.
+{
+    "function_name": "descriptive_name_for_this_extraction",
+    "description": "detailed description of what this function does", 
+    "tags": ["tag1", "tag2", "tag3"],
+    "function_code": "def extract_excel_data(extracted_content, target_fields_data):\n    results = []\n    # Your complete function implementation here\n    return results"
+}
+
+CRITICAL REQUIREMENTS:
+- Start response with { and end with }
+- NO markdown blocks, NO ```json, NO explanations
+- Escape all quotes and newlines properly in function_code
+- Make function_code a single string with \n for line breaks
+- Return ONLY the JSON, nothing else
 
 """
 

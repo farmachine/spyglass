@@ -420,11 +420,33 @@ def generate_excel_function_with_gemini(target_fields_data, documents, max_retri
             
             response_text = response.text or ""
             
-            # Try to parse the JSON response
+            # Log the raw response for debugging
+            print(f"Raw Gemini response: {response_text}")
+            
+            # Try to clean and parse the JSON response
             try:
-                function_data = json.loads(response_text)
+                # Remove any markdown formatting if present
+                cleaned_response = response_text.strip()
+                if cleaned_response.startswith('```json'):
+                    cleaned_response = cleaned_response.replace('```json', '').replace('```', '').strip()
+                elif cleaned_response.startswith('```'):
+                    cleaned_response = cleaned_response.replace('```', '').strip()
+                
+                function_data = json.loads(cleaned_response)
                 return function_data
             except json.JSONDecodeError as parse_error:
+                # Try to extract JSON from the response if it's embedded in text
+                try:
+                    # Look for JSON-like content between { and }
+                    start_idx = response_text.find('{')
+                    end_idx = response_text.rfind('}') + 1
+                    if start_idx >= 0 and end_idx > start_idx:
+                        json_part = response_text[start_idx:end_idx]
+                        function_data = json.loads(json_part)
+                        return function_data
+                except:
+                    pass
+                
                 return {"error": f"Failed to parse Gemini response as JSON: {str(parse_error)}", "raw_response": response_text}
             
         except Exception as e:
