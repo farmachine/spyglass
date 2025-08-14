@@ -639,12 +639,15 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             target_fields = data.get('target_fields', [])
             document_ids = data.get('document_ids', [])
             session_id = data.get('session_id')
+            identifier_references = data.get('identifier_references', [])
             
             print(f"DOCUMENT IDS: {document_ids}")
             print(f"SESSION ID: {session_id}")
             print(f"NUMBER OF TARGET FIELDS: {len(target_fields)}")
             print("TARGET FIELDS RECEIVED:")
             print(json.dumps(target_fields, indent=2))
+            print("IDENTIFIER REFERENCES RECEIVED:")
+            print(json.dumps(identifier_references, indent=2))
         
         print("=" * 80)
         print("STOPPING PROCESS - Parameter verification complete")
@@ -655,6 +658,9 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
         document_ids = data.get('document_ids', [])
         session_id = data.get('session_id')
         target_fields = data.get('target_fields', [])
+        
+        # Variable to store identifier references from first extraction
+        first_run_identifier_references = []
         
         if not document_ids or not session_id:
             print(json.dumps({"error": "Missing document_ids or session_id"}))
@@ -818,6 +824,9 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                                     field_name_only = field_name_parts[-1] if len(field_name_parts) > 1 else result['field_name']
                                     identifier_references.append({field_name_only: result['extracted_value']})
                             
+                            # Store for auto-rerun
+                            first_run_identifier_references = identifier_references
+                            
                             print("\n" + "=" * 80)
                             print("IDENTIFIER REFERENCES")
                             print("=" * 80)
@@ -884,6 +893,9 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                                         field_name_only = field_name_parts[-1] if len(field_name_parts) > 1 else result['field_name']
                                         identifier_references.append({field_name_only: result['extracted_value']})
                                 
+                                # Store for auto-rerun
+                                first_run_identifier_references = identifier_references
+                                
                                 print("\n" + "=" * 80)
                                 print("IDENTIFIER REFERENCES")
                                 print("=" * 80)
@@ -933,6 +945,9 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                         field_name_only = field_name_parts[-1] if len(field_name_parts) > 1 else result['field_name']
                         identifier_references.append({field_name_only: result['extracted_value']})
                 
+                # Store for auto-rerun
+                first_run_identifier_references = identifier_references
+                
                 print("\n" + "=" * 80)
                 print("IDENTIFIER REFERENCES")
                 print("=" * 80)
@@ -979,6 +994,9 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                         field_name_parts = result['field_name'].split('.')
                         field_name_only = field_name_parts[-1] if len(field_name_parts) > 1 else result['field_name']
                         identifier_references.append({field_name_only: result['extracted_value']})
+                
+                # Store for auto-rerun
+                first_run_identifier_references = identifier_references
                 
                 print("\n" + "=" * 80)
                 print("IDENTIFIER REFERENCES")
@@ -1074,11 +1092,12 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             print("EXCLUDED PROPERTIES (NOT TO BE EXTRACTED):")
             print(json.dumps(excluded_properties, indent=2))
             
-            # Create new data object with updated target fields
+            # Create new data object with updated target fields and identifier references
             rerun_data = {
                 "document_ids": document_ids,
                 "session_id": session_id,
-                "target_fields": selected_target_fields
+                "target_fields": selected_target_fields,
+                "identifier_references": first_run_identifier_references
             }
             
             # Re-run the extraction with the new parameters
