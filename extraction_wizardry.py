@@ -1002,6 +1002,7 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             print("\n" + "=" * 80)
             print("AUTO-RERUN: Starting second extraction run")
             print("=" * 80)
+            print(f"DEBUG: About to trigger second run with extraction_number {extraction_number + 1}")
             
             # Define the parameters for the second run as specified by user
             next_extraction_number = extraction_number + 1  # 0 + 1 = 1
