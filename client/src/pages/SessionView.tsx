@@ -310,12 +310,32 @@ const AIExtractionModal = ({
     const globalFieldIndex = availableFields.findIndex(f => f.id === fieldId);
     const wasSelected = selectedTargetFields.includes(fieldId);
     
-    // Check if this is a collection field
-    if (fieldId.includes('.')) {
+    // Check if this field belongs to a collection by looking for collectionId
+    const allCollections = project?.collections || [];
+    let fieldCollection = null;
+    let isCollectionField = false;
+    
+    for (const collection of allCollections) {
+      const property = collection.properties?.find(p => p.id === fieldId);
+      if (property) {
+        fieldCollection = collection;
+        isCollectionField = true;
+        break;
+      }
+    }
+    
+    if (isCollectionField && fieldCollection) {
       // Collection field: use sequential selection logic within the collection
-      const [collectionName] = fieldId.split('.');
       const collectionFields = availableFields
-        .filter(f => f.id.startsWith(collectionName + '.'))
+        .filter(f => {
+          // Check if this field belongs to the same collection
+          for (const collection of allCollections) {
+            if (collection.id === fieldCollection.id) {
+              return collection.properties?.some(p => p.id === f.id);
+            }
+          }
+          return false;
+        })
         .sort((a, b) => (a.orderIndex || a.index || 0) - (b.orderIndex || b.index || 0));
       
       const fieldIndex = collectionFields.findIndex(f => f.id === fieldId);
@@ -333,7 +353,16 @@ const AIExtractionModal = ({
           });
           
           return prev.filter(id => {
-            if (!id.startsWith(collectionName + '.')) return true;
+            // Keep non-collection fields and fields from other collections
+            let belongsToSameCollection = false;
+            for (const collection of allCollections) {
+              if (collection.id === fieldCollection.id) {
+                belongsToSameCollection = collection.properties?.some(p => p.id === id) || false;
+                break;
+              }
+            }
+            if (!belongsToSameCollection) return true;
+            
             const targetIndex = collectionFields.findIndex(f => f.id === id);
             return targetIndex < fieldIndex;
           });
@@ -614,15 +643,30 @@ const AIExtractionModal = ({
             {availableFields
               .sort((a, b) => (a.orderIndex || a.index || 0) - (b.orderIndex || b.index || 0))
               .map((field) => {
-                // Check if this is a collection field and determine if it's selectable
+                // Check if this field belongs to a collection and determine if it's selectable
                 let isSelectable = true;
                 let isFirstInCollection = false;
+                let fieldBelongsToCollection = false;
+                let fieldCollection = null;
                 
-                if (field.id.includes('.')) {
+                // Check if this field belongs to any collection
+                const allCollections = project?.collections || [];
+                for (const collection of allCollections) {
+                  const property = collection.properties?.find(p => p.id === field.id);
+                  if (property) {
+                    fieldBelongsToCollection = true;
+                    fieldCollection = collection;
+                    break;
+                  }
+                }
+                
+                if (fieldBelongsToCollection && fieldCollection) {
                   // Collection field: apply sequential selection logic
-                  const [collectionName, propertyName] = field.id.split('.');
                   const collectionFields = availableFields
-                    .filter(f => f.id.startsWith(collectionName + '.'))
+                    .filter(f => {
+                      // Check if this field belongs to the same collection
+                      return fieldCollection.properties?.some(p => p.id === f.id);
+                    })
                     .sort((a, b) => (a.orderIndex || a.index || 0) - (b.orderIndex || b.index || 0));
                   
                   const fieldIndex = collectionFields.findIndex(f => f.id === field.id);
@@ -642,7 +686,6 @@ const AIExtractionModal = ({
                 
                 // Check if this field is an identifier (mandatory)
                 let isIdentifier = false;
-                const allCollections = project?.collections || [];
                 for (const collection of allCollections) {
                   const property = collection.properties?.find(p => p.id === field.id);
                   if (property?.isIdentifier) {
