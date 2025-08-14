@@ -631,10 +631,10 @@ const AIExtractionModal = ({
         <DialogHeader className="pb-4">
           <DialogTitle className="flex items-center gap-3 text-2xl font-bold text-foreground">
             <Wand2 className="h-7 w-7 text-primary" />
-            🎯 AI Field Extractor - {sectionName}
+            Extraction Wizard
           </DialogTitle>
-          <DialogDescription className="text-base text-muted-foreground mt-2 leading-relaxed">
-            Select the specific fields you want to extract from your documents. Use sequential selection for ordered data like lists and tables.
+          <DialogDescription className="text-lg text-muted-foreground mt-1">
+            Extract fields for {sectionName}
           </DialogDescription>
         </DialogHeader>
 
