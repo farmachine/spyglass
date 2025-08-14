@@ -25,7 +25,7 @@ class ExcelPreprocessor:
     """Enhanced Excel preprocessor that cleans and normalizes data"""
     
     def __init__(self):
-        self.debug = True  # Enable debug output for testing (all output goes to stderr)
+        self.debug = False  # Disable debug output for production use
         
     def clean_cell_value(self, value: Any) -> str:
         """Clean and normalize a single cell value"""
