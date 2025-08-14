@@ -3,54 +3,10 @@ import sys
 import os
 import time
 import psycopg2
-import requests
 from google import genai
 from all_prompts import DOCUMENT_FORMAT_ANALYSIS, EXCEL_FUNCTION_GENERATOR
 from excel_wizard import excel_column_extraction
 from ai_extraction_wizard import ai_document_extraction
-
-def save_validations_to_database(session_id, validation_results):
-    """Save validation results to the database via API endpoint"""
-    try:
-        # Prepare the validation data for the API
-        api_url = "http://localhost:5000/api/sessions/{}/save-validations".format(session_id)
-        
-        # Convert validation results to the expected format
-        formatted_validations = []
-        for result in validation_results:
-            validation = {
-                "field_name": result.get("field_name", ""),
-                "validation_type": result.get("validation_type", "collection_property"),
-                "data_type": result.get("data_type", "TEXT"),
-                "collection_name": result.get("collection_name", ""),
-                "record_index": result.get("record_index", 0),
-                "extracted_value": result.get("extracted_value", ""),
-                "confidence_score": int(result.get("confidence_score", 0) * 100) if isinstance(result.get("confidence_score"), float) else result.get("confidence_score", 0),
-                "validation_status": result.get("validation_status", "unverified"),
-                "ai_reasoning": result.get("ai_reasoning", ""),
-                "manually_verified": False,
-                "manually_updated": False
-            }
-            formatted_validations.append(validation)
-        
-        # Make API request to save validations
-        response = requests.post(
-            api_url,
-            json={"validations": formatted_validations},
-            headers={"Content-Type": "application/json"},
-            timeout=60
-        )
-        
-        if response.status_code == 200:
-            print(f"\n💾 DATABASE SAVE: Successfully saved {len(formatted_validations)} validation records")
-            return {"success": True, "saved_count": len(formatted_validations)}
-        else:
-            print(f"\n❌ DATABASE SAVE ERROR: {response.status_code} - {response.text}")
-            return {"success": False, "error": f"API error: {response.status_code}"}
-            
-    except Exception as e:
-        print(f"\n❌ DATABASE SAVE EXCEPTION: {str(e)}")
-        return {"success": False, "error": str(e)}
 
 def log_remaining_collection_fields(extracted_results, all_collection_properties):
     """Log which collection fields have been extracted and which remain to be processed"""
@@ -972,13 +928,6 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                                 extracted_count = sum(1 for prop in all_collection_properties if prop.get('property_name') in extracted_field_names)
                                 remaining_count = total_fields - extracted_count
                                 print(f"\n📊 PROGRESS: {extracted_count}/{total_fields} fields extracted, {remaining_count} remaining")
-                            
-                            # Save validation results to database
-                            save_result = save_validations_to_database(session_id, processed_results.get('identifier_results', []))
-                            if save_result.get('success'):
-                                print(f"✅ Saved {save_result['saved_count']} validation records to database")
-                            else:
-                                print(f"⚠️  Database save failed: {save_result.get('error', 'Unknown error')}")
                         else:
                             print(f"Error processing function results: {processed_results['error']}")
                     else:
@@ -1088,13 +1037,6 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                                 
                                 # Log remaining fields
                                 log_remaining_collection_fields(processed_results.get('identifier_results', []), all_collection_properties)
-                                
-                                # Save validation results to database
-                                save_result = save_validations_to_database(session_id, processed_results.get('identifier_results', []))
-                                if save_result.get('success'):
-                                    print(f"✅ Saved {save_result['saved_count']} validation records to database")
-                                else:
-                                    print(f"⚠️  Database save failed: {save_result.get('error', 'Unknown error')}")
                             else:
                                 print(f"Error processing new function results: {processed_results['error']}")
                         else:
@@ -1161,13 +1103,6 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                     extracted_count = sum(1 for prop in all_collection_properties if prop.get('property_name') in extracted_field_names)
                     remaining_count = total_fields - extracted_count
                     print(f"\n📊 PROGRESS: {extracted_count}/{total_fields} fields extracted, {remaining_count} remaining")
-                
-                # Save validation results to database  
-                save_result = save_validations_to_database(session_id, processed_results.get('identifier_results', []))
-                if save_result.get('success'):
-                    print(f"✅ Saved {save_result['saved_count']} validation records to database")
-                else:
-                    print(f"⚠️  Database save failed: {save_result.get('error', 'Unknown error')}")
             else:
                 print(f"   Error processing AI extraction results: {processed_results['error']}")
         else:

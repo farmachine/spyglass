@@ -24,6 +24,8 @@ import {
 import { generateChatResponse } from "./chatService";
 import { authenticateToken, requireAdmin, generateToken, comparePassword, hashPassword, type AuthRequest } from "./auth";
 import { UserRole } from "@shared/schema";
+import { extractionJobs, jobDependencies, extractionCache } from "@shared/job-schema";
+import { jobService } from "./job-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication Routes
@@ -3383,7 +3385,21 @@ except Exception as e:
         return res.status(400).json({ error: 'No validation data provided' });
       }
 
-      console.log(`SAVE VALIDATIONS: Starting for session ${sessionId}, ${parsedValidations.length} validations`);
+      console.log(`\n💾 SAVE VALIDATIONS: Starting for session ${sessionId}, ${parsedValidations.length} validations`);
+      
+      // Log first few validations to see the actual data structure
+      if (parsedValidations.length > 0) {
+        console.log(`📄 VALIDATION DATA SAMPLE (first 3 records):`, 
+          parsedValidations.slice(0, 3).map((v: any, i: number) => ({
+            index: i,
+            field_name: v.field_name,
+            extracted_value: v.extracted_value?.toString().substring(0, 50) + (v.extracted_value?.toString().length > 50 ? '...' : ''),
+            confidence_score: v.confidence_score,
+            validation_status: v.validation_status,
+            record_index: v.record_index
+          }))
+        );
+      }
 
       // Get the session to verify it exists
       const session = await storage.getExtractionSession(sessionId);
@@ -4756,76 +4772,118 @@ print(json.dumps(results))
     }
   });
 
-  // Run extraction wizardry Python script
+  // Run extraction wizardry Python script with job queue
   app.post("/api/run-wizardry", async (req, res) => {
     try {
-      const requestData = req.body; // Get request data with document_ids and session_id
+      const requestData = req.body;
       
-      console.log("Starting wizardry extraction with data:", {
+      console.log(`\n📋 CREATING EXTRACTION JOB:`, {
         session_id: requestData?.session_id,
         document_count: requestData?.document_ids?.length || 0,
-        extraction_number: requestData?.extraction_number || 0
+        extraction_number: requestData?.extraction_number || 0,
+        target_fields: requestData?.target_fields,
+        identifier_references_count: requestData?.identifier_references?.length || 0
       });
-      
-      // Set a longer timeout for this endpoint
-      req.setTimeout(300000); // 5 minutes
-      res.setTimeout(300000); // 5 minutes
-      
-      const python = spawn('python3', ['extraction_wizardry.py']);
-      
-      // Handle process errors
-      python.on('error', (err) => {
-        console.error('Failed to start Python process:', err);
-        if (!res.headersSent) {
-          res.status(500).json({ message: "Failed to start extraction process" });
+
+      if (requestData?.identifier_references?.length > 0) {
+        console.log(`🔗 IDENTIFIER REFERENCES (${requestData.identifier_references.length} items):`, 
+          requestData.identifier_references.slice(0, 5).map((ref: any, i: number) => ({
+            index: i,
+            field_name: ref.field_name,
+            extracted_value: ref.extracted_value?.substring(0, 50) + (ref.extracted_value?.length > 50 ? '...' : ''),
+            record_index: ref.record_index
+          }))
+        );
+        if (requestData.identifier_references.length > 5) {
+          console.log(`... and ${requestData.identifier_references.length - 5} more identifier references`);
         }
-      });
-      
-      // Pass request data to Python script via stdin
-      if (requestData && requestData.document_ids && requestData.session_id) {
-        python.stdin.write(JSON.stringify(requestData));
       }
-      python.stdin.end();
-      
-      let output = '';
-      let error = '';
-      
-      python.stdout.on('data', (data: any) => {
-        output += data.toString();
-        console.log('Python output chunk received:', data.toString().slice(0, 200) + '...');
+
+      // Create a new extraction job
+      const job = await jobService.createExtractionJob({
+        sessionId: requestData.session_id,
+        projectId: requestData.project_id || 'unknown',
+        userId: requestData.user_id || 'unknown',
+        extractionNumber: requestData.extraction_number || 0,
+        documentIds: requestData.document_ids,
+        targetFields: requestData.target_fields,
+        identifierReferences: requestData.identifier_references,
+        extractionRules: requestData.extraction_rules,
       });
-      
-      python.stderr.on('data', (data: any) => {
-        error += data.toString();
-        console.error('Python stderr:', data.toString());
+
+      // Return job ID immediately for client tracking
+      res.json({
+        message: "Extraction job created successfully",
+        jobId: job.id,
+        status: job.status,
+        success: true
       });
-      
-      python.on('close', (code: any) => {
-        console.log(`Python process exited with code: ${code}`);
-        
-        if (!res.headersSent) {
-          if (code !== 0) {
-            console.error('Wizardry script error:', error);
-            return res.status(500).json({ 
-              message: "Wizardry script failed", 
-              error: error 
-            });
-          }
-          
-          // Return the complete output from Python script (includes both document properties and Gemini analysis)
-          res.json({ 
-            message: "Wizardry analysis completed",
-            output: output.trim(),
-            success: true
+
+      // Execute the job asynchronously
+      jobService.executeExtractionJob(job.id)
+        .then(result => {
+          console.log(`\n🎉 Job ${job.id} COMPLETED SUCCESSFULLY:`, {
+            jobId: job.id,
+            sessionId: job.sessionId,
+            recordCount: result.recordCount || 0,
+            processingTime: result.processingTimeMs || 0
           });
-        }
-      });
-      
+        })
+        .catch(error => {
+          console.error(`\n💥 Job ${job.id} FAILED:`, {
+            jobId: job.id,
+            sessionId: job.sessionId,
+            error: error.message
+          });
+        });
+
     } catch (error) {
-      console.error("Wizardry execution error:", error);
-      if (!res.headersSent) {
-        res.status(500).json({ message: "Failed to run wizardry script" });
+      console.error("Failed to create extraction job:", error);
+      res.status(500).json({ message: "Failed to create extraction job" });
+    }
+  });
+
+  // Job management endpoints
+  app.get("/api/jobs/:jobId", authenticateToken, async (req, res) => {
+    try {
+      const job = await jobService.getJob(req.params.jobId);
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
       }
+      res.json(job);
+    } catch (error) {
+      console.error("Error getting job:", error);
+      res.status(500).json({ message: "Failed to get job" });
+    }
+  });
+
+  app.get("/api/sessions/:sessionId/jobs", authenticateToken, async (req, res) => {
+    try {
+      const jobs = await jobService.getJobsBySession(req.params.sessionId);
+      res.json(jobs);
+    } catch (error) {
+      console.error("Error getting session jobs:", error);
+      res.status(500).json({ message: "Failed to get session jobs" });
+    }
+  });
+
+  app.post("/api/jobs/:jobId/cancel", authenticateToken, async (req, res) => {
+    try {
+      await jobService.cancelJob(req.params.jobId);
+      res.json({ message: "Job cancelled successfully" });
+    } catch (error) {
+      console.error("Error cancelling job:", error);
+      res.status(500).json({ message: "Failed to cancel job" });
+    }
+  });
+
+  app.get("/api/jobs", authenticateToken, async (req, res) => {
+    try {
+      const activeJobs = await jobService.getActiveJobs();
+      res.json(activeJobs);
+    } catch (error) {
+      console.error("Error getting active jobs:", error);
+      res.status(500).json({ message: "Failed to get active jobs" });
     }
   });
 

@@ -1,5 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
+import { jobService } from "./job-service";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
@@ -20,6 +21,11 @@ app.use((req, res, next) => {
 // Increase body parser limits for file uploads
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+
+// Initialize job service
+jobService.initialize()
+  .then(() => console.log("📋 Job queue system initialized"))
+  .catch(err => console.error("Failed to initialize job service:", err));
 
 app.use((req, res, next) => {
   const start = Date.now();
