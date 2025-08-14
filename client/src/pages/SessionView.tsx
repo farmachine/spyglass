@@ -30,6 +30,7 @@ import { EditFieldValueDialog } from "@/components/EditFieldValueDialog";
 import AddDocumentsModal from "@/components/AddDocumentsModal";
 import DocumentUploadModal from "@/components/DocumentUploadModal";
 import SessionChat from "@/components/SessionChat";
+import { JobProgress } from "@/components/JobProgress";
 
 import type { 
   ExtractionSession, 
@@ -2962,6 +2963,19 @@ Thank you for your assistance.`;
         {/* Main Content */}
         <div className="flex-1 overflow-auto p-8">
           <div className="w-full">
+            {/* Job Progress Component */}
+            <div className="mb-6">
+              <JobProgress 
+                sessionId={sessionId} 
+                onJobComplete={(job) => {
+                  // Invalidate queries to refresh data after job completion
+                  queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+                  queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'documents'] });
+                  queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
+                }}
+              />
+            </div>
+
             {/* Session Review Header - Now styled like page header */}
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-start space-x-3 flex-1 mr-6">
