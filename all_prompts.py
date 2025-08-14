@@ -18,13 +18,17 @@ Extraction Number: {extraction_number}
 Based on the document format and target fields, determine which extraction process to use:
 
 1. If format is Excel, ALWAYS prefer "Excel Wizardry Function" for intelligent extraction:
-   - If we have existing functions that match similar document types or field patterns, use: "Excel Wizardry Function|<function_id>"
+   - If we have existing functions that match similar document types AND field patterns AND extraction requirements, use: "Excel Wizardry Function|<function_id>"
    - If no matching functions exist or you want to create a new optimized function, use: "Excel Wizardry Function|CREATE_NEW"
 2. For non-Excel formats (Word/PDF), return: "AI Extraction"
 
-IMPORTANT: Excel Wizardry Function is the preferred method for ALL Excel documents as it provides intelligent, reusable extraction logic.
+CRITICAL FUNCTION SELECTION RULES:
+- FIRST EXTRACTION (extraction_number = 0): Use existing functions designed for initial data discovery
+- SUBSEQUENT EXTRACTIONS (extraction_number > 0): Only use existing functions if they explicitly handle identifier arrays and record matching
+- If identifier_references are provided but existing function descriptions don't mention identifier array handling, you MUST use "Excel Wizardry Function|CREATE_NEW"
+- When in doubt about function compatibility, always choose CREATE_NEW to ensure proper handling
 
-SUBSEQUENT EXTRACTIONS: If identifier_references are provided and extraction_number > 0, the extraction process will use the identifier data from previous extractions to target specific records.
+IMPORTANT: Read function descriptions carefully. Many existing functions only work for first-time extractions and cannot handle identifier-based matching for subsequent runs.
 
 Response format:
 - For existing function: "Excel Wizardry Function|<function_id>"
