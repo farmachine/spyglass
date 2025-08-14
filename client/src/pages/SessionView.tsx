@@ -711,7 +711,7 @@ const AIExtractionModal = ({
         <DialogHeader className="pb-4">
           <DialogTitle className="flex items-center gap-3 text-2xl font-bold text-foreground">
             <Wand2 className="h-7 w-7 text-primary" />
-            Extraction Wizard
+            extrapl Wizard
           </DialogTitle>
           <DialogDescription className="text-lg text-muted-foreground mt-1">
             Extract fields for {sectionName}
@@ -770,9 +770,9 @@ const AIExtractionModal = ({
                 }
                 
                 const isSelected = selectedTargetFields.includes(field.id) || isIdentifier;
-                const containerClass = `rounded-lg p-4 border transition-all ${
+                const containerClass = `rounded-lg p-4 border transition-all bg-white ${
                   isSelected
-                    ? 'bg-primary/5 border-primary shadow-md cursor-pointer'
+                    ? 'border-primary shadow-md cursor-pointer'
                     : isSelectable 
                       ? 'bg-card border-border hover:border-primary/40 hover:shadow-sm cursor-pointer' 
                       : 'bg-muted border-border/50 opacity-50 cursor-not-allowed'
