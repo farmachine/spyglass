@@ -3041,7 +3041,7 @@ Thank you for your assistance.`;
                             type: field.fieldType
                           })) || []
                         )}
-                        className="h-8 w-8 p-0 hover:bg-slate-100"
+                        className="h-8 w-8 p-0 hover:bg-slate-100 text-[#5065a6]"
                       >
                         <Wand2 className="h-4 w-4 text-blue-600" />
                       </Button>
