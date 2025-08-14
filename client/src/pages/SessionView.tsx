@@ -861,11 +861,13 @@ const AIExtractionModal = ({
                                         onClick={() => toggleFieldDocumentSource(field.id, doc.id)}
                                         className={`p-2 rounded-md transition-all flex-shrink-0 ${
                                           isSourceSelected 
-                                            ? 'bg-primary text-primary-foreground shadow-sm' 
-                                            : 'bg-background text-muted-foreground hover:text-primary hover:bg-primary/10'
+                                            ? 'bg-primary shadow-sm' 
+                                            : 'bg-white hover:bg-primary/10'
                                         }`}
                                       >
-                                        <IconComponent className="h-4 w-4" />
+                                        <IconComponent className={`h-4 w-4 ${
+                                          isSourceSelected ? 'text-white' : iconColor
+                                        }`} />
                                       </button>
                                       <div className="flex-1 min-w-0">
                                         <span className="text-sm text-foreground font-medium block truncate">
