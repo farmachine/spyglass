@@ -660,7 +660,7 @@ export default function SessionView() {
   const [aiExtractionModal, setAiExtractionModal] = useState<{
     open: boolean;
     sectionName: string;
-    availableFields: { id: string; name: string; type: string }[];
+    availableFields: { id: string; name: string; type: string; index?: number; orderIndex?: number }[];
   }>({ open: false, sectionName: '', availableFields: [] });
 
   // Helper function to find schema field data
@@ -1618,7 +1618,7 @@ export default function SessionView() {
 
   // Get all project fields for AI extraction modal
   const getAllProjectFields = () => {
-    const allFields: { id: string; name: string; type: string }[] = [];
+    const allFields: { id: string; name: string; type: string; index?: number; orderIndex?: number }[] = [];
 
     // Add schema fields (General Information fields)
     if (project?.schemaFields) {
@@ -1626,7 +1626,8 @@ export default function SessionView() {
         allFields.push({
           id: field.fieldName,
           name: field.fieldName,
-          type: field.fieldType
+          type: field.fieldType,
+          orderIndex: field.orderIndex || 0
         });
       });
     }
@@ -1639,7 +1640,8 @@ export default function SessionView() {
             allFields.push({
               id: `${collection.collectionName}.${property.propertyName}`,
               name: `${collection.collectionName} - ${property.propertyName}`,
-              type: property.propertyType
+              type: property.propertyType,
+              orderIndex: property.orderIndex || 0
             });
           });
         }
