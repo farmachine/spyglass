@@ -336,14 +336,43 @@ def create_excel_wizardry_function(name, description, tags, function_code):
         conn = psycopg2.connect(database_url)
         cursor = conn.cursor()
         
-        # Insert new function
+        # Define input and output schemas
+        input_schema = {
+            "type": "object",
+            "properties": {
+                "extracted_content": {"type": "string", "description": "Excel content with sheet names and tab-separated values"},
+                "target_fields_data": {"type": "array", "description": "List of target fields to extract"}
+            },
+            "required": ["extracted_content", "target_fields_data"]
+        }
+        
+        output_schema = {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "validation_type": {"type": "string"},
+                    "data_type": {"type": "string"},
+                    "field_name": {"type": "string"},
+                    "collection_name": {"type": "string"},
+                    "extracted_value": {"type": "string"},
+                    "confidence_score": {"type": "number"},
+                    "validation_status": {"type": "string"},
+                    "ai_reasoning": {"type": "string"},
+                    "record_index": {"type": "integer"}
+                }
+            }
+        }
+        
+        # Insert new function with proper schemas
         query = """
-        INSERT INTO excel_wizardry_functions (name, description, tags, function_code, usage_count)
-        VALUES (%s, %s, %s, %s, 0)
+        INSERT INTO excel_wizardry_functions (name, description, tags, function_code, input_schema, output_schema, usage_count)
+        VALUES (%s, %s, %s, %s, %s, %s, 0)
         RETURNING id
         """
         
-        cursor.execute(query, (name, description, tags, function_code))
+        cursor.execute(query, (name, description, tags, function_code, 
+                             json.dumps(input_schema), json.dumps(output_schema)))
         function_id = cursor.fetchone()[0]
         
         conn.commit()
