@@ -140,15 +140,6 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
         <div className="w-full px-6 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setLocation(`/projects/${projectId}`)}
-                className="mr-2"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Project
-              </Button>
               <Settings className="h-8 w-8 text-primary" />
               <div>
                 <h2 className="text-3xl font-bold">Project Admin</h2>
@@ -164,6 +155,19 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
         {/* Sidebar */}
         <div className="w-72 bg-slate-50 border-r border-slate-200">
           <div className="p-4">
+            {/* Back to Project Link */}
+            <div className="mb-4 pb-4 border-b border-slate-200">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLocation(`/projects/${projectId}`)}
+                className="w-full justify-start px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Project
+              </Button>
+            </div>
+            
             <nav className="space-y-0.5">
               {adminNavItems.map((item) => {
                 const Icon = item.icon;
