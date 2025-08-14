@@ -3043,7 +3043,7 @@ Thank you for your assistance.`;
                         )}
                         className="h-8 w-8 p-0 hover:bg-slate-100 text-[#5065a6]"
                       >
-                        <Wand2 className="h-4 w-4 text-blue-600" />
+                        <Wand2 className="h-4 w-4" style={{ color: '#4F63A4' }} />
                       </Button>
                     </CardTitle>
                     <p className="text-sm text-gray-600">
@@ -3392,7 +3392,7 @@ Thank you for your assistance.`;
                             )}
                             className="h-8 w-8 p-0 hover:bg-slate-100"
                           >
-                            <Wand2 className="h-4 w-4 text-blue-600" />
+                            <Wand2 className="h-4 w-4" style={{ color: '#4F63A4' }} />
                           </Button>
                         </CardTitle>
                         <p className="text-sm text-gray-600">{collection.description}</p>
