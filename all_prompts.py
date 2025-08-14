@@ -12,18 +12,19 @@ Existing Excel Wizardry Functions:
 
 Based on the document format and target fields, determine which extraction process to use:
 
-1. If format is Excel AND we have existing functions that match similar document types or field patterns, return: "Excel Wizardry Function"
-2. If format is Excel but no matching functions exist, choose between:
-   - Excel Column Extraction: For simple column-based data extraction
-   - Excel Sheet Extraction: For multi-sheet analysis
-3. If format is Word/PDF, return: "AI Extraction"
+1. If format is Excel, ALWAYS prefer "Excel Wizardry Function" for intelligent extraction:
+   - If we have existing functions that match similar document types or field patterns, use: "Excel Wizardry Function|<function_id>"
+   - If no matching functions exist or you want to create a new optimized function, use: "Excel Wizardry Function|CREATE_NEW"
+2. For non-Excel formats (Word/PDF), return: "AI Extraction"
 
-If you choose "Excel Wizardry Function", also specify which function ID to use or "CREATE_NEW" if creating a new one.
+IMPORTANT: Excel Wizardry Function is the preferred method for ALL Excel documents as it provides intelligent, reusable extraction logic.
+
+Legacy methods (Excel Column Extraction, Excel Sheet Extraction) should only be used if explicitly requested.
 
 Response format:
 - For existing function: "Excel Wizardry Function|<function_id>"
 - For new function: "Excel Wizardry Function|CREATE_NEW"
-- For other methods: Just the method name
+- For non-Excel: "AI Extraction"
 
 """
 
