@@ -2394,7 +2394,7 @@ Thank you for your assistance.`;
   const verificationStats = getVerificationStatsForProject();
 
   const navItems = [
-    { id: "back", label: `← All ${project?.mainObjectName || "Session"}s`, icon: ArrowLeft, href: `/projects/${projectId}?tab=all-data` },
+    { id: "back", label: `← All ${project?.mainObjectName || "Session"}s`, icon: Database, href: `/projects/${projectId}?tab=all-data` },
   ];
 
   return (
