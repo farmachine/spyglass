@@ -51,11 +51,6 @@ IDENTIFIER REFERENCES FROM PREVIOUS EXTRACTION:
 
 EXTRACTION NUMBER: {extraction_number}
 
-DATA PROCESSING NOTE FOR SUBSEQUENT EXTRACTIONS:
-- If extraction_number > 0 and identifier_references are provided, this extraction will process the output from previous extraction fields
-- Additional source documents may also be provided, but the primary data source is the identifier_references array
-- The function must iterate through the identifier_references to find corresponding values for the current target field
-
 FUNCTION METADATA:
 Create a descriptive name and description for this function based on the extraction task.
 
