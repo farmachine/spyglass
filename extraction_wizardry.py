@@ -992,7 +992,63 @@ def run_wizardry(data=None):
         else:
             print("No collection IDs found in target fields")
     
-    # Call the new function with Gemini analysis
+    # Check if sequential extraction is requested
+    if data and data.get('sequential_extraction', False):
+        # Use sequential extraction engine
+        try:
+            from sequential_extraction_engine import SequentialExtractionEngine
+            
+            print("Using Sequential Extraction Engine...")
+            
+            # Get documents and target fields from data
+            documents = get_document_properties_from_db(data.get('document_ids', []), data.get('session_id', ''))
+            if isinstance(documents, dict) and 'error' in documents:
+                print(json.dumps({"error": documents['error']}))
+                return
+            
+            # Get target fields data
+            collection_ids = []
+            target_fields_data = data.get('target_fields_data', [])
+            
+            # Extract collection IDs if not directly provided
+            if not target_fields_data and data.get('collection_ids'):
+                collection_ids = data['collection_ids']
+                all_properties = get_all_collection_properties(collection_ids)
+                if isinstance(all_properties, dict) and 'error' in all_properties:
+                    print(json.dumps({"error": all_properties['error']}))
+                    return
+                
+                # Convert to target_fields_data format
+                target_fields_data = []
+                for prop in all_properties:
+                    target_fields_data.append({
+                        'id': prop['id'],
+                        'collection_id': prop['collection_id'],
+                        'collection_name': prop['collection_name'],
+                        'name': prop['property_name'],
+                        'property_name': prop['property_name'],
+                        'property_type': prop['property_type'],
+                        'description': prop['description'],
+                        'is_identifier': prop['is_identifier'],
+                        'order_index': prop['order_index']
+                    })
+            
+            # Create and run sequential extraction engine
+            engine = SequentialExtractionEngine()
+            result = engine.run_sequential_extraction(documents, target_fields_data, data.get('session_id', ''))
+            
+            # Output result
+            print(json.dumps(result, indent=2))
+            return
+            
+        except ImportError as e:
+            print(json.dumps({"error": f"Sequential extraction engine not available: {str(e)}"}))
+            return
+        except Exception as e:
+            print(json.dumps({"error": f"Sequential extraction failed: {str(e)}"}))
+            return
+    
+    # Call the standard function with Gemini analysis
     run_wizardry_with_gemini_analysis(data)
 
 if __name__ == "__main__":
