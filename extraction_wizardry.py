@@ -680,6 +680,21 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
         # Variable to store identifier references from first extraction
         first_run_identifier_references = []
         
+        # Log incoming data for debugging
+        print(f"DOCUMENT IDS: {document_ids}")
+        print(f"SESSION ID: {session_id}")
+        print(f"NUMBER OF TARGET FIELDS: {len(target_fields)}")
+        print("TARGET FIELDS RECEIVED:")
+        print(json.dumps(target_fields, indent=2))
+        
+        # Log identifier references if they exist
+        incoming_identifier_references = data.get('identifier_references', [])
+        if incoming_identifier_references:
+            print("IDENTIFIER REFERENCES RECEIVED:")
+            print(json.dumps(incoming_identifier_references, indent=2))
+        else:
+            print("IDENTIFIER REFERENCES: None - First extraction")
+        
         # Log which property is being extracted based on extraction number
         if target_fields and extraction_number < len(target_fields):
             current_property = target_fields[extraction_number]
@@ -766,8 +781,8 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
         print(json.dumps(existing_functions, indent=2))
         print("=" * 80)
         
-        # Get identifier references from previous extraction
-        identifier_references = data.get('identifier_references', [])
+        # Use the incoming identifier references from the previous extraction
+        identifier_references = incoming_identifier_references
         
         # Analyze document formats with Gemini using enhanced analysis that includes existing functions and identifier references
         gemini_response = update_document_format_analysis_with_functions(documents, identifier_targets, existing_functions, identifier_references, extraction_number)
@@ -1088,35 +1103,8 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             next_extraction_number = extraction_number + 1  # 0 + 1 = 1
             num_target_collection_items = 2
             
-            # Selected Target Field Objects (only fields to be extracted)
-            selected_target_fields = [
-                {
-                    "id": "34580f0d-321f-498a-b1c0-6162ad831122",
-                    "collectionId": "ee9d75f7-026e-4f59-ad7a-329295c54505",
-                    "propertyName": "Column Heading",
-                    "propertyType": "TEXT",
-                    "description": "Please just look for the first row in each workbook. This will give you the column name. This should only look at row 1 in each sheet.",
-                    "autoVerificationConfidence": 80,
-                    "choiceOptions": [],
-                    "isIdentifier": True,
-                    "orderIndex": 0,
-                    "createdAt": "2025-08-12T07:23:55.023Z",
-                    "selectedDocumentIds": document_ids
-                },
-                {
-                    "id": "afca5391-afb0-4639-baff-2b69487669ad",
-                    "collectionId": "ee9d75f7-026e-4f59-ad7a-329295c54505",
-                    "propertyName": "Worksheet",
-                    "propertyType": "TEXT",
-                    "description": "The name of the worksheet containing the column. This should only look at row 1 in each sheet.",
-                    "autoVerificationConfidence": 80,
-                    "choiceOptions": [],
-                    "isIdentifier": False,
-                    "orderIndex": 1,
-                    "createdAt": "2025-08-12T07:24:51.576Z",
-                    "selectedDocumentIds": document_ids
-                }
-            ]
+            # Use the original target_fields from data parameter to maintain correct field selection
+            selected_target_fields = target_fields if target_fields else []
             
             # Collection properties NOT to be extracted (excluded from processing)
             excluded_properties = [

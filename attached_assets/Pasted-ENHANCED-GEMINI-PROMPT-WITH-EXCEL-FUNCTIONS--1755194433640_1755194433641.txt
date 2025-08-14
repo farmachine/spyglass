@@ -1,0 +1,67 @@
+ENHANCED GEMINI PROMPT WITH EXCEL FUNCTIONS
+================================================================================
+Analyze these documents and determine their format. Either "Excel", "Word", or "PDF".
+
+Documents to analyze:
+[
+  {
+    "id": "248c40bb-c1ec-4f20-ab21-7649dee682ec",
+    "name": "Ersatz eighth (1).xlsx",
+    "type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "size": 12925
+  }
+]
+
+Fields to extract:
+[
+  {
+    "field_id": "34580f0d-321f-498a-b1c0-6162ad831122",
+    "name": "Column Heading",
+    "description": "Please just look for the first row in each workbook. This will give you the column name. This should only look at row 1 in each sheet.",
+    "property_type": "TEXT",
+    "auto_verification_confidence": 80,
+    "choice_options": [],
+    "is_identifier": true,
+    "order_index": 0,
+    "collection_id": "ee9d75f7-026e-4f59-ad7a-329295c54505",
+    "type": "collection_property"
+  }
+]
+
+Existing Excel Wizardry Functions:
+[
+  {
+    "id": "5cb27213-baeb-4c83-8acd-8033f04978b9",
+    "name": "extract_excel_data",
+    "description": "Advanced multi-line parsing: Handles complex headers with intelligent continuation detection and data boundary identification",
+    "tags": [
+      "Excel",
+      "Data Extraction",
+      "Column Headings",
+      "Spreadsheet"
+    ],
+    "usage_count": 24
+  }
+]
+
+Identifier References from Previous Extraction:
+None - First extraction
+
+Extraction Number: 0
+
+Based on the document format and target fields, determine which extraction process to use:
+
+1. If format is Excel, ALWAYS prefer "Excel Wizardry Function" for intelligent extraction:
+   - If we have existing functions that match similar document types or field patterns, use: "Excel Wizardry Function|<function_id>"
+   - If no matching functions exist or you want to create a new optimized function, use: "Excel Wizardry Function|CREATE_NEW"
+2. For non-Excel formats (Word/PDF), return: "AI Extraction"
+
+IMPORTANT: Excel Wizardry Function is the preferred method for ALL Excel documents as it provides intelligent, reusable extraction logic.
+
+SUBSEQUENT EXTRACTIONS: If identifier_references are provided and extraction_number > 0, the extraction process will use the identifier data from previous extractions to target specific records.
+
+Response format:
+- For existing function: "Excel Wizardry Function|<function_id>"
+- For new function: "Excel Wizardry Function|CREATE_NEW"
+- For non-Excel: "AI Extraction"
+
