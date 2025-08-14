@@ -2826,7 +2826,7 @@ Thank you for your assistance.`;
                   {/* Tab button */}
                   <button
                     onClick={() => setActiveTab('info')}
-                    className="ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 text-white font-medium shadow-sm bg-[#071e54]"
+                    className="ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 font-medium shadow-sm text-[#071e54] bg-[#ffffff]"
                   >
                     General Information
                   </button>
