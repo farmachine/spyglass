@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -278,6 +279,8 @@ const AIExtractionModal = ({
   const [additionalInstructions, setAdditionalInstructions] = useState("");
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['schema']));
   const [isExtracting, setIsExtracting] = useState(false);
+  const [expandedFields, setExpandedFields] = useState<Set<string>>(new Set());
+  const [fieldDocumentSources, setFieldDocumentSources] = useState<Record<string, string[]>>({});
   const queryClient = useQueryClient();
 
   // Fetch extraction rules for the project
@@ -423,27 +426,69 @@ const AIExtractionModal = ({
     });
   };
 
+  const toggleFieldExpansion = (fieldId: string) => {
+    setExpandedFields(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(fieldId)) {
+        newSet.delete(fieldId);
+      } else {
+        newSet.add(fieldId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleFieldDocumentSource = (fieldId: string, documentId: string) => {
+    setFieldDocumentSources(prev => {
+      const currentSources = prev[fieldId] || [];
+      const newSources = currentSources.includes(documentId)
+        ? currentSources.filter(id => id !== documentId)
+        : [...currentSources, documentId];
+      
+      return {
+        ...prev,
+        [fieldId]: newSources
+      };
+    });
+  };
+
   // Log selected documents for testing (no extraction call)
   const handleRunExtraction = async () => {
-    // Log selected document information as JSON with content preview
-    const selectedDocumentInfo = sessionDocuments
-      ?.filter(doc => selectedDocuments.includes(doc.id))
-      .map(doc => {
-        // Truncate content to first 200 characters for logging
-        const content = doc.extractedContent || doc.content || doc.extractedText || '';
-        const truncatedContent = content.length > 200 
-          ? content.substring(0, 200) + '...' 
-          : content;
-        
-        return {
-          id: doc.id,
-          name: doc.originalName || doc.filename || doc.name || doc.fileName || `Document ${doc.id.slice(0, 8)}`,
-          type: doc.mimeType || doc.fileType || 'unknown',
-          contentPreview: truncatedContent
-        };
-      }) || [];
-    
-    console.log('Selected Documents for Extraction:', JSON.stringify(selectedDocumentInfo, null, 2));
+    // Create field-specific extraction mapping
+    const fieldExtractionMapping = selectedTargetFields.map(fieldId => {
+      const field = availableFields.find(f => f.id === fieldId);
+      const fieldSources = fieldDocumentSources[fieldId] || [];
+      
+      // If no specific sources selected, use all session documents
+      const documentsToUse = fieldSources.length > 0 
+        ? fieldSources 
+        : sessionDocuments.map(doc => doc.id);
+      
+      const documentInfo = sessionDocuments
+        ?.filter(doc => documentsToUse.includes(doc.id))
+        .map(doc => {
+          const content = doc.extractedContent || doc.content || doc.extractedText || '';
+          const truncatedContent = content.length > 200 
+            ? content.substring(0, 200) + '...' 
+            : content;
+          
+          return {
+            id: doc.id,
+            name: doc.originalName || doc.filename || doc.name || doc.fileName || `Document ${doc.id.slice(0, 8)}`,
+            type: doc.mimeType || doc.fileType || 'unknown',
+            contentPreview: truncatedContent
+          };
+        }) || [];
+
+      return {
+        fieldId,
+        fieldName: field?.name || 'Unknown Field',
+        extractionSources: documentInfo,
+        sourceCount: documentInfo.length
+      };
+    });
+
+    console.log('Field-Specific Extraction Mapping:', JSON.stringify(fieldExtractionMapping, null, 2));
 
     // Log additional instructions
     console.log('Additional Instructions:', additionalInstructions || '(none provided)');
@@ -698,6 +743,9 @@ const AIExtractionModal = ({
                       : 'bg-muted border-border/50 opacity-50 cursor-not-allowed'
                 }`;
                 
+                const isFieldExpanded = expandedFields.has(field.id);
+                const fieldSources = fieldDocumentSources[field.id] || [];
+
                 return (
                   <div key={field.id} className={containerClass}>
                     <div className="flex items-center space-x-3">
@@ -715,17 +763,64 @@ const AIExtractionModal = ({
                         <Wand2 className="h-4 w-4" />
                       </button>
                       <div className="flex-1">
-                        <div 
-                          className={`text-base font-medium ${
-                            isSelectable ? 'text-foreground' : 'text-muted-foreground'
-                          }`}
-                        >
-                          {field.name}
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div 
+                              className={`text-base font-medium ${
+                                isSelectable ? 'text-foreground' : 'text-muted-foreground'
+                              }`}
+                            >
+                              {field.name}
+                            </div>
+                            {field.type && (
+                              <p className={`text-sm mt-1 ${isSelectable ? 'text-muted-foreground' : 'text-muted-foreground/70'}`}>
+                                Type: {field.type}
+                              </p>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => toggleFieldExpansion(field.id)}
+                            className="p-1 hover:bg-muted rounded-md transition-colors"
+                            disabled={!isSelected}
+                          >
+                            {isFieldExpanded ? (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </button>
                         </div>
-                        {field.type && (
-                          <p className={`text-sm mt-1 ${isSelectable ? 'text-muted-foreground' : 'text-muted-foreground/70'}`}>
-                            Type: {field.type}
-                          </p>
+                        
+                        {isSelected && isFieldExpanded && (
+                          <div className="mt-4 pl-4 border-l-2 border-primary/20">
+                            <div className="mb-2">
+                              <Label className="text-sm font-medium text-muted-foreground">
+                                Extraction Sources {fieldSources.length > 0 && `(${fieldSources.length} selected)`}
+                              </Label>
+                            </div>
+                            <div className="space-y-2 max-h-32 overflow-y-auto">
+                              {sessionDocuments.map(doc => {
+                                const isSourceSelected = fieldSources.includes(doc.id);
+                                return (
+                                  <div key={doc.id} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      checked={isSourceSelected}
+                                      onCheckedChange={() => toggleFieldDocumentSource(field.id, doc.id)}
+                                    />
+                                    <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                    <span className="text-sm text-foreground truncate">
+                                      {doc.originalName || doc.filename || doc.name || doc.fileName || `Document ${doc.id.slice(0, 8)}`}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            {fieldSources.length === 0 && (
+                              <p className="text-xs text-muted-foreground/70 mt-2">
+                                No documents selected. Field will use all session documents.
+                              </p>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
