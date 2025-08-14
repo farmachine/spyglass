@@ -142,12 +142,10 @@ def analyze_document_format_with_gemini(documents, target_fields_data=None, max_
         target_fields=target_fields_content
     )
     
-    # Log the prompt before sending to Gemini
-    print("\n" + "=" * 80)
-    print("GEMINI PROMPT")
-    print("=" * 80)
-    print(prompt)
-    print("=" * 80)
+    # Log truncated prompt for debugging
+    print(f"\n📝 GEMINI PROMPT: {len(prompt)} characters")
+    print(f"   Preview: {prompt[:150].replace(chr(10), ' ')}...")
+    print("=" * 40)
     
     # Retry logic for Gemini API calls
     for attempt in range(max_retries):
@@ -574,12 +572,7 @@ def execute_excel_wizardry_function(function_code, extracted_content, target_fie
         
         extract_function = exec_globals['extract_excel_data']
         
-        # Debug: Print input data
-        print(f"DEBUG - Function input content preview: {extracted_content[:500]}...")
-        print(f"DEBUG - Target fields count: {len(target_fields_data)}")
-        print(f"DEBUG - Target fields sample: {target_fields_data[:2] if target_fields_data else 'No fields'}")
-        
-        # Execute the function - check if it accepts identifier_references parameter
+        # Execute function with appropriate parameters
         import inspect
         func_signature = inspect.signature(extract_function)
         
@@ -590,7 +583,7 @@ def execute_excel_wizardry_function(function_code, extracted_content, target_fie
             # Legacy function signature without identifier_references
             results = extract_function(extracted_content, target_fields_data)
         
-        print(f"DEBUG - Function returned {len(results) if results else 0} results")
+        print(f"🔧 Function executed: returned {len(results) if results else 0} results")
         
         return {"results": results}
         
@@ -649,12 +642,10 @@ def update_document_format_analysis_with_functions(documents, target_fields_data
         extraction_number=extraction_number
     )
     
-    # Log the prompt
-    print("\n" + "=" * 80)
-    print("ENHANCED GEMINI PROMPT WITH EXCEL FUNCTIONS")
-    print("=" * 80)
-    print(prompt)
-    print("=" * 80)
+    # Log truncated prompt for debugging
+    print(f"\n📝 ENHANCED GEMINI PROMPT: {len(prompt)} characters")
+    print(f"   Including {len(existing_functions)} functions and {len(identifier_references) if identifier_references else 0} references")
+    print("=" * 40)
     
     try:
         response = client.models.generate_content(
@@ -672,9 +663,8 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
     
     # Log extraction run information
     print("\n" + "=" * 80)
-    print(f"EXTRACTION RUN {extraction_number + 1} - PARAMETER LOGGING")
+    print(f"EXTRACTION RUN {extraction_number + 1}")
     print("=" * 80)
-    print(f"EXTRACTION NUMBER: {extraction_number}")
     
     if data and isinstance(data, dict):
         document_ids = data.get('document_ids', [])
@@ -684,27 +674,24 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
         # Variable to store identifier references from first extraction
         first_run_identifier_references = []
         
-        # Log incoming data for debugging
-        print(f"DOCUMENT IDS: {document_ids}")
-        print(f"SESSION ID: {session_id}")
-        print(f"NUMBER OF TARGET FIELDS: {len(target_fields)}")
-        print("TARGET FIELDS RECEIVED:")
-        print(json.dumps(target_fields, indent=2))
+        # Log key parameters concisely
+        print(f"Session: {session_id[:8]}..." if session_id else "No session")
+        print(f"Documents: {len(document_ids)} selected")
+        print(f"Target fields: {len(target_fields)} total")
         
         # Log identifier references if they exist
         incoming_identifier_references = data.get('identifier_references', [])
         if incoming_identifier_references:
-            print("IDENTIFIER REFERENCES RECEIVED:")
-            print(json.dumps(incoming_identifier_references, indent=2))
+            print(f"Identifier references: {len(incoming_identifier_references)} records from previous extraction")
         else:
-            print("IDENTIFIER REFERENCES: None - First extraction")
+            print("Identifier references: None (first extraction)")
         
-        # Log which property is being extracted based on extraction number
+        # Log which property is being extracted
         if target_fields and extraction_number < len(target_fields):
             current_property = target_fields[extraction_number]
             property_name = current_property.get('propertyName') or current_property.get('property_name', 'Unknown Property')
-            print(f"\nnext property to be extracted: {property_name}")
-            print("=" * 80)
+            print(f"Current target: {property_name} (field {extraction_number + 1}/{len(target_fields)})")
+        print("=" * 80)
         
         if not session_id:
             print(json.dumps({"error": "Missing session_id"}))
@@ -756,29 +743,19 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             if isinstance(all_properties_result, list):
                 all_collection_properties = all_properties_result
         
-        # Print document properties
-        print("\n" + "=" * 80)
-        print("DOCUMENT CONTENT FOR THIS EXTRACTION")
-        print("=" * 80)
+        # Print document and target summary
+        print("\n📄 DOCUMENTS:")
         if documents == "NO DOCUMENTS SELECTED":
-            print("NO DOCUMENTS SELECTED - working with identifier references only")
+            print("  Working with identifier references only")
         else:
-            print(json.dumps(documents, indent=2))
-        print("=" * 80)
+            for doc in documents:
+                doc_name = doc.get('name', 'Unknown')[:50]
+                doc_type = doc.get('type', 'unknown')
+                print(f"  - {doc_name}... ({doc_type})")
         
-        # Print target field descriptions from database
-        print("\n" + "=" * 80)
-        print("TARGET PROPERTIES FOR THIS EXTRACTION")
-        print("=" * 80)
-        print(json.dumps(target_fields_data, indent=2))
-        print("=" * 80)
-        
-        # Display current target property
-        print("\n" + "=" * 80)
-        print("TARGET PROPERTY FOR THIS EXTRACTION")
-        print("=" * 80)
-        print(json.dumps(identifier_targets, indent=2))
-        print("=" * 80)
+        print(f"\n🎯 CURRENT TARGET: {identifier_targets[0].get('name', 'Unknown') if identifier_targets else 'None'}")
+        print(f"   Type: {identifier_targets[0].get('property_type', 'Unknown') if identifier_targets else 'Unknown'}")
+        print(f"   Description: {identifier_targets[0].get('description', 'No description')[:100] if identifier_targets else 'None'}...")
         
         # Get existing Excel wizardry functions
         existing_functions = get_excel_wizardry_functions()
@@ -786,12 +763,12 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             print(f"Warning: Could not retrieve Excel functions: {existing_functions['error']}")
             existing_functions = []
         
-        # Print existing Excel functions
-        print("\n" + "=" * 80)
-        print("EXISTING EXCEL WIZARDRY FUNCTIONS")
-        print("=" * 80)
-        print(json.dumps(existing_functions, indent=2))
-        print("=" * 80)
+        # Print existing Excel functions summary
+        print(f"\n⚡ EXCEL FUNCTIONS: {len(existing_functions)} available")
+        for func in existing_functions[:3]:  # Show top 3 functions
+            print(f"   - {func.get('name', 'Unnamed')} (used {func.get('usage_count', 0)} times)")
+        if len(existing_functions) > 3:
+            print(f"   ... and {len(existing_functions) - 3} more functions")
         
         # Use the incoming identifier references from the previous extraction
         identifier_references = incoming_identifier_references
@@ -799,11 +776,18 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
         # Analyze document formats with Gemini using enhanced analysis that includes existing functions and identifier references
         gemini_response = update_document_format_analysis_with_functions(documents, identifier_targets, existing_functions, identifier_references, extraction_number)
         
-        # Print Gemini response
-        print("\n" + "=" * 80)
-        print("GEMINI ANALYSIS")
-        print("=" * 80)
-        print(gemini_response)
+        # Print Gemini analysis summary
+        print(f"\n🤖 GEMINI DECISION:")
+        if "Excel Wizardry Function" in gemini_response:
+            print("   Method: Excel Wizardry Function")
+        elif "AI Extraction" in gemini_response:
+            print("   Method: AI Extraction")
+        else:
+            print("   Method: No specific method recommended")
+        
+        # Show truncated response for debugging
+        response_preview = gemini_response[:200].replace('\n', ' ')
+        print(f"   Analysis: {response_preview}...")
         print("=" * 80)
         
         # Check if Gemini recommends Excel Wizardry Function
@@ -875,13 +859,15 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                         
                         if 'error' not in processed_results:
                             record_count = len(processed_results['cleaned_results']) if isinstance(processed_results['cleaned_results'], list) else 0
-                            print(f"Found {record_count} records using existing function")
+                            print(f"\n✅ EXTRACTION RESULTS: {record_count} records extracted using existing function")
                             
-                            # Show results
-                            print("\n" + "=" * 80)
-                            print("EXCEL WIZARDRY FUNCTION RESULTS")
-                            print("=" * 80)
-                            print(json.dumps(processed_results['identifier_results'], indent=2))
+                            # Show sample results
+                            sample_results = processed_results['identifier_results'][:3] if processed_results['identifier_results'] else []
+                            for i, result in enumerate(sample_results):
+                                extracted_val = result.get('extracted_value', 'N/A')[:50]
+                                print(f"   Record {i+1}: {extracted_val}...")
+                            if len(processed_results['identifier_results']) > 3:
+                                print(f"   ... and {len(processed_results['identifier_results']) - 3} more records")
                             
                             # Create or update identifier references
                             if extraction_number == 0:
@@ -896,6 +882,7 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                                 # Store for auto-rerun
                                 first_run_identifier_references = new_identifier_references
                                 identifier_references = new_identifier_references
+                                print(f"\n🔗 IDENTIFIER REFERENCES: Created {len(identifier_references)} new references for next extraction")
                             else:
                                 # Subsequent extractions - append to existing identifier references
                                 updated_identifier_references = []
@@ -918,28 +905,23 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                                             updated_identifier_references.append({field_name_only: result['extracted_value']})
                                 
                                 identifier_references = updated_identifier_references
+                                print(f"\n🔗 IDENTIFIER REFERENCES: Updated {len(identifier_references)} references with new field data")
                             
-                            print("\n" + "=" * 80)
-                            print("IDENTIFIER REFERENCES")
-                            print("=" * 80)
-                            print(json.dumps(identifier_references, indent=2))
-                            
-                            # Log target property with orderIndex matching extraction number
+                            # Log extraction progress
                             if all_collection_properties:
-                                target_property = None
-                                for prop in all_collection_properties:
-                                    if prop.get('order_index') == extraction_number:
-                                        target_property = prop
-                                        break
+                                extracted_field_names = set()
+                                for result in processed_results.get('identifier_results', []):
+                                    field_name = result.get('field_name', '')
+                                    if '.' in field_name:
+                                        property_name = field_name.split('.')[-1]
+                                        extracted_field_names.add(property_name)
+                                    else:
+                                        extracted_field_names.add(field_name)
                                 
-                                if target_property:
-                                    print(f"\nTarget property with orderIndex {extraction_number}:")
-                                    print("=" * 80)
-                                    print(json.dumps(target_property, indent=2))
-                                    print("=" * 80)
-                            
-                            # Log remaining fields
-                            log_remaining_collection_fields(processed_results.get('identifier_results', []), all_collection_properties)
+                                total_fields = len(all_collection_properties)
+                                extracted_count = sum(1 for prop in all_collection_properties if prop.get('property_name') in extracted_field_names)
+                                remaining_count = total_fields - extracted_count
+                                print(f"\n📊 PROGRESS: {extracted_count}/{total_fields} fields extracted, {remaining_count} remaining")
                         else:
                             print(f"Error processing function results: {processed_results['error']}")
                     else:
@@ -950,13 +932,13 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             
             if function_instruction == "CREATE_NEW":
                 # Generate new function
-                print("Creating new Excel wizardry function")
+                print("\n🔧 CREATING NEW FUNCTION:")
                 
                 # Generate function with Gemini, including identifier references and extraction number
                 function_data = generate_excel_function_with_gemini(identifier_targets, documents, identifier_references, extraction_number)
                 
                 if 'error' not in function_data:
-                    print(f"Generated function: {function_data.get('function_name', 'Unnamed Function')}")
+                    print(f"   Generated: {function_data.get('function_name', 'Unnamed Function')}")
                     
                     # Save function to database
                     create_result = create_excel_wizardry_function(
@@ -967,7 +949,7 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                     )
                     
                     if 'error' not in create_result:
-                        print(f"Function saved with ID: {create_result['id']}")
+                        print(f"   Saved with ID: {create_result['id'][:8]}...")
                         
                         # Execute the new function with identifier references
                         function_result = execute_excel_wizardry_function(
@@ -984,13 +966,15 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                             
                             if 'error' not in processed_results:
                                 record_count = len(processed_results['cleaned_results']) if isinstance(processed_results['cleaned_results'], list) else 0
-                                print(f"Found {record_count} records using new function")
+                                print(f"\n✅ EXTRACTION RESULTS: {record_count} records extracted using new function")
                                 
-                                # Show results
-                                print("\n" + "=" * 80)
-                                print("EXCEL WIZARDRY FUNCTION RESULTS")
-                                print("=" * 80)
-                                print(json.dumps(processed_results['identifier_results'], indent=2))
+                                # Show sample results
+                                sample_results = processed_results['identifier_results'][:3] if processed_results['identifier_results'] else []
+                                for i, result in enumerate(sample_results):
+                                    extracted_val = result.get('extracted_value', 'N/A')[:50]
+                                    print(f"   Record {i+1}: {extracted_val}...")
+                                if len(processed_results['identifier_results']) > 3:
+                                    print(f"   ... and {len(processed_results['identifier_results']) - 3} more records")
                                 
                                 # Create or update identifier references
                                 if extraction_number == 0:
@@ -1059,13 +1043,10 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                     print(f"Error generating function: {function_data['error']}")
         
         elif "AI Extraction" in gemini_response:
-            print(f"\nGemini decided to use AI Extraction wizard")
-            print("\n" + "=" * 80)
-            print("RESULTS FROM EXTRACTION")
-            print("=" * 80)
+            print(f"\n🧠 AI EXTRACTION:")
             # Handle AI extraction based on document availability
             if documents == "NO DOCUMENTS SELECTED":
-                print("Cannot use AI extraction without documents - this should not happen")
+                print("   Error: Cannot use AI extraction without documents")
                 ai_result = {"error": "No documents available for AI extraction"}
             else:
                 # Get document IDs from the documents data
@@ -1076,15 +1057,17 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             # Clean JSON and extract identifiers
             processed_results = clean_json_and_extract_identifiers(ai_result, identifier_targets)
             if 'error' not in processed_results:
-                # Show record count instead of raw output
+                # Show record count and sample results
                 record_count = len(processed_results['cleaned_results']) if isinstance(processed_results['cleaned_results'], list) else 0
-                print(f"Found {record_count} records")
+                print(f"\n✅ EXTRACTION RESULTS: {record_count} records extracted using AI")
                 
-                # Show identifier results with proper header
-                print("\n" + "=" * 80)
-                print("IDENTIFIER RESULTS")
-                print("=" * 80)
-                print(json.dumps(processed_results['identifier_results'], indent=2))
+                # Show sample results
+                sample_results = processed_results['identifier_results'][:3] if processed_results['identifier_results'] else []
+                for i, result in enumerate(sample_results):
+                    extracted_val = result.get('extracted_value', 'N/A')[:50]
+                    print(f"   Record {i+1}: {extracted_val}...")
+                if len(processed_results['identifier_results']) > 3:
+                    print(f"   ... and {len(processed_results['identifier_results']) - 3} more records")
                 
                 # Create and display IDENTIFIER REFERENCES array
                 identifier_references = []
@@ -1097,84 +1080,58 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                 
                 # Store for auto-rerun
                 first_run_identifier_references = identifier_references
+                print(f"\n🔗 IDENTIFIER REFERENCES: Created {len(identifier_references)} new references for next extraction")
                 
-                print("\n" + "=" * 80)
-                print("IDENTIFIER REFERENCES")
-                print("=" * 80)
-                print(json.dumps(identifier_references, indent=2))
-                
-                # Log remaining unextracted collection fields
-                log_remaining_collection_fields(processed_results.get('identifier_results', []), all_collection_properties)
+                # Log extraction progress
+                if all_collection_properties:
+                    extracted_field_names = set()
+                    for result in processed_results.get('identifier_results', []):
+                        field_name = result.get('field_name', '')
+                        if '.' in field_name:
+                            property_name = field_name.split('.')[-1]
+                            extracted_field_names.add(property_name)
+                        else:
+                            extracted_field_names.add(field_name)
+                    
+                    total_fields = len(all_collection_properties)
+                    extracted_count = sum(1 for prop in all_collection_properties if prop.get('property_name') in extracted_field_names)
+                    remaining_count = total_fields - extracted_count
+                    print(f"\n📊 PROGRESS: {extracted_count}/{total_fields} fields extracted, {remaining_count} remaining")
             else:
-                print(f"Error processing AI extraction results: {processed_results['error']}")
+                print(f"   Error processing AI extraction results: {processed_results['error']}")
         else:
-            print(f"\nGemini did not recommend a specific extraction method")
-            print("\n" + "=" * 80)
-            print("RESULTS FROM EXTRACTION")
-            print("=" * 80)
-            print("No extraction performed")
+            print(f"\n❌ NO EXTRACTION METHOD: Gemini did not recommend a specific extraction method")
         print("=" * 80)
         
-        # AUTO-RERUN LOGIC: Re-run the function with specific parameters after completion
-        if extraction_number == 0:  # Only rerun after the first extraction
+        # AUTO-RERUN LOGIC: Continue extraction until all target fields are processed
+        next_extraction_number = extraction_number + 1
+        total_target_fields = len(target_fields) if target_fields else 0
+        
+        if next_extraction_number < total_target_fields:
             print("\n" + "=" * 80)
-            print("AUTO-RERUN: Starting second extraction run")
+            print(f"AUTO-RERUN: Starting extraction run {next_extraction_number + 1} of {total_target_fields}")
             print("=" * 80)
-            print(f"DEBUG: About to trigger second run with extraction_number {extraction_number + 1}")
-            
-            # Define the parameters for the second run as specified by user
-            next_extraction_number = extraction_number + 1  # 0 + 1 = 1
-            num_target_collection_items = 2
-            
-            # Use the original target_fields from data parameter to maintain correct field selection
-            selected_target_fields = target_fields if target_fields else []
-            
-            # Collection properties NOT to be extracted (excluded from processing)
-            excluded_properties = [
-                {
-                    "id": "7f87696b-2b4f-4e38-820f-08ebdd301bba",
-                    "collection_id": "ee9d75f7-026e-4f59-ad7a-329295c54505",
-                    "collection_name": "Column Name Mapping",
-                    "property_name": "Standardised Column Name",
-                    "property_type": "TEXT",
-                    "description": "Look at the most relevant column references within the knowledge document: \"Standard_Field_Mappings_with_all_synonyms. Just give the name of the most relevant field from this document. This should only look at row 1 in each sheet.",
-                    "auto_verification_confidence": 80,
-                    "choice_options": [],
-                    "is_identifier": False,
-                    "order_index": 2
-                },
-                {
-                    "id": "87b1fe45-0c6a-4a51-9d1c-d5a2d7ee1cde",
-                    "collection_id": "ee9d75f7-026e-4f59-ad7a-329295c54505",
-                    "collection_name": "Column Name Mapping",
-                    "property_name": "Reasoning",
-                    "property_type": "TEXT",
-                    "description": "Give reasoning for the mapping of the extracted column name to the 'Standardised Column Name' from the knowledge document. This should only look at row 1 in each sheet.",
-                    "auto_verification_confidence": 80,
-                    "choice_options": [],
-                    "is_identifier": False,
-                    "order_index": 3
-                }
-            ]
-            
-            # Console log the parameters as requested
-            print(f"NEXT EXTRACTION NUMBER: {next_extraction_number}")
-            print(f"NUMBER OF TARGET COLLECTION ITEMS: {num_target_collection_items}")
-            print("SELECTED TARGET FIELD OBJECTS:")
-            print(json.dumps(selected_target_fields, indent=2))
-            print("EXCLUDED PROPERTIES (NOT TO BE EXTRACTED):")
-            print(json.dumps(excluded_properties, indent=2))
+            print(f"Next extraction number: {next_extraction_number}")
+            print(f"Target field: {target_fields[next_extraction_number].get('propertyName', 'Unknown') if target_fields else 'None'}")
+            print(f"Progress: {next_extraction_number}/{total_target_fields} fields processed")
             
             # Create new data object with updated target fields and identifier references
             rerun_data = {
                 "document_ids": document_ids,
                 "session_id": session_id,
-                "target_fields": selected_target_fields,
-                "identifier_references": first_run_identifier_references
+                "target_fields": target_fields,
+                "identifier_references": identifier_references if 'identifier_references' in locals() else first_run_identifier_references
             }
             
             # Re-run the extraction with the new parameters
             run_wizardry_with_gemini_analysis(rerun_data, next_extraction_number)
+        else:
+            print("\n" + "=" * 80)
+            print("EXTRACTION COMPLETE")
+            print("=" * 80)
+            print(f"All {total_target_fields} target fields have been processed")
+            print("Extraction sequence finished successfully")
+            print("=" * 80)
         
     else:
         print(json.dumps({"error": "Invalid data format. Expected object with document_ids and session_id"}))
