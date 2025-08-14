@@ -861,13 +861,11 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                             record_count = len(processed_results['cleaned_results']) if isinstance(processed_results['cleaned_results'], list) else 0
                             print(f"\n✅ EXTRACTION RESULTS: {record_count} records extracted using existing function")
                             
-                            # Show sample results
-                            sample_results = processed_results['identifier_results'][:3] if processed_results['identifier_results'] else []
-                            for i, result in enumerate(sample_results):
-                                extracted_val = result.get('extracted_value', 'N/A')[:50]
-                                print(f"   Record {i+1}: {extracted_val}...")
-                            if len(processed_results['identifier_results']) > 3:
-                                print(f"   ... and {len(processed_results['identifier_results']) - 3} more records")
+                            # Show complete validation results JSON
+                            print(f"\n📋 COMPLETE VALIDATION RESULTS JSON:")
+                            print("=" * 80)
+                            print(json.dumps(processed_results['identifier_results'], indent=2))
+                            print("=" * 80)
                             
                             # Create or update identifier references
                             if extraction_number == 0:
@@ -882,7 +880,11 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                                 # Store for auto-rerun
                                 first_run_identifier_references = new_identifier_references
                                 identifier_references = new_identifier_references
-                                print(f"\n🔗 IDENTIFIER REFERENCES: Created {len(identifier_references)} new references for next extraction")
+                                print(f"\n🔗 IDENTIFIER REFERENCES ARRAY:")
+                                print("=" * 80)
+                                print(json.dumps(identifier_references, indent=2))
+                                print("=" * 80)
+                                print(f"Created {len(identifier_references)} new references for next extraction")
                             else:
                                 # Subsequent extractions - append to existing identifier references
                                 updated_identifier_references = []
@@ -905,7 +907,11 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                                             updated_identifier_references.append({field_name_only: result['extracted_value']})
                                 
                                 identifier_references = updated_identifier_references
-                                print(f"\n🔗 IDENTIFIER REFERENCES: Updated {len(identifier_references)} references with new field data")
+                                print(f"\n🔗 IDENTIFIER REFERENCES ARRAY:")
+                                print("=" * 80)
+                                print(json.dumps(identifier_references, indent=2))
+                                print("=" * 80)
+                                print(f"Updated {len(identifier_references)} references with new field data")
                             
                             # Log extraction progress
                             if all_collection_properties:
@@ -968,13 +974,11 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                                 record_count = len(processed_results['cleaned_results']) if isinstance(processed_results['cleaned_results'], list) else 0
                                 print(f"\n✅ EXTRACTION RESULTS: {record_count} records extracted using new function")
                                 
-                                # Show sample results
-                                sample_results = processed_results['identifier_results'][:3] if processed_results['identifier_results'] else []
-                                for i, result in enumerate(sample_results):
-                                    extracted_val = result.get('extracted_value', 'N/A')[:50]
-                                    print(f"   Record {i+1}: {extracted_val}...")
-                                if len(processed_results['identifier_results']) > 3:
-                                    print(f"   ... and {len(processed_results['identifier_results']) - 3} more records")
+                                # Show complete validation results JSON
+                                print(f"\n📋 COMPLETE VALIDATION RESULTS JSON:")
+                                print("=" * 80)
+                                print(json.dumps(processed_results['identifier_results'], indent=2))
+                                print("=" * 80)
                                 
                                 # Create or update identifier references
                                 if extraction_number == 0:
@@ -1061,13 +1065,11 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                 record_count = len(processed_results['cleaned_results']) if isinstance(processed_results['cleaned_results'], list) else 0
                 print(f"\n✅ EXTRACTION RESULTS: {record_count} records extracted using AI")
                 
-                # Show sample results
-                sample_results = processed_results['identifier_results'][:3] if processed_results['identifier_results'] else []
-                for i, result in enumerate(sample_results):
-                    extracted_val = result.get('extracted_value', 'N/A')[:50]
-                    print(f"   Record {i+1}: {extracted_val}...")
-                if len(processed_results['identifier_results']) > 3:
-                    print(f"   ... and {len(processed_results['identifier_results']) - 3} more records")
+                # Show complete validation results JSON
+                print(f"\n📋 COMPLETE VALIDATION RESULTS JSON:")
+                print("=" * 80)
+                print(json.dumps(processed_results['identifier_results'], indent=2))
+                print("=" * 80)
                 
                 # Create and display IDENTIFIER REFERENCES array
                 identifier_references = []
@@ -1080,7 +1082,11 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                 
                 # Store for auto-rerun
                 first_run_identifier_references = identifier_references
-                print(f"\n🔗 IDENTIFIER REFERENCES: Created {len(identifier_references)} new references for next extraction")
+                print(f"\n🔗 IDENTIFIER REFERENCES ARRAY:")
+                print("=" * 80)
+                print(json.dumps(identifier_references, indent=2))
+                print("=" * 80)
+                print(f"Created {len(identifier_references)} new references for next extraction")
                 
                 # Log extraction progress
                 if all_collection_properties:
