@@ -1020,20 +1020,21 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                     "choiceOptions": [],
                     "isIdentifier": True,
                     "orderIndex": 0,
-                    "createdAt": "2025-08-12T07:23:55.023Z"
+                    "createdAt": "2025-08-12T07:23:55.023Z",
+                    "selectedDocumentIds": document_ids
                 },
                 {
                     "id": "afca5391-afb0-4639-baff-2b69487669ad",
-                    "collection_id": "ee9d75f7-026e-4f59-ad7a-329295c54505",
-                    "collection_name": "Column Name Mapping",
-                    "property_name": "Worksheet",
-                    "property_type": "TEXT",
+                    "collectionId": "ee9d75f7-026e-4f59-ad7a-329295c54505",
+                    "propertyName": "Worksheet",
+                    "propertyType": "TEXT",
                     "description": "The name of the worksheet containing the column. This should only look at row 1 in each sheet.",
-                    "auto_verification_confidence": 80,
-                    "choice_options": [],
-                    "is_identifier": False,
-                    "order_index": 1,
-                    "createdAt": "2025-08-12T07:23:55.023Z"
+                    "autoVerificationConfidence": 80,
+                    "choiceOptions": [],
+                    "isIdentifier": False,
+                    "orderIndex": 1,
+                    "createdAt": "2025-08-12T07:24:51.576Z",
+                    "selectedDocumentIds": document_ids
                 }
             ]
             
