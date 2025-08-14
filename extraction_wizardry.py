@@ -648,6 +648,20 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             print(json.dumps(target_fields, indent=2))
             print("IDENTIFIER REFERENCES RECEIVED:")
             print(json.dumps(identifier_references, indent=2))
+            
+            # Log target property with orderIndex matching extraction number
+            if target_fields and extraction_number < len(target_fields):
+                target_property = None
+                for prop in target_fields:
+                    if prop.get('orderIndex') == extraction_number:
+                        target_property = prop
+                        break
+                
+                if target_property:
+                    print(f"\nTarget property with orderIndex {extraction_number}:")
+                    print("=" * 80)
+                    print(json.dumps(target_property, indent=2))
+                    print("=" * 80)
         
         print("=" * 80)
         print("STOPPING PROCESS - Parameter verification complete")

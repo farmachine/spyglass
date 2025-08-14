@@ -1,0 +1,600 @@
+SECOND EXTRACTION RUN - PARAMETER LOGGING
+================================================================================
+EXTRACTION NUMBER: 1
+DOCUMENT IDS: ['248c40bb-c1ec-4f20-ab21-7649dee682ec']
+SESSION ID: f15121bb-8d87-412b-891e-a08e052dce94
+NUMBER OF TARGET FIELDS: 2
+TARGET FIELDS RECEIVED:
+[
+  {
+    "id": "34580f0d-321f-498a-b1c0-6162ad831122",
+    "collectionId": "ee9d75f7-026e-4f59-ad7a-329295c54505",
+    "propertyName": "Column Heading",
+    "propertyType": "TEXT",
+    "description": "Please just look for the first row in each workbook. This will give you the column name. This should only look at row 1 in each sheet.",
+    "autoVerificationConfidence": 80,
+    "choiceOptions": [],
+    "isIdentifier": true,
+    "orderIndex": 0,
+    "createdAt": "2025-08-12T07:23:55.023Z",
+    "selectedDocumentIds": [
+      "248c40bb-c1ec-4f20-ab21-7649dee682ec"
+    ]
+  },
+  {
+    "id": "afca5391-afb0-4639-baff-2b69487669ad",
+    "collectionId": "ee9d75f7-026e-4f59-ad7a-329295c54505",
+    "propertyName": "Worksheet",
+    "propertyType": "TEXT",
+    "description": "The name of the worksheet containing the column. This should only look at row 1 in each sheet.",
+    "autoVerificationConfidence": 80,
+    "choiceOptions": [],
+    "isIdentifier": false,
+    "orderIndex": 1,
+    "createdAt": "2025-08-12T07:24:51.576Z",
+    "selectedDocumentIds": [
+      "248c40bb-c1ec-4f20-ab21-7649dee682ec"
+    ]
+  }
+]
+IDENTIFIER REFERENCES RECEIVED:
+[
+  {
+    "Column_Heading[0]": "Old Member's Reference No"
+  },
+  {
+    "Column_Heading[1]": "Member's Reference No"
+  },
+  {
+    "Column_Heading[2]": "Employer Code"
+  },
+  {
+    "Column_Heading[3]": "Sex Code"
+  },
+  {
+    "Column_Heading[4]": "Date of Birth"
+  },
+  {
+    "Column_Heading[5]": "Date Became Pensioner"
+  },
+  {
+    "Column_Heading[6]": "Code For Previous Status"
+  },
+  {
+    "Column_Heading[7]": "Type Of Retirement"
+  },
+  {
+    "Column_Heading[8]": "Date Of Exit From Active Service"
+  },
+  {
+    "Column_Heading[9]": "Annual Pre-6.4.1988 GMP Component At Date Of Exit From Active Service"
+  },
+  {
+    "Column_Heading[10]": "Annual Post-5.4.1988 GMP Component At Date Of Exit From Active Service"
+  },
+  {
+    "Column_Heading[11]": "Annual Pre-6.4.1988 GMP Component At Date Of This Valuation"
+  },
+  {
+    "Column_Heading[12]": "Annual Post-5.4.1988 GMP Component At Date Of This Valuation"
+  },
+  {
+    "Column_Heading[13]": "Total Pension Payable From Scheme At Last Valuation"
+  },
+  {
+    "Column_Heading[14]": "Total Pension Payable From Scheme At This Valuation"
+  },
+  {
+    "Column_Heading[15]": "Component Of Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)"
+  },
+  {
+    "Column_Heading[16]": "Contingent Widow(er)'s Sex Code"
+  },
+  {
+    "Column_Heading[17]": "Contingent Widow(er)'s Date Of Birth"
+  },
+  {
+    "Column_Heading[18]": "Contingent Widow(er)'s Pension At This Valuation"
+  },
+  {
+    "Column_Heading[19]": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)"
+  },
+  {
+    "Column_Heading[20]": "Date Of Exit From Pensioner Status"
+  },
+  {
+    "Column_Heading[21]": "Code For Exit From Pensioner Status"
+  },
+  {
+    "Column_Heading[22]": "Old Supplementary Fund Indicator"
+  },
+  {
+    "Column_Heading[23]": "Married Indicator"
+  },
+  {
+    "Column_Heading[24]": "Old Supplementary Fund Pension"
+  },
+  {
+    "Column_Heading[25]": "Component Of Pension At This Valuation Subject To RPI capped at 2.5% pa"
+  },
+  {
+    "Column_Heading[26]": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 2.5% pa"
+  },
+  {
+    "Column_Heading[27]": "Non-increasing pension"
+  },
+  {
+    "Column_Heading[28]": "Non-increasing TV-in pension"
+  },
+  {
+    "Column_Heading[29]": "Component Of Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)"
+  },
+  {
+    "Column_Heading[30]": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)"
+  },
+  {
+    "Column_Heading[31]": "Total Pension Payable From Scheme At Retirement Before Reduction for Tax Free Cash"
+  },
+  {
+    "Column_Heading[32]": "Tax Free Cash taken at Retirement"
+  },
+  {
+    "Column_Heading[33]": "Pension Commuted At Retirement in Exchange for Tax Free Cash"
+  },
+  {
+    "Column_Heading[34]": "Total Pension Payable From Scheme At Retirement After Reduction for Tax Free Cash"
+  },
+  {
+    "Column_Heading[35]": "Postcode"
+  },
+  {
+    "Column_Heading[36]": "Status"
+  },
+  {
+    "Column_Heading[37]": "Section B Indicator"
+  },
+  {
+    "Column_Heading[38]": "Valuation Record Type"
+  },
+  {
+    "Column_Heading[39]": "Member's Reference No"
+  },
+  {
+    "Column_Heading[40]": "Employer Code"
+  },
+  {
+    "Column_Heading[41]": "Benefits Scale Code"
+  },
+  {
+    "Column_Heading[42]": "Sex Code"
+  },
+  {
+    "Column_Heading[43]": "Date Of Birth"
+  },
+  {
+    "Column_Heading[44]": "Date Pensionable Service Commenced"
+  },
+  {
+    "Column_Heading[45]": "Date Became Active Deferred Member"
+  },
+  {
+    "Column_Heading[46]": "Code For Previous Status"
+  },
+  {
+    "Column_Heading[47]": "Normal Retirement Date"
+  },
+  {
+    "Column_Heading[48]": "Annual Pre-6.4.1988 GMP Component At Date Became Active Deferred Member"
+  },
+  {
+    "Column_Heading[49]": "Annual Post-5.4.1988 GMP Component At Date Became Active Deferred Member"
+  },
+  {
+    "Column_Heading[50]": "Total Deferred Pension Payable From Scheme At Date Became Active Deferred Member"
+  },
+  {
+    "Column_Heading[51]": "Total Contingent Widow(er) Pension Payable From Scheme At Date Became Active Deferred Member"
+  },
+  {
+    "Column_Heading[52]": "Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To Statutory Revaluation In Deferment And CPI capped at 2.5% pa in payment"
+  },
+  {
+    "Column_Heading[53]": "Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To Both Statutory Revaluation In Deferment And RPI capped at 5% pa in payment"
+  },
+  {
+    "Column_Heading[54]": "Member's Total Normal Contributions With Interest To The Date Of This Valuation"
+  },
+  {
+    "Column_Heading[55]": "Date Of Exit From Active Deferred Member Status"
+  },
+  {
+    "Column_Heading[56]": "Code For Exit From Active Deferred Member Status"
+  },
+  {
+    "Column_Heading[57]": "Contingent Widow(er)'s Pension Subject To RPI capped at 5% pa At Date Became Active Deferred Member"
+  },
+  {
+    "Column_Heading[58]": "Early Vesting Age"
+  },
+  {
+    "Column_Heading[59]": "Contingent Spouse's Benefit Marker"
+  },
+  {
+    "Column_Heading[60]": "Old Supplementary Fund Indicator"
+  },
+  {
+    "Column_Heading[61]": "Spouse's Date of Birth"
+  },
+  {
+    "Column_Heading[62]": "Married Indicator"
+  },
+  {
+    "Column_Heading[63]": "Old Supplementary Fund Pension"
+  },
+  {
+    "Column_Heading[64]": "New Pension Date"
+  },
+  {
+    "Column_Heading[65]": "Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To LPI5 Revaluation In Deferment And RPI capped at 2.5% pa in payment"
+  },
+  {
+    "Column_Heading[66]": "Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To LPI2.5 Revaluation In Deferment And RPI capped at 2.5% pa in payment"
+  },
+  {
+    "Column_Heading[67]": "Contingent Widow(er)'s Pension Subject To RPI capped at 2.5% pa At Date Became Active Deferred Member"
+  },
+  {
+    "Column_Heading[68]": "Contingent Widow(er)'s Pension Subject To CPI capped at 2.5% pa At Date Became Active Deferred Member"
+  },
+  {
+    "Column_Heading[69]": "Postcode"
+  },
+  {
+    "Column_Heading[70]": "Date Of Buy-Out Of SBO Terms"
+  },
+  {
+    "Column_Heading[71]": "Deferred Pension For Service To Buy-Out at this valuation date"
+  },
+  {
+    "Column_Heading[72]": "Annual Post-5.4.1988 up to 31.5.1995 GMP Component At Date Of This Valuation"
+  },
+  {
+    "Column_Heading[73]": "Final salary: Final Pensionable Salary At Exit From Active Status"
+  },
+  {
+    "Column_Heading[74]": "Valuation Record Type"
+  },
+  {
+    "Column_Heading[75]": "Member's Reference No"
+  },
+  {
+    "Column_Heading[76]": "Employer Code"
+  },
+  {
+    "Column_Heading[77]": "Benefits Scale Code"
+  },
+  {
+    "Column_Heading[78]": "Sex Code"
+  },
+  {
+    "Column_Heading[79]": "Date Of Birth"
+  },
+  {
+    "Column_Heading[80]": "Date Pensionable Service Commenced"
+  },
+  {
+    "Column_Heading[81]": "Date Became Deferred Pensioner"
+  },
+  {
+    "Column_Heading[82]": "Code For Previous Status"
+  },
+  {
+    "Column_Heading[83]": "Normal Retirement Date"
+  },
+  {
+    "Column_Heading[84]": "Annual Pre-6.4.1988 GMP Component At Date Became Deferred Pensioner"
+  },
+  {
+    "Column_Heading[85]": "Annual Post-5.4.1988 GMP Component At Date Became Deferred Pensioner"
+  },
+  {
+    "Column_Heading[86]": "Total Deferred Pension Payable From Scheme At Date Became Deferred Pensioner"
+  },
+  {
+    "Column_Heading[87]": "Total Contingent Widow(er) Pension Payable From Scheme At Date Became Deferred Pensioner"
+  },
+  {
+    "Column_Heading[88]": "Excess Component Of Deferred Pension At Date Became Deferred Pensioner Not Subject To Statutory Revaluation In Deferment"
+  },
+  {
+    "Column_Heading[89]": "Excess Component Of Deferred Pension At Date Became Deferred Pensioner Subject To Statutory Revaluation In Deferment And CPI capped at 2.5% pa in payment (or fixed 5% pa in deferment and in payment for former Section B)"
+  },
+  {
+    "Column_Heading[90]": "Excess Component Of Deferred Pension At Date Became Deferred Pensioner Subject To Both Statutory Revaluation In Deferment And RPI capped at 5% pa in payment (or fixed 5% in deferment and CPI capped at 5% pa in payment for Section B members)"
+  },
+  {
+    "Column_Heading[91]": "Member's Total Normal Contributions With Interest To The Date Of This Valuation"
+  },
+  {
+    "Column_Heading[92]": "Date Of Exit From Deferred Pensioner Status"
+  },
+  {
+    "Column_Heading[93]": "Code For Exit From Deferred Pensioner Status"
+  },
+  {
+    "Column_Heading[94]": "VSS Current Pension Including GMP"
+  },
+  {
+    "Column_Heading[95]": "Contingent Widow(er)'s Pension Subject To RPI capped at 5% pa At Date Became Deferred Pensioner"
+  },
+  {
+    "Column_Heading[96]": "Early Vesting Age"
+  },
+  {
+    "Column_Heading[97]": "Contingent Spouse's Benefit Marker"
+  },
+  {
+    "Column_Heading[98]": "Old Supplementary Fund Indicator"
+  },
+  {
+    "Column_Heading[99]": "Spouse's Date of Birth"
+  },
+  {
+    "Column_Heading[100]": "Married Indicator"
+  },
+  {
+    "Column_Heading[101]": "Old Supplementary Fund Pension"
+  },
+  {
+    "Column_Heading[102]": "New Pension Date"
+  },
+  {
+    "Column_Heading[103]": "Excess Component Of Deferred Pension At Date Became Deferred Pensioner Subject To LPI5 Revaluation In Deferment And RPI capped at 2.5% pa in payment (or fixed 5% in deferment and CPI capped at 2.5% pa in payment for Section B members)"
+  },
+  {
+    "Column_Heading[104]": "Excess Component Of Deferred Pension At Date Became Deferred Pensioner Subject To LPI2.5 Revaluation In Deferment And RPI capped at 2.5% pa in payment"
+  },
+  {
+    "Column_Heading[105]": "Contingent Widow(er)'s Pension Subject To RPI capped at 2.5% pa At Date Became Deferred Pensioner"
+  },
+  {
+    "Column_Heading[106]": "Section B indicator"
+  },
+  {
+    "Column_Heading[107]": "TV-in fixed Paid Up Pension at Normal Retirement Date"
+  },
+  {
+    "Column_Heading[108]": "Contingent Widow(er)'s Pension Subject To CPI capped at 2.5% pa At Date Became Deferred Pensioner (or fixed 5% pa for former Section B members)"
+  },
+  {
+    "Column_Heading[109]": "Postcode"
+  },
+  {
+    "Column_Heading[110]": "Salary at date of leaving pensionable service"
+  },
+  {
+    "Column_Heading[111]": "Section B Pre 21 July 1997 (Post 97 fixed 5% pa in deferment and payment pension)"
+  },
+  {
+    "Column_Heading[112]": "Member's Reference No"
+  },
+  {
+    "Column_Heading[113]": "Employer Code"
+  },
+  {
+    "Column_Heading[114]": "Sex Code"
+  },
+  {
+    "Column_Heading[115]": "Date Of Birth"
+  },
+  {
+    "Column_Heading[116]": "Date Became Pensioner"
+  },
+  {
+    "Column_Heading[117]": "Code For Previous Status"
+  },
+  {
+    "Column_Heading[118]": "Type Of Retirement"
+  },
+  {
+    "Column_Heading[119]": "Date Of Exit From Active Service"
+  },
+  {
+    "Column_Heading[120]": "Annual Pre-6.4.1988 GMP Component At Date Of Exit From Active Service"
+  },
+  {
+    "Column_Heading[121]": "Annual Post-5.4.1988 GMP Component At Date Of Exit From Active Service"
+  },
+  {
+    "Column_Heading[122]": "Annual Pre-6.4.1988 GMP Component At Date Of This Valuation"
+  },
+  {
+    "Column_Heading[123]": "Annual Post-5.4.1988 GMP Component At Date Of This Valuation"
+  },
+  {
+    "Column_Heading[124]": "Total Pension Payable From Scheme At Last Valuation"
+  },
+  {
+    "Column_Heading[125]": "Total Pension Payable From Scheme At This Valuation"
+  },
+  {
+    "Column_Heading[126]": "Component Of Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)"
+  },
+  {
+    "Column_Heading[127]": "Contingent Widow(er)'s Sex Code"
+  },
+  {
+    "Column_Heading[128]": "Contingent Widow(er)'s Date Of Birth"
+  },
+  {
+    "Column_Heading[129]": "Contingent Widow(er)'s Pension At This Valuation"
+  },
+  {
+    "Column_Heading[130]": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)"
+  },
+  {
+    "Column_Heading[131]": "Date Of Exit From Pensioner Status"
+  },
+  {
+    "Column_Heading[132]": "Code For Exit From Pensioner Status"
+  },
+  {
+    "Column_Heading[133]": "Old Supplementary Fund Indicator"
+  },
+  {
+    "Column_Heading[134]": "Married Indicator"
+  },
+  {
+    "Column_Heading[135]": "Old Supplementary Fund Pension"
+  },
+  {
+    "Column_Heading[136]": "Component Of Pension At This Valuation Subject To RPI capped at 2.5% pa"
+  },
+  {
+    "Column_Heading[137]": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 2.5% pa"
+  },
+  {
+    "Column_Heading[138]": "Non-increasing pension"
+  },
+  {
+    "Column_Heading[139]": "Non-increasing TV-in pension"
+  },
+  {
+    "Column_Heading[140]": "Component Of Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)"
+  },
+  {
+    "Column_Heading[141]": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)"
+  },
+  {
+    "Column_Heading[142]": "Total Pension Payable From Scheme At Retirement Before Reduction for Tax Free Cash"
+  },
+  {
+    "Column_Heading[143]": "Tax Free Cash taken at Retirement"
+  },
+  {
+    "Column_Heading[144]": "Pension Commuted At Retirement in Exchange for Tax Free Cash"
+  },
+  {
+    "Column_Heading[145]": "Total Pension Payable From Scheme At Retirement After Reduction for Tax Free Cash"
+  },
+  {
+    "Column_Heading[146]": "Postcode"
+  },
+  {
+    "Column_Heading[147]": "Status"
+  },
+  {
+    "Column_Heading[148]": "Section B Indicator"
+  },
+  {
+    "Column_Heading[149]": "Valuation Record Type"
+  },
+  {
+    "Column_Heading[150]": "Widow(er)'s Reference No"
+  },
+  {
+    "Column_Heading[151]": "Deceased Member's Reference No"
+  },
+  {
+    "Column_Heading[152]": "Beneficiary's Code"
+  },
+  {
+    "Column_Heading[153]": "Widow(er)'s Date Of Birth"
+  },
+  {
+    "Column_Heading[154]": "Date Became Widow(er) Beneficiary"
+  },
+  {
+    "Column_Heading[155]": "Code For Previous Status Of Deceased Member"
+  },
+  {
+    "Column_Heading[156]": "Date Deceased Member Became Pensioner"
+  },
+  {
+    "Column_Heading[157]": "Widow(er)'s Annual Pre-6.4.1988 GMP Component At Date Of This Valuation"
+  },
+  {
+    "Column_Heading[158]": "Widow(er)'s Annual Post-5.4.1988 GMP Component At Date Of This Valuation"
+  },
+  {
+    "Column_Heading[159]": "Total Widow(er)'s Pension Payable From Scheme At This Valuation"
+  },
+  {
+    "Column_Heading[160]": "Total Widow(er)'s Pension Payable From Scheme At Last Valuation"
+  },
+  {
+    "Column_Heading[161]": "Component Of Widow(er)'s Pension At This Valuation Subject To RPI capped at 5% pa"
+  },
+  {
+    "Column_Heading[162]": "Date Of Exit From Widow(er) Beneficiary Status"
+  },
+  {
+    "Column_Heading[163]": "Code For Exit From Widow(er) Beneficiary Status"
+  },
+  {
+    "Column_Heading[164]": "Widow's Allotment At Valuation Date Included In Pension"
+  },
+  {
+    "Column_Heading[165]": "Old Supplementary Fund Indicator"
+  },
+  {
+    "Column_Heading[166]": "Old Supplementary Fund Pension"
+  },
+  {
+    "Column_Heading[167]": "Component Of Widow(er)'s Pension At This Valuation Subject To RPI capped at 2.5% pa"
+  },
+  {
+    "Column_Heading[168]": "Section B Indicator"
+  },
+  {
+    "Column_Heading[169]": "Component Of Widow(er)'s Pension At This Valuation Subject To CPI capped at 2.5% pa"
+  },
+  {
+    "Column_Heading[170]": "Postcode"
+  },
+  {
+    "Column_Heading[171]": "Valuation Record Type"
+  },
+  {
+    "Column_Heading[172]": "Child's Reference No"
+  },
+  {
+    "Column_Heading[173]": "Deceased members reference no"
+  },
+  {
+    "Column_Heading[174]": "Child's Date of Birth"
+  },
+  {
+    "Column_Heading[175]": "Date Child'sPension Commenced"
+  },
+  {
+    "Column_Heading[176]": "Code For Previous Status Of Deceased Member"
+  },
+  {
+    "Column_Heading[177]": "Child's Pension Payable From Scheme At This Valuation"
+  },
+  {
+    "Column_Heading[178]": "Component Of Child's Pension At This Valuation Subject To RPI capped at 5% pa"
+  },
+  {
+    "Column_Heading[179]": "Date Child's Pension Is To Cease Or Has Ceased"
+  },
+  {
+    "Column_Heading[180]": "Old Supplementary Fund Indicator"
+  },
+  {
+    "Column_Heading[181]": "Old Supplementary Fund Pension"
+  },
+  {
+    "Column_Heading[182]": "Section B Indicator"
+  },
+  {
+    "Column_Heading[183]": "Component Of Child's Pension At This Valuation Subject To RPI capped at 2_5% pa"
+  },
+  {
+    "Column_Heading[184]": "Component of Child\u2019s Pension At This Valuation Subject to CPI capped at 2_5% pa"
+  }
+]
+================================================================================
+STOPPING PROCESS - Parameter verification complete
+==================================================
