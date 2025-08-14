@@ -841,15 +841,16 @@ const AIExtractionModal = ({
                               );
                             })()}
                           </div>
-                          <button
-                            onClick={() => toggleFieldExpansion(field.id)}
-                            className="p-1 hover:bg-muted rounded-md transition-all duration-200 ml-2 flex-shrink-0"
-                            disabled={!isSelected}
-                          >
-                            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
-                              isFieldExpanded ? 'rotate-0' : '-rotate-90'
-                            }`} />
-                          </button>
+                          {isSelected && (
+                            <button
+                              onClick={() => toggleFieldExpansion(field.id)}
+                              className="p-1 hover:bg-muted rounded-md transition-all duration-200 ml-2 flex-shrink-0"
+                            >
+                              <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
+                                isFieldExpanded ? 'rotate-0' : '-rotate-90'
+                              }`} />
+                            </button>
+                          )}
                         </div>
                         
                         <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
