@@ -23,7 +23,7 @@
   --destructive: hsl(0, 84%, 60%); /* #EF4444 - Error Red */
   --destructive-foreground: hsl(0, 0%, 100%);
   --ring: hsl(225, 35%, 48%); /* Primary slate blue for focus rings */
-  --radius: 0.5rem;
+  --radius: 0.25rem;
   
   /* Custom Flow Capture colors */
   --success: hsl(142, 76%, 36%); /* #22C55E - Success Green */
@@ -50,7 +50,7 @@
   --destructive: hsl(0, 62.8%, 30.6%);
   --destructive-foreground: hsl(0, 0%, 98%);
   --ring: hsl(225, 35%, 48%); /* Slate blue for focus rings */
-  --radius: 0.5rem;
+  --radius: 0.25rem;
   
   /* Custom Flow Capture colors for dark mode */
   --success: hsl(142, 76%, 36%);
