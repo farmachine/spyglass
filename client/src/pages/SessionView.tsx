@@ -491,188 +491,32 @@ const AIExtractionModal = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto space-y-6">
-          {/* Information Sources Section */}
-          <div className="space-y-3 bg-slate-50 p-3 rounded-lg border-2 border-slate-200">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
-              <h3 className="text-lg font-semibold text-slate-800">Information Sources</h3>
-            </div>
-            <p className="text-sm text-slate-600 mb-3">Select documents and reference data for the AI to use during extraction.</p>
-
-            {/* Documents */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-slate-600" />
-                  <Label className="text-sm font-medium text-slate-700">Documents</Label>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={selectAllDocuments}
-                  className="text-xs text-slate-600 border-slate-300 hover:bg-slate-100"
-                >
-                  Select All
-                </Button>
-              </div>
-              <div className="grid grid-cols-1 gap-2 max-h-24 overflow-y-auto border rounded p-2">
-                {sessionDocuments.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No documents uploaded</p>
-                ) : (
-                  sessionDocuments.map((doc) => (
-                    <div key={doc.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`doc-${doc.id}`}
-                        checked={selectedDocuments.includes(doc.id)}
-                        onCheckedChange={() => handleDocumentToggle(doc.id)}
-                      />
-                      <Label htmlFor={`doc-${doc.id}`} className="text-sm truncate">
-                        {doc.originalName || doc.filename || doc.name || doc.fileName || `Document ${doc.id.slice(0, 8)}`}
-                      </Label>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* Data */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Database className="h-4 w-4 text-slate-600" />
-                  <Label className="text-sm font-medium text-slate-700">Data</Label>
-                  <div className="flex items-center gap-1">
-                    <CheckCircle className="h-3 w-3 text-green-600" />
-                    <span className="text-xs text-slate-500">Verified Items only</span>
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="space-y-3">
+            {availableFields
+              .sort((a, b) => (a.index || 0) - (b.index || 0))
+              .map((field) => (
+              <div key={field.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center space-x-3">
+                  <Checkbox
+                    id={`target-${field.id}`}
+                    checked={selectedTargetFields.includes(field.id)}
+                    onCheckedChange={() => handleTargetFieldToggle(field.id)}
+                    className="mt-0.5"
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor={`target-${field.id}`} className="text-base font-medium text-gray-900 cursor-pointer">
+                      {field.name}
+                    </Label>
+                    {field.type && (
+                      <p className="text-sm text-gray-500 mt-1">
+                        Type: {field.type}
+                      </p>
+                    )}
                   </div>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={selectAllVerifiedFields}
-                  className="text-xs text-slate-600 border-slate-300 hover:bg-slate-100"
-                >
-                  Select All
-                </Button>
               </div>
-              <div className="space-y-3 max-h-32 overflow-y-auto border rounded p-2">
-                {allTargetFields.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No data available</p>
-                ) : (
-                  <>
-                    {/* General Information Fields - Compact Layout */}
-                    {schemaFields.length > 0 && (
-                      <div className="space-y-1">
-                        <Label className="text-xs font-medium text-slate-600">General Information</Label>
-                        <div className="flex flex-wrap gap-1">
-                          {schemaFields.map((field) => (
-                            <Button
-                              key={field.id}
-                              variant={selectedVerifiedFields.includes(field.id) ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => handleVerifiedFieldToggle(field.id)}
-                              className="text-xs h-6 px-2"
-                            >
-                              {field.name}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Collection Buttons - Compact Layout */}
-                    {collectionNames.length > 0 && (
-                      <div className="space-y-1">
-                        <Label className="text-xs font-medium text-slate-600">Collections</Label>
-                        <div className="flex flex-wrap gap-1">
-                          {collectionNames.map((collectionName) => (
-                            <Button
-                              key={collectionName}
-                              variant={selectedVerifiedFields.includes(collectionName) ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => handleVerifiedFieldToggle(collectionName)}
-                              className="text-xs h-6 px-2"
-                            >
-                              {collectionName}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Output Section */}
-          <div className="space-y-4 bg-green-50 p-4 rounded-lg border-2 border-green-200">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
-              <h3 className="text-lg font-semibold text-slate-800">Target Fields</h3>
-            </div>
-            <p className="text-sm text-slate-600 mb-4">Select which specific fields you want the AI to extract. The AI will only extract data for the fields you choose.</p>
-            
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="text-sm font-medium text-slate-700">Fields to Extract</Label>
-                <p className="text-xs text-slate-500 mt-1">Choose the exact data points you want to find</p>
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={selectAllTargetFields}
-                className="text-xs text-slate-600 border-slate-300 hover:bg-slate-100"
-              >
-                Select All
-              </Button>
-            </div>
-            <div className="space-y-3 max-h-40 overflow-y-auto border rounded-lg p-3">
-              {availableFields
-                .sort((a, b) => (a.index || 0) - (b.index || 0))
-                .map((field) => (
-                <div key={field.id} className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-                  <div className="flex items-center space-x-3">
-                    <Checkbox
-                      id={`target-${field.id}`}
-                      checked={selectedTargetFields.includes(field.id)}
-                      onCheckedChange={() => handleTargetFieldToggle(field.id)}
-                      className="mt-0.5"
-                    />
-                    <div className="flex-1">
-                      <Label htmlFor={`target-${field.id}`} className="text-sm font-medium text-gray-900 cursor-pointer">
-                        {field.name}
-                      </Label>
-                      {field.type && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          Type: {field.type}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Additional Instructions Section */}
-          <div className="space-y-4 bg-amber-50 p-4 rounded-lg border-2 border-amber-200">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-6 h-6 bg-amber-500 text-white rounded-full flex items-center justify-center text-sm font-bold">3</div>
-              <h3 className="text-lg font-semibold text-slate-800">Additional Instructions</h3>
-            </div>
-            <p className="text-sm text-slate-600 mb-3">Provide specific guidance to help the AI understand exactly what you're looking for.</p>
-            
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-700">Custom Instructions (Optional)</Label>
-              <Textarea
-                placeholder="Example: 'Look for column headers in the first row', 'Extract only active policies', 'Focus on dates in MM/DD/YYYY format'..."
-                value={additionalInstructions}
-                onChange={(e) => setAdditionalInstructions(e.target.value)}
-                className="min-h-[80px] bg-white border-slate-300"
-              />
-            </div>
+            ))}
           </div>
         </div>
 
