@@ -912,57 +912,6 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                 else:
                     print(f"Error generating function: {function_data['error']}")
         
-        # Check if Gemini recommends Excel Column Extraction
-        elif "Excel Column Extraction" in gemini_response:
-            print(f"\nGemini decided to use Excel Column Extraction wizard")
-            print("\n" + "=" * 80)
-            print("RESULTS FROM EXTRACTION")
-            print("=" * 80)
-            # Get document IDs from the documents data
-            document_ids = [doc['id'] for doc in documents]
-            # Pass only identifier targets to excel extraction
-            excel_result = excel_column_extraction(document_ids, session_id, identifier_targets)
-            
-            # Clean JSON and extract identifiers
-            processed_results = clean_json_and_extract_identifiers(excel_result, identifier_targets)
-            if 'error' not in processed_results:
-                # Show record count instead of raw output
-                record_count = len(processed_results['cleaned_results']) if isinstance(processed_results['cleaned_results'], list) else 0
-                print(f"Found {record_count} records")
-                
-                # Show identifier results with proper header
-                print("\n" + "=" * 80)
-                print("IDENTIFIER RESULTS")
-                print("=" * 80)
-                print(json.dumps(processed_results['identifier_results'], indent=2))
-                
-                # Create and display IDENTIFIER REFERENCES array
-                identifier_references = []
-                for result in processed_results['identifier_results']:
-                    if 'extracted_value' in result and 'field_name' in result:
-                        # Split field_name on dot and take the part after the collection name
-                        field_name_parts = result['field_name'].split('.')
-                        field_name_only = field_name_parts[-1] if len(field_name_parts) > 1 else result['field_name']
-                        identifier_references.append({field_name_only: result['extracted_value']})
-                
-                # Store for auto-rerun
-                first_run_identifier_references = identifier_references
-                
-                print("\n" + "=" * 80)
-                print("IDENTIFIER REFERENCES")
-                print("=" * 80)
-                print(json.dumps(identifier_references, indent=2))
-                
-                # Log remaining unextracted collection fields
-                log_remaining_collection_fields(processed_results.get('identifier_results', []), all_collection_properties)
-            else:
-                print(f"Error processing results: {processed_results['error']}")
-        elif "Excel Sheet Extraction" in gemini_response:
-            print(f"\nGemini decided to use Excel Sheet Extraction wizard")
-            print("\n" + "=" * 80)
-            print("RESULTS FROM EXTRACTION")
-            print("=" * 80)
-            print("Excel Sheet Extraction not yet implemented")
         elif "AI Extraction" in gemini_response:
             print(f"\nGemini decided to use AI Extraction wizard")
             print("\n" + "=" * 80)
