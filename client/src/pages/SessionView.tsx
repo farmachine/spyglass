@@ -832,9 +832,7 @@ const AIExtractionModal = ({
                             <div className="bg-card border border-border rounded-md p-4">
                               <div className="mb-3">
                                 <Label className="text-sm font-medium text-foreground">
-                                  Extraction Sources {fieldSources.length > 0 && (
-                                    <span className="text-primary">({fieldSources.length} selected)</span>
-                                  )}
+                                  Extraction Sources
                                 </Label>
                                 <p className="text-xs text-muted-foreground mt-1">
                                   Select specific documents to extract this field from
@@ -843,6 +841,21 @@ const AIExtractionModal = ({
                               <div className="space-y-3 max-h-32 overflow-y-auto pr-1">
                                 {sessionDocuments.map(doc => {
                                   const isSourceSelected = fieldSources.includes(doc.id);
+                                  const fileName = doc.originalName || doc.filename || doc.name || doc.fileName || `Document ${doc.id.slice(0, 8)}`;
+                                  const fileType = doc.mimeType || doc.fileType || '';
+                                  
+                                  // Determine icon color based on file type
+                                  let iconColor = 'text-muted-foreground'; // default
+                                  if (fileType.includes('pdf') || fileName.toLowerCase().endsWith('.pdf')) {
+                                    iconColor = 'text-red-500';
+                                  } else if (fileType.includes('excel') || fileType.includes('spreadsheet') || 
+                                           fileName.toLowerCase().endsWith('.xlsx') || fileName.toLowerCase().endsWith('.xls')) {
+                                    iconColor = 'text-green-500';
+                                  } else if (fileType.includes('word') || fileType.includes('document') || 
+                                           fileName.toLowerCase().endsWith('.docx') || fileName.toLowerCase().endsWith('.doc')) {
+                                    iconColor = 'text-blue-500';
+                                  }
+                                  
                                   return (
                                     <div key={doc.id} className="flex items-start space-x-3 p-2 hover:bg-muted/50 rounded-md transition-colors">
                                       <Checkbox
@@ -850,26 +863,19 @@ const AIExtractionModal = ({
                                         onCheckedChange={() => toggleFieldDocumentSource(field.id, doc.id)}
                                         className="mt-0.5"
                                       />
-                                      <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                                      <FileText className={`h-4 w-4 ${iconColor} flex-shrink-0 mt-0.5`} />
                                       <div className="flex-1 min-w-0">
                                         <span className="text-sm text-foreground font-medium block truncate">
-                                          {doc.originalName || doc.filename || doc.name || doc.fileName || `Document ${doc.id.slice(0, 8)}`}
+                                          {fileName}
                                         </span>
                                         <span className="text-xs text-muted-foreground">
-                                          {doc.mimeType || doc.fileType || 'Unknown type'}
+                                          {fileType || 'Unknown type'}
                                         </span>
                                       </div>
                                     </div>
                                   );
                                 })}
                               </div>
-                              {fieldSources.length === 0 && (
-                                <div className="mt-3 p-3 bg-muted/50 rounded-md border border-dashed border-border">
-                                  <p className="text-xs text-muted-foreground text-center">
-                                    No specific sources selected - will extract from all session documents
-                                  </p>
-                                </div>
-                              )}
                             </div>
                           </div>
                         </div>
