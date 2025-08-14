@@ -627,6 +627,30 @@ def update_document_format_analysis_with_functions(documents, target_fields_data
 
 def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
     """Main function that gets documents from DB and analyzes them with Gemini"""
+    
+    # If this is the second run (extraction_number=1), just log parameters and stop
+    if extraction_number == 1:
+        print("\n" + "=" * 80)
+        print("SECOND EXTRACTION RUN - PARAMETER LOGGING")
+        print("=" * 80)
+        print(f"EXTRACTION NUMBER: {extraction_number}")
+        
+        if data and isinstance(data, dict):
+            target_fields = data.get('target_fields', [])
+            document_ids = data.get('document_ids', [])
+            session_id = data.get('session_id')
+            
+            print(f"DOCUMENT IDS: {document_ids}")
+            print(f"SESSION ID: {session_id}")
+            print(f"NUMBER OF TARGET FIELDS: {len(target_fields)}")
+            print("TARGET FIELDS RECEIVED:")
+            print(json.dumps(target_fields, indent=2))
+        
+        print("=" * 80)
+        print("STOPPING PROCESS - Parameter verification complete")
+        print("=" * 80)
+        return  # Stop immediately after logging
+    
     if data and isinstance(data, dict):
         document_ids = data.get('document_ids', [])
         session_id = data.get('session_id')
@@ -1057,12 +1081,6 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             
             # Re-run the extraction with the new parameters
             run_wizardry_with_gemini_analysis(rerun_data, next_extraction_number)
-            
-        elif extraction_number == 1:  # Second run completed
-            print("\n" + "=" * 80)
-            print("AUTO-RERUN COMPLETED: Stopping process after second extraction")
-            print("=" * 80)
-            return  # Stop the process as requested
         
     else:
         print(json.dumps({"error": "Invalid data format. Expected object with document_ids and session_id"}))
