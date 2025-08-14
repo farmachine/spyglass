@@ -1416,14 +1416,14 @@ except Exception as e:
     }
   });
 
-  // Extraction Sessions
+  // Overview Sessions
   app.get("/api/projects/:projectId/sessions", async (req, res) => {
     try {
       const projectId = req.params.projectId;
       const sessions = await storage.getExtractionSessions(projectId);
       res.json(sessions);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch extraction sessions" });
+      res.status(500).json({ message: "Failed to fetch sessions" });
     }
   });
 

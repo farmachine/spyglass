@@ -241,7 +241,7 @@ export default function ExtractionRuleDialog({
                   <div className="space-y-0.5">
                     <FormLabel className="text-base">Active Rule</FormLabel>
                     <div className="text-sm text-gray-500">
-                      Enable this rule for active extraction sessions
+                      Enable this rule for active sessions
                     </div>
                   </div>
                   <FormControl>

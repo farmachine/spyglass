@@ -103,7 +103,7 @@ export interface IStorage {
   setCollectionIdentifierField(collectionId: string, propertyId: string): Promise<boolean>;
   getCollectionIdentifierField(collectionId: string): Promise<CollectionProperty | undefined>;
 
-  // Extraction Sessions
+  // Overview Sessions
   getExtractionSessions(projectId: string): Promise<ExtractionSession[]>;
   getExtractionSession(id: string): Promise<ExtractionSession | undefined>;
   createExtractionSession(session: InsertExtractionSession): Promise<ExtractionSession>;
@@ -1189,7 +1189,7 @@ export class MemStorage implements IStorage {
     return undefined;
   }
 
-  // Extraction Sessions
+  // Overview Sessions
   async getExtractionSessions(projectId: string): Promise<ExtractionSession[]> {
     return Array.from(this.extractionSessions.values())
       .filter(session => session.projectId === projectId)
@@ -2222,7 +2222,7 @@ class PostgreSQLStorage implements IStorage {
     return result[0];
   }
 
-  // Extraction Sessions
+  // Overview Sessions
   async getExtractionSessions(projectId: number): Promise<ExtractionSession[]> {
     const result = await this.db
       .select()

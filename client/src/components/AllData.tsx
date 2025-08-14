@@ -246,9 +246,9 @@ export default function AllData({ project }: AllDataProps) {
       <div className="mb-8">
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-2xl font-semibold text-gray-900">{project.mainObjectName || "Session"} Extraction Sessions</h2>
+            <h2 className="text-2xl font-semibold text-gray-900">{project.mainObjectName || "Session"} Overview</h2>
             <p className="text-sm text-gray-600 mt-1">
-              View extracted data and manage all extraction sessions for this project
+              View extracted data and manage all sessions for this project
             </p>
           </div>
           <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>

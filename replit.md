@@ -50,6 +50,7 @@ Preferred communication style: Simple, everyday language.
 - **Centralized Prompt Management**: Unified prompt control (`all_prompts.py`) for consistent AI behavior, including document format analysis and detailed field context for Gemini.
 - **Complete Extraction Workflow**: End-to-end document analysis system integrating document content, target field descriptions, and AI analysis for intelligent extraction recommendations.
 - **Session Document Storage**: Storage of uploaded documents and extracted content in PostgreSQL for comprehensive tracking and AI chat context.
+- **Updated UI Terminology**: Renamed "Extraction Sessions" to "Overview" throughout the application for cleaner, more user-friendly language. This affects page titles, API comments, and user-facing text in AllData component, storage interfaces, and dialog descriptions.
 
 ### Key Architectural Decisions
 - **Monorepo Structure**: Single repository with shared types.

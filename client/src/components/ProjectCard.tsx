@@ -400,7 +400,7 @@ export default function ProjectCard({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Project</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{project.name}"? This action cannot be undone and will permanently delete all associated data, schema fields, collections, and extraction sessions.
+              Are you sure you want to delete "{project.name}"? This action cannot be undone and will permanently delete all associated data, schema fields, collections, and sessions.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
