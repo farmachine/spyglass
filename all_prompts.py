@@ -10,6 +10,11 @@ Fields to extract:
 Existing Excel Wizardry Functions:
 {existing_functions}
 
+Identifier References from Previous Extraction:
+{identifier_references}
+
+Extraction Number: {extraction_number}
+
 Based on the document format and target fields, determine which extraction process to use:
 
 1. If format is Excel, ALWAYS prefer "Excel Wizardry Function" for intelligent extraction:
@@ -19,7 +24,7 @@ Based on the document format and target fields, determine which extraction proce
 
 IMPORTANT: Excel Wizardry Function is the preferred method for ALL Excel documents as it provides intelligent, reusable extraction logic.
 
-Legacy methods (Excel Column Extraction, Excel Sheet Extraction) should only be used if explicitly requested.
+SUBSEQUENT EXTRACTIONS: If identifier_references are provided and extraction_number > 0, the extraction process will use the identifier data from previous extractions to target specific records.
 
 Response format:
 - For existing function: "Excel Wizardry Function|<function_id>"
@@ -37,13 +42,19 @@ TARGET FIELDS TO EXTRACT:
 SOURCE DOCUMENTS (for context):
 {source_documents}
 
+IDENTIFIER REFERENCES FROM PREVIOUS EXTRACTION:
+{identifier_references}
+
+EXTRACTION NUMBER: {extraction_number}
+
 FUNCTION METADATA:
 Create a descriptive name and description for this function based on the extraction task.
 
 MANDATORY REQUIREMENTS:
-1. Function name MUST be: extract_excel_data(extracted_content, target_fields_data)
+1. Function name MUST be: extract_excel_data(extracted_content, target_fields_data, identifier_references=None)
 2. Input format: extracted_content has lines like "=== Sheet: Name ===" followed by tab-separated rows
-3. Output format: Return a list of dictionaries, each with these exact keys:
+3. If identifier_references is provided, the function MUST iterate through each identifier and extract the target field for that specific identifier
+4. Output format: Return a list of dictionaries, each with these exact keys:
    - "validation_type": "collection_property"
    - "data_type": field's property_type or "TEXT"
    - "field_name": "CollectionName.FieldName[INDEX]" 
@@ -54,10 +65,20 @@ MANDATORY REQUIREMENTS:
    - "ai_reasoning": brief explanation
    - "record_index": unique number starting from 0
 
-CRITICAL INDEXING RULE:
-- Use record_index = 0 at start
-- For each extracted value: add record_index to result, then increment by 1
+CRITICAL INDEXING AND COUNT RULES:
+- If identifier_references provided: MUST return EXACTLY the same number of results as identifiers (e.g., 185 identifiers = 185 results)
+- Use record_index = 0 at start, increment by 1 for each result
+- If a value cannot be found for an identifier, still create a result with extracted_value: null
 - Every result must have different index: 0, 1, 2, 3, etc.
+- For each identifier, use the identifier value to find the corresponding target field value in the Excel data
+
+ITERATION LOGIC FOR SUBSEQUENT EXTRACTIONS:
+If identifier_references is provided:
+1. Loop through each identifier reference object
+2. Extract the identifier value (e.g., "Column Heading[0]: 'Member Reference No'")
+3. Use this identifier to locate the target field in the Excel sheets
+4. For column extraction: find the worksheet containing this column and extract the target property
+5. Maintain the same index as the identifier reference
 
 RESPONSE FORMAT:
 Return ONLY a valid JSON object with these four keys: function_name, description, tags, function_code
@@ -72,6 +93,24 @@ AI_DOCUMENT_EXTRACTION = """You are a document extraction expert specializing in
 
 DOCUMENT CONTENT:
 {documents}
+
+IDENTIFIER REFERENCES FROM PREVIOUS EXTRACTION:
+{identifier_references}
+
+EXTRACTION NUMBER: {extraction_number}
+
+SUBSEQUENT EXTRACTION INSTRUCTIONS:
+If identifier_references are provided, you MUST:
+1. Extract the target field for each identifier reference
+2. Return EXACTLY the same number of results as identifier references
+3. Use the identifier value to locate and extract the corresponding target field
+4. Maintain the same index order as the identifier references
+5. If a value cannot be found for an identifier, return null but still create the validation entry
+
+CRITICAL COUNT REQUIREMENT:
+- Number of validation results MUST equal number of identifier references (e.g., 185 identifiers = 185 validations)
+- Use record_index matching the identifier index: 0, 1, 2, 3, etc.
+- If extraction fails for any identifier, still create validation with extracted_value: null
 
 TARGET FIELD SCHEMA:
 {target_fields}
