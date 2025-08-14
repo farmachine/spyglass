@@ -691,6 +691,7 @@ const AIExtractionModal = ({
 
 export default function SessionView() {
   const { sessionId } = useParams(); // Remove projectId from params - we'll get it from session data
+  const [showSessionsList, setShowSessionsList] = useState(false);
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [showReasoningDialog, setShowReasoningDialog] = useState(false);
@@ -2394,7 +2395,7 @@ Thank you for your assistance.`;
   const verificationStats = getVerificationStatsForProject();
 
   const navItems = [
-    { id: "data", label: `All ${project?.mainObjectName || "Session"}s`, icon: Database, href: `/projects/${projectId}?tab=all-data` },
+    { id: "data", label: `All ${project?.mainObjectName || "Session"}s`, icon: Database, onClick: () => setShowSessionsList(true) },
   ];
 
   return (
@@ -2463,21 +2464,21 @@ Thank you for your assistance.`;
             <nav className="space-y-0.5">
               {navItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = item.id === 'data'; // Highlight "All Data" since we're in session view
+                const isActive = showSessionsList; // Highlight when sessions list is shown
                 
                 return (
-                  <Link key={item.id} href={item.href}>
-                    <button
-                      className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
-                        isActive
-                          ? "bg-primary text-white font-medium shadow-sm"
-                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
-                      }`}
-                    >
-                      <Icon className={`h-4 w-4 ${isActive ? "text-white" : "text-slate-500"}`} />
-                      {item.label}
-                    </button>
-                  </Link>
+                  <button
+                    key={item.id}
+                    onClick={item.onClick}
+                    className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
+                      isActive
+                        ? "bg-primary text-white font-medium shadow-sm"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
+                    }`}
+                  >
+                    <Icon className={`h-4 w-4 ${isActive ? "text-white" : "text-slate-500"}`} />
+                    {item.label}
+                  </button>
                 );
               })}
             </nav>
@@ -3632,6 +3633,112 @@ Thank you for your assistance.`;
           session={session}
           validations={validations}
         />
+      )}
+
+      {/* Sessions List Modal/Overlay */}
+      {showSessionsList && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-8">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Database className="h-6 w-6 text-primary" />
+                <div>
+                  <h2 className="text-xl font-bold">All {project?.mainObjectName || "Session"}s</h2>
+                  <p className="text-sm text-gray-600">{project?.sessions.length || 0} total sessions</p>
+                </div>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setShowSessionsList(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(80vh-120px)]">
+              <div className="grid gap-4">
+                {project?.sessions.map((projectSession) => {
+                  const sessionValidations = projectValidations.filter(v => v.sessionId === projectSession.id);
+                  const verificationStatus = getVerificationStatusForProject(projectSession.id);
+                  const verifiedCount = sessionValidations.filter(v => 
+                    v.validationStatus === 'valid' || v.validationStatus === 'verified'
+                  ).length;
+                  const totalFields = sessionValidations.length;
+
+                  return (
+                    <Card 
+                      key={projectSession.id} 
+                      className={`cursor-pointer hover:shadow-md transition-shadow ${
+                        projectSession.id === sessionId ? 'ring-2 ring-primary bg-primary/5' : ''
+                      }`}
+                      onClick={() => {
+                        if (projectSession.id !== sessionId) {
+                          window.location.href = `/sessions/${projectSession.id}`;
+                        } else {
+                          setShowSessionsList(false);
+                        }
+                      }}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-start space-x-4 flex-1">
+                            <div className="flex-shrink-0">
+                              {verificationStatus === 'verified' ? (
+                                <CheckCircle className="h-6 w-6 text-green-600" />
+                              ) : verificationStatus === 'in_progress' ? (
+                                <AlertTriangle className="h-6 w-6 text-yellow-600" />
+                              ) : (
+                                <AlertCircle className="h-6 w-6 text-gray-400" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <h3 className="text-lg font-semibold text-gray-900">
+                                  {projectSession.sessionName || `Session ${projectSession.id.slice(-6)}`}
+                                </h3>
+                                {projectSession.id === sessionId && (
+                                  <Badge variant="outline" className="text-xs">Current</Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-600 mb-2">
+                                {totalFields > 0 ? (
+                                  `${verifiedCount}/${totalFields} fields verified`
+                                ) : (
+                                  'No validation data'
+                                )}
+                              </p>
+                              <div className="flex items-center gap-4 text-xs text-gray-500">
+                                <span>Created {new Date(projectSession.createdAt).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <Badge 
+                              variant={verificationStatus === 'verified' ? 'default' : 'secondary'}
+                              className={
+                                verificationStatus === 'verified' ? 'bg-green-100 text-green-800' :
+                                verificationStatus === 'in_progress' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-gray-100 text-gray-600'
+                              }
+                            >
+                              {verificationStatus === 'verified' ? 'Verified' :
+                               verificationStatus === 'in_progress' ? 'In Progress' : 
+                               'Pending'}
+                            </Badge>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
