@@ -1,0 +1,73 @@
+Excel Columns Missing from JSON Analysis (Updated)
+Summary
+
+Total Excel Headers: 185 columns across 6 sheets
+Updated JSON Headers: 165 columns
+Still Missing from JSON: 16 columns (8.6% of Excel columns)
+Success Rate: 91.4% (169 out of 185 columns captured)
+Improvement: +20 headers captured compared to previous version
+
+Still Missing Columns by Sheet
+New_Pensioners Sheet (1 missing column)
+
+Component Of Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)
+
+Active deferreds Sheet (13 missing columns)
+
+Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To Statutory Revaluation In Deferment And CPI capped at 2.5% pa in payment
+Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To Both Statutory Revaluation In Deferment And RPI capped at 5% pa in payment
+Date Of Exit From Active Deferred Member Status
+Code For Exit From Active Deferred Member Status
+Contingent Widow(er)'s Pension Subject To RPI capped at 5% pa At Date Became Active Deferred Member
+Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To LPI5 Revaluation In Deferment And RPI capped at 2.5% pa in payment
+Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To LPI2.5 Revaluation In Deferment And RPI capped at 2.5% pa in payment
+Contingent Widow(er)'s Pension Subject To RPI capped at 2.5% pa At Date Became Active Deferred Member
+Contingent Widow(er)'s Pension Subject To CPI capped at 2.5% pa At Date Became Active Deferred Member
+Date Of Buy-Out Of SBO Terms
+Deferred Pension For Service To Buy-Out at this valuation date
+Annual Post-5.4.1988 up to 31.5.1995 GMP Component At Date Of This Valuation
+Final salary: Final Pensionable Salary At Exit From Active Status
+
+Deferreds Sheet (1 missing column)
+
+Contingent Widow(er)'s Pension Subject To CPI capped at 2.5% pa At Date Became Deferred Pensioner (or fixed 5% pa for former Section B members)
+
+Pensioners Sheet (1 missing column)
+
+Component Of Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)
+
+Widows Sheet
+✅ Complete - all headers captured in JSON
+Children Sheet
+✅ Complete - all headers captured in JSON
+Headers in JSON but Not in Excel (5 items)
+These may be formatting variations or duplicates:
+
+Component Of Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)
+Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To Statutory Revaluation In Deferment And CPI capped at 2.5% pa in payment
+Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To Both Statutory Revaluation In Deferment
+Contingent Widow(er)'s Pension Subject To CPI capped at 2.5% pa At Date Became Deferred Pensioner (or fixed 5% pa for former Section B members)
+Component Of Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)
+
+Key Observations
+
+Most affected sheet: Active deferreds (13 missing columns) - unchanged
+Fully captured sheets: Widows and Children (0 missing columns each)
+Major improvement: New_Pensioners reduced from 7 missing to 1 missing
+Major improvement: Pensioners reduced from 7 missing to 1 missing
+Major improvement: Deferreds reduced from 3 missing to 1 missing
+Remaining missing column types:
+
+Complex multi-line pension component headers
+Buy-out related fields
+Active deferred member exit information
+Additional GMP components
+
+
+
+Performance Comparison
+
+Previous version: 145 headers captured (78.4% success rate)
+Updated version: 165 headers captured (91.4% success rate)
+Improvement: +20 headers, +13% success rate
+Remaining work: 16 columns still need extraction (primarily in Active deferreds sheet)
