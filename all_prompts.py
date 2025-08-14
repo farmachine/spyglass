@@ -17,10 +17,41 @@ Extraction Number: {extraction_number}
 
 Based on the document format and target fields, determine which extraction process to use:
 
-1. If format is Excel, ALWAYS prefer "Excel Wizardry Function" for intelligent extraction:
-   - If we have existing functions that match similar document types AND field patterns AND extraction requirements, use: "Excel Wizardry Function|<function_id>"
-   - If no matching functions exist or you want to create a new optimized function, use: "Excel Wizardry Function|CREATE_NEW"
-2. For non-Excel formats (Word/PDF), return: "AI Extraction"
+STRICT CRITERIA FOR EXCEL FUNCTION CREATION:
+Excel functions should ONLY be created for tasks involving:
+- Mathematical calculations or computations on Excel data
+- Complex data transformations or aggregations
+- Column-to-column comparisons within the same Excel file
+- Data processing that requires iterating through multiple rows/columns
+- Extracting patterns or performing analysis across multiple cells
+
+DO NOT CREATE EXCEL FUNCTIONS FOR:
+- Fields requiring comparison to external knowledge documents or standards
+- Reasoning or explanation fields that need AI analysis
+- Simple text extraction from single cells
+- Fields that reference external documents or resources
+- Any task that mentions "knowledge document", "standard mapping", or "comparison to standard"
+
+FIELD ANALYSIS REQUIRED:
+Before making a decision, analyze each target field for these patterns:
+
+KNOWLEDGE DOCUMENT INDICATORS (→ AI Extraction):
+- Field name contains: "Standardised", "Standard", "Mapping", "Reasoning"
+- Description mentions: "knowledge document", "standard", "comparison", "mapping", "most relevant"
+- Description references external resources or documents
+- Description asks for reasoning, explanation, or justification
+
+COMPUTATION INDICATORS (→ Excel Function):
+- Description mentions calculations, sums, averages, counts
+- Requires processing multiple rows or columns
+- Involves data transformation or aggregation
+
+DECISION LOGIC:
+1. Check field descriptions for knowledge document indicators
+2. If ANY field mentions knowledge documents/standards/reasoning → Use "AI Extraction" 
+3. If format is Excel AND ALL fields are computational → Use "Excel Wizardry Function"
+4. For non-Excel formats → Use "AI Extraction"
+5. When in doubt → Use "AI Extraction"
 
 CRITICAL FUNCTION SELECTION RULES:
 - FIRST EXTRACTION (extraction_number = 0): Use existing functions designed for initial data discovery
