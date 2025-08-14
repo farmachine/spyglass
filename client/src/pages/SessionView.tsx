@@ -2826,9 +2826,13 @@ Thank you for your assistance.`;
                   {/* Tab button */}
                   <button
                     onClick={() => setActiveTab('info')}
-                    className="ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 font-medium shadow-sm text-[#071e54] bg-[#ffffff]"
+                    className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
+                      activeTab === 'info' 
+                        ? 'bg-primary text-white font-medium shadow-sm' 
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal'
+                    }`}
                   >
-                    General Information
+                    <div className="truncate">General Information</div>
                   </button>
                 </div>
                 
