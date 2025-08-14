@@ -2394,7 +2394,7 @@ Thank you for your assistance.`;
   const verificationStats = getVerificationStatsForProject();
 
   const navItems = [
-    { id: "data", label: `All ${project?.mainObjectName || "Session"}s`, icon: Database, href: `/projects/${projectId}?tab=all-data` },
+    { id: "back", label: `← All ${project?.mainObjectName || "Session"}s`, icon: ArrowLeft, href: `/projects/${projectId}?tab=all-data` },
   ];
 
   return (
@@ -2638,11 +2638,6 @@ Thank you for your assistance.`;
             {/* Session Review Header - Now styled like page header */}
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-start space-x-3 flex-1 mr-6">
-                <Link href={`/projects/${projectId}?tab=all-data`}>
-                  <Button variant="ghost" size="sm" className="flex items-center gap-2 mt-1">
-                    <ArrowLeft className="h-4 w-4" />
-                  </Button>
-                </Link>
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center space-x-2">
                     {isEditingSessionName ? (
