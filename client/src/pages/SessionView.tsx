@@ -2732,7 +2732,7 @@ Thank you for your assistance.`;
 
       <div className="flex flex-1 min-h-0">
         {/* Sidebar */}
-        <div className="w-80 bg-slate-50 border-r border-slate-200 flex flex-col">
+        <div className="w-80 bg-white border-r border-slate-200 flex flex-col">
           <div className="p-4">
             <nav className="space-y-0.5">
               {navItems.map((item) => {
