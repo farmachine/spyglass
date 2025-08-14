@@ -1,0 +1,41 @@
+New_Pensioners Sheet (7 missing columns)
+
+Component Of Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)
+Component Of Contingent Widow(er)'s Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)
+Total Pension Payable From Scheme At Retirement Before Reduction for Tax Free Cash
+Tax Free Cash taken at Retirement
+Pension Commuted At Retirement in Exchange for Tax Free Cash
+Total Pension Payable From Scheme At Retirement After Reduction for Tax Free Cash
+Status
+
+Active deferreds Sheet (13 missing columns)
+
+Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To Statutory Revaluation In Deferment And CPI capped at 2.5% pa in payment
+Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To Both Statutory Revaluation In Deferment And RPI capped at 5% pa in payment
+Date Of Exit From Active Deferred Member Status
+Code For Exit From Active Deferred Member Status
+Contingent Widow(er)'s Pension Subject To RPI capped at 5% pa At Date Became Active Deferred Member
+Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To LPI5 Revaluation In Deferment And RPI capped at 2.5% pa in payment
+Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To LPI2.5 Revaluation In Deferment And RPI capped at 2.5% pa in payment
+Contingent Widow(er)'s Pension Subject To RPI capped at 2.5% pa At Date Became Active Deferred Member
+Contingent Widow(er)'s Pension Subject To CPI capped at 2.5% pa At Date Became Active Deferred Member
+Date Of Buy-Out Of SBO Terms
+Deferred Pension For Service To Buy-Out at this valuation date
+Annual Post-5.4.1988 up to 31.5.1995 GMP Component At Date Of This Valuation
+Final salary: Final Pensionable Salary At Exit From Active Status
+
+Deferreds Sheet (3 missing columns)
+
+Contingent Widow(er)'s Pension Subject To CPI capped at 2.5% pa At Date Became Deferred Pensioner (or fixed 5% pa for former Section B members)
+Salary at date of leaving pensionable service
+Section B Pre 21 July 1997 (Post 97 fixed 5% pa in deferment and payment pension)
+
+Pensioners Sheet (7 missing columns)
+
+Component Of Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)
+Component Of Contingent Widow(er)'s Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)
+Total Pension Payable From Scheme At Retirement Before Reduction for Tax Free Cash
+Tax Free Cash taken at Retirement
+Pension Commuted At Retirement in Exchange for Tax Free Cash
+Total Pension Payable From Scheme At Retirement After Reduction for Tax Free Cash
+Status
