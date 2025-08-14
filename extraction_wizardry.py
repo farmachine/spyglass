@@ -535,9 +535,11 @@ def generate_excel_function_with_gemini(target_fields_data, documents, max_retri
 def execute_excel_wizardry_function(function_code, extracted_content, target_fields_data):
     """Execute an Excel wizardry function with the provided data"""
     try:
-        # Create a safe execution environment
+        # Create a safe execution environment with necessary imports
+        import re
         exec_globals = {
             'json': json,
+            're': re,
             '__builtins__': {
                 'len': len,
                 'str': str,
@@ -548,7 +550,17 @@ def execute_excel_wizardry_function(function_code, extracted_content, target_fie
                 'range': range,
                 'enumerate': enumerate,
                 'zip': zip,
-                'print': print
+                'print': print,
+                '__import__': __import__,  # Allow imports
+                'abs': abs,
+                'any': any,
+                'all': all,
+                'bool': bool,
+                'max': max,
+                'min': min,
+                'sum': sum,
+                'sorted': sorted,
+                'reversed': reversed
             }
         }
         
