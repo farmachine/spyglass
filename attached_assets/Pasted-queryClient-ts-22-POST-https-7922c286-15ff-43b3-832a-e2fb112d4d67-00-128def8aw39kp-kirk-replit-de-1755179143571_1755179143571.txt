@@ -1,0 +1,39 @@
+queryClient.ts:22  POST https://7922c286-15ff-43b3-832a-e2fb112d4d67-00-128def8aw39kp.kirk.replit.dev/api/run-wizardry 500 (Internal Server Error)
+apiRequest @ queryClient.ts:22
+handleRunExtraction @ SessionView.tsx:605
+callCallback2 @ chunk-RPCDYKBN.js?v=a723f915:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=a723f915:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=a723f915:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=a723f915:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=a723f915:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=a723f915:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=a723f915:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=a723f915:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=a723f915:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=a723f915:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=a723f915:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=a723f915:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=a723f915:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=a723f915:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=a723f915:5449Understand this error
+SessionView.tsx:618 Error running wizardry: Error: 500: {"message":"Wizardry script failed","error":"Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.\nBoth GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.\nTraceback (most recent call last):\n  File \"/home/runner/workspace/extraction_wizardry.py\", line 925, in <module>\n    run_wizardry(data)\n  File \"/home/runner/workspace/extraction_wizardry.py\", line 911, in run_wizardry\n    run_wizardry_with_gemini_analysis(data)\n  File \"/home/runner/workspace/extraction_wizardry.py\", line 732, in run_wizardry_with_gemini_analysis\n    function_data = generate_excel_function_with_gemini(identifier_targets, documents)\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/workspace/extraction_wizardry.py\", line 401, in generate_excel_function_with_gemini\n    prompt = EXCEL_FUNCTION_GENERATOR.format(\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nKeyError: ' and end with '\n"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:40:5)
+    at async handleRunExtraction (SessionView.tsx:605:24)
+handleRunExtraction @ SessionView.tsx:618
+await in handleRunExtraction
+callCallback2 @ chunk-RPCDYKBN.js?v=a723f915:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=a723f915:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=a723f915:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=a723f915:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=a723f915:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=a723f915:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=a723f915:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=a723f915:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=a723f915:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=a723f915:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=a723f915:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=a723f915:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=a723f915:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=a723f915:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=a723f915:5449Understand this error
