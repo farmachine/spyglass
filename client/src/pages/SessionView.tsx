@@ -2498,7 +2498,7 @@ Thank you for your assistance.`;
                       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal'
                   }`}
                 >
-                  <div className="truncate">Documents ({sessionDocuments?.length || 0})</div>
+                  <div className="truncate">Documents</div>
                 </button>
               </div>
             </div>
@@ -2609,7 +2609,7 @@ Thank you for your assistance.`;
                             : 'text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal'
                         }`}
                       >
-                        <div className="truncate">{collection.collectionName} ({uniqueIndices.length})</div>
+                        <div className="truncate">{collection.collectionName}</div>
                       </button>
                     </div>
                   );
@@ -2986,7 +2986,7 @@ Thank you for your assistance.`;
                 <Card className="border-t-0 rounded-tl-none ml-0">
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
-                      <span className="flex items-center gap-2">Uploaded Documents</span>
+                      <span className="flex items-center gap-2">Documents</span>
                     </CardTitle>
                     <p className="text-sm text-gray-600">
                       Documents uploaded and processed for this session.
