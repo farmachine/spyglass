@@ -28,6 +28,16 @@
   /* Custom Flow Capture colors */
   --success: hsl(142, 76%, 36%); /* #22C55E - Success Green */
   --warning: hsl(25, 95%, 53%); /* #FB923C - Warning Orange */
+  
+  /* Sidebar color variables */
+  --sidebar-background: hsl(0, 0%, 100%); /* White background */
+  --sidebar-foreground: hsl(226, 81%, 18%); /* #071e54 - Deep blue text */
+  --sidebar-primary: hsl(225, 35%, 48%); /* #4F63A4 */
+  --sidebar-primary-foreground: hsl(0, 0%, 100%); /* White */
+  --sidebar-accent: hsl(210, 40%, 96%); /* Light gray */
+  --sidebar-accent-foreground: hsl(226, 81%, 18%); /* #071e54 */
+  --sidebar-border: hsl(214, 32%, 91%); /* Light border */
+  --sidebar-ring: hsl(225, 35%, 48%); /* Primary blue */
 }
 
 .dark {
@@ -55,6 +65,16 @@
   /* Custom Flow Capture colors for dark mode */
   --success: hsl(142, 76%, 36%);
   --warning: hsl(25, 95%, 53%);
+  
+  /* Sidebar color variables for dark mode */
+  --sidebar-background: hsl(240, 10%, 3.9%); /* Dark background */
+  --sidebar-foreground: hsl(226, 81%, 18%); /* #071e54 - Keep same deep blue text */
+  --sidebar-primary: hsl(225, 35%, 48%); /* #4F63A4 */
+  --sidebar-primary-foreground: hsl(0, 0%, 100%); /* White */
+  --sidebar-accent: hsl(240, 3.7%, 15.9%); /* Dark accent */
+  --sidebar-accent-foreground: hsl(226, 81%, 18%); /* #071e54 */
+  --sidebar-border: hsl(240, 3.7%, 15.9%); /* Dark border */
+  --sidebar-ring: hsl(225, 35%, 48%); /* Primary blue */
 }
 
 @layer base {
