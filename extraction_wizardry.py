@@ -689,8 +689,13 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                 }
                 target_fields_data.append(field_data)
         
-        # Filter identifier targets early for use in both display and Gemini analysis
-        identifier_targets = [field for field in target_fields_data if field.get('is_identifier', False)]
+        # Filter targets based on extraction number - only process the current target property
+        if extraction_number < len(target_fields_data):
+            current_target = target_fields_data[extraction_number]
+            identifier_targets = [current_target]
+        else:
+            # If extraction_number exceeds available fields, use identifier fields as fallback
+            identifier_targets = [field for field in target_fields_data if field.get('is_identifier', False)]
         
         # Get all collection properties for progress tracking
         collection_ids = list(set([field.get('collection_id') for field in target_fields_data if field.get('collection_id')]))
@@ -714,9 +719,9 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
         print(json.dumps(target_fields_data, indent=2))
         print("=" * 80)
         
-        # Display identifier targets
+        # Display current target property
         print("\n" + "=" * 80)
-        print("IDENTIFIER TARGET")
+        print("TARGET PROPERTY FOR THIS EXTRACTION")
         print("=" * 80)
         print(json.dumps(identifier_targets, indent=2))
         print("=" * 80)
@@ -759,19 +764,19 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             
             print(f"Function instruction: {function_instruction}")
             
-            # Get document content for Excel processing
+            # Get document IDs for processing (no need to read full content in tool selector)
             document_ids = [doc['id'] for doc in documents]
             extracted_content = ""
             
-            # Get the extracted content from the first Excel document
+            # Only get content when actually executing functions, not for tool selection
+            # For now, just get a sample to determine document structure
             for doc in documents:
                 if doc.get('type', '').lower() in ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv']:
-                    # Get full extracted content from database
+                    # Get content from database only when needed for function execution
                     doc_content = get_document_properties_from_db([doc['id']], session_id)
                     if doc_content and not isinstance(doc_content, dict):
                         for doc_data in doc_content:
                             if 'contentPreview' in doc_data:
-                                # This would be the full content, not just preview in actual implementation
                                 extracted_content = doc_data['contentPreview']
                                 break
                     break
