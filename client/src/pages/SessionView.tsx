@@ -265,7 +265,7 @@ const AIExtractionModal = ({
   isOpen: boolean; 
   onClose: () => void; 
   sectionName: string;
-  availableFields: { id: string; name: string; type: string }[];
+  availableFields: { id: string; name: string; type: string; index?: number; orderIndex?: number }[];
   sessionDocuments: any[];
   verifiedFields: { id: string; name: string; value: string }[];
   allProjectFields?: { id: string; name: string; type: string }[];
@@ -311,7 +311,7 @@ const AIExtractionModal = ({
       const [collectionName, propertyName] = fieldId.split('.');
       const collectionFields = availableFields
         .filter(f => f.id.startsWith(collectionName + '.'))
-        .sort((a, b) => (a.index || 0) - (b.index || 0));
+        .sort((a, b) => (a.orderIndex || a.index || 0) - (b.orderIndex || b.index || 0));
       
       const fieldIndex = collectionFields.findIndex(f => f.id === fieldId);
       
@@ -532,7 +532,7 @@ const AIExtractionModal = ({
         <div className="flex-1 overflow-y-auto p-6">
           <div className="space-y-3">
             {availableFields
-              .sort((a, b) => (a.index || 0) - (b.index || 0))
+              .sort((a, b) => (a.orderIndex || a.index || 0) - (b.orderIndex || b.index || 0))
               .map((field) => {
                 // Check if this is a collection field and determine if it's selectable
                 let isSelectable = true;
@@ -542,7 +542,7 @@ const AIExtractionModal = ({
                   const [collectionName, propertyName] = field.id.split('.');
                   const collectionFields = availableFields
                     .filter(f => f.id.startsWith(collectionName + '.'))
-                    .sort((a, b) => (a.index || 0) - (b.index || 0));
+                    .sort((a, b) => (a.orderIndex || a.index || 0) - (b.orderIndex || b.index || 0));
                   
                   const fieldIndex = collectionFields.findIndex(f => f.id === field.id);
                   isFirstInCollection = fieldIndex === 0;
