@@ -304,11 +304,49 @@ const AIExtractionModal = ({
   };
 
   const handleTargetFieldToggle = (fieldId: string) => {
-    setSelectedTargetFields(prev => 
-      prev.includes(fieldId) 
-        ? prev.filter(id => id !== fieldId)
-        : [...prev, fieldId]
-    );
+    const field = availableFields.find(f => f.id === fieldId);
+    
+    // Check if this is a collection field
+    if (field && fieldId.includes('.')) {
+      const [collectionName, propertyName] = fieldId.split('.');
+      const collectionFields = availableFields
+        .filter(f => f.id.startsWith(collectionName + '.'))
+        .sort((a, b) => (a.index || 0) - (b.index || 0));
+      
+      const fieldIndex = collectionFields.findIndex(f => f.id === fieldId);
+      
+      setSelectedTargetFields(prev => {
+        if (prev.includes(fieldId)) {
+          // Deselecting: remove this field and all higher-indexed fields in the same collection
+          return prev.filter(id => {
+            if (!id.startsWith(collectionName + '.')) return true;
+            const targetField = collectionFields.find(f => f.id === id);
+            const targetIndex = collectionFields.findIndex(f => f.id === id);
+            return targetIndex < fieldIndex;
+          });
+        } else {
+          // Selecting: ensure all previous fields in the collection are selected
+          const newSelection = [...prev];
+          
+          // Add all fields from index 0 up to and including the selected field
+          for (let i = 0; i <= fieldIndex; i++) {
+            const requiredField = collectionFields[i];
+            if (requiredField && !newSelection.includes(requiredField.id)) {
+              newSelection.push(requiredField.id);
+            }
+          }
+          
+          return newSelection;
+        }
+      });
+    } else {
+      // Non-collection field: standard toggle behavior
+      setSelectedTargetFields(prev => 
+        prev.includes(fieldId) 
+          ? prev.filter(id => id !== fieldId)
+          : [...prev, fieldId]
+      );
+    }
   };
 
   const selectAllDocuments = () => {
@@ -495,28 +533,71 @@ const AIExtractionModal = ({
           <div className="space-y-3">
             {availableFields
               .sort((a, b) => (a.index || 0) - (b.index || 0))
-              .map((field) => (
-              <div key={field.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center space-x-3">
-                  <Checkbox
-                    id={`target-${field.id}`}
-                    checked={selectedTargetFields.includes(field.id)}
-                    onCheckedChange={() => handleTargetFieldToggle(field.id)}
-                    className="mt-0.5"
-                  />
-                  <div className="flex-1">
-                    <Label htmlFor={`target-${field.id}`} className="text-base font-medium text-gray-900 cursor-pointer">
-                      {field.name}
-                    </Label>
-                    {field.type && (
-                      <p className="text-sm text-gray-500 mt-1">
-                        Type: {field.type}
-                      </p>
-                    )}
+              .map((field) => {
+                // Check if this is a collection field and determine if it's selectable
+                let isSelectable = true;
+                let isFirstInCollection = false;
+                
+                if (field.id.includes('.')) {
+                  const [collectionName, propertyName] = field.id.split('.');
+                  const collectionFields = availableFields
+                    .filter(f => f.id.startsWith(collectionName + '.'))
+                    .sort((a, b) => (a.index || 0) - (b.index || 0));
+                  
+                  const fieldIndex = collectionFields.findIndex(f => f.id === field.id);
+                  isFirstInCollection = fieldIndex === 0;
+                  
+                  // Field is selectable if:
+                  // 1. It's the first item (always selectable)
+                  // 2. OR all previous items in the collection are selected
+                  if (!isFirstInCollection) {
+                    const previousField = collectionFields[fieldIndex - 1];
+                    isSelectable = previousField ? selectedTargetFields.includes(previousField.id) : false;
+                  }
+                }
+                
+                const isSelected = selectedTargetFields.includes(field.id);
+                const containerClass = `rounded-lg p-4 shadow-sm transition-all ${
+                  isSelectable 
+                    ? 'bg-white border border-gray-200 hover:shadow-md cursor-pointer' 
+                    : 'bg-gray-50 border border-gray-100 opacity-60 cursor-not-allowed'
+                }`;
+                
+                return (
+                  <div key={field.id} className={containerClass}>
+                    <div className="flex items-center space-x-3">
+                      <Checkbox
+                        id={`target-${field.id}`}
+                        checked={isSelected}
+                        onCheckedChange={() => isSelectable && handleTargetFieldToggle(field.id)}
+                        disabled={!isSelectable}
+                        className="mt-0.5"
+                      />
+                      <div className="flex-1">
+                        <Label 
+                          htmlFor={`target-${field.id}`} 
+                          className={`text-base font-medium ${
+                            isSelectable ? 'text-gray-900 cursor-pointer' : 'text-gray-500 cursor-not-allowed'
+                          }`}
+                        >
+                          {field.name}
+                          {field.id.includes('.') && isFirstInCollection && (
+                            <span className="ml-2 text-xs text-blue-600 font-normal">(Required first)</span>
+                          )}
+                          {field.id.includes('.') && !isFirstInCollection && !isSelectable && (
+                            <span className="ml-2 text-xs text-gray-400 font-normal">(Select previous items first)</span>
+                          )}
+                        </Label>
+                        {field.type && (
+                          <p className={`text-sm mt-1 ${isSelectable ? 'text-gray-500' : 'text-gray-400'}`}>
+                            Type: {field.type}
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
+                );
+              })}
           </div>
         </div>
 
