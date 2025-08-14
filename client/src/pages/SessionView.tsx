@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -636,18 +636,23 @@ const AIExtractionModal = ({
                 return (
                   <div key={field.id} className={containerClass}>
                     <div className="flex items-center space-x-3">
-                      <Checkbox
-                        id={`target-${field.id}`}
-                        checked={isSelected}
-                        onCheckedChange={() => isSelectable && !isIdentifier && handleTargetFieldToggle(field.id)}
+                      <button
+                        onClick={() => isSelectable && !isIdentifier && handleTargetFieldToggle(field.id)}
                         disabled={!isSelectable || isIdentifier}
-                        className={`mt-0.5 ${isIdentifier ? 'opacity-70' : ''}`}
-                      />
+                        className={`p-1 rounded transition-all ${
+                          isSelected 
+                            ? 'text-blue-600 bg-blue-50 hover:bg-blue-100' 
+                            : isSelectable && !isIdentifier
+                              ? 'text-gray-400 hover:text-blue-500 hover:bg-blue-50'
+                              : 'text-gray-300 cursor-not-allowed'
+                        } ${isIdentifier ? 'opacity-70' : ''}`}
+                      >
+                        <Wand2 className="h-4 w-4" />
+                      </button>
                       <div className="flex-1">
-                        <Label 
-                          htmlFor={`target-${field.id}`} 
+                        <div 
                           className={`text-base font-medium ${
-                            isSelectable ? 'text-gray-900 cursor-pointer' : 'text-gray-500 cursor-not-allowed'
+                            isSelectable ? 'text-gray-900' : 'text-gray-500'
                           }`}
                         >
                           {field.name}
@@ -657,7 +662,7 @@ const AIExtractionModal = ({
                           {!isIdentifier && field.id.includes('.') && !isFirstInCollection && !isSelectable && (
                             <span className="ml-2 text-xs text-gray-400 font-normal">(Select previous items first)</span>
                           )}
-                        </Label>
+                        </div>
                         {field.type && (
                           <p className={`text-sm mt-1 ${isSelectable ? 'text-gray-500' : 'text-gray-400'}`}>
                             Type: {field.type}
