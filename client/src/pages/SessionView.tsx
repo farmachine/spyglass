@@ -559,13 +559,33 @@ const AIExtractionModal = ({
       total: matchingRules.length
     }, null, 2));
 
+    // Add field document sources to target fields
+    const targetFieldsWithSources = selectedTargetFieldObjects.map(field => ({
+      ...field,
+      selectedDocumentIds: fieldDocumentSources[field.id] || []
+    }));
+
+    // Log extraction configuration including field document sources
+    console.log('=== Extraction Wizard - Starting Extraction ===');
+    console.log('Field Document Sources:', JSON.stringify(
+      Object.fromEntries(
+        Object.entries(fieldDocumentSources).filter(([fieldId]) => 
+          selectedTargetFields.includes(fieldId)
+        )
+      ), 
+      null, 
+      2
+    ));
+    
     // Run the extraction wizardry Python script with document IDs, session ID, and target fields
     try {
       const requestData = {
         document_ids: selectedDocuments,
         session_id: sessionId,
-        target_fields: selectedTargetFieldObjects
+        target_fields: targetFieldsWithSources
       };
+      
+      console.log('Complete Extraction Request:', JSON.stringify(requestData, null, 2));
       
       const response = await apiRequest('/api/run-wizardry', {
         method: 'POST',
