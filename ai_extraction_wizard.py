@@ -4,7 +4,7 @@ import json
 from google import genai
 from all_prompts import AI_DOCUMENT_EXTRACTION
 
-def ai_document_extraction(document_ids, session_id, target_fields_data):
+def ai_document_extraction(document_ids, session_id, target_fields_data, identifier_references=None):
     """Extract data from documents using AI analysis based on field descriptions"""
     try:
         # Get database connection from environment
@@ -94,13 +94,13 @@ def ai_document_extraction(document_ids, session_id, target_fields_data):
             })
         
         # Generate AI extraction using Gemini
-        return perform_ai_extraction(documents_content, target_fields_data, extraction_rules, knowledge_documents)
+        return perform_ai_extraction(documents_content, target_fields_data, extraction_rules, knowledge_documents, identifier_references)
         
     except Exception as e:
         print(f"Error in ai_document_extraction: {e}")
         return {"error": str(e)}
 
-def perform_ai_extraction(documents, target_fields_data, extraction_rules, knowledge_documents):
+def perform_ai_extraction(documents, target_fields_data, extraction_rules, knowledge_documents, identifier_references=None):
     """Use Gemini AI to extract data from documents"""
     max_retries = 3
     
@@ -114,13 +114,16 @@ def perform_ai_extraction(documents, target_fields_data, extraction_rules, knowl
             target_fields_json = json.dumps(target_fields_data, indent=2)
             extraction_rules_json = json.dumps(extraction_rules, indent=2)
             knowledge_documents_json = json.dumps(knowledge_documents, indent=2)
+            identifier_references_json = json.dumps(identifier_references or [], indent=2)
             
             # Generate the extraction using Gemini
             prompt = AI_DOCUMENT_EXTRACTION.format(
                 documents=documents_json,
                 target_fields=target_fields_json,
                 extraction_rules=extraction_rules_json,
-                knowledge_documents=knowledge_documents_json
+                knowledge_documents=knowledge_documents_json,
+                identifier_references=identifier_references_json,
+                extraction_number=0  # Default extraction number for AI extraction
             )
             
             print("\n" + "=" * 80, flush=True)

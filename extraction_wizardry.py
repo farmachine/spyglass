@@ -1052,7 +1052,7 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                 # Get document IDs from the documents data
                 document_ids = [doc['id'] for doc in documents]
                 # Pass document IDs and identifier targets to AI extraction
-                ai_result = ai_document_extraction(document_ids, session_id, identifier_targets)
+                ai_result = ai_document_extraction(document_ids, session_id, identifier_targets, incoming_identifier_references)
             
             # Clean JSON and extract identifiers
             processed_results = clean_json_and_extract_identifiers(ai_result, identifier_targets)
