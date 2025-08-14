@@ -767,14 +767,29 @@ const AIExtractionModal = ({
                 const fieldSources = fieldDocumentSources[field.id] || [];
 
                 return (
-                  <div key={field.id} className={containerClass}>
+                  <div 
+                    key={field.id} 
+                    className={`${containerClass} ${isSelectable && !isIdentifier && !isSelected ? 'cursor-pointer' : ''}`}
+                    onClick={() => {
+                      if (isSelectable && !isIdentifier && !isSelected) {
+                        handleTargetFieldToggle(field.id);
+                      }
+                    }}
+                  >
                     <div className="flex items-start space-x-3">
                       <button
-                        onClick={() => isSelectable && !isIdentifier && handleTargetFieldToggle(field.id)}
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent container click
+                          if (isSelectable && !isIdentifier && isSelected) {
+                            handleTargetFieldToggle(field.id); // Only allow deselection via wand
+                          } else if (isSelectable && !isIdentifier && !isSelected) {
+                            handleTargetFieldToggle(field.id); // Allow selection via wand too
+                          }
+                        }}
                         disabled={!isSelectable || isIdentifier}
                         className={`p-2 rounded-md transition-all flex-shrink-0 ${
                           isSelected 
-                            ? 'bg-primary text-primary-foreground shadow-sm' 
+                            ? 'bg-primary text-primary-foreground shadow-sm hover:bg-primary/80' 
                             : isSelectable && !isIdentifier
                               ? 'bg-background text-muted-foreground hover:text-primary hover:bg-primary/10'
                               : 'bg-background text-muted-foreground/40 cursor-not-allowed'
