@@ -777,24 +777,6 @@ const AIExtractionModal = ({
                                 Type: {field.type}
                               </p>
                             )}
-                          </div>
-                          <button
-                            onClick={() => toggleFieldExpansion(field.id)}
-                            className="p-1 hover:bg-muted rounded-md transition-all duration-200 ml-2 flex-shrink-0"
-                            disabled={!isSelected}
-                          >
-                            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
-                              isFieldExpanded ? 'rotate-0' : '-rotate-90'
-                            }`} />
-                          </button>
-                        </div>
-                        
-                        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                          isSelected && isFieldExpanded 
-                            ? 'max-h-[400px] opacity-100 mt-6' 
-                            : 'max-h-0 opacity-0 mt-0'
-                        }`}>
-                          <div className="space-y-4">
                             {(() => {
                               // Find field description from project collections or schema
                               let fieldDescription = '';
@@ -818,18 +800,29 @@ const AIExtractionModal = ({
                               }
                               
                               return fieldDescription && (
-                                <div className="bg-muted/30 p-3 rounded-md border border-border/50">
-                                  <Label className="text-sm font-medium text-muted-foreground mb-1 block">
-                                    Field Description
-                                  </Label>
-                                  <p className="text-sm text-foreground/90 leading-relaxed">
-                                    {fieldDescription}
-                                  </p>
-                                </div>
+                                <p className={`text-sm mt-1 leading-relaxed ${isSelectable ? 'text-muted-foreground' : 'text-muted-foreground/70'}`}>
+                                  {fieldDescription}
+                                </p>
                               );
                             })()}
-                            
-                            <div className="bg-card border border-border rounded-md p-4">
+                          </div>
+                          <button
+                            onClick={() => toggleFieldExpansion(field.id)}
+                            className="p-1 hover:bg-muted rounded-md transition-all duration-200 ml-2 flex-shrink-0"
+                            disabled={!isSelected}
+                          >
+                            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
+                              isFieldExpanded ? 'rotate-0' : '-rotate-90'
+                            }`} />
+                          </button>
+                        </div>
+                        
+                        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                          isSelected && isFieldExpanded 
+                            ? 'max-h-[400px] opacity-100 mt-6' 
+                            : 'max-h-0 opacity-0 mt-0'
+                        }`}>
+                          <div className="bg-card border border-border rounded-md p-4">
                               <div className="mb-3">
                                 <Label className="text-sm font-medium text-foreground">
                                   Extraction Sources
@@ -877,7 +870,6 @@ const AIExtractionModal = ({
                                 })}
                               </div>
                             </div>
-                          </div>
                         </div>
                       </div>
                     </div>
