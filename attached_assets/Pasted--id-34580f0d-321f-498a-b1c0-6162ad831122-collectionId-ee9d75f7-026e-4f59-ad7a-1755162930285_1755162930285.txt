@@ -1,0 +1,50 @@
+[
+  {
+    "id": "34580f0d-321f-498a-b1c0-6162ad831122",
+    "collectionId": "ee9d75f7-026e-4f59-ad7a-329295c54505",
+    "propertyName": "Column Heading",
+    "propertyType": "TEXT",
+    "description": "Please just look for the first row in each workbook. This will give you the column name. This should only look at row 1 in each sheet.",
+    "autoVerificationConfidence": 80,
+    "choiceOptions": [],
+    "isIdentifier": true,
+    "orderIndex": 0,
+    "createdAt": "2025-08-12T07:23:55.023Z"
+  },
+  {
+    "id": "afca5391-afb0-4639-baff-2b69487669ad",
+    "collectionId": "ee9d75f7-026e-4f59-ad7a-329295c54505",
+    "propertyName": "Worksheet",
+    "propertyType": "TEXT",
+    "description": "The name of the worksheet containing the column. This should only look at row 1 in each sheet.\t",
+    "autoVerificationConfidence": 80,
+    "choiceOptions": [],
+    "isIdentifier": false,
+    "orderIndex": 1,
+    "createdAt": "2025-08-12T07:24:51.576Z"
+  },
+  {
+    "id": "7f87696b-2b4f-4e38-820f-08ebdd301bba",
+    "collectionId": "ee9d75f7-026e-4f59-ad7a-329295c54505",
+    "propertyName": "Standardised Column Name",
+    "propertyType": "TEXT",
+    "description": "Look at the most relevant column references within the knowledge document: \"Standard_Field_Mappings_with_all_synonyms. Just give the name of the most relevant field from this document. This should only look at row 1 in each sheet.",
+    "autoVerificationConfidence": 80,
+    "choiceOptions": [],
+    "isIdentifier": false,
+    "orderIndex": 2,
+    "createdAt": "2025-08-12T07:25:08.749Z"
+  },
+  {
+    "id": "87b1fe45-0c6a-4a51-9d1c-d5a2d7ee1cde",
+    "collectionId": "ee9d75f7-026e-4f59-ad7a-329295c54505",
+    "propertyName": "Reasoning",
+    "propertyType": "TEXT",
+    "description": "Give reasoning for the mapping of the extracted column name to the 'Standardised Column Name' from the knowledge document. This should only look at row 1 in each sheet.",
+    "autoVerificationConfidence": 80,
+    "choiceOptions": [],
+    "isIdentifier": false,
+    "orderIndex": 3,
+    "createdAt": "2025-08-12T07:26:35.936Z"
+  }
+]

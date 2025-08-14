@@ -514,7 +514,65 @@ const AIExtractionModal = ({
 
   const { schemaFields, collectionNames } = organizeFields();
 
-
+  // Console log all field schema properties when modal opens
+  React.useEffect(() => {
+    if (isOpen && availableFields.length > 0) {
+      console.log('=== AI Field Extractor Modal - Full Field Schema Properties ===');
+      console.log('Available Fields Count:', availableFields.length);
+      
+      availableFields.forEach((field, index) => {
+        console.log(`\n--- Field ${index + 1}: ${field.name} ---`);
+        console.log('Basic Info:', {
+          id: field.id,
+          name: field.name,
+          type: field.type,
+          orderIndex: field.orderIndex,
+          index: field.index
+        });
+        
+        // Find full schema details for this field
+        if (field.id.includes('.')) {
+          // Collection property
+          const [collectionName, propertyName] = field.id.split('.');
+          const collection = project?.collections?.find(c => c.collectionName === collectionName);
+          if (collection) {
+            const property = collection.properties?.find(p => p.propertyName === propertyName);
+            if (property) {
+              console.log('Full Collection Property Schema:', {
+                id: property.id,
+                collectionId: property.collectionId,
+                propertyName: property.propertyName,
+                propertyType: property.propertyType,
+                description: property.description,
+                autoVerificationConfidence: property.autoVerificationConfidence,
+                choiceOptions: property.choiceOptions,
+                isIdentifier: property.isIdentifier,
+                orderIndex: property.orderIndex,
+                createdAt: property.createdAt
+              });
+            }
+          }
+        } else {
+          // Schema field
+          const schemaField = project?.schemaFields?.find(sf => sf.fieldName === field.id);
+          if (schemaField) {
+            console.log('Full Schema Field Details:', {
+              id: schemaField.id,
+              fieldName: schemaField.fieldName,
+              fieldType: schemaField.fieldType,
+              description: schemaField.description,
+              autoVerificationConfidence: schemaField.autoVerificationConfidence,
+              choiceOptions: schemaField.choiceOptions,
+              orderIndex: schemaField.orderIndex,
+              createdAt: schemaField.createdAt
+            });
+          }
+        }
+      });
+      
+      console.log('\n=== End Field Schema Properties ===');
+    }
+  }, [isOpen, availableFields, project]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
