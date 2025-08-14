@@ -662,6 +662,13 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
         # Variable to store identifier references from first extraction
         first_run_identifier_references = []
         
+        # Log which property is being extracted based on extraction number
+        if target_fields and extraction_number < len(target_fields):
+            current_property = target_fields[extraction_number]
+            property_name = current_property.get('propertyName') or current_property.get('property_name', 'Unknown Property')
+            print(f"\nnext property to be extracted: {property_name}")
+            print("=" * 80)
+        
         if not document_ids or not session_id:
             print(json.dumps({"error": "Missing document_ids or session_id"}))
             return
