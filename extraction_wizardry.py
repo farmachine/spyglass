@@ -1142,9 +1142,34 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             print("EXCLUDED PROPERTIES (NOT TO BE EXTRACTED):")
             print(json.dumps(excluded_properties, indent=2))
             
+            # Implement document selection logic for subsequent extractions
+            # For subsequent fields, only use previous extraction output plus any selected documents
+            # Document selection is not mandatory for non-identifier fields
+            
+            # Get the field names that will be processed from previous extraction
+            previous_field_names = []
+            if first_run_identifier_references:
+                # Get all field names from the first extraction
+                for ref in first_run_identifier_references:
+                    if isinstance(ref, dict):
+                        previous_field_names.extend(ref.keys())
+            
+            # Log what will be processed in the subsequent extraction
+            if previous_field_names:
+                print(f"\nSUBSEQUENT EXTRACTION PROCESSING NOTE:")
+                print(f"This extraction will process the output from: {', '.join(set(previous_field_names))}")
+                if document_ids:
+                    print(f"Plus any selected documents: {len(document_ids)} document(s)")
+                else:
+                    print("No additional documents selected - using only previous extraction output")
+            
+            # For subsequent extractions, we can use fewer documents or even no additional documents
+            # The identifier_references contain all the data from previous extractions
+            next_document_ids = document_ids if document_ids else []
+            
             # Create new data object with updated target fields and identifier references
             rerun_data = {
-                "document_ids": document_ids,
+                "document_ids": next_document_ids,
                 "session_id": session_id,
                 "target_fields": selected_target_fields,
                 "identifier_references": first_run_identifier_references
