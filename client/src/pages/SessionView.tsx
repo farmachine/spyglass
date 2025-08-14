@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus, Lock } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import * as XLSX from 'xlsx';
 import { Link } from "wouter";
@@ -548,6 +548,35 @@ const AIExtractionModal = ({
     }
   }, [isOpen, availableFields, project]);
 
+  // Auto-select identifier fields when modal opens
+  useEffect(() => {
+    if (isOpen && availableFields.length > 0 && project?.collections) {
+      const identifierFields: string[] = [];
+      
+      // Find all identifier fields
+      for (const collection of project.collections) {
+        for (const property of collection.properties || []) {
+          if (property.isIdentifier && availableFields.some(f => f.id === property.id)) {
+            identifierFields.push(property.id);
+          }
+        }
+      }
+      
+      // Add identifier fields to selection if not already selected
+      if (identifierFields.length > 0) {
+        setSelectedTargetFields(prev => {
+          const newSelection = [...prev];
+          identifierFields.forEach(fieldId => {
+            if (!newSelection.includes(fieldId)) {
+              newSelection.push(fieldId);
+            }
+          });
+          return newSelection;
+        });
+      }
+    }
+  }, [isOpen, availableFields, project]);
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
@@ -588,7 +617,18 @@ const AIExtractionModal = ({
                   }
                 }
                 
-                const isSelected = selectedTargetFields.includes(field.id);
+                // Check if this field is an identifier (mandatory)
+                let isIdentifier = false;
+                const allCollections = project?.collections || [];
+                for (const collection of allCollections) {
+                  const property = collection.properties?.find(p => p.id === field.id);
+                  if (property?.isIdentifier) {
+                    isIdentifier = true;
+                    break;
+                  }
+                }
+                
+                const isSelected = selectedTargetFields.includes(field.id) || isIdentifier;
                 const containerClass = `rounded-lg p-4 shadow-sm transition-all ${
                   isSelectable 
                     ? 'bg-white border border-gray-200 hover:shadow-md cursor-pointer' 
@@ -601,9 +641,9 @@ const AIExtractionModal = ({
                       <Checkbox
                         id={`target-${field.id}`}
                         checked={isSelected}
-                        onCheckedChange={() => isSelectable && handleTargetFieldToggle(field.id)}
-                        disabled={!isSelectable}
-                        className="mt-0.5"
+                        onCheckedChange={() => isSelectable && !isIdentifier && handleTargetFieldToggle(field.id)}
+                        disabled={!isSelectable || isIdentifier}
+                        className={`mt-0.5 ${isIdentifier ? 'opacity-70' : ''}`}
                       />
                       <div className="flex-1">
                         <Label 
@@ -612,12 +652,20 @@ const AIExtractionModal = ({
                             isSelectable ? 'text-gray-900 cursor-pointer' : 'text-gray-500 cursor-not-allowed'
                           }`}
                         >
-                          {field.name}
-                          {field.id.includes('.') && isFirstInCollection && (
-                            <span className="ml-2 text-xs text-blue-600 font-normal">(Required first)</span>
+                          <div className="flex items-center gap-2">
+                            {field.name}
+                            {isIdentifier && (
+                              <Lock className="h-3 w-3 text-amber-600" />
+                            )}
+                          </div>
+                          {isIdentifier && (
+                            <span className="ml-0 text-xs text-amber-600 font-normal">(Mandatory - Always selected)</span>
                           )}
-                          {field.id.includes('.') && !isFirstInCollection && !isSelectable && (
-                            <span className="ml-2 text-xs text-gray-400 font-normal">(Select previous items first)</span>
+                          {!isIdentifier && field.id.includes('.') && isFirstInCollection && (
+                            <span className="ml-0 text-xs text-blue-600 font-normal">(Required first)</span>
+                          )}
+                          {!isIdentifier && field.id.includes('.') && !isFirstInCollection && !isSelectable && (
+                            <span className="ml-0 text-xs text-gray-400 font-normal">(Select previous items first)</span>
                           )}
                         </Label>
                         {field.type && (
