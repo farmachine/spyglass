@@ -54,8 +54,17 @@ def extract_docx_text(file_content: bytes) -> str:
         raise Exception(f"DOCX extraction failed: {str(e)}")
 
 def extract_excel_text(file_content: bytes, file_name: str) -> str:
-    """Extract text from Excel file (both .xls and .xlsx)."""
+    """Extract text from Excel file with enhanced preprocessing (both .xls and .xlsx)."""
     try:
+        # Import the enhanced extractor
+        from enhanced_excel_extractor import ExcelPreprocessor
+        
+        # Use enhanced extraction with preprocessing
+        preprocessor = ExcelPreprocessor()
+        return preprocessor.extract_excel_text_enhanced(file_content, file_name)
+        
+    except ImportError:
+        # Fallback to original method if enhanced extractor not available
         text_parts = []
         
         # Try modern Excel format first (.xlsx)
