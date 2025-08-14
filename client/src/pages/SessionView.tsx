@@ -639,11 +639,11 @@ const AIExtractionModal = ({
                       <button
                         onClick={() => isSelectable && !isIdentifier && handleTargetFieldToggle(field.id)}
                         disabled={!isSelectable || isIdentifier}
-                        className={`p-1 rounded transition-all ${
+                        className={`p-1 rounded transition-all bg-white ${
                           isSelected 
-                            ? 'text-blue-600 bg-blue-50 hover:bg-blue-100' 
+                            ? 'text-blue-600 hover:text-blue-700' 
                             : isSelectable && !isIdentifier
-                              ? 'text-gray-400 hover:text-blue-500 hover:bg-blue-50'
+                              ? 'text-gray-400 hover:text-blue-500'
                               : 'text-gray-300 cursor-not-allowed'
                         } ${isIdentifier ? 'opacity-70' : ''}`}
                       >
