@@ -763,7 +763,7 @@ const AIExtractionModal = ({
                         <Wand2 className="h-4 w-4" />
                       </button>
                       <div className="flex-1">
-                        <div className="flex items-start justify-between">
+                        <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <div 
                               className={`text-base font-medium ${
@@ -780,19 +780,21 @@ const AIExtractionModal = ({
                           </div>
                           <button
                             onClick={() => toggleFieldExpansion(field.id)}
-                            className="p-1 hover:bg-muted rounded-md transition-colors ml-2 flex-shrink-0"
+                            className="p-1 hover:bg-muted rounded-md transition-all duration-200 ml-2 flex-shrink-0"
                             disabled={!isSelected}
                           >
-                            {isFieldExpanded ? (
-                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                            )}
+                            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
+                              isFieldExpanded ? 'rotate-0' : '-rotate-90'
+                            }`} />
                           </button>
                         </div>
                         
-                        {isSelected && isFieldExpanded && (
-                          <div className="mt-6 space-y-4">
+                        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                          isSelected && isFieldExpanded 
+                            ? 'max-h-[600px] opacity-100 mt-6' 
+                            : 'max-h-0 opacity-0 mt-0'
+                        }`}>
+                          <div className="space-y-4">
                             {(() => {
                               // Find field description from project collections or schema
                               let fieldDescription = '';
@@ -870,7 +872,7 @@ const AIExtractionModal = ({
                               )}
                             </div>
                           </div>
-                        )}
+                        </div>
                       </div>
                     </div>
                   </div>
