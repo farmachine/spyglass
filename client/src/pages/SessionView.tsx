@@ -2769,17 +2769,17 @@ Thank you for your assistance.`;
             {/* Session Data Content - Now controlled by sidebar navigation */}
             <div className="w-full">
               {/* Sessions List View */}
-              {showSessionsList && project && (
+              {showSessionsList ? (
                 <div className="p-6">
                   <div className="mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900">All {project.mainObjectName || "Session"}s</h2>
+                    <h2 className="text-2xl font-bold text-gray-900">All {project?.mainObjectName || "Session"}s</h2>
                     <p className="text-gray-600 mt-1">
-                      View and manage all {(project.mainObjectName || "session").toLowerCase()}s in this project
+                      View and manage all {(project?.mainObjectName || "session").toLowerCase()}s in this project
                     </p>
                   </div>
                   
                   <div className="space-y-3">
-                    {project.sessions.map((projectSession) => {
+                    {project?.sessions?.map((projectSession) => {
                       // Get verification stats for this session
                       const sessionValidations = validations?.filter(v => v.sessionId === projectSession.id) || [];
                       const totalFields = getAllProjectFields().length;
@@ -2833,21 +2833,18 @@ Thank you for your assistance.`;
                           </div>
                         </div>
                       );
-                    })}
+                    }) || []}
                     
-                    {project.sessions.length === 0 && (
+                    {(!project?.sessions || project.sessions.length === 0) && (
                       <div className="text-center py-12">
                         <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">No {project.mainObjectName || "Session"}s Yet</h3>
-                        <p className="text-gray-500">Start by creating your first {(project.mainObjectName || "session").toLowerCase()}</p>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No {project?.mainObjectName || "Session"}s Yet</h3>
+                        <p className="text-gray-500">Start by creating your first {(project?.mainObjectName || "session").toLowerCase()}</p>
                       </div>
                     )}
                   </div>
                 </div>
-              )}
-
-              {/* Regular Session Content - Only show when not showing sessions list */}
-              {!showSessionsList && (
+              ) : (
                 <>
                   {/* Info Tab Content - Single Object View */}
                   {activeTab === 'info' && (
@@ -3678,12 +3675,6 @@ Thank you for your assistance.`;
           collectionProperty={findCollectionProperty(editFieldDialog.validation)}
         />
       )}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Add Documents Modal */}
       <AddDocumentsModal
@@ -3723,6 +3714,12 @@ Thank you for your assistance.`;
         sessionId={sessionId}
         project={project}
       />
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Session Chat */}
       {session && validations && (
