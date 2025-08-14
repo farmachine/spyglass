@@ -628,17 +628,29 @@ const AIExtractionModal = ({
                 Select All
               </Button>
             </div>
-            <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border rounded-lg p-3">
-              {availableFields.map((field) => (
-                <div key={field.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`target-${field.id}`}
-                    checked={selectedTargetFields.includes(field.id)}
-                    onCheckedChange={() => handleTargetFieldToggle(field.id)}
-                  />
-                  <Label htmlFor={`target-${field.id}`} className="text-sm truncate">
-                    {field.name}
-                  </Label>
+            <div className="space-y-3 max-h-40 overflow-y-auto border rounded-lg p-3">
+              {availableFields
+                .sort((a, b) => (a.index || 0) - (b.index || 0))
+                .map((field) => (
+                <div key={field.id} className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+                  <div className="flex items-center space-x-3">
+                    <Checkbox
+                      id={`target-${field.id}`}
+                      checked={selectedTargetFields.includes(field.id)}
+                      onCheckedChange={() => handleTargetFieldToggle(field.id)}
+                      className="mt-0.5"
+                    />
+                    <div className="flex-1">
+                      <Label htmlFor={`target-${field.id}`} className="text-sm font-medium text-gray-900 cursor-pointer">
+                        {field.name}
+                      </Label>
+                      {field.type && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Type: {field.type}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
