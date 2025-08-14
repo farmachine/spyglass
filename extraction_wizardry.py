@@ -839,6 +839,20 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                             print("=" * 80)
                             print(json.dumps(identifier_references, indent=2))
                             
+                            # Log target property with orderIndex matching extraction number
+                            if all_collection_properties:
+                                target_property = None
+                                for prop in all_collection_properties:
+                                    if prop.get('order_index') == extraction_number:
+                                        target_property = prop
+                                        break
+                                
+                                if target_property:
+                                    print(f"\nTarget property with orderIndex {extraction_number}:")
+                                    print("=" * 80)
+                                    print(json.dumps(target_property, indent=2))
+                                    print("=" * 80)
+                            
                             # Log remaining fields
                             log_remaining_collection_fields(processed_results.get('identifier_results', []), all_collection_properties)
                         else:
@@ -907,6 +921,20 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                                 print("IDENTIFIER REFERENCES")
                                 print("=" * 80)
                                 print(json.dumps(identifier_references, indent=2))
+                                
+                                # Log target property with orderIndex matching extraction number
+                                if all_collection_properties:
+                                    target_property = None
+                                    for prop in all_collection_properties:
+                                        if prop.get('order_index') == extraction_number:
+                                            target_property = prop
+                                            break
+                                    
+                                    if target_property:
+                                        print(f"\nTarget property with orderIndex {extraction_number}:")
+                                        print("=" * 80)
+                                        print(json.dumps(target_property, indent=2))
+                                        print("=" * 80)
                                 
                                 # Log remaining fields
                                 log_remaining_collection_fields(processed_results.get('identifier_results', []), all_collection_properties)
