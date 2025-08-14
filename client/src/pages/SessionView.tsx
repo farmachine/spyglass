@@ -748,11 +748,11 @@ const AIExtractionModal = ({
 
                 return (
                   <div key={field.id} className={containerClass}>
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-start space-x-3">
                       <button
                         onClick={() => isSelectable && !isIdentifier && handleTargetFieldToggle(field.id)}
                         disabled={!isSelectable || isIdentifier}
-                        className={`p-2 rounded-md transition-all ${
+                        className={`p-2 rounded-md transition-all flex-shrink-0 ${
                           isSelected 
                             ? 'bg-primary text-primary-foreground shadow-sm' 
                             : isSelectable && !isIdentifier
@@ -762,9 +762,9 @@ const AIExtractionModal = ({
                       >
                         <Wand2 className="h-4 w-4" />
                       </button>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <div 
                               className={`text-base font-medium ${
                                 isSelectable ? 'text-foreground' : 'text-muted-foreground'
@@ -791,7 +791,7 @@ const AIExtractionModal = ({
                         
                         <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
                           isSelected && isFieldExpanded 
-                            ? 'max-h-[600px] opacity-100 mt-6' 
+                            ? 'max-h-[400px] opacity-100 mt-6' 
                             : 'max-h-0 opacity-0 mt-0'
                         }`}>
                           <div className="space-y-4">
@@ -840,7 +840,7 @@ const AIExtractionModal = ({
                                   Select specific documents to extract this field from
                                 </p>
                               </div>
-                              <div className="space-y-3 max-h-40 overflow-y-auto pr-1">
+                              <div className="space-y-3 max-h-32 overflow-y-auto pr-1">
                                 {sessionDocuments.map(doc => {
                                   const isSourceSelected = fieldSources.includes(doc.id);
                                   return (
