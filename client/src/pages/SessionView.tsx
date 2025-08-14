@@ -2394,18 +2394,7 @@ Thank you for your assistance.`;
   const verificationStats = getVerificationStatsForProject();
 
   const navItems = [
-    { 
-      id: "back", 
-      label: "Back to Project", 
-      icon: ArrowLeft, 
-      href: `/project/${projectId}` 
-    },
-    { 
-      id: "data", 
-      label: `All ${project?.mainObjectName || "Session"}s`, 
-      icon: Database, 
-      href: `/project/${projectId}?tab=all-data` 
-    },
+    { id: "data", label: `All ${project?.mainObjectName || "Session"}s`, icon: Database, href: `/projects/${projectId}?tab=all-data` },
   ];
 
   return (
@@ -2474,13 +2463,18 @@ Thank you for your assistance.`;
             <nav className="space-y-0.5">
               {navItems.map((item) => {
                 const Icon = item.icon;
+                const isActive = false; // No highlighting since it navigates away
                 
                 return (
                   <Link key={item.id} href={item.href}>
                     <button
-                      className="w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
+                      className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
+                        isActive
+                          ? "bg-primary text-white font-medium shadow-sm"
+                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
+                      }`}
                     >
-                      <Icon className="h-4 w-4 text-slate-500" />
+                      <Icon className={`h-4 w-4 ${isActive ? "text-white" : "text-slate-500"}`} />
                       {item.label}
                     </button>
                   </Link>
