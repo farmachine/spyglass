@@ -629,11 +629,11 @@ const AIExtractionModal = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader className="pb-4">
-          <DialogTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
-            <Wand2 className="h-7 w-7 text-blue-600" />
+          <DialogTitle className="flex items-center gap-3 text-2xl font-bold text-foreground">
+            <Wand2 className="h-7 w-7 text-primary" />
             🎯 AI Field Extractor - {sectionName}
           </DialogTitle>
-          <DialogDescription className="text-base text-slate-600 mt-2 leading-relaxed">
+          <DialogDescription className="text-base text-muted-foreground mt-2 leading-relaxed">
             Select the specific fields you want to extract from your documents. Use sequential selection for ordered data like lists and tables.
           </DialogDescription>
         </DialogHeader>
@@ -695,12 +695,12 @@ const AIExtractionModal = ({
                 }
                 
                 const isSelected = selectedTargetFields.includes(field.id) || isIdentifier;
-                const containerClass = `rounded-lg p-4 shadow-sm transition-all ${
+                const containerClass = `rounded-lg p-4 border transition-all ${
                   isSelected
-                    ? 'bg-white border border-blue-300 hover:shadow-md cursor-pointer'
+                    ? 'bg-card border-primary/50 shadow-sm hover:shadow-md cursor-pointer'
                     : isSelectable 
-                      ? 'bg-white border border-gray-200 hover:shadow-md cursor-pointer' 
-                      : 'bg-gray-50 border border-gray-100 opacity-60 cursor-not-allowed'
+                      ? 'bg-card border-border hover:border-primary/30 hover:shadow-sm cursor-pointer' 
+                      : 'bg-muted border-border opacity-60 cursor-not-allowed'
                 }`;
                 
                 return (
@@ -709,12 +709,12 @@ const AIExtractionModal = ({
                       <button
                         onClick={() => isSelectable && !isIdentifier && handleTargetFieldToggle(field.id)}
                         disabled={!isSelectable || isIdentifier}
-                        className={`p-1 rounded transition-all bg-white ${
+                        className={`p-1 rounded transition-all bg-background ${
                           isSelected 
-                            ? 'text-blue-600 hover:text-blue-700' 
+                            ? 'text-primary hover:text-primary/80' 
                             : isSelectable && !isIdentifier
-                              ? 'text-gray-400 hover:text-blue-500'
-                              : 'text-gray-300 cursor-not-allowed'
+                              ? 'text-muted-foreground hover:text-primary'
+                              : 'text-muted-foreground/50 cursor-not-allowed'
                         } ${isIdentifier ? 'opacity-70' : ''}`}
                       >
                         <Wand2 className="h-4 w-4" />
@@ -722,19 +722,19 @@ const AIExtractionModal = ({
                       <div className="flex-1">
                         <div 
                           className={`text-base font-medium ${
-                            isSelectable ? 'text-gray-900' : 'text-gray-500'
+                            isSelectable ? 'text-foreground' : 'text-muted-foreground'
                           }`}
                         >
                           {field.name}
                           {!isIdentifier && field.id.includes('.') && isFirstInCollection && (
-                            <span className="ml-2 text-xs text-blue-600 font-normal">(Required first)</span>
+                            <span className="ml-2 text-xs text-primary font-normal">(Required first)</span>
                           )}
                           {!isIdentifier && field.id.includes('.') && !isFirstInCollection && !isSelectable && (
-                            <span className="ml-2 text-xs text-gray-400 font-normal">(Select previous items first)</span>
+                            <span className="ml-2 text-xs text-muted-foreground/70 font-normal">(Select previous items first)</span>
                           )}
                         </div>
                         {field.type && (
-                          <p className={`text-sm mt-1 ${isSelectable ? 'text-gray-500' : 'text-gray-400'}`}>
+                          <p className={`text-sm mt-1 ${isSelectable ? 'text-muted-foreground' : 'text-muted-foreground/70'}`}>
                             Type: {field.type}
                           </p>
                         )}
@@ -747,12 +747,11 @@ const AIExtractionModal = ({
         </div>
 
         {/* Action Buttons - Fixed at bottom */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 bg-white">
-          <Button variant="outline" onClick={onClose} className="text-slate-600 border-slate-300 hover:bg-slate-50">
+        <div className="flex justify-end gap-3 pt-4 border-t border-border bg-background">
+          <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
           <Button 
-            className="bg-slate-700 hover:bg-slate-800 text-white"
             disabled={selectedTargetFields.length === 0 || isExtracting}
             onClick={handleRunExtraction}
           >
