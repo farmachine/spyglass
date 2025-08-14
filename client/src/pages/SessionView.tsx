@@ -525,7 +525,7 @@ const AIExtractionModal = ({
             Extraction Wizard - {sectionName}
           </DialogTitle>
           <DialogDescription className="text-base text-slate-600 mt-2 leading-relaxed">
-            Configure your AI extraction to find specific data from your documents. Select source documents, reference data for context, and target the exact fields you want to extract.
+            Select the specific fields you want to extract from your documents. Use sequential selection for ordered data like lists and tables.
           </DialogDescription>
         </DialogHeader>
 
