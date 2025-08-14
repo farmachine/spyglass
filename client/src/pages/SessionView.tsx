@@ -565,6 +565,20 @@ const AIExtractionModal = ({
       selectedDocumentIds: fieldDocumentSources[field.id] || []
     }));
 
+    // Collect all unique document IDs from field-specific selections
+    const allSelectedDocumentIds = new Set<string>();
+    selectedTargetFields.forEach(fieldId => {
+      const fieldSources = fieldDocumentSources[fieldId] || [];
+      // If no specific sources selected for this field, use all session documents
+      if (fieldSources.length === 0) {
+        sessionDocuments.forEach(doc => allSelectedDocumentIds.add(doc.id));
+      } else {
+        fieldSources.forEach(docId => allSelectedDocumentIds.add(docId));
+      }
+    });
+    
+    const documentIds = Array.from(allSelectedDocumentIds);
+
     // Log extraction configuration including field document sources
     console.log('=== Extraction Wizard - Starting Extraction ===');
     console.log('Field Document Sources:', JSON.stringify(
@@ -576,11 +590,12 @@ const AIExtractionModal = ({
       null, 
       2
     ));
+    console.log('Collected Document IDs for extraction:', documentIds);
     
     // Run the extraction wizardry Python script with document IDs, session ID, and target fields
     try {
       const requestData = {
-        document_ids: selectedDocuments,
+        document_ids: documentIds,
         session_id: sessionId,
         target_fields: targetFieldsWithSources
       };
