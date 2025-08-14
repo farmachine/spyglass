@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus, Table as TableIcon } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus, Table as TableIcon, Loader2 } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import * as XLSX from 'xlsx';
 import { Link } from "wouter";
@@ -281,6 +281,11 @@ const AIExtractionModal = ({
   const [isExtracting, setIsExtracting] = useState(false);
   const [expandedFields, setExpandedFields] = useState<Set<string>>(new Set());
   const [fieldDocumentSources, setFieldDocumentSources] = useState<Record<string, string[]>>({});
+  const [extractionProgress, setExtractionProgress] = useState<{
+    currentFieldIndex: number;
+    completedFields: Set<string>;
+    totalFields: number;
+  }>({ currentFieldIndex: -1, completedFields: new Set(), totalFields: 0 });
   const queryClient = useQueryClient();
 
   // Fetch extraction rules for the project
@@ -454,6 +459,20 @@ const AIExtractionModal = ({
 
   // Log selected documents for testing (no extraction call)
   const handleRunExtraction = async () => {
+    setIsExtracting(true);
+    
+    // Initialize extraction progress
+    const sortedSelectedFields = selectedTargetFields
+      .map(id => availableFields.find(f => f.id === id))
+      .filter(Boolean)
+      .sort((a, b) => (a!.orderIndex || a!.index || 0) - (b!.orderIndex || b!.index || 0));
+    
+    setExtractionProgress({
+      currentFieldIndex: 0,
+      completedFields: new Set(),
+      totalFields: sortedSelectedFields.length
+    });
+    
     // Create field-specific extraction mapping
     const fieldExtractionMapping = selectedTargetFields.map(fieldId => {
       const field = availableFields.find(f => f.id === fieldId);
@@ -614,8 +633,28 @@ const AIExtractionModal = ({
         console.log('Python Script Output:');
         console.log(response.output);
       }
+      
+      // Simulate field-by-field progress for UI feedback
+      for (let i = 0; i < sortedSelectedFields.length; i++) {
+        setExtractionProgress(prev => ({ ...prev, currentFieldIndex: i }));
+        
+        // Wait a bit to show the spinner animation
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        setExtractionProgress(prev => ({ 
+          ...prev, 
+          completedFields: new Set([...prev.completedFields, sortedSelectedFields[i].id])
+        }));
+      }
+      
+      // Mark extraction as complete
+      setExtractionProgress(prev => ({ ...prev, currentFieldIndex: -1 }));
+      
     } catch (error) {
       console.error('Error running wizardry:', error);
+    } finally {
+      setIsExtracting(false);
+      setExtractionProgress({ currentFieldIndex: -1, completedFields: new Set(), totalFields: 0 });
     }
   };
 
@@ -810,7 +849,25 @@ const AIExtractionModal = ({
                               : 'bg-background text-muted-foreground/40 cursor-not-allowed'
                         } ${isIdentifier ? 'opacity-70' : ''}`}
                       >
-                        <Wand2 className="h-4 w-4" />
+                        {(() => {
+                          // Check if this field is currently being extracted
+                          const sortedSelectedFields = selectedTargetFields
+                            .map(id => availableFields.find(f => f.id === id))
+                            .filter(Boolean)
+                            .sort((a, b) => (a!.orderIndex || a!.index || 0) - (b!.orderIndex || b!.index || 0));
+                          
+                          const fieldIndex = sortedSelectedFields.findIndex(f => f!.id === field.id);
+                          const isCurrentlyExtracting = isExtracting && extractionProgress.currentFieldIndex === fieldIndex;
+                          const isCompleted = extractionProgress.completedFields.has(field.id);
+                          
+                          if (isCompleted) {
+                            return <CheckCircle className="h-4 w-4 text-green-600" />;
+                          } else if (isCurrentlyExtracting) {
+                            return <div className="animate-spin"><Loader2 className="h-4 w-4" /></div>;
+                          } else {
+                            return <Wand2 className="h-4 w-4" />;
+                          }
+                        })()}
                       </button>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
