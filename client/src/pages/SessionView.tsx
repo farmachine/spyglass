@@ -515,7 +515,7 @@ const AIExtractionModal = ({
   const { schemaFields, collectionNames } = organizeFields();
 
   // Console log all field schema properties when modal opens
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen && availableFields.length > 0) {
       console.log('=== AI Field Extractor Modal - Full Field Schema Properties ===');
       console.log('Available Fields Count:', availableFields.length);
