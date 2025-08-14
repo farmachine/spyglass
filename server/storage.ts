@@ -12,6 +12,7 @@ import {
   users,
   projectPublishing,
   chatMessages,
+  excelWizardryFunctions,
   type Project, 
   type InsertProject,
   type ProjectSchemaField,
@@ -41,7 +42,9 @@ import {
   type ProjectPublishing,
   type InsertProjectPublishing,
   type ChatMessage,
-  type InsertChatMessage
+  type InsertChatMessage,
+  type ExcelWizardryFunction,
+  type InsertExcelWizardryFunction
 } from "@shared/schema";
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
@@ -147,6 +150,14 @@ export interface IStorage {
   // Chat Messages
   getChatMessages(sessionId: string): Promise<ChatMessage[]>;
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+
+  // Excel Wizardry Functions
+  getExcelWizardryFunctions(): Promise<ExcelWizardryFunction[]>;
+  getExcelWizardryFunction(id: string): Promise<ExcelWizardryFunction | undefined>;
+  createExcelWizardryFunction(func: InsertExcelWizardryFunction): Promise<ExcelWizardryFunction>;
+  updateExcelWizardryFunction(id: string, func: Partial<InsertExcelWizardryFunction>): Promise<ExcelWizardryFunction | undefined>;
+  incrementFunctionUsage(id: string): Promise<ExcelWizardryFunction | undefined>;
+  searchExcelWizardryFunctions(tags: string[]): Promise<ExcelWizardryFunction[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -163,6 +174,7 @@ export class MemStorage implements IStorage {
   private fieldValidations: Map<string, FieldValidation>;
   private projectPublishing: Map<string, ProjectPublishing>;
   private chatMessages: Map<string, ChatMessage>;
+  private excelWizardryFunctions: Map<string, ExcelWizardryFunction>;
 
   constructor() {
     this.organizations = new Map();
@@ -178,6 +190,7 @@ export class MemStorage implements IStorage {
     this.fieldValidations = new Map();
     this.projectPublishing = new Map();
     this.chatMessages = new Map();
+    this.excelWizardryFunctions = new Map();
     
     // Initialize with sample data for development
     this.initializeSampleData();
@@ -1477,6 +1490,64 @@ export class MemStorage implements IStorage {
     this.chatMessages.set(id, chatMessage);
     return chatMessage;
   }
+
+  // Excel Wizardry Functions
+  async getExcelWizardryFunctions(): Promise<ExcelWizardryFunction[]> {
+    return Array.from(this.excelWizardryFunctions.values())
+      .sort((a, b) => (b.usageCount || 0) - (a.usageCount || 0));
+  }
+
+  async getExcelWizardryFunction(id: string): Promise<ExcelWizardryFunction | undefined> {
+    return this.excelWizardryFunctions.get(id);
+  }
+
+  async createExcelWizardryFunction(func: InsertExcelWizardryFunction): Promise<ExcelWizardryFunction> {
+    const id = this.generateUUID();
+    const excelFunction: ExcelWizardryFunction = {
+      ...func,
+      id,
+      usageCount: func.usageCount || 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.excelWizardryFunctions.set(id, excelFunction);
+    return excelFunction;
+  }
+
+  async updateExcelWizardryFunction(id: string, func: Partial<InsertExcelWizardryFunction>): Promise<ExcelWizardryFunction | undefined> {
+    const existing = this.excelWizardryFunctions.get(id);
+    if (!existing) return undefined;
+
+    const updated: ExcelWizardryFunction = {
+      ...existing,
+      ...func,
+      updatedAt: new Date(),
+    };
+    this.excelWizardryFunctions.set(id, updated);
+    return updated;
+  }
+
+  async incrementFunctionUsage(id: string): Promise<ExcelWizardryFunction | undefined> {
+    const existing = this.excelWizardryFunctions.get(id);
+    if (!existing) return undefined;
+
+    const updated: ExcelWizardryFunction = {
+      ...existing,
+      usageCount: (existing.usageCount || 0) + 1,
+      updatedAt: new Date(),
+    };
+    this.excelWizardryFunctions.set(id, updated);
+    return updated;
+  }
+
+  async searchExcelWizardryFunctions(tags: string[]): Promise<ExcelWizardryFunction[]> {
+    return Array.from(this.excelWizardryFunctions.values())
+      .filter(func => {
+        if (!func.tags || func.tags.length === 0) return false;
+        return tags.some(tag => func.tags!.includes(tag));
+      })
+      .sort((a, b) => (b.usageCount || 0) - (a.usageCount || 0));
+  }
 }
 
 // PostgreSQL Storage Implementation
@@ -2580,6 +2651,80 @@ class PostgreSQLStorage implements IStorage {
   async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
     const result = await this.db.insert(chatMessages).values(message).returning();
     return result[0];
+  }
+
+  // Excel Wizardry Functions
+  async getExcelWizardryFunctions(): Promise<ExcelWizardryFunction[]> {
+    return this.retryOperation(async () => {
+      const result = await this.db
+        .select()
+        .from(excelWizardryFunctions)
+        .orderBy(excelWizardryFunctions.usageCount, excelWizardryFunctions.createdAt);
+      return result;
+    });
+  }
+
+  async getExcelWizardryFunction(id: string): Promise<ExcelWizardryFunction | undefined> {
+    return this.retryOperation(async () => {
+      const result = await this.db
+        .select()
+        .from(excelWizardryFunctions)
+        .where(eq(excelWizardryFunctions.id, id))
+        .limit(1);
+      return result[0];
+    });
+  }
+
+  async createExcelWizardryFunction(func: InsertExcelWizardryFunction): Promise<ExcelWizardryFunction> {
+    return this.retryOperation(async () => {
+      const result = await this.db
+        .insert(excelWizardryFunctions)
+        .values({
+          ...func,
+          updatedAt: sql`NOW()`
+        })
+        .returning();
+      return result[0];
+    });
+  }
+
+  async updateExcelWizardryFunction(id: string, func: Partial<InsertExcelWizardryFunction>): Promise<ExcelWizardryFunction | undefined> {
+    return this.retryOperation(async () => {
+      const result = await this.db
+        .update(excelWizardryFunctions)
+        .set({
+          ...func,
+          updatedAt: sql`NOW()`
+        })
+        .where(eq(excelWizardryFunctions.id, id))
+        .returning();
+      return result[0];
+    });
+  }
+
+  async incrementFunctionUsage(id: string): Promise<ExcelWizardryFunction | undefined> {
+    return this.retryOperation(async () => {
+      const result = await this.db
+        .update(excelWizardryFunctions)
+        .set({
+          usageCount: sql`${excelWizardryFunctions.usageCount} + 1`,
+          updatedAt: sql`NOW()`
+        })
+        .where(eq(excelWizardryFunctions.id, id))
+        .returning();
+      return result[0];
+    });
+  }
+
+  async searchExcelWizardryFunctions(tags: string[]): Promise<ExcelWizardryFunction[]> {
+    return this.retryOperation(async () => {
+      const result = await this.db
+        .select()
+        .from(excelWizardryFunctions)
+        .where(sql`${excelWizardryFunctions.tags} && ${tags}`) // PostgreSQL array overlap operator
+        .orderBy(excelWizardryFunctions.usageCount, excelWizardryFunctions.createdAt);
+      return result;
+    });
   }
 }
 

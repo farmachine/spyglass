@@ -165,6 +165,20 @@ export const chatMessages = pgTable("chat_messages", {
   timestamp: timestamp("timestamp").defaultNow().notNull(),
 });
 
+// Excel wizardry functions for AI-generated dynamic extraction
+export const excelWizardryFunctions = pgTable("excel_wizardry_functions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  functionCode: text("function_code").notNull(), // Python function code
+  inputSchema: jsonb("input_schema").notNull(), // Expected input format/parameters
+  outputSchema: jsonb("output_schema").notNull(), // Expected output format
+  tags: text("tags").array(), // Searchable tags for matching (e.g., "date", "financial", "text_extraction")
+  usageCount: integer("usage_count").default(0).notNull(), // Track how often this function is used
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({
   id: true,
@@ -236,6 +250,12 @@ export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
   timestamp: true,
 });
 
+export const insertExcelWizardryFunctionSchema = createInsertSchema(excelWizardryFunctions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type Organization = typeof organizations.$inferSelect;
 export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
@@ -270,6 +290,8 @@ export type ProjectPublishing = typeof projectPublishing.$inferSelect;
 export type InsertProjectPublishing = z.infer<typeof insertProjectPublishingSchema>;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+export type ExcelWizardryFunction = typeof excelWizardryFunctions.$inferSelect;
+export type InsertExcelWizardryFunction = z.infer<typeof insertExcelWizardryFunctionSchema>;
 
 // Validation status types
 export type ValidationStatus = 'valid' | 'invalid' | 'pending' | 'manual';

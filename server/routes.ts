@@ -18,7 +18,8 @@ import {
   resetPasswordSchema,
   changePasswordApiSchema,
   insertProjectPublishingSchema,
-  insertChatMessageSchema
+  insertChatMessageSchema,
+  insertExcelWizardryFunctionSchema
 } from "@shared/schema";
 import { generateChatResponse } from "./chatService";
 import { authenticateToken, requireAdmin, generateToken, comparePassword, hashPassword, type AuthRequest } from "./auth";
@@ -4522,7 +4523,112 @@ print(json.dumps(results))
     }
   });
 
+  // Excel Wizardry Functions Routes
+  
+  // Get all Excel wizardry functions
+  app.get("/api/excel-functions", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const functions = await storage.getExcelWizardryFunctions();
+      res.json(functions);
+    } catch (error) {
+      console.error("Error getting Excel wizardry functions:", error);
+      res.status(500).json({ message: "Failed to get Excel wizardry functions" });
+    }
+  });
 
+  // Get specific Excel wizardry function
+  app.get("/api/excel-functions/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = req.params.id;
+      const func = await storage.getExcelWizardryFunction(id);
+      
+      if (!func) {
+        return res.status(404).json({ message: "Excel wizardry function not found" });
+      }
+      
+      res.json(func);
+    } catch (error) {
+      console.error("Error getting Excel wizardry function:", error);
+      res.status(500).json({ message: "Failed to get Excel wizardry function" });
+    }
+  });
+
+  // Create Excel wizardry function
+  app.post("/api/excel-functions", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const result = insertExcelWizardryFunctionSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          message: "Invalid Excel wizardry function data", 
+          errors: result.error.errors 
+        });
+      }
+
+      const func = await storage.createExcelWizardryFunction(result.data);
+      res.status(201).json(func);
+    } catch (error) {
+      console.error("Error creating Excel wizardry function:", error);
+      res.status(500).json({ message: "Failed to create Excel wizardry function" });
+    }
+  });
+
+  // Update Excel wizardry function
+  app.put("/api/excel-functions/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = req.params.id;
+      const result = insertExcelWizardryFunctionSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          message: "Invalid Excel wizardry function data", 
+          errors: result.error.errors 
+        });
+      }
+
+      const func = await storage.updateExcelWizardryFunction(id, result.data);
+      if (!func) {
+        return res.status(404).json({ message: "Excel wizardry function not found" });
+      }
+      
+      res.json(func);
+    } catch (error) {
+      console.error("Error updating Excel wizardry function:", error);
+      res.status(500).json({ message: "Failed to update Excel wizardry function" });
+    }
+  });
+
+  // Increment function usage
+  app.post("/api/excel-functions/:id/increment-usage", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = req.params.id;
+      const func = await storage.incrementFunctionUsage(id);
+      
+      if (!func) {
+        return res.status(404).json({ message: "Excel wizardry function not found" });
+      }
+      
+      res.json(func);
+    } catch (error) {
+      console.error("Error incrementing function usage:", error);
+      res.status(500).json({ message: "Failed to increment function usage" });
+    }
+  });
+
+  // Search Excel wizardry functions by tags
+  app.post("/api/excel-functions/search", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { tags } = req.body;
+      
+      if (!Array.isArray(tags)) {
+        return res.status(400).json({ message: "Tags must be an array" });
+      }
+      
+      const functions = await storage.searchExcelWizardryFunctions(tags);
+      res.json(functions);
+    } catch (error) {
+      console.error("Error searching Excel wizardry functions:", error);
+      res.status(500).json({ message: "Failed to search Excel wizardry functions" });
+    }
+  });
 
   // Chat Routes
   

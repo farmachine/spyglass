@@ -7,13 +7,23 @@ Documents to analyze:
 Fields to extract:
 {target_fields}
 
-Then based on the format, look at the provided descriptions of the target field and determine which of the following extraction processes to use:
+Existing Excel Wizardry Functions:
+{existing_functions}
 
-- Excel Column Extraction: Extracts a list of all columns within an excel document.
-- Excel Sheet Extraction: Extracts all sheets within an excel document.
-- AI Extraction: Uses AI to extract the data from the document.
+Based on the document format and target fields, determine which extraction process to use:
 
-Just return the name of the extraction process to use.
+1. If format is Excel AND we have existing functions that match similar document types or field patterns, return: "Excel Wizardry Function"
+2. If format is Excel but no matching functions exist, choose between:
+   - Excel Column Extraction: For simple column-based data extraction
+   - Excel Sheet Extraction: For multi-sheet analysis
+3. If format is Word/PDF, return: "AI Extraction"
+
+If you choose "Excel Wizardry Function", also specify which function ID to use or "CREATE_NEW" if creating a new one.
+
+Response format:
+- For existing function: "Excel Wizardry Function|<function_id>"
+- For new function: "Excel Wizardry Function|CREATE_NEW"
+- For other methods: Just the method name
 
 """
 
@@ -22,6 +32,12 @@ EXCEL_FUNCTION_GENERATOR = """You must generate a complete Python function that 
 
 TARGET FIELDS TO EXTRACT:
 {target_fields}
+
+SOURCE DOCUMENTS (for context):
+{source_documents}
+
+FUNCTION METADATA:
+Create a descriptive name and description for this function based on the extraction task.
 
 MANDATORY REQUIREMENTS:
 1. Function name MUST be: extract_excel_data(extracted_content, target_fields_data)
@@ -43,10 +59,15 @@ CRITICAL INDEXING RULE:
 - Every result must have different index: 0, 1, 2, 3, etc.
 
 RESPONSE FORMAT:
-- Start with: def extract_excel_data(extracted_content, target_fields_data):
-- End with: return results
-- NO markdown, NO explanations, NO ```python blocks
-- ONLY the complete function code
+Return a JSON object with:
+{{
+    "function_name": "descriptive_name_for_this_extraction",
+    "description": "detailed description of what this function does",
+    "tags": ["tag1", "tag2", "tag3"], // relevant tags for searching
+    "function_code": "def extract_excel_data(extracted_content, target_fields_data):\n    # Your complete function here\n    return results"
+}}
+
+NO markdown, NO extra explanations, ONLY the JSON object.
 
 """
 

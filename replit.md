@@ -51,6 +51,7 @@ Preferred communication style: Simple, everyday language.
 - **Complete Extraction Workflow**: End-to-end document analysis system integrating document content, target field descriptions, and AI analysis for intelligent extraction recommendations.
 - **Session Document Storage**: Storage of uploaded documents and extracted content in PostgreSQL for comprehensive tracking and AI chat context.
 - **Updated UI Terminology**: Renamed "Extraction Sessions" to "Overview" throughout the application for cleaner, more user-friendly language. This affects page titles, API comments, and user-facing text in AllData component, storage interfaces, and dialog descriptions.
+- **Excel Wizardry Functions System**: Advanced reusable function system for Excel extraction that stores AI-generated Python functions in PostgreSQL. When processing Excel documents, the system first checks for existing functions that match similar document types or field patterns, reuses them with usage tracking, or creates new functions via Gemini AI. Functions include metadata (name, description, tags, usage count) and are executed in secure sandboxed environments.
 
 ### Key Architectural Decisions
 - **Monorepo Structure**: Single repository with shared types.

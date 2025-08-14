@@ -4,7 +4,7 @@ import os
 import time
 import psycopg2
 from google import genai
-from all_prompts import DOCUMENT_FORMAT_ANALYSIS
+from all_prompts import DOCUMENT_FORMAT_ANALYSIS, EXCEL_FUNCTION_GENERATOR
 from excel_wizard import excel_column_extraction
 from ai_extraction_wizard import ai_document_extraction
 
@@ -281,6 +281,243 @@ def get_all_collection_properties(collection_ids):
     except Exception as e:
         return {"error": f"Collection properties query failed: {str(e)}"}
 
+def get_excel_wizardry_functions():
+    """Get all existing Excel wizardry functions from database"""
+    try:
+        # Get database connection from environment
+        database_url = os.getenv('DATABASE_URL')
+        if not database_url:
+            return {"error": "DATABASE_URL not found"}
+        
+        # Connect to database
+        conn = psycopg2.connect(database_url)
+        cursor = conn.cursor()
+        
+        # Query excel_wizardry_functions table
+        query = """
+        SELECT id, name, description, tags, function_code, usage_count
+        FROM excel_wizardry_functions
+        ORDER BY usage_count DESC, created_at DESC
+        """
+        
+        cursor.execute(query)
+        results = cursor.fetchall()
+        
+        # Format results
+        functions = []
+        for row in results:
+            func_id, name, description, tags, function_code, usage_count = row
+            functions.append({
+                "id": str(func_id),
+                "name": name,
+                "description": description,
+                "tags": tags or [],
+                "function_code": function_code,
+                "usage_count": usage_count or 0
+            })
+        
+        cursor.close()
+        conn.close()
+        
+        return functions
+        
+    except Exception as e:
+        return {"error": f"Excel wizardry functions query failed: {str(e)}"}
+
+def create_excel_wizardry_function(name, description, tags, function_code):
+    """Create a new Excel wizardry function in database"""
+    try:
+        # Get database connection from environment
+        database_url = os.getenv('DATABASE_URL')
+        if not database_url:
+            return {"error": "DATABASE_URL not found"}
+        
+        # Connect to database
+        conn = psycopg2.connect(database_url)
+        cursor = conn.cursor()
+        
+        # Insert new function
+        query = """
+        INSERT INTO excel_wizardry_functions (name, description, tags, function_code, usage_count)
+        VALUES (%s, %s, %s, %s, 0)
+        RETURNING id
+        """
+        
+        cursor.execute(query, (name, description, tags, function_code))
+        function_id = cursor.fetchone()[0]
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return {"id": str(function_id), "message": "Excel wizardry function created successfully"}
+        
+    except Exception as e:
+        return {"error": f"Failed to create Excel wizardry function: {str(e)}"}
+
+def increment_function_usage(function_id):
+    """Increment usage count for an Excel wizardry function"""
+    try:
+        # Get database connection from environment
+        database_url = os.getenv('DATABASE_URL')
+        if not database_url:
+            return {"error": "DATABASE_URL not found"}
+        
+        # Connect to database
+        conn = psycopg2.connect(database_url)
+        cursor = conn.cursor()
+        
+        # Update usage count
+        query = """
+        UPDATE excel_wizardry_functions 
+        SET usage_count = COALESCE(usage_count, 0) + 1, updated_at = NOW()
+        WHERE id = %s
+        """
+        
+        cursor.execute(query, (function_id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return {"message": "Function usage incremented successfully"}
+        
+    except Exception as e:
+        return {"error": f"Failed to increment function usage: {str(e)}"}
+
+def generate_excel_function_with_gemini(target_fields_data, documents, max_retries=3):
+    """Generate a new Excel function using Gemini AI"""
+    # Get API key from environment
+    api_key = os.getenv('GEMINI_API_KEY')
+    if not api_key:
+        return {"error": "GEMINI_API_KEY not found"}
+    
+    # Initialize Gemini client
+    client = genai.Client(api_key=api_key)
+    
+    # Prepare prompt data
+    target_fields_content = json.dumps(target_fields_data, indent=2)
+    documents_content = json.dumps(documents, indent=2)
+    
+    prompt = EXCEL_FUNCTION_GENERATOR.format(
+        target_fields=target_fields_content,
+        source_documents=documents_content
+    )
+    
+    # Log the prompt
+    print("\n" + "=" * 80)
+    print("EXCEL FUNCTION GENERATION PROMPT")
+    print("=" * 80)
+    print(prompt)
+    print("=" * 80)
+    
+    # Retry logic for Gemini API calls
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt
+            )
+            
+            response_text = response.text or ""
+            
+            # Try to parse the JSON response
+            try:
+                function_data = json.loads(response_text)
+                return function_data
+            except json.JSONDecodeError as parse_error:
+                return {"error": f"Failed to parse Gemini response as JSON: {str(parse_error)}", "raw_response": response_text}
+            
+        except Exception as e:
+            error_msg = str(e)
+            print(f"Gemini function generation attempt {attempt + 1} failed: {error_msg}")
+            
+            if "503" in error_msg or "overloaded" in error_msg.lower():
+                if attempt < max_retries - 1:
+                    wait_time = (attempt + 1) * 2
+                    print(f"Waiting {wait_time} seconds before retry...")
+                    time.sleep(wait_time)
+                    continue
+            
+            return {"error": f"Gemini function generation failed: {error_msg}"}
+    
+    return {"error": "All Gemini function generation retry attempts failed"}
+
+def execute_excel_wizardry_function(function_code, extracted_content, target_fields_data):
+    """Execute an Excel wizardry function with the provided data"""
+    try:
+        # Create a safe execution environment
+        exec_globals = {
+            'json': json,
+            '__builtins__': {
+                'len': len,
+                'str': str,
+                'int': int,
+                'float': float,
+                'list': list,
+                'dict': dict,
+                'range': range,
+                'enumerate': enumerate,
+                'zip': zip,
+                'print': print
+            }
+        }
+        
+        # Execute the function code
+        exec(function_code, exec_globals)
+        
+        # Get the function from the execution environment
+        if 'extract_excel_data' not in exec_globals:
+            return {"error": "Function 'extract_excel_data' not found in the generated code"}
+        
+        extract_function = exec_globals['extract_excel_data']
+        
+        # Execute the function
+        results = extract_function(extracted_content, target_fields_data)
+        
+        return {"results": results}
+        
+    except Exception as e:
+        return {"error": f"Failed to execute Excel wizardry function: {str(e)}"}
+
+def update_document_format_analysis_with_functions(documents, target_fields_data, existing_functions):
+    """Update the document format analysis to include existing functions"""
+    # Get API key from environment
+    api_key = os.getenv('GEMINI_API_KEY')
+    if not api_key:
+        return "ERROR: GEMINI_API_KEY not found"
+    
+    # Initialize Gemini client
+    client = genai.Client(api_key=api_key)
+    
+    # Prepare prompt data
+    documents_content = json.dumps(documents, indent=2)
+    target_fields_content = json.dumps(target_fields_data, indent=2) if target_fields_data else "No target fields provided"
+    existing_functions_content = json.dumps(existing_functions, indent=2) if existing_functions else "No existing functions"
+    
+    prompt = DOCUMENT_FORMAT_ANALYSIS.format(
+        documents=documents_content,
+        target_fields=target_fields_content,
+        existing_functions=existing_functions_content
+    )
+    
+    # Log the prompt
+    print("\n" + "=" * 80)
+    print("ENHANCED GEMINI PROMPT WITH EXCEL FUNCTIONS")
+    print("=" * 80)
+    print(prompt)
+    print("=" * 80)
+    
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt
+        )
+        
+        return response.text or "ERROR: Empty response from Gemini"
+        
+    except Exception as e:
+        return f"ERROR: Enhanced Gemini analysis failed: {str(e)}"
+
 def run_wizardry_with_gemini_analysis(data=None):
     """Main function that gets documents from DB and analyzes them with Gemini"""
     if data and isinstance(data, dict):
@@ -349,8 +586,21 @@ def run_wizardry_with_gemini_analysis(data=None):
         print(json.dumps(identifier_targets, indent=2))
         print("=" * 80)
         
-        # Analyze document formats with Gemini using only identifier targets
-        gemini_response = analyze_document_format_with_gemini(documents, identifier_targets)
+        # Get existing Excel wizardry functions
+        existing_functions = get_excel_wizardry_functions()
+        if isinstance(existing_functions, dict) and "error" in existing_functions:
+            print(f"Warning: Could not retrieve Excel functions: {existing_functions['error']}")
+            existing_functions = []
+        
+        # Print existing Excel functions
+        print("\n" + "=" * 80)
+        print("EXISTING EXCEL WIZARDRY FUNCTIONS")
+        print("=" * 80)
+        print(json.dumps(existing_functions, indent=2))
+        print("=" * 80)
+        
+        # Analyze document formats with Gemini using enhanced analysis that includes existing functions
+        gemini_response = update_document_format_analysis_with_functions(documents, identifier_targets, existing_functions)
         
         # Print Gemini response
         print("\n" + "=" * 80)
@@ -359,8 +609,168 @@ def run_wizardry_with_gemini_analysis(data=None):
         print(gemini_response)
         print("=" * 80)
         
+        # Check if Gemini recommends Excel Wizardry Function
+        if "Excel Wizardry Function" in gemini_response:
+            print(f"\nGemini decided to use Excel Wizardry Function")
+            
+            # Parse the response to get function ID or CREATE_NEW
+            if "|" in gemini_response:
+                function_instruction = gemini_response.split("|")[-1].strip()
+            else:
+                function_instruction = "CREATE_NEW"
+            
+            print(f"Function instruction: {function_instruction}")
+            
+            # Get document content for Excel processing
+            document_ids = [doc['id'] for doc in documents]
+            extracted_content = ""
+            
+            # Get the extracted content from the first Excel document
+            for doc in documents:
+                if doc.get('type', '').lower() in ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv']:
+                    # Get full extracted content from database
+                    doc_content = get_document_properties_from_db([doc['id']], session_id)
+                    if doc_content and not isinstance(doc_content, dict):
+                        for doc_data in doc_content:
+                            if 'contentPreview' in doc_data:
+                                # This would be the full content, not just preview in actual implementation
+                                extracted_content = doc_data['contentPreview']
+                                break
+                    break
+            
+            if function_instruction != "CREATE_NEW" and function_instruction != "":
+                # Use existing function
+                print(f"Using existing Excel function with ID: {function_instruction}")
+                
+                # Find the function by ID
+                existing_function = None
+                for func in existing_functions:
+                    if func['id'] == function_instruction:
+                        existing_function = func
+                        break
+                
+                if existing_function:
+                    print(f"Found function: {existing_function['name']}")
+                    
+                    # Execute the existing function
+                    function_result = execute_excel_wizardry_function(
+                        existing_function['function_code'],
+                        extracted_content,
+                        identifier_targets
+                    )
+                    
+                    if 'error' not in function_result:
+                        # Increment usage count
+                        increment_result = increment_function_usage(function_instruction)
+                        if 'error' in increment_result:
+                            print(f"Warning: Could not increment usage count: {increment_result['error']}")
+                        
+                        # Process results
+                        results = function_result['results']
+                        processed_results = clean_json_and_extract_identifiers(results, identifier_targets)
+                        
+                        if 'error' not in processed_results:
+                            record_count = len(processed_results['cleaned_results']) if isinstance(processed_results['cleaned_results'], list) else 0
+                            print(f"Found {record_count} records using existing function")
+                            
+                            # Show results
+                            print("\n" + "=" * 80)
+                            print("EXCEL WIZARDRY FUNCTION RESULTS")
+                            print("=" * 80)
+                            print(json.dumps(processed_results['identifier_results'], indent=2))
+                            
+                            # Create identifier references
+                            identifier_references = []
+                            for result in processed_results['identifier_results']:
+                                if 'extracted_value' in result and 'field_name' in result:
+                                    field_name_parts = result['field_name'].split('.')
+                                    field_name_only = field_name_parts[-1] if len(field_name_parts) > 1 else result['field_name']
+                                    identifier_references.append({field_name_only: result['extracted_value']})
+                            
+                            print("\n" + "=" * 80)
+                            print("IDENTIFIER REFERENCES")
+                            print("=" * 80)
+                            print(json.dumps(identifier_references, indent=2))
+                            
+                            # Log remaining fields
+                            log_remaining_collection_fields(processed_results.get('identifier_results', []), all_collection_properties)
+                        else:
+                            print(f"Error processing function results: {processed_results['error']}")
+                    else:
+                        print(f"Error executing function: {function_result['error']}")
+                else:
+                    print(f"Function with ID {function_instruction} not found, creating new function instead")
+                    function_instruction = "CREATE_NEW"
+            
+            if function_instruction == "CREATE_NEW":
+                # Generate new function
+                print("Creating new Excel wizardry function")
+                
+                # Generate function with Gemini
+                function_data = generate_excel_function_with_gemini(identifier_targets, documents)
+                
+                if 'error' not in function_data:
+                    print(f"Generated function: {function_data.get('function_name', 'Unnamed Function')}")
+                    
+                    # Save function to database
+                    create_result = create_excel_wizardry_function(
+                        function_data.get('function_name', 'Auto-generated Excel Function'),
+                        function_data.get('description', 'Auto-generated function for Excel data extraction'),
+                        function_data.get('tags', []),
+                        function_data.get('function_code', '')
+                    )
+                    
+                    if 'error' not in create_result:
+                        print(f"Function saved with ID: {create_result['id']}")
+                        
+                        # Execute the new function
+                        function_result = execute_excel_wizardry_function(
+                            function_data.get('function_code', ''),
+                            extracted_content,
+                            identifier_targets
+                        )
+                        
+                        if 'error' not in function_result:
+                            # Process results
+                            results = function_result['results']
+                            processed_results = clean_json_and_extract_identifiers(results, identifier_targets)
+                            
+                            if 'error' not in processed_results:
+                                record_count = len(processed_results['cleaned_results']) if isinstance(processed_results['cleaned_results'], list) else 0
+                                print(f"Found {record_count} records using new function")
+                                
+                                # Show results
+                                print("\n" + "=" * 80)
+                                print("EXCEL WIZARDRY FUNCTION RESULTS")
+                                print("=" * 80)
+                                print(json.dumps(processed_results['identifier_results'], indent=2))
+                                
+                                # Create identifier references
+                                identifier_references = []
+                                for result in processed_results['identifier_results']:
+                                    if 'extracted_value' in result and 'field_name' in result:
+                                        field_name_parts = result['field_name'].split('.')
+                                        field_name_only = field_name_parts[-1] if len(field_name_parts) > 1 else result['field_name']
+                                        identifier_references.append({field_name_only: result['extracted_value']})
+                                
+                                print("\n" + "=" * 80)
+                                print("IDENTIFIER REFERENCES")
+                                print("=" * 80)
+                                print(json.dumps(identifier_references, indent=2))
+                                
+                                # Log remaining fields
+                                log_remaining_collection_fields(processed_results.get('identifier_results', []), all_collection_properties)
+                            else:
+                                print(f"Error processing new function results: {processed_results['error']}")
+                        else:
+                            print(f"Error executing new function: {function_result['error']}")
+                    else:
+                        print(f"Error saving function: {create_result['error']}")
+                else:
+                    print(f"Error generating function: {function_data['error']}")
+        
         # Check if Gemini recommends Excel Column Extraction
-        if "Excel Column Extraction" in gemini_response:
+        elif "Excel Column Extraction" in gemini_response:
             print(f"\nGemini decided to use Excel Column Extraction wizard")
             print("\n" + "=" * 80)
             print("RESULTS FROM EXTRACTION")
