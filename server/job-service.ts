@@ -60,6 +60,14 @@ export class JobService {
       updateData.completedAt = new Date();
     }
 
+    console.log(`📊 Job ${jobId} STATUS UPDATE:`, {
+      status,
+      progress: updates.progress,
+      currentStep: updates.currentStep,
+      recordsProcessed: updates.recordsProcessed,
+      errorMessage: updates.errorMessage
+    });
+
     await jobDb.update(extractionJobs)
       .set(updateData)
       .where(eq(extractionJobs.id, jobId));
@@ -115,7 +123,23 @@ export class JobService {
         extraction_number: job.extractionNumber,
       };
 
+      console.log(`\n🚀 Job ${jobId} EXTRACTION DATA:`, {
+        session_id: extractionData.session_id,
+        document_count: extractionData.document_ids.length,
+        extraction_number: extractionData.extraction_number,
+        target_fields: extractionData.target_fields,
+        identifier_references_count: extractionData.identifier_references?.length || 0,
+        extraction_rules: extractionData.extraction_rules
+      });
+
       const result = await this.runPythonExtraction(jobId, extractionData);
+
+      console.log(`\n✅ Job ${jobId} EXTRACTION RESULT:`, {
+        recordCount: result.recordCount || 0,
+        processingTime: result.processingTimeMs || 0,
+        success: result.success,
+        exitCode: result.exitCode
+      });
 
       await this.updateJobStatus(jobId, JobStatus.COMPLETED, {
         progress: 100,
@@ -129,6 +153,11 @@ export class JobService {
       return result;
 
     } catch (error: any) {
+      console.log(`\n❌ Job ${jobId} EXTRACTION FAILED:`, {
+        error: error.message,
+        stack: error.stack?.split('\n').slice(0, 3).join('\n')
+      });
+
       await this.updateJobStatus(jobId, JobStatus.FAILED, {
         errorMessage: error.message,
         currentStep: 'Extraction failed',

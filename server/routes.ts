@@ -3385,7 +3385,21 @@ except Exception as e:
         return res.status(400).json({ error: 'No validation data provided' });
       }
 
-      console.log(`SAVE VALIDATIONS: Starting for session ${sessionId}, ${parsedValidations.length} validations`);
+      console.log(`\n💾 SAVE VALIDATIONS: Starting for session ${sessionId}, ${parsedValidations.length} validations`);
+      
+      // Log first few validations to see the actual data structure
+      if (parsedValidations.length > 0) {
+        console.log(`📄 VALIDATION DATA SAMPLE (first 3 records):`, 
+          parsedValidations.slice(0, 3).map((v: any, i: number) => ({
+            index: i,
+            field_name: v.field_name,
+            extracted_value: v.extracted_value?.toString().substring(0, 50) + (v.extracted_value?.toString().length > 50 ? '...' : ''),
+            confidence_score: v.confidence_score,
+            validation_status: v.validation_status,
+            record_index: v.record_index
+          }))
+        );
+      }
 
       // Get the session to verify it exists
       const session = await storage.getExtractionSession(sessionId);
@@ -4763,11 +4777,27 @@ print(json.dumps(results))
     try {
       const requestData = req.body;
       
-      console.log("Creating extraction job with data:", {
+      console.log(`\n📋 CREATING EXTRACTION JOB:`, {
         session_id: requestData?.session_id,
         document_count: requestData?.document_ids?.length || 0,
-        extraction_number: requestData?.extraction_number || 0
+        extraction_number: requestData?.extraction_number || 0,
+        target_fields: requestData?.target_fields,
+        identifier_references_count: requestData?.identifier_references?.length || 0
       });
+
+      if (requestData?.identifier_references?.length > 0) {
+        console.log(`🔗 IDENTIFIER REFERENCES (${requestData.identifier_references.length} items):`, 
+          requestData.identifier_references.slice(0, 5).map((ref: any, i: number) => ({
+            index: i,
+            field_name: ref.field_name,
+            extracted_value: ref.extracted_value?.substring(0, 50) + (ref.extracted_value?.length > 50 ? '...' : ''),
+            record_index: ref.record_index
+          }))
+        );
+        if (requestData.identifier_references.length > 5) {
+          console.log(`... and ${requestData.identifier_references.length - 5} more identifier references`);
+        }
+      }
 
       // Create a new extraction job
       const job = await jobService.createExtractionJob({
@@ -4790,9 +4820,22 @@ print(json.dumps(results))
       });
 
       // Execute the job asynchronously
-      jobService.executeExtractionJob(job.id).catch(error => {
-        console.error(`Job ${job.id} failed:`, error);
-      });
+      jobService.executeExtractionJob(job.id)
+        .then(result => {
+          console.log(`\n🎉 Job ${job.id} COMPLETED SUCCESSFULLY:`, {
+            jobId: job.id,
+            sessionId: job.sessionId,
+            recordCount: result.recordCount || 0,
+            processingTime: result.processingTimeMs || 0
+          });
+        })
+        .catch(error => {
+          console.error(`\n💥 Job ${job.id} FAILED:`, {
+            jobId: job.id,
+            sessionId: job.sessionId,
+            error: error.message
+          });
+        });
 
     } catch (error) {
       console.error("Failed to create extraction job:", error);
