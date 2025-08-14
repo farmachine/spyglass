@@ -857,12 +857,16 @@ const AIExtractionModal = ({
                                   
                                   return (
                                     <div key={doc.id} className="flex items-start space-x-3 p-2 hover:bg-muted/50 rounded-md transition-colors">
-                                      <Checkbox
-                                        checked={isSourceSelected}
-                                        onCheckedChange={() => toggleFieldDocumentSource(field.id, doc.id)}
-                                        className="mt-0.5"
-                                      />
-                                      <IconComponent className={`h-4 w-4 ${iconColor} flex-shrink-0 mt-0.5`} />
+                                      <button
+                                        onClick={() => toggleFieldDocumentSource(field.id, doc.id)}
+                                        className={`p-2 rounded-md transition-all flex-shrink-0 ${
+                                          isSourceSelected 
+                                            ? 'bg-primary text-primary-foreground shadow-sm' 
+                                            : 'bg-background text-muted-foreground hover:text-primary hover:bg-primary/10'
+                                        }`}
+                                      >
+                                        <IconComponent className="h-4 w-4" />
+                                      </button>
                                       <div className="flex-1 min-w-0">
                                         <span className="text-sm text-foreground font-medium block truncate">
                                           {fileName}
