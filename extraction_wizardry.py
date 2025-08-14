@@ -104,16 +104,14 @@ def get_document_properties_from_db(document_ids, session_id):
         for row in results:
             doc_id, file_name, mime_type, extracted_content = row
             
-            # Create content preview (first 200 characters)
-            content_preview = ""
-            if extracted_content:
-                content_preview = extracted_content[:200] + "..." if len(extracted_content) > 200 else extracted_content
+            # Store full extracted content instead of preview for Excel processing
+            full_content = extracted_content or ""
             
             documents.append({
                 "id": doc_id,
                 "name": file_name,
                 "type": mime_type or "unknown",
-                "contentPreview": content_preview
+                "contentPreview": full_content  # Full content for Excel wizardry
             })
         
         cursor.close()
