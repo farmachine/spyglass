@@ -763,8 +763,8 @@ const AIExtractionModal = ({
                         <Wand2 className="h-4 w-4" />
                       </button>
                       <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <div>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
                             <div 
                               className={`text-base font-medium ${
                                 isSelectable ? 'text-foreground' : 'text-muted-foreground'
@@ -780,7 +780,7 @@ const AIExtractionModal = ({
                           </div>
                           <button
                             onClick={() => toggleFieldExpansion(field.id)}
-                            className="p-1 hover:bg-muted rounded-md transition-colors"
+                            className="p-1 hover:bg-muted rounded-md transition-colors ml-2 flex-shrink-0"
                             disabled={!isSelected}
                           >
                             {isFieldExpanded ? (
@@ -792,34 +792,83 @@ const AIExtractionModal = ({
                         </div>
                         
                         {isSelected && isFieldExpanded && (
-                          <div className="mt-4 pl-4 border-l-2 border-primary/20">
-                            <div className="mb-2">
-                              <Label className="text-sm font-medium text-muted-foreground">
-                                Extraction Sources {fieldSources.length > 0 && `(${fieldSources.length} selected)`}
-                              </Label>
+                          <div className="mt-6 space-y-4">
+                            {(() => {
+                              // Find field description from project collections or schema
+                              let fieldDescription = '';
+                              const allCollections = project?.collections || [];
+                              
+                              // Check collections first
+                              for (const collection of allCollections) {
+                                const property = collection.properties?.find(p => p.id === field.id);
+                                if (property && property.description) {
+                                  fieldDescription = property.description;
+                                  break;
+                                }
+                              }
+                              
+                              // Check schema fields if not found in collections
+                              if (!fieldDescription && project?.schemaFields) {
+                                const schemaField = project.schemaFields.find(sf => sf.id === field.id);
+                                if (schemaField && schemaField.description) {
+                                  fieldDescription = schemaField.description;
+                                }
+                              }
+                              
+                              return fieldDescription && (
+                                <div className="bg-muted/30 p-3 rounded-md border border-border/50">
+                                  <Label className="text-sm font-medium text-muted-foreground mb-1 block">
+                                    Field Description
+                                  </Label>
+                                  <p className="text-sm text-foreground/90 leading-relaxed">
+                                    {fieldDescription}
+                                  </p>
+                                </div>
+                              );
+                            })()}
+                            
+                            <div className="bg-card border border-border rounded-md p-4">
+                              <div className="mb-3">
+                                <Label className="text-sm font-medium text-foreground">
+                                  Extraction Sources {fieldSources.length > 0 && (
+                                    <span className="text-primary">({fieldSources.length} selected)</span>
+                                  )}
+                                </Label>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Select specific documents to extract this field from
+                                </p>
+                              </div>
+                              <div className="space-y-3 max-h-40 overflow-y-auto pr-1">
+                                {sessionDocuments.map(doc => {
+                                  const isSourceSelected = fieldSources.includes(doc.id);
+                                  return (
+                                    <div key={doc.id} className="flex items-start space-x-3 p-2 hover:bg-muted/50 rounded-md transition-colors">
+                                      <Checkbox
+                                        checked={isSourceSelected}
+                                        onCheckedChange={() => toggleFieldDocumentSource(field.id, doc.id)}
+                                        className="mt-0.5"
+                                      />
+                                      <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                                      <div className="flex-1 min-w-0">
+                                        <span className="text-sm text-foreground font-medium block truncate">
+                                          {doc.originalName || doc.filename || doc.name || doc.fileName || `Document ${doc.id.slice(0, 8)}`}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                          {doc.mimeType || doc.fileType || 'Unknown type'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              {fieldSources.length === 0 && (
+                                <div className="mt-3 p-3 bg-muted/50 rounded-md border border-dashed border-border">
+                                  <p className="text-xs text-muted-foreground text-center">
+                                    No specific sources selected - will extract from all session documents
+                                  </p>
+                                </div>
+                              )}
                             </div>
-                            <div className="space-y-2 max-h-32 overflow-y-auto">
-                              {sessionDocuments.map(doc => {
-                                const isSourceSelected = fieldSources.includes(doc.id);
-                                return (
-                                  <div key={doc.id} className="flex items-center space-x-2">
-                                    <Checkbox
-                                      checked={isSourceSelected}
-                                      onCheckedChange={() => toggleFieldDocumentSource(field.id, doc.id)}
-                                    />
-                                    <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                    <span className="text-sm text-foreground truncate">
-                                      {doc.originalName || doc.filename || doc.name || doc.fileName || `Document ${doc.id.slice(0, 8)}`}
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                            {fieldSources.length === 0 && (
-                              <p className="text-xs text-muted-foreground/70 mt-2">
-                                No documents selected. Field will use all session documents.
-                              </p>
-                            )}
                           </div>
                         )}
                       </div>
