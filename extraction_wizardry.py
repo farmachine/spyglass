@@ -573,8 +573,15 @@ def execute_excel_wizardry_function(function_code, extracted_content, target_fie
         
         extract_function = exec_globals['extract_excel_data']
         
+        # Debug: Print input data
+        print(f"DEBUG - Function input content preview: {extracted_content[:500]}...")
+        print(f"DEBUG - Target fields count: {len(target_fields_data)}")
+        print(f"DEBUG - Target fields sample: {target_fields_data[:2] if target_fields_data else 'No fields'}")
+        
         # Execute the function
         results = extract_function(extracted_content, target_fields_data)
+        
+        print(f"DEBUG - Function returned {len(results) if results else 0} results")
         
         return {"results": results}
         
