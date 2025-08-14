@@ -4761,7 +4761,25 @@ print(json.dumps(results))
     try {
       const requestData = req.body; // Get request data with document_ids and session_id
       
+      console.log("Starting wizardry extraction with data:", {
+        session_id: requestData?.session_id,
+        document_count: requestData?.document_ids?.length || 0,
+        extraction_number: requestData?.extraction_number || 0
+      });
+      
+      // Set a longer timeout for this endpoint
+      req.setTimeout(300000); // 5 minutes
+      res.setTimeout(300000); // 5 minutes
+      
       const python = spawn('python3', ['extraction_wizardry.py']);
+      
+      // Handle process errors
+      python.on('error', (err) => {
+        console.error('Failed to start Python process:', err);
+        if (!res.headersSent) {
+          res.status(500).json({ message: "Failed to start extraction process" });
+        }
+      });
       
       // Pass request data to Python script via stdin
       if (requestData && requestData.document_ids && requestData.session_id) {
@@ -4774,32 +4792,40 @@ print(json.dumps(results))
       
       python.stdout.on('data', (data: any) => {
         output += data.toString();
+        console.log('Python output chunk received:', data.toString().slice(0, 200) + '...');
       });
       
       python.stderr.on('data', (data: any) => {
         error += data.toString();
+        console.error('Python stderr:', data.toString());
       });
       
       python.on('close', (code: any) => {
-        if (code !== 0) {
-          console.error('Wizardry script error:', error);
-          return res.status(500).json({ 
-            message: "Wizardry script failed", 
-            error: error 
+        console.log(`Python process exited with code: ${code}`);
+        
+        if (!res.headersSent) {
+          if (code !== 0) {
+            console.error('Wizardry script error:', error);
+            return res.status(500).json({ 
+              message: "Wizardry script failed", 
+              error: error 
+            });
+          }
+          
+          // Return the complete output from Python script (includes both document properties and Gemini analysis)
+          res.json({ 
+            message: "Wizardry analysis completed",
+            output: output.trim(),
+            success: true
           });
         }
-        
-        // Return the complete output from Python script (includes both document properties and Gemini analysis)
-        res.json({ 
-          message: "Wizardry analysis completed",
-          output: output.trim(),
-          success: true
-        });
       });
       
     } catch (error) {
       console.error("Wizardry execution error:", error);
-      res.status(500).json({ message: "Failed to run wizardry script" });
+      if (!res.headersSent) {
+        res.status(500).json({ message: "Failed to run wizardry script" });
+      }
     }
   });
 
