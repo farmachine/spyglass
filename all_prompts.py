@@ -62,12 +62,12 @@ CRITICAL INDEXING RULE:
 RESPONSE FORMAT:
 Return ONLY a valid JSON object in this exact format:
 
-{
+{{
     "function_name": "descriptive_name_for_this_extraction",
     "description": "detailed description of what this function does", 
     "tags": ["tag1", "tag2", "tag3"],
-    "function_code": "def extract_excel_data(extracted_content, target_fields_data):\n    results = []\n    # Your complete function implementation here\n    return results"
-}
+    "function_code": "def extract_excel_data(extracted_content, target_fields_data):\\n    results = []\\n    # Your complete function implementation here\\n    return results"
+}}
 
 CRITICAL REQUIREMENTS:
 - Start response with { and end with }
