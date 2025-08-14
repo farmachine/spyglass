@@ -695,12 +695,12 @@ const AIExtractionModal = ({
                 }
                 
                 const isSelected = selectedTargetFields.includes(field.id) || isIdentifier;
-                const containerClass = `rounded-lg p-4 shadow-sm transition-all ${
+                const containerClass = `rounded-lg p-4 transition-all ${
                   isSelected
-                    ? 'bg-white border border-blue-600 hover:shadow-md cursor-pointer'
+                    ? 'bg-white border border-blue-600 shadow-lg shadow-blue-100 hover:shadow-xl hover:shadow-blue-200 cursor-pointer'
                     : isSelectable 
-                      ? 'bg-white border border-gray-200 hover:shadow-md cursor-pointer' 
-                      : 'bg-gray-50 border border-gray-100 opacity-60 cursor-not-allowed'
+                      ? 'bg-white border border-gray-200 shadow-sm hover:shadow-md cursor-pointer' 
+                      : 'bg-gray-50 border border-gray-100 shadow-sm opacity-60 cursor-not-allowed'
                 }`;
                 
                 return (
