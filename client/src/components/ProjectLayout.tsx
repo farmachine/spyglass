@@ -591,10 +591,10 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
             <div className="fixed bottom-6 left-6 z-10">
               <button
                 onClick={() => setLocation(`/projects/${project.id}/admin`)}
-                className="flex items-center gap-2 px-4 py-3 bg-primary text-white rounded-lg shadow-lg hover:bg-primary/90 transition-all duration-200"
-                title="Project Admin Settings"
+                className="flex items-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-700 rounded-lg shadow-lg transition-all duration-200"
+                title="Project Admin"
               >
-                <Settings className="h-5 w-5" />
+                <Settings className="h-4 w-4" />
                 <span className="text-sm font-medium">Project Admin</span>
               </button>
             </div>
