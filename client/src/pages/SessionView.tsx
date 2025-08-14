@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus, Lock } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import * as XLSX from 'xlsx';
 import { Link } from "wouter";
@@ -652,20 +652,12 @@ const AIExtractionModal = ({
                             isSelectable ? 'text-gray-900 cursor-pointer' : 'text-gray-500 cursor-not-allowed'
                           }`}
                         >
-                          <div className="flex items-center gap-2">
-                            {field.name}
-                            {isIdentifier && (
-                              <Lock className="h-3 w-3 text-amber-600" />
-                            )}
-                          </div>
-                          {isIdentifier && (
-                            <span className="ml-0 text-xs text-amber-600 font-normal">(Mandatory - Always selected)</span>
-                          )}
+                          {field.name}
                           {!isIdentifier && field.id.includes('.') && isFirstInCollection && (
-                            <span className="ml-0 text-xs text-blue-600 font-normal">(Required first)</span>
+                            <span className="ml-2 text-xs text-blue-600 font-normal">(Required first)</span>
                           )}
                           {!isIdentifier && field.id.includes('.') && !isFirstInCollection && !isSelectable && (
-                            <span className="ml-0 text-xs text-gray-400 font-normal">(Select previous items first)</span>
+                            <span className="ml-2 text-xs text-gray-400 font-normal">(Select previous items first)</span>
                           )}
                         </Label>
                         {field.type && (
