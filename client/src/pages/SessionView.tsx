@@ -2505,7 +2505,6 @@ Thank you for your assistance.`;
             </div>
           )}
         </div>
-        
         <div className="flex items-center gap-2">
           <ValidationToggle 
             fieldName={fieldName}
@@ -2682,7 +2681,6 @@ Thank you for your assistance.`;
           </div>
         </div>
       </div>
-
       {/* Page Title - Match ProjectLayout exactly */}
       <div className="bg-white border-b border-gray-100">
         <div className="w-full px-6 py-6">
@@ -2729,7 +2727,6 @@ Thank you for your assistance.`;
           </div>
         </div>
       </div>
-
       <div className="flex flex-1 min-h-0">
         {/* Sidebar */}
         <div className="w-80 bg-white border-r border-slate-200 flex flex-col">
@@ -2829,11 +2826,7 @@ Thank you for your assistance.`;
                   {/* Tab button */}
                   <button
                     onClick={() => setActiveTab('info')}
-                    className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
-                      activeTab === 'info' 
-                        ? 'bg-primary text-white font-medium shadow-sm' 
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal'
-                    }`}
+                    className="ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 text-white font-medium shadow-sm bg-[#071e54]"
                   >
                     General Information
                   </button>
@@ -3732,7 +3725,6 @@ Thank you for your assistance.`;
           </div>
         </div>
       </div>
-
       {/* AI Reasoning Modal */}
       {selectedReasoning && (
         <Dialog open={!!selectedReasoning} onOpenChange={() => setSelectedReasoning(null)}>
@@ -3793,7 +3785,6 @@ Thank you for your assistance.`;
           </DialogContent>
         </Dialog>
       )}
-
       {/* Data Report Dialog */}
       <Dialog open={showReasoningDialog} onOpenChange={setShowReasoningDialog}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -3839,9 +3830,7 @@ Thank you for your assistance.`;
           </div>
         </DialogContent>
       </Dialog>
-
       {/* Validation processing dialog removed - validation now occurs during extraction */}
-
       {/* Edit Field Value Dialog */}
       {editFieldDialog.validation && (
         <EditFieldValueDialog
@@ -3853,7 +3842,6 @@ Thank you for your assistance.`;
           collectionProperty={findCollectionProperty(editFieldDialog.validation)}
         />
       )}
-
       {/* Add Documents Modal */}
       <AddDocumentsModal
         open={addDocumentsModalOpen}
@@ -3866,7 +3854,6 @@ Thank you for your assistance.`;
           queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
         }}
       />
-
       {/* Document Upload Modal (upload only, no AI processing) */}
       <DocumentUploadModal
         open={documentUploadModalOpen}
@@ -3879,7 +3866,6 @@ Thank you for your assistance.`;
           queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
         }}
       />
-
       {/* AI Extraction Modal */}
       <AIExtractionModal
         isOpen={aiExtractionModal.open}
@@ -3892,7 +3878,6 @@ Thank you for your assistance.`;
         sessionId={sessionId}
         project={project}
       />
-
       {/* Session Chat */}
       {session && validations && (
         <SessionChat
