@@ -607,16 +607,21 @@ def update_document_format_analysis_with_functions(documents, target_fields_data
     # Initialize Gemini client
     client = genai.Client(api_key=api_key)
     
-    # Prepare prompt data - only include document properties, not full content
-    documents_for_analysis = []
-    for doc in documents:
-        doc_summary = {
-            "id": doc.get("id"),
-            "name": doc.get("name"), 
-            "type": doc.get("type"),
-            "size": len(doc.get("contentPreview", "")) if doc.get("contentPreview") else 0
-        }
-        documents_for_analysis.append(doc_summary)
+    # Handle document content for analysis
+    if documents == "NO DOCUMENTS SELECTED":
+        documents_content = "NO DOCUMENTS SELECTED"
+    else:
+        # Prepare prompt data - only include document properties, not full content
+        documents_for_analysis = []
+        for doc in documents:
+            doc_summary = {
+                "id": doc.get("id"),
+                "name": doc.get("name"), 
+                "type": doc.get("type"),
+                "size": len(doc.get("contentPreview", "")) if doc.get("contentPreview") else 0
+            }
+            documents_for_analysis.append(doc_summary)
+        documents_content = json.dumps(documents_for_analysis, indent=2)
     
     # Filter existing functions to only include metadata, not full function code
     functions_for_analysis = []
@@ -630,7 +635,6 @@ def update_document_format_analysis_with_functions(documents, target_fields_data
         }
         functions_for_analysis.append(func_summary)
     
-    documents_content = json.dumps(documents_for_analysis, indent=2)
     target_fields_content = json.dumps(target_fields_data, indent=2) if target_fields_data else "No target fields provided"
     existing_functions_content = json.dumps(functions_for_analysis, indent=2) if functions_for_analysis else "No existing functions"
     
@@ -702,16 +706,21 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             print(f"\nnext property to be extracted: {property_name}")
             print("=" * 80)
         
-        if not document_ids or not session_id:
-            print(json.dumps({"error": "Missing document_ids or session_id"}))
+        if not session_id:
+            print(json.dumps({"error": "Missing session_id"}))
             return
         
-        # Get document properties from database
-        documents = get_document_properties_from_db(document_ids, session_id)
-        
-        if isinstance(documents, dict) and "error" in documents:
-            print(json.dumps(documents))
-            return
+        # Handle document retrieval - if no documents selected, use placeholder
+        if not document_ids:
+            print("No documents selected - working with identifier references only")
+            documents = "NO DOCUMENTS SELECTED"
+        else:
+            # Get document properties from database
+            documents = get_document_properties_from_db(document_ids, session_id)
+            
+            if isinstance(documents, dict) and "error" in documents:
+                print(json.dumps(documents))
+                return
         
         # Extract complete field data from the target fields (no database query needed)
         target_fields_data = []
@@ -751,7 +760,10 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
         print("\n" + "=" * 80)
         print("DOCUMENT CONTENT FOR THIS EXTRACTION")
         print("=" * 80)
-        print(json.dumps(documents, indent=2))
+        if documents == "NO DOCUMENTS SELECTED":
+            print("NO DOCUMENTS SELECTED - working with identifier references only")
+        else:
+            print(json.dumps(documents, indent=2))
         print("=" * 80)
         
         # Print target field descriptions from database
@@ -806,22 +818,28 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             
             print(f"Function instruction: {function_instruction}")
             
-            # Get document IDs for processing (no need to read full content in tool selector)
-            document_ids = [doc['id'] for doc in documents]
-            extracted_content = ""
-            
-            # Only get content when actually executing functions, not for tool selection
-            # For now, just get a sample to determine document structure
-            for doc in documents:
-                if doc.get('type', '').lower() in ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv']:
-                    # Get content from database only when needed for function execution
-                    doc_content = get_document_properties_from_db([doc['id']], session_id)
-                    if doc_content and not isinstance(doc_content, dict):
-                        for doc_data in doc_content:
-                            if 'contentPreview' in doc_data:
-                                extracted_content = doc_data['contentPreview']
-                                break
-                    break
+            # Handle document processing based on whether documents are selected
+            if documents == "NO DOCUMENTS SELECTED":
+                print("Working with identifier references only - no documents to process")
+                document_ids = []
+                extracted_content = ""
+            else:
+                # Get document IDs for processing (no need to read full content in tool selector)
+                document_ids = [doc['id'] for doc in documents]
+                extracted_content = ""
+                
+                # Only get content when actually executing functions, not for tool selection
+                # For now, just get a sample to determine document structure
+                for doc in documents:
+                    if doc.get('type', '').lower() in ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv']:
+                        # Get content from database only when needed for function execution
+                        doc_content = get_document_properties_from_db([doc['id']], session_id)
+                        if doc_content and not isinstance(doc_content, dict):
+                            for doc_data in doc_content:
+                                if 'contentPreview' in doc_data:
+                                    extracted_content = doc_data['contentPreview']
+                                    break
+                        break
             
             if function_instruction != "CREATE_NEW" and function_instruction != "":
                 # Use existing function
@@ -1045,10 +1063,15 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             print("\n" + "=" * 80)
             print("RESULTS FROM EXTRACTION")
             print("=" * 80)
-            # Get document IDs from the documents data
-            document_ids = [doc['id'] for doc in documents]
-            # Pass document IDs and identifier targets to AI extraction
-            ai_result = ai_document_extraction(document_ids, session_id, identifier_targets)
+            # Handle AI extraction based on document availability
+            if documents == "NO DOCUMENTS SELECTED":
+                print("Cannot use AI extraction without documents - this should not happen")
+                ai_result = {"error": "No documents available for AI extraction"}
+            else:
+                # Get document IDs from the documents data
+                document_ids = [doc['id'] for doc in documents]
+                # Pass document IDs and identifier targets to AI extraction
+                ai_result = ai_document_extraction(document_ids, session_id, identifier_targets)
             
             # Clean JSON and extract identifiers
             processed_results = clean_json_and_extract_identifiers(ai_result, identifier_targets)

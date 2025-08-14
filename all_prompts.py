@@ -26,9 +26,10 @@ CRITICAL FUNCTION SELECTION RULES:
 - FIRST EXTRACTION (extraction_number = 0): Use existing functions designed for initial data discovery
 - SUBSEQUENT EXTRACTIONS (extraction_number > 0): Only use existing functions if they explicitly handle identifier arrays and record matching
 - If identifier_references are provided but existing function descriptions don't mention identifier array handling, you MUST use "Excel Wizardry Function|CREATE_NEW"
+- NO DOCUMENTS SELECTED: If documents show "NO DOCUMENTS SELECTED", the extraction must work purely from identifier_references - you MUST use "Excel Wizardry Function|CREATE_NEW"
 - When in doubt about function compatibility, always choose CREATE_NEW to ensure proper handling
 
-IMPORTANT: Read function descriptions carefully. Many existing functions only work for first-time extractions and cannot handle identifier-based matching for subsequent runs.
+IMPORTANT: Read function descriptions carefully. Many existing functions only work for first-time extractions and cannot handle identifier-based matching for subsequent runs. If no documents are provided, the function must generate results based solely on identifier references.
 
 Response format:
 - For existing function: "Excel Wizardry Function|<function_id>"
@@ -46,6 +47,8 @@ TARGET FIELDS TO EXTRACT:
 SOURCE DOCUMENTS (for context):
 {source_documents}
 
+NOTE: If source documents show "NO DOCUMENTS SELECTED", you must create a function that works purely from identifier_references without reading any document content.
+
 IDENTIFIER REFERENCES FROM PREVIOUS EXTRACTION:
 {identifier_references}
 
@@ -56,9 +59,10 @@ Create a descriptive name and description for this function based on the extract
 
 MANDATORY REQUIREMENTS:
 1. Function name MUST be: extract_excel_data(extracted_content, target_fields_data, identifier_references=None)
-2. Input format: extracted_content has lines like "=== Sheet: Name ===" followed by tab-separated rows
+2. Input format: extracted_content has lines like "=== Sheet: Name ===" followed by tab-separated rows (may be empty if no documents selected)
 3. If identifier_references is provided, the function MUST iterate through each identifier and extract the target field for that specific identifier
-4. Output format: Return a list of dictionaries, each with these exact keys:
+4. If no documents are available (empty extracted_content), the function must work purely from identifier_references data
+5. Output format: Return a list of dictionaries, each with these exact keys:
    - "validation_type": "collection_property"
    - "data_type": field's property_type or "TEXT"
    - "field_name": "CollectionName.FieldName[INDEX]" 
@@ -80,9 +84,11 @@ ITERATION LOGIC FOR SUBSEQUENT EXTRACTIONS:
 If identifier_references is provided:
 1. Loop through each identifier reference object
 2. Extract the identifier value (e.g., "Column Heading[0]: 'Member Reference No'")
-3. Use this identifier to locate the target field in the Excel sheets
-4. For column extraction: find the worksheet containing this column and extract the target property
-5. Maintain the same index as the identifier reference
+3. If documents available: Use this identifier to locate the target field in the Excel sheets
+4. If no documents available (NO DOCUMENTS SELECTED): Generate appropriate values based on identifier context and target field requirements
+5. For column extraction: find the worksheet containing this column and extract the target property (or generate contextually appropriate worksheet names if no docs)
+6. Maintain the same index as the identifier reference
+7. Set confidence_score appropriately (lower for generated vs extracted data)
 
 RESPONSE FORMAT:
 Return ONLY a valid JSON object with these four keys: function_name, description, tags, function_code
