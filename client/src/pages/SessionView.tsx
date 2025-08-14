@@ -517,60 +517,34 @@ const AIExtractionModal = ({
   // Console log all field schema properties when modal opens
   useEffect(() => {
     if (isOpen && availableFields.length > 0) {
-      console.log('=== AI Field Extractor Modal - Full Field Schema Properties ===');
-      console.log('Available Fields Count:', availableFields.length);
+      console.log('=== AI Field Extractor Modal - Field Schema Properties ===');
       
       availableFields.forEach((field, index) => {
-        console.log(`\n--- Field ${index + 1}: ${field.name} ---`);
-        console.log('Basic Info:', {
-          id: field.id,
-          name: field.name,
-          type: field.type,
-          orderIndex: field.orderIndex,
-          index: field.index
-        });
+        console.log(`--- Field ${index + 1}: ${field.name} ---`);
         
-        // Find full schema details for this field
-        if (field.id.includes('.')) {
-          // Collection property
-          const [collectionName, propertyName] = field.id.split('.');
-          const collection = project?.collections?.find(c => c.collectionName === collectionName);
-          if (collection) {
-            const property = collection.properties?.find(p => p.propertyName === propertyName);
-            if (property) {
-              console.log('Full Collection Property Schema:', {
-                id: property.id,
-                collectionId: property.collectionId,
-                propertyName: property.propertyName,
-                propertyType: property.propertyType,
-                description: property.description,
-                autoVerificationConfidence: property.autoVerificationConfidence,
-                choiceOptions: property.choiceOptions,
-                isIdentifier: property.isIdentifier,
-                orderIndex: property.orderIndex,
-                createdAt: property.createdAt
-              });
-            }
-          }
-        } else {
-          // Schema field
-          const schemaField = project?.schemaFields?.find(sf => sf.fieldName === field.id);
-          if (schemaField) {
-            console.log('Full Schema Field Details:', {
-              id: schemaField.id,
-              fieldName: schemaField.fieldName,
-              fieldType: schemaField.fieldType,
-              description: schemaField.description,
-              autoVerificationConfidence: schemaField.autoVerificationConfidence,
-              choiceOptions: schemaField.choiceOptions,
-              orderIndex: schemaField.orderIndex,
-              createdAt: schemaField.createdAt
-            });
+        // Find the collection and property for this field
+        const allCollections = project?.collections || [];
+        for (const collection of allCollections) {
+          const property = collection.properties?.find(p => p.id === field.id);
+          if (property) {
+            console.log(JSON.stringify({
+              id: property.id,
+              collectionId: property.collectionId,
+              propertyName: property.propertyName,
+              propertyType: property.propertyType,
+              description: property.description,
+              autoVerificationConfidence: property.autoVerificationConfidence,
+              choiceOptions: property.choiceOptions,
+              isIdentifier: property.isIdentifier,
+              orderIndex: property.orderIndex,
+              createdAt: property.createdAt
+            }, null, 2));
+            break;
           }
         }
       });
       
-      console.log('\n=== End Field Schema Properties ===');
+      console.log('=== End Field Schema Properties ===');
     }
   }, [isOpen, availableFields, project]);
 
