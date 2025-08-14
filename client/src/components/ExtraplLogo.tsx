@@ -21,7 +21,7 @@ export default function ExtraplLogo({ className = "", showText = true, size = 60
       <div className={`flex items-center ${className}`}>
         <div className="flex items-center gap-1">
           <span className="text-sm font-bold text-slate-700">extrapl</span>
-          <div className="w-1 h-1 bg-blue-500 rounded-full"></div>
+          <div className="w-1 h-1 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
         </div>
       </div>
     );
@@ -36,7 +36,7 @@ export default function ExtraplLogo({ className = "", showText = true, size = 60
       {/* Simple logo design */}
       <div className="flex items-center gap-2">
         <span className="text-3xl font-bold text-slate-700 dark:text-slate-300">extrapl</span>
-        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
       </div>
       
 
