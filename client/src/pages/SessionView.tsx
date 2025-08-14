@@ -696,9 +696,11 @@ const AIExtractionModal = ({
                 
                 const isSelected = selectedTargetFields.includes(field.id) || isIdentifier;
                 const containerClass = `rounded-lg p-4 shadow-sm transition-all ${
-                  isSelectable 
-                    ? 'bg-white border border-gray-200 hover:shadow-md cursor-pointer' 
-                    : 'bg-gray-50 border border-gray-100 opacity-60 cursor-not-allowed'
+                  isSelected
+                    ? 'bg-white border-2 border-blue-600 hover:shadow-md cursor-pointer'
+                    : isSelectable 
+                      ? 'bg-white border border-gray-200 hover:shadow-md cursor-pointer' 
+                      : 'bg-gray-50 border border-gray-100 opacity-60 cursor-not-allowed'
                 }`;
                 
                 return (
