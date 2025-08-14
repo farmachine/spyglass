@@ -474,8 +474,8 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       <div className="flex h-[calc(100vh-168px)]">
         {/* Sidebar - Hidden for All Data tab */}
         {activeTab !== 'data' && (
-          <div className="w-72 bg-slate-50 border-r border-slate-200">
-            <div className="p-4">
+          <div className="w-72 bg-slate-50 border-r border-slate-200 relative">
+            <div className="p-4 pb-20">
             <nav className="space-y-0.5">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -562,6 +562,20 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                     Add List
                   </button>
                 </nav>
+              </div>
+            )}
+
+            {/* Settings Button - Always at the bottom */}
+            {canAccessConfigTabs && (
+              <div className="absolute bottom-4 left-4 right-4">
+                <button
+                  onClick={() => setLocation(`/projects/${project.id}/admin`)}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-700 transition-all duration-200"
+                  title="Project Admin Settings"
+                >
+                  <Settings className="h-4 w-4" />
+                  Project Admin
+                </button>
               </div>
             )}
             </div>

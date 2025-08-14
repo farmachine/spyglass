@@ -13,6 +13,7 @@ import DocumentTextView from "@/pages/DocumentTextView";
 import SchemaView from "@/pages/SchemaView";
 import GeminiResults from "@/pages/GeminiResults";
 import AdminPanel from "@/pages/AdminPanel";
+import ProjectAdminView from "@/pages/ProjectAdminView";
 import OrganizationConfig from "@/pages/OrganizationConfig";
 import DebugView from "@/pages/DebugView";
 import Login from "@/pages/Login";
@@ -31,6 +32,11 @@ function Router() {
       <Route path="/projects/:id">
         <ProtectedRoute>
           <ProjectView />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/projects/:id/admin">
+        <ProtectedRoute>
+          <ProjectAdminView />
         </ProtectedRoute>
       </Route>
       <Route path="/projects/:projectId/sessions/:sessionId">
