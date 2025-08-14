@@ -2395,13 +2395,6 @@ Thank you for your assistance.`;
 
   const navItems = [
     { id: "data", label: `All ${project?.mainObjectName || "Session"}s`, icon: Database, href: `/projects/${projectId}?tab=all-data` },
-    ...(canAccessConfigTabs ? [
-      { id: "knowledge", label: "Knowledge/Rules", icon: Brain, href: `/projects/${projectId}?tab=knowledge` },
-      { id: "define", label: "Define Data", icon: Settings, href: `/projects/${projectId}?tab=define` },
-    ] : []),
-    ...(canAccessPublishing ? [
-      { id: "publishing", label: "Publishing", icon: FolderOpen, href: `/projects/${projectId}?tab=publishing` },
-    ] : []),
   ];
 
   return (
