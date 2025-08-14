@@ -661,7 +661,7 @@ const AIExtractionModal = ({
                 }
                 
                 if (fieldBelongsToCollection && fieldCollection) {
-                  // Collection field: apply sequential selection logic
+                  // Collection field: all items are selectable (sequential auto-selection will happen on click)
                   const collectionFields = availableFields
                     .filter(f => {
                       // Check if this field belongs to the same collection
@@ -672,13 +672,8 @@ const AIExtractionModal = ({
                   const fieldIndex = collectionFields.findIndex(f => f.id === field.id);
                   isFirstInCollection = fieldIndex === 0;
                   
-                  // Field is selectable if:
-                  // 1. It's the first item (always selectable)
-                  // 2. OR all previous items in the collection are selected
-                  if (!isFirstInCollection) {
-                    const previousField = collectionFields[fieldIndex - 1];
-                    isSelectable = previousField ? selectedTargetFields.includes(previousField.id) : false;
-                  }
+                  // All collection fields are selectable - selection logic will handle sequential behavior
+                  isSelectable = true;
                 } else {
                   // Non-collection field (schema property): always selectable (no sequential constraints)
                   isSelectable = true;
@@ -697,10 +692,10 @@ const AIExtractionModal = ({
                 const isSelected = selectedTargetFields.includes(field.id) || isIdentifier;
                 const containerClass = `rounded-lg p-4 border transition-all ${
                   isSelected
-                    ? 'bg-card border-primary/50 shadow-sm hover:shadow-md cursor-pointer'
+                    ? 'bg-primary/5 border-primary shadow-md cursor-pointer'
                     : isSelectable 
-                      ? 'bg-card border-border hover:border-primary/30 hover:shadow-sm cursor-pointer' 
-                      : 'bg-muted border-border opacity-60 cursor-not-allowed'
+                      ? 'bg-card border-border hover:border-primary/40 hover:shadow-sm cursor-pointer' 
+                      : 'bg-muted border-border/50 opacity-50 cursor-not-allowed'
                 }`;
                 
                 return (
@@ -709,12 +704,12 @@ const AIExtractionModal = ({
                       <button
                         onClick={() => isSelectable && !isIdentifier && handleTargetFieldToggle(field.id)}
                         disabled={!isSelectable || isIdentifier}
-                        className={`p-1 rounded transition-all bg-background ${
+                        className={`p-2 rounded-md transition-all ${
                           isSelected 
-                            ? 'text-primary hover:text-primary/80' 
+                            ? 'bg-primary text-primary-foreground shadow-sm' 
                             : isSelectable && !isIdentifier
-                              ? 'text-muted-foreground hover:text-primary'
-                              : 'text-muted-foreground/50 cursor-not-allowed'
+                              ? 'bg-background text-muted-foreground hover:text-primary hover:bg-primary/10'
+                              : 'bg-background text-muted-foreground/40 cursor-not-allowed'
                         } ${isIdentifier ? 'opacity-70' : ''}`}
                       >
                         <Wand2 className="h-4 w-4" />
@@ -726,12 +721,6 @@ const AIExtractionModal = ({
                           }`}
                         >
                           {field.name}
-                          {!isIdentifier && field.id.includes('.') && isFirstInCollection && (
-                            <span className="ml-2 text-xs text-primary font-normal">(Required first)</span>
-                          )}
-                          {!isIdentifier && field.id.includes('.') && !isFirstInCollection && !isSelectable && (
-                            <span className="ml-2 text-xs text-muted-foreground/70 font-normal">(Select previous items first)</span>
-                          )}
                         </div>
                         {field.type && (
                           <p className={`text-sm mt-1 ${isSelectable ? 'text-muted-foreground' : 'text-muted-foreground/70'}`}>
