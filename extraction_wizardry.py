@@ -413,6 +413,45 @@ def increment_function_usage(function_id):
     except Exception as e:
         return {"error": f"Failed to increment function usage: {str(e)}"}
 
+def update_excel_wizardry_function(function_id, function_code, description=None):
+    """Update an existing Excel wizardry function"""
+    try:
+        # Get database connection from environment
+        database_url = os.getenv('DATABASE_URL')
+        if not database_url:
+            return {"error": "DATABASE_URL not found"}
+        
+        # Connect to database
+        conn = psycopg2.connect(database_url)
+        cursor = conn.cursor()
+        
+        # Update function
+        if description:
+            query = """
+            UPDATE excel_wizardry_functions 
+            SET function_code = %s, description = %s, updated_at = NOW()
+            WHERE id = %s
+            """
+            cursor.execute(query, (function_code, description, function_id))
+        else:
+            query = """
+            UPDATE excel_wizardry_functions 
+            SET function_code = %s, updated_at = NOW()
+            WHERE id = %s
+            """
+            cursor.execute(query, (function_code, function_id))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return {"message": "Excel wizardry function updated successfully"}
+        
+    except Exception as e:
+        return {"error": f"Failed to update Excel wizardry function: {str(e)}"}
+
+
+
 def generate_excel_function_with_gemini(target_fields_data, documents, max_retries=3):
     """Generate a new Excel function using Gemini AI"""
     # Get API key from environment
