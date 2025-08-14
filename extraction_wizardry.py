@@ -579,10 +579,15 @@ def execute_excel_wizardry_function(function_code, extracted_content, target_fie
         print(f"DEBUG - Target fields count: {len(target_fields_data)}")
         print(f"DEBUG - Target fields sample: {target_fields_data[:2] if target_fields_data else 'No fields'}")
         
-        # Execute the function with identifier references if provided
-        if identifier_references is not None:
+        # Execute the function - check if it accepts identifier_references parameter
+        import inspect
+        func_signature = inspect.signature(extract_function)
+        
+        if len(func_signature.parameters) >= 3 and identifier_references is not None:
+            # New function signature with identifier_references
             results = extract_function(extracted_content, target_fields_data, identifier_references)
         else:
+            # Legacy function signature without identifier_references
             results = extract_function(extracted_content, target_fields_data)
         
         print(f"DEBUG - Function returned {len(results) if results else 0} results")
@@ -602,10 +607,32 @@ def update_document_format_analysis_with_functions(documents, target_fields_data
     # Initialize Gemini client
     client = genai.Client(api_key=api_key)
     
-    # Prepare prompt data
-    documents_content = json.dumps(documents, indent=2)
+    # Prepare prompt data - only include document properties, not full content
+    documents_for_analysis = []
+    for doc in documents:
+        doc_summary = {
+            "id": doc.get("id"),
+            "name": doc.get("name"), 
+            "type": doc.get("type"),
+            "size": len(doc.get("contentPreview", "")) if doc.get("contentPreview") else 0
+        }
+        documents_for_analysis.append(doc_summary)
+    
+    # Filter existing functions to only include metadata, not full function code
+    functions_for_analysis = []
+    for func in existing_functions:
+        func_summary = {
+            "id": func.get("id"),
+            "name": func.get("name"),
+            "description": func.get("description"),
+            "tags": func.get("tags", []),
+            "usage_count": func.get("usage_count", 0)
+        }
+        functions_for_analysis.append(func_summary)
+    
+    documents_content = json.dumps(documents_for_analysis, indent=2)
     target_fields_content = json.dumps(target_fields_data, indent=2) if target_fields_data else "No target fields provided"
-    existing_functions_content = json.dumps(existing_functions, indent=2) if existing_functions else "No existing functions"
+    existing_functions_content = json.dumps(functions_for_analysis, indent=2) if functions_for_analysis else "No existing functions"
     
     # Format identifier references
     identifier_references_content = json.dumps(identifier_references, indent=2) if identifier_references else "None - First extraction"
