@@ -2896,7 +2896,7 @@ Thank you for your assistance.`;
           {canAccessConfigTabs && (
             <div className="p-4 border-t border-slate-200">
               <Link href={`/projects/${projectId}/admin`}>
-                <button className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-700 transition-all duration-200">
+                <button className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-700 transition-all duration-200 border border-slate-200">
                   <Settings className="h-4 w-4" />
                   Project Admin
                 </button>
