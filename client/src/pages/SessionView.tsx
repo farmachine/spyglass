@@ -305,19 +305,30 @@ const AIExtractionModal = ({
 
   const handleTargetFieldToggle = (fieldId: string) => {
     const field = availableFields.find(f => f.id === fieldId);
+    if (!field) return;
     
     // Check if this is a collection field
-    if (field && fieldId.includes('.')) {
+    if (fieldId.includes('.')) {
       const [collectionName, propertyName] = fieldId.split('.');
       const collectionFields = availableFields
         .filter(f => f.id.startsWith(collectionName + '.'))
         .sort((a, b) => (a.orderIndex || a.index || 0) - (b.orderIndex || b.index || 0));
       
       const fieldIndex = collectionFields.findIndex(f => f.id === fieldId);
+      const wasSelected = selectedTargetFields.includes(fieldId);
       
       setSelectedTargetFields(prev => {
         if (prev.includes(fieldId)) {
           // Deselecting: remove this field and all higher-indexed fields in the same collection
+          console.log(`Field ${fieldIndex + 1}: ${field.name} - deselected`);
+          
+          // Log additional fields that will be deselected due to sequential logic
+          const fieldsToDeselect = collectionFields.filter((f, idx) => idx > fieldIndex && prev.includes(f.id));
+          fieldsToDeselect.forEach((f) => {
+            const idx = collectionFields.findIndex(cf => cf.id === f.id);
+            console.log(`Field ${idx + 1}: ${f.name} - deselected (sequential)`);
+          });
+          
           return prev.filter(id => {
             if (!id.startsWith(collectionName + '.')) return true;
             const targetField = collectionFields.find(f => f.id === id);
@@ -326,12 +337,15 @@ const AIExtractionModal = ({
           });
         } else {
           // Selecting: ensure all previous fields in the collection are selected
+          console.log(`Field ${fieldIndex + 1}: ${field.name} - selected`);
+          
           const newSelection = [...prev];
           
           // Add all fields from index 0 up to and including the selected field
           for (let i = 0; i <= fieldIndex; i++) {
             const requiredField = collectionFields[i];
             if (requiredField && !newSelection.includes(requiredField.id)) {
+              console.log(`Field ${i + 1}: ${requiredField.name} - selected (sequential)`);
               newSelection.push(requiredField.id);
             }
           }
@@ -341,6 +355,11 @@ const AIExtractionModal = ({
       });
     } else {
       // Non-collection field: standard toggle behavior
+      const fieldIndex = availableFields.findIndex(f => f.id === fieldId);
+      const wasSelected = selectedTargetFields.includes(fieldId);
+      
+      console.log(`Field ${fieldIndex + 1}: ${field.name} - ${wasSelected ? 'deselected' : 'selected'}`);
+      
       setSelectedTargetFields(prev => 
         prev.includes(fieldId) 
           ? prev.filter(id => id !== fieldId)
