@@ -25,7 +25,7 @@ class ExcelPreprocessor:
     """Enhanced Excel preprocessor that cleans and normalizes data"""
     
     def __init__(self):
-        self.debug = True
+        self.debug = True  # Enable debug output for testing (all output goes to stderr)
         
     def clean_cell_value(self, value: Any) -> str:
         """Clean and normalize a single cell value"""
@@ -106,7 +106,7 @@ class ExcelPreprocessor:
                     break  # Stop at first data-like row
         
         if self.debug:
-            print(f"DEBUG - Found {len(continuation_rows)} continuation rows for headers")
+            print(f"DEBUG - Found {len(continuation_rows)} continuation rows for headers", file=sys.stderr)
         
         # Merge continuation text into headers
         for cont_row in continuation_rows:
@@ -123,7 +123,7 @@ class ExcelPreprocessor:
                             merged_headers[i] = (base_header + " " + cont_text).strip()
                             
                             if self.debug:
-                                print(f"DEBUG - Merged header {i}: '{base_header}' + '{cont_text}'")
+                                print(f"DEBUG - Merged header {i}: '{base_header}' + '{cont_text}'", file=sys.stderr)
         
         return merged_headers
     
@@ -151,7 +151,7 @@ class ExcelPreprocessor:
             text_parts = []
             
             if self.debug:
-                print(f"DEBUG - Processing Excel file: {file_name}")
+                print(f"DEBUG - Processing Excel file: {file_name}", file=sys.stderr)
             
             # Try modern Excel format first (.xlsx)
             workbook_data = None
@@ -178,7 +178,7 @@ class ExcelPreprocessor:
                     
             except Exception as xlsx_error:
                 if self.debug:
-                    print(f"DEBUG - XLSX failed, trying XLS: {xlsx_error}")
+                    print(f"DEBUG - XLSX failed, trying XLS: {xlsx_error}", file=sys.stderr)
                 
                 # Fall back to older Excel format (.xls)
                 try:
@@ -206,7 +206,7 @@ class ExcelPreprocessor:
                         
                 except Exception as xls_error:
                     if self.debug:
-                        print(f"DEBUG - XLS failed, trying pandas: {xls_error}")
+                        print(f"DEBUG - XLS failed, trying pandas: {xls_error}", file=sys.stderr)
                     
                     # Final fallback using pandas
                     excel_data = pd.read_excel(io.BytesIO(file_content), sheet_name=None, nrows=100)
@@ -235,7 +235,7 @@ class ExcelPreprocessor:
                     continue
                     
                 if self.debug:
-                    print(f"DEBUG - Processing sheet '{sheet_name}' with {len(raw_rows)} rows")
+                    print(f"DEBUG - Processing sheet '{sheet_name}' with {len(raw_rows)} rows", file=sys.stderr)
                 
                 text_parts.append(f"=== Sheet: {sheet_name} ===")
                 
@@ -243,14 +243,14 @@ class ExcelPreprocessor:
                 header_row_idx = self.detect_header_row(raw_rows)
                 
                 if self.debug:
-                    print(f"DEBUG - Detected header at row {header_row_idx}")
+                    print(f"DEBUG - Detected header at row {header_row_idx}", file=sys.stderr)
                 
                 # Extract and merge multi-line headers
                 headers = self.merge_multiline_headers(raw_rows, header_row_idx)
                 
                 if self.debug:
-                    print(f"DEBUG - Final headers: {len(headers)} columns")
-                    print(f"DEBUG - Sample headers: {headers[:3]} ... {headers[-3:] if len(headers) > 6 else headers}")
+                    print(f"DEBUG - Final headers: {len(headers)} columns", file=sys.stderr)
+                    print(f"DEBUG - Sample headers: {headers[:3]} ... {headers[-3:] if len(headers) > 6 else headers}", file=sys.stderr)
                 
                 # Add the cleaned header row
                 text_parts.append("\t".join(headers))
@@ -271,14 +271,14 @@ class ExcelPreprocessor:
             result = "\n".join(text_parts)
             
             if self.debug:
-                print(f"DEBUG - Final extracted content: {len(result)} characters")
-                print(f"DEBUG - Tab count: {result.count(chr(9))} tabs")
+                print(f"DEBUG - Final extracted content: {len(result)} characters", file=sys.stderr)
+                print(f"DEBUG - Tab count: {result.count(chr(9))} tabs", file=sys.stderr)
             
             return result
             
         except Exception as e:
             if self.debug:
-                print(f"DEBUG - Excel extraction failed: {str(e)}")
+                print(f"DEBUG - Excel extraction failed: {str(e)}", file=sys.stderr)
             raise Exception(f"Enhanced Excel extraction failed: {str(e)}")
 
 def main():
