@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus, Table as TableIcon } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import * as XLSX from 'xlsx';
 import { Link } from "wouter";
@@ -819,10 +819,10 @@ const AIExtractionModal = ({
                         
                         <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
                           isSelected && isFieldExpanded 
-                            ? 'max-h-[400px] opacity-100 mt-6' 
+                            ? 'max-h-[400px] opacity-100 mt-4' 
                             : 'max-h-0 opacity-0 mt-0'
                         }`}>
-                          <div className="bg-card border border-border rounded-md p-4">
+                          <div className="pl-0">
                               <div className="mb-3">
                                 <Label className="text-sm font-medium text-foreground">
                                   Extraction Sources
@@ -831,22 +831,28 @@ const AIExtractionModal = ({
                                   Select specific documents to extract this field from
                                 </p>
                               </div>
+                              <div className="bg-card border border-border rounded-md p-4">
                               <div className="space-y-3 max-h-32 overflow-y-auto pr-1">
                                 {sessionDocuments.map(doc => {
                                   const isSourceSelected = fieldSources.includes(doc.id);
                                   const fileName = doc.originalName || doc.filename || doc.name || doc.fileName || `Document ${doc.id.slice(0, 8)}`;
                                   const fileType = doc.mimeType || doc.fileType || '';
                                   
-                                  // Determine icon color based on file type
+                                  // Determine icon and color based on file type
                                   let iconColor = 'text-muted-foreground'; // default
+                                  let IconComponent = FileText; // default icon
+                                  
                                   if (fileType.includes('pdf') || fileName.toLowerCase().endsWith('.pdf')) {
                                     iconColor = 'text-red-500';
+                                    IconComponent = FileText;
                                   } else if (fileType.includes('excel') || fileType.includes('spreadsheet') || 
                                            fileName.toLowerCase().endsWith('.xlsx') || fileName.toLowerCase().endsWith('.xls')) {
                                     iconColor = 'text-green-500';
+                                    IconComponent = TableIcon;
                                   } else if (fileType.includes('word') || fileType.includes('document') || 
                                            fileName.toLowerCase().endsWith('.docx') || fileName.toLowerCase().endsWith('.doc')) {
                                     iconColor = 'text-blue-500';
+                                    IconComponent = FileText;
                                   }
                                   
                                   return (
@@ -856,7 +862,7 @@ const AIExtractionModal = ({
                                         onCheckedChange={() => toggleFieldDocumentSource(field.id, doc.id)}
                                         className="mt-0.5"
                                       />
-                                      <FileText className={`h-4 w-4 ${iconColor} flex-shrink-0 mt-0.5`} />
+                                      <IconComponent className={`h-4 w-4 ${iconColor} flex-shrink-0 mt-0.5`} />
                                       <div className="flex-1 min-w-0">
                                         <span className="text-sm text-foreground font-medium block truncate">
                                           {fileName}
@@ -870,6 +876,7 @@ const AIExtractionModal = ({
                                 })}
                               </div>
                             </div>
+                          </div>
                         </div>
                       </div>
                     </div>
