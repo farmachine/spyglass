@@ -10,7 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import KnowledgeRules from "@/components/KnowledgeRules";
 import DefineData from "@/components/DefineData";
 import Publishing from "@/components/Publishing";
-import ExtractlyLogo from "@/components/ExtractlyLogo";
+import ExtraplLogo from "@/components/ExtraplLogo";
 import UserProfile from "@/components/UserProfile";
 
 interface ProjectAdminProps {
@@ -129,7 +129,7 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="w-full px-6 py-4">
           <div className="flex items-center justify-between w-full">
-            <ExtractlyLogo />
+            <ExtraplLogo />
             <UserProfile />
           </div>
         </div>

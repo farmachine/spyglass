@@ -1,7 +1,7 @@
-# Extractly - AI-Powered Document Data Extraction Platform
+# extrapl - AI-Powered Document Data Extraction Platform
 
 ## Overview
-Extractly is an AI-powered document data extraction platform built with React, Express, and TypeScript. It processes legal and business documents, offering enhanced conflict detection and collaborative workspace features. The platform enables users to configure extraction schemas, upload documents, and review AI-analyzed data with knowledge-based validation. Extractly aims to streamline data extraction from complex documents, offering significant market potential by reducing manual effort and improving accuracy.
+extrapl is an AI-powered document data extraction platform built with React, Express, and TypeScript. It processes legal and business documents, offering enhanced conflict detection and collaborative workspace features. The platform enables users to configure extraction schemas, upload documents, and review AI-analyzed data with knowledge-based validation. extrapl aims to streamline data extraction from complex documents, offering significant market potential by reducing manual effort and improving accuracy.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
