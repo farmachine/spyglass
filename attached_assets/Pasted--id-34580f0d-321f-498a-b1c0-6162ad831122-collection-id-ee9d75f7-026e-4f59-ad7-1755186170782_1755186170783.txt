@@ -1,0 +1,50 @@
+[
+  {
+    "id": "34580f0d-321f-498a-b1c0-6162ad831122",
+    "collection_id": "ee9d75f7-026e-4f59-ad7a-329295c54505",
+    "collection_name": "Column Name Mapping",
+    "property_name": "Column Heading",
+    "property_type": "TEXT",
+    "description": "Please just look for the first row in each workbook. This will give you the column name. This should only look at row 1 in each sheet.",
+    "auto_verification_confidence": 80,
+    "choice_options": [],
+    "is_identifier": true,
+    "order_index": 0
+  },
+  {
+    "id": "afca5391-afb0-4639-baff-2b69487669ad",
+    "collection_id": "ee9d75f7-026e-4f59-ad7a-329295c54505",
+    "collection_name": "Column Name Mapping",
+    "property_name": "Worksheet",
+    "property_type": "TEXT",
+    "description": "The name of the worksheet containing the column. This should only look at row 1 in each sheet.\t",
+    "auto_verification_confidence": 80,
+    "choice_options": [],
+    "is_identifier": false,
+    "order_index": 1
+  },
+  {
+    "id": "7f87696b-2b4f-4e38-820f-08ebdd301bba",
+    "collection_id": "ee9d75f7-026e-4f59-ad7a-329295c54505",
+    "collection_name": "Column Name Mapping",
+    "property_name": "Standardised Column Name",
+    "property_type": "TEXT",
+    "description": "Look at the most relevant column references within the knowledge document: \"Standard_Field_Mappings_with_all_synonyms. Just give the name of the most relevant field from this document. This should only look at row 1 in each sheet.",
+    "auto_verification_confidence": 80,
+    "choice_options": [],
+    "is_identifier": false,
+    "order_index": 2
+  },
+  {
+    "id": "87b1fe45-0c6a-4a51-9d1c-d5a2d7ee1cde",
+    "collection_id": "ee9d75f7-026e-4f59-ad7a-329295c54505",
+    "collection_name": "Column Name Mapping",
+    "property_name": "Reasoning",
+    "property_type": "TEXT",
+    "description": "Give reasoning for the mapping of the extracted column name to the 'Standardised Column Name' from the knowledge document. This should only look at row 1 in each sheet.",
+    "auto_verification_confidence": 80,
+    "choice_options": [],
+    "is_identifier": false,
+    "order_index": 3
+  }
+]

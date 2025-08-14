@@ -625,7 +625,7 @@ def update_document_format_analysis_with_functions(documents, target_fields_data
     except Exception as e:
         return f"ERROR: Enhanced Gemini analysis failed: {str(e)}"
 
-def run_wizardry_with_gemini_analysis(data=None):
+def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
     """Main function that gets documents from DB and analyzes them with Gemini"""
     if data and isinstance(data, dict):
         document_ids = data.get('document_ids', [])
@@ -973,10 +973,101 @@ def run_wizardry_with_gemini_analysis(data=None):
             print("No extraction performed")
         print("=" * 80)
         
+        # AUTO-RERUN LOGIC: Re-run the function with specific parameters after completion
+        if extraction_number == 0:  # Only rerun after the first extraction
+            print("\n" + "=" * 80)
+            print("AUTO-RERUN: Starting second extraction run")
+            print("=" * 80)
+            
+            # Define the parameters for the second run as specified by user
+            next_extraction_number = extraction_number + 1  # 0 + 1 = 1
+            num_target_collection_items = 2
+            
+            # Selected Target Field Objects (only fields to be extracted)
+            selected_target_fields = [
+                {
+                    "id": "34580f0d-321f-498a-b1c0-6162ad831122",
+                    "collectionId": "ee9d75f7-026e-4f59-ad7a-329295c54505",
+                    "propertyName": "Column Heading",
+                    "propertyType": "TEXT",
+                    "description": "Please just look for the first row in each workbook. This will give you the column name. This should only look at row 1 in each sheet.",
+                    "autoVerificationConfidence": 80,
+                    "choiceOptions": [],
+                    "isIdentifier": True,
+                    "orderIndex": 0,
+                    "createdAt": "2025-08-12T07:23:55.023Z"
+                },
+                {
+                    "id": "afca5391-afb0-4639-baff-2b69487669ad",
+                    "collection_id": "ee9d75f7-026e-4f59-ad7a-329295c54505",
+                    "collection_name": "Column Name Mapping",
+                    "property_name": "Worksheet",
+                    "property_type": "TEXT",
+                    "description": "The name of the worksheet containing the column. This should only look at row 1 in each sheet.",
+                    "auto_verification_confidence": 80,
+                    "choice_options": [],
+                    "is_identifier": False,
+                    "order_index": 1,
+                    "createdAt": "2025-08-12T07:23:55.023Z"
+                }
+            ]
+            
+            # Collection properties NOT to be extracted (excluded from processing)
+            excluded_properties = [
+                {
+                    "id": "7f87696b-2b4f-4e38-820f-08ebdd301bba",
+                    "collection_id": "ee9d75f7-026e-4f59-ad7a-329295c54505",
+                    "collection_name": "Column Name Mapping",
+                    "property_name": "Standardised Column Name",
+                    "property_type": "TEXT",
+                    "description": "Look at the most relevant column references within the knowledge document: \"Standard_Field_Mappings_with_all_synonyms. Just give the name of the most relevant field from this document. This should only look at row 1 in each sheet.",
+                    "auto_verification_confidence": 80,
+                    "choice_options": [],
+                    "is_identifier": False,
+                    "order_index": 2
+                },
+                {
+                    "id": "87b1fe45-0c6a-4a51-9d1c-d5a2d7ee1cde",
+                    "collection_id": "ee9d75f7-026e-4f59-ad7a-329295c54505",
+                    "collection_name": "Column Name Mapping",
+                    "property_name": "Reasoning",
+                    "property_type": "TEXT",
+                    "description": "Give reasoning for the mapping of the extracted column name to the 'Standardised Column Name' from the knowledge document. This should only look at row 1 in each sheet.",
+                    "auto_verification_confidence": 80,
+                    "choice_options": [],
+                    "is_identifier": False,
+                    "order_index": 3
+                }
+            ]
+            
+            # Console log the parameters as requested
+            print(f"NEXT EXTRACTION NUMBER: {next_extraction_number}")
+            print(f"NUMBER OF TARGET COLLECTION ITEMS: {num_target_collection_items}")
+            print("SELECTED TARGET FIELD OBJECTS:")
+            print(json.dumps(selected_target_fields, indent=2))
+            print("EXCLUDED PROPERTIES (NOT TO BE EXTRACTED):")
+            print(json.dumps(excluded_properties, indent=2))
+            
+            # Create new data object with updated target fields
+            rerun_data = {
+                "document_ids": document_ids,
+                "session_id": session_id,
+                "target_fields": selected_target_fields
+            }
+            
+            # Re-run the extraction with the new parameters
+            run_wizardry_with_gemini_analysis(rerun_data, next_extraction_number)
+            
+        elif extraction_number == 1:  # Second run completed
+            print("\n" + "=" * 80)
+            print("AUTO-RERUN COMPLETED: Stopping process after second extraction")
+            print("=" * 80)
+            return  # Stop the process as requested
+        
     else:
         print(json.dumps({"error": "Invalid data format. Expected object with document_ids and session_id"}))
 
-def run_wizardry(data=None):
+def run_wizardry(data=None, extraction_number=0):
     # FIRST: Display all collection properties at the very beginning
     if data and isinstance(data, dict):
         target_fields = data.get('target_fields', [])
@@ -993,7 +1084,7 @@ def run_wizardry(data=None):
             print("No collection IDs found in target fields")
     
     # Call the new function with Gemini analysis
-    run_wizardry_with_gemini_analysis(data)
+    run_wizardry_with_gemini_analysis(data, extraction_number)
 
 if __name__ == "__main__":
     # Read JSON data from stdin if available
