@@ -4756,18 +4756,12 @@ print(json.dumps(results))
     }
   });
 
-  // Run sequential extraction wizardry Python script
+  // Run extraction wizardry Python script
   app.post("/api/run-wizardry", async (req, res) => {
     try {
-      const requestData = req.body;
+      const requestData = req.body; // Get request data with document_ids and session_id
       
-      // Determine extraction mode based on request
-      const useSequentialExtraction = requestData.sequential_extraction === true;
-      const scriptName = useSequentialExtraction ? 'sequential_extraction_engine.py' : 'extraction_wizardry.py';
-      
-      console.log(`Running ${useSequentialExtraction ? 'sequential' : 'standard'} extraction wizardry...`);
-      
-      const python = spawn('python3', [scriptName]);
+      const python = spawn('python3', ['extraction_wizardry.py']);
       
       // Pass request data to Python script via stdin
       if (requestData && requestData.document_ids && requestData.session_id) {
@@ -4786,7 +4780,7 @@ print(json.dumps(results))
         error += data.toString();
       });
       
-      python.on('close', async (code: any) => {
+      python.on('close', (code: any) => {
         if (code !== 0) {
           console.error('Wizardry script error:', error);
           return res.status(500).json({ 
@@ -4795,60 +4789,11 @@ print(json.dumps(results))
           });
         }
         
-        // For sequential extraction, try to parse the output as JSON to save validations
-        if (useSequentialExtraction) {
-          try {
-            const extractionResult = JSON.parse(output.trim());
-            
-            // If sequential extraction was successful, save the validation results
-            if (extractionResult.success && extractionResult.validation_results) {
-              console.log(`Sequential extraction completed with ${extractionResult.validation_results.length} validations`);
-              
-              // Save each validation result to the database
-              for (const validation of extractionResult.validation_results) {
-                try {
-                  await storage.createFieldValidation({
-                    sessionId: requestData.session_id,
-                    validationType: validation.validation_type || 'ai_extracted',
-                    dataType: validation.data_type || 'text',
-                    fieldId: validation.field_id || null,
-                    collectionName: validation.collection_name || '',
-                    recordIndex: validation.record_index || 0,
-                    extractedValue: validation.extracted_value,
-                    originalExtractedValue: validation.extracted_value,
-                    originalConfidenceScore: validation.confidence_score || 0.8,
-                    originalAiReasoning: validation.ai_reasoning || 'Sequential extraction',
-                    validationStatus: validation.validation_status || 'unverified',
-                    aiReasoning: validation.ai_reasoning || 'Sequential extraction',
-                    manuallyVerified: false,
-                    confidenceScore: validation.confidence_score || 0.8
-                  });
-                } catch (validationError) {
-                  console.error('Error saving validation:', validationError);
-                }
-              }
-              
-              return res.json({
-                message: "Sequential extraction completed successfully",
-                output: output.trim(),
-                success: true,
-                sequential: true,
-                summary: extractionResult.summary,
-                validation_count: extractionResult.validation_results.length
-              });
-            }
-          } catch (parseError) {
-            console.error('Failed to parse sequential extraction output:', parseError);
-            // Fall through to return raw output
-          }
-        }
-        
-        // Return the complete output from Python script
+        // Return the complete output from Python script (includes both document properties and Gemini analysis)
         res.json({ 
           message: "Wizardry analysis completed",
           output: output.trim(),
-          success: true,
-          sequential: useSequentialExtraction
+          success: true
         });
       });
       
