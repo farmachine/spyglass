@@ -2474,7 +2474,6 @@ Thank you for your assistance.`;
                           : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
                       }`}
                     >
-                      <Icon className={`h-4 w-4 ${isActive ? "text-white" : "text-slate-500"}`} />
                       {item.label}
                     </button>
                   </Link>
