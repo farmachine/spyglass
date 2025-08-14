@@ -36,7 +36,7 @@ import { useDeleteProject, useDuplicateProject, useUpdateProjectStatus } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import type { ProjectWithAuthor, Organization, ProjectWithDetails, FieldValidation } from "@shared/schema";
-import WavePattern from "./WavePattern";
+
 
 interface ProjectCardProps {
   project: ProjectWithAuthor & { publishedOrganizations?: Organization[] };
@@ -331,10 +331,7 @@ export default function ProjectCard({
               )}
             </div>
             
-            {/* Center - Wave pattern */}
-            <div className="flex items-center justify-center">
-              <WavePattern variant="light" size="sm" className="opacity-60" />
-            </div>
+
           </div>
           
           {/* Organizations column - positioned absolutely in right side */}

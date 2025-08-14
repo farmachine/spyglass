@@ -39,14 +39,7 @@ export default function ExtraplLogo({ className = "", showText = true, size = 60
         <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
       </div>
       
-      {/* App tagline */}
-      {showText && (
-        <div className="text-left select-none">
-          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 -mt-1">
-            Smart Document Extraction
-          </div>
-        </div>
-      )}
+
     </button>
   );
 }

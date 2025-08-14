@@ -21,7 +21,7 @@ import Publishing from "./Publishing";
 import UserProfile from "./UserProfile";
 import Breadcrumb from "./Breadcrumb";
 import ExtraplLogo from "./ExtraplLogo";
-import WavePattern from "./WavePattern";
+
 
 interface ProjectLayoutProps {
   projectId: string;

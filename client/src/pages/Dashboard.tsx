@@ -18,7 +18,7 @@ import ProjectCard from "@/components/ProjectCard";
 import CreateProjectDialog from "@/components/CreateProjectDialog";
 import UserProfile from "@/components/UserProfile";
 import ExtraplLogo from "@/components/ExtraplLogo";
-import WavePattern from "@/components/WavePattern";
+
 
 export default function Dashboard() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);

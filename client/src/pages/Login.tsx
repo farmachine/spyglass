@@ -11,7 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { loginSchema } from "@shared/schema";
 import { z } from "zod";
 import ExtraplLogo from "@/components/ExtraplLogo";
-import WavePattern from "@/components/WavePattern";
+
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
@@ -50,11 +50,7 @@ export default function Login() {
           <div className="space-y-1">
             <div className="flex items-center justify-center space-x-2">
               <CardTitle className="text-2xl text-center">Sign in</CardTitle>
-              <WavePattern variant="light" size="sm" className="opacity-50" />
             </div>
-            <CardDescription className="text-center">
-              Enter your email and password to access your account
-            </CardDescription>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
