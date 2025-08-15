@@ -686,7 +686,7 @@ const AIExtractionModal = ({
       };
       
       console.log('Complete Extraction Request:', JSON.stringify(requestData, null, 2));
-      console.log('🔍 DEBUG Frontend - project_id being sent:', project.id);
+      console.log('✅ Frontend - project_id being sent:', project.id);
       
       // Close modal immediately and start real-time updates
       // Don't wait for the full extraction to complete
@@ -704,7 +704,7 @@ const AIExtractionModal = ({
         body: JSON.stringify(requestData),
       }).then(response => {
         console.log('Wizardry Result:', response);
-        console.log('🔍 DEBUG Frontend - response.success:', response.success);
+        console.log('✅ Frontend - response.success:', response.success);
         if (response.output) {
           console.log('Python Script Output:');
           console.log(response.output);

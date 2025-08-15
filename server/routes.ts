@@ -4816,8 +4816,8 @@ print(json.dumps(results))
         }
       });
       
-      // Pass request data to Python script via stdin
-      if (requestData && requestData.document_ids && requestData.session_id) {
+      // Pass request data to Python script via stdin (only if all required fields present)
+      if (requestData && requestData.document_ids && requestData.session_id && requestData.project_id) {
         console.log('🔍 DEBUG Backend - Sending to Python:', JSON.stringify({
           project_id: requestData.project_id,
           session_id: requestData.session_id,
@@ -4825,11 +4825,12 @@ print(json.dumps(results))
         }));
         python.stdin.write(JSON.stringify(requestData));
       } else {
-        console.log('🔍 DEBUG Backend - Missing required data:', {
+        console.log('🔍 DEBUG Backend - Missing required data, NOT sending to Python:', {
           has_document_ids: !!requestData?.document_ids,
           has_session_id: !!requestData?.session_id,
           has_project_id: !!requestData?.project_id
         });
+        // Don't send incomplete data to Python
       }
       python.stdin.end();
       
