@@ -8,6 +8,38 @@ from all_prompts import DOCUMENT_FORMAT_ANALYSIS, EXCEL_FUNCTION_GENERATOR
 from excel_wizard import excel_column_extraction
 from ai_extraction_wizard import ai_document_extraction
 
+def save_validations_to_database(session_id, validation_results):
+    """Save validation results to database after each extraction step"""
+    try:
+        import requests
+        
+        print(f"\n💾 SAVING VALIDATIONS TO DATABASE:")
+        print("=" * 80)
+        print(f"Session: {session_id}")
+        print(f"Validation records: {len(validation_results)}")
+        
+        # Prepare data for the API
+        api_data = {
+            "validations": validation_results
+        }
+        
+        # Make API call to save validations
+        api_url = f"http://localhost:5000/api/sessions/{session_id}/save-validations"
+        response = requests.post(api_url, json=api_data, timeout=30)
+        
+        if response.status_code == 200:
+            print("✅ Successfully saved validations to database")
+            return {"success": True}
+        else:
+            print(f"❌ Failed to save validations: {response.status_code} - {response.text}")
+            return {"error": f"API error: {response.status_code}"}
+            
+    except Exception as e:
+        print(f"❌ Error saving validations: {str(e)}")
+        return {"error": str(e)}
+    finally:
+        print("=" * 80)
+
 def log_remaining_collection_fields(extracted_results, all_collection_properties):
     """Log which collection fields have been extracted and which remain to be processed"""
     try:
@@ -912,6 +944,11 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                                 print(json.dumps(identifier_references, indent=2))
                                 print("=" * 80)
                                 print(f"Updated {len(identifier_references)} references with new field data")
+                                
+                                # 💾 SAVE VALIDATIONS TO DATABASE AFTER EACH EXTRACTION STEP
+                                save_result = save_validations_to_database(session_id, processed_results['identifier_results'])
+                                if 'error' in save_result:
+                                    print(f"⚠️ Warning: Failed to save validations - {save_result['error']}")
                             
                             # Log extraction progress
                             if all_collection_properties:
@@ -1016,10 +1053,16 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                                     
                                     identifier_references = updated_identifier_references
                                 
-                                print("\n" + "=" * 80)
-                                print("IDENTIFIER REFERENCES")
+                                print(f"\n🔗 IDENTIFIER REFERENCES ARRAY:")
                                 print("=" * 80)
                                 print(json.dumps(identifier_references, indent=2))
+                                print("=" * 80)
+                                print(f"Created {len(identifier_references)} new references for next extraction")
+                                
+                                # 💾 SAVE VALIDATIONS TO DATABASE AFTER EACH EXTRACTION STEP
+                                save_result = save_validations_to_database(session_id, processed_results['identifier_results'])
+                                if 'error' in save_result:
+                                    print(f"⚠️ Warning: Failed to save validations - {save_result['error']}")
                                 
                                 # Log target property with orderIndex matching extraction number
                                 if all_collection_properties:
@@ -1088,6 +1131,11 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                 print("=" * 80)
                 print(f"Created {len(identifier_references)} new references for next extraction")
                 
+                # 💾 SAVE VALIDATIONS TO DATABASE AFTER EACH EXTRACTION STEP
+                save_result = save_validations_to_database(session_id, processed_results['identifier_results'])
+                if 'error' in save_result:
+                    print(f"⚠️ Warning: Failed to save validations - {save_result['error']}")
+                
                 # Log extraction progress
                 if all_collection_properties:
                     extracted_field_names = set()
@@ -1109,28 +1157,35 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             print(f"\n❌ NO EXTRACTION METHOD: Gemini did not recommend a specific extraction method")
         print("=" * 80)
         
-        # AUTO-RERUN LOGIC: Continue extraction until all target fields are processed
+        # PROGRESSIVE EXTRACTION LOGIC: Return results after each step for UI updates
         next_extraction_number = extraction_number + 1
         total_target_fields = len(target_fields) if target_fields else 0
         
+        # Return extraction progress signal for frontend handling
+        extraction_result = {
+            "step_completed": True,
+            "extraction_number": extraction_number,
+            "next_extraction_number": next_extraction_number,
+            "total_target_fields": total_target_fields,
+            "has_more_fields": next_extraction_number < total_target_fields,
+            "identifier_references": identifier_references if 'identifier_references' in locals() else first_run_identifier_references,
+            "session_id": session_id,
+            "document_ids": document_ids,
+            "target_fields": target_fields
+        }
+        
         if next_extraction_number < total_target_fields:
             print("\n" + "=" * 80)
-            print(f"AUTO-RERUN: Starting extraction run {next_extraction_number + 1} of {total_target_fields}")
+            print(f"STEP COMPLETE: Extraction {extraction_number + 1}/{total_target_fields} finished")
             print("=" * 80)
-            print(f"Next extraction number: {next_extraction_number}")
+            print(f"Current extraction: {extraction_number + 1}")
+            print(f"Next extraction: {next_extraction_number + 1}")
             print(f"Target field: {target_fields[next_extraction_number].get('propertyName', 'Unknown') if target_fields else 'None'}")
             print(f"Progress: {next_extraction_number}/{total_target_fields} fields processed")
-            
-            # Create new data object with updated target fields and identifier references
-            rerun_data = {
-                "document_ids": document_ids,
-                "session_id": session_id,
-                "target_fields": target_fields,
-                "identifier_references": identifier_references if 'identifier_references' in locals() else first_run_identifier_references
-            }
-            
-            # Re-run the extraction with the new parameters
-            run_wizardry_with_gemini_analysis(rerun_data, next_extraction_number)
+            print("=" * 80)
+            print("🔄 READY FOR NEXT EXTRACTION STEP")
+            print("Frontend should trigger next extraction automatically")
+            print("=" * 80)
         else:
             print("\n" + "=" * 80)
             print("EXTRACTION COMPLETE")
@@ -1138,6 +1193,11 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             print(f"All {total_target_fields} target fields have been processed")
             print("Extraction sequence finished successfully")
             print("=" * 80)
+            extraction_result["extraction_complete"] = True
+        
+        # Output the result for the frontend to handle
+        print(f"\n🏁 EXTRACTION STEP RESULT:")
+        print(json.dumps(extraction_result, indent=2))
         
     else:
         print(json.dumps({"error": "Invalid data format. Expected object with document_ids and session_id"}))

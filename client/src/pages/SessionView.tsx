@@ -611,16 +611,42 @@ const AIExtractionModal = ({
     ));
     console.log('Collected Document IDs for extraction:', documentIds);
     
-    // Run the extraction wizardry Python script with document IDs, session ID, and target fields
+    // Run progressive extraction - one step at a time
+    try {
+      await runProgressiveExtraction(documentIds, sessionId, targetFieldsWithSources, sortedSelectedFields);
+    } catch (error) {
+      console.error('Error running wizardry:', error);
+      setIsExtracting(false);
+      setExtractionProgress({ currentFieldIndex: -1, completedFields: new Set(), totalFields: 0 });
+    }
+  };
+
+  // Progressive extraction function - runs one step at a time
+  const runProgressiveExtraction = async (
+    documentIds: string[], 
+    sessionId: string, 
+    targetFields: any[], 
+    sortedFields: any[],
+    extractionNumber: number = 0,
+    identifierReferences: any[] = []
+  ) => {
+    console.log(`=== Starting Extraction Step ${extractionNumber + 1}/${sortedFields.length} ===`);
+    
     try {
       const requestData = {
         document_ids: documentIds,
         session_id: sessionId,
-        target_fields: targetFieldsWithSources
+        target_fields: targetFields,
+        extraction_number: extractionNumber,
+        identifier_references: identifierReferences
       };
       
-      console.log('Complete Extraction Request:', JSON.stringify(requestData, null, 2));
+      console.log('Extraction Step Request:', JSON.stringify(requestData, null, 2));
       
+      // Update UI to show current field being processed
+      setExtractionProgress(prev => ({ ...prev, currentFieldIndex: extractionNumber }));
+      
+      // Make the extraction API call
       const response = await apiRequest('/api/run-wizardry', {
         method: 'POST',
         headers: {
@@ -628,33 +654,74 @@ const AIExtractionModal = ({
         },
         body: JSON.stringify(requestData),
       });
-      console.log('Wizardry Result:', response);
+      
+      console.log(`Extraction Step ${extractionNumber + 1} Result:`, response);
       if (response.output) {
         console.log('Python Script Output:');
         console.log(response.output);
-      }
-      
-      // Simulate field-by-field progress for UI feedback
-      for (let i = 0; i < sortedSelectedFields.length; i++) {
-        setExtractionProgress(prev => ({ ...prev, currentFieldIndex: i }));
         
-        // Wait a bit to show the spinner animation
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        setExtractionProgress(prev => ({ 
-          ...prev, 
-          completedFields: new Set([...prev.completedFields, sortedSelectedFields[i].id])
-        }));
+        // Parse the step result from Python output
+        try {
+          const lines = response.output.split('\n');
+          const stepResultLine = lines.find((line: string) => line.includes('EXTRACTION STEP RESULT:'));
+          if (stepResultLine) {
+            const stepResultIndex = lines.indexOf(stepResultLine);
+            const jsonLines = lines.slice(stepResultIndex + 1).join('\n');
+            const stepResult = JSON.parse(jsonLines);
+            
+            console.log('Parsed Step Result:', stepResult);
+            
+            // Mark current field as completed
+            setExtractionProgress(prev => ({ 
+              ...prev, 
+              completedFields: new Set([...prev.completedFields, sortedFields[extractionNumber].id])
+            }));
+            
+            // Refresh validation data to show new results
+            await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+            
+            // Wait a moment for UI to update and show the saved results
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // Check if there are more fields to extract
+            if (stepResult.has_more_fields && stepResult.next_extraction_number < sortedFields.length) {
+              console.log(`Proceeding to next extraction step: ${stepResult.next_extraction_number + 1}`);
+              // Continue with next extraction step
+              await runProgressiveExtraction(
+                documentIds,
+                sessionId, 
+                targetFields,
+                sortedFields,
+                stepResult.next_extraction_number,
+                stepResult.identifier_references || []
+              );
+            } else {
+              // All extractions complete
+              console.log('🎉 All extraction steps completed!');
+              setExtractionProgress(prev => ({ ...prev, currentFieldIndex: -1 }));
+              setIsExtracting(false);
+              
+              // Final validation data refresh
+              await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+            }
+          } else {
+            throw new Error('Could not find step result in output');
+          }
+        } catch (parseError) {
+          console.error('Error parsing step result:', parseError);
+          // Fall back to completing current step and stopping
+          setExtractionProgress(prev => ({ 
+            ...prev, 
+            completedFields: new Set([...prev.completedFields, sortedFields[extractionNumber].id]),
+            currentFieldIndex: -1
+          }));
+          setIsExtracting(false);
+        }
       }
-      
-      // Mark extraction as complete
-      setExtractionProgress(prev => ({ ...prev, currentFieldIndex: -1 }));
-      
     } catch (error) {
-      console.error('Error running wizardry:', error);
-    } finally {
+      console.error(`Error in extraction step ${extractionNumber + 1}:`, error);
       setIsExtracting(false);
-      setExtractionProgress({ currentFieldIndex: -1, completedFields: new Set(), totalFields: 0 });
+      throw error;
     }
   };
 
