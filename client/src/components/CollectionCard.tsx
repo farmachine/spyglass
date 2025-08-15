@@ -145,7 +145,18 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
           <h5 className="text-sm font-semibold text-gray-900">Inputs</h5>
         </div>
         <div className="space-y-3 pl-8">
-
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="documentsRequired"
+              checked={formData.documentsRequired}
+              onChange={(e) => setFormData(prev => ({...prev, documentsRequired: e.target.checked}))}
+              className="rounded border-gray-300"
+            />
+            <Label htmlFor="documentsRequired" className="text-sm font-medium">
+              User must provide at least one document
+            </Label>
+          </div>
 
           <div>
             <Label className="text-sm font-medium">References from Previous Steps (Optional)</Label>
