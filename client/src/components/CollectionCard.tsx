@@ -37,7 +37,13 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
   // Debug logging
   console.log('InlinePropertyEditor - Props received:');
   console.log('  knowledgeDocuments:', knowledgeDocuments, 'length:', knowledgeDocuments?.length);
+  if (knowledgeDocuments?.length > 0) {
+    console.log('  First knowledge doc:', knowledgeDocuments[0]);
+  }
   console.log('  extractionRules:', extractionRules, 'length:', extractionRules?.length);
+  if (extractionRules?.length > 0) {
+    console.log('  First extraction rule:', extractionRules[0]);
+  }
   console.log('  excelFunctions:', excelFunctions, 'length:', excelFunctions?.length);
   const [formData, setFormData] = useState({
     propertyName: property.propertyName,
@@ -226,11 +232,17 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
                 <SelectValue placeholder="Select knowledge documents to include (optional)" />
               </SelectTrigger>
               <SelectContent>
-                {knowledgeDocuments.map((doc: any) => (
-                  <SelectItem key={doc.id} value={doc.id}>
-                    {doc.name}
+                {knowledgeDocuments && knowledgeDocuments.length > 0 ? (
+                  knowledgeDocuments.map((doc: any) => (
+                    <SelectItem key={doc.id} value={doc.id}>
+                      {doc.displayName || doc.name || doc.fileName}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="no-docs" disabled>
+                    No knowledge documents available
                   </SelectItem>
-                ))}
+                )}
               </SelectContent>
             </Select>
 
@@ -314,11 +326,17 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
                     <SelectValue placeholder="Select extraction rules to apply (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    {extractionRules.map((rule: any) => (
-                      <SelectItem key={rule.id} value={rule.id}>
-                        {rule.name}
+                    {extractionRules && extractionRules.length > 0 ? (
+                      extractionRules.map((rule: any) => (
+                        <SelectItem key={rule.id} value={rule.id}>
+                          {rule.ruleName || rule.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-rules" disabled>
+                        No extraction rules available
                       </SelectItem>
-                    ))}
+                    )}
                   </SelectContent>
                 </Select>
 
@@ -503,8 +521,8 @@ interface CollectionCardProps {
 export default function CollectionCard({
   collection,
   fieldTypeColors,
-  knowledgeDocuments,
-  extractionRules,
+  knowledgeDocuments = [],
+  extractionRules = [],
   onEditCollection,
   onDeleteCollection,
   onAddProperty,
@@ -513,6 +531,12 @@ export default function CollectionCard({
   dragHandleProps,
   hideHeader = false,
 }: CollectionCardProps) {
+  
+  console.log('CollectionCard - Props received:', {
+    collection: collection.collectionName,
+    knowledgeDocuments: knowledgeDocuments.length,
+    extractionRules: extractionRules.length
+  });
   const { data: properties = [], isLoading } = useCollectionProperties(String(collection.id));
   const { data: excelFunctions = [] } = useQuery({
     queryKey: ["/api/excel-functions"],
