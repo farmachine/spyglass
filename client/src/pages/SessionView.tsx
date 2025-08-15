@@ -264,7 +264,8 @@ const AIExtractionModal = ({
   sessionId,
   project,
   onStartProgressivePolling,
-  setIsExtractionRunning
+  setIsExtractionRunning,
+  setExtractingCollection
 }: { 
   isOpen: boolean; 
   onClose: () => void; 
@@ -277,6 +278,7 @@ const AIExtractionModal = ({
   project?: any;
   onStartProgressivePolling: (sessionId: string) => void;
   setIsExtractionRunning: (isRunning: boolean) => void;
+  setExtractingCollection: (collection: string | null) => void;
 }) => {
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [selectedVerifiedFields, setSelectedVerifiedFields] = useState<string[]>([]);
@@ -305,6 +307,8 @@ const AIExtractionModal = ({
     
     // Enable background extraction tracking
     setIsExtractionRunning(true);
+    // Set the specific collection being extracted
+    setExtractingCollection(sectionName === 'General Information' ? 'info' : sectionName);
     
     // Force refresh the validation data to show newly extracted results
     await queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
@@ -329,6 +333,7 @@ const AIExtractionModal = ({
       console.log('⏹️ Real-time polling complete');
       clearInterval(pollInterval);
       setIsExtractionRunning(false);
+      setExtractingCollection(null);
       // Fall back to normal progressive polling if it exists
       if (typeof onStartProgressivePolling === 'function') {
         onStartProgressivePolling(sessionId);
@@ -1125,6 +1130,7 @@ export default function SessionView() {
   const [showReasoningDialog, setShowReasoningDialog] = useState(false);
   const [isEditingSessionName, setIsEditingSessionName] = useState(false);
   const [isExtractionRunning, setIsExtractionRunning] = useState(false); // Track background extraction (moved to main scope)
+  const [extractingCollection, setExtractingCollection] = useState<string | null>(null); // Track which specific collection is being extracted
   const [sessionNameValue, setSessionNameValue] = useState('');
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
   const [hasInitializedCollapsed, setHasInitializedCollapsed] = useState(false);
@@ -3118,8 +3124,8 @@ Thank you for your assistance.`;
                     })()
                   }`}>
                     {(() => {
-                      // Show loading spinner when extraction is running
-                      if (isExtractionRunning) {
+                      // Show loading spinner when this specific section is being extracted
+                      if (extractingCollection === 'info') {
                         return <Loader2 className="w-4 h-4 text-primary animate-spin" />;
                       }
                       
@@ -3179,7 +3185,7 @@ Thank you for your assistance.`;
                               ? 'bg-primary border-primary' 
                               : 'bg-white border-slate-300')
                       }`}>
-                        {isExtractionRunning ? (
+                        {extractingCollection === collection.collectionName ? (
                           <Loader2 className="w-4 h-4 text-primary animate-spin" />
                         ) : totalCount > 0 && verifiedCount === totalCount ? (
                           <Check className="w-4 h-4 text-green-600" />
@@ -4223,6 +4229,7 @@ Thank you for your assistance.`;
         project={project}
         onStartProgressivePolling={startProgressiveValidationPolling}
         setIsExtractionRunning={setIsExtractionRunning}
+        setExtractingCollection={setExtractingCollection}
       />
       {/* Session Chat */}
       {session && validations && (
