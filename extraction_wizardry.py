@@ -705,17 +705,35 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             print(json.dumps({"error": "Missing session_id"}))
             return
         
-        # Handle document retrieval - if no documents selected, use placeholder
+        # Handle document retrieval - if no document_ids provided, fetch all session documents
         if not document_ids:
-            print("No documents selected - working with identifier references only")
-            documents = "NO DOCUMENTS SELECTED"
+            print("No document IDs provided - fetching all session documents")
+            # Get all document IDs for this session
+            try:
+                import psycopg2
+                database_url = os.getenv('DATABASE_URL')
+                conn = psycopg2.connect(database_url)
+                cursor = conn.cursor()
+                cursor.execute('SELECT id FROM session_documents WHERE session_id = %s', (session_id,))
+                all_doc_ids = [row[0] for row in cursor.fetchall()]
+                conn.close()
+                
+                if all_doc_ids:
+                    documents = get_document_properties_from_db(all_doc_ids, session_id)
+                    print(f"Fetched {len(all_doc_ids)} documents from session")
+                else:
+                    print("No documents found in session")
+                    documents = "NO DOCUMENTS SELECTED"
+            except Exception as e:
+                print(f"Error fetching session documents: {e}")
+                documents = "NO DOCUMENTS SELECTED"
         else:
             # Get document properties from database
             documents = get_document_properties_from_db(document_ids, session_id)
             
-            if isinstance(documents, dict) and "error" in documents:
-                print(json.dumps(documents))
-                return
+        if isinstance(documents, dict) and "error" in documents:
+            print(json.dumps(documents))
+            return
         
         # Extract complete field data from the target fields (no database query needed)
         target_fields_data = []
