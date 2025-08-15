@@ -11,7 +11,7 @@ from excel_wizard import excel_column_extraction
 from ai_extraction_wizard import ai_document_extraction
 
 # Database persistence functions for extraction step parameters
-def save_extraction_step_to_db(session_id, project_id, extraction_number, target_property_id, target_property_name, 
+def save_extraction_step_to_db(session_id, extraction_number, target_property_id, target_property_name, 
                                collection_id, collection_name, identifier_references, extraction_method, 
                                function_id=None, parameters=None, status="pending", result_count=None, error_message=None):
     """Save extraction step parameters to database"""
@@ -20,7 +20,6 @@ def save_extraction_step_to_db(session_id, project_id, extraction_number, target
         # Skip authentication for now since the extraction script runs in a different context
         headers = {"Content-Type": "application/json"}
         data = {
-            "projectId": project_id,
             "extractionNumber": extraction_number,
             "targetPropertyId": target_property_id,
             "targetPropertyName": target_property_name,
@@ -68,10 +67,10 @@ def update_extraction_step_status(step_id, status, result_count=None, error_mess
         print(f"Error updating extraction step: {str(e)}", file=sys.stderr)
         return None
 
-def get_next_extraction_step(session_id, project_id):
+def get_next_extraction_step(session_id):
     """Get next pending extraction step from database"""
     try:
-        url = f"http://localhost:5000/api/sessions/{session_id}/projects/{project_id}/next-step"
+        url = f"http://localhost:5000/api/sessions/{session_id}/next-step"
         # Skip authentication for now since the extraction script runs in a different context
         headers = {"Content-Type": "application/json"}
         response = requests.get(url, headers=headers, timeout=30)
@@ -867,7 +866,7 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
         print(f"   Description: {identifier_targets[0].get('description', 'No description')[:100] if identifier_targets else 'None'}...")
         
         # Save extraction step parameters to database at the start of each step
-        project_id = data.get('project_id', 'unknown')  # This should be passed in the data
+        # project_id is no longer needed since we work with session_id only
         target_property_id = identifier_targets[0].get('field_id') if identifier_targets else None
         target_property_name = identifier_targets[0].get('name') if identifier_targets else None
         collection_id = identifier_targets[0].get('collection_id') if identifier_targets else None
