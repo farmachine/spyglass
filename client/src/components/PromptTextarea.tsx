@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 
 interface ReferenceOption {
   id: string;
@@ -212,8 +213,57 @@ export function PromptTextarea({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Function to parse @-references and render as badges
+  const renderValueWithBadges = () => {
+    if (!value) return null;
+    
+    const parts = [];
+    let lastIndex = 0;
+    const regex = /@([a-zA-Z-]+):([a-zA-Z0-9-]+)/g;
+    let match;
+    
+    while ((match = regex.exec(value)) !== null) {
+      // Add text before the match
+      if (match.index > lastIndex) {
+        parts.push(value.substring(lastIndex, match.index));
+      }
+      
+      // Find the reference name for the badge
+      const [fullMatch, category, id] = match;
+      const allOptions = buildReferenceOptions();
+      const option = allOptions.find(opt => opt.id === `${category}:${id}`);
+      const badgeName = option ? option.name : `${category}:${id}`;
+      
+      parts.push(
+        <Badge 
+          key={match.index} 
+          variant="outline" 
+          className="inline-flex items-center mx-1 px-2 py-1 text-xs font-bold text-gray-700 bg-gray-100 border border-gray-400 rounded"
+        >
+          {badgeName}
+        </Badge>
+      );
+      
+      lastIndex = regex.lastIndex;
+    }
+    
+    // Add remaining text
+    if (lastIndex < value.length) {
+      parts.push(value.substring(lastIndex));
+    }
+    
+    return parts.length > 0 ? parts : value;
+  };
+
   return (
     <div className="relative">
+      {/* Display area with badges for references */}
+      {value && (
+        <div className="mb-2 p-3 bg-gray-50 border border-gray-200 rounded-md min-h-[80px] whitespace-pre-wrap text-sm">
+          {renderValueWithBadges()}
+        </div>
+      )}
+      
       <Textarea
         ref={textareaRef}
         value={value}
