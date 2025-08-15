@@ -289,8 +289,20 @@ def analyze_document_format_with_gemini(documents, target_fields_data=None, max_
 def clean_json_and_extract_identifiers(extraction_result, target_fields_data):
     """Clean JSON results and create Identifier Results array"""
     try:
+        # Check if extraction_result is None or empty
+        if extraction_result is None:
+            return {
+                'error': 'Extraction result is None',
+                'original_result': extraction_result
+            }
+        
         # Parse the extraction result if it's a string
         if isinstance(extraction_result, str):
+            if extraction_result.strip() == "":
+                return {
+                    'error': 'Extraction result is empty string',
+                    'original_result': extraction_result
+                }
             cleaned_result = json.loads(extraction_result)
         else:
             cleaned_result = extraction_result
