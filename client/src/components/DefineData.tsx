@@ -126,12 +126,12 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
 
   // Field type colors
   const fieldTypeColors = {
-    TEXT: "bg-blue-100 text-blue-800 border border-blue-200",
-    NUMBER: "bg-green-100 text-green-800 border border-green-200",
-    DATE: "bg-purple-100 text-purple-800 border border-purple-200",
-    BOOLEAN: "bg-orange-100 text-orange-800 border border-orange-200",
-    EMAIL: "bg-red-100 text-red-800 border border-red-200",
-    URL: "bg-teal-100 text-teal-800 border border-teal-200",
+    TEXT: "bg-gray-100 text-gray-700 border border-gray-500",
+    NUMBER: "bg-gray-100 text-gray-700 border border-gray-500",
+    DATE: "bg-gray-100 text-gray-700 border border-gray-500",
+    BOOLEAN: "bg-gray-100 text-gray-700 border border-gray-500",
+    EMAIL: "bg-gray-100 text-gray-700 border border-gray-500",
+    URL: "bg-gray-100 text-gray-700 border border-gray-500",
   };
 
   // Schema field mutations
@@ -420,21 +420,21 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
     <div className="space-y-6">
       {/* Welcome Banner - Show only when no data items exist */}
       {allDataItems.length === 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
           <div className="flex items-center justify-center mb-4">
-            <div className="bg-blue-100 p-3 rounded-full">
-              <Settings className="h-8 w-8 text-blue-600" />
+            <div className="bg-gray-100 p-3 rounded-full">
+              <Settings className="h-8 w-8 text-gray-600" />
             </div>
           </div>
-          <h3 className="text-xl font-semibold text-blue-900 mb-2 text-center">
+          <h3 className="text-xl font-semibold text-gray-900 mb-2 text-center">
             Welcome! Let's define your data structure
           </h3>
-          <p className="text-blue-700 mb-4 text-center">
+          <p className="text-gray-700 mb-4 text-center">
             To start extracting data from your {project.mainObjectName || "Session"} documents, you'll need to define what information you want to capture.
           </p>
           
           {/* AI Schema Generation Section */}
-          <div className="bg-white border border-blue-200 rounded-lg p-4 mb-4 mx-auto max-w-2xl">
+          <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4 mx-auto max-w-2xl">
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="h-5 w-5 text-purple-600" />
               <h4 className="font-semibold text-purple-900">Generate with AI</h4>
