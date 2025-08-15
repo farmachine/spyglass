@@ -195,7 +195,7 @@ export default function CollectionCard({
         </div>
       )}
       
-      {/* Expanded content - Clean table design like SessionView */}
+      {/* Expanded content - Sequential Process Flow Design */}
       {/* When header is hidden, always show content (expanded) */}
       {(hideHeader || isExpanded) && (
         <div className={hideHeader ? "" : "ml-6"}>
@@ -205,73 +205,73 @@ export default function CollectionCard({
               <p className="text-sm text-gray-600">Loading properties...</p>
             </div>
           ) : properties.length === 0 ? (
-            <div className="text-center py-4">
-              <p className="text-sm text-gray-600 mb-2">No properties defined</p>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => onAddProperty(collection.id, collection.collectionName)}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Property
-              </Button>
+            <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+              <div className="flex flex-col items-center">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3">
+                  <Plus className="h-6 w-6 text-blue-600" />
+                </div>
+                <p className="text-sm font-medium text-gray-900 mb-1">No data properties configured</p>
+                <p className="text-sm text-gray-600 mb-4">Start building your data extraction process</p>
+                <Button 
+                  onClick={() => onAddProperty(collection.id, collection.collectionName)}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add First Data Property
+                </Button>
+              </div>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <DragDropContext onDragEnd={handlePropertyDragEnd}>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-8"></TableHead>
-                      <TableHead>Property Name</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Auto Verify</TableHead>
-                      <TableHead className="w-24">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <Droppable droppableId={`collection-properties-${collection.id}`}>
-                    {(provided) => (
-                      <TableBody ref={provided.innerRef} {...provided.droppableProps}>
-                        {safeProperties.map((property, index) => (
-                          <Draggable key={property.id} draggableId={property.id.toString()} index={index}>
-                            {(provided, snapshot) => (
-                              <TableRow 
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                className={`${snapshot.isDragging ? "opacity-50" : ""} ${property.isIdentifier ? "bg-blue-50 border border-blue-200" : ""}`}
-                              >
-                                <TableCell>
-                                  <div
-                                    {...provided.dragHandleProps}
-                                    className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-100"
-                                  >
-                                    <GripVertical className="h-4 w-4 text-gray-400" />
-                                  </div>
-                                </TableCell>
-                                <TableCell className="font-medium">
+                <div className="space-y-3">
+                  {safeProperties.map((property, index) => (
+                    <Draggable key={property.id} draggableId={property.id.toString()} index={index}>
+                      {(provided, snapshot) => (
+                        <div 
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          className={`group relative ${snapshot.isDragging ? "opacity-50" : ""}`}
+                        >
+                          {/* Step connector line */}
+                          {index < safeProperties.length - 1 && (
+                            <div className="absolute left-[17px] top-12 w-0.5 h-6 bg-gray-200" />
+                          )}
+                          
+                          {/* Step card */}
+                          <div className={`relative bg-white rounded-lg border-2 ${property.isIdentifier ? "border-blue-300 bg-blue-50" : "border-gray-200 hover:border-blue-300"} p-4 transition-colors`}>
+                            {/* Step number and drag handle */}
+                            <div className="flex items-start gap-3">
+                              <div className="flex items-center gap-2">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${property.isIdentifier ? "bg-blue-600 text-white" : "bg-gray-600 text-white"}`}>
+                                  {index + 1}
+                                </div>
+                                <div
+                                  {...provided.dragHandleProps}
+                                  className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <GripVertical className="h-4 w-4 text-gray-400" />
+                                </div>
+                              </div>
+                              
+                              {/* Property content */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
-                                    {property.propertyName}
+                                    <h4 className="font-semibold text-gray-900">{property.propertyName}</h4>
                                     {property.isIdentifier && (
-                                      <Key className="h-4 w-4 text-blue-600" />
+                                      <Badge className="bg-blue-100 text-blue-800 border-blue-300">
+                                        <Key className="h-3 w-3 mr-1" />
+                                        Identifier
+                                      </Badge>
                                     )}
+                                    <Badge className={`${fieldTypeColors[property.propertyType as keyof typeof fieldTypeColors]} text-xs`}>
+                                      {property.propertyType}
+                                    </Badge>
                                   </div>
-                                </TableCell>
-                                <TableCell>
-                                  <Badge className={fieldTypeColors[property.propertyType as keyof typeof fieldTypeColors]}>
-                                    {property.propertyType}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="text-gray-600">
-                                  {property.description || "-"}
-                                </TableCell>
-                                <TableCell>
-                                  <Badge variant="outline" className="text-xs">
-                                    {property.autoVerificationConfidence || 80}%
-                                  </Badge>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex gap-2">
+                                  
+                                  {/* Actions */}
+                                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <Button 
                                       variant="ghost" 
                                       size="sm"
@@ -303,28 +303,50 @@ export default function CollectionCard({
                                       </Button>
                                     )}
                                   </div>
-                                </TableCell>
-                              </TableRow>
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
-                      </TableBody>
-                    )}
-                  </Droppable>
-                </Table>
+                                </div>
+                                
+                                {/* Property description and confidence */}
+                                <div className="mt-2 space-y-1">
+                                  <p className="text-sm text-gray-600 leading-relaxed">
+                                    {property.description || "No description provided"}
+                                  </p>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs text-gray-500">Auto Verify:</span>
+                                    <Badge variant="outline" className="text-xs">
+                                      {property.autoVerificationConfidence || 80}%
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                </div>
               </DragDropContext>
               
-              {/* Add Property button at bottom */}
-              <div className="flex justify-center">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => onAddProperty(collection.id, collection.collectionName)}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Property
-                </Button>
+              {/* Add next data property */}
+              <div className="relative">
+                {/* Connector line from last step */}
+                <div className="absolute left-[17px] -top-3 w-0.5 h-6 bg-gray-200" />
+                
+                {/* Add button with step styling */}
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center">
+                    <Plus className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onAddProperty(collection.id, collection.collectionName)}
+                    className="border-2 border-dashed border-gray-300 hover:border-blue-400 hover:text-blue-600"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Next Data Property
+                  </Button>
+                </div>
               </div>
             </div>
           )}
