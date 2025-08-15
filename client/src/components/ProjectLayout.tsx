@@ -571,10 +571,10 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                 <button
                   onClick={() => setLocation(`/projects/${project.id}/admin`)}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-700 transition-all duration-200"
-                  title="Project Admin Settings"
+                  title="Project Configuration Settings"
                 >
                   <Settings className="h-4 w-4" />
-                  Project Admin
+                  Project Configuration
                 </button>
               </div>
             )}
@@ -592,10 +592,10 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
               <button
                 onClick={() => setLocation(`/projects/${project.id}/admin`)}
                 className="flex items-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-700 rounded-lg transition-all duration-200"
-                title="Project Admin"
+                title="Project Configuration"
               >
                 <Settings className="h-4 w-4" />
-                <span className="text-sm font-medium">Project Admin</span>
+                <span className="text-sm font-medium">Project Configuration</span>
               </button>
             </div>
           )}
