@@ -1224,13 +1224,21 @@ def run_wizardry(data=None, extraction_number=0):
 if __name__ == "__main__":
     # Read JSON data from stdin if available
     data = None
+    extraction_number = 0  # Default extraction number
+    
     if not sys.stdin.isatty():  # Check if there's input from stdin
         try:
             input_data = sys.stdin.read()
             if input_data.strip():
                 data = json.loads(input_data)
+                # Extract extraction_number from the data if provided
+                if isinstance(data, dict) and 'extraction_number' in data:
+                    extraction_number = int(data.get('extraction_number', 0))
+                    print(f"DEBUG: Using extraction_number {extraction_number} from input data")
+                else:
+                    print("DEBUG: No extraction_number provided, using default 0")
         except json.JSONDecodeError as e:
             print(json.dumps({"error": f"JSON decode error: {str(e)}"}))
             sys.exit(1)
     
-    run_wizardry(data)
+    run_wizardry(data, extraction_number)
