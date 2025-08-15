@@ -51,10 +51,17 @@ export const projectSchemaFields = pgTable("project_schema_fields", {
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   fieldName: text("field_name").notNull(),
   fieldType: text("field_type").notNull(), // TEXT, NUMBER, DATE, CHOICE
-  description: text("description"),
+  description: text("description"), // Renamed to "Prompt" in UI for AI extraction
   autoVerificationConfidence: integer("auto_verification_confidence").default(80), // 0-100 threshold for auto verification
   choiceOptions: jsonb("choice_options"), // Array of choice options for CHOICE type fields
   orderIndex: integer("order_index").default(0),
+  // New extraction configuration fields
+  extractionType: text("extraction_type", { enum: ["AI", "FUNCTION"] }).default("AI").notNull(),
+  knowledgeDocumentIds: jsonb("knowledge_document_ids"), // Array of knowledge document IDs for AI extraction
+  extractionRuleIds: jsonb("extraction_rule_ids"), // Array of extraction rule IDs for AI extraction
+  documentsRequired: boolean("documents_required").default(true).notNull(), // Whether source documents are required for AI extraction
+  functionId: uuid("function_id").references(() => excelWizardryFunctions.id), // Reference to function for FUNCTION extraction
+  requiredDocumentType: text("required_document_type", { enum: ["Excel", "Word", "PDF"] }), // Required document type for FUNCTION extraction
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -73,11 +80,18 @@ export const collectionProperties = pgTable("collection_properties", {
   collectionId: uuid("collection_id").notNull().references(() => objectCollections.id, { onDelete: "cascade" }),
   propertyName: text("property_name").notNull(),
   propertyType: text("property_type").notNull(), // TEXT, NUMBER, DATE, CHOICE
-  description: text("description"),
+  description: text("description"), // Renamed to "Prompt" in UI for AI extraction
   autoVerificationConfidence: integer("auto_verification_confidence").default(80), // 0-100 threshold for auto verification
   choiceOptions: jsonb("choice_options"), // Array of choice options for CHOICE type fields
   isIdentifier: boolean("is_identifier").default(false).notNull(), // marks this property as the identifier field
   orderIndex: integer("order_index").default(0),
+  // New extraction configuration fields
+  extractionType: text("extraction_type", { enum: ["AI", "FUNCTION"] }).default("AI").notNull(),
+  knowledgeDocumentIds: jsonb("knowledge_document_ids"), // Array of knowledge document IDs for AI extraction
+  extractionRuleIds: jsonb("extraction_rule_ids"), // Array of extraction rule IDs for AI extraction
+  documentsRequired: boolean("documents_required").default(true).notNull(), // Whether source documents are required for AI extraction
+  functionId: uuid("function_id").references(() => excelWizardryFunctions.id), // Reference to function for FUNCTION extraction
+  requiredDocumentType: text("required_document_type", { enum: ["Excel", "Word", "PDF"] }), // Required document type for FUNCTION extraction
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
