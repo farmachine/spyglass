@@ -253,31 +253,40 @@ def clean_json_and_extract_identifiers(extraction_result, target_fields_data):
         if isinstance(cleaned_result, list):
             for result_item in cleaned_result:
                 if isinstance(result_item, dict):
-                    # Ensure field_id is set properly from target fields
+                    # Ensure field_id is set properly from target fields - use the current target field
                     field_name = result_item.get('field_name', '')
                     if not result_item.get('field_id') and target_fields_data:
-                        # Find matching field in target_fields_data
-                        for field in target_fields_data:
-                            field_id = field.get('field_id', '')
-                            property_name = field.get('name', '')
-                            # Match by field name patterns
-                            if (field_name.endswith(property_name) or 
-                                property_name.lower().replace(' ', '_') in field_name.lower() or
-                                field_id.split('.')[-1] in field_name):
-                                result_item['field_id'] = field_id
-                                print(f"🔗 Mapped field_name '{field_name}' to field_id '{field_id}'")
-                                break
-                        
-                        # If still no field_id found, try extracting from collection.property pattern
-                        if not result_item.get('field_id') and '.' in field_name:
-                            collection_part, property_part = field_name.split('.', 1)
-                            property_part = property_part.split('[')[0]  # Remove array index if present
-                            
+                        # For single-field extraction, use the first (and usually only) target field
+                        if len(target_fields_data) == 1:
+                            target_field = target_fields_data[0]
+                            result_item['field_id'] = target_field.get('field_id', '')
+                            print(f"🔗 Using single target field_id '{target_field.get('field_id', '')}' for field_name '{field_name}'")
+                        else:
+                            # Find matching field in target_fields_data for multi-field extractions
                             for field in target_fields_data:
-                                if field.get('name', '').replace(' ', '_').lower() == property_part.lower():
-                                    result_item['field_id'] = field.get('field_id', '')
-                                    print(f"🔗 Mapped by property name '{property_part}' to field_id '{field.get('field_id', '')}'")
+                                field_id = field.get('field_id', '')
+                                property_name = field.get('name', '')
+                                # Match by field name patterns - prioritize exact property name match
+                                property_clean = property_name.lower().replace(' ', '_').replace('-', '_')
+                                field_clean = field_name.lower().replace(' ', '_').replace('-', '_')
+                                
+                                if (property_clean in field_clean or 
+                                    field_name.endswith(property_name) or
+                                    field_id.split('.')[-1] in field_name):
+                                    result_item['field_id'] = field_id
+                                    print(f"🔗 Mapped field_name '{field_name}' to field_id '{field_id}' via property '{property_name}'")
                                     break
+                            
+                            # If still no field_id found, try extracting from collection.property pattern
+                            if not result_item.get('field_id') and '.' in field_name:
+                                collection_part, property_part = field_name.split('.', 1)
+                                property_part = property_part.split('[')[0]  # Remove array index if present
+                                
+                                for field in target_fields_data:
+                                    if field.get('name', '').replace(' ', '_').lower() == property_part.lower():
+                                        result_item['field_id'] = field.get('field_id', '')
+                                        print(f"🔗 Mapped by property name '{property_part}' to field_id '{field.get('field_id', '')}'")
+                                        break
                     
                     # Return the complete field_validation object
                     identifier_results.append(result_item)
@@ -798,6 +807,13 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
         if extraction_number < len(target_fields_data):
             current_target = target_fields_data[extraction_number]
             identifier_targets = [current_target]
+            
+            # Debug: Log the current target field details
+            print(f"📍 CURRENT TARGET FIELD:")
+            print(f"   field_id: {current_target.get('field_id')}")
+            print(f"   name: {current_target.get('name')}")
+            print(f"   property_type: {current_target.get('property_type')}")
+            print("=" * 40)
         else:
             # If extraction_number exceeds available fields, use identifier fields as fallback
             identifier_targets = [field for field in target_fields_data if field.get('is_identifier', False)]
