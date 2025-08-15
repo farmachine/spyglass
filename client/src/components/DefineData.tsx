@@ -314,13 +314,22 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
   const handleUpdateProperty = async (data: any) => {
     if (!propertyDialog.property) return;
     try {
+      console.log('🔄 SCHEMA UPDATE - Property update initiated:', {
+        propertyId: propertyDialog.property.id,
+        collectionId: propertyDialog.property.collectionId,
+        updateData: data
+      });
+      
       await updateProperty.mutateAsync({ 
         id: propertyDialog.property.id, 
         property: data,
         collectionId: propertyDialog.property.collectionId // Pass the collection ID for cache invalidation
       });
+      
+      console.log('✅ SCHEMA UPDATE - Property update completed successfully');
       setPropertyDialog({ open: false });
     } catch (error) {
+      console.error('❌ SCHEMA UPDATE - Property update failed:', error);
     }
   };
 

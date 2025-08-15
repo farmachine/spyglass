@@ -135,6 +135,7 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
       requiredDocumentType: formData.requiredDocumentType === 'Any' ? null : formData.requiredDocumentType
     };
     
+    console.log('🔄 SCHEMA UPDATE - Submitting property changes:', mappedData);
     onSave(mappedData);
   };
 

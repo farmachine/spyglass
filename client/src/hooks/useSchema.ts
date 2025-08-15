@@ -191,21 +191,33 @@ export function useUpdateProperty() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, property, collectionId }: { id: string; property: Partial<InsertCollectionProperty>; collectionId?: string }) =>
-      apiRequest(`/api/properties/${id}`, {
+    mutationFn: ({ id, property, collectionId }: { id: string; property: Partial<InsertCollectionProperty>; collectionId?: string }) => {
+      console.log('🚀 API CALL - PUT /api/properties/' + id, {
+        propertyData: property,
+        collectionId
+      });
+      return apiRequest(`/api/properties/${id}`, {
         method: "PUT",
         body: JSON.stringify(property),
-      }),
-    onSuccess: (_, { property, collectionId }) => {
+      });
+    },
+    onSuccess: (result, { property, collectionId }) => {
+      console.log('✅ API SUCCESS - Property update response:', result);
+      
       // Use the collectionId parameter or the property's collectionId
       const targetCollectionId = collectionId || property.collectionId;
       if (targetCollectionId) {
+        console.log('🔄 CACHE INVALIDATION - Invalidating collection properties for:', targetCollectionId);
         queryClient.invalidateQueries({ queryKey: ["/api/collections", targetCollectionId, "properties"] });
       }
       // Invalidate all project-related queries for broader cache refresh
+      console.log('🔄 CACHE INVALIDATION - Invalidating all project and collection queries');
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       queryClient.invalidateQueries({ queryKey: ["/api/collections"] });
     },
+    onError: (error) => {
+      console.error('❌ API ERROR - Property update failed:', error);
+    }
   });
 }
 
