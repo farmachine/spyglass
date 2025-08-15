@@ -129,7 +129,7 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="w-full px-6 py-4">
           <div className="flex items-center justify-between w-full">
-            <ExtraplLogo />
+            <ExtraplLogo showAdmin={true} />
             <UserProfile />
           </div>
         </div>

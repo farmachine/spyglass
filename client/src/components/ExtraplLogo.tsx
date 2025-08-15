@@ -4,9 +4,10 @@ interface ExtraplLogoProps {
   className?: string;
   showText?: boolean;
   size?: number;
+  showAdmin?: boolean;
 }
 
-export default function ExtraplLogo({ className = "", showText = true, size = 60 }: ExtraplLogoProps) {
+export default function ExtraplLogo({ className = "", showText = true, size = 60, showAdmin = false }: ExtraplLogoProps) {
   const [, setLocation] = useLocation();
 
   const handleClick = () => {
@@ -21,8 +22,12 @@ export default function ExtraplLogo({ className = "", showText = true, size = 60
       <div className={`flex items-center ${className}`}>
         <div className="flex items-center gap-1">
           <span className="text-sm font-bold text-slate-700">extrapl</span>
-          <div className="w-1 h-1 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
-          <span className="text-sm font-bold text-slate-700">admin</span>
+          {showAdmin && (
+            <>
+              <div className="w-1 h-1 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
+              <span className="text-sm font-bold text-slate-700">admin</span>
+            </>
+          )}
         </div>
       </div>
     );
@@ -37,8 +42,12 @@ export default function ExtraplLogo({ className = "", showText = true, size = 60
       {/* Simple logo design */}
       <div className="flex items-center gap-2">
         <span className="text-3xl font-bold dark:text-slate-300 text-[#071e54]">extrapl</span>
-        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
-        <span className="text-3xl font-bold dark:text-slate-300 text-[#071e54]">admin</span>
+        {showAdmin && (
+          <>
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
+            <span className="text-3xl font-bold dark:text-slate-300 text-[#071e54]">admin</span>
+          </>
+        )}
       </div>
     </button>
   );
