@@ -293,6 +293,36 @@ const AIExtractionModal = ({
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  // Helper function to handle successful extraction completion
+  const handleSuccessfulExtraction = async () => {
+    console.log('Processing successful extraction - closing modal and starting polling');
+    
+    // Close the extraction modal immediately
+    onClose();
+    
+    // Force refresh the validation data to show newly extracted results
+    await queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
+    await queryClient.refetchQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
+    
+    // Also refresh session and project data
+    queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
+    queryClient.invalidateQueries({ queryKey: ['/api/projects', project?.id] });
+    
+    // Wait a brief moment to ensure validation refresh completes
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Start polling for progressive updates
+    onStartProgressivePolling(sessionId);
+    
+    // Show completion message
+    toast({
+      title: "Extraction in progress",
+      description: "Step 1 completed! Watch results appear below as each step finishes.",
+    });
+    
+    console.log('Modal closed and polling started successfully');
+  };
+
   // Fetch extraction rules for the project
   const { data: extractionRules = [] } = useQuery({
     queryKey: ["/api/projects", project?.id, "rules"],
@@ -642,20 +672,7 @@ const AIExtractionModal = ({
       // After first extraction step completes and validations are saved, close modal
       // The extraction will continue in the background for subsequent steps
       if (response.success) {
-        // Close the extraction modal after first step to show results in UI
-        onClose();
-        
-        // Refresh the session data to show the newly extracted field validations
-        queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
-        
-        // Start polling for progressive updates
-        onStartProgressivePolling(sessionId);
-        
-        // Show completion message
-        toast({
-          title: "Extraction in progress",
-          description: "Step 1 completed! Watch results appear below as each step finishes.",
-        });
+        await handleSuccessfulExtraction();
       }
       
       // Simulate field-by-field progress for UI feedback (reduced since modal will close)
@@ -690,8 +707,7 @@ const AIExtractionModal = ({
         });
         
         // Close modal and start polling anyway, in case extraction is actually running
-        onClose();
-        onStartProgressivePolling(sessionId);
+        await handleSuccessfulExtraction();
       } else {
         toast({
           title: "Extraction failed",
