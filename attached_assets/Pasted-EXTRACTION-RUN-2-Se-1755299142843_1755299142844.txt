@@ -1,0 +1,51 @@
+EXTRACTION RUN 2
+================================================================================
+Session: bf93cca0...
+Documents: 1 selected
+Target fields: 2 total
+Identifier references: 185 records from previous extraction
+Current target: Worksheet (field 2/2)
+================================================================================
+
+🔧 FUNCTION EXTRACTION DETECTED!
+   Extraction Type: FUNCTION
+   Function ID: 87dd26e6-c68d-4566-9399-b805abab96f1
+   Bypassing AI analysis and going directly to function execution
+================================================================================
+✅ Function retrieved: Find Worksheet Name
+❌ Function execution failed: Failed to execute Excel wizardry function: name 'type' is not defined
+
+📄 DOCUMENTS:
+  - Ersatz eighth (1).xlsx... (application/vnd.openxmlformats-officedocument.spreadsheetml.sheet)
+
+🎯 CURRENT TARGET: Worksheet
+   Type: TEXT
+   Description: The name of the worksheet containing the column...
+
+⚡ EXCEL FUNCTIONS: 5 available
+   - Find Worksheet Name (used 29 times)
+   - extract_excel_data (used 0 times)
+   - extract_excel_data (used 0 times)
+   ... and 2 more functions
+
+📝 ENHANCED GEMINI PROMPT: 22332 characters
+   Including 5 functions and 185 references
+========================================
+
+🤖 GEMINI DECISION:
+   Method: Excel Wizardry Function
+   Analysis: Excel Wizardry Function|87dd26e6-c68d-4566-9399-b805abab96f1...
+================================================================================
+
+Gemini decided to use Excel Wizardry Function
+Function instruction: 87dd26e6-c68d-4566-9399-b805abab96f1
+Using existing Excel function with ID: 87dd26e6-c68d-4566-9399-b805abab96f1
+Found function: Find Worksheet Name
+Error executing function: Failed to execute Excel wizardry function: name 'type' is not defined
+================================================================================
+
+================================================================================
+EXTRACTION COMPLETE
+================================================================================
+All 2 target fields have been processed
+Extraction sequence finished successfully
