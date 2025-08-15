@@ -1216,6 +1216,15 @@ export default function SessionView() {
     availableFields: { id: string; name: string; type: string; index?: number; orderIndex?: number }[];
   }>({ open: false, sectionName: '', availableFields: [] });
 
+  // Console log state for debugging and extraction tracking
+  const [consoleLogs, setConsoleLogs] = useState<{
+    timestamp: Date;
+    type: 'info' | 'debug' | 'success' | 'error' | 'warning';
+    message: string;
+    details?: any;
+  }[]>([]);
+  const consoleEndRef = useRef<HTMLDivElement>(null);
+
   // Progressive extraction polling state
   const [progressivePollingActive, setProgressivePollingActive] = useState(false);
   const [lastValidationCount, setLastValidationCount] = useState(0);
@@ -1258,6 +1267,56 @@ export default function SessionView() {
       }
     };
   }, []);
+
+  // Auto-scroll console to bottom when new logs are added
+  useEffect(() => {
+    consoleEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [consoleLogs]);
+
+  // Add console log function
+  const addConsoleLog = (type: 'info' | 'debug' | 'success' | 'error' | 'warning', message: string, details?: any) => {
+    setConsoleLogs(prev => [
+      ...prev,
+      {
+        timestamp: new Date(),
+        type,
+        message,
+        details
+      }
+    ]);
+  };
+
+  // Clear console logs
+  const clearConsoleLogs = () => {
+    setConsoleLogs([]);
+  };
+
+  // Initialize console with session info
+  useEffect(() => {
+    if (session) {
+      addConsoleLog('info', `📝 Session loaded: ${session.sessionName || 'Untitled Session'}`, {
+        sessionId: session.id,
+        projectId: session.projectId,
+        status: session.status
+      });
+    }
+  }, [session]);
+
+  // Log validation changes
+  useEffect(() => {
+    if (validations && validations.length > 0) {
+      const validCount = validations.filter((v: any) => v.validationStatus === 'valid' || v.validationStatus === 'verified').length;
+      const pendingCount = validations.filter((v: any) => v.validationStatus === 'pending').length;
+      const invalidCount = validations.filter((v: any) => v.validationStatus === 'invalid').length;
+      
+      addConsoleLog('success', `📋 Validation data updated: ${validations.length} total records`, {
+        valid: validCount,
+        pending: pendingCount,
+        invalid: invalidCount,
+        total: validations.length
+      });
+    }
+  }, [validations]);
 
   // Helper function to find schema field data
   const findSchemaField = (validation: FieldValidation) => {
@@ -2648,6 +2707,13 @@ Thank you for your assistance.`;
         validationId: validation.id
       });
       
+      addConsoleLog('debug', `🔧 VERIFICATION UPDATE - Field: ${fieldName}`, {
+        fieldName,
+        currentStatus: validation.validationStatus,
+        newStatus,
+        isVerified
+      });
+      
       try {
         await updateValidationMutation.mutateAsync({
           id: validation.id,
@@ -3145,6 +3211,32 @@ Thank you for your assistance.`;
                 </button>
               </div>
             </div>
+
+            {/* Console Section - Session-specific */}
+            <div className="mb-6">
+              <div className="flex items-center mb-3">
+                <Bug className="h-5 w-5 text-slate-600 mr-3" />
+                
+                {/* Tab button */}
+                <button
+                  onClick={() => setActiveTab('console')}
+                  className={`flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
+                    activeTab === 'console' 
+                      ? 'bg-primary text-white font-medium shadow-sm' 
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal'
+                  }`}
+                >
+                  <div className="truncate flex items-center justify-between">
+                    <span>Console</span>
+                    {consoleLogs.length > 0 && (
+                      <span className="ml-2 px-2 py-0.5 text-xs bg-blue-500 text-white rounded-full">
+                        {consoleLogs.length}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              </div>
+            </div>
             
             <div className="mb-4">
               <h3 className="text-xs font-medium text-slate-700 uppercase tracking-wider">{project?.mainObjectName || "Session"} Information</h3>
@@ -3627,6 +3719,81 @@ Thank you for your assistance.`;
                     </div>
 
 
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Console Tab Content */}
+              {activeTab === 'console' && (
+                <Card className="border-t-0 rounded-tl-none ml-0">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Bug className="w-5 h-5" />
+                        Console & Debug Output
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={clearConsoleLogs}
+                        className="flex items-center gap-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Clear
+                      </Button>
+                    </CardTitle>
+                    <p className="text-sm text-gray-600">
+                      Real-time extraction and processing logs with detailed debugging information.
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="bg-black text-green-400 font-mono text-sm rounded-lg p-4 h-96 overflow-y-auto">
+                      {consoleLogs.length === 0 ? (
+                        <div className="text-gray-500 italic">
+                          No console output yet. Logs will appear here during extraction and processing.
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {consoleLogs.map((log, index) => {
+                            const typeColors = {
+                              info: 'text-blue-400',
+                              debug: 'text-yellow-400',
+                              success: 'text-green-400',
+                              error: 'text-red-400',
+                              warning: 'text-orange-400'
+                            };
+                            
+                            const typeEmojis = {
+                              info: '📋',
+                              debug: '🔍',
+                              success: '✅',
+                              error: '❌',
+                              warning: '⚠️'
+                            };
+                            
+                            return (
+                              <div key={index} className="flex items-start gap-2">
+                                <span className="text-gray-500 text-xs shrink-0">
+                                  [{log.timestamp.toLocaleTimeString()}]
+                                </span>
+                                <span className={`shrink-0 ${typeColors[log.type]}`}>
+                                  {typeEmojis[log.type]}
+                                </span>
+                                <div className={`flex-1 ${typeColors[log.type]}`}>
+                                  <div>{log.message}</div>
+                                  {log.details && (
+                                    <pre className="text-xs text-gray-400 mt-1 whitespace-pre-wrap">
+                                      {typeof log.details === 'string' ? log.details : JSON.stringify(log.details, null, 2)}
+                                    </pre>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                          <div ref={consoleEndRef} />
+                        </div>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               )}
