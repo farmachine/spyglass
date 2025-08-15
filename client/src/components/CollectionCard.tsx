@@ -144,7 +144,7 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
       {/* Inputs Section */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold text-white" style={{backgroundColor: '#071d54'}}>1</div>
+          <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold text-white" style={{backgroundColor: '#374151'}}>1</div>
           <h5 className="text-sm font-semibold text-gray-900">Inputs</h5>
         </div>
         <div className="space-y-3 pl-8">
@@ -280,7 +280,7 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
       {/* Extraction Type Section */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold text-white" style={{backgroundColor: '#5065a5'}}>2</div>
+          <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold text-white" style={{backgroundColor: '#6b7280'}}>2</div>
           <h5 className="text-sm font-semibold text-gray-900">Extraction Type</h5>
         </div>
         <div className="space-y-3 pl-8">
@@ -432,7 +432,7 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
       {/* Output Section */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-semibold text-blue-600">3</div>
+          <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center text-xs font-semibold text-gray-600">3</div>
           <h5 className="text-sm font-semibold text-gray-900">Output</h5>
         </div>
         <div className="space-y-3 pl-8">
@@ -803,7 +803,7 @@ export default function CollectionCard({
                               <div className="flex items-center gap-2">
                                 <div 
                                   className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold text-white" 
-                                  style={{backgroundColor: property.isIdentifier ? (index === 0 ? '#071d54' : '#5065a5') : (index === 0 ? '#071d54' : '#5065a5')}}
+                                  style={{backgroundColor: property.isIdentifier ? (index === 0 ? '#374151' : '#6b7280') : (index === 0 ? '#374151' : '#6b7280')}}
                                 >
                                   {index + 1}
                                 </div>
