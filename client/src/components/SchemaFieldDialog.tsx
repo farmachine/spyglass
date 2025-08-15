@@ -34,6 +34,7 @@ import { Plus, X, FileText, Brain, Settings } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { ProjectSchemaField, KnowledgeDocument, ExtractionRule, ExcelWizardryFunction } from "@shared/schema";
 import { processPromptReferences, validateReferences } from "@/utils/promptReferencing";
+import { PromptTextarea } from "./PromptTextarea";
 
 const fieldTypes = ["TEXT", "NUMBER", "DATE", "CHOICE"] as const;
 
@@ -316,16 +317,28 @@ export default function SchemaFieldDialog({
                 <FormItem>
                   <FormLabel>{form.watch("extractionType") === "FUNCTION" ? "Description" : "Prompt *"}</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder={form.watch("extractionType") === "FUNCTION" 
-                        ? "Optional description of this field for documentation" 
-                        : "Tell the AI what to look for in this field. Use @-key referencing like @knowledge-document:doc-id, @extraction-rule:rule-id, @supplied-document:0"
-                      }
-                      className="resize-none"
-                      rows={form.watch("extractionType") === "AI" ? 5 : 3}
-                      {...field}
-                      required={form.watch("extractionType") === "AI"}
-                    />
+                    {form.watch("extractionType") === "AI" ? (
+                      <PromptTextarea
+                        value={field.value || ''}
+                        onChange={field.onChange}
+                        placeholder="Tell the AI what to look for in this field. Use @-key referencing to reference available resources."
+                        rows={5}
+                        className="resize-none"
+                        knowledgeDocuments={knowledgeDocuments.filter(doc => 
+                          form.watch("knowledgeDocumentIds")?.includes(doc.id)
+                        )}
+                        extractionRules={extractionRules.filter(rule => 
+                          form.watch("extractionRuleIds")?.includes(rule.id)
+                        )}
+                      />
+                    ) : (
+                      <Textarea 
+                        placeholder="Optional description of this field for documentation"
+                        className="resize-none"
+                        rows={3}
+                        {...field}
+                      />
+                    )}
                   </FormControl>
                   <p className="text-sm text-muted-foreground">
                     {form.watch("extractionType") === "FUNCTION" 

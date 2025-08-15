@@ -22,6 +22,7 @@ import { useCollectionProperties } from "@/hooks/useSchema";
 import { useQuery } from "@tanstack/react-query";
 import type { ObjectCollection, CollectionProperty } from "@shared/schema";
 import { processPromptReferences, validateReferences } from "@/utils/promptReferencing";
+import { PromptTextarea } from "./PromptTextarea";
 
 // Inline Property Editor Component
 interface InlinePropertyEditorProps {
@@ -355,16 +356,32 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
             <>
               <div>
                 <Label className="text-sm font-medium">AI Instructions</Label>
-                <Textarea
+                <PromptTextarea
                   value={formData.aiInstructions}
-                  onChange={(e) => setFormData(prev => ({...prev, aiInstructions: e.target.value}))}
-                  placeholder="Enter specific instructions for the AI extraction process. Use @-key referencing like @knowledge-document:doc-id, @referenced-field:field-id, @referenced-collection:collection-id, @extraction-rule:rule-id, @supplied-document:0"
+                  onChange={(value) => setFormData(prev => ({...prev, aiInstructions: value}))}
+                  placeholder="Enter specific instructions for the AI extraction process. Use @-key referencing to reference available resources."
                   rows={5}
                   className="mt-1"
+                  knowledgeDocuments={knowledgeDocuments}
+                  referencedFields={referencedMainFieldIds.map(id => {
+                    const option = previousStepOptions.find(opt => opt.id === id);
+                    return {
+                      id,
+                      name: option?.name || 'Unknown Field',
+                      type: option?.type || 'TEXT',
+                      description: option?.description
+                    };
+                  })}
+                  referencedCollections={referencedCollectionIds.map(id => {
+                    const option = previousStepOptions.find(opt => opt.id === id);
+                    return {
+                      id,
+                      name: option?.name || 'Unknown Collection',
+                      description: option?.description
+                    };
+                  })}
+                  extractionRules={extractionRules}
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Use @-key references to reference knowledge documents, fields, collections, rules, and supplied documents. References will be expanded with object properties when saved.
-                </p>
               </div>
 
               <div>
