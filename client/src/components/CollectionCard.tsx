@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
-import { Edit, Trash2, Plus, GripVertical, ChevronDown, ChevronRight, Key } from "lucide-react";
+import { Edit, Trash2, Plus, GripVertical, ChevronDown, ChevronRight, Key, Check, X } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -16,7 +19,172 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useCollectionProperties } from "@/hooks/useSchema";
+import { useQuery } from "@tanstack/react-query";
 import type { ObjectCollection, CollectionProperty } from "@shared/schema";
+
+// Inline Property Editor Component
+interface InlinePropertyEditorProps {
+  property: CollectionProperty;
+  excelFunctions: any[];
+  onSave: (formData: Record<string, any>) => void;
+  onCancel: () => void;
+  isLoading: boolean;
+}
+
+function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLoading }: InlinePropertyEditorProps) {
+  const [formData, setFormData] = useState({
+    propertyName: property.propertyName,
+    propertyType: property.propertyType,
+    description: property.description || '',
+    extractionType: property.extractionType || 'AI',
+    requiredDocumentType: property.requiredDocumentType || 'Excel (.xlsx, .xls)',
+    functionId: property.functionId || null,
+    autoVerificationConfidence: property.autoVerificationConfidence || 80,
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Extraction Type Section */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-semibold text-blue-600">1</div>
+          <h5 className="text-sm font-semibold text-gray-900">Extraction Type</h5>
+        </div>
+        <Select value={formData.extractionType} onValueChange={(value) => setFormData(prev => ({...prev, extractionType: value}))}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="AI">AI-based Extraction</SelectItem>
+            <SelectItem value="Function">Function-based Extraction</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Inputs Section */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-semibold text-blue-600">2</div>
+          <h5 className="text-sm font-semibold text-gray-900">Inputs</h5>
+        </div>
+        <div className="space-y-3 pl-8">
+          <div>
+            <Label htmlFor="propertyName" className="text-sm font-medium">Property Name</Label>
+            <Input
+              id="propertyName"
+              value={formData.propertyName}
+              onChange={(e) => setFormData(prev => ({...prev, propertyName: e.target.value}))}
+              className="mt-1"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="propertyType" className="text-sm font-medium">Property Type</Label>
+            <Select value={formData.propertyType} onValueChange={(value) => setFormData(prev => ({...prev, propertyType: value}))}>
+              <SelectTrigger className="mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="TEXT">Text</SelectItem>
+                <SelectItem value="NUMBER">Number</SelectItem>
+                <SelectItem value="DATE">Date</SelectItem>
+                <SelectItem value="BOOLEAN">Boolean</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="description" className="text-sm font-medium">Description</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({...prev, description: e.target.value}))}
+              placeholder="Describe what data to extract for this property"
+              rows={2}
+              className="mt-1"
+            />
+          </div>
+
+          {formData.extractionType === 'Function' && (
+            <>
+              <div>
+                <Label htmlFor="documentType" className="text-sm font-medium">Required Document Type</Label>
+                <Select value={formData.requiredDocumentType} onValueChange={(value) => setFormData(prev => ({...prev, requiredDocumentType: value}))}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Excel (.xlsx, .xls)">Excel (.xlsx, .xls)</SelectItem>
+                    <SelectItem value="Word (.docx, .doc)">Word (.docx, .doc)</SelectItem>
+                    <SelectItem value="PDF (.pdf)">PDF (.pdf)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="function" className="text-sm font-medium">Function</Label>
+                <Select value={formData.functionId || ''} onValueChange={(value) => setFormData(prev => ({...prev, functionId: value}))}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select a pre-built function" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {excelFunctions.map((func: any) => (
+                      <SelectItem key={func.id} value={func.id}>
+                        {func.name}
+                        {func.description && (
+                          <span className="text-xs text-gray-500 block">{func.description}</span>
+                        )}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Output Section */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-semibold text-blue-600">3</div>
+          <h5 className="text-sm font-semibold text-gray-900">Output</h5>
+        </div>
+        <div className="pl-8">
+          <div>
+            <Label htmlFor="confidence" className="text-sm font-medium">Auto Verification Confidence Level (%)</Label>
+            <Input
+              id="confidence"
+              type="number"
+              min="0"
+              max="100"
+              value={formData.autoVerificationConfidence}
+              onChange={(e) => setFormData(prev => ({...prev, autoVerificationConfidence: parseInt(e.target.value)}))}
+              className="mt-1"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex items-center gap-2 pt-2">
+        <Button type="submit" disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
+          {isLoading ? "Saving..." : "Save Changes"}
+          <Check className="h-4 w-4 ml-2" />
+        </Button>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
+          Cancel
+          <X className="h-4 w-4 ml-2" />
+        </Button>
+      </div>
+    </form>
+  );
+}
 
 interface CollectionCardProps {
   collection: ObjectCollection;
@@ -42,6 +210,10 @@ export default function CollectionCard({
   hideHeader = false,
 }: CollectionCardProps) {
   const { data: properties = [], isLoading } = useCollectionProperties(String(collection.id));
+  const { data: excelFunctions = [] } = useQuery({
+    queryKey: ["/api/excel-functions"],
+    queryFn: () => apiRequest("/api/excel-functions"),
+  });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -50,6 +222,9 @@ export default function CollectionCard({
   
   // Lists should be collapsed by default if they have properties, expanded if no properties
   const [isExpanded, setIsExpanded] = useState(safeProperties.length === 0);
+  
+  // State for inline editing
+  const [editingPropertyId, setEditingPropertyId] = useState<string | null>(null);
   
   // Update collapse state when properties are first added to an empty list
   // useEffect(() => {
@@ -94,6 +269,42 @@ export default function CollectionCard({
       });
     },
   });
+
+  // Mutation for updating properties
+  const updateProperty = useMutation({
+    mutationFn: ({ id, property }: { id: string; property: Partial<CollectionProperty> }) =>
+      apiRequest(`/api/properties/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(property),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/collections", collection.id, "properties"] });
+      setEditingPropertyId(null);
+      toast({
+        title: "Success",
+        description: "Property updated successfully.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error updating property:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update property. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Handle inline edit save
+  const handleSaveProperty = (property: CollectionProperty, formData: Record<string, any>) => {
+    updateProperty.mutate({
+      id: property.id,
+      property: {
+        ...property,
+        ...formData,
+      },
+    });
+  };
 
   // Drag and drop handler for reordering collection properties
   const handlePropertyDragEnd = async (result: any) => {
@@ -278,7 +489,7 @@ export default function CollectionCard({
                                       variant="ghost" 
                                       size="sm"
                                       className="h-8 w-8 p-0"
-                                      onClick={() => onEditProperty(property)}
+                                      onClick={() => setEditingPropertyId(editingPropertyId === property.id ? null : property.id)}
                                     >
                                       <Edit className="h-4 w-4" />
                                     </Button>
@@ -319,6 +530,19 @@ export default function CollectionCard({
                                     </Badge>
                                   </div>
                                 </div>
+                                
+                                {/* Inline Editing Form - Expanded */}
+                                {editingPropertyId === property.id && (
+                                  <div className="mt-4 pt-4 border-t border-gray-200">
+                                    <InlinePropertyEditor
+                                      property={property}
+                                      excelFunctions={excelFunctions}
+                                      onSave={(formData) => handleSaveProperty(property, formData)}
+                                      onCancel={() => setEditingPropertyId(null)}
+                                      isLoading={updateProperty.isPending}
+                                    />
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>
