@@ -93,16 +93,23 @@ MANDATORY REQUIREMENTS:
 2. Input format: extracted_content has lines like "=== Sheet: Name ===" followed by tab-separated rows (may be empty if no documents selected)
 3. If identifier_references is provided, the function MUST iterate through each identifier and extract the target field for that specific identifier
 4. If no documents are available (empty extracted_content), the function must work purely from identifier_references data
-5. Output format: Return a list of dictionaries, each with these exact keys:
-   - "validation_type": "collection_property"
-   - "data_type": field's property_type or "TEXT"
-   - "field_name": "CollectionName.FieldName[INDEX]" 
-   - "collection_name": field's collection name
-   - "extracted_value": the actual extracted data
-   - "confidence_score": 0.95
-   - "validation_status": "unverified"
-   - "ai_reasoning": brief explanation
+5. Output format: Return a list of dictionaries matching the field_validations database schema:
+   - "validation_type": "collection_property" (or "schema_field")
+   - "data_type": field's property_type (e.g., "TEXT", "NUMBER", "DATE", "CHOICE")
+   - "field_id": field's UUID from collectionProperties or projectSchemaFields
+   - "collection_name": collection name for collection_property type (null for schema_field)
    - "record_index": unique number starting from 0
+   - "extracted_value": the actual extracted data
+   - "original_extracted_value": same as extracted_value initially
+   - "original_confidence_score": confidence as integer 0-100
+   - "original_ai_reasoning": brief explanation
+   - "validation_status": "pending" (always "pending" for new extractions)
+   - "ai_reasoning": brief explanation
+   - "manually_verified": false
+   - "manually_updated": false
+   - "confidence_score": confidence as integer 0-100
+   - "document_source": document filename where data was found
+   - "document_sections": JSON array of sections where data was found
 
 CRITICAL INDEXING AND COUNT RULES:
 - If identifier_references provided: MUST return EXACTLY the same number of results as identifiers (e.g., 185 identifiers = 185 results)
@@ -163,17 +170,24 @@ RELEVANT KNOWLEDGE DOCUMENTS:
 {knowledge_documents}
 
 REQUIRED OUTPUT FORMAT:
-For each extracted value, return a JSON object with these exact keys:
+For each extracted value, return a JSON object matching the field_validations database schema:
 {{
-    "validation_type": "collection_property",
-    "data_type": field's property_type or "TEXT",
-    "field_name": "CollectionName.PropertyName[record_index]",
-    "collection_name": field's collection name,
+    "validation_type": "collection_property", // or "schema_field"
+    "data_type": field's property_type (e.g., "TEXT", "NUMBER", "DATE", "CHOICE"),
+    "field_id": "field's UUID from collectionProperties or projectSchemaFields",
+    "collection_name": "collection name for collection_property type", // null for schema_field
+    "record_index": sequential_number_starting_from_0,
     "extracted_value": "actual_extracted_data",
-    "confidence_score": number between 0.0 and 1.0,
-    "validation_status": "unverified",
+    "original_extracted_value": "actual_extracted_data", // same as extracted_value initially
+    "original_confidence_score": confidence_as_integer_0_to_100,
+    "original_ai_reasoning": "Brief explanation of extraction logic",
+    "validation_status": "pending", // always "pending" for new extractions
     "ai_reasoning": "Brief explanation of extraction logic",
-    "record_index": unique_sequential_number
+    "manually_verified": false,
+    "manually_updated": false,
+    "confidence_score": confidence_as_integer_0_to_100,
+    "document_source": "document filename where data was found",
+    "document_sections": "JSON array of sections where data was found"
 }}
 
 CRITICAL REQUIREMENTS:
