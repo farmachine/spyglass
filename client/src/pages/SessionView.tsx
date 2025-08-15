@@ -282,7 +282,7 @@ const AIExtractionModal = ({
   const [additionalInstructions, setAdditionalInstructions] = useState("");
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['schema']));
   const [isExtracting, setIsExtracting] = useState(false);
-  const [isExtractionRunning, setIsExtractionRunning] = useState(false); // Track background extraction
+  // isExtractionRunning moved to main component scope
   const [expandedFields, setExpandedFields] = useState<Set<string>>(new Set());
   const [fieldDocumentSources, setFieldDocumentSources] = useState<Record<string, string[]>>({});
   const [extractionProgress, setExtractionProgress] = useState<{
@@ -1125,6 +1125,7 @@ export default function SessionView() {
   const [editValue, setEditValue] = useState("");
   const [showReasoningDialog, setShowReasoningDialog] = useState(false);
   const [isEditingSessionName, setIsEditingSessionName] = useState(false);
+  const [isExtractionRunning, setIsExtractionRunning] = useState(false); // Track background extraction (moved to main scope)
   const [sessionNameValue, setSessionNameValue] = useState('');
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
   const [hasInitializedCollapsed, setHasInitializedCollapsed] = useState(false);
