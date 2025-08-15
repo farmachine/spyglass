@@ -197,42 +197,123 @@ def clean_json_and_extract_identifiers(extraction_result, target_fields_data):
         # Create Identifier Results array
         identifier_results = []
         
-        # Create a mapping of field names to field IDs from target_fields_data
-        field_name_to_id_map = {}
+        # Create a mapping of field names to field metadata from target_fields_data
+        field_name_to_metadata_map = {}
         if target_fields_data:
             for field in target_fields_data:
                 field_name = field.get('name') or field.get('property_name') or field.get('propertyName', '')
                 field_id = field.get('field_id') or field.get('id', '')
                 if field_name and field_id:
+                    field_metadata = {
+                        'field_id': field_id,
+                        'collection_name': field.get('collection_name', ''),
+                        'validation_type': field.get('type', 'collection_property'),
+                        'data_type': field.get('property_type', 'TEXT')
+                    }
                     # Handle collection.property format
                     collection_name = field.get('collection_name', '')
                     if collection_name:
                         full_field_name = f"{collection_name}.{field_name}"
-                        field_name_to_id_map[full_field_name] = field_id
-                    field_name_to_id_map[field_name] = field_id
+                        field_name_to_metadata_map[full_field_name] = field_metadata
+                    field_name_to_metadata_map[field_name] = field_metadata
         
-        print(f"🔗 Field Name to ID Mapping: {field_name_to_id_map}")
+        print(f"🔗 Field Name to Metadata Mapping: {field_name_to_metadata_map}")
         
-        # Process validation records to ensure they have proper field IDs
+        # Process validation records to ensure they have proper field IDs and all required database fields
         if isinstance(cleaned_result, list):
             for result_item in cleaned_result:
                 if isinstance(result_item, dict):
                     # Ensure the validation record has a field_id
                     field_name = result_item.get('field_name', '')
                     
-                    # Try to map field_name to field_id if not already present
-                    if field_name and not result_item.get('field_id'):
+                    # Try to map field_name to field metadata if not already present
+                    if field_name:
+                        field_metadata = None
                         # Try direct field name match first
-                        if field_name in field_name_to_id_map:
-                            result_item['field_id'] = field_name_to_id_map[field_name]
+                        if field_name in field_name_to_metadata_map:
+                            field_metadata = field_name_to_metadata_map[field_name]
                         else:
                             # Try to extract property name from field_name (e.g., "Collection.Property[index]")
                             import re
                             property_match = re.match(r'([^.]+\.[^[]+)', field_name)
                             if property_match:
                                 property_name = property_match.group(1)
-                                if property_name in field_name_to_id_map:
-                                    result_item['field_id'] = field_name_to_id_map[property_name]
+                                if property_name in field_name_to_metadata_map:
+                                    field_metadata = field_name_to_metadata_map[property_name]
+                        
+                        # Apply metadata to result item if found
+                        if field_metadata:
+                            if not result_item.get('field_id'):
+                                result_item['field_id'] = field_metadata['field_id']
+                            if not result_item.get('collection_name'):
+                                result_item['collection_name'] = field_metadata['collection_name']
+                            if not result_item.get('validation_type'):
+                                result_item['validation_type'] = field_metadata['validation_type']
+                            if not result_item.get('data_type'):
+                                result_item['data_type'] = field_metadata['data_type']
+                    
+                    # Ensure all required database fields are present with proper defaults
+                    # Set validation_type default if missing
+                    if not result_item.get('validation_type'):
+                        result_item['validation_type'] = 'collection_property'
+                    
+                    # Set data_type default if missing
+                    if not result_item.get('data_type'):
+                        result_item['data_type'] = 'TEXT'
+                    
+                    # Ensure confidence_score is integer (0-100)
+                    confidence = result_item.get('confidence_score', 0)
+                    if isinstance(confidence, float):
+                        result_item['confidence_score'] = int(confidence * 100)
+                    elif not isinstance(confidence, int):
+                        result_item['confidence_score'] = 0
+                    
+                    # Set original values for database tracking
+                    if not result_item.get('original_extracted_value'):
+                        result_item['original_extracted_value'] = result_item.get('extracted_value')
+                    if not result_item.get('original_confidence_score'):
+                        result_item['original_confidence_score'] = result_item.get('confidence_score', 0)
+                    if not result_item.get('original_ai_reasoning'):
+                        result_item['original_ai_reasoning'] = result_item.get('ai_reasoning')
+                    
+                    # Set default values for boolean fields
+                    if 'manually_verified' not in result_item:
+                        result_item['manually_verified'] = False
+                    if 'manually_updated' not in result_item:
+                        result_item['manually_updated'] = False
+                    
+                    # Set validation_status default
+                    if not result_item.get('validation_status'):
+                        result_item['validation_status'] = 'pending'
+                    
+                    # Set batch_number default
+                    if not result_item.get('batch_number'):
+                        result_item['batch_number'] = 1
+                    
+                    # Ensure record_index is integer
+                    if 'record_index' in result_item and not isinstance(result_item['record_index'], int):
+                        try:
+                            result_item['record_index'] = int(result_item['record_index'])
+                        except:
+                            result_item['record_index'] = 0
+                    
+                    # Log validation record structure for debugging (first few records only)
+                    record_idx = result_item.get('record_index', 0)
+                    if record_idx < 3:  # Only log first 3 records to avoid spam
+                        db_fields_status = {
+                            'validation_type': '✓' if result_item.get('validation_type') else '✗',
+                            'data_type': '✓' if result_item.get('data_type') else '✗', 
+                            'field_id': '✓' if result_item.get('field_id') else '✗',
+                            'collection_name': '✓' if result_item.get('collection_name') else '✗',
+                            'confidence_score': '✓' if 'confidence_score' in result_item else '✗',
+                            'validation_status': '✓' if result_item.get('validation_status') else '✗'
+                        }
+                        print(f"📋 Record {record_idx} DB Fields: {db_fields_status}")
+                    
+                    required_fields = ['validation_type', 'data_type', 'field_id']
+                    missing_critical = [field for field in required_fields if not result_item.get(field)]
+                    if missing_critical:
+                        print(f"⚠️  Missing CRITICAL database fields in record {record_idx}: {missing_critical}")
                     
                     # Add the validation record to identifier results
                     identifier_results.append(result_item)
@@ -745,6 +826,7 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                     "is_identifier": field.get('isIdentifier', False),
                     "order_index": field.get('orderIndex', 0),
                     "collection_id": field.get('collectionId', ''),
+                    "collection_name": field.get('collectionName', ''),
                     "type": "collection_property" if field.get('collectionId') else "schema_field"
                 }
                 target_fields_data.append(field_data)

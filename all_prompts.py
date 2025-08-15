@@ -93,17 +93,24 @@ MANDATORY REQUIREMENTS:
 2. Input format: extracted_content has lines like "=== Sheet: Name ===" followed by tab-separated rows (may be empty if no documents selected)
 3. If identifier_references is provided, the function MUST iterate through each identifier and extract the target field for that specific identifier
 4. If no documents are available (empty extracted_content), the function must work purely from identifier_references data
-5. Output format: Return a list of dictionaries, each with these exact keys:
-   - "validation_type": "collection_property"
-   - "data_type": field's property_type or "TEXT"
-   - "field_name": "CollectionName.FieldName[INDEX]" 
-   - "field_id": field's id from target_fields_data (required)
-   - "collection_name": field's collection name
-   - "extracted_value": the actual extracted data
-   - "confidence_score": 0.95
-   - "validation_status": "unverified"
-   - "ai_reasoning": brief explanation
-   - "record_index": unique number starting from 0
+5. Output format: Return a list of dictionaries, each with these exact keys (matching database field_validations schema):
+   - "validation_type": "collection_property" or "schema_field"
+   - "data_type": field's property_type (TEXT, NUMBER, DATE, CHOICE)
+   - "field_id": field's id from target_fields_data (UUID required)
+   - "field_name": "CollectionName.FieldName[INDEX]" (for display only)
+   - "collection_name": field's collection name (for collection_property type)
+   - "extracted_value": the actual extracted data (string)
+   - "original_extracted_value": same as extracted_value (for database)
+   - "confidence_score": integer 0-100 (not float)
+   - "original_confidence_score": same as confidence_score
+   - "validation_status": "pending" (default database value)
+   - "ai_reasoning": brief explanation of extraction logic
+   - "original_ai_reasoning": same as ai_reasoning
+   - "record_index": unique integer starting from 0
+   - "manually_verified": false (boolean default)
+   - "manually_updated": false (boolean default)
+   - "document_source": name of source document if available
+   - "batch_number": 1 (integer default)
 
 CRITICAL INDEXING AND COUNT RULES:
 - If identifier_references provided: MUST return EXACTLY the same number of results as identifiers (e.g., 185 identifiers = 185 results)
@@ -164,18 +171,25 @@ RELEVANT KNOWLEDGE DOCUMENTS:
 {knowledge_documents}
 
 REQUIRED OUTPUT FORMAT:
-For each extracted value, return a JSON object with these exact keys:
+For each extracted value, return a JSON object with these exact keys (matching database field_validations schema):
 {{
-    "validation_type": "collection_property",
-    "data_type": field's property_type or "TEXT",
-    "field_name": "CollectionName.PropertyName[record_index]",
-    "field_id": field's id from target field schema (required),
-    "collection_name": field's collection name,
-    "extracted_value": "actual_extracted_data",
-    "confidence_score": number between 0.0 and 1.0,
-    "validation_status": "unverified",
+    "validation_type": "collection_property" or "schema_field",
+    "data_type": field's property_type (TEXT, NUMBER, DATE, CHOICE),
+    "field_id": field's id from target field schema (UUID required),
+    "field_name": "CollectionName.PropertyName[record_index]" (for display),
+    "collection_name": field's collection name (for collection_property type),
+    "extracted_value": "actual_extracted_data" (string),
+    "original_extracted_value": "actual_extracted_data" (same as extracted_value),
+    "confidence_score": integer 0-100 (not float),
+    "original_confidence_score": integer 0-100 (same as confidence_score),
+    "validation_status": "pending" (default database value),
     "ai_reasoning": "Brief explanation of extraction logic",
-    "record_index": unique_sequential_number
+    "original_ai_reasoning": "Brief explanation of extraction logic" (same as ai_reasoning),
+    "record_index": unique_sequential_number (integer),
+    "manually_verified": false (boolean default),
+    "manually_updated": false (boolean default),
+    "document_source": "source document name if available",
+    "batch_number": 1 (integer default)
 }}
 
 CRITICAL REQUIREMENTS:
