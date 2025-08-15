@@ -75,6 +75,11 @@ EXCEL_FUNCTION_GENERATOR = """You must generate a complete Python function that 
 TARGET FIELDS TO EXTRACT:
 {target_fields}
 
+The function must accept the following parameters from the target fields and pass them straight to the output body. They should not influnce the function's behavior:
+
+"id"
+"collectionId"
+
 SOURCE DOCUMENTS (for context):
 {source_documents}
 
@@ -97,7 +102,8 @@ MANDATORY REQUIREMENTS:
    - "validation_type": "collection_property"
    - "data_type": field's property_type or "TEXT"
    - "field_name": "CollectionName.FieldName[INDEX]" 
-   - "collection_name": field's collection name
+   - "collection_id": field's collection id
+   - "field_id": field's id
    - "extracted_value": the actual extracted data
    - "confidence_score": 0.95
    - "validation_status": "unverified"
