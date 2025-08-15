@@ -13,6 +13,7 @@ import {
   projectPublishing,
   chatMessages,
   excelWizardryFunctions,
+  extractionStepParameters,
   type Project, 
   type InsertProject,
   type ProjectSchemaField,
@@ -44,7 +45,9 @@ import {
   type ChatMessage,
   type InsertChatMessage,
   type ExcelWizardryFunction,
-  type InsertExcelWizardryFunction
+  type InsertExcelWizardryFunction,
+  type ExtractionStepParameters,
+  type InsertExtractionStepParameters
 } from "@shared/schema";
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
@@ -141,8 +144,6 @@ export interface IStorage {
   getValidationsByCollectionAndIndex(sessionId: string, collectionId: string, recordIndex: number): Promise<FieldValidation[]>;
   getValidationsByFieldAndCollection(sessionId: string, fieldId: string, collectionId: string, recordIndex: number): Promise<FieldValidation[]>;
   populateMissingCollectionIds(): Promise<void>;
-  deleteAllCollectionData(sessionId: string): Promise<number>;
-  deleteCollectionValidationData(collectionId: string): Promise<number>;
   getCollectionByName(collectionName: string): Promise<(ObjectCollection & { properties: CollectionProperty[] }) | undefined>;
 
   // Project Publishing
@@ -162,6 +163,15 @@ export interface IStorage {
   updateExcelWizardryFunction(id: string, func: Partial<InsertExcelWizardryFunction>): Promise<ExcelWizardryFunction | undefined>;
   incrementFunctionUsage(id: string): Promise<ExcelWizardryFunction | undefined>;
   searchExcelWizardryFunctions(tags: string[]): Promise<ExcelWizardryFunction[]>;
+
+  // Extraction Step Parameters
+  getExtractionStepParameters(sessionId: string): Promise<ExtractionStepParameters[]>;
+  getExtractionStepParameter(id: string): Promise<ExtractionStepParameters | undefined>;
+  getNextExtractionStep(sessionId: string, projectId: string): Promise<ExtractionStepParameters | undefined>;
+  createExtractionStepParameter(params: InsertExtractionStepParameters): Promise<ExtractionStepParameters>;
+  updateExtractionStepParameter(id: string, params: Partial<InsertExtractionStepParameters>): Promise<ExtractionStepParameters | undefined>;
+  deleteExtractionStepParameter(id: string): Promise<boolean>;
+  getLatestExtractionStep(sessionId: string, projectId: string): Promise<ExtractionStepParameters | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -179,6 +189,7 @@ export class MemStorage implements IStorage {
   private projectPublishing: Map<string, ProjectPublishing>;
   private chatMessages: Map<string, ChatMessage>;
   private excelWizardryFunctions: Map<string, ExcelWizardryFunction>;
+  private extractionStepParameters: Map<string, ExtractionStepParameters>;
 
   constructor() {
     this.organizations = new Map();
@@ -195,6 +206,7 @@ export class MemStorage implements IStorage {
     this.projectPublishing = new Map();
     this.chatMessages = new Map();
     this.excelWizardryFunctions = new Map();
+    this.extractionStepParameters = new Map();
     
     // Initialize with sample data for development
     this.initializeSampleData();
@@ -1469,40 +1481,6 @@ export class MemStorage implements IStorage {
     }
   }
 
-  // Method to delete all collection validation data for a specific session
-  async deleteAllCollectionData(sessionId: string): Promise<number> {
-    let deletedCount = 0;
-    const validationsToDelete = Array.from(this.fieldValidations.values())
-      .filter(validation => 
-        validation.sessionId === sessionId && 
-        validation.validationType === 'collection_property'
-      );
-
-    validationsToDelete.forEach(validation => {
-      this.fieldValidations.delete(validation.id);
-      deletedCount++;
-    });
-
-    return deletedCount;
-  }
-
-  // Method to delete all validation data for a specific collection across all sessions
-  async deleteCollectionValidationData(collectionId: string): Promise<number> {
-    let deletedCount = 0;
-    const validationsToDelete = Array.from(this.fieldValidations.values())
-      .filter(validation => 
-        validation.collectionId === collectionId && 
-        validation.validationType === 'collection_property'
-      );
-
-    validationsToDelete.forEach(validation => {
-      this.fieldValidations.delete(validation.id);
-      deletedCount++;
-    });
-
-    return deletedCount;
-  }
-
   async getValidationsByCollectionAndIndex(sessionId: string, collectionName: string, recordIndex: number): Promise<FieldValidation[]> {
     const validations = Array.from(this.fieldValidations.values())
       .filter(validation => 
@@ -1645,6 +1623,58 @@ export class MemStorage implements IStorage {
         return tags.some(tag => func.tags!.includes(tag));
       })
       .sort((a, b) => (b.usageCount || 0) - (a.usageCount || 0));
+  }
+
+  // Extraction Step Parameters Methods
+  async getExtractionStepParameters(sessionId: string): Promise<ExtractionStepParameters[]> {
+    return Array.from(this.extractionStepParameters.values()).filter(params => params.sessionId === sessionId);
+  }
+
+  async getExtractionStepParameter(id: string): Promise<ExtractionStepParameters | undefined> {
+    return this.extractionStepParameters.get(id);
+  }
+
+  async getNextExtractionStep(sessionId: string, projectId: string): Promise<ExtractionStepParameters | undefined> {
+    const params = Array.from(this.extractionStepParameters.values())
+      .filter(p => p.sessionId === sessionId && p.projectId === projectId && p.status === 'pending')
+      .sort((a, b) => a.extractionNumber - b.extractionNumber);
+    return params[0];
+  }
+
+  async createExtractionStepParameter(params: InsertExtractionStepParameters): Promise<ExtractionStepParameters> {
+    const id = this.generateUUID();
+    const stepParams: ExtractionStepParameters = {
+      ...params,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.extractionStepParameters.set(id, stepParams);
+    return stepParams;
+  }
+
+  async updateExtractionStepParameter(id: string, params: Partial<InsertExtractionStepParameters>): Promise<ExtractionStepParameters | undefined> {
+    const existingParams = this.extractionStepParameters.get(id);
+    if (!existingParams) return undefined;
+
+    const updated: ExtractionStepParameters = {
+      ...existingParams,
+      ...params,
+      updatedAt: new Date(),
+    };
+    this.extractionStepParameters.set(id, updated);
+    return updated;
+  }
+
+  async deleteExtractionStepParameter(id: string): Promise<boolean> {
+    return this.extractionStepParameters.delete(id);
+  }
+
+  async getLatestExtractionStep(sessionId: string, projectId: string): Promise<ExtractionStepParameters | undefined> {
+    const params = Array.from(this.extractionStepParameters.values())
+      .filter(p => p.sessionId === sessionId && p.projectId === projectId)
+      .sort((a, b) => b.extractionNumber - a.extractionNumber);
+    return params[0];
   }
 }
 
@@ -2741,32 +2771,6 @@ class PostgreSQLStorage implements IStorage {
     }
   }
 
-  // Method to delete all collection validation data for a specific session
-  async deleteAllCollectionData(sessionId: string): Promise<number> {
-    const result = await this.db
-      .delete(fieldValidations)
-      .where(
-        and(
-          eq(fieldValidations.sessionId, sessionId),
-          eq(fieldValidations.validationType, 'collection_property')
-        )
-      );
-    return result.rowCount || 0;
-  }
-
-  // Method to delete all validation data for a specific collection across all sessions
-  async deleteCollectionValidationData(collectionId: string): Promise<number> {
-    const result = await this.db
-      .delete(fieldValidations)
-      .where(
-        and(
-          eq(fieldValidations.collectionId, collectionId),
-          eq(fieldValidations.validationType, 'collection_property')
-        )
-      );
-    return result.rowCount || 0;
-  }
-
   // Project Publishing methods
   async getProjectPublishing(projectId: string): Promise<ProjectPublishing[]> { 
     const result = await this.db
@@ -2925,6 +2929,96 @@ class PostgreSQLStorage implements IStorage {
         .where(sql`${excelWizardryFunctions.tags} && ${tags}`) // PostgreSQL array overlap operator
         .orderBy(excelWizardryFunctions.usageCount, excelWizardryFunctions.createdAt);
       return result;
+    });
+  }
+
+  // Extraction Step Parameters Methods
+  async getExtractionStepParameters(sessionId: string): Promise<ExtractionStepParameters[]> {
+    return this.retryOperation(async () => {
+      const result = await this.db
+        .select()
+        .from(extractionStepParameters)
+        .where(eq(extractionStepParameters.sessionId, sessionId))
+        .orderBy(extractionStepParameters.extractionNumber);
+      return result;
+    });
+  }
+
+  async getExtractionStepParameter(id: string): Promise<ExtractionStepParameters | undefined> {
+    return this.retryOperation(async () => {
+      const result = await this.db
+        .select()
+        .from(extractionStepParameters)
+        .where(eq(extractionStepParameters.id, id))
+        .limit(1);
+      return result[0];
+    });
+  }
+
+  async getNextExtractionStep(sessionId: string, projectId: string): Promise<ExtractionStepParameters | undefined> {
+    return this.retryOperation(async () => {
+      const result = await this.db
+        .select()
+        .from(extractionStepParameters)
+        .where(and(
+          eq(extractionStepParameters.sessionId, sessionId),
+          eq(extractionStepParameters.projectId, projectId),
+          eq(extractionStepParameters.status, 'pending')
+        ))
+        .orderBy(extractionStepParameters.extractionNumber)
+        .limit(1);
+      return result[0];
+    });
+  }
+
+  async createExtractionStepParameter(params: InsertExtractionStepParameters): Promise<ExtractionStepParameters> {
+    return this.retryOperation(async () => {
+      const result = await this.db
+        .insert(extractionStepParameters)
+        .values({
+          ...params,
+          updatedAt: sql`NOW()`
+        })
+        .returning();
+      return result[0];
+    });
+  }
+
+  async updateExtractionStepParameter(id: string, params: Partial<InsertExtractionStepParameters>): Promise<ExtractionStepParameters | undefined> {
+    return this.retryOperation(async () => {
+      const result = await this.db
+        .update(extractionStepParameters)
+        .set({
+          ...params,
+          updatedAt: sql`NOW()`
+        })
+        .where(eq(extractionStepParameters.id, id))
+        .returning();
+      return result[0];
+    });
+  }
+
+  async deleteExtractionStepParameter(id: string): Promise<boolean> {
+    return this.retryOperation(async () => {
+      const result = await this.db
+        .delete(extractionStepParameters)
+        .where(eq(extractionStepParameters.id, id));
+      return result.rowCount > 0;
+    });
+  }
+
+  async getLatestExtractionStep(sessionId: string, projectId: string): Promise<ExtractionStepParameters | undefined> {
+    return this.retryOperation(async () => {
+      const result = await this.db
+        .select()
+        .from(extractionStepParameters)
+        .where(and(
+          eq(extractionStepParameters.sessionId, sessionId),
+          eq(extractionStepParameters.projectId, projectId)
+        ))
+        .orderBy(desc(extractionStepParameters.extractionNumber))
+        .limit(1);
+      return result[0];
     });
   }
 }

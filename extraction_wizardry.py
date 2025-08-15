@@ -3,10 +3,119 @@ import sys
 import os
 import time
 import psycopg2
+import requests
 from google import genai
+from datetime import datetime
 from all_prompts import DOCUMENT_FORMAT_ANALYSIS, EXCEL_FUNCTION_GENERATOR
 from excel_wizard import excel_column_extraction
 from ai_extraction_wizard import ai_document_extraction
+
+# Database persistence functions for extraction step parameters
+def save_extraction_step_to_db(session_id, project_id, extraction_number, target_property_id, target_property_name, 
+                               collection_id, collection_name, identifier_references, extraction_method, 
+                               function_id=None, parameters=None, status="pending", result_count=None, error_message=None):
+    """Save extraction step parameters to database"""
+    try:
+        url = f"http://localhost:5000/api/sessions/{session_id}/extraction-steps"
+        # Skip authentication for now since the extraction script runs in a different context
+        headers = {"Content-Type": "application/json"}
+        data = {
+            "projectId": project_id,
+            "extractionNumber": extraction_number,
+            "targetPropertyId": target_property_id,
+            "targetPropertyName": target_property_name,
+            "collectionId": collection_id,
+            "collectionName": collection_name,
+            "identifierReferences": identifier_references,
+            "extractionMethod": extraction_method,
+            "functionId": function_id,
+            "parameters": parameters,
+            "status": status,
+            "resultCount": result_count,
+            "errorMessage": error_message
+        }
+        response = requests.post(url, json=data, headers=headers, timeout=30)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print(f"Failed to save extraction step: {response.status_code} - {response.text}", file=sys.stderr)
+            return None
+    except Exception as e:
+        print(f"Error saving extraction step: {str(e)}", file=sys.stderr)
+        return None
+
+def update_extraction_step_status(step_id, status, result_count=None, error_message=None):
+    """Update extraction step status in database"""
+    try:
+        url = f"http://localhost:5000/api/extraction-steps/{step_id}"
+        # Skip authentication for now since the extraction script runs in a different context
+        headers = {"Content-Type": "application/json"}
+        data = {"status": status}
+        if result_count is not None:
+            data["resultCount"] = result_count
+        if error_message is not None:
+            data["errorMessage"] = error_message
+        if status == "completed":
+            data["completedAt"] = datetime.now().isoformat()
+            
+        response = requests.patch(url, json=data, headers=headers, timeout=30)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print(f"Failed to update extraction step: {response.status_code} - {response.text}", file=sys.stderr)
+            return None
+    except Exception as e:
+        print(f"Error updating extraction step: {str(e)}", file=sys.stderr)
+        return None
+
+def get_next_extraction_step(session_id, project_id):
+    """Get next pending extraction step from database"""
+    try:
+        url = f"http://localhost:5000/api/sessions/{session_id}/projects/{project_id}/next-step"
+        # Skip authentication for now since the extraction script runs in a different context
+        headers = {"Content-Type": "application/json"}
+        response = requests.get(url, headers=headers, timeout=30)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print(f"Failed to get next extraction step: {response.status_code} - {response.text}", file=sys.stderr)
+            return None
+    except Exception as e:
+        print(f"Error getting next extraction step: {str(e)}", file=sys.stderr)
+        return None
+
+def save_field_validations_to_database(session_id, validation_results, extraction_number=0):
+    """Save field validation results to the database using the API endpoint"""
+    try:
+        print(f"\n💾 SAVING VALIDATIONS: {len(validation_results)} validation records")
+        
+        # Prepare the validation data for the API
+        validations_data = {
+            'extractedData': {
+                'field_validations': validation_results
+            }
+        }
+        
+        # Make API request to save validations
+        api_url = f"http://localhost:5000/api/sessions/{session_id}/save-validations"
+        headers = {'Content-Type': 'application/json'}
+        
+        response = requests.post(api_url, json=validations_data, headers=headers)
+        
+        if response.status_code == 200:
+            result = response.json()
+            saved_count = len(result.get('validations', []))
+            print(f"✅ SAVED: {saved_count} field validations to database")
+            return {"success": True, "saved_count": saved_count}
+        else:
+            error_msg = f"API error {response.status_code}: {response.text}"
+            print(f"❌ SAVE ERROR: {error_msg}")
+            return {"error": error_msg}
+            
+    except Exception as e:
+        error_msg = f"Failed to save validations: {str(e)}"
+        print(f"❌ SAVE ERROR: {error_msg}")
+        return {"error": error_msg}
 
 def log_remaining_collection_fields(extracted_results, all_collection_properties):
     """Log which collection fields have been extracted and which remain to be processed"""
@@ -757,6 +866,64 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
         print(f"   Type: {identifier_targets[0].get('property_type', 'Unknown') if identifier_targets else 'Unknown'}")
         print(f"   Description: {identifier_targets[0].get('description', 'No description')[:100] if identifier_targets else 'None'}...")
         
+        # Save extraction step parameters to database at the start of each step
+        project_id = data.get('project_id')
+        print(f"🔍 DEBUG: project_id from data: {project_id}", file=sys.stderr)
+        
+        # Python validation: Handle missing or invalid project_id gracefully
+        if not project_id:
+            print(f"❌ ERROR: Missing project_id in extraction data. Skipping database persistence.", file=sys.stderr)
+            print(f"📋 Available data keys: {list(data.keys())}", file=sys.stderr)
+            # Continue extraction without database saving
+            project_id = None
+        elif project_id == 'unknown' or not isinstance(project_id, str):
+            print(f"❌ ERROR: Invalid project_id '{project_id}'. Skipping database persistence.", file=sys.stderr)
+            # Continue extraction without database saving
+            project_id = None
+        else:
+            # Basic UUID format validation
+            import re
+            uuid_pattern = r'^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+            if not re.match(uuid_pattern, project_id, re.IGNORECASE):
+                print(f"❌ ERROR: Invalid UUID format for project_id '{project_id}'. Skipping database persistence.", file=sys.stderr)
+                project_id = None
+        target_property_id = identifier_targets[0].get('field_id') if identifier_targets else None
+        target_property_name = identifier_targets[0].get('name') if identifier_targets else None
+        collection_id = identifier_targets[0].get('collection_id') if identifier_targets else None
+        
+        step_parameters = {
+            "documents": documents if documents != "NO DOCUMENTS SELECTED" else None,
+            "target_fields": target_fields,
+            "identifier_targets": identifier_targets,
+            "incoming_identifier_references": incoming_identifier_references
+        }
+        
+        # Save extraction step to database (only if project_id is valid)
+        saved_step = None
+        if project_id:
+            saved_step = save_extraction_step_to_db(
+                session_id=session_id,
+                project_id=project_id,
+                extraction_number=extraction_number,
+                target_property_id=target_property_id,
+                target_property_name=target_property_name,
+                collection_id=collection_id,
+                collection_name="unknown",  # Could be derived from collection_id if needed
+                identifier_references=incoming_identifier_references,
+                extraction_method="pending",  # Will be updated after Gemini analysis
+                parameters=step_parameters,
+                status="in_progress"
+            )
+        else:
+            print(f"⚠️  Skipping database save for extraction step {extraction_number} due to invalid project_id", file=sys.stderr)
+        
+        if saved_step:
+            step_id = saved_step.get('id')
+            print(f"💾 STEP SAVED: Database entry created with ID {step_id}")
+        else:
+            step_id = None
+            print("⚠️ STEP SAVE WARNING: Could not save to database, continuing without persistence")
+        
         # Get existing Excel wizardry functions
         existing_functions = get_excel_wizardry_functions()
         if isinstance(existing_functions, dict) and "error" in existing_functions:
@@ -793,6 +960,13 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
         # Check if Gemini recommends Excel Wizardry Function
         if "Excel Wizardry Function" in gemini_response:
             print(f"\nGemini decided to use Excel Wizardry Function")
+            
+            # Update extraction method in database (optional)
+            if step_id:
+                try:
+                    update_extraction_step_status(step_id, "in_progress", None, None)
+                except Exception as e:
+                    print(f"⚠️ Database update failed: {e}", file=sys.stderr)
             
             # Parse the response to get function ID or CREATE_NEW
             if "|" in gemini_response:
@@ -912,6 +1086,11 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                                 print(json.dumps(identifier_references, indent=2))
                                 print("=" * 80)
                                 print(f"Updated {len(identifier_references)} references with new field data")
+                            
+                            # SAVE VALIDATIONS TO DATABASE BEFORE NEXT STEP
+                            save_result = save_field_validations_to_database(session_id, processed_results['identifier_results'], extraction_number)
+                            if 'error' in save_result:
+                                print(f"Warning: Failed to save validations: {save_result['error']}")
                             
                             # Log extraction progress
                             if all_collection_properties:
@@ -1035,6 +1214,11 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                                         print(json.dumps(target_property, indent=2))
                                         print("=" * 80)
                                 
+                                # SAVE VALIDATIONS TO DATABASE BEFORE NEXT STEP  
+                                save_result = save_field_validations_to_database(session_id, processed_results['identifier_results'], extraction_number)
+                                if 'error' in save_result:
+                                    print(f"Warning: Failed to save validations: {save_result['error']}")
+                                
                                 # Log remaining fields
                                 log_remaining_collection_fields(processed_results.get('identifier_results', []), all_collection_properties)
                             else:
@@ -1048,6 +1232,14 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
         
         elif "AI Extraction" in gemini_response:
             print(f"\n🧠 AI EXTRACTION:")
+            
+            # Update extraction method in database (optional)
+            if step_id:
+                try:
+                    update_extraction_step_status(step_id, "in_progress", None, None)
+                except Exception as e:
+                    print(f"⚠️ Database update failed: {e}", file=sys.stderr)
+            
             # Handle AI extraction based on document availability
             if documents == "NO DOCUMENTS SELECTED":
                 print("   Error: Cannot use AI extraction without documents")
@@ -1088,6 +1280,18 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                 print("=" * 80)
                 print(f"Created {len(identifier_references)} new references for next extraction")
                 
+                # SAVE VALIDATIONS TO DATABASE BEFORE NEXT STEP
+                save_result = save_field_validations_to_database(session_id, processed_results['identifier_results'], extraction_number)
+                if 'error' in save_result:
+                    print(f"Warning: Failed to save validations: {save_result['error']}")
+                    
+                # Update extraction step status to completed (optional)
+                if step_id:
+                    try:
+                        update_extraction_step_status(step_id, "completed", record_count, None)
+                    except Exception as e:
+                        print(f"⚠️ Database update failed: {e}", file=sys.stderr)
+                
                 # Log extraction progress
                 if all_collection_properties:
                     extracted_field_names = set()
@@ -1105,8 +1309,20 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                     print(f"\n📊 PROGRESS: {extracted_count}/{total_fields} fields extracted, {remaining_count} remaining")
             else:
                 print(f"   Error processing AI extraction results: {processed_results['error']}")
+                # Update extraction step status to failed (optional)
+                if step_id:
+                    try:
+                        update_extraction_step_status(step_id, "failed", None, processed_results['error'])
+                    except Exception as e:
+                        print(f"⚠️ Database update failed: {e}", file=sys.stderr)
         else:
             print(f"\n❌ NO EXTRACTION METHOD: Gemini did not recommend a specific extraction method")
+            # Update extraction step status to failed (optional)
+            if step_id:
+                try:
+                    update_extraction_step_status(step_id, "failed", None, "No extraction method recommended by Gemini")
+                except Exception as e:
+                    print(f"⚠️ Database update failed: {e}", file=sys.stderr)
         print("=" * 80)
         
         # AUTO-RERUN LOGIC: Continue extraction until all target fields are processed

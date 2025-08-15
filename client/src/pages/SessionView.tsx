@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus, Table as TableIcon, Loader2 } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus, Table as TableIcon, Loader2, MoreVertical } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import * as XLSX from 'xlsx';
 import { Link } from "wouter";
@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -22,6 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import ExtraplLogo from "@/components/ExtraplLogo";
 import ValidationIcon from "@/components/ValidationIcon";
 import UserProfile from "@/components/UserProfile";
@@ -251,7 +252,7 @@ const ValidationToggle = ({ fieldName, validation, onToggle }: {
   );
 };
 
-// AI Extraction Modal Component
+// AI Extraction Modal Component  
 const AIExtractionModal = ({ 
   isOpen, 
   onClose, 
@@ -261,7 +262,10 @@ const AIExtractionModal = ({
   verifiedFields,
   allProjectFields = [],
   sessionId,
-  project
+  project,
+  onStartProgressivePolling,
+  setIsExtractionRunning,
+  setExtractingCollection
 }: { 
   isOpen: boolean; 
   onClose: () => void; 
@@ -272,6 +276,9 @@ const AIExtractionModal = ({
   allProjectFields?: { id: string; name: string; type: string }[];
   sessionId: string;
   project?: any;
+  onStartProgressivePolling: (sessionId: string) => void;
+  setIsExtractionRunning: (isRunning: boolean) => void;
+  setExtractingCollection: (collection: string | null) => void;
 }) => {
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [selectedVerifiedFields, setSelectedVerifiedFields] = useState<string[]>([]);
@@ -279,6 +286,7 @@ const AIExtractionModal = ({
   const [additionalInstructions, setAdditionalInstructions] = useState("");
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['schema']));
   const [isExtracting, setIsExtracting] = useState(false);
+  // isExtractionRunning moved to main component scope
   const [expandedFields, setExpandedFields] = useState<Set<string>>(new Set());
   const [fieldDocumentSources, setFieldDocumentSources] = useState<Record<string, string[]>>({});
   const [extractionProgress, setExtractionProgress] = useState<{
@@ -286,7 +294,114 @@ const AIExtractionModal = ({
     completedFields: Set<string>;
     totalFields: number;
   }>({ currentFieldIndex: -1, completedFields: new Set(), totalFields: 0 });
+
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  // Helper function to handle successful extraction completion
+  const handleSuccessfulExtraction = async () => {
+    console.log('Processing successful extraction - closing modal and starting real-time polling');
+    
+    // Close the extraction modal immediately (active tab will be preserved)
+    onClose();
+    
+    // Enable background extraction tracking
+    setIsExtractionRunning(true);
+    // Set the specific collection being extracted
+    setExtractingCollection(sectionName === 'General Information' ? 'info' : sectionName);
+    
+    // Force refresh the validation data to show newly extracted results
+    await queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
+    await queryClient.refetchQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
+    
+    // Also refresh session and project data
+    queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
+    queryClient.invalidateQueries({ queryKey: ['/api/projects', project?.id] });
+    
+    // Wait a brief moment to ensure validation refresh completes
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Start enhanced real-time polling for progressive updates
+    let pollCount = 0;
+    let lastValidationCount = 0;
+    let noChangeCount = 0;
+    const maxPollCount = 60; // Maximum 60 polls (3 minutes at 3 second intervals)
+    const maxNoChangeCount = 5; // Stop if no changes for 5 consecutive polls
+    
+    const pollInterval = setInterval(async () => {
+      pollCount++;
+      console.log(`🔄 Real-time polling [${pollCount}/${maxPollCount}]: checking for new extraction data...`);
+      
+      try {
+        // Force refresh validation data
+        queryClient.removeQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
+        const validationData = await queryClient.fetchQuery({ 
+          queryKey: [`/api/sessions/${sessionId}/validations`],
+          staleTime: 0 // Always fetch fresh data
+        });
+        
+        // Also refresh project data
+        await queryClient.invalidateQueries({ queryKey: ['/api/projects', project?.id] });
+        
+        // Check if data has stopped changing (extraction likely complete)
+        const currentValidationCount = Array.isArray(validationData) ? validationData.length : 0;
+        if (currentValidationCount === lastValidationCount) {
+          noChangeCount++;
+          console.log(`📊 No data changes detected (${noChangeCount}/${maxNoChangeCount}) - ${currentValidationCount} validations`);
+        } else {
+          noChangeCount = 0; // Reset counter when data changes
+          console.log(`✅ New data detected: ${currentValidationCount} validations (was ${lastValidationCount})`);
+        }
+        lastValidationCount = currentValidationCount;
+        
+        // Stop polling if no changes for several attempts (extraction likely complete)
+        if (noChangeCount >= maxNoChangeCount) {
+          console.log('🏁 Extraction appears complete (no data changes) - stopping polling');
+          clearInterval(pollInterval);
+          setIsExtractionRunning(false);
+          setExtractingCollection(null);
+          
+          toast({
+            title: "Extraction completed",
+            description: "All data has been processed and is now available below.",
+          });
+          return;
+        }
+        
+      } catch (error) {
+        console.error('Polling error:', error);
+      }
+      
+      // Stop polling after max attempts
+      if (pollCount >= maxPollCount) {
+        console.log('⏹️ Real-time polling complete (max attempts reached)');
+        clearInterval(pollInterval);
+        setIsExtractionRunning(false);
+        setExtractingCollection(null);
+        
+        // Fall back to normal progressive polling if it exists
+        if (typeof onStartProgressivePolling === 'function') {
+          onStartProgressivePolling(sessionId);
+        }
+      }
+    }, 3000); // Poll every 3 seconds
+    
+    // Backup timeout to ensure spinners stop after 3 minutes
+    setTimeout(() => {
+      console.log('⏹️ Real-time polling complete (timeout)');
+      clearInterval(pollInterval);
+      setIsExtractionRunning(false);
+      setExtractingCollection(null);
+    }, 180000); // 3 minutes
+    
+    // Show completion message with real-time info
+    toast({
+      title: "Extraction in progress",
+      description: "Step 1 completed! Data will appear in real-time below as extraction continues.",
+    });
+    
+    console.log('Modal closed and polling started successfully');
+  };
 
   // Fetch extraction rules for the project
   const { data: extractionRules = [] } = useQuery({
@@ -459,6 +574,17 @@ const AIExtractionModal = ({
 
   // Log selected documents for testing (no extraction call)
   const handleRunExtraction = async () => {
+    // Frontend validation: Ensure project is loaded before extraction
+    if (!project?.id) {
+      console.error('Cannot run extraction: Project not loaded');
+      toast({
+        title: "Error",
+        description: "Project data is still loading. Please wait and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsExtracting(true);
     
     // Initialize extraction progress
@@ -611,50 +737,83 @@ const AIExtractionModal = ({
     ));
     console.log('Collected Document IDs for extraction:', documentIds);
     
-    // Run the extraction wizardry Python script with document IDs, session ID, and target fields
+    // Run the extraction wizardry Python script with document IDs, session ID, project ID, and target fields
     try {
       const requestData = {
         document_ids: documentIds,
         session_id: sessionId,
+        project_id: project.id, // Now guaranteed to be present due to validation above
         target_fields: targetFieldsWithSources
       };
       
       console.log('Complete Extraction Request:', JSON.stringify(requestData, null, 2));
+      console.log('✅ Frontend - project_id being sent:', project.id);
       
-      const response = await apiRequest('/api/run-wizardry', {
+      // Close modal immediately and start real-time updates
+      // Don't wait for the full extraction to complete
+      console.log('Starting extraction and closing modal for real-time updates...');
+      
+      // Close modal and start polling immediately so user can see data appearing
+      await handleSuccessfulExtraction();
+      
+      // Make the extraction request in the background (don't await)
+      apiRequest('/api/run-wizardry', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestData),
+      }).then(response => {
+        console.log('Wizardry Result:', response);
+        console.log('✅ Frontend - response.success:', response.success);
+        if (response.output) {
+          console.log('Python Script Output:');
+          console.log(response.output);
+        }
+        if (response.error) {
+          console.log('Python Script Error:');
+          console.log(response.error);
+        }
+        
+        if (!response.success) {
+          console.warn('Extraction completed with errors, but data may still be appearing');
+        }
+      }).catch(error => {
+        console.error('Extraction request failed:', error);
+        // Even if request fails, keep polling in case some data was processed
       });
-      console.log('Wizardry Result:', response);
-      if (response.output) {
-        console.log('Python Script Output:');
-        console.log(response.output);
-      }
       
-      // Simulate field-by-field progress for UI feedback
-      for (let i = 0; i < sortedSelectedFields.length; i++) {
-        setExtractionProgress(prev => ({ ...prev, currentFieldIndex: i }));
-        
-        // Wait a bit to show the spinner animation
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        setExtractionProgress(prev => ({ 
-          ...prev, 
-          completedFields: new Set([...prev.completedFields, sortedSelectedFields[i].id])
-        }));
-      }
-      
-      // Mark extraction as complete
-      setExtractionProgress(prev => ({ ...prev, currentFieldIndex: -1 }));
+      // No need to simulate progress since modal closes immediately
+      // Real data will appear via the polling system
       
     } catch (error) {
       console.error('Error running wizardry:', error);
+      
+      // Check if this is a 502 error after successful extraction
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('502') && errorMessage.includes('Bad Gateway')) {
+        // Refresh validations to check if extraction actually succeeded
+        queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
+        
+        // Show a helpful message about the background processing
+        toast({
+          title: "Extraction may be continuing",
+          description: "The extraction process might be running in the background. Check for new results appearing shortly.",
+        });
+        
+        // Close modal and start polling anyway, in case extraction is actually running
+        await handleSuccessfulExtraction();
+      } else {
+        toast({
+          title: "Extraction failed",
+          description: "There was an error running the extraction. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsExtracting(false);
       setExtractionProgress({ currentFieldIndex: -1, completedFields: new Set(), totalFields: 0 });
+      // Modal is already closed above after successful first step
     }
   };
 
@@ -1000,7 +1159,7 @@ const AIExtractionModal = ({
             Cancel
           </Button>
           <Button 
-            disabled={selectedTargetFields.length === 0 || isExtracting}
+            disabled={selectedTargetFields.length === 0 || isExtracting || !project?.id}
             onClick={handleRunExtraction}
           >
             {isExtracting ? (
@@ -1024,6 +1183,8 @@ export default function SessionView() {
   const [editValue, setEditValue] = useState("");
   const [showReasoningDialog, setShowReasoningDialog] = useState(false);
   const [isEditingSessionName, setIsEditingSessionName] = useState(false);
+  const [isExtractionRunning, setIsExtractionRunning] = useState(false); // Track background extraction (moved to main scope)
+  const [extractingCollection, setExtractingCollection] = useState<string | null>(null); // Track which specific collection is being extracted
   const [sessionNameValue, setSessionNameValue] = useState('');
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
   const [hasInitializedCollapsed, setHasInitializedCollapsed] = useState(false);
@@ -1054,6 +1215,49 @@ export default function SessionView() {
     sectionName: string;
     availableFields: { id: string; name: string; type: string; index?: number; orderIndex?: number }[];
   }>({ open: false, sectionName: '', availableFields: [] });
+
+  // Progressive extraction polling state
+  const [progressivePollingActive, setProgressivePollingActive] = useState(false);
+  const [lastValidationCount, setLastValidationCount] = useState(0);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Progressive validation polling functions
+  const startProgressiveValidationPolling = (sessionId: string) => {
+    setProgressivePollingActive(true);
+    setLastValidationCount(validations?.length || 0);
+    
+    // Clear any existing polling interval
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+    
+    // Poll every 3 seconds for validation updates
+    pollingIntervalRef.current = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
+    }, 3000);
+    
+    // Stop polling after 5 minutes (allowing time for multi-step extraction)
+    setTimeout(() => {
+      stopProgressiveValidationPolling();
+    }, 300000); // 5 minutes
+  };
+
+  const stopProgressiveValidationPolling = () => {
+    setProgressivePollingActive(false);
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+  };
+
+  // Clean up polling on component unmount
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, []);
 
   // Helper function to find schema field data
   const findSchemaField = (validation: FieldValidation) => {
@@ -1187,6 +1391,7 @@ export default function SessionView() {
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
   const [resizing, setResizing] = useState<{ columnId: string; startX: number; startWidth: number } | null>(null);
   const { user } = useAuth();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const toggleCollectionExpansion = (collectionName: string) => {
@@ -1327,6 +1532,7 @@ export default function SessionView() {
   const { data: validations = [], isLoading: validationsLoading } = useQuery<FieldValidation[]>({
     queryKey: ['/api/sessions', sessionId, 'validations'],
     queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`),
+    refetchInterval: progressivePollingActive ? 3000 : false, // Auto-refetch when polling active
     onSuccess: (data) => {
       console.log(`Session ${sessionId} - Validations loaded:`, data.length);
       if (data.length > 0) {
@@ -1340,6 +1546,21 @@ export default function SessionView() {
       }
     }
   });
+
+  // Monitor validation changes and show toast notifications for progressive extraction
+  useEffect(() => {
+    if (progressivePollingActive && validations) {
+      const currentCount = validations.length;
+      if (currentCount > lastValidationCount && lastValidationCount > 0) {
+        const newValidationsCount = currentCount - lastValidationCount;
+        toast({
+          title: "New extraction results available",
+          description: `${newValidationsCount} new field${newValidationsCount > 1 ? 's' : ''} extracted successfully!`,
+        });
+        setLastValidationCount(currentCount);
+      }
+    }
+  }, [validations, progressivePollingActive, lastValidationCount, toast]);
 
   // Query for session documents
   const { data: sessionDocuments = [], isLoading: documentsLoading } = useQuery({
@@ -1523,27 +1744,6 @@ export default function SessionView() {
   const handleDeleteDocument = (documentId: string) => {
     if (confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
       deleteDocumentMutation.mutate(documentId);
-    }
-  };
-
-  // Delete all collection data mutation
-  const deleteAllCollectionDataMutation = useMutation({
-    mutationFn: async () => {
-      return await apiRequest(`/api/sessions/${sessionId}/collection-data`, {
-        method: "DELETE"
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sessions", sessionId, "validations"] });
-    },
-    onError: (error: any) => {
-      console.error('Failed to delete collection data:', error);
-    }
-  });
-
-  const handleDeleteAllCollectionData = async () => {
-    if (confirm("Are you sure you want to delete all collection data? This action cannot be undone.")) {
-      deleteAllCollectionDataMutation.mutate();
     }
   };
 
@@ -1881,6 +2081,88 @@ export default function SessionView() {
       console.error('Error deleting collection item:', error);
       // Revert optimistic update on error
       await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+    }
+  };
+
+  // Handler to delete all data for a collection
+  const handleDeleteAllCollectionData = async (collectionName: string) => {
+    console.log(`Starting delete all data for collection: ${collectionName}`);
+    
+    // Find all validations for this collection
+    const collectionValidations = validations.filter(v => {
+      // Match by collectionName
+      if (v.collectionName === collectionName) {
+        return true;
+      }
+      
+      // Also match by fieldName pattern (for backwards compatibility)
+      if (v.collectionName === null && v.fieldName) {
+        if (v.fieldName.startsWith(`${collectionName}.`)) {
+          return true;
+        }
+      }
+      
+      return false;
+    });
+
+    console.log(`Found ${collectionValidations.length} validations to delete for collection ${collectionName}`);
+
+    if (collectionValidations.length === 0) {
+      console.warn(`No validations found for collection ${collectionName} - nothing to delete`);
+      toast({
+        title: "No data to delete",
+        description: `Collection "${collectionName}" has no data to delete.`,
+      });
+      return;
+    }
+
+    // Optimistic update: Remove all collection items from cache
+    queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (old: any) => {
+      if (!old) return old;
+      return old.filter((v: any) => {
+        // Keep items that don't match our delete criteria
+        if (v.collectionName === collectionName) {
+          return false; // Remove this item
+        }
+        
+        if (v.collectionName === null && v.fieldName && v.fieldName.startsWith(`${collectionName}.`)) {
+          return false; // Remove this item
+        }
+        
+        return true; // Keep this item
+      });
+    });
+    
+    try {
+      // Delete all validation records for this collection
+      const deletePromises = collectionValidations.map(validation => {
+        console.log(`Deleting validation record: ${validation.id} (${validation.fieldName})`);
+        return apiRequest(`/api/validations/${validation.id}`, {
+          method: 'DELETE'
+        });
+      });
+      
+      await Promise.all(deletePromises);
+      
+      console.log(`Successfully deleted ${collectionValidations.length} validation records for collection ${collectionName}`);
+      
+      toast({
+        title: "Data deleted successfully",
+        description: `All data for collection "${collectionName}" has been deleted.`,
+      });
+      
+      // Invalidate queries to refresh the UI
+      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+    } catch (error) {
+      console.error('Error deleting all collection data:', error);
+      // Revert optimistic update on error
+      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+      
+      toast({
+        title: "Error deleting data",
+        description: "Failed to delete collection data. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -2768,6 +3050,18 @@ Thank you for your assistance.`;
               <div className="flex-1 space-y-2">
                 <div className="flex items-center space-x-2">
                   <h2 className="text-3xl font-bold">{project.name}</h2>
+                  {progressivePollingActive && (
+                    <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 border border-blue-200 rounded-full text-sm text-blue-800">
+                      <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                      <span className="font-medium">Multi-step extraction in progress</span>
+                    </div>
+                  )}
+                  {isExtractionRunning && (
+                    <div className="flex items-center gap-2 px-3 py-1 bg-green-50 border border-green-200 rounded-full text-sm text-green-800">
+                      <div className="w-2 h-2 bg-green-600 rounded-full animate-pulse"></div>
+                      <span className="font-medium">Real-time data updates active</span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-start space-x-2">
                   {project.description ? (
@@ -2884,6 +3178,11 @@ Thank you for your assistance.`;
                     })()
                   }`}>
                     {(() => {
+                      // Show loading spinner when this specific section is being extracted
+                      if (extractingCollection === 'info') {
+                        return <Loader2 className="w-4 h-4 text-primary animate-spin" />;
+                      }
+                      
                       const infoValidations = validations.filter(v => !v.collectionName && !v.fieldName.includes('.'));
                       const verifiedCount = infoValidations.filter(v => 
                         v.validationStatus === 'verified' || 
@@ -2940,7 +3239,9 @@ Thank you for your assistance.`;
                               ? 'bg-primary border-primary' 
                               : 'bg-white border-slate-300')
                       }`}>
-                        {totalCount > 0 && verifiedCount === totalCount ? (
+                        {extractingCollection === collection.collectionName ? (
+                          <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                        ) : totalCount > 0 && verifiedCount === totalCount ? (
                           <Check className="w-4 h-4 text-green-600" />
                         ) : (
                           <div className={`w-3 h-3 rounded-full ${
@@ -3454,33 +3755,21 @@ Thank you for your assistance.`;
                               {uniqueIndices.length} {uniqueIndices.length === 1 ? 'item' : 'items'}
                             </span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleOpenAIExtraction(
-                                collection.collectionName,
-                                collection.properties?.map(prop => ({
-                                  id: prop.id,
-                                  name: prop.propertyName,
-                                  type: prop.propertyType
-                                })) || []
-                              )}
-                              className="h-8 w-8 p-0 hover:bg-slate-100"
-                              title="AI Extract Collection Data"
-                            >
-                              <Wand2 className="h-4 w-4" style={{ color: '#4F63A4' }} />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleDeleteAllCollectionData}
-                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                              title="Delete All Collection Data"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleOpenAIExtraction(
+                              collection.collectionName,
+                              collection.properties?.map(prop => ({
+                                id: prop.id,
+                                name: prop.propertyName,
+                                type: prop.propertyType
+                              })) || []
+                            )}
+                            className="h-8 w-8 p-0 hover:bg-slate-100"
+                          >
+                            <Wand2 className="h-4 w-4" style={{ color: '#4F63A4' }} />
+                          </Button>
                         </CardTitle>
                         <p className="text-sm text-gray-600">{collection.description}</p>
                       </CardHeader>
@@ -3525,7 +3814,7 @@ Thank you for your assistance.`;
                                 </TableHead>
                               ))}
                               <TableHead className="w-24 border-r border-gray-300" style={{ width: '96px', minWidth: '96px', maxWidth: '96px' }}>
-                                <div className="flex items-center justify-center gap-3 px-2">
+                                <div className="flex items-center justify-center gap-1 px-1">
                                   {(() => {
                                     // Handle empty collections
                                     if (uniqueIndices.length === 0) {
@@ -3570,6 +3859,27 @@ Thank you for your assistance.`;
                                   >
                                     <Plus className="h-4 w-4" />
                                   </Button>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 w-6 p-0 text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                                        title="More actions"
+                                      >
+                                        <MoreVertical className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem
+                                        onClick={() => handleDeleteAllCollectionData(collection.collectionName)}
+                                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                      >
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Delete all data
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </div>
                               </TableHead>
                             </TableRow>
@@ -3971,6 +4281,9 @@ Thank you for your assistance.`;
         allProjectFields={getAllProjectFields()}
         sessionId={sessionId}
         project={project}
+        onStartProgressivePolling={startProgressiveValidationPolling}
+        setIsExtractionRunning={setIsExtractionRunning}
+        setExtractingCollection={setExtractingCollection}
       />
       {/* Session Chat */}
       {session && validations && (

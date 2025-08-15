@@ -19,7 +19,8 @@ import {
   changePasswordApiSchema,
   insertProjectPublishingSchema,
   insertChatMessageSchema,
-  insertExcelWizardryFunctionSchema
+  insertExcelWizardryFunctionSchema,
+  insertExtractionStepParametersSchema
 } from "@shared/schema";
 import { generateChatResponse } from "./chatService";
 import { authenticateToken, requireAdmin, generateToken, comparePassword, hashPassword, type AuthRequest } from "./auth";
@@ -4773,8 +4774,30 @@ print(json.dumps(results))
     try {
       const requestData = req.body; // Get request data with document_ids and session_id
       
+      // Backend validation: Check required parameters
+      if (!requestData?.session_id) {
+        return res.status(400).json({
+          message: "Missing required parameter: session_id"
+        });
+      }
+      
+      if (!requestData?.project_id) {
+        return res.status(400).json({
+          message: "Missing required parameter: project_id"
+        });
+      }
+      
+      // Validate project_id is a valid UUID format
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(requestData.project_id)) {
+        return res.status(400).json({
+          message: "Invalid project_id format: must be a valid UUID"
+        });
+      }
+      
       console.log("Starting wizardry extraction with data:", {
         session_id: requestData?.session_id,
+        project_id: requestData?.project_id,
         document_count: requestData?.document_ids?.length || 0,
         extraction_number: requestData?.extraction_number || 0
       });
@@ -4793,9 +4816,21 @@ print(json.dumps(results))
         }
       });
       
-      // Pass request data to Python script via stdin
-      if (requestData && requestData.document_ids && requestData.session_id) {
+      // Pass request data to Python script via stdin (only if all required fields present)
+      if (requestData && requestData.document_ids && requestData.session_id && requestData.project_id) {
+        console.log('🔍 DEBUG Backend - Sending to Python:', JSON.stringify({
+          project_id: requestData.project_id,
+          session_id: requestData.session_id,
+          document_count: requestData.document_ids?.length
+        }));
         python.stdin.write(JSON.stringify(requestData));
+      } else {
+        console.log('🔍 DEBUG Backend - Missing required data, NOT sending to Python:', {
+          has_document_ids: !!requestData?.document_ids,
+          has_session_id: !!requestData?.session_id,
+          has_project_id: !!requestData?.project_id
+        });
+        // Don't send incomplete data to Python
       }
       python.stdin.end();
       
@@ -4824,12 +4859,20 @@ print(json.dumps(results))
             });
           }
           
-          // Return the complete output from Python script (includes both document properties and Gemini analysis)
-          res.json({ 
-            message: "Wizardry analysis completed",
-            output: output.trim(),
-            success: true
-          });
+          try {
+            // Return the complete output from Python script (includes both document properties and Gemini analysis)
+            res.json({ 
+              message: "Wizardry analysis completed",
+              output: output.trim(),
+              success: true
+            });
+            console.log('Successfully sent response for wizardry completion');
+          } catch (responseError) {
+            console.error('Error sending wizardry response:', responseError);
+            // Don't send another response if this fails
+          }
+        } else {
+          console.log('Response headers already sent, skipping response');
         }
       });
       
@@ -4852,65 +4895,121 @@ print(json.dumps(results))
     }
   });
 
-  // Delete all collection data for a session
-  app.delete("/api/sessions/:sessionId/collection-data", authenticateToken, async (req: AuthRequest, res) => {
+  // Create HTTP server and return it
+  // Extraction Step Parameters Routes
+
+  // Get extraction step parameters for a session
+  app.get("/api/sessions/:sessionId/extraction-steps", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const steps = await storage.getExtractionStepParameters(sessionId);
+      res.json(steps);
+    } catch (error) {
+      console.error("Error getting extraction steps:", error);
+      res.status(500).json({ message: "Failed to get extraction steps" });
+    }
+  });
+
+  // Create extraction step parameter
+  app.post("/api/sessions/:sessionId/extraction-steps", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
       
-      // Verify session exists and user has access
-      const session = await storage.getExtractionSession(sessionId);
-      if (!session) {
-        return res.status(404).json({ message: "Session not found" });
-      }
-      
-      // Verify the session's project belongs to user's organization
-      const project = await storage.getProject(session.projectId, req.user!.organizationId);
-      if (!project) {
-        return res.status(404).json({ message: "Session not found" });
-      }
-      
-      const deletedCount = await storage.deleteAllCollectionData(sessionId);
-      res.json({ 
-        success: true, 
-        message: `Successfully deleted ${deletedCount} collection validation records`,
-        deletedCount 
-      });
+      // Create data object with sessionId from URL
+      const stepData = {
+        sessionId,
+        projectId: req.body.projectId,
+        extractionNumber: req.body.extractionNumber,
+        targetPropertyId: req.body.targetPropertyId || null,
+        targetPropertyName: req.body.targetPropertyName || null,
+        collectionId: req.body.collectionId || null,
+        collectionName: req.body.collectionName || null,
+        identifierReferences: req.body.identifierReferences || null,
+        extractionMethod: req.body.extractionMethod || null,
+        functionId: req.body.functionId || null,
+        parameters: req.body.parameters || null,
+        status: req.body.status || "pending",
+        resultCount: req.body.resultCount || null,
+        errorMessage: req.body.errorMessage || null,
+        completedAt: req.body.completedAt || null
+      };
+
+      const stepParams = await storage.createExtractionStepParameter(stepData);
+      res.json(stepParams);
     } catch (error) {
-      console.error("Error deleting collection data:", error);
-      res.status(500).json({ message: "Failed to delete collection data" });
+      console.error("Error creating extraction step:", error);
+      res.status(500).json({ message: "Failed to create extraction step", error: error.message });
     }
   });
 
-  // Delete all validation data for a specific collection
-  app.delete("/api/collections/:collectionId/validation-data", authenticateToken, async (req: AuthRequest, res) => {
+  // Get next extraction step
+  app.get("/api/sessions/:sessionId/projects/:projectId/next-step", async (req, res) => {
     try {
-      const collectionId = req.params.collectionId;
-      
-      // Verify collection exists and user has access
-      const collection = await storage.getObjectCollection(collectionId);
-      if (!collection) {
-        return res.status(404).json({ message: "Collection not found" });
-      }
-      
-      // Verify the collection's project belongs to user's organization
-      const project = await storage.getProject(collection.projectId, req.user!.organizationId);
-      if (!project) {
-        return res.status(404).json({ message: "Collection not found" });
-      }
-      
-      const deletedCount = await storage.deleteCollectionValidationData(collectionId);
-      res.json({ 
-        success: true, 
-        message: `Successfully deleted ${deletedCount} validation records for collection`,
-        deletedCount 
-      });
+      const { sessionId, projectId } = req.params;
+      const nextStep = await storage.getNextExtractionStep(sessionId, projectId);
+      res.json(nextStep || null);
     } catch (error) {
-      console.error("Error deleting collection validation data:", error);
-      res.status(500).json({ message: "Failed to delete collection validation data" });
+      console.error("Error getting next extraction step:", error);
+      res.status(500).json({ message: "Failed to get next extraction step" });
     }
   });
 
-  // Create HTTP server and return it
+  // Update extraction step parameter
+  app.patch("/api/extraction-steps/:id", async (req, res) => {
+    try {
+      const id = req.params.id;
+      const result = insertExtractionStepParametersSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
+      }
+
+      const updated = await storage.updateExtractionStepParameter(id, result.data);
+      if (!updated) {
+        return res.status(404).json({ message: "Extraction step not found" });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating extraction step:", error);
+      res.status(500).json({ message: "Failed to update extraction step" });
+    }
+  });
+
+  // Update extraction step status (simplified endpoint for Python extraction script)
+  app.put("/api/extraction-steps/:id/status", async (req, res) => {
+    try {
+      const id = req.params.id;
+      const { status, resultCount, errorMessage } = req.body;
+
+      const updateData: any = { status };
+      if (resultCount !== undefined) updateData.resultCount = resultCount;
+      if (errorMessage !== undefined) updateData.errorMessage = errorMessage;
+      if (status === "completed") updateData.completedAt = new Date();
+
+      const updated = await storage.updateExtractionStepParameter(id, updateData);
+      if (!updated) {
+        return res.status(404).json({ message: "Extraction step not found" });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating extraction step status:", error);
+      res.status(500).json({ message: "Failed to update extraction step status", error: error.message });
+    }
+  });
+
+  // Get latest extraction step
+  app.get("/api/sessions/:sessionId/projects/:projectId/latest-step", async (req, res) => {
+    try {
+      const { sessionId, projectId } = req.params;
+      const latestStep = await storage.getLatestExtractionStep(sessionId, projectId);
+      res.json(latestStep || null);
+    } catch (error) {
+      console.error("Error getting latest extraction step:", error);
+      res.status(500).json({ message: "Failed to get latest extraction step" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 };
