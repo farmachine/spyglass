@@ -97,7 +97,7 @@ MANDATORY REQUIREMENTS:
    - "validation_type": "collection_property" (or "schema_field")
    - "data_type": field's property_type (e.g., "TEXT", "NUMBER", "DATE", "CHOICE")
    - "field_id": field's UUID from collectionProperties or projectSchemaFields
-   - "collection_name": collection name for collection_property type (null for schema_field)
+   - "collection_name": collectionId from target field schema for collection_property type (null for schema_field)
    - "record_index": unique number starting from 0
    - "extracted_value": the actual extracted data
    - "original_extracted_value": same as extracted_value initially
@@ -175,7 +175,7 @@ For each extracted value, return a JSON object matching the field_validations da
     "validation_type": "collection_property", // or "schema_field"
     "data_type": field's property_type (e.g., "TEXT", "NUMBER", "DATE", "CHOICE"),
     "field_id": "field's UUID from collectionProperties or projectSchemaFields",
-    "collection_name": "collection name for collection_property type", // null for schema_field
+    "collection_name": "collectionId from target field schema for collection_property type", // null for schema_field
     "record_index": sequential_number_starting_from_0,
     "extracted_value": "actual_extracted_data",
     "original_extracted_value": "actual_extracted_data", // same as extracted_value initially

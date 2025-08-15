@@ -203,17 +203,18 @@ def clean_json_and_extract_identifiers(extraction_result, target_fields_data):
             for field in target_fields_data:
                 field_name = field.get('name') or field.get('property_name') or field.get('propertyName', '')
                 field_id = field.get('field_id') or field.get('id', '')
+                property_type = field.get('property_type') or field.get('propertyType', 'TEXT')
                 if field_name and field_id:
                     field_metadata = {
                         'field_id': field_id,
-                        'collection_name': field.get('collection_name', ''),
+                        'collection_name': field.get('collectionId', field.get('collection_name', '')),
                         'validation_type': field.get('type', 'collection_property'),
-                        'data_type': field.get('property_type', 'TEXT')
+                        'data_type': property_type
                     }
                     # Handle collection.property format
-                    collection_name = field.get('collection_name', '')
-                    if collection_name:
-                        full_field_name = f"{collection_name}.{field_name}"
+                    collection_id = field.get('collectionId', field.get('collection_name', ''))
+                    if collection_id:
+                        full_field_name = f"{collection_id}.{field_name}"
                         field_name_to_metadata_map[full_field_name] = field_metadata
                     field_name_to_metadata_map[field_name] = field_metadata
         
