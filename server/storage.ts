@@ -141,6 +141,8 @@ export interface IStorage {
   getValidationsByCollectionAndIndex(sessionId: string, collectionId: string, recordIndex: number): Promise<FieldValidation[]>;
   getValidationsByFieldAndCollection(sessionId: string, fieldId: string, collectionId: string, recordIndex: number): Promise<FieldValidation[]>;
   populateMissingCollectionIds(): Promise<void>;
+  deleteAllCollectionData(sessionId: string): Promise<number>;
+  deleteCollectionValidationData(collectionId: string): Promise<number>;
   getCollectionByName(collectionName: string): Promise<(ObjectCollection & { properties: CollectionProperty[] }) | undefined>;
 
   // Project Publishing
@@ -1467,6 +1469,40 @@ export class MemStorage implements IStorage {
     }
   }
 
+  // Method to delete all collection validation data for a specific session
+  async deleteAllCollectionData(sessionId: string): Promise<number> {
+    let deletedCount = 0;
+    const validationsToDelete = Array.from(this.fieldValidations.values())
+      .filter(validation => 
+        validation.sessionId === sessionId && 
+        validation.validationType === 'collection_property'
+      );
+
+    validationsToDelete.forEach(validation => {
+      this.fieldValidations.delete(validation.id);
+      deletedCount++;
+    });
+
+    return deletedCount;
+  }
+
+  // Method to delete all validation data for a specific collection across all sessions
+  async deleteCollectionValidationData(collectionId: string): Promise<number> {
+    let deletedCount = 0;
+    const validationsToDelete = Array.from(this.fieldValidations.values())
+      .filter(validation => 
+        validation.collectionId === collectionId && 
+        validation.validationType === 'collection_property'
+      );
+
+    validationsToDelete.forEach(validation => {
+      this.fieldValidations.delete(validation.id);
+      deletedCount++;
+    });
+
+    return deletedCount;
+  }
+
   async getValidationsByCollectionAndIndex(sessionId: string, collectionName: string, recordIndex: number): Promise<FieldValidation[]> {
     const validations = Array.from(this.fieldValidations.values())
       .filter(validation => 
@@ -2703,6 +2739,32 @@ class PostgreSQLStorage implements IStorage {
         }
       }
     }
+  }
+
+  // Method to delete all collection validation data for a specific session
+  async deleteAllCollectionData(sessionId: string): Promise<number> {
+    const result = await this.db
+      .delete(fieldValidations)
+      .where(
+        and(
+          eq(fieldValidations.sessionId, sessionId),
+          eq(fieldValidations.validationType, 'collection_property')
+        )
+      );
+    return result.rowCount || 0;
+  }
+
+  // Method to delete all validation data for a specific collection across all sessions
+  async deleteCollectionValidationData(collectionId: string): Promise<number> {
+    const result = await this.db
+      .delete(fieldValidations)
+      .where(
+        and(
+          eq(fieldValidations.collectionId, collectionId),
+          eq(fieldValidations.validationType, 'collection_property')
+        )
+      );
+    return result.rowCount || 0;
   }
 
   // Project Publishing methods

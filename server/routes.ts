@@ -4852,6 +4852,64 @@ print(json.dumps(results))
     }
   });
 
+  // Delete all collection data for a session
+  app.delete("/api/sessions/:sessionId/collection-data", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      
+      // Verify session exists and user has access
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      
+      // Verify the session's project belongs to user's organization
+      const project = await storage.getProject(session.projectId, req.user!.organizationId);
+      if (!project) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      
+      const deletedCount = await storage.deleteAllCollectionData(sessionId);
+      res.json({ 
+        success: true, 
+        message: `Successfully deleted ${deletedCount} collection validation records`,
+        deletedCount 
+      });
+    } catch (error) {
+      console.error("Error deleting collection data:", error);
+      res.status(500).json({ message: "Failed to delete collection data" });
+    }
+  });
+
+  // Delete all validation data for a specific collection
+  app.delete("/api/collections/:collectionId/validation-data", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const collectionId = req.params.collectionId;
+      
+      // Verify collection exists and user has access
+      const collection = await storage.getObjectCollection(collectionId);
+      if (!collection) {
+        return res.status(404).json({ message: "Collection not found" });
+      }
+      
+      // Verify the collection's project belongs to user's organization
+      const project = await storage.getProject(collection.projectId, req.user!.organizationId);
+      if (!project) {
+        return res.status(404).json({ message: "Collection not found" });
+      }
+      
+      const deletedCount = await storage.deleteCollectionValidationData(collectionId);
+      res.json({ 
+        success: true, 
+        message: `Successfully deleted ${deletedCount} validation records for collection`,
+        deletedCount 
+      });
+    } catch (error) {
+      console.error("Error deleting collection validation data:", error);
+      res.status(500).json({ message: "Failed to delete collection validation data" });
+    }
+  });
+
   // Create HTTP server and return it
   const httpServer = createServer(app);
   return httpServer;

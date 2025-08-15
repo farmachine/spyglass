@@ -1526,6 +1526,27 @@ export default function SessionView() {
     }
   };
 
+  // Delete all collection data mutation
+  const deleteAllCollectionDataMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest(`/api/sessions/${sessionId}/collection-data`, {
+        method: "DELETE"
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sessions", sessionId, "validations"] });
+    },
+    onError: (error: any) => {
+      console.error('Failed to delete collection data:', error);
+    }
+  });
+
+  const handleDeleteAllCollectionData = async () => {
+    if (confirm("Are you sure you want to delete all collection data? This action cannot be undone.")) {
+      deleteAllCollectionDataMutation.mutate();
+    }
+  };
+
   // Handler for field verification changes
   const handleFieldVerification = (fieldName: string, isVerified: boolean) => {
     const validation = getValidation(fieldName);
@@ -3433,21 +3454,33 @@ Thank you for your assistance.`;
                               {uniqueIndices.length} {uniqueIndices.length === 1 ? 'item' : 'items'}
                             </span>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenAIExtraction(
-                              collection.collectionName,
-                              collection.properties?.map(prop => ({
-                                id: prop.id,
-                                name: prop.propertyName,
-                                type: prop.propertyType
-                              })) || []
-                            )}
-                            className="h-8 w-8 p-0 hover:bg-slate-100"
-                          >
-                            <Wand2 className="h-4 w-4" style={{ color: '#4F63A4' }} />
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenAIExtraction(
+                                collection.collectionName,
+                                collection.properties?.map(prop => ({
+                                  id: prop.id,
+                                  name: prop.propertyName,
+                                  type: prop.propertyType
+                                })) || []
+                              )}
+                              className="h-8 w-8 p-0 hover:bg-slate-100"
+                              title="AI Extract Collection Data"
+                            >
+                              <Wand2 className="h-4 w-4" style={{ color: '#4F63A4' }} />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleDeleteAllCollectionData}
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              title="Delete All Collection Data"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </CardTitle>
                         <p className="text-sm text-gray-600">{collection.description}</p>
                       </CardHeader>
