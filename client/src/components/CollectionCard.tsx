@@ -390,69 +390,7 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
         </div>
       </div>
 
-      {/* Extraction Type Section */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-semibold text-blue-600">2</div>
-          <h5 className="text-sm font-semibold text-gray-900">Extraction Type</h5>
-        </div>
-        <div className="space-y-3 pl-8">
-          <div>
-            <Label className="text-sm font-medium">Method</Label>
-            <Select 
-              value=""
-              onValueChange={(value) => {
-                if (value && !selectedReferences.includes(value)) {
-                  setSelectedReferences(prev => [...prev, value]);
-                }
-              }}
-            >
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select data sources from previous steps" />
-              </SelectTrigger>
-              <SelectContent>
-                {previousStepOptions.map((option) => (
-                  <SelectItem key={option.id} value={option.id}>
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{option.name}</span>
-                        <Badge variant="outline" className="text-xs">
-                          {option.category}
-                        </Badge>
-                      </div>
-                      <span className="text-xs text-gray-500">{option.description}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            {/* Selected References Display */}
-            {selectedReferences.length > 0 && (
-              <div className="mt-3 space-y-2">
-                <p className="text-xs text-gray-600">Selected references:</p>
-                <div className="flex flex-wrap gap-2">
-                  {selectedReferences.map((refId) => {
-                    const ref = previousStepOptions.find(opt => opt.id === refId);
-                    return ref ? (
-                      <div key={refId} className="flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-sm">
-                        <span>{ref.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedReferences(prev => prev.filter(id => id !== refId))}
-                          className="text-blue-600 hover:text-blue-800 ml-1"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ) : null;
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+
 
       {/* Output Section */}
       <div className="space-y-3">
