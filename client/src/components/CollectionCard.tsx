@@ -492,7 +492,7 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
 
       {/* Action Buttons */}
       <div className="flex items-center gap-2 pt-2">
-        <Button type="submit" disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
+        <Button type="submit" disabled={isLoading} className="bg-gray-700 hover:bg-gray-800">
           {isLoading ? "Saving..." : "Save Changes"}
           <Check className="h-4 w-4 ml-2" />
         </Button>
@@ -770,7 +770,7 @@ export default function CollectionCard({
                 <p className="text-sm text-gray-600 mb-4">Start building your data extraction process</p>
                 <Button 
                   onClick={() => onAddProperty(collection.id, collection.collectionName)}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-gray-700 hover:bg-gray-800"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add First Data Property
@@ -946,7 +946,7 @@ export default function CollectionCard({
                     variant="outline"
                     size="sm"
                     onClick={() => onAddProperty(collection.id, collection.collectionName)}
-                    className="border-2 border-dashed border-gray-300 hover:border-blue-400 hover:text-blue-600"
+                    className="border-2 border-dashed border-gray-300 hover:border-gray-500 hover:text-gray-700"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Next Data Property
