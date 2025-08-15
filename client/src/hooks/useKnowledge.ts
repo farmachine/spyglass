@@ -11,7 +11,12 @@ import type {
 export function useKnowledgeDocuments(projectId: string) {
   return useQuery({
     queryKey: ["/api/projects", projectId, "knowledge"],
-    queryFn: () => apiRequest(`/api/projects/${projectId}/knowledge`),
+    queryFn: async () => {
+      console.log('Fetching knowledge documents for project:', projectId);
+      const result = await apiRequest(`/api/projects/${projectId}/knowledge`);
+      console.log('Knowledge documents response:', result);
+      return result;
+    },
   });
 }
 
@@ -66,7 +71,12 @@ export function useDeleteKnowledgeDocument() {
 export function useExtractionRules(projectId: string) {
   return useQuery({
     queryKey: ["/api/projects", projectId, "rules"],
-    queryFn: () => apiRequest(`/api/projects/${projectId}/rules`),
+    queryFn: async () => {
+      console.log('Fetching extraction rules for project:', projectId);
+      const result = await apiRequest(`/api/projects/${projectId}/rules`);
+      console.log('Extraction rules response:', result);
+      return result;
+    },
   });
 }
 

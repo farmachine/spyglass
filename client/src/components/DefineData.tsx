@@ -95,6 +95,19 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
   const { data: collections = [], isLoading: collectionsLoading } = useObjectCollections(project.id);
   const { data: knowledgeDocuments = [] } = useKnowledgeDocuments(project.id);
   const { data: extractionRules = [] } = useExtractionRules(project.id);
+  
+  // Debug logging
+  console.log('DefineData - Data loaded:');
+  console.log('  project.id:', project.id);
+  console.log('  knowledgeDocuments:', knowledgeDocuments, 'length:', knowledgeDocuments?.length);
+  console.log('  extractionRules:', extractionRules, 'length:', extractionRules?.length);
+  
+  // Check for authentication issues
+  useEffect(() => {
+    if (knowledgeDocuments === undefined && extractionRules === undefined) {
+      console.warn('Both knowledge documents and extraction rules are undefined - possible auth issue');
+    }
+  }, [knowledgeDocuments, extractionRules]);
   const { data: wizardryFunctions = [] } = useExcelWizardryFunctions();
 
   // Handle data being null/undefined from API errors and sort by orderIndex

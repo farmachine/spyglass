@@ -35,8 +35,10 @@ interface InlinePropertyEditorProps {
 
 function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, extractionRules, onSave, onCancel, isLoading }: InlinePropertyEditorProps) {
   // Debug logging
-  console.log('InlinePropertyEditor - knowledgeDocuments:', knowledgeDocuments);
-  console.log('InlinePropertyEditor - extractionRules:', extractionRules);
+  console.log('InlinePropertyEditor - Props received:');
+  console.log('  knowledgeDocuments:', knowledgeDocuments, 'length:', knowledgeDocuments?.length);
+  console.log('  extractionRules:', extractionRules, 'length:', extractionRules?.length);
+  console.log('  excelFunctions:', excelFunctions, 'length:', excelFunctions?.length);
   const [formData, setFormData] = useState({
     propertyName: property.propertyName,
     propertyType: property.propertyType,
