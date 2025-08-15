@@ -3118,6 +3118,11 @@ Thank you for your assistance.`;
                     })()
                   }`}>
                     {(() => {
+                      // Show loading spinner when extraction is running
+                      if (isExtractionRunning) {
+                        return <Loader2 className="w-4 h-4 text-primary animate-spin" />;
+                      }
+                      
                       const infoValidations = validations.filter(v => !v.collectionName && !v.fieldName.includes('.'));
                       const verifiedCount = infoValidations.filter(v => 
                         v.validationStatus === 'verified' || 
@@ -3174,7 +3179,9 @@ Thank you for your assistance.`;
                               ? 'bg-primary border-primary' 
                               : 'bg-white border-slate-300')
                       }`}>
-                        {totalCount > 0 && verifiedCount === totalCount ? (
+                        {isExtractionRunning ? (
+                          <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                        ) : totalCount > 0 && verifiedCount === totalCount ? (
                           <Check className="w-4 h-4 text-green-600" />
                         ) : (
                           <div className={`w-3 h-3 rounded-full ${
