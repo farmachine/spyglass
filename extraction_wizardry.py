@@ -320,6 +320,49 @@ def get_excel_wizardry_functions():
     except Exception as e:
         return {"error": f"Excel wizardry functions query failed: {str(e)}"}
 
+def get_excel_wizardry_function_by_id(function_id):
+    """Get a specific Excel wizardry function by ID from the database"""
+    try:
+        # Get database connection from environment
+        database_url = os.getenv('DATABASE_URL')
+        if not database_url:
+            return {"error": "DATABASE_URL not found"}
+        
+        # Connect to database
+        conn = psycopg2.connect(database_url)
+        cursor = conn.cursor()
+        
+        # Query specific Excel wizardry function by ID
+        query = """
+        SELECT id, name, description, tags, function_code, usage_count
+        FROM excel_wizardry_functions
+        WHERE id = %s
+        """
+        
+        cursor.execute(query, (function_id,))
+        result = cursor.fetchone()
+        
+        if result:
+            func_id, name, description, tags, function_code, usage_count = result
+            function_data = {
+                "id": str(func_id),
+                "name": name,
+                "description": description,
+                "tags": tags or [],
+                "function_code": function_code,
+                "usage_count": usage_count or 0
+            }
+        else:
+            function_data = {"error": f"No function found with ID: {function_id}"}
+        
+        cursor.close()
+        conn.close()
+        
+        return function_data
+        
+    except Exception as e:
+        return {"error": f"Failed to retrieve Excel wizardry function: {str(e)}"}
+
 def create_excel_wizardry_function(name, description, tags, function_code):
     """Create a new Excel wizardry function in database"""
     try:
@@ -723,7 +766,9 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                     "is_identifier": field.get('isIdentifier', False),
                     "order_index": field.get('orderIndex', 0),
                     "collection_id": field.get('collectionId', ''),
-                    "type": "collection_property" if field.get('collectionId') else "schema_field"
+                    "type": "collection_property" if field.get('collectionId') else "schema_field",
+                    "extraction_type": field.get('extractionType', ''),
+                    "function_id": field.get('functionID', '')
                 }
                 target_fields_data.append(field_data)
         
@@ -734,6 +779,99 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
         else:
             # If extraction_number exceeds available fields, use identifier fields as fallback
             identifier_targets = [field for field in target_fields_data if field.get('is_identifier', False)]
+        
+        # CHECK FOR FUNCTION EXTRACTION TYPE - Bypass AI completely
+        if identifier_targets and identifier_targets[0].get('extraction_type') == 'FUNCTION':
+            function_id = identifier_targets[0].get('function_id')
+            if function_id:
+                print(f"\n🔧 FUNCTION EXTRACTION DETECTED!")
+                print(f"   Extraction Type: FUNCTION")
+                print(f"   Function ID: {function_id}")
+                print(f"   Bypassing AI analysis and going directly to function execution")
+                print("=" * 80)
+                
+                # Get function code from database
+                function_details = get_excel_wizardry_function_by_id(function_id)
+                if isinstance(function_details, dict) and "error" not in function_details:
+                    function_code = function_details.get('function_code', '')
+                    print(f"✅ Function retrieved: {function_details.get('name', 'Unnamed Function')}")
+                    
+                    # Get document content for function execution
+                    if documents != "NO DOCUMENTS SELECTED" and documents:
+                        for doc in documents:
+                            if doc.get('type', '').lower() in ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv']:
+                                extracted_content = doc.get('contentPreview', '')
+                                
+                                # Execute the function directly
+                                execution_result = execute_excel_wizardry_function(
+                                    function_code, 
+                                    extracted_content, 
+                                    identifier_targets, 
+                                    incoming_identifier_references
+                                )
+                                
+                                if isinstance(execution_result, dict) and "error" not in execution_result:
+                                    print(f"✅ Function execution successful!")
+                                    # Format results in the expected format
+                                    processed_results = {
+                                        'identifier_results': execution_result.get('results', []),
+                                        'error': None
+                                    }
+                                    
+                                    # Continue with standard result processing
+                                    print(json.dumps(processed_results['identifier_results'], indent=2))
+                                    
+                                    # Create identifier references for next extraction
+                                    identifier_references = []
+                                    for result in processed_results['identifier_results']:
+                                        if 'extracted_value' in result and 'field_name' in result:
+                                            field_name_parts = result['field_name'].split('.')
+                                            field_name_only = field_name_parts[-1] if len(field_name_parts) > 1 else result['field_name']
+                                            identifier_references.append({field_name_only: result['extracted_value']})
+                                    
+                                    print(f"\n🔗 IDENTIFIER REFERENCES ARRAY:")
+                                    print("=" * 80)
+                                    print(json.dumps(identifier_references, indent=2))
+                                    print("=" * 80)
+                                    print(f"Created {len(identifier_references)} new references for next extraction")
+                                    
+                                    # Handle auto-rerun logic
+                                    next_extraction_number = extraction_number + 1
+                                    total_target_fields = len(target_fields) if target_fields else 0
+                                    
+                                    if next_extraction_number < total_target_fields:
+                                        print("\n" + "=" * 80)
+                                        print(f"AUTO-RERUN: Starting extraction run {next_extraction_number + 1} of {total_target_fields}")
+                                        print("=" * 80)
+                                        print(f"Next extraction number: {next_extraction_number}")
+                                        print(f"Target field: {target_fields[next_extraction_number].get('propertyName', 'Unknown') if target_fields else 'None'}")
+                                        print(f"Progress: {next_extraction_number}/{total_target_fields} fields processed")
+                                        
+                                        rerun_data = {
+                                            "document_ids": document_ids,
+                                            "session_id": session_id,
+                                            "target_fields": target_fields,
+                                            "identifier_references": identifier_references
+                                        }
+                                        
+                                        run_wizardry_with_gemini_analysis(rerun_data, next_extraction_number)
+                                    else:
+                                        print("\n" + "=" * 80)
+                                        print("EXTRACTION COMPLETE")
+                                        print("=" * 80)
+                                        print(f"All {total_target_fields} target fields have been processed")
+                                        print("Extraction sequence finished successfully")
+                                        print("=" * 80)
+                                    
+                                    return  # Exit function after successful function execution
+                                else:
+                                    print(f"❌ Function execution failed: {execution_result.get('error', 'Unknown error')}")
+                else:
+                    print(f"❌ Could not retrieve function: {function_details.get('error', 'Unknown error') if isinstance(function_details, dict) else 'Invalid response'}")
+            else:
+                print(f"❌ FUNCTION extraction type detected but no function ID provided")
+        
+        # Continue with normal Gemini analysis if not a FUNCTION extraction type
         
         # Get all collection properties for progress tracking
         collection_ids = list(set([field.get('collection_id') for field in target_fields_data if field.get('collection_id')]))
