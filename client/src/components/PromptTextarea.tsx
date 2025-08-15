@@ -243,8 +243,7 @@ export function PromptTextarea({
             >
               <div className="flex justify-between items-start">
                 <div className="flex-1">
-                  <div className="font-medium text-sm text-gray-900">@{option.id}</div>
-                  <div className="text-xs text-gray-600 mt-1">{option.name}</div>
+                  <div className="font-medium text-sm text-gray-900">{option.name}</div>
                   {option.description && (
                     <div className="text-xs text-gray-500 mt-1 truncate">{option.description}</div>
                   )}
