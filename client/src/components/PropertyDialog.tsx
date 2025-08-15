@@ -147,6 +147,39 @@ export default function PropertyDialog({
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            {/* Extraction Type - Moved to top for easy toggling */}
+            <FormField
+              control={form.control}
+              name="extractionType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Extraction Type</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select extraction type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="AI">
+                        <div className="flex items-center gap-2">
+                          <Brain className="h-4 w-4" />
+                          AI Extraction
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="FUNCTION">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          Function-based Extraction
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="propertyName"
@@ -281,43 +314,6 @@ export default function PropertyDialog({
 
             {/* Extraction Configuration */}
             <div className="space-y-4 border-t pt-4">
-              <h3 className="text-lg font-medium flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Extraction Configuration
-              </h3>
-              
-              <FormField
-                control={form.control}
-                name="extractionType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Extraction Type</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select extraction type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="AI">
-                          <div className="flex items-center gap-2">
-                            <Brain className="h-4 w-4" />
-                            AI Extraction
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="FUNCTION">
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-4 w-4" />
-                            Function-based Extraction
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
               {/* AI Extraction Configuration */}
               {form.watch("extractionType") === "AI" && (
                 <div className="space-y-4 pl-4 border-l-2 border-blue-200">
