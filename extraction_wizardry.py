@@ -1079,17 +1079,26 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                                 print("=" * 80)
                                 print(f"Created {len(identifier_references)} new references for next extraction")
                             else:
-                                # Subsequent extractions - create standalone references for this extraction
-                                # Keep existing references intact and create new references for this field
-                                new_identifier_references = []
+                                # Subsequent extractions - append to existing identifier references by index
+                                merged_identifier_references = []
+                                existing_identifier_refs = identifier_references or []
                                 
-                                for result in processed_results['identifier_results']:
+                                for i, result in enumerate(processed_results['identifier_results']):
                                     if 'extracted_value' in result and 'field_name' in result:
                                         field_name_parts = result['field_name'].split('.')
                                         field_name_only = field_name_parts[-1] if len(field_name_parts) > 1 else result['field_name']
-                                        new_identifier_references.append({field_name_only: result['extracted_value']})
+                                        
+                                        # Get existing reference at this index or create new one
+                                        if i < len(existing_identifier_refs):
+                                            # Append to existing reference at same index
+                                            updated_ref = existing_identifier_refs[i].copy()
+                                            updated_ref[field_name_only] = result['extracted_value']
+                                            merged_identifier_references.append(updated_ref)
+                                        else:
+                                            # Create new reference if we have more results than existing references
+                                            merged_identifier_references.append({field_name_only: result['extracted_value']})
                                 
-                                identifier_references = new_identifier_references
+                                identifier_references = merged_identifier_references
                                 print(f"\n🔗 IDENTIFIER REFERENCES ARRAY:")
                                 print("=" * 80)
                                 print(json.dumps(identifier_references, indent=2))
@@ -1177,17 +1186,26 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                                     first_run_identifier_references = new_identifier_references
                                     identifier_references = new_identifier_references
                                 else:
-                                    # Subsequent extractions - create standalone references for this extraction
-                                    # Keep existing references intact and create new references for this field
-                                    new_identifier_references = []
+                                    # Subsequent extractions - append to existing identifier references by index
+                                    merged_identifier_references = []
+                                    existing_identifier_refs = identifier_references or []
                                     
-                                    for result in processed_results['identifier_results']:
+                                    for i, result in enumerate(processed_results['identifier_results']):
                                         if 'extracted_value' in result and 'field_name' in result:
                                             field_name_parts = result['field_name'].split('.')
                                             field_name_only = field_name_parts[-1] if len(field_name_parts) > 1 else result['field_name']
-                                            new_identifier_references.append({field_name_only: result['extracted_value']})
+                                            
+                                            # Get existing reference at this index or create new one
+                                            if i < len(existing_identifier_refs):
+                                                # Append to existing reference at same index
+                                                updated_ref = existing_identifier_refs[i].copy()
+                                                updated_ref[field_name_only] = result['extracted_value']
+                                                merged_identifier_references.append(updated_ref)
+                                            else:
+                                                # Create new reference if we have more results than existing references
+                                                merged_identifier_references.append({field_name_only: result['extracted_value']})
                                     
-                                    identifier_references = new_identifier_references
+                                    identifier_references = merged_identifier_references
                                 
                                 print("\n" + "=" * 80)
                                 print("IDENTIFIER REFERENCES")
