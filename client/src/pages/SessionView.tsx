@@ -667,6 +667,7 @@ const AIExtractionModal = ({
       };
       
       console.log('Complete Extraction Request:', JSON.stringify(requestData, null, 2));
+      console.log('🔍 DEBUG Frontend - project_id being sent:', project.id);
       
       const response = await apiRequest('/api/run-wizardry', {
         method: 'POST',
@@ -676,9 +677,14 @@ const AIExtractionModal = ({
         body: JSON.stringify(requestData),
       });
       console.log('Wizardry Result:', response);
+      console.log('🔍 DEBUG Frontend - response.success:', response.success);
       if (response.output) {
         console.log('Python Script Output:');
         console.log(response.output);
+      }
+      if (response.error) {
+        console.log('Python Script Error:');
+        console.log(response.error);
       }
       
       // After first extraction step completes and validations are saved, close modal

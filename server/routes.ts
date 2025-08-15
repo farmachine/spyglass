@@ -4818,7 +4818,18 @@ print(json.dumps(results))
       
       // Pass request data to Python script via stdin
       if (requestData && requestData.document_ids && requestData.session_id) {
+        console.log('🔍 DEBUG Backend - Sending to Python:', JSON.stringify({
+          project_id: requestData.project_id,
+          session_id: requestData.session_id,
+          document_count: requestData.document_ids?.length
+        }));
         python.stdin.write(JSON.stringify(requestData));
+      } else {
+        console.log('🔍 DEBUG Backend - Missing required data:', {
+          has_document_ids: !!requestData?.document_ids,
+          has_session_id: !!requestData?.session_id,
+          has_project_id: !!requestData?.project_id
+        });
       }
       python.stdin.end();
       
