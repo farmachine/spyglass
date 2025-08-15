@@ -35,13 +35,26 @@ app.use((req, res, next) => {
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      // Filter out noisy validation requests that spam the console
+      if (path.includes("/validations") && req.method === "GET" && res.statusCode === 304) {
+        return; // Skip these frequent validation checks
       }
 
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
+      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+      
+      // Only show JSON response for non-GET requests or errors
+      if (capturedJsonResponse && (req.method !== "GET" || res.statusCode >= 400)) {
+        // Truncate long JSON responses to keep logs readable
+        const jsonStr = JSON.stringify(capturedJsonResponse);
+        if (jsonStr.length > 100) {
+          logLine += ` :: [JSON response - ${jsonStr.length} chars]`;
+        } else {
+          logLine += ` :: ${jsonStr}`;
+        }
+      }
+
+      if (logLine.length > 120) {
+        logLine = logLine.slice(0, 117) + "…";
       }
 
       log(logLine);

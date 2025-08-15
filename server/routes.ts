@@ -4857,15 +4857,33 @@ print(json.dumps(results))
   app.post("/api/dev/console", (req, res) => {
     try {
       const { level, message, timestamp } = req.body;
-      const formattedTime = new Date(timestamp).toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: true,
-      });
       
-      // Format console message to appear in workflow console
-      log(`[browser-${level}] ${message}`, 'client');
+      // Filter out noisy console messages to improve readability
+      if (message.includes("CollectionCard - Props received") ||
+          message.includes("hot updated") ||
+          message.includes("connected") ||
+          message.includes("connecting")) {
+        res.status(200).json({ success: true });
+        return;
+      }
+      
+      // Format and clean up browser console messages
+      let cleanMessage = message;
+      if (cleanMessage.length > 150) {
+        cleanMessage = cleanMessage.slice(0, 147) + "...";
+      }
+      
+      // Use emoji prefixes for better visual distinction
+      const prefixes = {
+        'log': '📝',
+        'error': '❌',
+        'warn': '⚠️',
+        'info': 'ℹ️',
+        'debug': '🔍'
+      };
+      
+      const prefix = prefixes[level] || '📝';
+      log(`${prefix} ${cleanMessage}`, 'browser');
       
       res.status(200).json({ success: true });
     } catch (error) {
