@@ -112,7 +112,28 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    
+    // Map form data to API format
+    const mappedData = {
+      id: property.id,
+      collection_id: property.collectionId,
+      collection_name: property.collectionId, // Keeping same behavior as requested
+      property_name: formData.propertyName,
+      property_type: formData.propertyType,
+      description: formData.extractionType === 'AI' ? formData.aiInstructions : formData.description,
+      auto_verification_confidence: formData.autoVerificationConfidence,
+      choice_options: property.choiceOptions || [], // Same behavior
+      is_identifier: property.isIdentifier || false, // Same behavior
+      order_index: property.orderIndex, // Same behavior
+      knowledge_document_ids: formData.knowledgeDocumentIds,
+      extraction_rule_ids: formData.extractionRuleIds,
+      documents_required: formData.documentsRequired,
+      extraction_type: formData.extractionType,
+      function_id: formData.functionId,
+      required_document_type: formData.requiredDocumentType
+    };
+    
+    onSave(mappedData);
   };
 
   return (
@@ -124,18 +145,7 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
           <h5 className="text-sm font-semibold text-gray-900">Inputs</h5>
         </div>
         <div className="space-y-3 pl-8">
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="sourceDocumentsRequired"
-              checked={formData.sourceDocumentsRequired}
-              onChange={(e) => setFormData(prev => ({...prev, sourceDocumentsRequired: e.target.checked}))}
-              className="rounded border-gray-300"
-            />
-            <Label htmlFor="sourceDocumentsRequired" className="text-sm font-medium">
-              User must provide at least one document
-            </Label>
-          </div>
+
 
           <div>
             <Label className="text-sm font-medium">References from Previous Steps</Label>
@@ -449,18 +459,7 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
             />
           </div>
 
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="documentsRequired"
-              checked={formData.documentsRequired}
-              onChange={(e) => setFormData(prev => ({...prev, documentsRequired: e.target.checked}))}
-              className="rounded border-gray-300"
-            />
-            <Label htmlFor="documentsRequired" className="text-sm font-medium">
-              Uploaded Documents Required
-            </Label>
-          </div>
+
         </div>
       </div>
 
