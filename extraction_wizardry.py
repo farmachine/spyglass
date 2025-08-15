@@ -178,7 +178,7 @@ def analyze_document_format_with_gemini(documents, target_fields_data=None, max_
     return "ERROR: All Gemini API retry attempts failed"
 
 def clean_json_and_extract_identifiers(extraction_result, target_fields_data):
-    """Clean JSON results and create Identifier Results array with proper field_validations schema"""
+    """Clean JSON results and create Identifier Results array"""
     try:
         # Parse the extraction result if it's a string
         if isinstance(extraction_result, str):
@@ -197,138 +197,22 @@ def clean_json_and_extract_identifiers(extraction_result, target_fields_data):
         # Create Identifier Results array
         identifier_results = []
         
-        # Create a mapping of field names to field metadata from target_fields_data
-        field_name_to_metadata_map = {}
+        # Find identifier fields from target_fields_data
+        identifier_fields = []
         if target_fields_data:
             for field in target_fields_data:
-                field_name = field.get('name') or field.get('property_name') or field.get('propertyName', '')
-                field_id = field.get('id', '')  # Use 'id' field directly from target field schema
-                property_type = field.get('property_type') or field.get('propertyType', 'TEXT')
-                collection_id = field.get('collectionId', '')
-                if field_name and field_id:
-                    field_metadata = {
-                        'field_id': field_id,
-                        'collection_id': collection_id,
-                        'validation_type': field.get('type', 'collection_property'),
-                        'data_type': property_type
-                    }
-                    # Handle collection.property format
-                    if collection_id:
-                        full_field_name = f"{collection_id}.{field_name}"
-                        field_name_to_metadata_map[full_field_name] = field_metadata
-                    field_name_to_metadata_map[field_name] = field_metadata
+                if field.get('is_identifier', False):
+                    identifier_fields.append({
+                        'field_id': field.get('field_id'),
+                        'name': field.get('name'),
+                        'property_name': field.get('name')
+                    })
         
-        # Process validation records to ensure they have proper field IDs and all required database fields
+        # Extract all field_validation objects from the cleaned results for identifier results
         if isinstance(cleaned_result, list):
             for result_item in cleaned_result:
                 if isinstance(result_item, dict):
-                    # Ensure the validation record has a field_id
-                    field_name = result_item.get('field_name', '')
-                    
-                    # Try to map field_name to field metadata if not already present
-                    if field_name and not result_item.get('field_id'):
-                        field_metadata = None
-                        
-                        # Try direct field name match first
-                        if field_name in field_name_to_metadata_map:
-                            field_metadata = field_name_to_metadata_map[field_name]
-                        else:
-                            # Try different pattern matching approaches
-                            import re
-                            
-                            # Pattern 1: "Collection.Property[index]" -> "Collection.Property"
-                            property_match = re.match(r'([^.]+\.[^[]+)', field_name)
-                            if property_match:
-                                property_name = property_match.group(1)
-                                if property_name in field_name_to_metadata_map:
-                                    field_metadata = field_name_to_metadata_map[property_name]
-                            
-                            # Pattern 2: Try just the property name after the dot
-                            if not field_metadata and '.' in field_name:
-                                simple_property = field_name.split('.')[-1]
-                                # Remove any array notation
-                                if '[' in simple_property:
-                                    simple_property = simple_property.split('[')[0]
-                                
-                                # Try to find matching property in any collection
-                                for map_key, map_metadata in field_name_to_metadata_map.items():
-                                    if simple_property in map_key and map_metadata['field_id']:
-                                        field_metadata = map_metadata
-                                        break
-                        
-                        # Apply metadata to result item if found
-                        if field_metadata:
-                            if not result_item.get('field_id'):
-                                result_item['field_id'] = field_metadata['field_id']
-                            if not result_item.get('collection_id'):
-                                result_item['collection_id'] = field_metadata['collection_id']
-                            if not result_item.get('validation_type'):
-                                result_item['validation_type'] = field_metadata['validation_type']
-                            if not result_item.get('data_type'):
-                                result_item['data_type'] = field_metadata['data_type']
-                    
-                    # Ensure all required database fields are present with proper defaults
-                    
-                    # Set validation_type default if missing
-                    if not result_item.get('validation_type'):
-                        result_item['validation_type'] = 'collection_property'
-                    
-                    # Set data_type default if missing
-                    if not result_item.get('data_type'):
-                        result_item['data_type'] = 'TEXT'
-                    
-                    # Ensure confidence_score is integer (0-100)
-                    confidence = result_item.get('confidence_score', 0)
-                    if isinstance(confidence, float):
-                        result_item['confidence_score'] = int(confidence * 100)
-                    elif not isinstance(confidence, int):
-                        result_item['confidence_score'] = 85  # Default confidence
-                    
-                    # Set original values for database tracking
-                    if not result_item.get('original_extracted_value'):
-                        result_item['original_extracted_value'] = result_item.get('extracted_value')
-                    if not result_item.get('original_confidence_score'):
-                        result_item['original_confidence_score'] = result_item.get('confidence_score', 85)
-                    if not result_item.get('original_ai_reasoning'):
-                        result_item['original_ai_reasoning'] = result_item.get('ai_reasoning', 'Extracted by AI')
-                    
-                    # Set default values for boolean fields
-                    if 'manually_verified' not in result_item:
-                        result_item['manually_verified'] = False
-                    if 'manually_updated' not in result_item:
-                        result_item['manually_updated'] = False
-                    
-                    # Set validation_status default
-                    if not result_item.get('validation_status'):
-                        result_item['validation_status'] = 'pending'
-                    
-                    # Set ai_reasoning default if missing
-                    if not result_item.get('ai_reasoning'):
-                        result_item['ai_reasoning'] = 'Extracted by AI processing'
-                    
-                    # Set document source and sections defaults if missing
-                    if not result_item.get('document_source'):
-                        result_item['document_source'] = 'Unknown'
-                    if not result_item.get('document_sections'):
-                        result_item['document_sections'] = '[]'
-                    
-                    # Ensure collection_name is set for database compatibility
-                    # (database still uses collection_name but we populate it with collection_id)
-                    if not result_item.get('collection_name') and result_item.get('collection_id'):
-                        result_item['collection_name'] = result_item['collection_id']
-                    
-                    # Ensure record_index is integer
-                    if 'record_index' in result_item and not isinstance(result_item['record_index'], int):
-                        try:
-                            result_item['record_index'] = int(result_item['record_index'])
-                        except:
-                            result_item['record_index'] = 0
-                    
-                    # Remove the legacy field_name if it exists (not part of database schema)
-                    if 'field_name' in result_item:
-                        del result_item['field_name']
-                    
-                    # Add the validation record to identifier results
+                    # Return the complete field_validation object
                     identifier_results.append(result_item)
         
         return {
@@ -913,14 +797,10 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             # Parse the response to get function ID or CREATE_NEW
             if "|" in gemini_response:
                 function_instruction = gemini_response.split("|")[-1].strip()
-                # Clean any extra characters like asterisks, quotes, or whitespace
-                function_instruction = function_instruction.strip('*').strip('"').strip("'").strip()
             else:
                 function_instruction = "CREATE_NEW"
             
             print(f"Function instruction: {function_instruction}")
-            print(f"Function instruction length: {len(function_instruction)}")
-            print(f"Function instruction repr: {repr(function_instruction)}")
             
             # Handle document processing based on whether documents are selected
             if documents == "NO DOCUMENTS SELECTED":
@@ -951,10 +831,7 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                 
                 # Find the function by ID
                 existing_function = None
-                print(f"Looking for function ID: '{function_instruction}'")
-                print(f"Available function IDs:")
                 for func in existing_functions:
-                    print(f"   - '{func['id']}' ({func.get('name', 'Unnamed')})")
                     if func['id'] == function_instruction:
                         existing_function = func
                         break
@@ -1056,7 +933,7 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                     else:
                         print(f"Error executing function: {function_result['error']}")
                 else:
-                    print(f"❌ Function with ID '{function_instruction}' not found in available functions, creating new function instead")
+                    print(f"Function with ID {function_instruction} not found, creating new function instead")
                     function_instruction = "CREATE_NEW"
             
             if function_instruction == "CREATE_NEW":
