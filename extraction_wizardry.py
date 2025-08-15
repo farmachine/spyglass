@@ -202,17 +202,17 @@ def clean_json_and_extract_identifiers(extraction_result, target_fields_data):
         if target_fields_data:
             for field in target_fields_data:
                 field_name = field.get('name') or field.get('property_name') or field.get('propertyName', '')
-                field_id = field.get('field_id') or field.get('id', '')
+                field_id = field.get('id', '')  # Use 'id' field directly from target field schema
                 property_type = field.get('property_type') or field.get('propertyType', 'TEXT')
+                collection_id = field.get('collectionId', '')
                 if field_name and field_id:
                     field_metadata = {
                         'field_id': field_id,
-                        'collection_name': field.get('collectionId', field.get('collection_name', '')),
+                        'collection_id': collection_id,
                         'validation_type': field.get('type', 'collection_property'),
                         'data_type': property_type
                     }
                     # Handle collection.property format
-                    collection_id = field.get('collectionId', field.get('collection_name', ''))
                     if collection_id:
                         full_field_name = f"{collection_id}.{field_name}"
                         field_name_to_metadata_map[full_field_name] = field_metadata
@@ -260,8 +260,8 @@ def clean_json_and_extract_identifiers(extraction_result, target_fields_data):
                         if field_metadata:
                             if not result_item.get('field_id'):
                                 result_item['field_id'] = field_metadata['field_id']
-                            if not result_item.get('collection_name'):
-                                result_item['collection_name'] = field_metadata['collection_name']
+                            if not result_item.get('collection_id'):
+                                result_item['collection_id'] = field_metadata['collection_id']
                             if not result_item.get('validation_type'):
                                 result_item['validation_type'] = field_metadata['validation_type']
                             if not result_item.get('data_type'):
@@ -311,6 +311,11 @@ def clean_json_and_extract_identifiers(extraction_result, target_fields_data):
                         result_item['document_source'] = 'Unknown'
                     if not result_item.get('document_sections'):
                         result_item['document_sections'] = '[]'
+                    
+                    # Ensure collection_name is set for database compatibility
+                    # (database still uses collection_name but we populate it with collection_id)
+                    if not result_item.get('collection_name') and result_item.get('collection_id'):
+                        result_item['collection_name'] = result_item['collection_id']
                     
                     # Ensure record_index is integer
                     if 'record_index' in result_item and not isinstance(result_item['record_index'], int):

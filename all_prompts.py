@@ -95,9 +95,9 @@ MANDATORY REQUIREMENTS:
 4. If no documents are available (empty extracted_content), the function must work purely from identifier_references data
 5. Output format: Return a list of dictionaries matching the field_validations database schema:
    - "validation_type": "collection_property" (or "schema_field")
-   - "data_type": field's property_type (e.g., "TEXT", "NUMBER", "DATE", "CHOICE")
-   - "field_id": field's UUID from collectionProperties or projectSchemaFields
-   - "collection_name": collectionId from target field schema for collection_property type (null for schema_field)
+   - "data_type": field's propertyType (e.g., "TEXT", "NUMBER", "DATE", "CHOICE")
+   - "field_id": target field's id (UUID)
+   - "collection_id": target field's collectionId for collection_property type (null for schema_field)
    - "record_index": unique number starting from 0
    - "extracted_value": the actual extracted data
    - "original_extracted_value": same as extracted_value initially
@@ -173,9 +173,9 @@ REQUIRED OUTPUT FORMAT:
 For each extracted value, return a JSON object matching the field_validations database schema:
 {{
     "validation_type": "collection_property", // or "schema_field"
-    "data_type": field's property_type (e.g., "TEXT", "NUMBER", "DATE", "CHOICE"),
-    "field_id": "field's UUID from collectionProperties or projectSchemaFields",
-    "collection_name": "collectionId from target field schema for collection_property type", // null for schema_field
+    "data_type": field's propertyType (e.g., "TEXT", "NUMBER", "DATE", "CHOICE"),
+    "field_id": "target field's id (UUID)",
+    "collection_id": "target field's collectionId for collection_property type", // null for schema_field
     "record_index": sequential_number_starting_from_0,
     "extracted_value": "actual_extracted_data",
     "original_extracted_value": "actual_extracted_data", // same as extracted_value initially
