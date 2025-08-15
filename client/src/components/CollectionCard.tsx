@@ -47,7 +47,7 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
     propertyType: property.propertyType,
     description: property.description || '',
     extractionType: property.extractionType || 'AI',
-    requiredDocumentType: property.requiredDocumentType || 'Excel (.xlsx, .xls)',
+    requiredDocumentType: property.requiredDocumentType || 'Any',
     functionId: property.functionId || null,
     autoVerificationConfidence: property.autoVerificationConfidence || 80,
     documentsRequired: property.documentsRequired || false,
