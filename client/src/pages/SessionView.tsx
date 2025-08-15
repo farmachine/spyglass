@@ -252,7 +252,7 @@ const ValidationToggle = ({ fieldName, validation, onToggle }: {
   );
 };
 
-// AI Extraction Modal Component
+// AI Extraction Modal Component  
 const AIExtractionModal = ({ 
   isOpen, 
   onClose, 
@@ -262,7 +262,8 @@ const AIExtractionModal = ({
   verifiedFields,
   allProjectFields = [],
   sessionId,
-  project
+  project,
+  onStartProgressivePolling
 }: { 
   isOpen: boolean; 
   onClose: () => void; 
@@ -273,6 +274,7 @@ const AIExtractionModal = ({
   allProjectFields?: { id: string; name: string; type: string }[];
   sessionId: string;
   project?: any;
+  onStartProgressivePolling: (sessionId: string) => void;
 }) => {
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [selectedVerifiedFields, setSelectedVerifiedFields] = useState<string[]>([]);
@@ -287,49 +289,6 @@ const AIExtractionModal = ({
     completedFields: Set<string>;
     totalFields: number;
   }>({ currentFieldIndex: -1, completedFields: new Set(), totalFields: 0 });
-
-  // State for progressive extraction monitoring
-  const [progressivePollingActive, setProgressivePollingActive] = useState(false);
-  const [lastValidationCount, setLastValidationCount] = useState(0);
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Progressive validation polling function
-  const startProgressiveValidationPolling = (sessionId: string) => {
-    setProgressivePollingActive(true);
-    setLastValidationCount(validations?.length || 0);
-    
-    // Clear any existing polling interval
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-    }
-    
-    // Poll every 3 seconds for validation updates
-    pollingIntervalRef.current = setInterval(() => {
-      queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
-    }, 3000);
-    
-    // Stop polling after 5 minutes (allowing time for multi-step extraction)
-    setTimeout(() => {
-      stopProgressiveValidationPolling();
-    }, 300000); // 5 minutes
-  };
-
-  const stopProgressiveValidationPolling = () => {
-    setProgressivePollingActive(false);
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    }
-  };
-
-  // Clean up polling on component unmount
-  useEffect(() => {
-    return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
-    };
-  }, []);
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -690,7 +649,7 @@ const AIExtractionModal = ({
         queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
         
         // Start polling for progressive updates
-        startProgressiveValidationPolling(sessionId);
+        onStartProgressivePolling(sessionId);
         
         // Show completion message
         toast({
@@ -1120,6 +1079,49 @@ export default function SessionView() {
     sectionName: string;
     availableFields: { id: string; name: string; type: string; index?: number; orderIndex?: number }[];
   }>({ open: false, sectionName: '', availableFields: [] });
+
+  // Progressive extraction polling state
+  const [progressivePollingActive, setProgressivePollingActive] = useState(false);
+  const [lastValidationCount, setLastValidationCount] = useState(0);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Progressive validation polling functions
+  const startProgressiveValidationPolling = (sessionId: string) => {
+    setProgressivePollingActive(true);
+    setLastValidationCount(validations?.length || 0);
+    
+    // Clear any existing polling interval
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+    
+    // Poll every 3 seconds for validation updates
+    pollingIntervalRef.current = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
+    }, 3000);
+    
+    // Stop polling after 5 minutes (allowing time for multi-step extraction)
+    setTimeout(() => {
+      stopProgressiveValidationPolling();
+    }, 300000); // 5 minutes
+  };
+
+  const stopProgressiveValidationPolling = () => {
+    setProgressivePollingActive(false);
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+  };
+
+  // Clean up polling on component unmount
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, []);
 
   // Helper function to find schema field data
   const findSchemaField = (validation: FieldValidation) => {
@@ -4130,6 +4132,7 @@ Thank you for your assistance.`;
         allProjectFields={getAllProjectFields()}
         sessionId={sessionId}
         project={project}
+        onStartProgressivePolling={startProgressiveValidationPolling}
       />
       {/* Session Chat */}
       {session && validations && (
