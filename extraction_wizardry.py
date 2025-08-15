@@ -1045,13 +1045,19 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                         
                         if 'error' not in processed_results:
                             record_count = len(processed_results['cleaned_results']) if isinstance(processed_results['cleaned_results'], list) else 0
-                            print(f"\n✅ EXTRACTION RESULTS: {record_count} records extracted using existing function")
+                            print(f"\n✅ STEP {extraction_number + 1} COMPLETE: {record_count} records extracted using existing function")
                             
-                            # Show complete validation results JSON
-                            print(f"\n📋 COMPLETE VALIDATION RESULTS JSON:")
-                            print("=" * 80)
-                            print(json.dumps(processed_results['identifier_results'], indent=2))
-                            print("=" * 80)
+                            # Show truncated validation results preview
+                            print(f"\n📋 EXTRACTED FIELD PREVIEW:")
+                            print("=" * 60)
+                            sample_results = processed_results['identifier_results'][:3]  # Show first 3 records
+                            for i, result in enumerate(sample_results):
+                                field_name = result.get('field_name', 'Unknown')
+                                value = str(result.get('extracted_value', 'No value'))[:50]
+                                print(f"   {i+1}. {field_name}: \"{value}{'...' if len(str(result.get('extracted_value', ''))) > 50 else ''}\"")
+                            if len(processed_results['identifier_results']) > 3:
+                                print(f"   ... and {len(processed_results['identifier_results']) - 3} more records")
+                            print("=" * 60)
                             
                             # Create or update identifier references
                             if extraction_number == 0:
@@ -1163,13 +1169,19 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                             
                             if 'error' not in processed_results:
                                 record_count = len(processed_results['cleaned_results']) if isinstance(processed_results['cleaned_results'], list) else 0
-                                print(f"\n✅ EXTRACTION RESULTS: {record_count} records extracted using new function")
+                                print(f"\n✅ STEP {extraction_number + 1} COMPLETE: {record_count} records extracted using new function")
                                 
-                                # Show complete validation results JSON
-                                print(f"\n📋 COMPLETE VALIDATION RESULTS JSON:")
-                                print("=" * 80)
-                                print(json.dumps(processed_results['identifier_results'], indent=2))
-                                print("=" * 80)
+                                # Show truncated validation results preview
+                                print(f"\n📋 EXTRACTED FIELD PREVIEW:")
+                                print("=" * 60)
+                                sample_results = processed_results['identifier_results'][:3]  # Show first 3 records
+                                for i, result in enumerate(sample_results):
+                                    field_name = result.get('field_name', 'Unknown')
+                                    value = str(result.get('extracted_value', 'No value'))[:50]
+                                    print(f"   {i+1}. {field_name}: \"{value}{'...' if len(str(result.get('extracted_value', ''))) > 50 else ''}\"")
+                                if len(processed_results['identifier_results']) > 3:
+                                    print(f"   ... and {len(processed_results['identifier_results']) - 3} more records")
+                                print("=" * 60)
                                 
                                 # Create or update identifier references
                                 if extraction_number == 0:
@@ -1267,13 +1279,19 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             if 'error' not in processed_results:
                 # Show record count and sample results
                 record_count = len(processed_results['cleaned_results']) if isinstance(processed_results['cleaned_results'], list) else 0
-                print(f"\n✅ EXTRACTION RESULTS: {record_count} records extracted using AI")
+                print(f"\n✅ STEP {extraction_number + 1} COMPLETE: {record_count} records extracted using AI")
                 
-                # Show complete validation results JSON
-                print(f"\n📋 COMPLETE VALIDATION RESULTS JSON:")
-                print("=" * 80)
-                print(json.dumps(processed_results['identifier_results'], indent=2))
-                print("=" * 80)
+                # Show truncated validation results preview
+                print(f"\n📋 EXTRACTED FIELD PREVIEW:")
+                print("=" * 60)
+                sample_results = processed_results['identifier_results'][:3]  # Show first 3 records
+                for i, result in enumerate(sample_results):
+                    field_name = result.get('field_name', 'Unknown')
+                    value = str(result.get('extracted_value', 'No value'))[:50]
+                    print(f"   {i+1}. {field_name}: \"{value}{'...' if len(str(result.get('extracted_value', ''))) > 50 else ''}\"")
+                if len(processed_results['identifier_results']) > 3:
+                    print(f"   ... and {len(processed_results['identifier_results']) - 3} more records")
+                print("=" * 60)
                 
                 # Create and display IDENTIFIER REFERENCES array
                 identifier_references = []

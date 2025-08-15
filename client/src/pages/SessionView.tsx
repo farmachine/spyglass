@@ -328,12 +328,13 @@ const AIExtractionModal = ({
     
     const pollInterval = setInterval(async () => {
       pollCount++;
-      console.log(`🔄 Column-by-column polling [${pollCount}/${maxPollCount}]: checking for new extraction data...`);
+      console.log(`🔄 POLLING [${pollCount}/${maxPollCount}]: Checking for new field validations...`);
       
       try {
         // Fetch fresh validation data without removing cached queries from other components
         queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
         
+        console.log(`   📡 Fetching validation data for session: ${sessionId}`);
         const validationData = await queryClient.fetchQuery({ 
           queryKey: ['/api/sessions', sessionId, 'validations'],
           staleTime: 0 // Always fetch fresh data
@@ -346,11 +347,23 @@ const AIExtractionModal = ({
           // Data changed - new field validation(s) saved!
           consecutiveNoChangeCount = 0; // Reset counter when data changes
           const newFieldsCount = currentValidationCount - lastValidationCount;
-          console.log(`✅ NEW FIELD(S) DETECTED: +${newFieldsCount} validations (${lastValidationCount} → ${currentValidationCount})`);
+          console.log(`✅ NEW EXTRACTION DATA: +${newFieldsCount} field validations (${lastValidationCount} → ${currentValidationCount})`);
+          
+          // Log sample of new validation data (first few fields)
+          if (Array.isArray(validationData) && validationData.length > 0) {
+            const recentValidations = validationData.slice(-Math.min(newFieldsCount, 3));
+            console.log(`   📋 Sample extracted fields:`);
+            recentValidations.forEach((v, i) => {
+              const fieldName = v.fieldName || 'Unknown';
+              const value = v.extractedValue?.substring(0, 30) || 'No value';
+              console.log(`   ${i + 1}. ${fieldName}: "${value}${v.extractedValue?.length > 30 ? '...' : ''}"`);
+            });
+          }
           
           // Only invalidate and refetch validation data - NOT the entire project
           await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
           
+          console.log(`   🔄 Triggering UI re-render for new field data`);
           // Trigger targeted component re-render for validation data only
           setRefreshTrigger(prev => prev + 1);
           
@@ -371,14 +384,15 @@ const AIExtractionModal = ({
         } else {
           // No data changes detected
           consecutiveNoChangeCount++;
-          console.log(`📊 No changes detected (${consecutiveNoChangeCount}/${maxConsecutiveNoChanges}) - ${currentValidationCount} validations`);
+          console.log(`   📊 No new data (${consecutiveNoChangeCount}/${maxConsecutiveNoChanges}) - ${currentValidationCount} total validations`);
         }
         
         lastValidationCount = currentValidationCount;
         
         // Stop polling if no changes for several consecutive attempts (extraction likely complete)
         if (consecutiveNoChangeCount >= maxConsecutiveNoChanges) {
-          console.log('🏁 Extraction appears complete (no data changes for 10 seconds) - stopping polling');
+          console.log('🏁 EXTRACTION COMPLETE: No new data for 10 seconds - stopping polling');
+          console.log(`   📊 Final Results: ${currentValidationCount} total field validations extracted`);
           clearInterval(pollInterval);
           setIsExtractionRunning(false);
           setExtractingCollection(null);
@@ -391,14 +405,16 @@ const AIExtractionModal = ({
         }
         
       } catch (error) {
-        console.error('Polling error:', error);
+        console.error('❌ POLLING ERROR:', error.message || error);
+        console.log(`   🔄 Continuing polling despite error (attempt ${pollCount}/${maxPollCount})`);
         // Continue polling even on errors, but count them as no-change
         consecutiveNoChangeCount++;
       }
       
       // Stop polling after max attempts
       if (pollCount >= maxPollCount) {
-        console.log('⏹️ Real-time polling complete (max attempts reached)');
+        console.log('⏹️ POLLING TIMEOUT: Maximum attempts reached');
+        console.log(`   📊 Final Results: ${lastValidationCount} total field validations extracted`);
         clearInterval(pollInterval);
         setIsExtractionRunning(false);
         setExtractingCollection(null);
