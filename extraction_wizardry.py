@@ -197,22 +197,44 @@ def clean_json_and_extract_identifiers(extraction_result, target_fields_data):
         # Create Identifier Results array
         identifier_results = []
         
-        # Find identifier fields from target_fields_data
-        identifier_fields = []
+        # Create a mapping of field names to field IDs from target_fields_data
+        field_name_to_id_map = {}
         if target_fields_data:
             for field in target_fields_data:
-                if field.get('is_identifier', False):
-                    identifier_fields.append({
-                        'field_id': field.get('field_id'),
-                        'name': field.get('name'),
-                        'property_name': field.get('name')
-                    })
+                field_name = field.get('name') or field.get('property_name') or field.get('propertyName', '')
+                field_id = field.get('field_id') or field.get('id', '')
+                if field_name and field_id:
+                    # Handle collection.property format
+                    collection_name = field.get('collection_name', '')
+                    if collection_name:
+                        full_field_name = f"{collection_name}.{field_name}"
+                        field_name_to_id_map[full_field_name] = field_id
+                    field_name_to_id_map[field_name] = field_id
         
-        # Extract all field_validation objects from the cleaned results for identifier results
+        print(f"🔗 Field Name to ID Mapping: {field_name_to_id_map}")
+        
+        # Process validation records to ensure they have proper field IDs
         if isinstance(cleaned_result, list):
             for result_item in cleaned_result:
                 if isinstance(result_item, dict):
-                    # Return the complete field_validation object
+                    # Ensure the validation record has a field_id
+                    field_name = result_item.get('field_name', '')
+                    
+                    # Try to map field_name to field_id if not already present
+                    if field_name and not result_item.get('field_id'):
+                        # Try direct field name match first
+                        if field_name in field_name_to_id_map:
+                            result_item['field_id'] = field_name_to_id_map[field_name]
+                        else:
+                            # Try to extract property name from field_name (e.g., "Collection.Property[index]")
+                            import re
+                            property_match = re.match(r'([^.]+\.[^[]+)', field_name)
+                            if property_match:
+                                property_name = property_match.group(1)
+                                if property_name in field_name_to_id_map:
+                                    result_item['field_id'] = field_name_to_id_map[property_name]
+                    
+                    # Add the validation record to identifier results
                     identifier_results.append(result_item)
         
         return {

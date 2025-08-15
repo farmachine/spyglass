@@ -97,6 +97,7 @@ MANDATORY REQUIREMENTS:
    - "validation_type": "collection_property"
    - "data_type": field's property_type or "TEXT"
    - "field_name": "CollectionName.FieldName[INDEX]" 
+   - "field_id": field's id from target_fields_data (required)
    - "collection_name": field's collection name
    - "extracted_value": the actual extracted data
    - "confidence_score": 0.95
@@ -168,6 +169,7 @@ For each extracted value, return a JSON object with these exact keys:
     "validation_type": "collection_property",
     "data_type": field's property_type or "TEXT",
     "field_name": "CollectionName.PropertyName[record_index]",
+    "field_id": field's id from target field schema (required),
     "collection_name": field's collection name,
     "extracted_value": "actual_extracted_data",
     "confidence_score": number between 0.0 and 1.0,
