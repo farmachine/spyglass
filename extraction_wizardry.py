@@ -802,61 +802,11 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                             if doc.get('type', '').lower() in ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv']:
                                 extracted_content = doc.get('contentPreview', '')
                                 
-                                # Execute the function directly
-                                # For functions that need identifier references but don't have any,
-                                # provide empty references or generate basic data based on document content
-                                if not incoming_identifier_references and function_details.get('name') in ['Extract Column Names', 'Find Worksheet Name']:
-                                    print(f"⚠️  Function '{function_details.get('name')}' typically requires identifier references but none provided")
-                                    print(f"   Attempting to generate basic extraction results from document content")
-                                    
-                                    # For column name extraction, try to extract from first row
-                                    if 'Column Names' in function_details.get('name', ''):
-                                        # Parse document content to get column headers
-                                        if extracted_content and '===' in extracted_content:
-                                            try:
-                                                # Extract first row after sheet header
-                                                lines = extracted_content.split('\n')
-                                                for i, line in enumerate(lines):
-                                                    if line.strip().startswith('===') and i + 1 < len(lines):
-                                                        header_row = lines[i + 1].strip()
-                                                        if header_row:
-                                                            columns = [col.strip() for col in header_row.split('\t') if col.strip()]
-                                                            print(f"   Found {len(columns)} column headers in document")
-                                                            # Create synthetic identifier references for the function
-                                                            synthetic_refs = []
-                                                            for idx, col in enumerate(columns[:5]):  # Limit to first 5 columns
-                                                                synthetic_refs.append({f"Column Heading[{idx}]": col})
-                                                            incoming_identifier_references = synthetic_refs
-                                                            break
-                                            except Exception as e:
-                                                print(f"   Could not parse column headers: {e}")
-                                    
-                                    # For worksheet name extraction with column headers
-                                    if 'Worksheet Name' in function_details.get('name', ''):
-                                        # Parse document content to get column headers from all sheets
-                                        if extracted_content and '===' in extracted_content:
-                                            try:
-                                                # Extract column headers from each sheet
-                                                sheets = extracted_content.split('=== Sheet:')
-                                                synthetic_refs = []
-                                                idx = 0
-                                                for sheet_block in sheets[1:]:  # Skip first empty part
-                                                    if sheet_block.strip():
-                                                        lines = sheet_block.split('\n')
-                                                        if len(lines) > 1:
-                                                            header_row = lines[1].strip()  # First data row after sheet header
-                                                            if header_row:
-                                                                columns = [col.strip() for col in header_row.split('\t') if col.strip()]
-                                                                for col in columns[:3]:  # First 3 columns per sheet
-                                                                    synthetic_refs.append({f"Column Heading[{idx}]": col})
-                                                                    idx += 1
-                                                                    if idx >= 5:  # Limit total references
-                                                                        break
-                                                if synthetic_refs:
-                                                    print(f"   Generated {len(synthetic_refs)} column heading references")
-                                                    incoming_identifier_references = synthetic_refs
-                                            except Exception as e:
-                                                print(f"   Could not parse worksheet headers: {e}")
+                                # Add debugging for identifier references
+                                print(f"🔍 DEBUG: Incoming identifier references: {len(incoming_identifier_references) if incoming_identifier_references else 0}")
+                                if incoming_identifier_references and len(incoming_identifier_references) > 0:
+                                    print(f"🔍 DEBUG: First reference: {incoming_identifier_references[0]}")
+                                    print(f"🔍 DEBUG: Last reference: {incoming_identifier_references[-1]}")
                                 
                                 execution_result = execute_excel_wizardry_function(
                                     function_code, 
