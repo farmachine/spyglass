@@ -29,8 +29,10 @@ import {
   useUpdateCollection,
   useDeleteCollection,
   useUpdateProperty,
-  useDeleteProperty
+  useDeleteProperty,
+  useExcelWizardryFunctions
 } from "@/hooks/useSchema";
+import { useKnowledgeDocuments, useExtractionRules } from "@/hooks/useKnowledge";
 import { useUpdateProject } from "@/hooks/useProjects";
 import SchemaFieldDialog from "@/components/SchemaFieldDialog";
 import CollectionDialog from "@/components/CollectionDialog";
@@ -91,6 +93,9 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
   // Query for live data instead of using static props
   const { data: schemaFields = [], isLoading: schemaFieldsLoading } = useProjectSchemaFields(project.id);
   const { data: collections = [], isLoading: collectionsLoading } = useObjectCollections(project.id);
+  const { data: knowledgeDocuments = [] } = useKnowledgeDocuments(project.id);
+  const { data: extractionRules = [] } = useExtractionRules(project.id);
+  const { data: wizardryFunctions = [] } = useExcelWizardryFunctions();
 
   // Handle data being null/undefined from API errors and sort by orderIndex
   const safeSchemaFields = Array.isArray(schemaFields) 
@@ -801,6 +806,9 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
         onOpenChange={(open) => setSchemaFieldDialog({ open, field: null })}
         onSave={schemaFieldDialog.field ? handleUpdateSchemaField : handleCreateSchemaField}
         field={schemaFieldDialog.field}
+        knowledgeDocuments={knowledgeDocuments}
+        extractionRules={extractionRules}
+        wizardryFunctions={wizardryFunctions}
       />
 
       <CollectionDialog
@@ -816,6 +824,9 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
         onSave={propertyDialog.property ? handleUpdateProperty : handleCreateProperty}
         property={propertyDialog.property}
         collectionName={propertyDialog.collectionName}
+        knowledgeDocuments={knowledgeDocuments}
+        extractionRules={extractionRules}
+        wizardryFunctions={wizardryFunctions}
       />
 
       <DeleteDialog

@@ -6,7 +6,10 @@ import type {
   ObjectCollection,
   InsertObjectCollection,
   CollectionProperty,
-  InsertCollectionProperty
+  InsertCollectionProperty,
+  ExcelWizardryFunction,
+  KnowledgeDocument,
+  ExtractionRule
 } from "@shared/schema";
 
 // Schema Fields
@@ -218,5 +221,13 @@ export function useDeleteProperty() {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       queryClient.invalidateQueries({ queryKey: ["/api/collections"] });
     },
+  });
+}
+
+// Excel Wizardry Functions
+export function useExcelWizardryFunctions() {
+  return useQuery({
+    queryKey: ["/api/excel-functions"],
+    queryFn: () => apiRequest("/api/excel-functions"),
   });
 }
