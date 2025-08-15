@@ -72,11 +72,37 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
     ];
     
     // Add preceding collections based on current collection
-    const precedingCollections = [
-      { id: 'additional_column_names', name: 'Additional Column Names', type: 'COLLECTION', description: 'Collection of additional columns found', category: 'Collection' },
-      { id: 'missing_column_names', name: 'Missing Column Names', type: 'COLLECTION', description: 'Collection of missing expected columns', category: 'Collection' },
-      { id: 'column_name_mapping', name: 'Column Name Mapping', type: 'COLLECTION', description: 'Mapping between expected and actual column names', category: 'Collection' },
+    // Only show collections that come BEFORE the current one in order
+    const precedingCollections = [];
+    
+    // Define the collection order
+    const collectionOrder = [
+      'Column Name Mapping',
+      'Additional Column Names', 
+      'Missing Column Names',
+      'Codes',
+      'Missing Data',
+      'Invalid Thresholds',
+      'Cross Validation Checks'
     ];
+    
+    // Find current collection's position and only include preceding ones
+    const currentCollectionName = property.collectionName || '';
+    const currentIndex = collectionOrder.indexOf(currentCollectionName);
+    
+    if (currentIndex > 0) {
+      // Only add collections that come before the current one
+      for (let i = 0; i < currentIndex; i++) {
+        const collectionName = collectionOrder[i];
+        precedingCollections.push({
+          id: collectionName.toLowerCase().replace(/\s+/g, '_'),
+          name: collectionName,
+          type: 'COLLECTION',
+          description: `Collection: ${collectionName}`,
+          category: 'Collection'
+        });
+      }
+    }
     
     return [...schemaFields, ...precedingCollections];
   };
