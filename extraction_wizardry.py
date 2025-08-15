@@ -868,6 +868,7 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
         
         # Save extraction step parameters to database at the start of each step
         project_id = data.get('project_id', 'unknown')  # This should be passed in the data
+        print(f"🔍 DEBUG: project_id from data: {project_id}", file=sys.stderr)
         target_property_id = identifier_targets[0].get('field_id') if identifier_targets else None
         target_property_name = identifier_targets[0].get('name') if identifier_targets else None
         collection_id = identifier_targets[0].get('collection_id') if identifier_targets else None
