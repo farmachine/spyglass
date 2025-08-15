@@ -265,7 +265,8 @@ const AIExtractionModal = ({
   project,
   onStartProgressivePolling,
   setIsExtractionRunning,
-  setExtractingCollection
+  setExtractingCollection,
+  setRefreshTrigger
 }: { 
   isOpen: boolean; 
   onClose: () => void; 
@@ -279,6 +280,7 @@ const AIExtractionModal = ({
   onStartProgressivePolling: (sessionId: string) => void;
   setIsExtractionRunning: (isRunning: boolean) => void;
   setExtractingCollection: (collection: string | null) => void;
+  setRefreshTrigger: (fn: (prev: number) => number) => void;
 }) => {
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [selectedVerifiedFields, setSelectedVerifiedFields] = useState<string[]>([]);
@@ -4293,6 +4295,7 @@ Thank you for your assistance.`;
         onStartProgressivePolling={startProgressiveValidationPolling}
         setIsExtractionRunning={setIsExtractionRunning}
         setExtractingCollection={setExtractingCollection}
+        setRefreshTrigger={setRefreshTrigger}
       />
       {/* Session Chat */}
       {session && validations && (
