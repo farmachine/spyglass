@@ -333,15 +333,21 @@ const AIExtractionModal = ({
       console.log(`🔄 Real-time polling [${pollCount}/${maxPollCount}]: checking for new extraction data...`);
       
       try {
-        // Force refresh validation data
+        // Force complete refresh of validation data
         queryClient.removeQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
+        
         const validationData = await queryClient.fetchQuery({ 
           queryKey: [`/api/sessions/${sessionId}/validations`],
           staleTime: 0 // Always fetch fresh data
         });
         
-        // Also refresh project data
+        // Trigger UI refresh by invalidating all related queries
         await queryClient.invalidateQueries({ queryKey: ['/api/projects', project?.id] });
+        await queryClient.refetchQueries({ queryKey: ['/api/projects', project?.id] });
+        
+        // Force component re-render
+        setRefreshTrigger(prev => prev + 1);
         
         // Check if data has stopped changing (extraction likely complete)
         const currentValidationCount = Array.isArray(validationData) ? validationData.length : 0;
@@ -351,6 +357,8 @@ const AIExtractionModal = ({
         } else {
           noChangeCount = 0; // Reset counter when data changes
           console.log(`✅ New data detected: ${currentValidationCount} validations (was ${lastValidationCount})`);
+          // Force UI refresh when new data is detected
+          setRefreshTrigger(prev => prev + 1);
         }
         lastValidationCount = currentValidationCount;
         
@@ -1185,6 +1193,7 @@ export default function SessionView() {
   const [isEditingSessionName, setIsEditingSessionName] = useState(false);
   const [isExtractionRunning, setIsExtractionRunning] = useState(false); // Track background extraction (moved to main scope)
   const [extractingCollection, setExtractingCollection] = useState<string | null>(null); // Track which specific collection is being extracted
+  const [refreshTrigger, setRefreshTrigger] = useState(0); // Force refresh counter for real-time updates
   const [sessionNameValue, setSessionNameValue] = useState('');
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
   const [hasInitializedCollapsed, setHasInitializedCollapsed] = useState(false);
@@ -3180,7 +3189,7 @@ Thank you for your assistance.`;
                     {(() => {
                       // Show loading spinner when this specific section is being extracted
                       if (extractingCollection === 'info') {
-                        return <Loader2 className="w-4 h-4 text-primary animate-spin" />;
+                        return <Loader2 className="w-4 h-4 text-white animate-spin" />;
                       }
                       
                       const infoValidations = validations.filter(v => !v.collectionName && !v.fieldName.includes('.'));
@@ -3240,7 +3249,7 @@ Thank you for your assistance.`;
                               : 'bg-white border-slate-300')
                       }`}>
                         {extractingCollection === collection.collectionName ? (
-                          <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                          <Loader2 className="w-4 h-4 text-white animate-spin" />
                         ) : totalCount > 0 && verifiedCount === totalCount ? (
                           <Check className="w-4 h-4 text-green-600" />
                         ) : (
