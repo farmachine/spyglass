@@ -22,6 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import ExtraplLogo from "@/components/ExtraplLogo";
 import ValidationIcon from "@/components/ValidationIcon";
 import UserProfile from "@/components/UserProfile";
@@ -287,6 +288,7 @@ const AIExtractionModal = ({
     totalFields: number;
   }>({ currentFieldIndex: -1, completedFields: new Set(), totalFields: 0 });
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // Fetch extraction rules for the project
   const { data: extractionRules = [] } = useQuery({
@@ -634,12 +636,28 @@ const AIExtractionModal = ({
         console.log(response.output);
       }
       
-      // Simulate field-by-field progress for UI feedback
-      for (let i = 0; i < sortedSelectedFields.length; i++) {
+      // After first extraction step completes and validations are saved, close modal
+      // The extraction will continue in the background for subsequent steps
+      if (response.success) {
+        // Close the extraction modal after first step to show results in UI
+        setAiExtractionModal({ open: false, sectionName: '', availableFields: [] });
+        
+        // Refresh the session data to show the newly extracted field validations
+        queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
+        
+        // Show completion message
+        toast({
+          title: "Extraction in progress",
+          description: "First field extracted successfully. Multi-step extraction continuing in background.",
+        });
+      }
+      
+      // Simulate field-by-field progress for UI feedback (reduced since modal will close)
+      for (let i = 0; i < Math.min(2, sortedSelectedFields.length); i++) {
         setExtractionProgress(prev => ({ ...prev, currentFieldIndex: i }));
         
         // Wait a bit to show the spinner animation
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         setExtractionProgress(prev => ({ 
           ...prev, 
@@ -655,6 +673,7 @@ const AIExtractionModal = ({
     } finally {
       setIsExtracting(false);
       setExtractionProgress({ currentFieldIndex: -1, completedFields: new Set(), totalFields: 0 });
+      // Modal is already closed above after successful first step
     }
   };
 

@@ -3,10 +3,44 @@ import sys
 import os
 import time
 import psycopg2
+import requests
 from google import genai
 from all_prompts import DOCUMENT_FORMAT_ANALYSIS, EXCEL_FUNCTION_GENERATOR
 from excel_wizard import excel_column_extraction
 from ai_extraction_wizard import ai_document_extraction
+
+def save_field_validations_to_database(session_id, validation_results, extraction_number=0):
+    """Save field validation results to the database using the API endpoint"""
+    try:
+        print(f"\n💾 SAVING VALIDATIONS: {len(validation_results)} validation records")
+        
+        # Prepare the validation data for the API
+        validations_data = {
+            'extractedData': {
+                'field_validations': validation_results
+            }
+        }
+        
+        # Make API request to save validations
+        api_url = f"http://localhost:5000/api/sessions/{session_id}/save-validations"
+        headers = {'Content-Type': 'application/json'}
+        
+        response = requests.post(api_url, json=validations_data, headers=headers)
+        
+        if response.status_code == 200:
+            result = response.json()
+            saved_count = len(result.get('validations', []))
+            print(f"✅ SAVED: {saved_count} field validations to database")
+            return {"success": True, "saved_count": saved_count}
+        else:
+            error_msg = f"API error {response.status_code}: {response.text}"
+            print(f"❌ SAVE ERROR: {error_msg}")
+            return {"error": error_msg}
+            
+    except Exception as e:
+        error_msg = f"Failed to save validations: {str(e)}"
+        print(f"❌ SAVE ERROR: {error_msg}")
+        return {"error": error_msg}
 
 def log_remaining_collection_fields(extracted_results, all_collection_properties):
     """Log which collection fields have been extracted and which remain to be processed"""
@@ -913,6 +947,11 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                                 print("=" * 80)
                                 print(f"Updated {len(identifier_references)} references with new field data")
                             
+                            # SAVE VALIDATIONS TO DATABASE BEFORE NEXT STEP
+                            save_result = save_field_validations_to_database(session_id, processed_results['identifier_results'], extraction_number)
+                            if 'error' in save_result:
+                                print(f"Warning: Failed to save validations: {save_result['error']}")
+                            
                             # Log extraction progress
                             if all_collection_properties:
                                 extracted_field_names = set()
@@ -1035,6 +1074,11 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                                         print(json.dumps(target_property, indent=2))
                                         print("=" * 80)
                                 
+                                # SAVE VALIDATIONS TO DATABASE BEFORE NEXT STEP  
+                                save_result = save_field_validations_to_database(session_id, processed_results['identifier_results'], extraction_number)
+                                if 'error' in save_result:
+                                    print(f"Warning: Failed to save validations: {save_result['error']}")
+                                
                                 # Log remaining fields
                                 log_remaining_collection_fields(processed_results.get('identifier_results', []), all_collection_properties)
                             else:
@@ -1087,6 +1131,11 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                 print(json.dumps(identifier_references, indent=2))
                 print("=" * 80)
                 print(f"Created {len(identifier_references)} new references for next extraction")
+                
+                # SAVE VALIDATIONS TO DATABASE BEFORE NEXT STEP
+                save_result = save_field_validations_to_database(session_id, processed_results['identifier_results'], extraction_number)
+                if 'error' in save_result:
+                    print(f"Warning: Failed to save validations: {save_result['error']}")
                 
                 # Log extraction progress
                 if all_collection_properties:
