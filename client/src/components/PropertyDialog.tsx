@@ -332,54 +332,57 @@ export default function PropertyDialog({
             <div className="space-y-4 border-t pt-4">
               {/* AI Extraction Configuration */}
               {form.watch("extractionType") === "AI" && (
-                <div className="space-y-4 pl-4 border-l-2 border-blue-200">
-                  <h4 className="font-medium text-blue-700 flex items-center gap-2">
-                    <Brain className="h-4 w-4" />
-                    AI Configuration
-                  </h4>
-                  
+                <>
                   {/* Knowledge Documents */}
                   <FormField
                     control={form.control}
                     name="knowledgeDocumentIds"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Knowledge Documents</FormLabel>
+                        <FormLabel>Knowledge Documents (Optional)</FormLabel>
                         <FormControl>
                           <div className="space-y-2">
-                            <div className="flex flex-wrap gap-2">
-                              {field.value?.map((docId) => {
-                                const doc = knowledgeDocuments.find(d => d.id === docId);
-                                return doc ? (
-                                  <Badge key={docId} variant="secondary" className="flex items-center gap-1">
-                                    {doc.displayName}
-                                    <X 
-                                      className="h-3 w-3 cursor-pointer" 
-                                      onClick={() => {
-                                        const newDocs = field.value?.filter(id => id !== docId) || [];
-                                        field.onChange(newDocs);
-                                      }}
-                                    />
-                                  </Badge>
-                                ) : null;
-                              })}
-                            </div>
-                            <Select onValueChange={(value) => {
-                              if (!field.value?.includes(value)) {
-                                field.onChange([...(field.value || []), value]);
-                              }
-                            }}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select knowledge documents..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {knowledgeDocuments.filter(doc => !field.value?.includes(doc.id)).map((doc) => (
-                                  <SelectItem key={doc.id} value={doc.id}>
-                                    {doc.displayName}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            {knowledgeDocuments.length > 0 ? (
+                              <>
+                                <div className="flex flex-wrap gap-2">
+                                  {field.value?.map((docId) => {
+                                    const doc = knowledgeDocuments.find(d => d.id === docId);
+                                    return doc ? (
+                                      <Badge key={docId} variant="outline" className="flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-300">
+                                        {doc.displayName}
+                                        <X 
+                                          className="h-3 w-3 cursor-pointer hover:text-red-600" 
+                                          onClick={() => {
+                                            const newDocs = field.value?.filter(id => id !== docId) || [];
+                                            field.onChange(newDocs);
+                                          }}
+                                        />
+                                      </Badge>
+                                    ) : null;
+                                  })}
+                                </div>
+                                <Select onValueChange={(value) => {
+                                  if (!field.value?.includes(value)) {
+                                    field.onChange([...(field.value || []), value]);
+                                  }
+                                }}>
+                                  <SelectTrigger className="border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500">
+                                    <SelectValue placeholder="Select knowledge documents..." />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {knowledgeDocuments.filter(doc => !field.value?.includes(doc.id)).map((doc) => (
+                                      <SelectItem key={doc.id} value={doc.id}>
+                                        {doc.displayName}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </>
+                            ) : (
+                              <p className="text-sm text-muted-foreground border rounded p-3 bg-gray-50">
+                                No knowledge documents available. Create knowledge documents in project settings for additional AI context.
+                              </p>
+                            )}
                           </div>
                         </FormControl>
                         <p className="text-sm text-muted-foreground">
@@ -396,42 +399,50 @@ export default function PropertyDialog({
                     name="extractionRuleIds"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Extraction Rules</FormLabel>
+                        <FormLabel>Extraction Rules (Optional)</FormLabel>
                         <FormControl>
                           <div className="space-y-2">
-                            <div className="flex flex-wrap gap-2">
-                              {field.value?.map((ruleId) => {
-                                const rule = extractionRules.find(r => r.id === ruleId);
-                                return rule ? (
-                                  <Badge key={ruleId} variant="secondary" className="flex items-center gap-1">
-                                    {rule.ruleName}
-                                    <X 
-                                      className="h-3 w-3 cursor-pointer" 
-                                      onClick={() => {
-                                        const newRules = field.value?.filter(id => id !== ruleId) || [];
-                                        field.onChange(newRules);
-                                      }}
-                                    />
-                                  </Badge>
-                                ) : null;
-                              })}
-                            </div>
-                            <Select onValueChange={(value) => {
-                              if (!field.value?.includes(value)) {
-                                field.onChange([...(field.value || []), value]);
-                              }
-                            }}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select extraction rules..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {extractionRules.filter(rule => !field.value?.includes(rule.id)).map((rule) => (
-                                  <SelectItem key={rule.id} value={rule.id}>
-                                    {rule.ruleName}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            {extractionRules.length > 0 ? (
+                              <>
+                                <div className="flex flex-wrap gap-2">
+                                  {field.value?.map((ruleId) => {
+                                    const rule = extractionRules.find(r => r.id === ruleId);
+                                    return rule ? (
+                                      <Badge key={ruleId} variant="outline" className="flex items-center gap-1 bg-green-50 text-green-700 border-green-300">
+                                        {rule.ruleName}
+                                        <X 
+                                          className="h-3 w-3 cursor-pointer hover:text-red-600" 
+                                          onClick={() => {
+                                            const newRules = field.value?.filter(id => id !== ruleId) || [];
+                                            field.onChange(newRules);
+                                          }}
+                                        />
+                                      </Badge>
+                                    ) : null;
+                                  })}
+                                </div>
+                                <Select onValueChange={(value) => {
+                                  if (!field.value?.includes(value)) {
+                                    field.onChange([...(field.value || []), value]);
+                                  }
+                                }}>
+                                  <SelectTrigger className="border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500">
+                                    <SelectValue placeholder="Select extraction rules..." />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {extractionRules.filter(rule => !field.value?.includes(rule.id)).map((rule) => (
+                                      <SelectItem key={rule.id} value={rule.id}>
+                                        {rule.ruleName}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </>
+                            ) : (
+                              <p className="text-sm text-muted-foreground border rounded p-3 bg-gray-50">
+                                No extraction rules available. Create rules in project settings to define specific AI guidelines.
+                              </p>
+                            )}
                           </div>
                         </FormControl>
                         <p className="text-sm text-muted-foreground">
@@ -447,10 +458,10 @@ export default function PropertyDialog({
                     control={form.control}
                     name="documentsRequired"
                     render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                        <div className="space-y-0.5">
-                          <FormLabel>Source Documents Required</FormLabel>
-                          <p className="text-sm text-muted-foreground">
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border-2 border-gray-200 p-4 bg-gray-50 hover:bg-gray-100 transition-colors">
+                        <div className="space-y-1">
+                          <FormLabel className="font-medium">Source Documents Required</FormLabel>
+                          <p className="text-sm text-gray-600">
                             Require source documents for this property's extraction
                           </p>
                         </div>
@@ -458,12 +469,13 @@ export default function PropertyDialog({
                           <Checkbox
                             checked={field.value}
                             onCheckedChange={field.onChange}
+                            className="border-2 border-blue-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
                           />
                         </FormControl>
                       </FormItem>
                     )}
                   />
-                </div>
+                </>
               )}
 
               {/* Function Extraction Configuration */}
