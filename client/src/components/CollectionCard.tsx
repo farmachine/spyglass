@@ -40,18 +40,34 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
     requiredDocumentType: property.requiredDocumentType || 'Excel (.xlsx, .xls)',
     functionId: property.functionId || null,
     autoVerificationConfidence: property.autoVerificationConfidence || 80,
+    documentsRequired: property.documentsRequired || false,
   });
 
   // Get previous step properties for reference selection
   const [selectedReferences, setSelectedReferences] = useState<string[]>([]);
   
-  // Mock data for previous steps - this would come from actual previous properties
-  const previousStepOptions = [
-    { id: 'identifier', name: 'Identifier Field', type: 'TEXT', description: 'Primary identifier from step 1' },
-    { id: 'document_content', name: 'Document Content', type: 'TEXT', description: 'Extracted document text' },
-    { id: 'worksheet_name', name: 'Worksheet Name', type: 'TEXT', description: 'Name of the Excel worksheet' },
-    { id: 'column_headers', name: 'Column Headers', type: 'ARRAY', description: 'List of column names' },
-  ];
+  // Build reference options from schema fields and preceding collections
+  const buildReferenceOptions = () => {
+    const options: Array<{id: string, name: string, type: string, description: string, category: string}> = [];
+    
+    // Add schema fields (always available)
+    const schemaFields = [
+      { id: 'pension_scheme_name', name: 'Pension Scheme Name', type: 'TEXT', description: 'Main schema field', category: 'Schema Field' },
+      { id: 'broker', name: 'Broker', type: 'TEXT', description: 'Main schema field', category: 'Schema Field' },
+      { id: 'admin_contact', name: 'Admin Contact', type: 'TEXT', description: 'Main schema field', category: 'Schema Field' },
+    ];
+    
+    // Add preceding collections based on current collection
+    const precedingCollections = [
+      { id: 'additional_column_names', name: 'Additional Column Names', type: 'COLLECTION', description: 'Collection of additional columns found', category: 'Collection' },
+      { id: 'missing_column_names', name: 'Missing Column Names', type: 'COLLECTION', description: 'Collection of missing expected columns', category: 'Collection' },
+      { id: 'column_name_mapping', name: 'Column Name Mapping', type: 'COLLECTION', description: 'Mapping between expected and actual column names', category: 'Collection' },
+    ];
+    
+    return [...schemaFields, ...precedingCollections];
+  };
+  
+  const previousStepOptions = buildReferenceOptions();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,7 +163,12 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
                 {previousStepOptions.map((option) => (
                   <SelectItem key={option.id} value={option.id}>
                     <div className="flex flex-col">
-                      <span className="font-medium">{option.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{option.name}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {option.category}
+                        </Badge>
+                      </div>
                       <span className="text-xs text-gray-500">{option.description}</span>
                     </div>
                   </SelectItem>
@@ -237,6 +258,19 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
               onChange={(e) => setFormData(prev => ({...prev, autoVerificationConfidence: parseInt(e.target.value)}))}
               className="mt-1"
             />
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="documentsRequired"
+              checked={formData.documentsRequired}
+              onChange={(e) => setFormData(prev => ({...prev, documentsRequired: e.target.checked}))}
+              className="rounded border-gray-300"
+            />
+            <Label htmlFor="documentsRequired" className="text-sm font-medium">
+              Uploaded Documents Required
+            </Label>
           </div>
         </div>
       </div>
