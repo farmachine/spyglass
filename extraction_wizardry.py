@@ -867,8 +867,26 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
         print(f"   Description: {identifier_targets[0].get('description', 'No description')[:100] if identifier_targets else 'None'}...")
         
         # Save extraction step parameters to database at the start of each step
-        project_id = data.get('project_id', 'unknown')  # This should be passed in the data
+        project_id = data.get('project_id')
         print(f"🔍 DEBUG: project_id from data: {project_id}", file=sys.stderr)
+        
+        # Python validation: Handle missing or invalid project_id gracefully
+        if not project_id:
+            print(f"❌ ERROR: Missing project_id in extraction data. Skipping database persistence.", file=sys.stderr)
+            print(f"📋 Available data keys: {list(data.keys())}", file=sys.stderr)
+            # Continue extraction without database saving
+            project_id = None
+        elif project_id == 'unknown' or not isinstance(project_id, str):
+            print(f"❌ ERROR: Invalid project_id '{project_id}'. Skipping database persistence.", file=sys.stderr)
+            # Continue extraction without database saving
+            project_id = None
+        else:
+            # Basic UUID format validation
+            import re
+            uuid_pattern = r'^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+            if not re.match(uuid_pattern, project_id, re.IGNORECASE):
+                print(f"❌ ERROR: Invalid UUID format for project_id '{project_id}'. Skipping database persistence.", file=sys.stderr)
+                project_id = None
         target_property_id = identifier_targets[0].get('field_id') if identifier_targets else None
         target_property_name = identifier_targets[0].get('name') if identifier_targets else None
         collection_id = identifier_targets[0].get('collection_id') if identifier_targets else None
@@ -880,19 +898,24 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             "incoming_identifier_references": incoming_identifier_references
         }
         
-        saved_step = save_extraction_step_to_db(
-            session_id=session_id,
-            project_id=project_id,
-            extraction_number=extraction_number,
-            target_property_id=target_property_id,
-            target_property_name=target_property_name,
-            collection_id=collection_id,
-            collection_name="unknown",  # Could be derived from collection_id if needed
-            identifier_references=incoming_identifier_references,
-            extraction_method="pending",  # Will be updated after Gemini analysis
-            parameters=step_parameters,
-            status="in_progress"
-        )
+        # Save extraction step to database (only if project_id is valid)
+        saved_step = None
+        if project_id:
+            saved_step = save_extraction_step_to_db(
+                session_id=session_id,
+                project_id=project_id,
+                extraction_number=extraction_number,
+                target_property_id=target_property_id,
+                target_property_name=target_property_name,
+                collection_id=collection_id,
+                collection_name="unknown",  # Could be derived from collection_id if needed
+                identifier_references=incoming_identifier_references,
+                extraction_method="pending",  # Will be updated after Gemini analysis
+                parameters=step_parameters,
+                status="in_progress"
+            )
+        else:
+            print(f"⚠️  Skipping database save for extraction step {extraction_number} due to invalid project_id", file=sys.stderr)
         
         if saved_step:
             step_id = saved_step.get('id')

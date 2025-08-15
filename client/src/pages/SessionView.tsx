@@ -494,6 +494,17 @@ const AIExtractionModal = ({
 
   // Log selected documents for testing (no extraction call)
   const handleRunExtraction = async () => {
+    // Frontend validation: Ensure project is loaded before extraction
+    if (!project?.id) {
+      console.error('Cannot run extraction: Project not loaded');
+      toast({
+        title: "Error",
+        description: "Project data is still loading. Please wait and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsExtracting(true);
     
     // Initialize extraction progress
@@ -651,7 +662,7 @@ const AIExtractionModal = ({
       const requestData = {
         document_ids: documentIds,
         session_id: sessionId,
-        project_id: project?.id, // Add project_id to fix UUID parameter mismatch
+        project_id: project.id, // Now guaranteed to be present due to validation above
         target_fields: targetFieldsWithSources
       };
       
@@ -1065,7 +1076,7 @@ const AIExtractionModal = ({
             Cancel
           </Button>
           <Button 
-            disabled={selectedTargetFields.length === 0 || isExtracting}
+            disabled={selectedTargetFields.length === 0 || isExtracting || !project?.id}
             onClick={handleRunExtraction}
           >
             {isExtracting ? (

@@ -4774,8 +4774,30 @@ print(json.dumps(results))
     try {
       const requestData = req.body; // Get request data with document_ids and session_id
       
+      // Backend validation: Check required parameters
+      if (!requestData?.session_id) {
+        return res.status(400).json({
+          message: "Missing required parameter: session_id"
+        });
+      }
+      
+      if (!requestData?.project_id) {
+        return res.status(400).json({
+          message: "Missing required parameter: project_id"
+        });
+      }
+      
+      // Validate project_id is a valid UUID format
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(requestData.project_id)) {
+        return res.status(400).json({
+          message: "Invalid project_id format: must be a valid UUID"
+        });
+      }
+      
       console.log("Starting wizardry extraction with data:", {
         session_id: requestData?.session_id,
+        project_id: requestData?.project_id,
         document_count: requestData?.document_ids?.length || 0,
         extraction_number: requestData?.extraction_number || 0
       });
