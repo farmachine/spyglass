@@ -148,31 +148,16 @@ def perform_ai_extraction(documents, target_fields_data, extraction_rules, knowl
             
             extracted_data = response.text
             
-            # Check if response is None or empty
-            if not extracted_data or extracted_data.strip() == "":
-                print(f"Empty response from Gemini (attempt {attempt + 1})", flush=True)
-                if attempt < max_retries - 1:
-                    continue
-                else:
-                    return {"error": "Empty response from Gemini after all retries"}
-            
             # Clean and validate the response
-            extracted_data = extracted_data.strip()
-            # Remove markdown formatting if present
-            if extracted_data.startswith('```json'):
-                extracted_data = extracted_data.replace('```json', '').strip()
-            if extracted_data.startswith('```'):
-                extracted_data = extracted_data.replace('```', '').strip()
-            if extracted_data.endswith('```'):
-                extracted_data = extracted_data.replace('```', '').strip()
-            
-            # Final check after cleaning
-            if not extracted_data:
-                print(f"Empty response after cleaning (attempt {attempt + 1})", flush=True)
-                if attempt < max_retries - 1:
-                    continue
-                else:
-                    return {"error": "Empty response after cleaning"}
+            if extracted_data:
+                extracted_data = extracted_data.strip()
+                # Remove markdown formatting if present
+                if extracted_data.startswith('```json'):
+                    extracted_data = extracted_data.replace('```json', '').strip()
+                if extracted_data.startswith('```'):
+                    extracted_data = extracted_data.replace('```', '').strip()
+                if extracted_data.endswith('```'):
+                    extracted_data = extracted_data.replace('```', '').strip()
             
             # Parse JSON response
             try:

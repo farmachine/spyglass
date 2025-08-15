@@ -265,8 +265,7 @@ const AIExtractionModal = ({
   project,
   onStartProgressivePolling,
   setIsExtractionRunning,
-  setExtractingCollection,
-  setRefreshTrigger
+  setExtractingCollection
 }: { 
   isOpen: boolean; 
   onClose: () => void; 
@@ -280,7 +279,6 @@ const AIExtractionModal = ({
   onStartProgressivePolling: (sessionId: string) => void;
   setIsExtractionRunning: (isRunning: boolean) => void;
   setExtractingCollection: (collection: string | null) => void;
-  setRefreshTrigger: (fn: (prev: number) => number) => void;
 }) => {
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [selectedVerifiedFields, setSelectedVerifiedFields] = useState<string[]>([]);
@@ -312,87 +310,53 @@ const AIExtractionModal = ({
     // Set the specific collection being extracted
     setExtractingCollection(sectionName === 'General Information' ? 'info' : sectionName);
     
-    // Force refresh only the validation data to show newly extracted results
-    await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
-    await queryClient.refetchQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+    // Force refresh the validation data to show newly extracted results
+    await queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
+    await queryClient.refetchQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
+    
+    // Also refresh session and project data
+    queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
+    queryClient.invalidateQueries({ queryKey: ['/api/projects', project?.id] });
     
     // Wait a brief moment to ensure validation refresh completes
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Start enhanced real-time polling for progressive updates (column-by-column)
+    // Start enhanced real-time polling for progressive updates
     let pollCount = 0;
     let lastValidationCount = 0;
-    let consecutiveNoChangeCount = 0;
-    const maxPollCount = 300; // Maximum 300 polls (5 minutes at 1 second intervals)
-    const maxConsecutiveNoChanges = 10; // Stop if no changes for 10 consecutive polls (10 seconds)
+    let noChangeCount = 0;
+    const maxPollCount = 60; // Maximum 60 polls (3 minutes at 3 second intervals)
+    const maxNoChangeCount = 5; // Stop if no changes for 5 consecutive polls
     
     const pollInterval = setInterval(async () => {
       pollCount++;
-      console.log(`🔄 POLLING [${pollCount}/${maxPollCount}]: Checking for new field validations...`);
+      console.log(`🔄 Real-time polling [${pollCount}/${maxPollCount}]: checking for new extraction data...`);
       
       try {
-        // Fetch fresh validation data without removing cached queries from other components
-        queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
-        
-        console.log(`   📡 Fetching validation data for session: ${sessionId}`);
+        // Force refresh validation data
+        queryClient.removeQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
         const validationData = await queryClient.fetchQuery({ 
-          queryKey: ['/api/sessions', sessionId, 'validations'],
+          queryKey: [`/api/sessions/${sessionId}/validations`],
           staleTime: 0 // Always fetch fresh data
         });
         
-        // Check if data has changed (new field validations saved)
+        // Also refresh project data
+        await queryClient.invalidateQueries({ queryKey: ['/api/projects', project?.id] });
+        
+        // Check if data has stopped changing (extraction likely complete)
         const currentValidationCount = Array.isArray(validationData) ? validationData.length : 0;
-        
-        if (currentValidationCount !== lastValidationCount) {
-          // Data changed - new field validation(s) saved!
-          consecutiveNoChangeCount = 0; // Reset counter when data changes
-          const newFieldsCount = currentValidationCount - lastValidationCount;
-          console.log(`✅ NEW EXTRACTION DATA: +${newFieldsCount} field validations (${lastValidationCount} → ${currentValidationCount})`);
-          
-          // Log sample of new validation data (first few fields)
-          if (Array.isArray(validationData) && validationData.length > 0) {
-            const recentValidations = validationData.slice(-Math.min(newFieldsCount, 3));
-            console.log(`   📋 Sample extracted fields:`);
-            recentValidations.forEach((v, i) => {
-              const fieldName = v.fieldName || 'Unknown';
-              const value = v.extractedValue?.substring(0, 30) || 'No value';
-              console.log(`   ${i + 1}. ${fieldName}: "${value}${v.extractedValue?.length > 30 ? '...' : ''}"`);
-            });
-          }
-          
-          // Only invalidate and refetch validation data - NOT the entire project
-          await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
-          
-          console.log(`   🔄 Triggering UI re-render for new field data`);
-          // Trigger targeted component re-render for validation data only
-          setRefreshTrigger(prev => prev + 1);
-          
-          // Show toast notification for new field(s)
-          if (newFieldsCount === 1) {
-            toast({
-              title: "New field extracted",
-              description: "Field data has been updated and is now visible below.",
-              duration: 2000,
-            });
-          } else {
-            toast({
-              title: `${newFieldsCount} new fields extracted`,
-              description: "Field data has been updated and is now visible below.",
-              duration: 2000,
-            });
-          }
+        if (currentValidationCount === lastValidationCount) {
+          noChangeCount++;
+          console.log(`📊 No data changes detected (${noChangeCount}/${maxNoChangeCount}) - ${currentValidationCount} validations`);
         } else {
-          // No data changes detected
-          consecutiveNoChangeCount++;
-          console.log(`   📊 No new data (${consecutiveNoChangeCount}/${maxConsecutiveNoChanges}) - ${currentValidationCount} total validations`);
+          noChangeCount = 0; // Reset counter when data changes
+          console.log(`✅ New data detected: ${currentValidationCount} validations (was ${lastValidationCount})`);
         }
-        
         lastValidationCount = currentValidationCount;
         
-        // Stop polling if no changes for several consecutive attempts (extraction likely complete)
-        if (consecutiveNoChangeCount >= maxConsecutiveNoChanges) {
-          console.log('🏁 EXTRACTION COMPLETE: No new data for 10 seconds - stopping polling');
-          console.log(`   📊 Final Results: ${currentValidationCount} total field validations extracted`);
+        // Stop polling if no changes for several attempts (extraction likely complete)
+        if (noChangeCount >= maxNoChangeCount) {
+          console.log('🏁 Extraction appears complete (no data changes) - stopping polling');
           clearInterval(pollInterval);
           setIsExtractionRunning(false);
           setExtractingCollection(null);
@@ -405,16 +369,12 @@ const AIExtractionModal = ({
         }
         
       } catch (error) {
-        console.error('❌ POLLING ERROR:', error.message || error);
-        console.log(`   🔄 Continuing polling despite error (attempt ${pollCount}/${maxPollCount})`);
-        // Continue polling even on errors, but count them as no-change
-        consecutiveNoChangeCount++;
+        console.error('Polling error:', error);
       }
       
       // Stop polling after max attempts
       if (pollCount >= maxPollCount) {
-        console.log('⏹️ POLLING TIMEOUT: Maximum attempts reached');
-        console.log(`   📊 Final Results: ${lastValidationCount} total field validations extracted`);
+        console.log('⏹️ Real-time polling complete (max attempts reached)');
         clearInterval(pollInterval);
         setIsExtractionRunning(false);
         setExtractingCollection(null);
@@ -424,15 +384,15 @@ const AIExtractionModal = ({
           onStartProgressivePolling(sessionId);
         }
       }
-    }, 1000); // Poll every 1 second for column-by-column updates
+    }, 3000); // Poll every 3 seconds
     
-    // Backup timeout to ensure spinners stop after 5 minutes
+    // Backup timeout to ensure spinners stop after 3 minutes
     setTimeout(() => {
-      console.log('⏹️ Column-by-column polling complete (timeout)');
+      console.log('⏹️ Real-time polling complete (timeout)');
       clearInterval(pollInterval);
       setIsExtractionRunning(false);
       setExtractingCollection(null);
-    }, 300000); // 5 minutes
+    }, 180000); // 3 minutes
     
     // Show completion message with real-time info
     toast({
@@ -833,7 +793,7 @@ const AIExtractionModal = ({
       const errorMessage = error instanceof Error ? error.message : String(error);
       if (errorMessage.includes('502') && errorMessage.includes('Bad Gateway')) {
         // Refresh validations to check if extraction actually succeeded
-        queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+        queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
         
         // Show a helpful message about the background processing
         toast({
@@ -1225,7 +1185,6 @@ export default function SessionView() {
   const [isEditingSessionName, setIsEditingSessionName] = useState(false);
   const [isExtractionRunning, setIsExtractionRunning] = useState(false); // Track background extraction (moved to main scope)
   const [extractingCollection, setExtractingCollection] = useState<string | null>(null); // Track which specific collection is being extracted
-  const [refreshTrigger, setRefreshTrigger] = useState(0); // Force refresh counter for real-time updates
   const [sessionNameValue, setSessionNameValue] = useState('');
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
   const [hasInitializedCollapsed, setHasInitializedCollapsed] = useState(false);
@@ -1274,7 +1233,7 @@ export default function SessionView() {
     
     // Poll every 3 seconds for validation updates
     pollingIntervalRef.current = setInterval(() => {
-      queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
     }, 3000);
     
     // Stop polling after 5 minutes (allowing time for multi-step extraction)
@@ -3221,7 +3180,7 @@ Thank you for your assistance.`;
                     {(() => {
                       // Show loading spinner when this specific section is being extracted
                       if (extractingCollection === 'info') {
-                        return <Loader2 className="w-4 h-4 text-white animate-spin" />;
+                        return <Loader2 className="w-4 h-4 text-primary animate-spin" />;
                       }
                       
                       const infoValidations = validations.filter(v => !v.collectionName && !v.fieldName.includes('.'));
@@ -3281,7 +3240,7 @@ Thank you for your assistance.`;
                               : 'bg-white border-slate-300')
                       }`}>
                         {extractingCollection === collection.collectionName ? (
-                          <Loader2 className="w-4 h-4 text-white animate-spin" />
+                          <Loader2 className="w-4 h-4 text-primary animate-spin" />
                         ) : totalCount > 0 && verifiedCount === totalCount ? (
                           <Check className="w-4 h-4 text-green-600" />
                         ) : (
@@ -4325,7 +4284,6 @@ Thank you for your assistance.`;
         onStartProgressivePolling={startProgressiveValidationPolling}
         setIsExtractionRunning={setIsExtractionRunning}
         setExtractingCollection={setExtractingCollection}
-        setRefreshTrigger={setRefreshTrigger}
       />
       {/* Session Chat */}
       {session && validations && (

@@ -289,20 +289,8 @@ def analyze_document_format_with_gemini(documents, target_fields_data=None, max_
 def clean_json_and_extract_identifiers(extraction_result, target_fields_data):
     """Clean JSON results and create Identifier Results array"""
     try:
-        # Check if extraction_result is None or empty
-        if extraction_result is None:
-            return {
-                'error': 'Extraction result is None',
-                'original_result': extraction_result
-            }
-        
         # Parse the extraction result if it's a string
         if isinstance(extraction_result, str):
-            if extraction_result.strip() == "":
-                return {
-                    'error': 'Extraction result is empty string',
-                    'original_result': extraction_result
-                }
             cleaned_result = json.loads(extraction_result)
         else:
             cleaned_result = extraction_result
@@ -1045,19 +1033,13 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                         
                         if 'error' not in processed_results:
                             record_count = len(processed_results['cleaned_results']) if isinstance(processed_results['cleaned_results'], list) else 0
-                            print(f"\n✅ STEP {extraction_number + 1} COMPLETE: {record_count} records extracted using existing function")
+                            print(f"\n✅ EXTRACTION RESULTS: {record_count} records extracted using existing function")
                             
-                            # Show truncated validation results preview
-                            print(f"\n📋 EXTRACTED FIELD PREVIEW:")
-                            print("=" * 60)
-                            sample_results = processed_results['identifier_results'][:3]  # Show first 3 records
-                            for i, result in enumerate(sample_results):
-                                field_name = result.get('field_name', 'Unknown')
-                                value = str(result.get('extracted_value', 'No value'))[:50]
-                                print(f"   {i+1}. {field_name}: \"{value}{'...' if len(str(result.get('extracted_value', ''))) > 50 else ''}\"")
-                            if len(processed_results['identifier_results']) > 3:
-                                print(f"   ... and {len(processed_results['identifier_results']) - 3} more records")
-                            print("=" * 60)
+                            # Show complete validation results JSON
+                            print(f"\n📋 COMPLETE VALIDATION RESULTS JSON:")
+                            print("=" * 80)
+                            print(json.dumps(processed_results['identifier_results'], indent=2))
+                            print("=" * 80)
                             
                             # Create or update identifier references
                             if extraction_number == 0:
@@ -1169,19 +1151,13 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                             
                             if 'error' not in processed_results:
                                 record_count = len(processed_results['cleaned_results']) if isinstance(processed_results['cleaned_results'], list) else 0
-                                print(f"\n✅ STEP {extraction_number + 1} COMPLETE: {record_count} records extracted using new function")
+                                print(f"\n✅ EXTRACTION RESULTS: {record_count} records extracted using new function")
                                 
-                                # Show truncated validation results preview
-                                print(f"\n📋 EXTRACTED FIELD PREVIEW:")
-                                print("=" * 60)
-                                sample_results = processed_results['identifier_results'][:3]  # Show first 3 records
-                                for i, result in enumerate(sample_results):
-                                    field_name = result.get('field_name', 'Unknown')
-                                    value = str(result.get('extracted_value', 'No value'))[:50]
-                                    print(f"   {i+1}. {field_name}: \"{value}{'...' if len(str(result.get('extracted_value', ''))) > 50 else ''}\"")
-                                if len(processed_results['identifier_results']) > 3:
-                                    print(f"   ... and {len(processed_results['identifier_results']) - 3} more records")
-                                print("=" * 60)
+                                # Show complete validation results JSON
+                                print(f"\n📋 COMPLETE VALIDATION RESULTS JSON:")
+                                print("=" * 80)
+                                print(json.dumps(processed_results['identifier_results'], indent=2))
+                                print("=" * 80)
                                 
                                 # Create or update identifier references
                                 if extraction_number == 0:
@@ -1279,19 +1255,13 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             if 'error' not in processed_results:
                 # Show record count and sample results
                 record_count = len(processed_results['cleaned_results']) if isinstance(processed_results['cleaned_results'], list) else 0
-                print(f"\n✅ STEP {extraction_number + 1} COMPLETE: {record_count} records extracted using AI")
+                print(f"\n✅ EXTRACTION RESULTS: {record_count} records extracted using AI")
                 
-                # Show truncated validation results preview
-                print(f"\n📋 EXTRACTED FIELD PREVIEW:")
-                print("=" * 60)
-                sample_results = processed_results['identifier_results'][:3]  # Show first 3 records
-                for i, result in enumerate(sample_results):
-                    field_name = result.get('field_name', 'Unknown')
-                    value = str(result.get('extracted_value', 'No value'))[:50]
-                    print(f"   {i+1}. {field_name}: \"{value}{'...' if len(str(result.get('extracted_value', ''))) > 50 else ''}\"")
-                if len(processed_results['identifier_results']) > 3:
-                    print(f"   ... and {len(processed_results['identifier_results']) - 3} more records")
-                print("=" * 60)
+                # Show complete validation results JSON
+                print(f"\n📋 COMPLETE VALIDATION RESULTS JSON:")
+                print("=" * 80)
+                print(json.dumps(processed_results['identifier_results'], indent=2))
+                print("=" * 80)
                 
                 # Create and display IDENTIFIER REFERENCES array
                 identifier_references = []
