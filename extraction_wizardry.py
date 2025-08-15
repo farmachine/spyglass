@@ -768,7 +768,7 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                     "collection_id": field.get('collectionId', ''),
                     "type": "collection_property" if field.get('collectionId') else "schema_field",
                     "extraction_type": field.get('extractionType', ''),
-                    "function_id": field.get('functionID', '')
+                    "function_id": field.get('functionID', '') or field.get('functionId', '')
                 }
                 target_fields_data.append(field_data)
         
