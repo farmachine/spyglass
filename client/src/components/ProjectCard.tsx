@@ -203,11 +203,16 @@ export default function ProjectCard({
 
   return (
     <>
-      <Card className={`bg-white text-black rounded-xl transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer group relative overflow-hidden h-[200px] flex flex-col ${
+      <Card className={`bg-white text-black border border-gray-200 rounded-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group relative overflow-hidden h-[200px] flex flex-col ${
         project.status === "inactive" ? "opacity-60" : ""
-      }`} style={{
-        border: '1px solid #5065a5',
-        boxShadow: '0 4px 8px -2px rgba(80, 101, 165, 0.15), 2px 0 6px -1px rgba(80, 101, 165, 0.1)'
+      }`} 
+      onMouseEnter={(e) => {
+        e.currentTarget.style.border = '1px solid #5065a5';
+        e.currentTarget.style.boxShadow = '0 4px 8px -2px rgba(80, 101, 165, 0.15), 2px 0 6px -1px rgba(80, 101, 165, 0.1)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.border = '1px solid #e5e7eb';
+        e.currentTarget.style.boxShadow = 'none';
       }}>
         <CardHeader className="pt-4 pb-2 flex-shrink-0">
           <div className="flex items-start justify-between">
