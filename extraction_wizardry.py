@@ -217,7 +217,9 @@ def clean_json_and_extract_identifiers(extraction_result, target_fields_data):
                         field_name_to_metadata_map[full_field_name] = field_metadata
                     field_name_to_metadata_map[field_name] = field_metadata
         
-        print(f"🔗 Field Name to Metadata Mapping: {field_name_to_metadata_map}")
+        print(f"🔗 Field Name to Metadata Mapping ({len(field_name_to_metadata_map)} entries):")
+        for map_key, map_data in field_name_to_metadata_map.items():
+            print(f"    '{map_key}' -> field_id: {map_data['field_id'][:8]}...")
         
         # Process validation records to ensure they have proper field IDs and all required database fields
         if isinstance(cleaned_result, list):
@@ -229,17 +231,44 @@ def clean_json_and_extract_identifiers(extraction_result, target_fields_data):
                     # Try to map field_name to field metadata if not already present
                     if field_name:
                         field_metadata = None
+                        
+                        # Debug: Show what field_name we're trying to map
+                        if result_item.get('record_index', 0) < 3:  # First 3 records only
+                            print(f"🔍 Trying to map field_name: '{field_name}'")
+                            print(f"🔍 Available mappings: {list(field_name_to_metadata_map.keys())}")
+                        
                         # Try direct field name match first
                         if field_name in field_name_to_metadata_map:
                             field_metadata = field_name_to_metadata_map[field_name]
+                            if result_item.get('record_index', 0) < 3:
+                                print(f"✅ Direct match found for: {field_name}")
                         else:
-                            # Try to extract property name from field_name (e.g., "Collection.Property[index]")
+                            # Try different pattern matching approaches
                             import re
+                            
+                            # Pattern 1: "Collection.Property[index]" -> "Collection.Property"
                             property_match = re.match(r'([^.]+\.[^[]+)', field_name)
                             if property_match:
                                 property_name = property_match.group(1)
                                 if property_name in field_name_to_metadata_map:
                                     field_metadata = field_name_to_metadata_map[property_name]
+                                    if result_item.get('record_index', 0) < 3:
+                                        print(f"✅ Pattern match found: {field_name} -> {property_name}")
+                            
+                            # Pattern 2: Try just the property name after the dot
+                            if not field_metadata and '.' in field_name:
+                                simple_property = field_name.split('.')[-1]
+                                # Remove any array notation
+                                if '[' in simple_property:
+                                    simple_property = simple_property.split('[')[0]
+                                
+                                # Try to find matching property in any collection
+                                for map_key, map_metadata in field_name_to_metadata_map.items():
+                                    if simple_property in map_key and map_metadata['field_id']:
+                                        field_metadata = map_metadata
+                                        if result_item.get('record_index', 0) < 3:
+                                            print(f"✅ Property match found: {field_name} -> {map_key} via '{simple_property}'")
+                                        break
                         
                         # Apply metadata to result item if found
                         if field_metadata:
@@ -725,7 +754,19 @@ def execute_excel_wizardry_function(function_code, extracted_content, target_fie
                 'min': min,
                 'sum': sum,
                 'sorted': sorted,
-                'reversed': reversed
+                'reversed': reversed,
+                'next': next,  # Add next function
+                'iter': iter,  # Add iter function for iterators
+                'isinstance': isinstance,  # Add isinstance for type checking
+                'hasattr': hasattr,  # Add hasattr for attribute checking
+                'getattr': getattr,  # Add getattr for attribute access
+                'setattr': setattr,  # Add setattr for attribute setting
+                'type': type,  # Add type for type inspection
+                'slice': slice,  # Add slice for slicing operations
+                'tuple': tuple,  # Add tuple type
+                'set': set,  # Add set type
+                'map': map,  # Add map function
+                'filter': filter  # Add filter function
             }
         }
         
