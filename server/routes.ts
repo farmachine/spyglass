@@ -24,6 +24,7 @@ import {
 import { generateChatResponse } from "./chatService";
 import { authenticateToken, requireAdmin, generateToken, comparePassword, hashPassword, type AuthRequest } from "./auth";
 import { UserRole } from "@shared/schema";
+import { log } from "./vite";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication Routes
@@ -4849,6 +4850,26 @@ print(json.dumps(results))
     } catch (error) {
       console.error("Error populating collection IDs:", error);
       res.status(500).json({ message: "Failed to populate collection IDs" });
+    }
+  });
+
+  // Development console forwarding endpoint
+  app.post("/api/dev/console", (req, res) => {
+    try {
+      const { level, message, timestamp } = req.body;
+      const formattedTime = new Date(timestamp).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+      });
+      
+      // Format console message to appear in workflow console
+      log(`[browser-${level}] ${message}`, 'client');
+      
+      res.status(200).json({ success: true });
+    } catch (error) {
+      res.status(500).json({ success: false });
     }
   });
 
