@@ -21,6 +21,7 @@ import {
 import { useCollectionProperties } from "@/hooks/useSchema";
 import { useQuery } from "@tanstack/react-query";
 import type { ObjectCollection, CollectionProperty } from "@shared/schema";
+import { processPromptReferences, validateReferences } from "@/utils/promptReferencing";
 
 // Inline Property Editor Component
 interface InlinePropertyEditorProps {
@@ -125,6 +126,47 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
       const option = previousStepOptions.find(opt => opt.id === ref);
       return option?.category === 'Collection';
     });
+
+    // Process @-key references in AI instructions
+    let processedDescription = formData.extractionType === 'AI' ? formData.aiInstructions : formData.description;
+    
+    if (formData.extractionType === 'AI' && formData.aiInstructions) {
+      // Build reference context for prompt processing
+      const referenceContext = {
+        knowledgeDocuments: knowledgeDocuments?.filter(doc => 
+          (formData.knowledgeDocumentIds as string[]).includes(doc.id)
+        ),
+        referencedFields: referencedMainFieldIds.map(id => {
+          const option = previousStepOptions.find(opt => opt.id === id);
+          return {
+            id,
+            fieldName: option?.name,
+            description: option?.description,
+            fieldType: option?.type
+          };
+        }),
+        referencedCollections: referencedCollectionIds.map(id => {
+          const option = previousStepOptions.find(opt => opt.id === id);
+          return {
+            id,
+            collectionName: option?.name || 'Unknown Collection',
+            description: option?.description
+          };
+        }),
+        extractionRules: extractionRules?.filter(rule => 
+          (formData.extractionRuleIds as string[]).includes(rule.id)
+        )
+      };
+
+      // Process the prompt with reference context
+      processedDescription = processPromptReferences(formData.aiInstructions, referenceContext);
+      
+      // Validate references (optional - could show warnings)
+      const validationErrors = validateReferences(formData.aiInstructions, referenceContext);
+      if (validationErrors.length > 0) {
+        console.warn('Reference validation warnings:', validationErrors);
+      }
+    }
     
     // Map form data to API format
     const mappedData = {
@@ -132,7 +174,7 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
       collectionId: property.collectionId,
       propertyName: formData.propertyName,
       propertyType: formData.propertyType,
-      description: formData.extractionType === 'AI' ? formData.aiInstructions : formData.description,
+      description: processedDescription,
       referencedMainFieldIds,
       referencedCollectionIds,
       autoVerificationConfidence: formData.autoVerificationConfidence,
@@ -316,10 +358,13 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
                 <Textarea
                   value={formData.aiInstructions}
                   onChange={(e) => setFormData(prev => ({...prev, aiInstructions: e.target.value}))}
-                  placeholder="Enter specific instructions for the AI extraction process"
-                  rows={3}
+                  placeholder="Enter specific instructions for the AI extraction process. Use @-key referencing like @knowledge-document:doc-id, @referenced-field:field-id, @referenced-collection:collection-id, @extraction-rule:rule-id, @supplied-document:0"
+                  rows={5}
                   className="mt-1"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Use @-key references to reference knowledge documents, fields, collections, rules, and supplied documents. References will be expanded with object properties when saved.
+                </p>
               </div>
 
               <div>

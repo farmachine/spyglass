@@ -33,6 +33,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, X, FileText, Brain, Settings } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { ProjectSchemaField, KnowledgeDocument, ExtractionRule, ExcelWizardryFunction } from "@shared/schema";
+import { processPromptReferences, validateReferences } from "@/utils/promptReferencing";
 
 const fieldTypes = ["TEXT", "NUMBER", "DATE", "CHOICE"] as const;
 
@@ -124,7 +125,31 @@ export default function SchemaFieldDialog({
 
   const handleSubmit = async (data: SchemaFieldForm) => {
     try {
-      await onSave(data);
+      // Process @-key references in description/prompt field for AI extraction
+      let processedData = { ...data };
+      
+      if (data.extractionType === 'AI' && data.description) {
+        // Build reference context for prompt processing
+        const referenceContext = {
+          knowledgeDocuments: knowledgeDocuments?.filter(doc => 
+            data.knowledgeDocumentIds?.includes(doc.id)
+          ),
+          extractionRules: extractionRules?.filter(rule => 
+            data.extractionRuleIds?.includes(rule.id)
+          )
+        };
+
+        // Process the prompt with reference context
+        processedData.description = processPromptReferences(data.description, referenceContext);
+        
+        // Validate references (optional - could show warnings)
+        const validationErrors = validateReferences(data.description, referenceContext);
+        if (validationErrors.length > 0) {
+          console.warn('Reference validation warnings:', validationErrors);
+        }
+      }
+
+      await onSave(processedData);
       form.reset();
       onOpenChange(false);
     } catch (error) {
@@ -294,10 +319,10 @@ export default function SchemaFieldDialog({
                     <Textarea 
                       placeholder={form.watch("extractionType") === "FUNCTION" 
                         ? "Optional description of this field for documentation" 
-                        : "Tell the AI what to look for in this field (e.g., 'The company name as it appears in the document header')"
+                        : "Tell the AI what to look for in this field. Use @-key referencing like @knowledge-document:doc-id, @extraction-rule:rule-id, @supplied-document:0"
                       }
                       className="resize-none"
-                      rows={3}
+                      rows={form.watch("extractionType") === "AI" ? 5 : 3}
                       {...field}
                       required={form.watch("extractionType") === "AI"}
                     />
@@ -305,7 +330,7 @@ export default function SchemaFieldDialog({
                   <p className="text-sm text-muted-foreground">
                     {form.watch("extractionType") === "FUNCTION" 
                       ? "Optional field description for documentation purposes"
-                      : "This prompt guides the AI during data extraction"
+                      : "This prompt guides the AI during data extraction. Use @-key references to reference knowledge documents, rules, and supplied documents."
                     }
                   </p>
                   <FormMessage />
