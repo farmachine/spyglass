@@ -128,6 +128,7 @@ export const fieldValidations = pgTable("field_validations", {
   confidenceScore: integer("confidence_score").default(0), // 0-100
   documentSource: text("document_source"), // name of the document where data was found
   documentSections: text("document_sections"), // sections where data was found (JSON array)
+  batchNumber: integer("batch_number").default(1), // extraction batch number for multi-step extractions
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

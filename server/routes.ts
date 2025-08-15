@@ -4091,6 +4091,55 @@ except Exception as e:
     }
   });
 
+  // Batch create validation records
+  app.post("/api/validations/batch", async (req, res) => {
+    try {
+      const { validations } = req.body;
+      
+      if (!Array.isArray(validations)) {
+        return res.status(400).json({ message: "Expected 'validations' array in request body" });
+      }
+      
+      let savedCount = 0;
+      const errors = [];
+      
+      for (const validationData of validations) {
+        try {
+          const result = insertFieldValidationSchema.safeParse(validationData);
+          
+          if (!result.success) {
+            errors.push({ 
+              validation: validationData, 
+              error: "Schema validation failed", 
+              details: result.error.errors 
+            });
+            continue;
+          }
+          
+          await storage.createFieldValidation(result.data);
+          savedCount++;
+          
+        } catch (error) {
+          errors.push({ 
+            validation: validationData, 
+            error: "Failed to create validation", 
+            details: error instanceof Error ? error.message : String(error)
+          });
+        }
+      }
+      
+      res.json({ 
+        saved_count: savedCount, 
+        total_records: validations.length,
+        errors: errors.length > 0 ? errors : undefined
+      });
+      
+    } catch (error) {
+      console.error("Batch validation creation error:", error);
+      res.status(500).json({ message: "Failed to create batch validations", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
   app.put("/api/validations/:id", async (req, res) => {
     try {
       const id = req.params.id; // UUID string, not integer

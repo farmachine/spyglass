@@ -329,6 +329,69 @@ def clean_json_and_extract_identifiers(extraction_result, target_fields_data):
             'original_result': extraction_result
         }
 
+def save_validation_records_to_database(session_id, validation_records):
+    """Save validation records to field_validations database table via API call"""
+    try:
+        import requests
+        import json
+        
+        # Prepare validation records for API call
+        api_records = []
+        for record in validation_records:
+            # Skip records without required field_id
+            if not record.get('field_id'):
+                print(f"⚠️  Skipping record {record.get('record_index', '?')} - missing field_id")
+                continue
+                
+            api_record = {
+                "sessionId": session_id,
+                "validationType": record.get('validation_type', 'collection_property'),
+                "dataType": record.get('data_type', 'TEXT'),
+                "fieldId": record.get('field_id'),
+                "collectionName": record.get('collection_name'),
+                "recordIndex": record.get('record_index', 0),
+                "extractedValue": record.get('extracted_value'),
+                "originalExtractedValue": record.get('original_extracted_value', record.get('extracted_value')),
+                "confidenceScore": record.get('confidence_score', 0),
+                "originalConfidenceScore": record.get('original_confidence_score', record.get('confidence_score', 0)),
+                "validationStatus": record.get('validation_status', 'pending'),
+                "aiReasoning": record.get('ai_reasoning'),
+                "originalAiReasoning": record.get('original_ai_reasoning', record.get('ai_reasoning')),
+                "manuallyVerified": record.get('manually_verified', False),
+                "manuallyUpdated": record.get('manually_updated', False),
+                "documentSource": record.get('document_source'),
+                "batchNumber": record.get('batch_number', 1)
+            }
+            api_records.append(api_record)
+        
+        if not api_records:
+            print("⚠️  No valid records to save")
+            return {"success": True, "saved_count": 0, "total_records": len(validation_records)}
+        
+        # Make API call to save validation records
+        api_url = "http://localhost:5000/api/validations/batch"
+        
+        response = requests.post(api_url, 
+                               json={"validations": api_records},
+                               headers={"Content-Type": "application/json"},
+                               timeout=10)
+        
+        if response.status_code == 200:
+            result = response.json()
+            saved_count = result.get('saved_count', len(api_records))
+            print(f"💾 DATABASE SAVE: {saved_count}/{len(validation_records)} validation records saved via API")
+            return {"success": True, "saved_count": saved_count, "total_records": len(validation_records)}
+        else:
+            print(f"⚠️  API error {response.status_code}: {response.text}")
+            return {"error": f"API call failed with status {response.status_code}"}
+            
+    except requests.RequestException as e:
+        print(f"⚠️  API connection error: {str(e)}")
+        return {"error": f"Failed to connect to API: {str(e)}"}
+    except Exception as e:
+        print(f"⚠️  Unexpected error: {str(e)}")
+        return {"error": f"Failed to save validation records: {str(e)}"}
+
 def get_all_collection_properties(collection_ids):
     """Get all properties for the given collection IDs"""
     try:
@@ -971,6 +1034,13 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                             print(json.dumps(processed_results['identifier_results'], indent=2))
                             print("=" * 80)
                             
+                            # Save validation records to database
+                            save_result = save_validation_records_to_database(session_id, processed_results['identifier_results'])
+                            if 'error' in save_result:
+                                print(f"⚠️  Database save error: {save_result['error']}")
+                            else:
+                                print(f"💾 DATABASE SAVE: {save_result['saved_count']}/{save_result['total_records']} validation records saved")
+                            
                             # Create or update identifier references
                             if extraction_number == 0:
                                 # First extraction - create new identifier references
@@ -1084,6 +1154,13 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                                 print(json.dumps(processed_results['identifier_results'], indent=2))
                                 print("=" * 80)
                                 
+                                # Save validation records to database
+                                save_result = save_validation_records_to_database(session_id, processed_results['identifier_results'])
+                                if 'error' in save_result:
+                                    print(f"⚠️  Database save error: {save_result['error']}")
+                                else:
+                                    print(f"💾 DATABASE SAVE: {save_result['saved_count']}/{save_result['total_records']} validation records saved")
+                                
                                 # Create or update identifier references
                                 if extraction_number == 0:
                                     # First extraction - create new identifier references
@@ -1174,6 +1251,13 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                 print("=" * 80)
                 print(json.dumps(processed_results['identifier_results'], indent=2))
                 print("=" * 80)
+                
+                # Save validation records to database
+                save_result = save_validation_records_to_database(session_id, processed_results['identifier_results'])
+                if 'error' in save_result:
+                    print(f"⚠️  Database save error: {save_result['error']}")
+                else:
+                    print(f"💾 DATABASE SAVE: {save_result['saved_count']}/{save_result['total_records']} validation records saved")
                 
                 # Create and display IDENTIFIER REFERENCES array
                 identifier_references = []

@@ -1124,6 +1124,7 @@ dependencies = [
     { name = "pyjwt" },
     { name = "pypdf2" },
     { name = "python-docx" },
+    { name = "requests" },
     { name = "sift-stack-py" },
     { name = "xlrd" },
 ]
@@ -1143,6 +1144,7 @@ requires-dist = [
     { name = "pyjwt", specifier = ">=2.10.1" },
     { name = "pypdf2", specifier = ">=3.0.1" },
     { name = "python-docx", specifier = ">=1.2.0" },
+    { name = "requests", specifier = ">=2.32.4" },
     { name = "sift-stack-py", specifier = ">=0.7.0" },
     { name = "xlrd", specifier = ">=2.0.2" },
 ]

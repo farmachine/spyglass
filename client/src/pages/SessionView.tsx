@@ -1327,6 +1327,8 @@ export default function SessionView() {
   const { data: validations = [], isLoading: validationsLoading } = useQuery<FieldValidation[]>({
     queryKey: ['/api/sessions', sessionId, 'validations'],
     queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`),
+    refetchInterval: 3000, // Poll every 3 seconds for new validation records
+    refetchIntervalInBackground: true, // Continue polling even when tab is not focused
     onSuccess: (data) => {
       console.log(`Session ${sessionId} - Validations loaded:`, data.length);
       if (data.length > 0) {
