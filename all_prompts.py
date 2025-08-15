@@ -70,6 +70,40 @@ Response format:
 """
 
 # Excel function generation prompt
+ENHANCED_AI_EXTRACTION_PROMPT = """
+Extract data from the provided documents using the field configuration and context provided.
+
+TARGET FIELD: {field_name}
+FIELD TYPE: {field_type}
+DESCRIPTION: {field_description}
+
+KNOWLEDGE DOCUMENTS:
+{knowledge_context}
+
+EXTRACTION RULES:
+{rules_context}
+
+PREVIOUS EXTRACTIONS:
+{previous_context}
+
+SOURCE DOCUMENTS:
+{document_context}
+
+Instructions:
+1. Extract the exact value for the target field based on the description and rules
+2. Use knowledge documents for validation and reference standards
+3. Consider previous extractions for context and consistency
+4. Return confidence score (0-100) based on certainty
+5. Provide clear reasoning for your extraction
+
+Return JSON format:
+{{
+    "extracted_value": "value found in documents",
+    "confidence_score": 85,
+    "reasoning": "explanation of how value was found and validated"
+}}
+"""
+
 EXCEL_FUNCTION_GENERATOR = """You must generate a complete Python function that extracts data from Excel content.
 
 TARGET FIELDS TO EXTRACT:

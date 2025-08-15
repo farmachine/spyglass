@@ -2062,9 +2062,13 @@ except Exception as e:
         return;
       }
       
-      // Use current AI extraction for complex tasks
-      console.log('USING CURRENT AI EXTRACTION: Complex reasoning and analysis required');
-      const python = spawn('python3', ['ai_extraction_simplified.py']);
+      // Use enhanced extraction processor for intelligent routing
+      console.log('USING ENHANCED AI EXTRACTION: Intelligent routing based on field configuration');
+      
+      // Add project_id to extraction data for enhanced processor
+      extractionData.project_id = projectId;
+      
+      const python = spawn('python3', ['enhanced_extraction_processor.py']);
       
       python.stdin.write(JSON.stringify(extractionData));
       python.stdin.end();
