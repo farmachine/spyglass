@@ -18,6 +18,13 @@ def save_validations_to_database(session_id, validation_results):
         print(f"Session: {session_id}")
         print(f"Validation records: {len(validation_results)}")
         
+        # Debug: Show field_id mapping for first few results
+        for i, result in enumerate(validation_results[:3]):
+            field_id = result.get('field_id', 'NO FIELD_ID')
+            field_name = result.get('field_name', 'NO FIELD_NAME')
+            extracted_value = result.get('extracted_value', 'NO VALUE')
+            print(f"   Record {i}: field_id='{field_id}', field_name='{field_name}', value='{extracted_value[:50]}...'")
+        
         # Prepare data for the API
         api_data = {
             "validations": validation_results
@@ -28,8 +35,10 @@ def save_validations_to_database(session_id, validation_results):
         response = requests.post(api_url, json=api_data, timeout=30)
         
         if response.status_code == 200:
-            print("✅ Successfully saved validations to database")
-            return {"success": True}
+            response_data = response.json()
+            saved_count = response_data.get('savedCount', 0)
+            print(f"✅ Successfully saved {saved_count} validations to database")
+            return {"success": True, "saved_count": saved_count}
         else:
             print(f"❌ Failed to save validations: {response.status_code} - {response.text}")
             return {"error": f"API error: {response.status_code}"}
@@ -244,6 +253,32 @@ def clean_json_and_extract_identifiers(extraction_result, target_fields_data):
         if isinstance(cleaned_result, list):
             for result_item in cleaned_result:
                 if isinstance(result_item, dict):
+                    # Ensure field_id is set properly from target fields
+                    field_name = result_item.get('field_name', '')
+                    if not result_item.get('field_id') and target_fields_data:
+                        # Find matching field in target_fields_data
+                        for field in target_fields_data:
+                            field_id = field.get('field_id', '')
+                            property_name = field.get('name', '')
+                            # Match by field name patterns
+                            if (field_name.endswith(property_name) or 
+                                property_name.lower().replace(' ', '_') in field_name.lower() or
+                                field_id.split('.')[-1] in field_name):
+                                result_item['field_id'] = field_id
+                                print(f"🔗 Mapped field_name '{field_name}' to field_id '{field_id}'")
+                                break
+                        
+                        # If still no field_id found, try extracting from collection.property pattern
+                        if not result_item.get('field_id') and '.' in field_name:
+                            collection_part, property_part = field_name.split('.', 1)
+                            property_part = property_part.split('[')[0]  # Remove array index if present
+                            
+                            for field in target_fields_data:
+                                if field.get('name', '').replace(' ', '_').lower() == property_part.lower():
+                                    result_item['field_id'] = field.get('field_id', '')
+                                    print(f"🔗 Mapped by property name '{property_part}' to field_id '{field.get('field_id', '')}'")
+                                    break
+                    
                     # Return the complete field_validation object
                     identifier_results.append(result_item)
         
@@ -1132,9 +1167,15 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                 print(f"Created {len(identifier_references)} new references for next extraction")
                 
                 # 💾 SAVE VALIDATIONS TO DATABASE AFTER EACH EXTRACTION STEP
+                print(f"\n🔍 DEBUG: About to save {len(processed_results['identifier_results'])} validation results")
+                for i, result in enumerate(processed_results['identifier_results'][:3]):  # Show first 3
+                    print(f"   Result {i}: {result.get('field_name', 'No field_name')} = {result.get('extracted_value', 'No value')}")
+                
                 save_result = save_validations_to_database(session_id, processed_results['identifier_results'])
                 if 'error' in save_result:
                     print(f"⚠️ Warning: Failed to save validations - {save_result['error']}")
+                else:
+                    print("✅ Database save completed successfully")
                 
                 # Log extraction progress
                 if all_collection_properties:
@@ -1206,8 +1247,21 @@ def run_wizardry(data=None, extraction_number=0):
     # FIRST: Display all collection properties at the very beginning
     if data and isinstance(data, dict):
         target_fields = data.get('target_fields', [])
-        collection_ids = list(set([field.get('collectionId') for field in target_fields if field.get('collectionId')]))
+        # Extract collection IDs from field IDs (format: "collectionId.propertyId")
+        collection_ids = []
+        for field in target_fields:
+            field_id = field.get('id', '')
+            if '.' in field_id:
+                collection_id = field_id.split('.')[0]
+                if collection_id not in collection_ids:
+                    collection_ids.append(collection_id)
+            # Also check collectionId field
+            if field.get('collectionId'):
+                if field['collectionId'] not in collection_ids:
+                    collection_ids.append(field['collectionId'])
+        
         print(f"DEBUG: Found collection IDs: {collection_ids}")
+        print(f"DEBUG: Target fields: {[f.get('id', 'no-id') for f in target_fields]}")
         if collection_ids:
             all_collection_properties = get_all_collection_properties(collection_ids)
             print("\n" + "=" * 80)

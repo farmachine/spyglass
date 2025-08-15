@@ -666,7 +666,16 @@ const AIExtractionModal = ({
           const stepResultLine = lines.find((line: string) => line.includes('EXTRACTION STEP RESULT:'));
           if (stepResultLine) {
             const stepResultIndex = lines.indexOf(stepResultLine);
-            const jsonLines = lines.slice(stepResultIndex + 1).join('\n');
+            let jsonLines = lines.slice(stepResultIndex + 1).join('\n');
+            
+            // Clean up the JSON by finding the actual JSON block
+            const jsonStart = jsonLines.indexOf('{');
+            const jsonEnd = jsonLines.lastIndexOf('}');
+            if (jsonStart >= 0 && jsonEnd >= 0) {
+              jsonLines = jsonLines.substring(jsonStart, jsonEnd + 1);
+            }
+            
+            console.log('Parsing JSON from lines:', jsonLines);
             const stepResult = JSON.parse(jsonLines);
             
             console.log('Parsed Step Result:', stepResult);
