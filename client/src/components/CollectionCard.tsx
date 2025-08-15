@@ -50,7 +50,7 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
     propertyType: property.propertyType,
     description: property.description || '',
     extractionType: property.extractionType || 'AI',
-    requiredDocumentType: property.requiredDocumentType || '',
+    requiredDocumentType: property.requiredDocumentType || 'Any',
     functionId: property.functionId || null,
     autoVerificationConfidence: property.autoVerificationConfidence || 80,
     documentsRequired: property.documentsRequired || false,
@@ -132,7 +132,7 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
       documentsRequired: formData.documentsRequired,
       extractionType: formData.extractionType,
       functionId: formData.functionId,
-      requiredDocumentType: formData.requiredDocumentType
+      requiredDocumentType: formData.requiredDocumentType === 'Any' ? null : formData.requiredDocumentType
     };
     
     onSave(mappedData);
@@ -391,7 +391,7 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any</SelectItem>
+                    <SelectItem value="Any">Any</SelectItem>
                     <SelectItem value="Excel">Excel (.xlsx, .xls)</SelectItem>
                     <SelectItem value="Word">Word (.docx, .doc)</SelectItem>
                     <SelectItem value="PDF">PDF (.pdf)</SelectItem>
