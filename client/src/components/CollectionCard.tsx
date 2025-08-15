@@ -55,59 +55,18 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
           <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-semibold text-blue-600">1</div>
           <h5 className="text-sm font-semibold text-gray-900">Extraction Type</h5>
         </div>
-        <Select value={formData.extractionType} onValueChange={(value) => setFormData(prev => ({...prev, extractionType: value}))}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="AI">AI-based Extraction</SelectItem>
-            <SelectItem value="Function">Function-based Extraction</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Inputs Section */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-semibold text-blue-600">2</div>
-          <h5 className="text-sm font-semibold text-gray-900">Inputs</h5>
-        </div>
         <div className="space-y-3 pl-8">
           <div>
-            <Label htmlFor="propertyName" className="text-sm font-medium">Property Name</Label>
-            <Input
-              id="propertyName"
-              value={formData.propertyName}
-              onChange={(e) => setFormData(prev => ({...prev, propertyName: e.target.value}))}
-              className="mt-1"
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="propertyType" className="text-sm font-medium">Property Type</Label>
-            <Select value={formData.propertyType} onValueChange={(value) => setFormData(prev => ({...prev, propertyType: value}))}>
+            <Label className="text-sm font-medium">Method</Label>
+            <Select value={formData.extractionType} onValueChange={(value) => setFormData(prev => ({...prev, extractionType: value}))}>
               <SelectTrigger className="mt-1">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="TEXT">Text</SelectItem>
-                <SelectItem value="NUMBER">Number</SelectItem>
-                <SelectItem value="DATE">Date</SelectItem>
-                <SelectItem value="BOOLEAN">Boolean</SelectItem>
+                <SelectItem value="AI">AI-based Extraction</SelectItem>
+                <SelectItem value="Function">Function-based Extraction</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-
-          <div>
-            <Label htmlFor="description" className="text-sm font-medium">Description</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({...prev, description: e.target.value}))}
-              placeholder="Describe what data to extract for this property"
-              rows={2}
-              className="mt-1"
-            />
           </div>
 
           {formData.extractionType === 'Function' && (
@@ -153,13 +112,70 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
         </div>
       </div>
 
+      {/* Inputs Section */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-semibold text-blue-600">2</div>
+          <h5 className="text-sm font-semibold text-gray-900">Inputs</h5>
+        </div>
+        <div className="space-y-3 pl-8">
+          <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
+            <p className="text-sm text-gray-700 mb-2">
+              <span className="font-medium">References from previous steps:</span>
+            </p>
+            <ul className="text-sm text-gray-600 space-y-1">
+              <li>• Step {property.orderIndex || 0}: Uses values from identifier field</li>
+              <li>• Document content: Extracted text and structured data</li>
+              <li>• Context: Related field values and document metadata</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
       {/* Output Section */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-semibold text-blue-600">3</div>
           <h5 className="text-sm font-semibold text-gray-900">Output</h5>
         </div>
-        <div className="pl-8">
+        <div className="space-y-3 pl-8">
+          <div>
+            <Label htmlFor="propertyName" className="text-sm font-medium">Property Name</Label>
+            <Input
+              id="propertyName"
+              value={formData.propertyName}
+              onChange={(e) => setFormData(prev => ({...prev, propertyName: e.target.value}))}
+              className="mt-1"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="propertyType" className="text-sm font-medium">Property Type</Label>
+            <Select value={formData.propertyType} onValueChange={(value) => setFormData(prev => ({...prev, propertyType: value}))}>
+              <SelectTrigger className="mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="TEXT">Text</SelectItem>
+                <SelectItem value="NUMBER">Number</SelectItem>
+                <SelectItem value="DATE">Date</SelectItem>
+                <SelectItem value="BOOLEAN">Boolean</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="description" className="text-sm font-medium">Description</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({...prev, description: e.target.value}))}
+              placeholder="Describe what data to extract for this property"
+              rows={2}
+              className="mt-1"
+            />
+          </div>
+
           <div>
             <Label htmlFor="confidence" className="text-sm font-medium">Auto Verification Confidence Level (%)</Label>
             <Input
