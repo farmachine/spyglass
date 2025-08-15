@@ -8,47 +8,6 @@ from all_prompts import DOCUMENT_FORMAT_ANALYSIS, EXCEL_FUNCTION_GENERATOR
 from excel_wizard import excel_column_extraction
 from ai_extraction_wizard import ai_document_extraction
 
-def save_validations_to_database(session_id, validation_results):
-    """Save validation results to database after each extraction step"""
-    try:
-        import requests
-        
-        print(f"\n💾 SAVING VALIDATIONS TO DATABASE:")
-        print("=" * 80)
-        print(f"Session: {session_id}")
-        print(f"Validation records: {len(validation_results)}")
-        
-        # Debug: Show field_id mapping for first few results
-        for i, result in enumerate(validation_results[:3]):
-            field_id = result.get('field_id', 'NO FIELD_ID')
-            field_name = result.get('field_name', 'NO FIELD_NAME')
-            extracted_value = result.get('extracted_value', 'NO VALUE')
-            print(f"   Record {i}: field_id='{field_id}', field_name='{field_name}', value='{extracted_value[:50]}...'")
-        
-        # Prepare data for the API
-        api_data = {
-            "validations": validation_results
-        }
-        
-        # Make API call to save validations
-        api_url = f"http://localhost:5000/api/sessions/{session_id}/save-validations"
-        response = requests.post(api_url, json=api_data, timeout=30)
-        
-        if response.status_code == 200:
-            response_data = response.json()
-            saved_count = response_data.get('savedCount', 0)
-            print(f"✅ Successfully saved {saved_count} validations to database")
-            return {"success": True, "saved_count": saved_count}
-        else:
-            print(f"❌ Failed to save validations: {response.status_code} - {response.text}")
-            return {"error": f"API error: {response.status_code}"}
-            
-    except Exception as e:
-        print(f"❌ Error saving validations: {str(e)}")
-        return {"error": str(e)}
-    finally:
-        print("=" * 80)
-
 def log_remaining_collection_fields(extracted_results, all_collection_properties):
     """Log which collection fields have been extracted and which remain to be processed"""
     try:
@@ -253,48 +212,6 @@ def clean_json_and_extract_identifiers(extraction_result, target_fields_data):
         if isinstance(cleaned_result, list):
             for result_item in cleaned_result:
                 if isinstance(result_item, dict):
-                    # Ensure field_id is set properly from target fields - use the current target field
-                    field_name = result_item.get('field_name', '')
-                    if not result_item.get('field_id') and target_fields_data:
-                        # For single-field extraction, use the first (and usually only) target field
-                        if len(target_fields_data) == 1:
-                            target_field = target_fields_data[0]
-                            full_field_id = target_field.get('field_id', '')
-                            # Extract just the property ID part (after the dot) for database compatibility
-                            if '.' in full_field_id:
-                                property_id = full_field_id.split('.')[-1]
-                                result_item['field_id'] = property_id
-                                print(f"🔗 Using property field_id '{property_id}' (from '{full_field_id}') for field_name '{field_name}'")
-                            else:
-                                result_item['field_id'] = full_field_id
-                                print(f"🔗 Using field_id '{full_field_id}' for field_name '{field_name}'")
-                        else:
-                            # Find matching field in target_fields_data for multi-field extractions
-                            for field in target_fields_data:
-                                field_id = field.get('field_id', '')
-                                property_name = field.get('name', '')
-                                # Match by field name patterns - prioritize exact property name match
-                                property_clean = property_name.lower().replace(' ', '_').replace('-', '_')
-                                field_clean = field_name.lower().replace(' ', '_').replace('-', '_')
-                                
-                                if (property_clean in field_clean or 
-                                    field_name.endswith(property_name) or
-                                    field_id.split('.')[-1] in field_name):
-                                    result_item['field_id'] = field_id
-                                    print(f"🔗 Mapped field_name '{field_name}' to field_id '{field_id}' via property '{property_name}'")
-                                    break
-                            
-                            # If still no field_id found, try extracting from collection.property pattern
-                            if not result_item.get('field_id') and '.' in field_name:
-                                collection_part, property_part = field_name.split('.', 1)
-                                property_part = property_part.split('[')[0]  # Remove array index if present
-                                
-                                for field in target_fields_data:
-                                    if field.get('name', '').replace(' ', '_').lower() == property_part.lower():
-                                        result_item['field_id'] = field.get('field_id', '')
-                                        print(f"🔗 Mapped by property name '{property_part}' to field_id '{field.get('field_id', '')}'")
-                                        break
-                    
                     # Return the complete field_validation object
                     identifier_results.append(result_item)
         
@@ -629,8 +546,6 @@ def execute_excel_wizardry_function(function_code, extracted_content, target_fie
                 'float': float,
                 'list': list,
                 'dict': dict,
-                'tuple': tuple,
-                'set': set,
                 'range': range,
                 'enumerate': enumerate,
                 'zip': zip,
@@ -644,19 +559,7 @@ def execute_excel_wizardry_function(function_code, extracted_content, target_fie
                 'min': min,
                 'sum': sum,
                 'sorted': sorted,
-                'reversed': reversed,
-                'isinstance': isinstance,  # Fix isinstance error
-                'type': type,
-                'hasattr': hasattr,
-                'getattr': getattr,
-                'setattr': setattr,
-                'next': next,
-                'iter': iter,
-                'round': round,
-                'map': map,
-                'filter': filter,
-                'ord': ord,
-                'chr': chr
+                'reversed': reversed
             }
         }
         
@@ -828,13 +731,6 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
         if extraction_number < len(target_fields_data):
             current_target = target_fields_data[extraction_number]
             identifier_targets = [current_target]
-            
-            # Debug: Log the current target field details
-            print(f"📍 CURRENT TARGET FIELD:")
-            print(f"   field_id: {current_target.get('field_id')}")
-            print(f"   name: {current_target.get('name')}")
-            print(f"   property_type: {current_target.get('property_type')}")
-            print("=" * 40)
         else:
             # If extraction_number exceeds available fields, use identifier fields as fallback
             identifier_targets = [field for field in target_fields_data if field.get('is_identifier', False)]
@@ -1016,11 +912,6 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                                 print(json.dumps(identifier_references, indent=2))
                                 print("=" * 80)
                                 print(f"Updated {len(identifier_references)} references with new field data")
-                                
-                                # 💾 SAVE VALIDATIONS TO DATABASE AFTER EACH EXTRACTION STEP
-                                save_result = save_validations_to_database(session_id, processed_results['identifier_results'])
-                                if 'error' in save_result:
-                                    print(f"⚠️ Warning: Failed to save validations - {save_result['error']}")
                             
                             # Log extraction progress
                             if all_collection_properties:
@@ -1125,16 +1016,10 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                                     
                                     identifier_references = updated_identifier_references
                                 
-                                print(f"\n🔗 IDENTIFIER REFERENCES ARRAY:")
+                                print("\n" + "=" * 80)
+                                print("IDENTIFIER REFERENCES")
                                 print("=" * 80)
                                 print(json.dumps(identifier_references, indent=2))
-                                print("=" * 80)
-                                print(f"Created {len(identifier_references)} new references for next extraction")
-                                
-                                # 💾 SAVE VALIDATIONS TO DATABASE AFTER EACH EXTRACTION STEP
-                                save_result = save_validations_to_database(session_id, processed_results['identifier_results'])
-                                if 'error' in save_result:
-                                    print(f"⚠️ Warning: Failed to save validations - {save_result['error']}")
                                 
                                 # Log target property with orderIndex matching extraction number
                                 if all_collection_properties:
@@ -1203,17 +1088,6 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                 print("=" * 80)
                 print(f"Created {len(identifier_references)} new references for next extraction")
                 
-                # 💾 SAVE VALIDATIONS TO DATABASE AFTER EACH EXTRACTION STEP
-                print(f"\n🔍 DEBUG: About to save {len(processed_results['identifier_results'])} validation results")
-                for i, result in enumerate(processed_results['identifier_results'][:3]):  # Show first 3
-                    print(f"   Result {i}: {result.get('field_name', 'No field_name')} = {result.get('extracted_value', 'No value')}")
-                
-                save_result = save_validations_to_database(session_id, processed_results['identifier_results'])
-                if 'error' in save_result:
-                    print(f"⚠️ Warning: Failed to save validations - {save_result['error']}")
-                else:
-                    print("✅ Database save completed successfully")
-                
                 # Log extraction progress
                 if all_collection_properties:
                     extracted_field_names = set()
@@ -1235,35 +1109,28 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             print(f"\n❌ NO EXTRACTION METHOD: Gemini did not recommend a specific extraction method")
         print("=" * 80)
         
-        # PROGRESSIVE EXTRACTION LOGIC: Return results after each step for UI updates
+        # AUTO-RERUN LOGIC: Continue extraction until all target fields are processed
         next_extraction_number = extraction_number + 1
         total_target_fields = len(target_fields) if target_fields else 0
         
-        # Return extraction progress signal for frontend handling
-        extraction_result = {
-            "step_completed": True,
-            "extraction_number": extraction_number,
-            "next_extraction_number": next_extraction_number,
-            "total_target_fields": total_target_fields,
-            "has_more_fields": next_extraction_number < total_target_fields,
-            "identifier_references": identifier_references if 'identifier_references' in locals() else first_run_identifier_references,
-            "session_id": session_id,
-            "document_ids": document_ids,
-            "target_fields": target_fields
-        }
-        
         if next_extraction_number < total_target_fields:
             print("\n" + "=" * 80)
-            print(f"STEP COMPLETE: Extraction {extraction_number + 1}/{total_target_fields} finished")
+            print(f"AUTO-RERUN: Starting extraction run {next_extraction_number + 1} of {total_target_fields}")
             print("=" * 80)
-            print(f"Current extraction: {extraction_number + 1}")
-            print(f"Next extraction: {next_extraction_number + 1}")
+            print(f"Next extraction number: {next_extraction_number}")
             print(f"Target field: {target_fields[next_extraction_number].get('propertyName', 'Unknown') if target_fields else 'None'}")
             print(f"Progress: {next_extraction_number}/{total_target_fields} fields processed")
-            print("=" * 80)
-            print("🔄 READY FOR NEXT EXTRACTION STEP")
-            print("Frontend should trigger next extraction automatically")
-            print("=" * 80)
+            
+            # Create new data object with updated target fields and identifier references
+            rerun_data = {
+                "document_ids": document_ids,
+                "session_id": session_id,
+                "target_fields": target_fields,
+                "identifier_references": identifier_references if 'identifier_references' in locals() else first_run_identifier_references
+            }
+            
+            # Re-run the extraction with the new parameters
+            run_wizardry_with_gemini_analysis(rerun_data, next_extraction_number)
         else:
             print("\n" + "=" * 80)
             print("EXTRACTION COMPLETE")
@@ -1271,11 +1138,6 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             print(f"All {total_target_fields} target fields have been processed")
             print("Extraction sequence finished successfully")
             print("=" * 80)
-            extraction_result["extraction_complete"] = True
-        
-        # Output the result for the frontend to handle
-        print(f"\n🏁 EXTRACTION STEP RESULT:")
-        print(json.dumps(extraction_result, indent=2))
         
     else:
         print(json.dumps({"error": "Invalid data format. Expected object with document_ids and session_id"}))
@@ -1284,21 +1146,8 @@ def run_wizardry(data=None, extraction_number=0):
     # FIRST: Display all collection properties at the very beginning
     if data and isinstance(data, dict):
         target_fields = data.get('target_fields', [])
-        # Extract collection IDs from field IDs (format: "collectionId.propertyId")
-        collection_ids = []
-        for field in target_fields:
-            field_id = field.get('id', '')
-            if '.' in field_id:
-                collection_id = field_id.split('.')[0]
-                if collection_id not in collection_ids:
-                    collection_ids.append(collection_id)
-            # Also check collectionId field
-            if field.get('collectionId'):
-                if field['collectionId'] not in collection_ids:
-                    collection_ids.append(field['collectionId'])
-        
+        collection_ids = list(set([field.get('collectionId') for field in target_fields if field.get('collectionId')]))
         print(f"DEBUG: Found collection IDs: {collection_ids}")
-        print(f"DEBUG: Target fields: {[f.get('id', 'no-id') for f in target_fields]}")
         if collection_ids:
             all_collection_properties = get_all_collection_properties(collection_ids)
             print("\n" + "=" * 80)
@@ -1315,21 +1164,13 @@ def run_wizardry(data=None, extraction_number=0):
 if __name__ == "__main__":
     # Read JSON data from stdin if available
     data = None
-    extraction_number = 0  # Default extraction number
-    
     if not sys.stdin.isatty():  # Check if there's input from stdin
         try:
             input_data = sys.stdin.read()
             if input_data.strip():
                 data = json.loads(input_data)
-                # Extract extraction_number from the data if provided
-                if isinstance(data, dict) and 'extraction_number' in data:
-                    extraction_number = int(data.get('extraction_number', 0))
-                    print(f"DEBUG: Using extraction_number {extraction_number} from input data")
-                else:
-                    print("DEBUG: No extraction_number provided, using default 0")
         except json.JSONDecodeError as e:
             print(json.dumps({"error": f"JSON decode error: {str(e)}"}))
             sys.exit(1)
     
-    run_wizardry(data, extraction_number)
+    run_wizardry(data)
