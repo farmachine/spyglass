@@ -48,10 +48,19 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
     knowledgeDocumentIds: (property as any).knowledgeDocumentIds || [],
     aiInstructions: (property as any).aiInstructions || '',
     extractionRuleIds: (property as any).extractionRuleIds || [],
+    referencedMainFieldIds: (property as any).referencedMainFieldIds || [],
+    referencedCollectionIds: (property as any).referencedCollectionIds || [],
   });
 
   // Get previous step properties for reference selection
-  const [selectedReferences, setSelectedReferences] = useState<string[]>([]);
+  const [selectedReferences, setSelectedReferences] = useState<string[]>(() => {
+    // Initialize with existing references from both arrays
+    const existingRefs = [
+      ...(formData.referencedMainFieldIds || []),
+      ...(formData.referencedCollectionIds || [])
+    ];
+    return existingRefs;
+  });
   
   // Build reference options from schema fields and preceding collections
   const buildReferenceOptions = () => {
@@ -106,6 +115,17 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Separate main field references from collection references
+    const referencedMainFieldIds = selectedReferences.filter(ref => {
+      const option = previousStepOptions.find(opt => opt.id === ref);
+      return option?.category === 'Schema Field';
+    });
+    
+    const referencedCollectionIds = selectedReferences.filter(ref => {
+      const option = previousStepOptions.find(opt => opt.id === ref);
+      return option?.category === 'Collection';
+    });
+    
     // Map form data to API format
     const mappedData = {
       id: property.id,
@@ -113,6 +133,8 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
       propertyName: formData.propertyName,
       propertyType: formData.propertyType,
       description: formData.extractionType === 'AI' ? formData.aiInstructions : formData.description,
+      referencedMainFieldIds,
+      referencedCollectionIds,
       autoVerificationConfidence: formData.autoVerificationConfidence,
       choiceOptions: property.choiceOptions || [], // Same behavior
       isIdentifier: property.isIdentifier || false, // Same behavior
