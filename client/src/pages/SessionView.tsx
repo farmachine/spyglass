@@ -3554,22 +3554,30 @@ Thank you for your assistance.`;
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
                                       <DropdownMenuItem
-                                        onClick={() => {
+                                        onClick={async () => {
                                           const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
-                                          if (collectionValidations.length > 0) {
-                                            if (confirm(`Are you sure you want to delete all ${collectionValidations.length} records for ${collection.collectionName}? This action cannot be undone.`)) {
-                                              // Delete all collection items
-                                              collectionValidations.forEach(validation => {
-                                                handleDeleteCollectionItem(collection.collectionName, validation.recordIndex || 0);
-                                              });
+                                          const itemCount = uniqueIndices.length;
+                                          
+                                          if (itemCount > 0) {
+                                            if (confirm(`Are you sure you want to delete all ${itemCount} items from ${collection.collectionName}? This action cannot be undone.`)) {
+                                              try {
+                                                // Delete each item by its unique index
+                                                for (const index of uniqueIndices) {
+                                                  await handleDeleteCollectionItem(collection.collectionName, index);
+                                                }
+                                              } catch (error) {
+                                                console.error('Error deleting collection items:', error);
+                                              }
                                             }
+                                          } else {
+                                            alert(`No items to delete in ${collection.collectionName}`);
                                           }
                                         }}
                                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                         disabled={uniqueIndices.length === 0}
                                       >
                                         <Trash2 className="h-4 w-4 mr-2" />
-                                        Delete All Data
+                                        Delete All Data ({uniqueIndices.length} items)
                                       </DropdownMenuItem>
                                     </DropdownMenuContent>
                                   </DropdownMenu>
