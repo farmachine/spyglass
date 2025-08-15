@@ -17,7 +17,6 @@ dependencies = [
     "pyjwt>=2.10.1",
     "pypdf2>=3.0.1",
     "python-docx>=1.2.0",
-    "requests>=2.32.4",
     "sift-stack-py>=0.7.0",
     "xlrd>=2.0.2",
 ]

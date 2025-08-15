@@ -197,154 +197,22 @@ def clean_json_and_extract_identifiers(extraction_result, target_fields_data):
         # Create Identifier Results array
         identifier_results = []
         
-        # Create a mapping of field names to field metadata from target_fields_data
-        field_name_to_metadata_map = {}
+        # Find identifier fields from target_fields_data
+        identifier_fields = []
         if target_fields_data:
             for field in target_fields_data:
-                field_name = field.get('name') or field.get('property_name') or field.get('propertyName', '')
-                field_id = field.get('field_id') or field.get('id', '')
-                if field_name and field_id:
-                    field_metadata = {
-                        'field_id': field_id,
-                        'collection_name': field.get('collection_name', ''),
-                        'validation_type': field.get('type', 'collection_property'),
-                        'data_type': field.get('property_type', 'TEXT')
-                    }
-                    # Handle collection.property format
-                    collection_name = field.get('collection_name', '')
-                    if collection_name:
-                        full_field_name = f"{collection_name}.{field_name}"
-                        field_name_to_metadata_map[full_field_name] = field_metadata
-                    field_name_to_metadata_map[field_name] = field_metadata
+                if field.get('is_identifier', False):
+                    identifier_fields.append({
+                        'field_id': field.get('field_id'),
+                        'name': field.get('name'),
+                        'property_name': field.get('name')
+                    })
         
-        print(f"🔗 Field Name to Metadata Mapping ({len(field_name_to_metadata_map)} entries):")
-        for map_key, map_data in field_name_to_metadata_map.items():
-            print(f"    '{map_key}' -> field_id: {map_data['field_id'][:8]}...")
-        
-        # Process validation records to ensure they have proper field IDs and all required database fields
+        # Extract all field_validation objects from the cleaned results for identifier results
         if isinstance(cleaned_result, list):
             for result_item in cleaned_result:
                 if isinstance(result_item, dict):
-                    # Ensure the validation record has a field_id
-                    field_name = result_item.get('field_name', '')
-                    
-                    # Try to map field_name to field metadata if not already present
-                    if field_name:
-                        field_metadata = None
-                        
-                        # Debug: Show what field_name we're trying to map
-                        if result_item.get('record_index', 0) < 3:  # First 3 records only
-                            print(f"🔍 Trying to map field_name: '{field_name}'")
-                            print(f"🔍 Available mappings: {list(field_name_to_metadata_map.keys())}")
-                        
-                        # Try direct field name match first
-                        if field_name in field_name_to_metadata_map:
-                            field_metadata = field_name_to_metadata_map[field_name]
-                            if result_item.get('record_index', 0) < 3:
-                                print(f"✅ Direct match found for: {field_name}")
-                        else:
-                            # Try different pattern matching approaches
-                            import re
-                            
-                            # Pattern 1: "Collection.Property[index]" -> "Collection.Property"
-                            property_match = re.match(r'([^.]+\.[^[]+)', field_name)
-                            if property_match:
-                                property_name = property_match.group(1)
-                                if property_name in field_name_to_metadata_map:
-                                    field_metadata = field_name_to_metadata_map[property_name]
-                                    if result_item.get('record_index', 0) < 3:
-                                        print(f"✅ Pattern match found: {field_name} -> {property_name}")
-                            
-                            # Pattern 2: Try just the property name after the dot
-                            if not field_metadata and '.' in field_name:
-                                simple_property = field_name.split('.')[-1]
-                                # Remove any array notation
-                                if '[' in simple_property:
-                                    simple_property = simple_property.split('[')[0]
-                                
-                                # Try to find matching property in any collection
-                                for map_key, map_metadata in field_name_to_metadata_map.items():
-                                    if simple_property in map_key and map_metadata['field_id']:
-                                        field_metadata = map_metadata
-                                        if result_item.get('record_index', 0) < 3:
-                                            print(f"✅ Property match found: {field_name} -> {map_key} via '{simple_property}'")
-                                        break
-                        
-                        # Apply metadata to result item if found
-                        if field_metadata:
-                            if not result_item.get('field_id'):
-                                result_item['field_id'] = field_metadata['field_id']
-                            if not result_item.get('collection_name'):
-                                result_item['collection_name'] = field_metadata['collection_name']
-                            if not result_item.get('validation_type'):
-                                result_item['validation_type'] = field_metadata['validation_type']
-                            if not result_item.get('data_type'):
-                                result_item['data_type'] = field_metadata['data_type']
-                    
-                    # Ensure all required database fields are present with proper defaults
-                    # Set validation_type default if missing
-                    if not result_item.get('validation_type'):
-                        result_item['validation_type'] = 'collection_property'
-                    
-                    # Set data_type default if missing
-                    if not result_item.get('data_type'):
-                        result_item['data_type'] = 'TEXT'
-                    
-                    # Ensure confidence_score is integer (0-100)
-                    confidence = result_item.get('confidence_score', 0)
-                    if isinstance(confidence, float):
-                        result_item['confidence_score'] = int(confidence * 100)
-                    elif not isinstance(confidence, int):
-                        result_item['confidence_score'] = 0
-                    
-                    # Set original values for database tracking
-                    if not result_item.get('original_extracted_value'):
-                        result_item['original_extracted_value'] = result_item.get('extracted_value')
-                    if not result_item.get('original_confidence_score'):
-                        result_item['original_confidence_score'] = result_item.get('confidence_score', 0)
-                    if not result_item.get('original_ai_reasoning'):
-                        result_item['original_ai_reasoning'] = result_item.get('ai_reasoning')
-                    
-                    # Set default values for boolean fields
-                    if 'manually_verified' not in result_item:
-                        result_item['manually_verified'] = False
-                    if 'manually_updated' not in result_item:
-                        result_item['manually_updated'] = False
-                    
-                    # Set validation_status default
-                    if not result_item.get('validation_status'):
-                        result_item['validation_status'] = 'pending'
-                    
-                    # Set batch_number default
-                    if not result_item.get('batch_number'):
-                        result_item['batch_number'] = 1
-                    
-                    # Ensure record_index is integer
-                    if 'record_index' in result_item and not isinstance(result_item['record_index'], int):
-                        try:
-                            result_item['record_index'] = int(result_item['record_index'])
-                        except:
-                            result_item['record_index'] = 0
-                    
-                    # Log validation record structure for debugging (first few records only)
-                    record_idx = result_item.get('record_index', 0)
-                    if record_idx < 3:  # Only log first 3 records to avoid spam
-                        db_fields_status = {
-                            'validation_type': '✓' if result_item.get('validation_type') else '✗',
-                            'data_type': '✓' if result_item.get('data_type') else '✗', 
-                            'field_id': '✓' if result_item.get('field_id') else '✗',
-                            'collection_name': '✓' if result_item.get('collection_name') else '✗',
-                            'confidence_score': '✓' if 'confidence_score' in result_item else '✗',
-                            'validation_status': '✓' if result_item.get('validation_status') else '✗'
-                        }
-                        print(f"📋 Record {record_idx} DB Fields: {db_fields_status}")
-                    
-                    required_fields = ['validation_type', 'data_type', 'field_id']
-                    missing_critical = [field for field in required_fields if not result_item.get(field)]
-                    if missing_critical:
-                        print(f"⚠️  Missing CRITICAL database fields in record {record_idx}: {missing_critical}")
-                    
-                    # Add the validation record to identifier results
+                    # Return the complete field_validation object
                     identifier_results.append(result_item)
         
         return {
@@ -357,69 +225,6 @@ def clean_json_and_extract_identifiers(extraction_result, target_fields_data):
             'error': f"Failed to clean JSON and extract identifiers: {str(e)}",
             'original_result': extraction_result
         }
-
-def save_validation_records_to_database(session_id, validation_records):
-    """Save validation records to field_validations database table via API call"""
-    try:
-        import requests
-        import json
-        
-        # Prepare validation records for API call
-        api_records = []
-        for record in validation_records:
-            # Skip records without required field_id
-            if not record.get('field_id'):
-                print(f"⚠️  Skipping record {record.get('record_index', '?')} - missing field_id")
-                continue
-                
-            api_record = {
-                "sessionId": session_id,
-                "validationType": record.get('validation_type', 'collection_property'),
-                "dataType": record.get('data_type', 'TEXT'),
-                "fieldId": record.get('field_id'),
-                "collectionName": record.get('collection_name'),
-                "recordIndex": record.get('record_index', 0),
-                "extractedValue": record.get('extracted_value'),
-                "originalExtractedValue": record.get('original_extracted_value', record.get('extracted_value')),
-                "confidenceScore": record.get('confidence_score', 0),
-                "originalConfidenceScore": record.get('original_confidence_score', record.get('confidence_score', 0)),
-                "validationStatus": record.get('validation_status', 'pending'),
-                "aiReasoning": record.get('ai_reasoning'),
-                "originalAiReasoning": record.get('original_ai_reasoning', record.get('ai_reasoning')),
-                "manuallyVerified": record.get('manually_verified', False),
-                "manuallyUpdated": record.get('manually_updated', False),
-                "documentSource": record.get('document_source'),
-                "batchNumber": record.get('batch_number', 1)
-            }
-            api_records.append(api_record)
-        
-        if not api_records:
-            print("⚠️  No valid records to save")
-            return {"success": True, "saved_count": 0, "total_records": len(validation_records)}
-        
-        # Make API call to save validation records
-        api_url = "http://localhost:5000/api/validations/batch"
-        
-        response = requests.post(api_url, 
-                               json={"validations": api_records},
-                               headers={"Content-Type": "application/json"},
-                               timeout=10)
-        
-        if response.status_code == 200:
-            result = response.json()
-            saved_count = result.get('saved_count', len(api_records))
-            print(f"💾 DATABASE SAVE: {saved_count}/{len(validation_records)} validation records saved via API")
-            return {"success": True, "saved_count": saved_count, "total_records": len(validation_records)}
-        else:
-            print(f"⚠️  API error {response.status_code}: {response.text}")
-            return {"error": f"API call failed with status {response.status_code}"}
-            
-    except requests.RequestException as e:
-        print(f"⚠️  API connection error: {str(e)}")
-        return {"error": f"Failed to connect to API: {str(e)}"}
-    except Exception as e:
-        print(f"⚠️  Unexpected error: {str(e)}")
-        return {"error": f"Failed to save validation records: {str(e)}"}
 
 def get_all_collection_properties(collection_ids):
     """Get all properties for the given collection IDs"""
@@ -754,19 +559,7 @@ def execute_excel_wizardry_function(function_code, extracted_content, target_fie
                 'min': min,
                 'sum': sum,
                 'sorted': sorted,
-                'reversed': reversed,
-                'next': next,  # Add next function
-                'iter': iter,  # Add iter function for iterators
-                'isinstance': isinstance,  # Add isinstance for type checking
-                'hasattr': hasattr,  # Add hasattr for attribute checking
-                'getattr': getattr,  # Add getattr for attribute access
-                'setattr': setattr,  # Add setattr for attribute setting
-                'type': type,  # Add type for type inspection
-                'slice': slice,  # Add slice for slicing operations
-                'tuple': tuple,  # Add tuple type
-                'set': set,  # Add set type
-                'map': map,  # Add map function
-                'filter': filter  # Add filter function
+                'reversed': reversed
             }
         }
         
@@ -930,7 +723,6 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                     "is_identifier": field.get('isIdentifier', False),
                     "order_index": field.get('orderIndex', 0),
                     "collection_id": field.get('collectionId', ''),
-                    "collection_name": field.get('collectionName', ''),
                     "type": "collection_property" if field.get('collectionId') else "schema_field"
                 }
                 target_fields_data.append(field_data)
@@ -1075,13 +867,6 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                             print(json.dumps(processed_results['identifier_results'], indent=2))
                             print("=" * 80)
                             
-                            # Save validation records to database
-                            save_result = save_validation_records_to_database(session_id, processed_results['identifier_results'])
-                            if 'error' in save_result:
-                                print(f"⚠️  Database save error: {save_result['error']}")
-                            else:
-                                print(f"💾 DATABASE SAVE: {save_result['saved_count']}/{save_result['total_records']} validation records saved")
-                            
                             # Create or update identifier references
                             if extraction_number == 0:
                                 # First extraction - create new identifier references
@@ -1195,13 +980,6 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                                 print(json.dumps(processed_results['identifier_results'], indent=2))
                                 print("=" * 80)
                                 
-                                # Save validation records to database
-                                save_result = save_validation_records_to_database(session_id, processed_results['identifier_results'])
-                                if 'error' in save_result:
-                                    print(f"⚠️  Database save error: {save_result['error']}")
-                                else:
-                                    print(f"💾 DATABASE SAVE: {save_result['saved_count']}/{save_result['total_records']} validation records saved")
-                                
                                 # Create or update identifier references
                                 if extraction_number == 0:
                                     # First extraction - create new identifier references
@@ -1292,13 +1070,6 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                 print("=" * 80)
                 print(json.dumps(processed_results['identifier_results'], indent=2))
                 print("=" * 80)
-                
-                # Save validation records to database
-                save_result = save_validation_records_to_database(session_id, processed_results['identifier_results'])
-                if 'error' in save_result:
-                    print(f"⚠️  Database save error: {save_result['error']}")
-                else:
-                    print(f"💾 DATABASE SAVE: {save_result['saved_count']}/{save_result['total_records']} validation records saved")
                 
                 # Create and display IDENTIFIER REFERENCES array
                 identifier_references = []
