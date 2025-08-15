@@ -1,0 +1,64 @@
+EXTRACTION RUN 1
+================================================================================
+Session: bf93cca0...
+Documents: 1 selected
+Target fields: 2 total
+Identifier references: None (first extraction)
+Current target: Data Field (field 1/2)
+================================================================================
+
+🔧 FUNCTION EXTRACTION DETECTED!
+   Extraction Type: FUNCTION
+   Function ID: 7beb5bb8-7552-4e74-a283-77264b8be63a
+   Bypassing AI analysis and going directly to function execution
+================================================================================
+✅ Function retrieved: Extract Column Names
+🔧 Function executed: returned 0 results
+✅ Function execution successful!
+[]
+
+🔗 IDENTIFIER REFERENCES ARRAY:
+================================================================================
+[]
+================================================================================
+Created 0 new references for next extraction
+
+================================================================================
+AUTO-RERUN: Starting extraction run 2 of 2
+================================================================================
+Next extraction number: 1
+Target field: Worksheet
+Progress: 1/2 fields processed
+
+================================================================================
+EXTRACTION RUN 2
+================================================================================
+Session: bf93cca0...
+Documents: 1 selected
+Target fields: 2 total
+Identifier references: None (first extraction)
+Current target: Worksheet (field 2/2)
+================================================================================
+
+🔧 FUNCTION EXTRACTION DETECTED!
+   Extraction Type: FUNCTION
+   Function ID: 87dd26e6-c68d-4566-9399-b805abab96f1
+   Bypassing AI analysis and going directly to function execution
+================================================================================
+✅ Function retrieved: Find Worksheet Name
+🔧 Function executed: returned 0 results
+✅ Function execution successful!
+[]
+
+🔗 IDENTIFIER REFERENCES ARRAY:
+================================================================================
+[]
+================================================================================
+Created 0 new references for next extraction
+
+================================================================================
+EXTRACTION COMPLETE
+================================================================================
+All 2 target fields have been processed
+Extraction sequence finished successfully
+================================================================================
