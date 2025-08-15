@@ -224,11 +224,13 @@ export default function CollectionCard({
           ) : (
             <div className="space-y-3">
               <DragDropContext onDragEnd={handlePropertyDragEnd}>
-                <div className="space-y-3">
-                  {safeProperties.map((property, index) => (
-                    <Draggable key={property.id} draggableId={property.id.toString()} index={index}>
-                      {(provided, snapshot) => (
-                        <div 
+                <Droppable droppableId={`collection-properties-${collection.id}`}>
+                  {(provided) => (
+                    <div className="space-y-3" ref={provided.innerRef} {...provided.droppableProps}>
+                      {safeProperties.map((property, index) => (
+                        <Draggable key={property.id} draggableId={property.id.toString()} index={index}>
+                          {(provided, snapshot) => (
+                            <div 
                           ref={provided.innerRef}
                           {...provided.draggableProps}
                           className={`group relative ${snapshot.isDragging ? "opacity-50" : ""}`}
@@ -320,11 +322,14 @@ export default function CollectionCard({
                               </div>
                             </div>
                           </div>
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
-                </div>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
               </DragDropContext>
               
               {/* Add next data property */}
