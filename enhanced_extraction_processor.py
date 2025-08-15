@@ -525,21 +525,15 @@ def main():
         
         # Handle legacy wizardry format
         if 'document_ids' in input_data and 'session_id' in input_data:
-            print(f"DEBUG: Legacy wizardry format detected")
-            # Convert to enhanced extraction format
-            enhanced_data = {
-                'session_id': input_data['session_id'],
-                'project_id': None,  # Will need to be determined from session
-                'documents': []  # Will need to fetch from document_ids
-            }
+            print(f"DEBUG: Legacy wizardry format detected - processing with extraction_wizardry.py")
+            # Route to original extraction_wizardry for compatibility
+            from extraction_wizardry import run_wizardry
             
-            # For now, return a compatibility message
-            result = {
-                'success': True,
-                'message': 'Enhanced processor received legacy wizardry call',
-                'note': 'Use /api/sessions/:sessionId/extract for enhanced extraction',
-                'legacy_data': input_data
-            }
+            # Call the original wizardry function
+            run_wizardry(input_data, input_data.get('extraction_number', 0))
+            
+            # Return empty result since run_wizardry handles its own output
+            return
         else:
             # Process modern extraction format
             result = process_enhanced_extraction(input_data)
