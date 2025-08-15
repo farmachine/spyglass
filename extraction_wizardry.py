@@ -819,10 +819,36 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                 print(json.dumps(documents))
                 return
         
-        # Extract complete field data from the target fields (no database query needed)
+        # Extract complete field data from the target fields and get collection names
         target_fields_data = []
+        collection_name_map = {}
+        
+        # First, get collection names for all collection IDs
+        collection_ids = list(set([field.get('collectionId') for field in target_fields if field.get('collectionId')]))
+        if collection_ids:
+            try:
+                database_url = os.getenv('DATABASE_URL')
+                if database_url:
+                    conn = psycopg2.connect(database_url)
+                    cursor = conn.cursor()
+                    
+                    query = "SELECT id, collection_name FROM object_collections WHERE id = ANY(%s::uuid[])"
+                    cursor.execute(query, (collection_ids,))
+                    results = cursor.fetchall()
+                    
+                    for collection_id, collection_name in results:
+                        collection_name_map[str(collection_id)] = collection_name
+                    
+                    cursor.close()
+                    conn.close()
+            except Exception as e:
+                print(f"Warning: Could not fetch collection names: {str(e)}")
+        
         if target_fields:
             for field in target_fields:
+                collection_id = field.get('collectionId', '')
+                collection_name = collection_name_map.get(collection_id, '') if collection_id else ''
+                
                 field_data = {
                     "field_id": field.get('id', ''),
                     "name": field.get('propertyName') or field.get('fieldName', ''),
@@ -832,8 +858,9 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                     "choice_options": field.get('choiceOptions', []),
                     "is_identifier": field.get('isIdentifier', False),
                     "order_index": field.get('orderIndex', 0),
-                    "collection_id": field.get('collectionId', ''),
-                    "type": "collection_property" if field.get('collectionId') else "schema_field"
+                    "collection_id": collection_id,
+                    "collection_name": collection_name,
+                    "type": "collection_property" if collection_id else "schema_field"
                 }
                 target_fields_data.append(field_data)
         
