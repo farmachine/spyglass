@@ -797,7 +797,7 @@ export default function CollectionCard({
                           )}
                           
                           {/* Step card */}
-                          <div className={`relative bg-white rounded-lg border-2 ${property.isIdentifier ? (index === 0 ? "border-gray-700 bg-gray-50" : "border-gray-500 bg-gray-50") : (index === 0 ? "border-gray-700" : "border-gray-500")} hover:border-gray-600 ${expandedPropertyIds.has(property.id) ? "p-4" : "p-3"} transition-colors`}>
+                          <div className={`relative bg-white rounded-lg border ${property.isIdentifier ? (index === 0 ? "border-gray-300 bg-gray-50 hover:border-gray-700" : "border-gray-300 bg-gray-50 hover:border-gray-500") : (index === 0 ? "border-gray-300 hover:border-gray-700" : "border-gray-300 hover:border-gray-500")} hover:border-2 ${expandedPropertyIds.has(property.id) ? "p-4" : "p-3"} transition-all`}>
                             {/* Step number and drag handle */}
                             <div className="flex items-start gap-3">
                               <div className="flex items-center gap-2">
