@@ -39,7 +39,7 @@ const fieldTypes = ["TEXT", "NUMBER", "DATE", "CHOICE"] as const;
 const schemaFieldFormSchema = z.object({
   fieldName: z.string().min(1, "Field name is required"),
   fieldType: z.enum(fieldTypes),
-  description: z.string().min(1, "Prompt is required - this helps the AI understand what to extract"),
+  description: z.string().optional(),
   autoVerificationConfidence: z.number().min(0).max(100).default(80),
   choiceOptions: z.array(z.string()).optional(),
   orderIndex: z.number().default(0),
@@ -50,6 +50,15 @@ const schemaFieldFormSchema = z.object({
   documentsRequired: z.boolean().default(true),
   functionId: z.string().optional(),
   requiredDocumentType: z.enum(["Excel", "Word", "PDF"]).optional(),
+}).refine((data) => {
+  // Only require description for AI extraction
+  if (data.extractionType === "AI" && !data.description?.trim()) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Prompt is required for AI extraction",
+  path: ["description"],
 });
 
 type SchemaFieldForm = z.infer<typeof schemaFieldFormSchema>;
@@ -280,17 +289,24 @@ export default function SchemaFieldDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Prompt *</FormLabel>
+                  <FormLabel>{form.watch("extractionType") === "FUNCTION" ? "Description" : "Prompt *"}</FormLabel>
                   <FormControl>
                     <Textarea 
-                      placeholder="Tell the AI what to look for in this field (e.g., 'The company name as it appears in the document header')"
+                      placeholder={form.watch("extractionType") === "FUNCTION" 
+                        ? "Optional description of this field for documentation" 
+                        : "Tell the AI what to look for in this field (e.g., 'The company name as it appears in the document header')"
+                      }
                       className="resize-none"
                       rows={3}
                       {...field}
+                      required={form.watch("extractionType") === "AI"}
                     />
                   </FormControl>
                   <p className="text-sm text-muted-foreground">
-                    This prompt guides the AI during data extraction
+                    {form.watch("extractionType") === "FUNCTION" 
+                      ? "Optional field description for documentation purposes"
+                      : "This prompt guides the AI during data extraction"
+                    }
                   </p>
                   <FormMessage />
                 </FormItem>
@@ -437,12 +453,7 @@ export default function SchemaFieldDialog({
 
               {/* Function Extraction Configuration */}
               {form.watch("extractionType") === "FUNCTION" && (
-                <div className="space-y-4 pl-4 border-l-2 border-green-200">
-                  <h4 className="font-medium text-green-700 flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Function Configuration
-                  </h4>
-                  
+                <>
                   {/* Required Document Type */}
                   <FormField
                     control={form.control}
@@ -478,15 +489,17 @@ export default function SchemaFieldDialog({
                           <div className="space-y-2">
                             {wizardryFunctions.length > 0 ? (
                               <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <SelectTrigger>
+                                <SelectTrigger className="h-auto min-h-[40px]">
                                   <SelectValue placeholder="Select a function..." />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="max-w-[400px]">
                                   {wizardryFunctions.map((func) => (
-                                    <SelectItem key={func.id} value={func.id}>
+                                    <SelectItem key={func.id} value={func.id} className="h-auto py-3">
                                       <div className="space-y-1">
-                                        <div className="font-medium">{func.name}</div>
-                                        <div className="text-sm text-muted-foreground">{func.description}</div>
+                                        <div className="font-medium text-sm">{func.name}</div>
+                                        <div className="text-xs text-muted-foreground whitespace-normal leading-relaxed max-w-[350px]">
+                                          {func.description}
+                                        </div>
                                       </div>
                                     </SelectItem>
                                   ))}
@@ -506,7 +519,7 @@ export default function SchemaFieldDialog({
                       </FormItem>
                     )}
                   />
-                </div>
+                </>
               )}
             </div>
             
