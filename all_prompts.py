@@ -72,10 +72,8 @@ Response format:
 # Excel function generation prompt
 EXCEL_FUNCTION_GENERATOR = """You must generate a complete Python function that extracts data from Excel content.
 
-TARGET FIELDS TO EXTRACT (with required metadata):
+TARGET FIELDS TO EXTRACT:
 {target_fields}
-
-CRITICAL: You MUST use the exact field_id and collection_name from the target field metadata above in your output. Do not generate or modify these values.
 
 SOURCE DOCUMENTS (for context):
 {source_documents}
@@ -162,10 +160,8 @@ CRITICAL COUNT REQUIREMENT:
 - Use record_index matching the identifier index: 0, 1, 2, 3, etc.
 - If extraction fails for any identifier, still create validation with extracted_value: null
 
-TARGET FIELD SCHEMA (with required field_id and collection_name):
+TARGET FIELD SCHEMA:
 {target_fields}
-
-CRITICAL: You MUST use the exact field_id and collection_name from the target field schema above in your output. Do not generate or modify these values.
 
 MATCHING EXTRACTION RULES:
 {extraction_rules}
