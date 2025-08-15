@@ -2062,13 +2062,10 @@ except Exception as e:
         return;
       }
       
-      // Use enhanced extraction processor for intelligent routing
-      console.log('USING ENHANCED AI EXTRACTION: Intelligent routing based on field configuration');
+      // Use extraction wizardry for complex AI extraction tasks
+      console.log('USING EXTRACTION WIZARDRY: Complex reasoning and analysis required');
       
-      // Add project_id to extraction data for enhanced processor
-      extractionData.project_id = projectId;
-      
-      const python = spawn('python3', ['enhanced_extraction_processor.py']);
+      const python = spawn('python3', ['extraction_wizardry.py']);
       
       python.stdin.write(JSON.stringify(extractionData));
       python.stdin.end();
@@ -2156,8 +2153,8 @@ except Exception as e:
       
       console.log(`STEP 2: Validating ${fieldValidations.length} field records`);
       
-      // Call Python validation script
-      const python = spawn('python3', ['ai_extraction_simplified.py']);
+      // Call Python validation script (using extraction wizardry)
+      const python = spawn('python3', ['extraction_wizardry.py']);
       
       python.stdin.write(JSON.stringify(validationData));
       python.stdin.end();
@@ -2245,7 +2242,7 @@ except Exception as e:
         documents: convertedFiles
       };
       
-      const python = spawn('python3', ['ai_extraction_simplified.py']);
+      const python = spawn('python3', ['extraction_wizardry.py']);
       
       python.stdin.write(JSON.stringify(extractionData));
       python.stdin.end();
@@ -2648,7 +2645,7 @@ except Exception as e:
       };
 
       // Call Python AI extraction script with existing validation context
-      const python = spawn('python3', ['ai_extraction_simplified.py'], {
+      const python = spawn('python3', ['extraction_wizardry.py'], {
         stdio: ['pipe', 'pipe', 'pipe']
       });
 
@@ -3049,7 +3046,7 @@ except Exception as e:
       let output = '';
       let error = '';
       
-      const python = spawn('python3', ['ai_extraction_simplified.py'], {
+      const python = spawn('python3', ['extraction_wizardry.py'], {
         cwd: process.cwd()
       });
 
