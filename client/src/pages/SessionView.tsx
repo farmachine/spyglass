@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus, Table as TableIcon, Loader2 } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus, Table as TableIcon, Loader2, MoreVertical } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import * as XLSX from 'xlsx';
 import { Link } from "wouter";
@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -1863,6 +1864,75 @@ export default function SessionView() {
     }
   };
 
+  const handleDeleteAllCollectionData = async (collectionName: string) => {
+    // Confirm before deleting all data
+    if (!confirm(`Are you sure you want to delete all data from the "${collectionName}" collection? This action cannot be undone.`)) {
+      return;
+    }
+
+    console.log(`Deleting all data from collection: ${collectionName}`);
+    
+    // Find all validations for this collection using improved filtering
+    const collectionValidations = validations.filter(v => {
+      // Primary approach: match by collectionName
+      if (v.collectionName === collectionName) {
+        return true;
+      }
+      
+      // Fallback approach: match by fieldName pattern for records with null collectionName
+      if (v.collectionName === null && v.fieldName && v.fieldName.startsWith(`${collectionName}.`)) {
+        return true;
+      }
+      
+      return false;
+    });
+
+    console.log(`Found ${collectionValidations.length} validations to delete for ${collectionName}`);
+
+    if (collectionValidations.length === 0) {
+      console.warn(`No validations found for ${collectionName} - nothing to delete`);
+      return;
+    }
+
+    // Optimistic update: Remove all items from cache for this collection
+    queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (old: any) => {
+      if (!old) return old;
+      return old.filter((v: any) => {
+        // Keep items that don't belong to this collection
+        if (v.collectionName === collectionName) {
+          return false; // Remove this item
+        }
+        
+        if (v.collectionName === null && v.fieldName && v.fieldName.startsWith(`${collectionName}.`)) {
+          return false; // Remove this item
+        }
+        
+        return true; // Keep this item
+      });
+    });
+    
+    try {
+      // Delete all validation records for this collection
+      const deletePromises = collectionValidations.map(validation => {
+        console.log(`Deleting validation record: ${validation.id} (${validation.fieldName})`);
+        return apiRequest(`/api/validations/${validation.id}`, {
+          method: 'DELETE'
+        });
+      });
+      
+      await Promise.all(deletePromises);
+      
+      console.log(`Successfully deleted ${collectionValidations.length} validation records for ${collectionName}`);
+      
+      // Invalidate queries to refresh the UI
+      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+    } catch (error) {
+      console.error('Error deleting all collection data:', error);
+      // Revert optimistic update on error
+      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+    }
+  };
+
   // Auto-validation removed - validation now occurs only during extraction process
 
   if (projectLoading || sessionLoading || validationsLoading) {
@@ -3492,7 +3562,7 @@ Thank you for your assistance.`;
                                 </TableHead>
                               ))}
                               <TableHead className="w-24 border-r border-gray-300" style={{ width: '96px', minWidth: '96px', maxWidth: '96px' }}>
-                                <div className="flex items-center justify-center gap-3 px-2">
+                                <div className="flex items-center justify-center gap-1 px-2">
                                   {(() => {
                                     // Handle empty collections
                                     if (uniqueIndices.length === 0) {
@@ -3537,6 +3607,27 @@ Thank you for your assistance.`;
                                   >
                                     <Plus className="h-4 w-4" />
                                   </Button>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 w-6 p-0 text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                                        title="More actions"
+                                      >
+                                        <MoreVertical className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem
+                                        onClick={() => handleDeleteAllCollectionData(collection.collectionName)}
+                                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                      >
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Delete all data
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </div>
                               </TableHead>
                             </TableRow>
