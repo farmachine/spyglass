@@ -235,7 +235,7 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
                 {knowledgeDocuments && knowledgeDocuments.length > 0 ? (
                   knowledgeDocuments.map((doc: any) => (
                     <SelectItem key={doc.id} value={doc.id}>
-                      {doc.displayName || doc.name || doc.fileName}
+                      {doc.displayName || doc.name || doc.fileName || 'Unnamed Document'}
                     </SelectItem>
                   ))
                 ) : (
@@ -255,7 +255,7 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
                     const doc = knowledgeDocuments.find((d: any) => d.id === docId);
                     return doc ? (
                       <div key={docId} className="flex items-center gap-1 bg-green-100 text-green-800 px-2 py-1 rounded-md text-sm">
-                        <span>{doc.name}</span>
+                        <span>{doc.displayName || doc.name || doc.fileName}</span>
                         <button
                           type="button"
                           onClick={() => setFormData(prev => ({
@@ -329,7 +329,7 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
                     {extractionRules && extractionRules.length > 0 ? (
                       extractionRules.map((rule: any) => (
                         <SelectItem key={rule.id} value={rule.id}>
-                          {rule.ruleName || rule.name}
+                          {rule.ruleName || rule.name || 'Unnamed Rule'}
                         </SelectItem>
                       ))
                     ) : (
@@ -349,7 +349,7 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
                         const rule = extractionRules.find((r: any) => r.id === ruleId);
                         return rule ? (
                           <div key={ruleId} className="flex items-center gap-1 bg-purple-100 text-purple-800 px-2 py-1 rounded-md text-sm">
-                            <span>{rule.name}</span>
+                            <span>{rule.ruleName || rule.name}</span>
                             <button
                               type="button"
                               onClick={() => setFormData(prev => ({
@@ -368,10 +368,10 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
                     <div className="mt-2">
                       {(formData.extractionRuleIds as string[]).map((ruleId: string) => {
                         const rule = extractionRules.find((r: any) => r.id === ruleId);
-                        return rule && rule.description ? (
+                        return rule && (rule.description || rule.ruleContent) ? (
                           <div key={`desc-${ruleId}`} className="mt-2 p-3 bg-purple-50 border border-purple-200 rounded-md">
-                            <p className="text-sm font-medium text-purple-900">{rule.name}</p>
-                            <p className="text-sm text-purple-700 mt-1">{rule.description}</p>
+                            <p className="text-sm font-medium text-purple-900">{rule.ruleName || rule.name}</p>
+                            <p className="text-sm text-purple-700 mt-1">{rule.ruleContent || rule.description}</p>
                           </div>
                         ) : null;
                       })}
