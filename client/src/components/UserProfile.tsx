@@ -27,7 +27,7 @@ export default function UserProfile() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10">
-            <AvatarFallback className="bg-primary text-white">
+            <AvatarFallback className="bg-gray-600 text-white">
               {initials}
             </AvatarFallback>
           </Avatar>
