@@ -48,7 +48,7 @@ import {
 } from "@shared/schema";
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { eq, count, sql, and, or, inArray } from 'drizzle-orm';
+import { eq, count, sql, and, or, inArray, isNull, isNotNull, desc, like } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface IStorage {
@@ -138,7 +138,9 @@ export interface IStorage {
   updateFieldValidation(id: string, validation: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined>;
   deleteFieldValidation(id: string): Promise<boolean>;
   getSessionWithValidations(sessionId: string): Promise<ExtractionSessionWithValidation | undefined>;
-  getValidationsByCollectionAndIndex(sessionId: string, collectionName: string, recordIndex: number): Promise<FieldValidation[]>;
+  getValidationsByCollectionAndIndex(sessionId: string, collectionId: string, recordIndex: number): Promise<FieldValidation[]>;
+  getValidationsByFieldAndCollection(sessionId: string, fieldId: string, collectionId: string, recordIndex: number): Promise<FieldValidation[]>;
+  populateMissingCollectionIds(): Promise<void>;
   getCollectionByName(collectionName: string): Promise<(ObjectCollection & { properties: CollectionProperty[] }) | undefined>;
 
   // Project Publishing
@@ -1353,8 +1355,13 @@ export class MemStorage implements IStorage {
         const property = Array.from(this.collectionProperties.values())
           .find(prop => prop.id === validation.fieldId);
         
-        if (property && validation.collectionName && validation.recordIndex !== null) {
-          fieldName = `${validation.collectionName}.${property.propertyName}[${validation.recordIndex}]`;
+        if (property && validation.collectionId && validation.recordIndex !== null) {
+          // Get collection name by collectionId 
+          const collection = Array.from(this.objectCollections.values())
+            .find(coll => coll.id === validation.collectionId);
+          if (collection) {
+            fieldName = `${collection.collectionName}.${property.propertyName}[${validation.recordIndex}]`;
+          }
         }
       }
       
@@ -1403,6 +1410,61 @@ export class MemStorage implements IStorage {
 
   async deleteFieldValidation(id: string): Promise<boolean> {
     return this.fieldValidations.delete(id);
+  }
+
+  async getValidationsByFieldAndCollection(sessionId: string, fieldId: string, collectionId: string, recordIndex: number): Promise<FieldValidation[]> {
+    const validations = Array.from(this.fieldValidations.values())
+      .filter(validation => 
+        validation.sessionId === sessionId && 
+        validation.fieldId === fieldId && 
+        validation.collectionId === collectionId && 
+        validation.recordIndex === recordIndex
+      );
+    
+    // Enhance with field names
+    const enhancedValidations = validations.map(validation => {
+      let fieldName = '';
+      
+      if (validation.validationType === 'collection_property') {
+        const property = Array.from(this.collectionProperties.values())
+          .find(prop => prop.id === validation.fieldId);
+        const collection = Array.from(this.objectCollections.values())
+          .find(coll => coll.id === validation.collectionId);
+          
+        if (property && collection && validation.recordIndex !== null) {
+          fieldName = `${collection.collectionName}.${property.propertyName}[${validation.recordIndex}]`;
+        }
+      }
+      
+      return {
+        ...validation,
+        fieldName
+      };
+    });
+    
+    return enhancedValidations;
+  }
+
+  async populateMissingCollectionIds(): Promise<void> {
+    // For in-memory storage, populate missing collectionId based on collectionName
+    const validationsToUpdate = Array.from(this.fieldValidations.values())
+      .filter(validation => 
+        validation.validationType === 'collection_property' && 
+        !validation.collectionId && 
+        validation.collectionName
+      );
+
+    for (const validation of validationsToUpdate) {
+      if (validation.collectionName) {
+        const collection = Array.from(this.objectCollections.values())
+          .find(coll => coll.collectionName === validation.collectionName);
+          
+        if (collection) {
+          const updatedValidation = { ...validation, collectionId: collection.id };
+          this.fieldValidations.set(validation.id, updatedValidation);
+        }
+      }
+    }
   }
 
   async getValidationsByCollectionAndIndex(sessionId: string, collectionName: string, recordIndex: number): Promise<FieldValidation[]> {
@@ -2472,14 +2534,14 @@ class PostgreSQLStorage implements IStorage {
     };
   }
 
-  async getValidationsByCollectionAndIndex(sessionId: string, collectionName: string, recordIndex: number): Promise<FieldValidation[]> {
+  async getValidationsByCollectionAndIndex(sessionId: string, collectionId: string, recordIndex: number): Promise<FieldValidation[]> {
     const result = await this.db
       .select()
       .from(fieldValidations)
       .where(
         and(
           eq(fieldValidations.sessionId, sessionId),
-          eq(fieldValidations.collectionName, collectionName),
+          eq(fieldValidations.collectionId, collectionId),
           eq(fieldValidations.recordIndex, recordIndex)
         )
       );
@@ -2564,6 +2626,83 @@ class PostgreSQLStorage implements IStorage {
       ...collection,
       properties
     };
+  }
+
+  // New method to get validations by field_id and collection_id combination
+  async getValidationsByFieldAndCollection(sessionId: string, fieldId: string, collectionId: string, recordIndex: number): Promise<FieldValidation[]> {
+    const result = await this.db
+      .select()
+      .from(fieldValidations)
+      .where(
+        and(
+          eq(fieldValidations.sessionId, sessionId),
+          eq(fieldValidations.fieldId, fieldId),
+          eq(fieldValidations.collectionId, collectionId),
+          eq(fieldValidations.recordIndex, recordIndex)
+        )
+      );
+    
+    // Get field and collection info for enhancing the results
+    const [propertyResult, collectionResult] = await Promise.all([
+      this.db
+        .select({ id: collectionProperties.id, propertyName: collectionProperties.propertyName })
+        .from(collectionProperties)
+        .where(eq(collectionProperties.id, fieldId)),
+      this.db
+        .select({ id: objectCollections.id, collectionName: objectCollections.collectionName })
+        .from(objectCollections)
+        .where(eq(objectCollections.id, collectionId))
+    ]);
+    
+    const property = propertyResult[0];
+    const collection = collectionResult[0];
+    
+    // Enhance results with field names
+    const enhancedValidations = result.map(validation => {
+      let fieldName = '';
+      if (property && collection && validation.recordIndex !== null) {
+        fieldName = `${collection.collectionName}.${property.propertyName}[${validation.recordIndex}]`;
+      }
+      
+      return {
+        ...validation,
+        fieldName
+      };
+    });
+    
+    return enhancedValidations;
+  }
+
+  // Method to populate missing collectionId values for existing validations
+  async populateMissingCollectionIds(): Promise<void> {
+    const validationsNeedingUpdate = await this.db
+      .select()
+      .from(fieldValidations)
+      .where(
+        and(
+          eq(fieldValidations.validationType, 'collection_property'),
+          isNull(fieldValidations.collectionId),
+          isNotNull(fieldValidations.collectionName)
+        )
+      );
+
+    for (const validation of validationsNeedingUpdate) {
+      if (validation.collectionName) {
+        // Find collection by name and update the validation record
+        const collection = await this.db
+          .select({ id: objectCollections.id })
+          .from(objectCollections)
+          .where(eq(objectCollections.collectionName, validation.collectionName))
+          .limit(1);
+          
+        if (collection.length > 0) {
+          await this.db
+            .update(fieldValidations)
+            .set({ collectionId: collection[0].id })
+            .where(eq(fieldValidations.id, validation.id));
+        }
+      }
+    }
   }
 
   // Project Publishing methods

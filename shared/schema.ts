@@ -115,7 +115,8 @@ export const fieldValidations = pgTable("field_validations", {
   validationType: text("validation_type").notNull(), // 'schema_field' or 'collection_property'
   dataType: text("data_type").notNull(), // 'TEXT', 'DATE', 'CHOICE', 'NUMBER', etc. - the actual field data type
   fieldId: uuid("field_id").notNull(), // references projectSchemaFields.id or collectionProperties.id
-  collectionName: text("collection_name"), // for collection properties only
+  collectionId: uuid("collection_id"), // references objectCollections.id for collection properties only
+  collectionName: text("collection_name"), // for collection properties only (deprecated - use collectionId instead)
   recordIndex: integer("record_index").default(0), // for collection properties, which record instance
   extractedValue: text("extracted_value"),
   originalExtractedValue: text("original_extracted_value"), // stores original AI extracted value for reverting

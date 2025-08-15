@@ -3398,6 +3398,7 @@ except Exception as e:
           // For collection properties, we need to set the correct fieldName with index
           let fieldName = validation.field_name;
           let collectionName = null;
+          let collectionId = null;
           
           // If it's a collection property, ensure proper indexed field name
           if (validation.field_type === 'collection_property') {
@@ -3413,6 +3414,16 @@ except Exception as e:
             const collectionMatch = fieldName.match(/^(.+)\./);
             if (collectionMatch) {
               collectionName = collectionMatch[1];
+              
+              // Find collection by name to get collectionId
+              try {
+                const collection = await storage.getCollectionByName(collectionName);
+                if (collection) {
+                  collectionId = collection.id;
+                }
+              } catch (error) {
+                console.warn(`Could not find collection ID for collection name: ${collectionName}`);
+              }
             }
           }
           
@@ -3479,6 +3490,7 @@ except Exception as e:
               validationType: validation.validation_type,
               dataType: validation.data_type,
               collectionName: collectionName,
+              collectionId: collectionId,
               extractedValue: validation.extracted_value,
               confidenceScore: confidenceScore,
               validationStatus: validationStatus,
@@ -4826,6 +4838,17 @@ print(json.dumps(results))
       if (!res.headersSent) {
         res.status(500).json({ message: "Failed to run wizardry script" });
       }
+    }
+  });
+
+  // Utility endpoint to populate missing collectionId values
+  app.post("/api/migrations/populate-collection-ids", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      await storage.populateMissingCollectionIds();
+      res.json({ success: true, message: "Collection IDs populated successfully" });
+    } catch (error) {
+      console.error("Error populating collection IDs:", error);
+      res.status(500).json({ message: "Failed to populate collection IDs" });
     }
   });
 
