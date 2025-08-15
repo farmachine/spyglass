@@ -524,6 +524,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         try {
+          console.log('Raw Python output:', output);
+          console.log('Raw Python output length:', output.length);
           
           // Extract JSON from output (may contain logging information)
           let jsonContent = output.trim();
@@ -554,6 +556,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           console.log('Extracted JSON content:', jsonContent.substring(0, 500) + '...');
+          console.log('Raw output:', output);
           
           const result = JSON.parse(jsonContent);
           
@@ -961,18 +964,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/collections/:collectionId/set-identifier/:propertyId", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { collectionId, propertyId } = req.params;
+      console.log(`Setting identifier field: collectionId=${collectionId}, propertyId=${propertyId}`);
+      
       // Verify the property exists and belongs to the collection
       const property = await storage.getCollectionPropertyById(propertyId);
+      console.log(`Property found:`, property);
       if (!property || property.collectionId !== collectionId) {
+        console.log(`Property validation failed: property=${!!property}, collectionMatch=${property?.collectionId === collectionId}`);
         return res.status(404).json({ message: "Property not found in this collection" });
       }
       
       // Ensure property is TEXT type for identifier
       if (property.propertyType !== 'TEXT') {
+        console.log(`Property type validation failed: ${property.propertyType} !== TEXT`);
         return res.status(400).json({ message: "Identifier field must be a TEXT field" });
       }
       
       const success = await storage.setCollectionIdentifierField(collectionId, propertyId);
+      console.log(`Set identifier field result:`, success);
       if (!success) {
         return res.status(500).json({ message: "Failed to set identifier field" });
       }
@@ -1018,6 +1027,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Extract text content from PDFs using Gemini API
       if (result.data.fileType === 'pdf' && result.data.content) {
         try {
+          console.log('DEBUG: Processing knowledge document PDF content extraction with Gemini');
           
           // Use Gemini API for PDF text extraction
           const { spawn } = await import('child_process');
@@ -1089,8 +1099,12 @@ except Exception as e:
           
           await new Promise((resolve, reject) => {
             python.on('close', (code) => {
-              if (errorOutput && code !== 0) {
-                console.error(`Gemini extraction error: ${errorOutput}`);
+              console.log(`DEBUG: Gemini extraction process completed with code: ${code}`);
+              console.log(`DEBUG: Extracted text length: ${extractedText.length}`);
+              console.log(`DEBUG: Extracted text preview: ${extractedText.substring(0, 500)}`);
+              
+              if (errorOutput) {
+                console.log(`DEBUG: Error output: ${errorOutput}`);
               }
               
               if (code === 0 && extractedText.trim() && 
@@ -1098,9 +1112,11 @@ except Exception as e:
                   !extractedText.includes('GEMINI_API_KEY_MISSING') &&
                   !extractedText.includes('GEMINI_EXTRACTION_ERROR')) {
                 processedData.content = extractedText.trim();
+                console.log('DEBUG: Knowledge document Gemini processing successful, extracted', extractedText.length, 'characters of text');
                 resolve(extractedText);
               } else {
-                if (code !== 0) console.error('Gemini text extraction failed, code:', code);
+                console.log('DEBUG: Gemini text extraction failed or returned no content, code:', code);
+                console.log('DEBUG: Raw extracted text:', JSON.stringify(extractedText));
                 // Leave content empty so user can manually add text
                 processedData.content = "";
                 resolve("no_content");
@@ -3341,11 +3357,6 @@ except Exception as e:
       console.log(`SAVE VALIDATIONS: Request body keys:`, Object.keys(req.body));
       console.log(`SAVE VALIDATIONS: extractedData type:`, typeof extractedData);
       console.log(`SAVE VALIDATIONS: validations type:`, typeof validations);
-      
-      // DEBUG: Log first validation item to check ai_reasoning field
-      if (req.body.extractedData?.field_validations?.[0]) {
-        console.log('DEBUG: First validation item:', JSON.stringify(req.body.extractedData.field_validations[0], null, 2));
-      }
 
       // Handle both formats: direct validations array or extractedData JSON string
       let parsedValidations = null;
@@ -4316,6 +4327,8 @@ except Exception as e:
                   extractionMethod: extractedText.extraction_method || 'gemini'
                 };
                 
+                console.log(`DOCUMENT UPLOAD SAVE DEBUG: Content length being saved: ${documentData.extractedContent.length}`);
+                console.log(`DOCUMENT UPLOAD SAVE DEBUG: Content preview: ${documentData.extractedContent.substring(0, 100)}...`);
                 
                 await storage.createSessionDocument(documentData);
                 
@@ -4395,6 +4408,7 @@ except Exception as e:
   app.post("/api/sessions/:sessionId/batch-validate", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
+      console.log(`BATCH_VALIDATION: Starting batch validation for session ${sessionId}`);
       
       // Get session and project data
       const session = await storage.getExtractionSession(sessionId);
@@ -4804,14 +4818,14 @@ print(json.dumps(results))
       
       // Pass request data to Python script via stdin (only if all required fields present)
       if (requestData && requestData.document_ids && requestData.session_id && requestData.project_id) {
-        // Sending data to Python extraction script
+        console.log('🔍 DEBUG Backend - Sending to Python:', JSON.stringify({
           project_id: requestData.project_id,
           session_id: requestData.session_id,
           document_count: requestData.document_ids?.length
         }));
         python.stdin.write(JSON.stringify(requestData));
       } else {
-        // Missing required data for Python extraction:
+        console.log('🔍 DEBUG Backend - Missing required data, NOT sending to Python:', {
           has_document_ids: !!requestData?.document_ids,
           has_session_id: !!requestData?.session_id,
           has_project_id: !!requestData?.project_id
@@ -4825,6 +4839,7 @@ print(json.dumps(results))
       
       python.stdout.on('data', (data: any) => {
         output += data.toString();
+        console.log('Python output chunk received:', data.toString().slice(0, 200) + '...');
       });
       
       python.stderr.on('data', (data: any) => {
@@ -4833,6 +4848,7 @@ print(json.dumps(results))
       });
       
       python.on('close', (code: any) => {
+        console.log(`Python process exited with code: ${code}`);
         
         if (!res.headersSent) {
           if (code !== 0) {
@@ -4850,6 +4866,7 @@ print(json.dumps(results))
               output: output.trim(),
               success: true
             });
+            console.log('Successfully sent response for wizardry completion');
           } catch (responseError) {
             console.error('Error sending wizardry response:', responseError);
             // Don't send another response if this fails
