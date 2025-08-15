@@ -640,7 +640,7 @@ const AIExtractionModal = ({
       // The extraction will continue in the background for subsequent steps
       if (response.success) {
         // Close the extraction modal after first step to show results in UI
-        setAiExtractionModal({ open: false, sectionName: '', availableFields: [] });
+        onClose();
         
         // Refresh the session data to show the newly extracted field validations
         queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
