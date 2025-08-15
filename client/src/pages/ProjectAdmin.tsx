@@ -140,7 +140,7 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
         <div className="w-full px-6 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Settings className="h-8 w-8 text-primary" />
+              <Settings className="h-8 w-8 text-gray-700" />
               <div>
                 <h2 className="text-3xl font-bold text-gray-700">Project Admin</h2>
                 <p className="text-sm text-gray-600">{project.name}</p>
