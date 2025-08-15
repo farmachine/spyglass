@@ -785,7 +785,10 @@ export default function CollectionCard({
                             {/* Step number and drag handle */}
                             <div className="flex items-start gap-3">
                               <div className="flex items-center gap-2">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${property.isIdentifier ? "bg-blue-600 text-white" : "bg-gray-600 text-white"}`}>
+                                <div 
+                                  className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold text-white" 
+                                  style={{backgroundColor: property.isIdentifier ? (index === 0 ? '#071d54' : '#5065a5') : (index === 0 ? '#071d54' : '#5065a5')}}
+                                >
                                   {index + 1}
                                 </div>
                                 <div
