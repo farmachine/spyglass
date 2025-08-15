@@ -688,45 +688,42 @@ const AIExtractionModal = ({
       console.log('Complete Extraction Request:', JSON.stringify(requestData, null, 2));
       console.log('🔍 DEBUG Frontend - project_id being sent:', project.id);
       
-      const response = await apiRequest('/api/run-wizardry', {
+      // Close modal immediately and start real-time updates
+      // Don't wait for the full extraction to complete
+      console.log('Starting extraction and closing modal for real-time updates...');
+      
+      // Close modal and start polling immediately so user can see data appearing
+      await handleSuccessfulExtraction();
+      
+      // Make the extraction request in the background (don't await)
+      apiRequest('/api/run-wizardry', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestData),
+      }).then(response => {
+        console.log('Wizardry Result:', response);
+        console.log('🔍 DEBUG Frontend - response.success:', response.success);
+        if (response.output) {
+          console.log('Python Script Output:');
+          console.log(response.output);
+        }
+        if (response.error) {
+          console.log('Python Script Error:');
+          console.log(response.error);
+        }
+        
+        if (!response.success) {
+          console.warn('Extraction completed with errors, but data may still be appearing');
+        }
+      }).catch(error => {
+        console.error('Extraction request failed:', error);
+        // Even if request fails, keep polling in case some data was processed
       });
-      console.log('Wizardry Result:', response);
-      console.log('🔍 DEBUG Frontend - response.success:', response.success);
-      if (response.output) {
-        console.log('Python Script Output:');
-        console.log(response.output);
-      }
-      if (response.error) {
-        console.log('Python Script Error:');
-        console.log(response.error);
-      }
       
-      // After first extraction step completes and validations are saved, close modal
-      // The extraction will continue in the background for subsequent steps
-      if (response.success) {
-        await handleSuccessfulExtraction();
-      }
-      
-      // Simulate field-by-field progress for UI feedback (reduced since modal will close)
-      for (let i = 0; i < Math.min(2, sortedSelectedFields.length); i++) {
-        setExtractionProgress(prev => ({ ...prev, currentFieldIndex: i }));
-        
-        // Wait a bit to show the spinner animation
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        setExtractionProgress(prev => ({ 
-          ...prev, 
-          completedFields: new Set([...prev.completedFields, sortedSelectedFields[i].id])
-        }));
-      }
-      
-      // Mark extraction as complete
-      setExtractionProgress(prev => ({ ...prev, currentFieldIndex: -1 }));
+      // No need to simulate progress since modal closes immediately
+      // Real data will appear via the polling system
       
     } catch (error) {
       console.error('Error running wizardry:', error);
