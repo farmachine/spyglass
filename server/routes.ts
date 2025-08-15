@@ -19,7 +19,8 @@ import {
   changePasswordApiSchema,
   insertProjectPublishingSchema,
   insertChatMessageSchema,
-  insertExcelWizardryFunctionSchema
+  insertExcelWizardryFunctionSchema,
+  insertExtractionStepParametersSchema
 } from "@shared/schema";
 import { generateChatResponse } from "./chatService";
 import { authenticateToken, requireAdmin, generateToken, comparePassword, hashPassword, type AuthRequest } from "./auth";
@@ -4853,6 +4854,85 @@ print(json.dumps(results))
   });
 
   // Create HTTP server and return it
+  // Extraction Step Parameters Routes
+
+  // Get extraction step parameters for a session
+  app.get("/api/sessions/:sessionId/extraction-steps", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const steps = await storage.getExtractionStepParameters(sessionId);
+      res.json(steps);
+    } catch (error) {
+      console.error("Error getting extraction steps:", error);
+      res.status(500).json({ message: "Failed to get extraction steps" });
+    }
+  });
+
+  // Create extraction step parameter
+  app.post("/api/sessions/:sessionId/extraction-steps", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const result = insertExtractionStepParametersSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
+      }
+
+      const stepParams = await storage.createExtractionStepParameter({
+        ...result.data,
+        sessionId
+      });
+      res.json(stepParams);
+    } catch (error) {
+      console.error("Error creating extraction step:", error);
+      res.status(500).json({ message: "Failed to create extraction step" });
+    }
+  });
+
+  // Get next extraction step
+  app.get("/api/sessions/:sessionId/projects/:projectId/next-step", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { sessionId, projectId } = req.params;
+      const nextStep = await storage.getNextExtractionStep(sessionId, projectId);
+      res.json(nextStep || null);
+    } catch (error) {
+      console.error("Error getting next extraction step:", error);
+      res.status(500).json({ message: "Failed to get next extraction step" });
+    }
+  });
+
+  // Update extraction step parameter
+  app.patch("/api/extraction-steps/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = req.params.id;
+      const result = insertExtractionStepParametersSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
+      }
+
+      const updated = await storage.updateExtractionStepParameter(id, result.data);
+      if (!updated) {
+        return res.status(404).json({ message: "Extraction step not found" });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating extraction step:", error);
+      res.status(500).json({ message: "Failed to update extraction step" });
+    }
+  });
+
+  // Get latest extraction step
+  app.get("/api/sessions/:sessionId/projects/:projectId/latest-step", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { sessionId, projectId } = req.params;
+      const latestStep = await storage.getLatestExtractionStep(sessionId, projectId);
+      res.json(latestStep || null);
+    } catch (error) {
+      console.error("Error getting latest extraction step:", error);
+      res.status(500).json({ message: "Failed to get latest extraction step" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 };

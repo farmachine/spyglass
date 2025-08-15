@@ -180,6 +180,28 @@ export const excelWizardryFunctions = pgTable("excel_wizardry_functions", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Extraction step parameters for multi-step extraction process persistence
+export const extractionStepParameters = pgTable("extraction_step_parameters", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  extractionNumber: integer("extraction_number").notNull(), // Step number (1, 2, 3...)
+  targetPropertyId: uuid("target_property_id"), // ID of the property being extracted
+  targetPropertyName: text("target_property_name"), // Name of the property being extracted
+  collectionId: uuid("collection_id"), // Collection being processed
+  collectionName: text("collection_name"), // Collection name being processed
+  identifierReferences: jsonb("identifier_references"), // Array of identifier values from previous steps
+  extractionMethod: text("extraction_method"), // "ai" or "function"
+  functionId: uuid("function_id"), // Reference to excel function if used
+  parameters: jsonb("parameters"), // All extraction parameters (documents, fields, instructions, etc.)
+  status: text("status", { enum: ["pending", "in_progress", "completed", "failed"] }).default("pending").notNull(),
+  resultCount: integer("result_count"), // Number of records extracted in this step
+  errorMessage: text("error_message"), // Error details if failed
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({
   id: true,
@@ -257,6 +279,12 @@ export const insertExcelWizardryFunctionSchema = createInsertSchema(excelWizardr
   updatedAt: true,
 });
 
+export const insertExtractionStepParametersSchema = createInsertSchema(extractionStepParameters).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type Organization = typeof organizations.$inferSelect;
 export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
@@ -293,6 +321,8 @@ export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type ExcelWizardryFunction = typeof excelWizardryFunctions.$inferSelect;
 export type InsertExcelWizardryFunction = z.infer<typeof insertExcelWizardryFunctionSchema>;
+export type ExtractionStepParameters = typeof extractionStepParameters.$inferSelect;
+export type InsertExtractionStepParameters = z.infer<typeof insertExtractionStepParametersSchema>;
 
 // Validation status types
 export type ValidationStatus = 'valid' | 'invalid' | 'pending' | 'manual';
