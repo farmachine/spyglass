@@ -467,7 +467,7 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
               id="description"
               value={formData.description}
               onChange={(e) => setFormData(prev => ({...prev, description: e.target.value}))}
-              placeholder="Describe what data to extract for this property"
+              placeholder="Add a description for this property"
               rows={2}
               className="mt-1"
             />
