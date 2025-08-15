@@ -646,12 +646,11 @@ const AIExtractionModal = ({
     ));
     console.log('Collected Document IDs for extraction:', documentIds);
     
-    // Run the extraction wizardry Python script with document IDs, session ID, project ID, and target fields
+    // Run the extraction wizardry Python script with document IDs, session ID, and target fields
     try {
       const requestData = {
         document_ids: documentIds,
         session_id: sessionId,
-        project_id: project?.id, // Add project_id to fix UUID parameter mismatch
         target_fields: targetFieldsWithSources
       };
       
