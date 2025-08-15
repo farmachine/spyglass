@@ -203,17 +203,18 @@ export default function ProjectCard({
 
   return (
     <>
-      <Card className={`bg-white text-black border border-gray-200 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-blue-300 hover:-translate-y-1 cursor-pointer group relative overflow-hidden h-[200px] flex flex-col ${
+      <Card className={`bg-white text-black rounded-xl transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer group relative overflow-hidden h-[200px] flex flex-col ${
         project.status === "inactive" ? "opacity-60" : ""
       }`} style={{
-        boxShadow: '0 4px 8px -2px rgba(59, 130, 246, 0.15), 2px 0 6px -1px rgba(59, 130, 246, 0.1)'
+        border: '1px solid #5065a5',
+        boxShadow: '0 4px 8px -2px rgba(80, 101, 165, 0.15), 2px 0 6px -1px rgba(80, 101, 165, 0.1)'
       }}>
         <CardHeader className="pt-4 pb-2 flex-shrink-0">
           <div className="flex items-start justify-between">
             <div className="flex-1 flex flex-col" onClick={() => setLocation(`/projects/${project.id}`)}>
               <div className="flex items-center gap-2 mb-1">
                 <TrendingUp className="h-5 w-5 text-primary flex-shrink-0" />
-                <CardTitle className="text-lg font-bold text-black group-hover:text-black/80 transition-colors line-clamp-1">
+                <CardTitle className="text-lg font-bold transition-colors line-clamp-1" style={{ color: '#071d54' }}>
                   {project.name}
                 </CardTitle>
               </div>
