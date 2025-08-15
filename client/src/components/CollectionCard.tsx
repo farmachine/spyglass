@@ -87,7 +87,8 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
     ];
     
     // Find current collection's position and only include preceding ones
-    const currentCollectionName = property.collectionName || '';
+    // For now, we'll use a hardcoded mapping since collectionName isn't available on property
+    const currentCollectionName = 'Column Name Mapping'; // This would need to be passed from parent
     const currentIndex = collectionOrder.indexOf(currentCollectionName);
     
     if (currentIndex > 0) {
@@ -210,10 +211,7 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
               <SelectContent>
                 {knowledgeDocuments.map((doc: any) => (
                   <SelectItem key={doc.id} value={doc.id}>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{doc.name}</span>
-                      <span className="text-xs text-gray-500">{doc.description || 'Knowledge document'}</span>
-                    </div>
+                    {doc.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -258,7 +256,7 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
         <div className="space-y-3 pl-8">
           <div>
             <Label className="text-sm font-medium">Method</Label>
-            <Select value={formData.extractionType} onValueChange={(value) => setFormData(prev => ({...prev, extractionType: value}))}>
+            <Select value={formData.extractionType} onValueChange={(value) => setFormData(prev => ({...prev, extractionType: value as 'AI' | 'FUNCTION'}))}>
               <SelectTrigger className="mt-1">
                 <SelectValue />
               </SelectTrigger>
@@ -301,10 +299,7 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
                   <SelectContent>
                     {extractionRules.map((rule: any) => (
                       <SelectItem key={rule.id} value={rule.id}>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{rule.name}</span>
-                          <span className="text-xs text-gray-500">{rule.description || 'Extraction rule'}</span>
-                        </div>
+                        {rule.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -446,62 +441,6 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
                           type="button"
                           onClick={() => setSelectedReferences(prev => prev.filter(id => id !== refId))}
                           className="text-blue-600 hover:text-blue-800 ml-1"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ) : null;
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <Label className="text-sm font-medium">Knowledge Documents</Label>
-            <Select 
-              value=""
-              onValueChange={(value) => {
-                if (value && !formData.knowledgeDocumentIds.includes(value)) {
-                  setFormData(prev => ({
-                    ...prev, 
-                    knowledgeDocumentIds: [...(prev.knowledgeDocumentIds as string[]), value]
-                  }));
-                }
-              }}
-            >
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select knowledge documents to include" />
-              </SelectTrigger>
-              <SelectContent>
-                {knowledgeDocuments.map((doc: any) => (
-                  <SelectItem key={doc.id} value={doc.id}>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{doc.name}</span>
-                      <span className="text-xs text-gray-500">{doc.description || 'Knowledge document'}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Selected Knowledge Documents Display */}
-            {(formData.knowledgeDocumentIds as string[]).length > 0 && (
-              <div className="mt-3 space-y-2">
-                <p className="text-xs text-gray-600">Selected knowledge documents:</p>
-                <div className="flex flex-wrap gap-2">
-                  {(formData.knowledgeDocumentIds as string[]).map((docId: string) => {
-                    const doc = knowledgeDocuments.find((d: any) => d.id === docId);
-                    return doc ? (
-                      <div key={docId} className="flex items-center gap-1 bg-green-100 text-green-800 px-2 py-1 rounded-md text-sm">
-                        <span>{doc.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => setFormData(prev => ({
-                            ...prev,
-                            knowledgeDocumentIds: (prev.knowledgeDocumentIds as string[]).filter((id: string) => id !== docId)
-                          }))}
-                          className="text-green-600 hover:text-green-800 ml-1"
                         >
                           <X className="h-3 w-3" />
                         </button>
