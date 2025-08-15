@@ -34,7 +34,7 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-200">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
             <div className="text-center">
@@ -54,7 +54,7 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-200">
+      <div className="min-h-screen bg-gray-50">
         <div className="bg-white border-b border-gray-200 shadow-sm">
           <div className="max-w-7xl mx-auto px-6 py-6">
             <div className="flex items-center gap-4">
@@ -82,7 +82,7 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
 
   if (!project) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-200">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
             <div className="text-center">
@@ -124,9 +124,9 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-200">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-slate-800 border-b border-slate-700 shadow-sm">
+      <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="w-full px-6 py-4">
           <div className="flex items-center justify-between w-full">
             <ExtraplLogo />
@@ -136,14 +136,14 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
       </div>
 
       {/* Page Title */}
-      <div className="bg-slate-700 border-b border-slate-600">
+      <div className="bg-white border-b border-gray-100">
         <div className="w-full px-6 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Settings className="h-8 w-8 text-slate-300" />
+              <Settings className="h-8 w-8 text-primary" />
               <div>
-                <h2 className="text-3xl font-bold text-white">Project Admin</h2>
-                <p className="text-sm text-slate-300">{project.name}</p>
+                <h2 className="text-3xl font-bold">Project Admin</h2>
+                <p className="text-sm text-gray-600">{project.name}</p>
               </div>
             </div>
           </div>
@@ -153,15 +153,15 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
       {/* Main Content */}
       <div className="flex h-[calc(100vh-168px)]">
         {/* Sidebar */}
-        <div className="w-72 bg-slate-300 border-r border-slate-400">
+        <div className="w-72 bg-slate-50 border-r border-slate-200">
           <div className="p-4">
             {/* Back to Project Link */}
-            <div className="mb-4 pb-4 border-b border-slate-400">
+            <div className="mb-4 pb-4 border-b border-slate-200">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setLocation(`/projects/${projectId}`)}
-                className="w-full justify-start px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-200 hover:text-slate-800 font-normal"
+                className="w-full justify-start px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Project
@@ -185,14 +185,14 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
                     disabled={isDisabled}
                     className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
                       isDisabled
-                        ? "text-slate-500 cursor-not-allowed opacity-50 font-normal"
+                        ? "text-slate-400 cursor-not-allowed opacity-50 font-normal"
                         : isActive
-                        ? "bg-slate-600 text-white font-medium shadow-sm"
-                        : "text-slate-700 hover:bg-slate-200 hover:text-slate-800 font-normal"
+                        ? "bg-primary text-white font-medium shadow-sm"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
                     }`}
                   >
                     <Icon className={`h-4 w-4 ${
-                      isDisabled ? "text-slate-400" : isActive ? "text-white" : "text-slate-600"
+                      isDisabled ? "text-slate-300" : isActive ? "text-white" : "text-slate-500"
                     }`} />
                     {item.label}
                   </button>
@@ -202,9 +202,9 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
 
             {/* Schema Navigation - Only show when Define Data tab is active */}
             {activeTab === 'define' && (
-              <div className="mt-4 pt-4 border-t border-slate-400">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 <div className="px-3 mb-2">
-                  <h3 className="text-xs font-medium text-slate-700 uppercase tracking-wider">
+                  <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wider">
                     SCHEMA INFORMATION
                   </h3>
                 </div>
@@ -214,8 +214,8 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
                     onClick={() => setSchemaActiveTab('main-data')}
                     className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
                       schemaActiveTab === 'main-data'
-                        ? "bg-slate-600 text-white font-medium shadow-sm"
-                        : "text-slate-700 hover:bg-slate-200 hover:text-slate-800 font-normal"
+                        ? "bg-primary text-white font-medium shadow-sm"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
                     }`}
                   >
                     <User className="h-4 w-4" />
@@ -229,8 +229,8 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
                       onClick={() => setSchemaActiveTab(collection.collectionName)}
                       className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
                         schemaActiveTab === collection.collectionName
-                          ? "bg-slate-600 text-white font-medium shadow-sm"
-                          : "text-slate-700 hover:bg-slate-200 hover:text-slate-800 font-normal"
+                          ? "bg-primary text-white font-medium shadow-sm"
+                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
                       }`}
                     >
                       <List className="h-4 w-4" />
@@ -244,7 +244,7 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 overflow-auto p-8 bg-white">
+        <div className="flex-1 overflow-auto p-8">
           {renderActiveContent()}
         </div>
       </div>
