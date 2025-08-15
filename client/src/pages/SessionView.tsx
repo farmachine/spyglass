@@ -312,13 +312,9 @@ const AIExtractionModal = ({
     // Set the specific collection being extracted
     setExtractingCollection(sectionName === 'General Information' ? 'info' : sectionName);
     
-    // Force refresh the validation data to show newly extracted results
+    // Force refresh only the validation data to show newly extracted results
     await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
     await queryClient.refetchQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
-    
-    // Also refresh session and project data
-    queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
-    queryClient.invalidateQueries({ queryKey: ['/api/projects', project?.id] });
     
     // Wait a brief moment to ensure validation refresh completes
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -335,8 +331,7 @@ const AIExtractionModal = ({
       console.log(`🔄 Column-by-column polling [${pollCount}/${maxPollCount}]: checking for new extraction data...`);
       
       try {
-        // Force complete refresh of validation data
-        queryClient.removeQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+        // Fetch fresh validation data without removing cached queries from other components
         queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
         
         const validationData = await queryClient.fetchQuery({ 
@@ -353,9 +348,10 @@ const AIExtractionModal = ({
           const newFieldsCount = currentValidationCount - lastValidationCount;
           console.log(`✅ NEW FIELD(S) DETECTED: +${newFieldsCount} validations (${lastValidationCount} → ${currentValidationCount})`);
           
-          // Trigger immediate UI refresh for new field data
-          await queryClient.invalidateQueries({ queryKey: ['/api/projects', project?.id] });
-          await queryClient.refetchQueries({ queryKey: ['/api/projects', project?.id] });
+          // Only invalidate and refetch validation data - NOT the entire project
+          await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+          
+          // Trigger targeted component re-render for validation data only
           setRefreshTrigger(prev => prev + 1);
           
           // Show toast notification for new field(s)
