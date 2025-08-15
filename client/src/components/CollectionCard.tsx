@@ -132,30 +132,21 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
                   <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Select a pre-built function" />
                   </SelectTrigger>
-                  <SelectContent 
-                    side="bottom" 
-                    align="start" 
-                    className="w-full max-w-none"
-                    sideOffset={4}
-                  >
-                    <div className="max-w-[400px]">
-                      {excelFunctions.map((func: any) => (
-                        <SelectItem 
-                          key={func.id} 
-                          value={func.id}
-                          className="flex flex-col items-start p-3 cursor-pointer hover:bg-gray-50"
-                        >
-                          <div className="flex flex-col gap-1 w-full">
-                            <span className="font-semibold text-gray-900">{func.name}</span>
-                            {func.description && (
-                              <span className="text-sm text-gray-600 leading-relaxed">{func.description}</span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </div>
+                  <SelectContent>
+                    {excelFunctions.map((func: any) => (
+                      <SelectItem key={func.id} value={func.id}>
+                        {func.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
+                {formData.functionId && (
+                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <p className="text-sm text-gray-700">
+                      {excelFunctions.find((f: any) => f.id === formData.functionId)?.description || 'No description available'}
+                    </p>
+                  </div>
+                )}
               </div>
             </>
           )}
