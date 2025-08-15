@@ -1103,7 +1103,7 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                                 print("=" * 80)
                                 print(json.dumps(identifier_references, indent=2))
                                 print("=" * 80)
-                                print(f"Created {len(identifier_references)} new references for next extraction")
+                                print(f"Merged {len(identifier_references)} references with new field data")
                             
                             # Log extraction progress
                             if all_collection_properties:
