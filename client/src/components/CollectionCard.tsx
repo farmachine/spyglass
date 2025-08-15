@@ -820,13 +820,7 @@ export default function CollectionCard({
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2 cursor-pointer" onClick={() => togglePropertyExpansion(property.id)}>
                                     <h4 className="font-semibold text-gray-900">{property.propertyName}</h4>
-                                    {property.isIdentifier && (
-                                      <Badge className="bg-blue-100 text-blue-800 border-blue-300">
-                                        <Key className="h-3 w-3 mr-1" />
-                                        Identifier
-                                      </Badge>
-                                    )}
-                                    <Badge className={`${fieldTypeColors[property.propertyType as keyof typeof fieldTypeColors]} text-xs`}>
+                                    <Badge className="bg-gray-100 border border-gray-500 text-gray-700 text-xs">
                                       {property.propertyType}
                                     </Badge>
                                     {!expandedPropertyIds.has(property.id) && (
