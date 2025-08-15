@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Edit, Trash2, Plus, GripVertical, ChevronDown, ChevronRight, Key, Check, X } from "lucide-react";
+import { Edit, Trash2, Plus, GripVertical, ChevronDown, ChevronRight, ChevronUp, Key, Check, X } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -555,6 +555,22 @@ export default function CollectionCard({
   // State for inline editing
   const [editingPropertyId, setEditingPropertyId] = useState<string | null>(null);
   
+  // State for property expansion
+  const [expandedPropertyIds, setExpandedPropertyIds] = useState<Set<string>>(new Set());
+  
+  // Toggle property expansion
+  const togglePropertyExpansion = (propertyId: string) => {
+    setExpandedPropertyIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(propertyId)) {
+        newSet.delete(propertyId);
+      } else {
+        newSet.add(propertyId);
+      }
+      return newSet;
+    });
+  };
+  
   // Update collapse state when properties are first added to an empty list
   // useEffect(() => {
   //   if (safeProperties.length === 1 && isExpanded) {
@@ -781,7 +797,7 @@ export default function CollectionCard({
                           )}
                           
                           {/* Step card */}
-                          <div className={`relative bg-white rounded-lg border-2 ${property.isIdentifier ? "border-blue-300 bg-blue-50" : "border-gray-200 hover:border-blue-300"} p-4 transition-colors`}>
+                          <div className={`relative bg-white rounded-lg border-2 ${property.isIdentifier ? "border-blue-300 bg-blue-50" : "border-gray-200 hover:border-blue-300"} ${expandedPropertyIds.has(property.id) ? "p-4" : "p-3"} transition-colors`}>
                             {/* Step number and drag handle */}
                             <div className="flex items-start gap-3">
                               <div className="flex items-center gap-2">
@@ -802,7 +818,7 @@ export default function CollectionCard({
                               {/* Property content */}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 cursor-pointer" onClick={() => togglePropertyExpansion(property.id)}>
                                     <h4 className="font-semibold text-gray-900">{property.propertyName}</h4>
                                     {property.isIdentifier && (
                                       <Badge className="bg-blue-100 text-blue-800 border-blue-300">
@@ -813,6 +829,12 @@ export default function CollectionCard({
                                     <Badge className={`${fieldTypeColors[property.propertyType as keyof typeof fieldTypeColors]} text-xs`}>
                                       {property.propertyType}
                                     </Badge>
+                                    {!expandedPropertyIds.has(property.id) && (
+                                      <ChevronDown className="h-4 w-4 text-gray-400" />
+                                    )}
+                                    {expandedPropertyIds.has(property.id) && (
+                                      <ChevronUp className="h-4 w-4 text-gray-400" />
+                                    )}
                                   </div>
                                   
                                   {/* Actions */}
@@ -821,7 +843,10 @@ export default function CollectionCard({
                                       variant="ghost" 
                                       size="sm"
                                       className="h-8 w-8 p-0"
-                                      onClick={() => setEditingPropertyId(editingPropertyId === property.id ? null : property.id)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditingPropertyId(editingPropertyId === property.id ? null : property.id);
+                                      }}
                                     >
                                       <Edit className="h-4 w-4" />
                                     </Button>
@@ -830,7 +855,10 @@ export default function CollectionCard({
                                         variant="ghost" 
                                         size="sm" 
                                         className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
-                                        onClick={() => setIdentifierField.mutate({ collectionId: collection.id, propertyId: property.id })}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setIdentifierField.mutate({ collectionId: collection.id, propertyId: property.id });
+                                        }}
                                         title="Set as identifier field"
                                       >
                                         <Key className="h-4 w-4" />
@@ -841,7 +869,10 @@ export default function CollectionCard({
                                         variant="ghost" 
                                         size="sm" 
                                         className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                        onClick={() => onDeleteProperty(property.id, property.propertyName)}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onDeleteProperty(property.id, property.propertyName);
+                                        }}
                                         title="Delete property"
                                       >
                                         <Trash2 className="h-4 w-4" />
@@ -850,18 +881,29 @@ export default function CollectionCard({
                                   </div>
                                 </div>
                                 
-                                {/* Property description and confidence */}
-                                <div className="mt-2 space-y-1">
-                                  <p className="text-sm text-gray-600 leading-relaxed">
-                                    {property.description || "No description provided"}
-                                  </p>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs text-gray-500">Auto Verify:</span>
+                                {/* Property description and confidence - Only show when expanded */}
+                                {expandedPropertyIds.has(property.id) && (
+                                  <div className="mt-2 space-y-1">
+                                    <p className="text-sm text-gray-600 leading-relaxed">
+                                      {property.description || "No description provided"}
+                                    </p>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs text-gray-500">Auto Verify:</span>
+                                      <Badge variant="outline" className="text-xs">
+                                        {property.autoVerificationConfidence || 80}%
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {/* Auto Verify badge when collapsed */}
+                                {!expandedPropertyIds.has(property.id) && (
+                                  <div className="mt-1">
                                     <Badge variant="outline" className="text-xs">
                                       {property.autoVerificationConfidence || 80}%
                                     </Badge>
                                   </div>
-                                </div>
+                                )}
                                 
                                 {/* Inline Editing Form - Expanded */}
                                 {editingPropertyId === property.id && (
