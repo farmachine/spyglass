@@ -311,8 +311,8 @@ const AIExtractionModal = ({
     setExtractingCollection(sectionName === 'General Information' ? 'info' : sectionName);
     
     // Force refresh the validation data to show newly extracted results
-    await queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
-    await queryClient.refetchQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
+    await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+    await queryClient.refetchQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
     
     // Also refresh session and project data
     queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
@@ -334,11 +334,11 @@ const AIExtractionModal = ({
       
       try {
         // Force complete refresh of validation data
-        queryClient.removeQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
-        queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
+        queryClient.removeQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
         
         const validationData = await queryClient.fetchQuery({ 
-          queryKey: [`/api/sessions/${sessionId}/validations`],
+          queryKey: ['/api/sessions', sessionId, 'validations'],
           staleTime: 0 // Always fetch fresh data
         });
         
@@ -801,7 +801,7 @@ const AIExtractionModal = ({
       const errorMessage = error instanceof Error ? error.message : String(error);
       if (errorMessage.includes('502') && errorMessage.includes('Bad Gateway')) {
         // Refresh validations to check if extraction actually succeeded
-        queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
+        queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
         
         // Show a helpful message about the background processing
         toast({
@@ -1242,7 +1242,7 @@ export default function SessionView() {
     
     // Poll every 3 seconds for validation updates
     pollingIntervalRef.current = setInterval(() => {
-      queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
     }, 3000);
     
     // Stop polling after 5 minutes (allowing time for multi-step extraction)
