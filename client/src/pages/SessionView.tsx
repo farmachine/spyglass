@@ -282,6 +282,7 @@ const AIExtractionModal = ({
   const [additionalInstructions, setAdditionalInstructions] = useState("");
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['schema']));
   const [isExtracting, setIsExtracting] = useState(false);
+  const [isExtractionRunning, setIsExtractionRunning] = useState(false); // Track background extraction
   const [expandedFields, setExpandedFields] = useState<Set<string>>(new Set());
   const [fieldDocumentSources, setFieldDocumentSources] = useState<Record<string, string[]>>({});
   const [extractionProgress, setExtractionProgress] = useState<{
@@ -295,10 +296,13 @@ const AIExtractionModal = ({
 
   // Helper function to handle successful extraction completion
   const handleSuccessfulExtraction = async () => {
-    console.log('Processing successful extraction - closing modal and starting polling');
+    console.log('Processing successful extraction - closing modal and starting real-time polling');
     
-    // Close the extraction modal immediately
+    // Close the extraction modal immediately (active tab will be preserved)
     onClose();
+    
+    // Enable background extraction tracking
+    setIsExtractionRunning(true);
     
     // Force refresh the validation data to show newly extracted results
     await queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
@@ -311,13 +315,28 @@ const AIExtractionModal = ({
     // Wait a brief moment to ensure validation refresh completes
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Start polling for progressive updates
-    onStartProgressivePolling(sessionId);
+    // Start enhanced real-time polling for progressive updates
+    const pollInterval = setInterval(async () => {
+      console.log('🔄 Real-time polling: checking for new extraction data...');
+      await queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
+      await queryClient.refetchQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
+    }, 1500); // Poll every 1.5 seconds for real-time feel
     
-    // Show completion message
+    // Stop enhanced polling after 90 seconds
+    setTimeout(() => {
+      console.log('⏹️ Real-time polling complete');
+      clearInterval(pollInterval);
+      setIsExtractionRunning(false);
+      // Fall back to normal progressive polling if it exists
+      if (typeof onStartProgressivePolling === 'function') {
+        onStartProgressivePolling(sessionId);
+      }
+    }, 90000);
+    
+    // Show completion message with real-time info
     toast({
       title: "Extraction in progress",
-      description: "Step 1 completed! Watch results appear below as each step finishes.",
+      description: "Step 1 completed! Data will appear in real-time below as extraction continues.",
     });
     
     console.log('Modal closed and polling started successfully');
@@ -2975,6 +2994,12 @@ Thank you for your assistance.`;
                     <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 border border-blue-200 rounded-full text-sm text-blue-800">
                       <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
                       <span className="font-medium">Multi-step extraction in progress</span>
+                    </div>
+                  )}
+                  {isExtractionRunning && (
+                    <div className="flex items-center gap-2 px-3 py-1 bg-green-50 border border-green-200 rounded-full text-sm text-green-800">
+                      <div className="w-2 h-2 bg-green-600 rounded-full animate-pulse"></div>
+                      <span className="font-medium">Real-time data updates active</span>
                     </div>
                   )}
                 </div>
