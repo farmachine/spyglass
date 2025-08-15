@@ -34,17 +34,7 @@ interface InlinePropertyEditorProps {
 }
 
 function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, extractionRules, onSave, onCancel, isLoading }: InlinePropertyEditorProps) {
-  // Debug logging
-  console.log('InlinePropertyEditor - Props received:');
-  console.log('  knowledgeDocuments:', knowledgeDocuments, 'length:', knowledgeDocuments?.length);
-  if (knowledgeDocuments?.length > 0) {
-    console.log('  First knowledge doc:', knowledgeDocuments[0]);
-  }
-  console.log('  extractionRules:', extractionRules, 'length:', extractionRules?.length);
-  if (extractionRules?.length > 0) {
-    console.log('  First extraction rule:', extractionRules[0]);
-  }
-  console.log('  excelFunctions:', excelFunctions, 'length:', excelFunctions?.length);
+
   const [formData, setFormData] = useState({
     propertyName: property.propertyName,
     propertyType: property.propertyType,

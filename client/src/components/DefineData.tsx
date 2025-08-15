@@ -66,10 +66,6 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
   
   // Update local state when project prop changes (needed for database updates)
   useEffect(() => {
-    console.log("DefineData: Project prop changed", { 
-      mainObjectName: project.mainObjectName, 
-      mainObjectDescription: project.mainObjectDescription 
-    });
     setMainObjectName(project.mainObjectName || "Session");
     setMainObjectDescription(project.mainObjectDescription || "");
   }, [project.mainObjectName, project.mainObjectDescription]);
@@ -96,18 +92,9 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
   const { data: knowledgeDocuments = [] } = useKnowledgeDocuments(project.id);
   const { data: extractionRules = [] } = useExtractionRules(project.id);
   
-  // Debug logging
-  console.log('DefineData - Data loaded:');
-  console.log('  project.id:', project.id);
-  console.log('  knowledgeDocuments:', knowledgeDocuments, 'length:', knowledgeDocuments?.length);
-  console.log('  extractionRules:', extractionRules, 'length:', extractionRules?.length);
+
   
-  // Check for authentication issues
-  useEffect(() => {
-    if (knowledgeDocuments === undefined && extractionRules === undefined) {
-      console.warn('Both knowledge documents and extraction rules are undefined - possible auth issue');
-    }
-  }, [knowledgeDocuments, extractionRules]);
+
   const { data: wizardryFunctions = [] } = useExcelWizardryFunctions();
 
   // Handle data being null/undefined from API errors and sort by orderIndex
