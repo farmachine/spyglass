@@ -504,15 +504,18 @@ export default function PropertyDialog({
                           <div className="space-y-2">
                             {wizardryFunctions.length > 0 ? (
                               <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <SelectTrigger className="h-auto min-h-[40px]">
-                                  <SelectValue placeholder="Select a function..." />
+                                <SelectTrigger className="h-auto min-h-[50px] border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500">
+                                  <SelectValue placeholder="Select a pre-built function..." className="text-gray-500" />
                                 </SelectTrigger>
-                                <SelectContent className="max-w-[400px]">
+                                <SelectContent className="max-w-[450px]">
                                   {wizardryFunctions.map((func) => (
-                                    <SelectItem key={func.id} value={func.id} className="h-auto py-3">
-                                      <div className="space-y-1">
-                                        <div className="font-medium text-sm">{func.name}</div>
-                                        <div className="text-xs text-muted-foreground whitespace-normal leading-relaxed max-w-[350px]">
+                                    <SelectItem key={func.id} value={func.id} className="h-auto py-4 px-3 cursor-pointer hover:bg-blue-50 focus:bg-blue-50">
+                                      <div className="space-y-2">
+                                        <div className="font-semibold text-base text-blue-900 flex items-center gap-2">
+                                          <FileText className="h-4 w-4 text-blue-600" />
+                                          {func.name}
+                                        </div>
+                                        <div className="text-sm text-gray-600 whitespace-normal leading-relaxed max-w-[400px] pl-6">
                                           {func.description}
                                         </div>
                                       </div>
