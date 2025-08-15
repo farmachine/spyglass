@@ -4825,12 +4825,20 @@ print(json.dumps(results))
             });
           }
           
-          // Return the complete output from Python script (includes both document properties and Gemini analysis)
-          res.json({ 
-            message: "Wizardry analysis completed",
-            output: output.trim(),
-            success: true
-          });
+          try {
+            // Return the complete output from Python script (includes both document properties and Gemini analysis)
+            res.json({ 
+              message: "Wizardry analysis completed",
+              output: output.trim(),
+              success: true
+            });
+            console.log('Successfully sent response for wizardry completion');
+          } catch (responseError) {
+            console.error('Error sending wizardry response:', responseError);
+            // Don't send another response if this fails
+          }
+        } else {
+          console.log('Response headers already sent, skipping response');
         }
       });
       

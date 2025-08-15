@@ -676,6 +676,29 @@ const AIExtractionModal = ({
       
     } catch (error) {
       console.error('Error running wizardry:', error);
+      
+      // Check if this is a 502 error after successful extraction
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('502') && errorMessage.includes('Bad Gateway')) {
+        // Refresh validations to check if extraction actually succeeded
+        queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
+        
+        // Show a helpful message about the background processing
+        toast({
+          title: "Extraction may be continuing",
+          description: "The extraction process might be running in the background. Check for new results appearing shortly.",
+        });
+        
+        // Close modal and start polling anyway, in case extraction is actually running
+        onClose();
+        onStartProgressivePolling(sessionId);
+      } else {
+        toast({
+          title: "Extraction failed",
+          description: "There was an error running the extraction. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsExtracting(false);
       setExtractionProgress({ currentFieldIndex: -1, completedFields: new Set(), totalFields: 0 });
