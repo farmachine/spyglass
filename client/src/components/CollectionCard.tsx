@@ -116,21 +116,20 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
     // Map form data to API format
     const mappedData = {
       id: property.id,
-      collection_id: property.collectionId,
-      collection_name: property.collectionId, // Keeping same behavior as requested
-      property_name: formData.propertyName,
-      property_type: formData.propertyType,
+      collectionId: property.collectionId,
+      propertyName: formData.propertyName,
+      propertyType: formData.propertyType,
       description: formData.extractionType === 'AI' ? formData.aiInstructions : formData.description,
-      auto_verification_confidence: formData.autoVerificationConfidence,
-      choice_options: property.choiceOptions || [], // Same behavior
-      is_identifier: property.isIdentifier || false, // Same behavior
-      order_index: property.orderIndex, // Same behavior
-      knowledge_document_ids: formData.knowledgeDocumentIds,
-      extraction_rule_ids: formData.extractionRuleIds,
-      documents_required: formData.documentsRequired,
-      extraction_type: formData.extractionType,
-      function_id: formData.functionId,
-      required_document_type: formData.requiredDocumentType
+      autoVerificationConfidence: formData.autoVerificationConfidence,
+      choiceOptions: property.choiceOptions || [], // Same behavior
+      isIdentifier: property.isIdentifier || false, // Same behavior
+      orderIndex: property.orderIndex, // Same behavior
+      knowledgeDocumentIds: formData.knowledgeDocumentIds,
+      extractionRuleIds: formData.extractionRuleIds,
+      documentsRequired: formData.documentsRequired,
+      extractionType: formData.extractionType,
+      functionId: formData.functionId,
+      requiredDocumentType: formData.requiredDocumentType
     };
     
     onSave(mappedData);
