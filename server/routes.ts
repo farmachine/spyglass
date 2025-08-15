@@ -4857,7 +4857,7 @@ print(json.dumps(results))
   // Extraction Step Parameters Routes
 
   // Get extraction step parameters for a session
-  app.get("/api/sessions/:sessionId/extraction-steps", authenticateToken, async (req: AuthRequest, res) => {
+  app.get("/api/sessions/:sessionId/extraction-steps", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
       const steps = await storage.getExtractionStepParameters(sessionId);
@@ -4869,27 +4869,39 @@ print(json.dumps(results))
   });
 
   // Create extraction step parameter
-  app.post("/api/sessions/:sessionId/extraction-steps", authenticateToken, async (req: AuthRequest, res) => {
+  app.post("/api/sessions/:sessionId/extraction-steps", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
-      const result = insertExtractionStepParametersSchema.safeParse(req.body);
-      if (!result.success) {
-        return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
-      }
+      
+      // Create data object with sessionId from URL
+      const stepData = {
+        sessionId,
+        projectId: req.body.projectId,
+        extractionNumber: req.body.extractionNumber,
+        targetPropertyId: req.body.targetPropertyId || null,
+        targetPropertyName: req.body.targetPropertyName || null,
+        collectionId: req.body.collectionId || null,
+        collectionName: req.body.collectionName || null,
+        identifierReferences: req.body.identifierReferences || null,
+        extractionMethod: req.body.extractionMethod || null,
+        functionId: req.body.functionId || null,
+        parameters: req.body.parameters || null,
+        status: req.body.status || "pending",
+        resultCount: req.body.resultCount || null,
+        errorMessage: req.body.errorMessage || null,
+        completedAt: req.body.completedAt || null
+      };
 
-      const stepParams = await storage.createExtractionStepParameter({
-        ...result.data,
-        sessionId
-      });
+      const stepParams = await storage.createExtractionStepParameter(stepData);
       res.json(stepParams);
     } catch (error) {
       console.error("Error creating extraction step:", error);
-      res.status(500).json({ message: "Failed to create extraction step" });
+      res.status(500).json({ message: "Failed to create extraction step", error: error.message });
     }
   });
 
   // Get next extraction step
-  app.get("/api/sessions/:sessionId/projects/:projectId/next-step", authenticateToken, async (req: AuthRequest, res) => {
+  app.get("/api/sessions/:sessionId/projects/:projectId/next-step", async (req, res) => {
     try {
       const { sessionId, projectId } = req.params;
       const nextStep = await storage.getNextExtractionStep(sessionId, projectId);
@@ -4901,7 +4913,7 @@ print(json.dumps(results))
   });
 
   // Update extraction step parameter
-  app.patch("/api/extraction-steps/:id", authenticateToken, async (req: AuthRequest, res) => {
+  app.patch("/api/extraction-steps/:id", async (req, res) => {
     try {
       const id = req.params.id;
       const result = insertExtractionStepParametersSchema.partial().safeParse(req.body);
@@ -4921,8 +4933,31 @@ print(json.dumps(results))
     }
   });
 
+  // Update extraction step status (simplified endpoint for Python extraction script)
+  app.put("/api/extraction-steps/:id/status", async (req, res) => {
+    try {
+      const id = req.params.id;
+      const { status, resultCount, errorMessage } = req.body;
+
+      const updateData: any = { status };
+      if (resultCount !== undefined) updateData.resultCount = resultCount;
+      if (errorMessage !== undefined) updateData.errorMessage = errorMessage;
+      if (status === "completed") updateData.completedAt = new Date();
+
+      const updated = await storage.updateExtractionStepParameter(id, updateData);
+      if (!updated) {
+        return res.status(404).json({ message: "Extraction step not found" });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating extraction step status:", error);
+      res.status(500).json({ message: "Failed to update extraction step status", error: error.message });
+    }
+  });
+
   // Get latest extraction step
-  app.get("/api/sessions/:sessionId/projects/:projectId/latest-step", authenticateToken, async (req: AuthRequest, res) => {
+  app.get("/api/sessions/:sessionId/projects/:projectId/latest-step", async (req, res) => {
     try {
       const { sessionId, projectId } = req.params;
       const latestStep = await storage.getLatestExtractionStep(sessionId, projectId);

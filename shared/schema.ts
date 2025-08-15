@@ -283,6 +283,8 @@ export const insertExtractionStepParametersSchema = createInsertSchema(extractio
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  sessionId: z.string().uuid().optional(), // Make sessionId optional since it comes from URL path
 });
 
 // Types

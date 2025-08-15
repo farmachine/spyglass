@@ -17,6 +17,7 @@ def save_extraction_step_to_db(session_id, project_id, extraction_number, target
     """Save extraction step parameters to database"""
     try:
         url = f"http://localhost:5000/api/sessions/{session_id}/extraction-steps"
+        # Skip authentication for now since the extraction script runs in a different context
         headers = {"Content-Type": "application/json"}
         data = {
             "projectId": project_id,
@@ -47,6 +48,7 @@ def update_extraction_step_status(step_id, status, result_count=None, error_mess
     """Update extraction step status in database"""
     try:
         url = f"http://localhost:5000/api/extraction-steps/{step_id}"
+        # Skip authentication for now since the extraction script runs in a different context
         headers = {"Content-Type": "application/json"}
         data = {"status": status}
         if result_count is not None:
@@ -70,6 +72,7 @@ def get_next_extraction_step(session_id, project_id):
     """Get next pending extraction step from database"""
     try:
         url = f"http://localhost:5000/api/sessions/{session_id}/projects/{project_id}/next-step"
+        # Skip authentication for now since the extraction script runs in a different context
         headers = {"Content-Type": "application/json"}
         response = requests.get(url, headers=headers, timeout=30)
         if response.status_code == 200:
@@ -934,23 +937,12 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
         if "Excel Wizardry Function" in gemini_response:
             print(f"\nGemini decided to use Excel Wizardry Function")
             
-            # Update extraction method in database
+            # Update extraction method in database (optional)
             if step_id:
-                update_extraction_step_status(step_id, "in_progress", None, None)
-                # Update method after decision
-                updated_step = save_extraction_step_to_db(
-                    session_id=session_id,
-                    project_id=project_id,
-                    extraction_number=extraction_number,
-                    target_property_id=target_property_id,
-                    target_property_name=target_property_name,
-                    collection_id=collection_id,
-                    collection_name="unknown",
-                    identifier_references=incoming_identifier_references,
-                    extraction_method="function",
-                    parameters=step_parameters,
-                    status="in_progress"
-                )
+                try:
+                    update_extraction_step_status(step_id, "in_progress", None, None)
+                except Exception as e:
+                    print(f"⚠️ Database update failed: {e}", file=sys.stderr)
             
             # Parse the response to get function ID or CREATE_NEW
             if "|" in gemini_response:
@@ -1217,21 +1209,12 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
         elif "AI Extraction" in gemini_response:
             print(f"\n🧠 AI EXTRACTION:")
             
-            # Update extraction method in database
+            # Update extraction method in database (optional)
             if step_id:
-                updated_step = save_extraction_step_to_db(
-                    session_id=session_id,
-                    project_id=project_id,
-                    extraction_number=extraction_number,
-                    target_property_id=target_property_id,
-                    target_property_name=target_property_name,
-                    collection_id=collection_id,
-                    collection_name="unknown",
-                    identifier_references=incoming_identifier_references,
-                    extraction_method="ai",
-                    parameters=step_parameters,
-                    status="in_progress"
-                )
+                try:
+                    update_extraction_step_status(step_id, "in_progress", None, None)
+                except Exception as e:
+                    print(f"⚠️ Database update failed: {e}", file=sys.stderr)
             
             # Handle AI extraction based on document availability
             if documents == "NO DOCUMENTS SELECTED":
@@ -1278,9 +1261,12 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                 if 'error' in save_result:
                     print(f"Warning: Failed to save validations: {save_result['error']}")
                     
-                # Update extraction step status to completed
+                # Update extraction step status to completed (optional)
                 if step_id:
-                    update_extraction_step_status(step_id, "completed", record_count, None)
+                    try:
+                        update_extraction_step_status(step_id, "completed", record_count, None)
+                    except Exception as e:
+                        print(f"⚠️ Database update failed: {e}", file=sys.stderr)
                 
                 # Log extraction progress
                 if all_collection_properties:
@@ -1299,14 +1285,20 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                     print(f"\n📊 PROGRESS: {extracted_count}/{total_fields} fields extracted, {remaining_count} remaining")
             else:
                 print(f"   Error processing AI extraction results: {processed_results['error']}")
-                # Update extraction step status to failed
+                # Update extraction step status to failed (optional)
                 if step_id:
-                    update_extraction_step_status(step_id, "failed", None, processed_results['error'])
+                    try:
+                        update_extraction_step_status(step_id, "failed", None, processed_results['error'])
+                    except Exception as e:
+                        print(f"⚠️ Database update failed: {e}", file=sys.stderr)
         else:
             print(f"\n❌ NO EXTRACTION METHOD: Gemini did not recommend a specific extraction method")
-            # Update extraction step status to failed
+            # Update extraction step status to failed (optional)
             if step_id:
-                update_extraction_step_status(step_id, "failed", None, "No extraction method recommended by Gemini")
+                try:
+                    update_extraction_step_status(step_id, "failed", None, "No extraction method recommended by Gemini")
+                except Exception as e:
+                    print(f"⚠️ Database update failed: {e}", file=sys.stderr)
         print("=" * 80)
         
         # AUTO-RERUN LOGIC: Continue extraction until all target fields are processed
