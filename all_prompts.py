@@ -175,8 +175,6 @@ For each extracted value, return a JSON object with these exact keys:
     "data_type": field's property_type or "TEXT",
     "field_name": "CollectionName.PropertyName[record_index]",
     "collection_name": field's collection name,
-    "collection_id": field's collection id,
-    "field_id": field's id,
     "extracted_value": "actual_extracted_data",
     "confidence_score": number between 0.0 and 1.0,
     "validation_status": "unverified",
