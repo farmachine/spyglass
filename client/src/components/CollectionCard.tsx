@@ -32,10 +32,15 @@ interface InlinePropertyEditorProps {
 }
 
 function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLoading }: InlinePropertyEditorProps) {
-  // Get knowledge documents for selection
+  // Get knowledge documents and extraction rules for selection
   const { data: knowledgeDocuments = [] } = useQuery({
     queryKey: ["/api/projects/150cc14b-92bf-436b-938e-c7cd9dc1416d/knowledge"],
     queryFn: () => apiRequest("/api/projects/150cc14b-92bf-436b-938e-c7cd9dc1416d/knowledge"),
+  });
+
+  const { data: extractionRules = [] } = useQuery({
+    queryKey: ["/api/projects/150cc14b-92bf-436b-938e-c7cd9dc1416d/rules"],
+    queryFn: () => apiRequest("/api/projects/150cc14b-92bf-436b-938e-c7cd9dc1416d/rules"),
   });
   const [formData, setFormData] = useState({
     propertyName: property.propertyName,
@@ -48,6 +53,8 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
     documentsRequired: property.documentsRequired || false,
     sourceDocumentsRequired: (property as any).sourceDocumentsRequired || false,
     knowledgeDocumentIds: (property as any).knowledgeDocumentIds || [],
+    aiInstructions: (property as any).aiInstructions || '',
+    extractionRuleIds: (property as any).extractionRuleIds || [],
   });
 
   // Get previous step properties for reference selection
@@ -217,9 +224,92 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
               className="rounded border-gray-300"
             />
             <Label htmlFor="sourceDocumentsRequired" className="text-sm font-medium">
-              Source Documents Required
+              At least one user uploaded document required
             </Label>
           </div>
+
+          {formData.extractionType === 'AI' && (
+            <>
+              <div>
+                <Label className="text-sm font-medium">AI Instructions</Label>
+                <Textarea
+                  value={formData.aiInstructions}
+                  onChange={(e) => setFormData(prev => ({...prev, aiInstructions: e.target.value}))}
+                  placeholder="Enter specific instructions for the AI extraction process"
+                  rows={3}
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium">Extraction Rules</Label>
+                <Select 
+                  value=""
+                  onValueChange={(value) => {
+                    if (value && !(formData.extractionRuleIds as string[]).includes(value)) {
+                      setFormData(prev => ({
+                        ...prev, 
+                        extractionRuleIds: [...(prev.extractionRuleIds as string[]), value]
+                      }));
+                    }
+                  }}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select extraction rules to apply" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {extractionRules.map((rule: any) => (
+                      <SelectItem key={rule.id} value={rule.id}>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{rule.name}</span>
+                          <span className="text-xs text-gray-500">{rule.description || 'Extraction rule'}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Selected Extraction Rules Display */}
+                {(formData.extractionRuleIds as string[]).length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    <p className="text-xs text-gray-600">Selected extraction rules:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {(formData.extractionRuleIds as string[]).map((ruleId: string) => {
+                        const rule = extractionRules.find((r: any) => r.id === ruleId);
+                        return rule ? (
+                          <div key={ruleId} className="flex items-center gap-1 bg-purple-100 text-purple-800 px-2 py-1 rounded-md text-sm">
+                            <span>{rule.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => setFormData(prev => ({
+                                ...prev,
+                                extractionRuleIds: (prev.extractionRuleIds as string[]).filter((id: string) => id !== ruleId)
+                              }))}
+                              className="text-purple-600 hover:text-purple-800 ml-1"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : null;
+                      })}
+                    </div>
+                    {/* Show rule descriptions */}
+                    <div className="mt-2">
+                      {(formData.extractionRuleIds as string[]).map((ruleId: string) => {
+                        const rule = extractionRules.find((r: any) => r.id === ruleId);
+                        return rule && rule.description ? (
+                          <div key={`desc-${ruleId}`} className="mt-2 p-3 bg-purple-50 border border-purple-200 rounded-md">
+                            <p className="text-sm font-medium text-purple-900">{rule.name}</p>
+                            <p className="text-sm text-purple-700 mt-1">{rule.description}</p>
+                          </div>
+                        ) : null;
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
 
           <div>
             <Label className="text-sm font-medium">Knowledge Documents</Label>
