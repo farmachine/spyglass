@@ -42,6 +42,17 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
     autoVerificationConfidence: property.autoVerificationConfidence || 80,
   });
 
+  // Get previous step properties for reference selection
+  const [selectedReferences, setSelectedReferences] = useState<string[]>([]);
+  
+  // Mock data for previous steps - this would come from actual previous properties
+  const previousStepOptions = [
+    { id: 'identifier', name: 'Identifier Field', type: 'TEXT', description: 'Primary identifier from step 1' },
+    { id: 'document_content', name: 'Document Content', type: 'TEXT', description: 'Extracted document text' },
+    { id: 'worksheet_name', name: 'Worksheet Name', type: 'TEXT', description: 'Name of the Excel worksheet' },
+    { id: 'column_headers', name: 'Column Headers', type: 'ARRAY', description: 'List of column names' },
+  ];
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave(formData);
@@ -119,15 +130,54 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
           <h5 className="text-sm font-semibold text-gray-900">Inputs</h5>
         </div>
         <div className="space-y-3 pl-8">
-          <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
-            <p className="text-sm text-gray-700 mb-2">
-              <span className="font-medium">References from previous steps:</span>
-            </p>
-            <ul className="text-sm text-gray-600 space-y-1">
-              <li>• Step {property.orderIndex || 0}: Uses values from identifier field</li>
-              <li>• Document content: Extracted text and structured data</li>
-              <li>• Context: Related field values and document metadata</li>
-            </ul>
+          <div>
+            <Label className="text-sm font-medium">References from Previous Steps</Label>
+            <Select 
+              value=""
+              onValueChange={(value) => {
+                if (value && !selectedReferences.includes(value)) {
+                  setSelectedReferences(prev => [...prev, value]);
+                }
+              }}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Select data sources from previous steps" />
+              </SelectTrigger>
+              <SelectContent>
+                {previousStepOptions.map((option) => (
+                  <SelectItem key={option.id} value={option.id}>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{option.name}</span>
+                      <span className="text-xs text-gray-500">{option.description}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            {/* Selected References Display */}
+            {selectedReferences.length > 0 && (
+              <div className="mt-3 space-y-2">
+                <p className="text-xs text-gray-600">Selected references:</p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedReferences.map((refId) => {
+                    const ref = previousStepOptions.find(opt => opt.id === refId);
+                    return ref ? (
+                      <div key={refId} className="flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-sm">
+                        <span>{ref.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedReferences(prev => prev.filter(id => id !== refId))}
+                          className="text-blue-600 hover:text-blue-800 ml-1"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : null;
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
