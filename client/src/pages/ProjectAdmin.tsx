@@ -187,7 +187,7 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
                       isDisabled
                         ? "text-slate-400 cursor-not-allowed opacity-50 font-normal"
                         : isActive
-                        ? "bg-primary text-white font-medium shadow-sm"
+                        ? "bg-gray-700 text-white font-medium shadow-sm"
                         : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
                     }`}
                   >
@@ -214,7 +214,7 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
                     onClick={() => setSchemaActiveTab('main-data')}
                     className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
                       schemaActiveTab === 'main-data'
-                        ? "bg-primary text-white font-medium shadow-sm"
+                        ? "bg-gray-700 text-white font-medium shadow-sm"
                         : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
                     }`}
                   >
@@ -229,7 +229,7 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
                       onClick={() => setSchemaActiveTab(collection.collectionName)}
                       className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
                         schemaActiveTab === collection.collectionName
-                          ? "bg-primary text-white font-medium shadow-sm"
+                          ? "bg-gray-700 text-white font-medium shadow-sm"
                           : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
                       }`}
                     >
