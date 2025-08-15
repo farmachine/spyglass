@@ -26,22 +26,17 @@ import type { ObjectCollection, CollectionProperty } from "@shared/schema";
 interface InlinePropertyEditorProps {
   property: CollectionProperty;
   excelFunctions: any[];
+  knowledgeDocuments: any[];
+  extractionRules: any[];
   onSave: (formData: Record<string, any>) => void;
   onCancel: () => void;
   isLoading: boolean;
 }
 
-function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLoading }: InlinePropertyEditorProps) {
-  // Get knowledge documents and extraction rules for selection
-  const { data: knowledgeDocuments = [] } = useQuery({
-    queryKey: ["/api/projects/150cc14b-92bf-436b-938e-c7cd9dc1416d/knowledge"],
-    queryFn: () => apiRequest("/api/projects/150cc14b-92bf-436b-938e-c7cd9dc1416d/knowledge"),
-  });
-
-  const { data: extractionRules = [] } = useQuery({
-    queryKey: ["/api/projects/150cc14b-92bf-436b-938e-c7cd9dc1416d/rules"],
-    queryFn: () => apiRequest("/api/projects/150cc14b-92bf-436b-938e-c7cd9dc1416d/rules"),
-  });
+function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, extractionRules, onSave, onCancel, isLoading }: InlinePropertyEditorProps) {
+  // Debug logging
+  console.log('InlinePropertyEditor - knowledgeDocuments:', knowledgeDocuments);
+  console.log('InlinePropertyEditor - extractionRules:', extractionRules);
   const [formData, setFormData] = useState({
     propertyName: property.propertyName,
     propertyType: property.propertyType,
@@ -492,6 +487,8 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
 interface CollectionCardProps {
   collection: ObjectCollection;
   fieldTypeColors: Record<string, string>;
+  knowledgeDocuments: any[];
+  extractionRules: any[];
   onEditCollection: (collection: ObjectCollection) => void;
   onDeleteCollection: (id: string, name: string) => void;
   onAddProperty: (collectionId: string, collectionName: string) => void;
@@ -504,6 +501,8 @@ interface CollectionCardProps {
 export default function CollectionCard({
   collection,
   fieldTypeColors,
+  knowledgeDocuments,
+  extractionRules,
   onEditCollection,
   onDeleteCollection,
   onAddProperty,
@@ -840,6 +839,8 @@ export default function CollectionCard({
                                     <InlinePropertyEditor
                                       property={property}
                                       excelFunctions={excelFunctions}
+                                      knowledgeDocuments={knowledgeDocuments}
+                                      extractionRules={extractionRules}
                                       onSave={(formData) => handleSaveProperty(property, formData)}
                                       onCancel={() => setEditingPropertyId(null)}
                                       isLoading={updateProperty.isPending}

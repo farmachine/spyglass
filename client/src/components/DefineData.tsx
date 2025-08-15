@@ -766,6 +766,8 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
                   <CollectionCard
                     collection={collection}
                     fieldTypeColors={fieldTypeColors}
+                    knowledgeDocuments={knowledgeDocuments}
+                    extractionRules={extractionRules}
                     onEditCollection={(collection) => setCollectionDialog({ open: true, collection })}
                     onDeleteCollection={(id, name) => setDeleteDialog({ 
                       open: true, 
