@@ -454,7 +454,7 @@ export default function SchemaFieldDialog({
                           <Checkbox
                             checked={field.value}
                             onCheckedChange={field.onChange}
-                            className="border-2 border-blue-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                            className="border-2 border-gray-400 data-[state=checked]:bg-gray-700 data-[state=checked]:border-gray-700"
                           />
                         </FormControl>
                       </FormItem>
@@ -573,7 +573,7 @@ export default function SchemaFieldDialog({
               <Button
                 type="submit"
                 disabled={isLoading}
-                className=""
+                className="bg-gray-700 hover:bg-gray-800"
               >
                 {isLoading ? "Saving..." : field ? "Update Field" : "Add Field"}
               </Button>
