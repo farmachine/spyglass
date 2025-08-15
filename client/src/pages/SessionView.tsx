@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -287,6 +287,50 @@ const AIExtractionModal = ({
     completedFields: Set<string>;
     totalFields: number;
   }>({ currentFieldIndex: -1, completedFields: new Set(), totalFields: 0 });
+
+  // State for progressive extraction monitoring
+  const [progressivePollingActive, setProgressivePollingActive] = useState(false);
+  const [lastValidationCount, setLastValidationCount] = useState(0);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Progressive validation polling function
+  const startProgressiveValidationPolling = (sessionId: string) => {
+    setProgressivePollingActive(true);
+    setLastValidationCount(validations?.length || 0);
+    
+    // Clear any existing polling interval
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+    
+    // Poll every 3 seconds for validation updates
+    pollingIntervalRef.current = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
+    }, 3000);
+    
+    // Stop polling after 5 minutes (allowing time for multi-step extraction)
+    setTimeout(() => {
+      stopProgressiveValidationPolling();
+    }, 300000); // 5 minutes
+  };
+
+  const stopProgressiveValidationPolling = () => {
+    setProgressivePollingActive(false);
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+  };
+
+  // Clean up polling on component unmount
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, []);
+
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -645,10 +689,13 @@ const AIExtractionModal = ({
         // Refresh the session data to show the newly extracted field validations
         queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
         
+        // Start polling for progressive updates
+        startProgressiveValidationPolling(sessionId);
+        
         // Show completion message
         toast({
           title: "Extraction in progress",
-          description: "First field extracted successfully. Multi-step extraction continuing in background.",
+          description: "Step 1 completed! Watch results appear below as each step finishes.",
         });
       }
       
@@ -1347,6 +1394,7 @@ export default function SessionView() {
   const { data: validations = [], isLoading: validationsLoading } = useQuery<FieldValidation[]>({
     queryKey: ['/api/sessions', sessionId, 'validations'],
     queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`),
+    refetchInterval: progressivePollingActive ? 3000 : false, // Auto-refetch when polling active
     onSuccess: (data) => {
       console.log(`Session ${sessionId} - Validations loaded:`, data.length);
       if (data.length > 0) {
@@ -1360,6 +1408,21 @@ export default function SessionView() {
       }
     }
   });
+
+  // Monitor validation changes and show toast notifications for progressive extraction
+  useEffect(() => {
+    if (progressivePollingActive && validations) {
+      const currentCount = validations.length;
+      if (currentCount > lastValidationCount && lastValidationCount > 0) {
+        const newValidationsCount = currentCount - lastValidationCount;
+        toast({
+          title: "New extraction results available",
+          description: `${newValidationsCount} new field${newValidationsCount > 1 ? 's' : ''} extracted successfully!`,
+        });
+        setLastValidationCount(currentCount);
+      }
+    }
+  }, [validations, progressivePollingActive, lastValidationCount, toast]);
 
   // Query for session documents
   const { data: sessionDocuments = [], isLoading: documentsLoading } = useQuery({
@@ -2849,6 +2912,12 @@ Thank you for your assistance.`;
               <div className="flex-1 space-y-2">
                 <div className="flex items-center space-x-2">
                   <h2 className="text-3xl font-bold">{project.name}</h2>
+                  {progressivePollingActive && (
+                    <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 border border-blue-200 rounded-full text-sm text-blue-800">
+                      <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                      <span className="font-medium">Multi-step extraction in progress</span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-start space-x-2">
                   {project.description ? (
