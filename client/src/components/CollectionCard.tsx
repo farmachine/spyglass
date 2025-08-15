@@ -148,7 +148,7 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
 
 
           <div>
-            <Label className="text-sm font-medium">References from Previous Steps</Label>
+            <Label className="text-sm font-medium">References from Previous Steps (Optional)</Label>
             <Select 
               value=""
               onValueChange={(value) => {
@@ -158,7 +158,7 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
               }}
             >
               <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select data sources from previous steps" />
+                <SelectValue placeholder="Select data sources from previous steps (optional)" />
               </SelectTrigger>
               <SelectContent>
                 {previousStepOptions.map((option) => (
@@ -203,7 +203,7 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
           </div>
 
           <div>
-            <Label className="text-sm font-medium">Knowledge Documents</Label>
+            <Label className="text-sm font-medium">Knowledge Documents (Optional)</Label>
             <Select 
               value=""
               onValueChange={(value) => {
@@ -216,7 +216,7 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
               }}
             >
               <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select knowledge documents to include" />
+                <SelectValue placeholder="Select knowledge documents to include (optional)" />
               </SelectTrigger>
               <SelectContent>
                 {knowledgeDocuments.map((doc: any) => (
@@ -291,7 +291,7 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
               </div>
 
               <div>
-                <Label className="text-sm font-medium">Extraction Rules</Label>
+                <Label className="text-sm font-medium">Extraction Rules (Optional)</Label>
                 <Select 
                   value=""
                   onValueChange={(value) => {
@@ -304,7 +304,7 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
                   }}
                 >
                   <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select extraction rules to apply" />
+                    <SelectValue placeholder="Select extraction rules to apply (optional)" />
                   </SelectTrigger>
                   <SelectContent>
                     {extractionRules.map((rule: any) => (
@@ -366,6 +366,7 @@ function InlinePropertyEditor({ property, excelFunctions, onSave, onCancel, isLo
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="Any">Any</SelectItem>
                     <SelectItem value="Excel (.xlsx, .xls)">Excel (.xlsx, .xls)</SelectItem>
                     <SelectItem value="Word (.docx, .doc)">Word (.docx, .doc)</SelectItem>
                     <SelectItem value="PDF (.pdf)">PDF (.pdf)</SelectItem>
