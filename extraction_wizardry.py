@@ -907,10 +907,14 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             # Parse the response to get function ID or CREATE_NEW
             if "|" in gemini_response:
                 function_instruction = gemini_response.split("|")[-1].strip()
+                # Clean any extra characters like asterisks, quotes, or whitespace
+                function_instruction = function_instruction.strip('*').strip('"').strip("'").strip()
             else:
                 function_instruction = "CREATE_NEW"
             
             print(f"Function instruction: {function_instruction}")
+            print(f"Function instruction length: {len(function_instruction)}")
+            print(f"Function instruction repr: {repr(function_instruction)}")
             
             # Handle document processing based on whether documents are selected
             if documents == "NO DOCUMENTS SELECTED":
@@ -941,7 +945,10 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                 
                 # Find the function by ID
                 existing_function = None
+                print(f"Looking for function ID: '{function_instruction}'")
+                print(f"Available function IDs:")
                 for func in existing_functions:
+                    print(f"   - '{func['id']}' ({func.get('name', 'Unnamed')})")
                     if func['id'] == function_instruction:
                         existing_function = func
                         break
@@ -1043,7 +1050,7 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                     else:
                         print(f"Error executing function: {function_result['error']}")
                 else:
-                    print(f"Function with ID {function_instruction} not found, creating new function instead")
+                    print(f"❌ Function with ID '{function_instruction}' not found in available functions, creating new function instead")
                     function_instruction = "CREATE_NEW"
             
             if function_instruction == "CREATE_NEW":
