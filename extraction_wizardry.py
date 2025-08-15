@@ -448,7 +448,7 @@ def update_excel_wizardry_function(function_id, function_code, description=None)
 
 
 
-def generate_excel_function_with_gemini(target_fields_data, documents, identifier_references=None, extraction_number=0, target_field=None, max_retries=3):
+def generate_excel_function_with_gemini(target_fields_data, documents, identifier_references=None, extraction_number=0, max_retries=3):
     """Generate a new Excel function using Gemini AI with optional identifier references"""
     # Get API key from environment
     api_key = os.getenv('GEMINI_API_KEY')
@@ -463,15 +463,11 @@ def generate_excel_function_with_gemini(target_fields_data, documents, identifie
     documents_content = json.dumps(documents, indent=2)
     identifier_references_content = json.dumps(identifier_references, indent=2) if identifier_references else "None - First extraction"
     
-    # Add target field information to prompt
-    target_field_content = json.dumps(target_field, indent=2) if target_field else "None"
-    
     prompt = EXCEL_FUNCTION_GENERATOR.format(
         target_fields=target_fields_content,
         source_documents=documents_content,
         identifier_references=identifier_references_content,
-        extraction_number=extraction_number,
-        target_field=target_field_content
+        extraction_number=extraction_number
     )
     
     # Log the prompt
@@ -535,7 +531,7 @@ def generate_excel_function_with_gemini(target_fields_data, documents, identifie
     
     return {"error": "All Gemini function generation retry attempts failed"}
 
-def execute_excel_wizardry_function(function_code, extracted_content, target_fields_data, identifier_references=None, target_field=None):
+def execute_excel_wizardry_function(function_code, extracted_content, target_fields_data, identifier_references=None):
     """Execute an Excel wizardry function with the provided data and optional identifier references"""
     try:
         # Create a safe execution environment with necessary imports
@@ -579,13 +575,9 @@ def execute_excel_wizardry_function(function_code, extracted_content, target_fie
         # Execute function with appropriate parameters
         import inspect
         func_signature = inspect.signature(extract_function)
-        param_count = len(func_signature.parameters)
         
-        if param_count >= 4 and identifier_references is not None and target_field is not None:
-            # New function signature with identifier_references and target_field
-            results = extract_function(extracted_content, target_fields_data, identifier_references, target_field)
-        elif param_count >= 3 and identifier_references is not None:
-            # Legacy function signature with identifier_references but no target_field
+        if len(func_signature.parameters) >= 3 and identifier_references is not None:
+            # New function signature with identifier_references
             results = extract_function(extracted_content, target_fields_data, identifier_references)
         else:
             # Legacy function signature without identifier_references
@@ -705,35 +697,17 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             print(json.dumps({"error": "Missing session_id"}))
             return
         
-        # Handle document retrieval - if no document_ids provided, fetch all session documents
+        # Handle document retrieval - if no documents selected, use placeholder
         if not document_ids:
-            print("No document IDs provided - fetching all session documents")
-            # Get all document IDs for this session
-            try:
-                import psycopg2
-                database_url = os.getenv('DATABASE_URL')
-                conn = psycopg2.connect(database_url)
-                cursor = conn.cursor()
-                cursor.execute('SELECT id FROM session_documents WHERE session_id = %s', (session_id,))
-                all_doc_ids = [row[0] for row in cursor.fetchall()]
-                conn.close()
-                
-                if all_doc_ids:
-                    documents = get_document_properties_from_db(all_doc_ids, session_id)
-                    print(f"Fetched {len(all_doc_ids)} documents from session")
-                else:
-                    print("No documents found in session")
-                    documents = "NO DOCUMENTS SELECTED"
-            except Exception as e:
-                print(f"Error fetching session documents: {e}")
-                documents = "NO DOCUMENTS SELECTED"
+            print("No documents selected - working with identifier references only")
+            documents = "NO DOCUMENTS SELECTED"
         else:
             # Get document properties from database
             documents = get_document_properties_from_db(document_ids, session_id)
             
-        if isinstance(documents, dict) and "error" in documents:
-            print(json.dumps(documents))
-            return
+            if isinstance(documents, dict) and "error" in documents:
+                print(json.dumps(documents))
+                return
         
         # Extract complete field data from the target fields (no database query needed)
         target_fields_data = []
@@ -865,13 +839,12 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                 if existing_function:
                     print(f"Found function: {existing_function['name']}")
                     
-                    # Execute the existing function with identifier references and complete target field
+                    # Execute the existing function with identifier references
                     function_result = execute_excel_wizardry_function(
                         existing_function['function_code'],
                         extracted_content,
                         identifier_targets,
-                        identifier_references,
-                        target_fields[extraction_number] if target_fields and extraction_number < len(target_fields) else None
+                        identifier_references
                     )
                     
                     if 'error' not in function_result:
@@ -967,9 +940,8 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                 # Generate new function
                 print("\n🔧 CREATING NEW FUNCTION:")
                 
-                # Generate function with Gemini, including identifier references, extraction number, and complete target field
-                current_target_field = target_fields[extraction_number] if target_fields and extraction_number < len(target_fields) else None
-                function_data = generate_excel_function_with_gemini(identifier_targets, documents, identifier_references, extraction_number, current_target_field)
+                # Generate function with Gemini, including identifier references and extraction number
+                function_data = generate_excel_function_with_gemini(identifier_targets, documents, identifier_references, extraction_number)
                 
                 if 'error' not in function_data:
                     print(f"   Generated: {function_data.get('function_name', 'Unnamed Function')}")
@@ -985,13 +957,12 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                     if 'error' not in create_result:
                         print(f"   Saved with ID: {create_result['id'][:8]}...")
                         
-                        # Execute the new function with identifier references and complete target field
+                        # Execute the new function with identifier references
                         function_result = execute_excel_wizardry_function(
                             function_data.get('function_code', ''),
                             extracted_content,
                             identifier_targets,
-                            identifier_references,
-                            target_fields[extraction_number] if target_fields and extraction_number < len(target_fields) else None
+                            identifier_references
                         )
                         
                         if 'error' not in function_result:
@@ -1084,9 +1055,8 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             else:
                 # Get document IDs from the documents data
                 document_ids = [doc['id'] for doc in documents]
-                # Pass document IDs, identifier targets, and complete target field to AI extraction
-                current_target_field = target_fields[extraction_number] if target_fields and extraction_number < len(target_fields) else None
-                ai_result = ai_document_extraction(document_ids, session_id, identifier_targets, incoming_identifier_references, current_target_field)
+                # Pass document IDs and identifier targets to AI extraction
+                ai_result = ai_document_extraction(document_ids, session_id, identifier_targets, incoming_identifier_references)
             
             # Clean JSON and extract identifiers
             processed_results = clean_json_and_extract_identifiers(ai_result, identifier_targets)

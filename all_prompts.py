@@ -85,14 +85,11 @@ IDENTIFIER REFERENCES FROM PREVIOUS EXTRACTION:
 
 EXTRACTION NUMBER: {extraction_number}
 
-CURRENT TARGET FIELD DETAILS:
-{target_field}
-
 FUNCTION METADATA:
 Create a descriptive name and description for this function based on the extraction task.
 
 MANDATORY REQUIREMENTS:
-1. Function name MUST be: extract_excel_data(extracted_content, target_fields_data, identifier_references=None, target_field=None)
+1. Function name MUST be: extract_excel_data(extracted_content, target_fields_data, identifier_references=None)
 2. Input format: extracted_content has lines like "=== Sheet: Name ===" followed by tab-separated rows (may be empty if no documents selected)
 3. If identifier_references is provided, the function MUST iterate through each identifier and extract the target field for that specific identifier
 4. If no documents are available (empty extracted_content), the function must work purely from identifier_references data
@@ -101,8 +98,6 @@ MANDATORY REQUIREMENTS:
    - "data_type": field's property_type or "TEXT"
    - "field_name": "CollectionName.FieldName[INDEX]" 
    - "collection_name": field's collection name
-   - "field_id": field's ID (from target_field parameter)
-   - "collection_id": field's collection ID (from target_field parameter)
    - "extracted_value": the actual extracted data
    - "confidence_score": 0.95
    - "validation_status": "unverified"
@@ -145,9 +140,6 @@ IDENTIFIER REFERENCES FROM PREVIOUS EXTRACTION:
 
 EXTRACTION NUMBER: {extraction_number}
 
-CURRENT TARGET FIELD DETAILS:
-{target_field}
-
 SUBSEQUENT EXTRACTION INSTRUCTIONS:
 If identifier_references are provided, you MUST:
 1. Extract the target field for each identifier reference
@@ -177,8 +169,6 @@ For each extracted value, return a JSON object with these exact keys:
     "data_type": field's property_type or "TEXT",
     "field_name": "CollectionName.PropertyName[record_index]",
     "collection_name": field's collection name,
-    "field_id": field's ID (from target field data),
-    "collection_id": field's collection ID (from target field data),
     "extracted_value": "actual_extracted_data",
     "confidence_score": number between 0.0 and 1.0,
     "validation_status": "unverified",
