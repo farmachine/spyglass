@@ -62,6 +62,8 @@ export const projectSchemaFields = pgTable("project_schema_fields", {
   documentsRequired: boolean("documents_required").default(true).notNull(), // Whether source documents are required for AI extraction
   functionId: uuid("function_id").references(() => excelWizardryFunctions.id), // Reference to function for FUNCTION extraction
   requiredDocumentType: text("required_document_type", { enum: ["Excel", "Word", "PDF"] }), // Required document type for FUNCTION extraction
+  referencedMainFieldIds: jsonb("referenced_main_field_ids"), // Array of main schema field IDs that this field references
+  referencedCollectionIds: jsonb("referenced_collection_ids"), // Array of collection IDs that this field references
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
