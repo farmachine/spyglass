@@ -323,16 +323,16 @@ const AIExtractionModal = ({
     // Wait a brief moment to ensure validation refresh completes
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Start enhanced real-time polling for progressive updates
+    // Start enhanced real-time polling for progressive updates (column-by-column)
     let pollCount = 0;
     let lastValidationCount = 0;
-    let noChangeCount = 0;
-    const maxPollCount = 60; // Maximum 60 polls (3 minutes at 3 second intervals)
-    const maxNoChangeCount = 5; // Stop if no changes for 5 consecutive polls
+    let consecutiveNoChangeCount = 0;
+    const maxPollCount = 300; // Maximum 300 polls (5 minutes at 1 second intervals)
+    const maxConsecutiveNoChanges = 10; // Stop if no changes for 10 consecutive polls (10 seconds)
     
     const pollInterval = setInterval(async () => {
       pollCount++;
-      console.log(`🔄 Real-time polling [${pollCount}/${maxPollCount}]: checking for new extraction data...`);
+      console.log(`🔄 Column-by-column polling [${pollCount}/${maxPollCount}]: checking for new extraction data...`);
       
       try {
         // Force complete refresh of validation data
@@ -344,29 +344,45 @@ const AIExtractionModal = ({
           staleTime: 0 // Always fetch fresh data
         });
         
-        // Trigger UI refresh by invalidating all related queries
-        await queryClient.invalidateQueries({ queryKey: ['/api/projects', project?.id] });
-        await queryClient.refetchQueries({ queryKey: ['/api/projects', project?.id] });
-        
-        // Force component re-render
-        setRefreshTrigger(prev => prev + 1);
-        
-        // Check if data has stopped changing (extraction likely complete)
+        // Check if data has changed (new field validations saved)
         const currentValidationCount = Array.isArray(validationData) ? validationData.length : 0;
-        if (currentValidationCount === lastValidationCount) {
-          noChangeCount++;
-          console.log(`📊 No data changes detected (${noChangeCount}/${maxNoChangeCount}) - ${currentValidationCount} validations`);
-        } else {
-          noChangeCount = 0; // Reset counter when data changes
-          console.log(`✅ New data detected: ${currentValidationCount} validations (was ${lastValidationCount})`);
-          // Force UI refresh when new data is detected
+        
+        if (currentValidationCount !== lastValidationCount) {
+          // Data changed - new field validation(s) saved!
+          consecutiveNoChangeCount = 0; // Reset counter when data changes
+          const newFieldsCount = currentValidationCount - lastValidationCount;
+          console.log(`✅ NEW FIELD(S) DETECTED: +${newFieldsCount} validations (${lastValidationCount} → ${currentValidationCount})`);
+          
+          // Trigger immediate UI refresh for new field data
+          await queryClient.invalidateQueries({ queryKey: ['/api/projects', project?.id] });
+          await queryClient.refetchQueries({ queryKey: ['/api/projects', project?.id] });
           setRefreshTrigger(prev => prev + 1);
+          
+          // Show toast notification for new field(s)
+          if (newFieldsCount === 1) {
+            toast({
+              title: "New field extracted",
+              description: "Field data has been updated and is now visible below.",
+              duration: 2000,
+            });
+          } else {
+            toast({
+              title: `${newFieldsCount} new fields extracted`,
+              description: "Field data has been updated and is now visible below.",
+              duration: 2000,
+            });
+          }
+        } else {
+          // No data changes detected
+          consecutiveNoChangeCount++;
+          console.log(`📊 No changes detected (${consecutiveNoChangeCount}/${maxConsecutiveNoChanges}) - ${currentValidationCount} validations`);
         }
+        
         lastValidationCount = currentValidationCount;
         
-        // Stop polling if no changes for several attempts (extraction likely complete)
-        if (noChangeCount >= maxNoChangeCount) {
-          console.log('🏁 Extraction appears complete (no data changes) - stopping polling');
+        // Stop polling if no changes for several consecutive attempts (extraction likely complete)
+        if (consecutiveNoChangeCount >= maxConsecutiveNoChanges) {
+          console.log('🏁 Extraction appears complete (no data changes for 10 seconds) - stopping polling');
           clearInterval(pollInterval);
           setIsExtractionRunning(false);
           setExtractingCollection(null);
@@ -380,6 +396,8 @@ const AIExtractionModal = ({
         
       } catch (error) {
         console.error('Polling error:', error);
+        // Continue polling even on errors, but count them as no-change
+        consecutiveNoChangeCount++;
       }
       
       // Stop polling after max attempts
@@ -394,15 +412,15 @@ const AIExtractionModal = ({
           onStartProgressivePolling(sessionId);
         }
       }
-    }, 3000); // Poll every 3 seconds
+    }, 1000); // Poll every 1 second for column-by-column updates
     
-    // Backup timeout to ensure spinners stop after 3 minutes
+    // Backup timeout to ensure spinners stop after 5 minutes
     setTimeout(() => {
-      console.log('⏹️ Real-time polling complete (timeout)');
+      console.log('⏹️ Column-by-column polling complete (timeout)');
       clearInterval(pollInterval);
       setIsExtractionRunning(false);
       setExtractingCollection(null);
-    }, 180000); // 3 minutes
+    }, 300000); // 5 minutes
     
     // Show completion message with real-time info
     toast({
