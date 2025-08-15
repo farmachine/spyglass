@@ -259,8 +259,15 @@ def clean_json_and_extract_identifiers(extraction_result, target_fields_data):
                         # For single-field extraction, use the first (and usually only) target field
                         if len(target_fields_data) == 1:
                             target_field = target_fields_data[0]
-                            result_item['field_id'] = target_field.get('field_id', '')
-                            print(f"🔗 Using single target field_id '{target_field.get('field_id', '')}' for field_name '{field_name}'")
+                            full_field_id = target_field.get('field_id', '')
+                            # Extract just the property ID part (after the dot) for database compatibility
+                            if '.' in full_field_id:
+                                property_id = full_field_id.split('.')[-1]
+                                result_item['field_id'] = property_id
+                                print(f"🔗 Using property field_id '{property_id}' (from '{full_field_id}') for field_name '{field_name}'")
+                            else:
+                                result_item['field_id'] = full_field_id
+                                print(f"🔗 Using field_id '{full_field_id}' for field_name '{field_name}'")
                         else:
                             # Find matching field in target_fields_data for multi-field extractions
                             for field in target_fields_data:
@@ -622,6 +629,8 @@ def execute_excel_wizardry_function(function_code, extracted_content, target_fie
                 'float': float,
                 'list': list,
                 'dict': dict,
+                'tuple': tuple,
+                'set': set,
                 'range': range,
                 'enumerate': enumerate,
                 'zip': zip,
@@ -635,7 +644,19 @@ def execute_excel_wizardry_function(function_code, extracted_content, target_fie
                 'min': min,
                 'sum': sum,
                 'sorted': sorted,
-                'reversed': reversed
+                'reversed': reversed,
+                'isinstance': isinstance,  # Fix isinstance error
+                'type': type,
+                'hasattr': hasattr,
+                'getattr': getattr,
+                'setattr': setattr,
+                'next': next,
+                'iter': iter,
+                'round': round,
+                'map': map,
+                'filter': filter,
+                'ord': ord,
+                'chr': chr
             }
         }
         
