@@ -50,7 +50,7 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
     propertyType: property.propertyType,
     description: property.description || '',
     extractionType: property.extractionType || 'AI',
-    requiredDocumentType: property.requiredDocumentType || 'Any',
+    requiredDocumentType: property.requiredDocumentType || '',
     functionId: property.functionId || null,
     autoVerificationConfidence: property.autoVerificationConfidence || 80,
     documentsRequired: property.documentsRequired || false,
@@ -391,10 +391,10 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Any">Any</SelectItem>
-                    <SelectItem value="Excel (.xlsx, .xls)">Excel (.xlsx, .xls)</SelectItem>
-                    <SelectItem value="Word (.docx, .doc)">Word (.docx, .doc)</SelectItem>
-                    <SelectItem value="PDF (.pdf)">PDF (.pdf)</SelectItem>
+                    <SelectItem value="">Any</SelectItem>
+                    <SelectItem value="Excel">Excel (.xlsx, .xls)</SelectItem>
+                    <SelectItem value="Word">Word (.docx, .doc)</SelectItem>
+                    <SelectItem value="PDF">PDF (.pdf)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
