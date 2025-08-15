@@ -327,9 +327,7 @@ export default function SchemaFieldDialog({
                         knowledgeDocuments={knowledgeDocuments.filter(doc => 
                           form.watch("knowledgeDocumentIds")?.includes(doc.id)
                         )}
-                        extractionRules={extractionRules.filter(rule => 
-                          form.watch("extractionRuleIds")?.includes(rule.id)
-                        )}
+                        previousCollectionProperties={[]}
                       />
                     ) : (
                       <Textarea 

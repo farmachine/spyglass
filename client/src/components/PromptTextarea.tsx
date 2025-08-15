@@ -18,7 +18,7 @@ interface PromptTextareaProps {
   knowledgeDocuments?: Array<{id: string, displayName?: string, fileName?: string, description?: string}>;
   referencedFields?: Array<{id: string, name: string, type: string, description?: string}>;
   referencedCollections?: Array<{id: string, name: string, description?: string}>;
-  extractionRules?: Array<{id: string, ruleName: string, ruleContent?: string}>;
+  previousCollectionProperties?: Array<{id: string, propertyName: string, propertyType: string, description?: string}>;
 }
 
 export function PromptTextarea({
@@ -30,7 +30,7 @@ export function PromptTextarea({
   knowledgeDocuments = [],
   referencedFields = [],
   referencedCollections = [],
-  extractionRules = []
+  previousCollectionProperties = []
 }: PromptTextareaProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
@@ -78,14 +78,14 @@ export function PromptTextarea({
       });
     });
 
-    // Add extraction rules
-    extractionRules.forEach(rule => {
+    // Add previous collection properties (properties with lower index in same collection)
+    previousCollectionProperties.forEach(property => {
       options.push({
-        id: `extraction-rule:${rule.id}`,
-        name: rule.ruleName,
-        type: 'Extraction Rule',
-        description: rule.ruleContent,
-        category: 'extraction-rule'
+        id: `collection-property:${property.id}`,
+        name: property.propertyName,
+        type: property.propertyType,
+        description: property.description,
+        category: 'collection-property'
       });
     });
 

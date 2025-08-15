@@ -30,12 +30,13 @@ interface InlinePropertyEditorProps {
   excelFunctions: any[];
   knowledgeDocuments: any[];
   extractionRules: any[];
+  allProperties: CollectionProperty[];
   onSave: (formData: Record<string, any>) => void;
   onCancel: () => void;
   isLoading: boolean;
 }
 
-function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, extractionRules, onSave, onCancel, isLoading }: InlinePropertyEditorProps) {
+function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, extractionRules, allProperties, onSave, onCancel, isLoading }: InlinePropertyEditorProps) {
 
   const [formData, setFormData] = useState({
     propertyName: property.propertyName,
@@ -386,7 +387,19 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
                       description: option?.description
                     };
                   })}
-                  extractionRules={extractionRules}
+                  previousCollectionProperties={allProperties
+                    .filter(prop => 
+                      prop.id !== property.id && 
+                      (prop.orderIndex || 0) < (property.orderIndex || 0)
+                    )
+                    .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+                    .map(prop => ({
+                      id: prop.id,
+                      propertyName: prop.propertyName,
+                      propertyType: prop.propertyType,
+                      description: prop.description
+                    }))
+                  }
                 />
               </div>
 
@@ -987,6 +1000,7 @@ export default function CollectionCard({
                                       excelFunctions={excelFunctions}
                                       knowledgeDocuments={knowledgeDocuments}
                                       extractionRules={extractionRules}
+                                      allProperties={safeProperties}
                                       onSave={(formData) => handleSaveProperty(property, formData)}
                                       onCancel={() => setEditingPropertyId(null)}
                                       isLoading={updateProperty.isPending}
