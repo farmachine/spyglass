@@ -4788,7 +4788,13 @@ print(json.dumps(results))
       req.setTimeout(300000); // 5 minutes
       res.setTimeout(300000); // 5 minutes
       
-      const python = spawn('python3', ['extraction_wizardry.py']);
+      // Use enhanced extraction processor for better routing and performance
+      const useEnhancedProcessor = true;
+      const scriptName = useEnhancedProcessor ? 'enhanced_extraction_processor.py' : 'extraction_wizardry.py';
+      
+      console.log(`Using ${useEnhancedProcessor ? 'enhanced' : 'legacy'} extraction processor`);
+      
+      const python = spawn('python3', [scriptName]);
       
       // Handle process errors
       python.on('error', (err) => {

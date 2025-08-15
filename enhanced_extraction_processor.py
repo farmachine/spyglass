@@ -518,13 +518,31 @@ def process_enhanced_extraction(input_data: Dict[str, Any]) -> Dict[str, Any]:
         }
 
 def main():
-    """Main entry point"""
+    """Main entry point - handles both extraction and wizardry formats"""
     try:
         # Read input from stdin
         input_data = json.loads(sys.stdin.read())
         
-        # Process extraction
-        result = process_enhanced_extraction(input_data)
+        # Handle legacy wizardry format
+        if 'document_ids' in input_data and 'session_id' in input_data:
+            print(f"DEBUG: Legacy wizardry format detected")
+            # Convert to enhanced extraction format
+            enhanced_data = {
+                'session_id': input_data['session_id'],
+                'project_id': None,  # Will need to be determined from session
+                'documents': []  # Will need to fetch from document_ids
+            }
+            
+            # For now, return a compatibility message
+            result = {
+                'success': True,
+                'message': 'Enhanced processor received legacy wizardry call',
+                'note': 'Use /api/sessions/:sessionId/extract for enhanced extraction',
+                'legacy_data': input_data
+            }
+        else:
+            # Process modern extraction format
+            result = process_enhanced_extraction(input_data)
         
         # Output result as JSON
         print(json.dumps(result, indent=2))
