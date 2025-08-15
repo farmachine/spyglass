@@ -363,7 +363,10 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
                   rows={5}
                   className="mt-1"
                   knowledgeDocuments={knowledgeDocuments}
-                  referencedFields={referencedMainFieldIds.map(id => {
+                  referencedFields={selectedReferences.filter(ref => {
+                    const option = previousStepOptions.find(opt => opt.id === ref);
+                    return option?.category === 'Schema Field';
+                  }).map(id => {
                     const option = previousStepOptions.find(opt => opt.id === id);
                     return {
                       id,
@@ -372,7 +375,10 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
                       description: option?.description
                     };
                   })}
-                  referencedCollections={referencedCollectionIds.map(id => {
+                  referencedCollections={selectedReferences.filter(ref => {
+                    const option = previousStepOptions.find(opt => opt.id === ref);
+                    return option?.category === 'Collection';
+                  }).map(id => {
                     const option = previousStepOptions.find(opt => opt.id === id);
                     return {
                       id,
