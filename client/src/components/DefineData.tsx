@@ -37,7 +37,7 @@ import { useKnowledgeDocuments, useExtractionRules } from "@/hooks/useKnowledge"
 import { useUpdateProject } from "@/hooks/useProjects";
 import SchemaFieldDialog from "@/components/SchemaFieldDialog";
 import CollectionDialog from "@/components/CollectionDialog";
-import PropertyDialog from "@/components/PropertyDialog";
+import { PropertyDialog } from "@/components/PropertyDialogNew";
 import DeleteDialog from "@/components/DeleteDialog";
 import CollectionCard from "@/components/CollectionCard";
 import type {
