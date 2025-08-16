@@ -30,14 +30,13 @@ import {
   useDeleteCollection,
   useUpdateProperty,
   useDeleteProperty,
-  useExcelWizardryFunctions,
-  useAllProjectProperties
+  useExcelWizardryFunctions
 } from "@/hooks/useSchema";
 import { useKnowledgeDocuments, useExtractionRules } from "@/hooks/useKnowledge";
 import { useUpdateProject } from "@/hooks/useProjects";
 import SchemaFieldDialog from "@/components/SchemaFieldDialog";
 import CollectionDialog from "@/components/CollectionDialog";
-import { PropertyDialog } from "@/components/PropertyDialogNew";
+import PropertyDialog from "@/components/PropertyDialog";
 import DeleteDialog from "@/components/DeleteDialog";
 import CollectionCard from "@/components/CollectionCard";
 import type {
@@ -92,7 +91,6 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
   // Query for live data instead of using static props
   const { data: schemaFields = [], isLoading: schemaFieldsLoading } = useProjectSchemaFields(project.id);
   const { data: collections = [], isLoading: collectionsLoading } = useObjectCollections(project.id);
-  const { data: allProperties = [] } = useAllProjectProperties(project.id);
   const { data: knowledgeDocuments = [] } = useKnowledgeDocuments(project.id);
   const { data: extractionRules = [] } = useExtractionRules(project.id);
   
@@ -845,12 +843,7 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
 
       <PropertyDialog
         open={propertyDialog.open}
-        onOpenChange={(open) => setPropertyDialog({ 
-          open, 
-          property: null, 
-          collectionId: open ? propertyDialog.collectionId : undefined, 
-          collectionName: open ? propertyDialog.collectionName : "" 
-        })}
+        onOpenChange={(open) => setPropertyDialog({ open, property: null, collectionId: undefined, collectionName: "" })}
         onSave={propertyDialog.property ? handleUpdateProperty : handleCreateProperty}
         property={propertyDialog.property}
         collectionName={propertyDialog.collectionName}
@@ -859,8 +852,7 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
         wizardryFunctions={wizardryFunctions}
         schemaFields={schemaFields || []}
         collections={collections || []}
-        allProperties={allProperties || []}
-        currentCollectionIndex={collections?.findIndex((c: ObjectCollection) => c.collectionName === propertyDialog.collectionName) || 0}
+        currentCollectionIndex={collections?.findIndex(c => c.collectionName === propertyDialog.collectionName) || 0}
       />
 
       <DeleteDialog

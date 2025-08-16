@@ -58,20 +58,10 @@ export default function ExcelFunctionTools() {
         updateData.inputParameters = data.inputParameters;
       }
       
-      console.log("=== UPDATING EXCEL FUNCTION ===");
-      console.log("Function ID:", data.id);
-      console.log("Update Data:", updateData);
-      
-      const result = await apiRequest(`/api/excel-functions/${data.id}`, {
+      return apiRequest(`/api/excel-functions/${data.id}`, {
         method: "PATCH",
         body: JSON.stringify(updateData)
       });
-      
-      console.log("=== FUNCTION UPDATE RESULT ===");
-      console.log("Updated Function:", result);
-      console.log("=== END FUNCTION UPDATE ===");
-      
-      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/excel-functions"] });

@@ -235,7 +235,86 @@ function AutocompleteInput({ value, onChange, placeholder, availableFields }: Au
   );
 }
 
+// Dynamic Function Parameters Component
+interface DynamicFunctionParametersProps {
+  functionId: string;
+  wizardryFunctions: ExcelWizardryFunction[];
+  value: Record<string, any>;
+  onChange: (params: Record<string, any>) => void;
+  availableFields: Array<{ key: string; label: string; source: string }>;
+  knowledgeDocuments: KnowledgeDocument[];
+}
 
+function DynamicFunctionParameters({ functionId, wizardryFunctions, value, onChange, availableFields, knowledgeDocuments }: DynamicFunctionParametersProps) {
+  const selectedFunction = wizardryFunctions.find(f => f.id === functionId);
+  
+  if (!selectedFunction || !selectedFunction.inputParameters) {
+    return null;
+  }
+
+  const inputParameters = Array.isArray(selectedFunction.inputParameters) 
+    ? selectedFunction.inputParameters 
+    : [];
+
+  if (inputParameters.length === 0) {
+    return null;
+  }
+
+  const handleParameterChange = (paramName: string, paramValue: any) => {
+    onChange({
+      ...value,
+      [paramName]: paramValue
+    });
+  };
+
+  return (
+    <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+      <div className="flex items-center gap-2">
+        <Settings className="h-4 w-4 text-gray-600" />
+        <h4 className="font-medium text-gray-800">Function Parameters</h4>
+      </div>
+      <p className="text-sm text-gray-600">
+        Configure the input parameters for "{selectedFunction.name}"
+      </p>
+      
+      <div className="space-y-3">
+        {inputParameters.map((param: any, index: number) => (
+          <div key={param.name || index} className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              @{param.name}
+              <span className="text-xs text-gray-500 ml-2">({param.type})</span>
+            </label>
+            <p className="text-xs text-gray-600 mb-2">{param.description}</p>
+            
+            {param.type === "text" ? (
+              <AutocompleteInput
+                value={value[param.name] || ""}
+                onChange={(val) => handleParameterChange(param.name, val)}
+                placeholder={`Enter value for ${param.name} (use @ to reference other fields)`}
+                availableFields={availableFields}
+              />
+            ) : param.type === "document" ? (
+              <MultiSelectDocument
+                value={Array.isArray(value[param.name]) ? value[param.name] : (value[param.name] ? [value[param.name]] : [])}
+                onChange={(docs) => handleParameterChange(param.name, docs)}
+                placeholder={`Select documents for ${param.name}`}
+                knowledgeDocuments={knowledgeDocuments}
+              />
+            ) : (
+              <Textarea
+                value={value[param.name] || ""}
+                onChange={(e) => handleParameterChange(param.name, e.target.value)}
+                placeholder={`Enter value for ${param.name}`}
+                rows={2}
+                className="w-full resize-none"
+              />
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 const propertyTypes = ["TEXT", "NUMBER", "DATE", "CHOICE"] as const;
 
@@ -264,7 +343,6 @@ interface PropertyDialogProps {
   // Project schema data for @-key references
   schemaFields?: ProjectSchemaField[];
   collections?: ObjectCollection[];
-  allProperties?: any[];
   currentCollectionIndex?: number;
 }
 
@@ -280,19 +358,8 @@ export default function PropertyDialog({
   wizardryFunctions = [],
   schemaFields = [],
   collections = [],
-  allProperties = [],
   currentCollectionIndex = 0
 }: PropertyDialogProps) {
-  
-  // Debug the prop values being passed
-  console.log('📋 [PropertyDialog] Props received:', {
-    open,
-    collectionName,
-    allProperties: allProperties?.length,
-    collections: collections?.length,
-    currentCollectionIndex
-  });
-
   const form = useForm<PropertyForm>({
     resolver: zodResolver(propertyFormSchema),
     defaultValues: {
@@ -350,17 +417,6 @@ export default function PropertyDialog({
   console.log('📋 [PropertyDialog] Selected function:', selectedFunction?.name);
   console.log('📋 [PropertyDialog] Input parameters:', inputParameters);
   console.log('📋 [PropertyDialog] Raw inputParameters from function:', selectedFunction?.inputParameters);
-  
-  // Debug logging for available fields data
-  console.log('📋 [PropertyDialog] Schema fields:', schemaFields);
-  console.log('📋 [PropertyDialog] Collections:', collections);
-  console.log('📋 [PropertyDialog] All properties preview:', allProperties?.slice(0,5)?.map(p => ({
-    propertyName: p.propertyName,
-    collectionName: p.collectionName,
-    collectionId: p.collectionId
-  })));
-  console.log('📋 [PropertyDialog] Current collection index:', currentCollectionIndex);
-  console.log('📋 [PropertyDialog] Current collection name:', collectionName);
 
   // Build available fields for @-key referencing
   const buildAvailableFields = () => {
@@ -376,41 +432,18 @@ export default function PropertyDialog({
     });
     
     // Add properties from collections with lower or equal index
-    // First, find the current collection's index correctly
-    const currentIndex = collections.findIndex(c => c.collectionName === collectionName);
-    console.log('📋 [PropertyDialog] Calculated current index:', currentIndex, 'for collection:', collectionName);
-    
-    // If we can't find the collection by name, include all properties from all collections as available references
-    // This ensures that even when collection name matching fails, properties are still available
-    if (currentIndex === -1) {
-      console.log('📋 [PropertyDialog] Collection not found, including all properties as references');
-      allProperties.forEach((prop: any) => {
-        fields.push({
-          key: prop.propertyName,
-          label: prop.propertyName,
-          source: `${prop.collectionName} Collection`
-        });
-      });
-    } else {
-      // Add properties from collections that come before or at the current collection
-      collections.forEach((collection, collectionIndex) => {
-        if (collectionIndex <= currentIndex) {
-          // Get properties for this collection from allProperties
-          const collectionProperties = allProperties.filter(prop => prop.collectionName === collection.collectionName);
-          console.log(`📋 [PropertyDialog] Properties for ${collection.collectionName}:`, collectionProperties?.map(p => p.propertyName));
-          
-          collectionProperties.forEach((prop: any) => {
-            fields.push({
-              key: prop.propertyName,
-              label: prop.propertyName,
-              source: `${collection.collectionName} Collection`
-            });
+    collections.forEach((collection, collectionIndex) => {
+      if (collectionIndex <= currentCollectionIndex && (collection as any).properties) {
+        (collection as any).properties.forEach((prop: any) => {
+          fields.push({
+            key: prop.propertyName,
+            label: prop.propertyName,
+            source: `${collection.collectionName} Collection`
           });
-        }
-      });
-    }
+        });
+      }
+    });
     
-    console.log('📋 [PropertyDialog] Built available fields:', fields);
     return fields;
   };
   
