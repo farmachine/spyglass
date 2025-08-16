@@ -979,6 +979,14 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                                         print("=" * 80)
                                         print(f"All {total_target_fields} target fields have been processed")
                                         print("Extraction sequence finished successfully")
+                                        
+                                        # Output final merged identifier references
+                                        print("\n🔗 FINAL MERGED IDENTIFIER REFERENCES:")
+                                        print("=" * 80)
+                                        final_merged_refs = load_merged_identifier_references_from_db(session_id, total_target_fields - 1)
+                                        print(json.dumps(final_merged_refs, indent=2))
+                                        print("=" * 80)
+                                        print(f"Final result: {len(final_merged_refs)} merged records with all field combinations")
                                         print("=" * 80)
                                     
                                     return  # Exit function after successful function execution
