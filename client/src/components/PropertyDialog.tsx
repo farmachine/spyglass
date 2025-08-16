@@ -300,54 +300,18 @@ export default function PropertyDialog({
                             className="w-full"
                           />
                         ) : param.type === "document" ? (
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-2 p-3 border rounded-lg bg-slate-50">
-                              <input
-                                type="checkbox"
-                                checked={(form.watch("functionParameters") || {})[param.name] === "user_required"}
-                                onChange={(e) => {
-                                  const current = form.watch("functionParameters") || {};
-                                  form.setValue("functionParameters", {
-                                    ...current,
-                                    [param.name]: e.target.checked ? "user_required" : ""
-                                  });
-                                }}
-                                className="rounded"
-                              />
-                              <div className="flex-1">
-                                <div className="font-medium text-sm">User document upload required</div>
-                                <div className="text-xs text-gray-600">Users must upload a document for this property to work</div>
-                              </div>
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium">Source documents (knowledge base only)</label>
-                              <Select 
-                                value={(form.watch("functionParameters") || {})[param.name + "_knowledge"] || ""} 
-                                onValueChange={(val) => {
-                                  const current = form.watch("functionParameters") || {};
-                                  form.setValue("functionParameters", {
-                                    ...current,
-                                    [param.name + "_knowledge"]: val
-                                  });
-                                }}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select knowledge document (optional)" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {knowledgeDocuments?.map((doc) => (
-                                    <SelectItem key={doc.id} value={doc.id}>
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                        {doc.fileName}
-                                      </div>
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
+                          <Input
+                            value={(form.watch("functionParameters") || {})[param.name] || ""}
+                            onChange={(e) => {
+                              const current = form.watch("functionParameters") || {};
+                              form.setValue("functionParameters", {
+                                ...current,
+                                [param.name]: e.target.value
+                              });
+                            }}
+                            placeholder={`Enter document identifier for ${param.name}`}
+                            className="w-full"
+                          />
                         ) : (
                           <Textarea
                             value={(form.watch("functionParameters") || {})[param.name] || ""}

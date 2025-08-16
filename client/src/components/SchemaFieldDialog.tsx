@@ -43,8 +43,6 @@ const schemaFieldFormSchema = z.object({
   fieldType: z.enum(fieldTypes),
   functionId: z.string().min(1, "Function selection is required"),
   functionParameters: z.record(z.string(), z.any()).optional(),
-  knowledgeDocumentIds: z.array(z.string()).optional(),
-  extractionRuleIds: z.array(z.string()).optional(),
   autoVerificationConfidence: z.number().min(0).max(100).default(80),
   orderIndex: z.number().default(0),
 });
@@ -79,8 +77,6 @@ export default function SchemaFieldDialog({
       fieldType: "TEXT",
       functionId: "",
       functionParameters: {},
-      knowledgeDocumentIds: [],
-      extractionRuleIds: [],
       autoVerificationConfidence: 80,
       orderIndex: 0,
     },
@@ -94,8 +90,6 @@ export default function SchemaFieldDialog({
         fieldType: (field?.fieldType as typeof fieldTypes[number]) || "TEXT",
         functionId: field?.functionId || "",
         functionParameters: (field as any)?.functionParameters || {},
-        knowledgeDocumentIds: field?.knowledgeDocumentIds as string[] || [],
-        extractionRuleIds: field?.extractionRuleIds as string[] || [],
         autoVerificationConfidence: field?.autoVerificationConfidence || 80,
         orderIndex: field?.orderIndex || 0,
       });
@@ -213,54 +207,18 @@ export default function SchemaFieldDialog({
                             className="w-full"
                           />
                         ) : param.type === "document" ? (
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-2 p-3 border rounded-lg bg-slate-50">
-                              <input
-                                type="checkbox"
-                                checked={(form.watch("functionParameters") || {})[param.name] === "user_required"}
-                                onChange={(e) => {
-                                  const current = form.watch("functionParameters") || {};
-                                  form.setValue("functionParameters", {
-                                    ...current,
-                                    [param.name]: e.target.checked ? "user_required" : ""
-                                  });
-                                }}
-                                className="rounded"
-                              />
-                              <div className="flex-1">
-                                <div className="font-medium text-sm">User document upload required</div>
-                                <div className="text-xs text-gray-600">Users must upload a document for this field to work</div>
-                              </div>
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium">Source documents (knowledge base only)</label>
-                              <Select 
-                                value={(form.watch("functionParameters") || {})[param.name + "_knowledge"] || ""} 
-                                onValueChange={(val) => {
-                                  const current = form.watch("functionParameters") || {};
-                                  form.setValue("functionParameters", {
-                                    ...current,
-                                    [param.name + "_knowledge"]: val
-                                  });
-                                }}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select knowledge document (optional)" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {knowledgeDocuments?.map((doc) => (
-                                    <SelectItem key={doc.id} value={doc.id}>
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                        {doc.fileName}
-                                      </div>
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
+                          <Input
+                            value={(form.watch("functionParameters") || {})[param.name] || ""}
+                            onChange={(e) => {
+                              const current = form.watch("functionParameters") || {};
+                              form.setValue("functionParameters", {
+                                ...current,
+                                [param.name]: e.target.value
+                              });
+                            }}
+                            placeholder={`Enter document identifier for ${param.name}`}
+                            className="w-full"
+                          />
                         ) : (
                           <Textarea
                             value={(form.watch("functionParameters") || {})[param.name] || ""}
@@ -282,128 +240,7 @@ export default function SchemaFieldDialog({
                 </div>
               )}
 
-              {/* Source Documents & Rules */}
-              {selectedFunction && (
-                <div className="space-y-4 mt-4">
-                  <h4 className="font-medium text-gray-800">Source Documents & Rules</h4>
-                  
-                  <div className="grid grid-cols-1 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="knowledgeDocumentIds"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>User Document Upload Required</FormLabel>
-                          <FormControl>
-                            <div className="space-y-3">
-                              <div className="flex items-center gap-2 p-3 border rounded-lg bg-slate-50">
-                                <input
-                                  type="checkbox"
-                                  checked={field.value?.includes("user_document_required") || false}
-                                  onChange={(e) => {
-                                    const current = field.value || [];
-                                    if (e.target.checked) {
-                                      field.onChange([...current, "user_document_required"]);
-                                    } else {
-                                      field.onChange(current.filter(id => id !== "user_document_required"));
-                                    }
-                                  }}
-                                  className="rounded"
-                                />
-                                <div className="flex-1">
-                                  <div className="font-medium text-sm">Require user to upload document</div>
-                                  <div className="text-xs text-gray-600">Users must upload a document for this field to be extracted. This ensures the extraction has the necessary source data to work with.</div>
-                                </div>
-                              </div>
-                              
-                              <div className="space-y-2">
-                                <div className="text-sm font-medium text-gray-700">Source documents (knowledge base only):</div>
-                                {knowledgeDocuments && knowledgeDocuments.length > 0 ? (
-                                  <div className="space-y-2 max-h-32 overflow-y-auto border rounded p-2 bg-white">
-                                    {knowledgeDocuments.map((doc) => (
-                                      <label key={doc.id} className="flex items-center space-x-2">
-                                        <input
-                                          type="checkbox"
-                                          checked={field.value?.includes(doc.id) || false}
-                                          onChange={(e) => {
-                                            const current = field.value || [];
-                                            if (e.target.checked) {
-                                              field.onChange([...current, doc.id]);
-                                            } else {
-                                              field.onChange(current.filter(id => id !== doc.id));
-                                            }
-                                          }}
-                                          className="rounded"
-                                        />
-                                        <div className="flex items-center gap-2">
-                                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                          <span className="text-sm">{doc.fileName}</span>
-                                        </div>
-                                      </label>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <div className="border rounded p-4 text-center text-gray-500">
-                                    <p className="text-sm">No knowledge documents available</p>
-                                    <p className="text-xs text-gray-400 mt-1">Upload knowledge documents first</p>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
 
-                    <FormField
-                      control={form.control}
-                      name="extractionRuleIds"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Extraction Rules (Multiple Selection)</FormLabel>
-                          <FormControl>
-                            <div className="space-y-2">
-                              <div className="text-sm text-gray-600">Select one or more extraction rules:</div>
-                              {extractionRules && extractionRules.length > 0 ? (
-                                <div className="space-y-2 max-h-32 overflow-y-auto border rounded p-2 bg-white">
-                                  {extractionRules.map((rule) => (
-                                    <label key={rule.id} className="flex items-center space-x-2">
-                                      <input
-                                        type="checkbox"
-                                        checked={field.value?.includes(rule.id) || false}
-                                        onChange={(e) => {
-                                          const current = field.value || [];
-                                          if (e.target.checked) {
-                                            field.onChange([...current, rule.id]);
-                                          } else {
-                                            field.onChange(current.filter(id => id !== rule.id));
-                                          }
-                                        }}
-                                        className="rounded"
-                                      />
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                                        <span className="text-sm">{rule.ruleName}</span>
-                                      </div>
-                                    </label>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="border rounded p-4 text-center text-gray-500">
-                                  <p>No extraction rules available</p>
-                                  <p className="text-sm text-gray-400 mt-1">Create extraction rules first</p>
-                                </div>
-                              )}
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Step 2: Basic Field Configuration */}
