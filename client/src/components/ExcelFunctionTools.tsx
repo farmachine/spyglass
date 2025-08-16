@@ -154,8 +154,8 @@ export default function ExcelFunctionTools() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Excel Function Tools</h1>
-          <p className="text-gray-600 mt-1">Manage reusable Excel extraction functions</p>
+          <h1 className="text-3xl font-bold text-gray-800">Tools</h1>
+          <p className="text-gray-600 mt-1">Manage reusable extraction functions</p>
         </div>
         <div className="text-sm text-gray-500">
           {functions?.length || 0} functions available
@@ -164,7 +164,7 @@ export default function ExcelFunctionTools() {
 
       <div className="space-y-4">
         {functions?.map((func) => (
-          <Card key={func.id} className="hover:shadow-md transition-shadow">
+          <Card key={func.id} className="border-gray-200 hover:shadow-md transition-shadow bg-white">
             <Collapsible 
               open={expandedFunctions.has(func.id)}
               onOpenChange={() => toggleExpanded(func.id)}
@@ -175,31 +175,31 @@ export default function ExcelFunctionTools() {
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2">
                         {expandedFunctions.has(func.id) ? (
-                          <ChevronDown className="h-4 w-4 text-gray-500" />
+                          <ChevronDown className="h-4 w-4 text-gray-600" />
                         ) : (
-                          <ChevronRight className="h-4 w-4 text-gray-500" />
+                          <ChevronRight className="h-4 w-4 text-gray-600" />
                         )}
-                        <div className="bg-blue-100 text-blue-800 rounded-full w-8 h-8 flex items-center justify-center text-sm font-semibold">
+                        <div className="bg-gray-100 text-gray-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-semibold">
                           {func.name.charAt(0).toUpperCase()}
                         </div>
                       </div>
                       <div>
-                        <CardTitle className="text-lg font-semibold text-gray-900">
+                        <CardTitle className="text-lg font-semibold text-gray-800">
                           {func.name}
                         </CardTitle>
                         <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-700">
                             Used {func.usageCount} times
                           </Badge>
                           {func.tags && func.tags.length > 0 && (
                             <div className="flex gap-1">
                               {func.tags.slice(0, 3).map(tag => (
-                                <Badge key={tag} variant="outline" className="text-xs">
+                                <Badge key={tag} variant="outline" className="text-xs border-gray-300 text-gray-600">
                                   {tag}
                                 </Badge>
                               ))}
                               {func.tags.length > 3 && (
-                                <Badge variant="outline" className="text-xs">
+                                <Badge variant="outline" className="text-xs border-gray-300 text-gray-600">
                                   +{func.tags.length - 3} more
                                 </Badge>
                               )}
@@ -246,10 +246,11 @@ export default function ExcelFunctionTools() {
                             size="sm" 
                             onClick={handleSave}
                             disabled={updateFunction.isPending}
+                            className="bg-gray-700 hover:bg-gray-800 text-white"
                           >
                             Save Changes
                           </Button>
-                          <Button size="sm" variant="outline" onClick={handleCancel}>
+                          <Button size="sm" variant="outline" onClick={handleCancel} className="border-gray-300 text-gray-700 hover:bg-gray-50">
                             Cancel
                           </Button>
                         </div>
@@ -267,6 +268,7 @@ export default function ExcelFunctionTools() {
                               size="sm" 
                               variant="outline"
                               onClick={() => handleEdit(func)}
+                              className="border-gray-300 text-gray-700 hover:bg-gray-50"
                             >
                               <Edit3 className="h-4 w-4 mr-1" />
                               Edit Details
@@ -274,6 +276,7 @@ export default function ExcelFunctionTools() {
                             <Button 
                               size="sm" 
                               onClick={() => handleCodeEdit(func)}
+                              className="bg-gray-700 hover:bg-gray-800 text-white"
                             >
                               <Code className="h-4 w-4 mr-1" />
                               Edit Code
@@ -290,11 +293,11 @@ export default function ExcelFunctionTools() {
         ))}
 
         {(!functions || functions.length === 0) && (
-          <Card className="p-8 text-center">
+          <Card className="p-8 text-center border-gray-200 bg-gray-50">
             <div className="text-gray-500">
               <Code className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <h3 className="text-lg font-semibold mb-2">No Functions Available</h3>
-              <p>Excel functions will appear here after they are generated during extraction processes.</p>
+              <h3 className="text-lg font-semibold mb-2 text-gray-700">No Functions Available</h3>
+              <p className="text-gray-600">Functions will appear here after they are generated during extraction processes.</p>
             </div>
           </Card>
         )}
@@ -345,12 +348,13 @@ export default function ExcelFunctionTools() {
               />
             </div>
             <div className="flex justify-end gap-2 pt-4">
-              <Button variant="outline" onClick={handleCancel}>
+              <Button variant="outline" onClick={handleCancel} className="border-gray-300 text-gray-700 hover:bg-gray-50">
                 Cancel
               </Button>
               <Button 
                 onClick={handleSave}
                 disabled={updateFunction.isPending}
+                className="bg-gray-700 hover:bg-gray-800 text-white"
               >
                 {updateFunction.isPending ? "Saving..." : "Save Changes"}
               </Button>
