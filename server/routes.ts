@@ -4610,6 +4610,30 @@ print(json.dumps(results))
     }
   });
 
+  // PATCH route for partial updates
+  app.patch("/api/excel-functions/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = req.params.id;
+      const result = insertExcelWizardryFunctionSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          message: "Invalid Excel wizardry function data", 
+          errors: result.error.errors 
+        });
+      }
+
+      const func = await storage.updateExcelWizardryFunction(id, result.data);
+      if (!func) {
+        return res.status(404).json({ message: "Excel wizardry function not found" });
+      }
+      
+      res.json(func);
+    } catch (error) {
+      console.error("Error updating Excel wizardry function:", error);
+      res.status(500).json({ message: "Failed to update Excel wizardry function" });
+    }
+  });
+
   // Increment function usage
   app.post("/api/excel-functions/:id/increment-usage", authenticateToken, async (req: AuthRequest, res) => {
     try {

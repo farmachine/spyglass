@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Settings, Database, Brain, Upload, User, List } from "lucide-react";
+import { ArrowLeft, Settings, Database, Brain, Upload, User, List, Wrench } from "lucide-react";
 import { TideIcon, StreamIcon, ShipIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,12 +12,13 @@ import DefineData from "@/components/DefineData";
 import Publishing from "@/components/Publishing";
 import ExtraplLogo from "@/components/ExtraplLogo";
 import UserProfile from "@/components/UserProfile";
+import ExcelFunctionTools from "@/components/ExcelFunctionTools";
 
 interface ProjectAdminProps {
   projectId: string;
 }
 
-type AdminTab = "knowledge" | "define" | "publishing";
+type AdminTab = "knowledge" | "define" | "publishing" | "tools";
 
 export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
   const [, setLocation] = useLocation();
@@ -104,6 +105,7 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
     { id: "define" as const, label: "Define Data", icon: StreamIcon, disabled: false },
     ...(canAccessConfigTabs ? [
       { id: "knowledge" as const, label: "Knowledge/Rules", icon: TideIcon, disabled: false },
+      { id: "tools" as const, label: "Tools", icon: Wrench, disabled: false },
     ] : []),
     ...(canAccessPublishing ? [
       { id: "publishing" as const, label: "Publishing", icon: ShipIcon, disabled: false },
@@ -118,6 +120,8 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
         return <DefineData project={project} activeTab={schemaActiveTab} onTabChange={setSchemaActiveTab} onSetAddCollectionCallback={() => {}} />;
       case "publishing":
         return <Publishing project={project} />;
+      case "tools":
+        return <ExcelFunctionTools />;
       default:
         return <DefineData project={project} activeTab={schemaActiveTab} onTabChange={setSchemaActiveTab} onSetAddCollectionCallback={() => {}} />;
     }
