@@ -732,7 +732,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid schema field data", errors: result.error.errors });
       }
       
+      console.log('🔧 Creating project schema field with data:', JSON.stringify(result.data, null, 2));
+      
       const field = await storage.createProjectSchemaField(result.data);
+      
+      console.log('✅ Successfully created project schema field:', JSON.stringify(field, null, 2));
       
       // Mark project as setup complete if this is the first field
       const project = await storage.getProject(projectId);
@@ -915,7 +919,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid property data", errors: result.error.errors });
       }
       
+      console.log('🔧 Creating collection property with data:', JSON.stringify(result.data, null, 2));
+      
       const property = await storage.createCollectionProperty(result.data);
+      
+      console.log('✅ Successfully created collection property:', JSON.stringify(property, null, 2));
+      
       res.status(201).json(property);
     } catch (error) {
       res.status(500).json({ message: "Failed to create collection property" });
