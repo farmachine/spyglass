@@ -4770,20 +4770,26 @@ print(json.dumps(results))
       });
 
       // Generate AI response context
-      const session = await storage.getExtractionSession(sessionId);
+      const session = await storage.getSessionWithValidations(sessionId);
       const validations = await storage.getFieldValidations(sessionId);
-      const project = session ? await storage.getProjectWithDetails(session.projectId) : null;
+      const project = session ? await storage.getProject(session.projectId) : null;
 
       if (!session || !project) {
         return res.status(404).json({ message: "Session or project not found" });
       }
 
+      // Get additional project data
+      const [schemaFields, collections] = await Promise.all([
+        storage.getProjectSchemaFields(session.projectId),
+        storage.getObjectCollections(session.projectId)
+      ]);
+
       const context = {
         session,
         validations,
-        projectFields: project.projectSchemaFields || [],
-        collections: project.objectCollections || [],
-        collectionProperties: project.objectCollections?.flatMap(c => c.properties || []) || []
+        projectFields: schemaFields || [],
+        collections: collections || [],
+        collectionProperties: []
       };
 
       // Generate AI response
