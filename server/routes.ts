@@ -4552,6 +4552,7 @@ print(json.dumps(results))
   app.get("/api/excel-functions", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const functions = await storage.getExcelWizardryFunctions();
+      console.log(`📊 Retrieved ${functions.length} Excel functions`);
       res.json(functions);
     } catch (error) {
       console.error("Error getting Excel wizardry functions:", error);
@@ -4563,12 +4564,16 @@ print(json.dumps(results))
   app.get("/api/excel-functions/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = req.params.id;
+      console.log(`🔍 Retrieving Excel function: ${id}`);
+      
       const func = await storage.getExcelWizardryFunction(id);
       
       if (!func) {
+        console.log(`❌ Excel function ${id} not found`);
         return res.status(404).json({ message: "Excel wizardry function not found" });
       }
       
+      console.log(`✅ Retrieved Excel function: ${func.name} (${id})`);
       res.json(func);
     } catch (error) {
       console.error("Error getting Excel wizardry function:", error);
@@ -4663,11 +4668,16 @@ print(json.dumps(results))
   app.post("/api/excel-functions/:id/increment-usage", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = req.params.id;
+      console.log(`📈 Incrementing usage count for Excel function: ${id}`);
+      
       const func = await storage.incrementFunctionUsage(id);
       
       if (!func) {
+        console.log(`❌ Excel function ${id} not found for usage increment`);
         return res.status(404).json({ message: "Excel wizardry function not found" });
       }
+      
+      console.log(`✅ Successfully incremented usage for Excel function: ${id}, new usage count: ${func.usageCount}`);
       
       res.json(func);
     } catch (error) {
@@ -4697,12 +4707,16 @@ print(json.dumps(results))
   app.delete("/api/excel-functions/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = req.params.id;
+      console.log(`🗑️ Deleting Excel function: ${id}`);
+      
       const deleted = await storage.deleteExcelWizardryFunction(id);
       
       if (!deleted) {
+        console.log(`❌ Excel function ${id} not found for deletion`);
         return res.status(404).json({ message: "Excel wizardry function not found" });
       }
       
+      console.log(`✅ Successfully deleted Excel function: ${id}`);
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting Excel wizardry function:", error);
