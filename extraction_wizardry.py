@@ -885,6 +885,8 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                 print(f"\n🔧 FUNCTION EXTRACTION DETECTED!")
                 print(f"   Extraction Type: FUNCTION")
                 print(f"   Function ID: {function_id}")
+                print(f"   Extraction Number: {extraction_number}")
+                print(f"   Session ID: {session_id}")
                 print(f"   Bypassing AI analysis and going directly to function execution")
                 print("=" * 80)
                 
