@@ -8,6 +8,89 @@ from all_prompts import DOCUMENT_FORMAT_ANALYSIS, EXCEL_FUNCTION_GENERATOR
 from excel_wizard import excel_column_extraction
 from ai_extraction_wizard import ai_document_extraction
 
+def save_identifier_references_to_db(session_id, extraction_number, identifier_references):
+    """Save identifier references to the database for future retrieval"""
+    try:
+        db_url = os.getenv('DATABASE_URL')
+        if not db_url:
+            print("⚠️ DATABASE_URL not found, skipping database save")
+            return False
+            
+        conn = psycopg2.connect(db_url)
+        cursor = conn.cursor()
+        
+        # Clear any existing references for this session and extraction number
+        delete_query = """
+        DELETE FROM extraction_identifier_references 
+        WHERE session_id = %s AND extraction_number = %s
+        """
+        cursor.execute(delete_query, (session_id, extraction_number))
+        
+        # Insert new references
+        if identifier_references:
+            for idx, ref in enumerate(identifier_references):
+                for field_name, extracted_value in ref.items():
+                    insert_query = """
+                    INSERT INTO extraction_identifier_references 
+                    (session_id, extraction_number, record_index, field_name, extracted_value)
+                    VALUES (%s, %s, %s, %s, %s)
+                    """
+                    cursor.execute(insert_query, (session_id, extraction_number, idx, field_name, str(extracted_value)))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        print(f"✅ Saved {len(identifier_references) if identifier_references else 0} identifier references to database")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Failed to save identifier references to database: {str(e)}")
+        return False
+
+def load_merged_identifier_references_from_db(session_id, up_to_extraction_number):
+    """Load and merge identifier references from database for all extractions up to the specified number"""
+    try:
+        db_url = os.getenv('DATABASE_URL')
+        if not db_url:
+            print("⚠️ DATABASE_URL not found, returning empty references")
+            return []
+            
+        conn = psycopg2.connect(db_url)
+        cursor = conn.cursor()
+        
+        # Get all references up to the specified extraction number
+        query = """
+        SELECT extraction_number, record_index, field_name, extracted_value
+        FROM extraction_identifier_references 
+        WHERE session_id = %s AND extraction_number <= %s
+        ORDER BY record_index, extraction_number, field_name
+        """
+        cursor.execute(query, (session_id, up_to_extraction_number))
+        results = cursor.fetchall()
+        
+        cursor.close()
+        conn.close()
+        
+        # Group by record index and merge fields
+        merged = {}
+        for extraction_number, record_index, field_name, extracted_value in results:
+            if record_index not in merged:
+                merged[record_index] = {}
+            merged[record_index][f"{field_name}[{record_index}]"] = extracted_value
+        
+        # Convert to array format
+        merged_array = []
+        for record_index in sorted(merged.keys()):
+            merged_array.append(merged[record_index])
+        
+        print(f"✅ Loaded {len(merged_array)} merged identifier references from database")
+        return merged_array
+        
+    except Exception as e:
+        print(f"❌ Failed to load identifier references from database: {str(e)}")
+        return []
+
 def log_remaining_collection_fields(extracted_results, all_collection_properties):
     """Log which collection fields have been extracted and which remain to be processed"""
     try:
@@ -840,6 +923,9 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                                     print("=" * 80)
                                     print(f"Created {len(identifier_references)} new references for next extraction")
                                     
+                                    # Save identifier references to database
+                                    save_identifier_references_to_db(session_id, extraction_number, identifier_references)
+                                    
                                     # Handle auto-rerun logic
                                     next_extraction_number = extraction_number + 1
                                     total_target_fields = len(target_fields) if target_fields else 0
@@ -852,11 +938,14 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                                         print(f"Target field: {target_fields[next_extraction_number].get('propertyName', 'Unknown') if target_fields else 'None'}")
                                         print(f"Progress: {next_extraction_number}/{total_target_fields} fields processed")
                                         
+                                        # Load merged identifier references from database for next run
+                                        merged_references = load_merged_identifier_references_from_db(session_id, extraction_number)
+                                        
                                         rerun_data = {
                                             "document_ids": document_ids,
                                             "session_id": session_id,
                                             "target_fields": target_fields,
-                                            "identifier_references": identifier_references
+                                            "identifier_references": merged_references
                                         }
                                         
                                         run_wizardry_with_gemini_analysis(rerun_data, next_extraction_number)
@@ -913,8 +1002,13 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
         if len(existing_functions) > 3:
             print(f"   ... and {len(existing_functions) - 3} more functions")
         
-        # Use the incoming identifier references from the previous extraction
-        identifier_references = incoming_identifier_references
+        # Load merged identifier references from database if extraction number > 0
+        if extraction_number > 0:
+            print(f"🔄 Loading identifier references from database for extraction {extraction_number}")
+            identifier_references = load_merged_identifier_references_from_db(session_id, extraction_number - 1)
+        else:
+            # Use the incoming identifier references for the first extraction
+            identifier_references = incoming_identifier_references
         
         # Analyze document formats with Gemini using enhanced analysis that includes existing functions and identifier references
         gemini_response = update_document_format_analysis_with_functions(documents, identifier_targets, existing_functions, identifier_references, extraction_number)

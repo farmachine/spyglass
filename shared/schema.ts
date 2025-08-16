@@ -196,6 +196,17 @@ export const excelWizardryFunctions = pgTable("excel_wizardry_functions", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Extraction identifier references storage for sequential extraction workflow
+export const extractionIdentifierReferences = pgTable("extraction_identifier_references", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  sessionId: text("session_id").notNull(),
+  extractionNumber: integer("extraction_number").notNull(),
+  recordIndex: integer("record_index").notNull(),
+  fieldName: text("field_name").notNull(),
+  extractedValue: text("extracted_value").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({
   id: true,
@@ -273,6 +284,11 @@ export const insertExcelWizardryFunctionSchema = createInsertSchema(excelWizardr
   updatedAt: true,
 });
 
+export const insertExtractionIdentifierReferenceSchema = createInsertSchema(extractionIdentifierReferences).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type Organization = typeof organizations.$inferSelect;
 export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
@@ -309,6 +325,8 @@ export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type ExcelWizardryFunction = typeof excelWizardryFunctions.$inferSelect;
 export type InsertExcelWizardryFunction = z.infer<typeof insertExcelWizardryFunctionSchema>;
+export type ExtractionIdentifierReference = typeof extractionIdentifierReferences.$inferSelect;
+export type InsertExtractionIdentifierReference = z.infer<typeof insertExtractionIdentifierReferenceSchema>;
 
 // Validation status types
 export type ValidationStatus = 'valid' | 'invalid' | 'pending' | 'manual';

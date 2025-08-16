@@ -13,6 +13,7 @@ import {
   projectPublishing,
   chatMessages,
   excelWizardryFunctions,
+  extractionIdentifierReferences,
   type Project, 
   type InsertProject,
   type ProjectSchemaField,
@@ -44,7 +45,9 @@ import {
   type ChatMessage,
   type InsertChatMessage,
   type ExcelWizardryFunction,
-  type InsertExcelWizardryFunction
+  type InsertExcelWizardryFunction,
+  type ExtractionIdentifierReference,
+  type InsertExtractionIdentifierReference
 } from "@shared/schema";
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
@@ -160,6 +163,12 @@ export interface IStorage {
   updateExcelWizardryFunction(id: string, func: Partial<InsertExcelWizardryFunction>): Promise<ExcelWizardryFunction | undefined>;
   incrementFunctionUsage(id: string): Promise<ExcelWizardryFunction | undefined>;
   searchExcelWizardryFunctions(tags: string[]): Promise<ExcelWizardryFunction[]>;
+
+  // Extraction Identifier References
+  getExtractionIdentifierReferences(sessionId: string, extractionNumber?: number): Promise<ExtractionIdentifierReference[]>;
+  createExtractionIdentifierReferences(references: InsertExtractionIdentifierReference[]): Promise<ExtractionIdentifierReference[]>;
+  deleteExtractionIdentifierReferences(sessionId: string, extractionNumber: number): Promise<boolean>;
+  getMergedIdentifierReferences(sessionId: string, upToExtractionNumber: number): Promise<Record<string, any>[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -177,6 +186,7 @@ export class MemStorage implements IStorage {
   private projectPublishing: Map<string, ProjectPublishing>;
   private chatMessages: Map<string, ChatMessage>;
   private excelWizardryFunctions: Map<string, ExcelWizardryFunction>;
+  private extractionIdentifierReferences: Map<string, ExtractionIdentifierReference>;
 
   constructor() {
     this.organizations = new Map();
@@ -193,6 +203,7 @@ export class MemStorage implements IStorage {
     this.projectPublishing = new Map();
     this.chatMessages = new Map();
     this.excelWizardryFunctions = new Map();
+    this.extractionIdentifierReferences = new Map();
     
     // Initialize with sample data for development
     this.initializeSampleData();
@@ -1610,6 +1621,89 @@ export class MemStorage implements IStorage {
       })
       .sort((a, b) => (b.usageCount || 0) - (a.usageCount || 0));
   }
+
+  // Extraction Identifier References (MemStorage implementation)
+  async getExtractionIdentifierReferences(sessionId: string, extractionNumber?: number): Promise<ExtractionIdentifierReference[]> {
+    return Array.from(this.extractionIdentifierReferences.values())
+      .filter(ref => {
+        const matchesSession = ref.sessionId === sessionId;
+        const matchesExtraction = extractionNumber === undefined || ref.extractionNumber === extractionNumber;
+        return matchesSession && matchesExtraction;
+      })
+      .sort((a, b) => {
+        // Sort by extraction number, then record index, then field name
+        if (a.extractionNumber !== b.extractionNumber) {
+          return a.extractionNumber - b.extractionNumber;
+        }
+        if (a.recordIndex !== b.recordIndex) {
+          return a.recordIndex - b.recordIndex;
+        }
+        return a.fieldName.localeCompare(b.fieldName);
+      });
+  }
+
+  async createExtractionIdentifierReferences(references: InsertExtractionIdentifierReference[]): Promise<ExtractionIdentifierReference[]> {
+    const results: ExtractionIdentifierReference[] = [];
+    
+    for (const ref of references) {
+      const id = this.generateUUID();
+      const newRef: ExtractionIdentifierReference = {
+        id,
+        ...ref,
+        createdAt: new Date(),
+      };
+      this.extractionIdentifierReferences.set(id, newRef);
+      results.push(newRef);
+    }
+    
+    return results;
+  }
+
+  async deleteExtractionIdentifierReferences(sessionId: string, extractionNumber: number): Promise<boolean> {
+    let deletedCount = 0;
+    
+    for (const [id, ref] of this.extractionIdentifierReferences.entries()) {
+      if (ref.sessionId === sessionId && ref.extractionNumber === extractionNumber) {
+        this.extractionIdentifierReferences.delete(id);
+        deletedCount++;
+      }
+    }
+    
+    return deletedCount > 0;
+  }
+
+  async getMergedIdentifierReferences(sessionId: string, upToExtractionNumber: number): Promise<Record<string, any>[]> {
+    // Get all references up to the specified extraction number
+    const references = Array.from(this.extractionIdentifierReferences.values())
+      .filter(ref => 
+        ref.sessionId === sessionId && 
+        ref.extractionNumber <= upToExtractionNumber
+      )
+      .sort((a, b) => {
+        if (a.recordIndex !== b.recordIndex) {
+          return a.recordIndex - b.recordIndex;
+        }
+        if (a.extractionNumber !== b.extractionNumber) {
+          return a.extractionNumber - b.extractionNumber;
+        }
+        return a.fieldName.localeCompare(b.fieldName);
+      });
+
+    // Group by record index and merge fields
+    const merged: Record<number, Record<string, any>> = {};
+    
+    for (const ref of references) {
+      if (!merged[ref.recordIndex]) {
+        merged[ref.recordIndex] = {};
+      }
+      merged[ref.recordIndex][`${ref.fieldName}[${ref.recordIndex}]`] = ref.extractedValue;
+    }
+
+    // Convert to array format
+    return Object.keys(merged)
+      .sort((a, b) => parseInt(a) - parseInt(b))
+      .map(key => merged[parseInt(key)]);
+  }
 }
 
 // PostgreSQL Storage Implementation
@@ -2863,6 +2957,86 @@ class PostgreSQLStorage implements IStorage {
         .where(sql`${excelWizardryFunctions.tags} && ${tags}`) // PostgreSQL array overlap operator
         .orderBy(excelWizardryFunctions.usageCount, excelWizardryFunctions.createdAt);
       return result;
+    });
+  }
+
+  // Extraction Identifier References
+  async getExtractionIdentifierReferences(sessionId: string, extractionNumber?: number): Promise<ExtractionIdentifierReference[]> {
+    return this.retryOperation(async () => {
+      let query = this.db
+        .select()
+        .from(extractionIdentifierReferences)
+        .where(eq(extractionIdentifierReferences.sessionId, sessionId));
+      
+      if (extractionNumber !== undefined) {
+        query = query.where(eq(extractionIdentifierReferences.extractionNumber, extractionNumber));
+      }
+      
+      const result = await query.orderBy(
+        extractionIdentifierReferences.extractionNumber,
+        extractionIdentifierReferences.recordIndex,
+        extractionIdentifierReferences.fieldName
+      );
+      return result;
+    });
+  }
+
+  async createExtractionIdentifierReferences(references: InsertExtractionIdentifierReference[]): Promise<ExtractionIdentifierReference[]> {
+    return this.retryOperation(async () => {
+      const result = await this.db
+        .insert(extractionIdentifierReferences)
+        .values(references)
+        .returning();
+      return result;
+    });
+  }
+
+  async deleteExtractionIdentifierReferences(sessionId: string, extractionNumber: number): Promise<boolean> {
+    return this.retryOperation(async () => {
+      const result = await this.db
+        .delete(extractionIdentifierReferences)
+        .where(
+          and(
+            eq(extractionIdentifierReferences.sessionId, sessionId),
+            eq(extractionIdentifierReferences.extractionNumber, extractionNumber)
+          )
+        );
+      return result.rowCount > 0;
+    });
+  }
+
+  async getMergedIdentifierReferences(sessionId: string, upToExtractionNumber: number): Promise<Record<string, any>[]> {
+    return this.retryOperation(async () => {
+      // Get all references up to the specified extraction number
+      const references = await this.db
+        .select()
+        .from(extractionIdentifierReferences)
+        .where(
+          and(
+            eq(extractionIdentifierReferences.sessionId, sessionId),
+            sql`${extractionIdentifierReferences.extractionNumber} <= ${upToExtractionNumber}`
+          )
+        )
+        .orderBy(
+          extractionIdentifierReferences.recordIndex,
+          extractionIdentifierReferences.extractionNumber,
+          extractionIdentifierReferences.fieldName
+        );
+
+      // Group by record index and merge fields
+      const merged: Record<number, Record<string, any>> = {};
+      
+      for (const ref of references) {
+        if (!merged[ref.recordIndex]) {
+          merged[ref.recordIndex] = {};
+        }
+        merged[ref.recordIndex][`${ref.fieldName}[${ref.recordIndex}]`] = ref.extractedValue;
+      }
+
+      // Convert to array format
+      return Object.keys(merged)
+        .sort((a, b) => parseInt(a) - parseInt(b))
+        .map(key => merged[parseInt(key)]);
     });
   }
 }
