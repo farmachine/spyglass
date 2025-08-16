@@ -23,22 +23,14 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useProjectSchemaFields, useAllProjectProperties } from "@/hooks/useSchema";
+
 import type { KnowledgeDocument, ProjectWithDetails } from "@shared/schema";
 
 const knowledgeDocumentFormSchema = z.object({
   displayName: z.string().min(1, "Display name is required"),
   description: z.string().min(1, "Description is required to guide AI extraction"),
-  targetFields: z.array(z.string()).optional(),
   file: z.any().optional(),
 });
 
@@ -47,7 +39,7 @@ type KnowledgeDocumentForm = z.infer<typeof knowledgeDocumentFormSchema>;
 interface KnowledgeDocumentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (data: { fileName: string; displayName: string; fileType: string; fileSize: number; description: string; targetField?: string }) => Promise<void>;
+  onSave: (data: { fileName: string; displayName: string; fileType: string; fileSize: number; description: string }) => Promise<void>;
   document?: KnowledgeDocument | null;
   isLoading?: boolean;
   project: ProjectWithDetails;
@@ -71,16 +63,13 @@ export default function KnowledgeDocumentDialog({
   const [dragActive, setDragActive] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
 
-  // Fetch schema fields and all project properties
-  const { data: schemaFields = [] } = useProjectSchemaFields(project.id);
-  const { data: allProperties = [] } = useAllProjectProperties(project.id);
+
 
   const form = useForm<KnowledgeDocumentForm>({
     resolver: zodResolver(knowledgeDocumentFormSchema),
     defaultValues: {
       displayName: document?.displayName || "",
       description: document?.description || "",
-      targetFields: document?.targetField ? document.targetField.split(',').map(f => f.trim()) : [],
     },
   });
 
@@ -90,30 +79,16 @@ export default function KnowledgeDocumentDialog({
       form.reset({
         displayName: document.displayName || "",
         description: document.description || "",
-        targetFields: document.targetField ? document.targetField.split(',').map(f => f.trim()) : [],
       });
     } else {
       form.reset({
         displayName: "",
         description: "",
-        targetFields: [],
       });
     }
   }, [document, form]);
 
-  // Available target fields (same logic as extraction rules)
-  const availableFields = [
-    ...schemaFields.map(field => ({
-      value: field.fieldName,
-      label: `${field.fieldName} (Main Field)`,
-      isProperty: false
-    })),
-    ...allProperties.map(property => ({
-      value: `${property.collectionName} --> ${property.propertyName}`,
-      label: `${property.collectionName} --> ${property.propertyName}`,
-      isProperty: true
-    }))
-  ];
+
 
   const validateFile = (file: File): string | null => {
     const extension = `.${file.name.split('.').pop()?.toLowerCase()}`;
@@ -199,7 +174,6 @@ export default function KnowledgeDocumentDialog({
         fileType: document ? document.fileType : selectedFile!.name.split('.').pop()?.toLowerCase() || "unknown",
         fileSize: document ? document.fileSize : selectedFile!.size,
         description: data.description,
-        targetField: data.targetFields?.join(', ') || '',
         content: document ? document.content : fileContent, // Include file content for new uploads
       };
 
@@ -318,68 +292,6 @@ export default function KnowledgeDocumentDialog({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="targetFields"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Target Fields (Optional)</FormLabel>
-                  <div className="space-y-2">
-                    {/* Selected fields display */}
-                    {field.value && field.value.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {field.value.map((targetField) => (
-                          <Badge
-                            key={targetField}
-                            variant="secondary"
-                            className="flex items-center gap-1"
-                          >
-                            {availableFields.find(opt => opt.value === targetField)?.label || targetField}
-                            <X
-                              className="h-3 w-3 cursor-pointer"
-                              onClick={() => {
-                                const newValue = field.value?.filter(f => f !== targetField) || [];
-                                field.onChange(newValue);
-                              }}
-                            />
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                    
-                    {/* Add field selector */}
-                    <Select
-                      onValueChange={(value) => {
-                        if (value && !field.value?.includes(value)) {
-                          const newValue = [...(field.value || []), value];
-                          field.onChange(newValue);
-                        }
-                      }}
-                      value=""
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Add target field" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {availableFields
-                          .filter(option => !field.value?.includes(option.value))
-                          .map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <FormDescription>
-                    Choose specific fields this document applies to, or leave empty for all fields
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <FormField
               control={form.control}
