@@ -900,17 +900,24 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                             if doc.get('type', '').lower() in ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv']:
                                 extracted_content = doc.get('contentPreview', '')
                                 
+                                # Load merged identifier references from database if extraction number > 0
+                                if extraction_number > 0:
+                                    print(f"🔄 Loading merged identifier references from database for extraction {extraction_number}")
+                                    function_identifier_references = load_merged_identifier_references_from_db(session_id, extraction_number - 1)
+                                else:
+                                    function_identifier_references = incoming_identifier_references
+                                
                                 # Add debugging for identifier references
-                                print(f"🔍 DEBUG: Incoming identifier references: {len(incoming_identifier_references) if incoming_identifier_references else 0}")
-                                if incoming_identifier_references and len(incoming_identifier_references) > 0:
-                                    print(f"🔍 DEBUG: First reference: {incoming_identifier_references[0]}")
-                                    print(f"🔍 DEBUG: Last reference: {incoming_identifier_references[-1]}")
+                                print(f"🔍 DEBUG: Function identifier references: {len(function_identifier_references) if function_identifier_references else 0}")
+                                if function_identifier_references and len(function_identifier_references) > 0:
+                                    print(f"🔍 DEBUG: First reference: {function_identifier_references[0]}")
+                                    print(f"🔍 DEBUG: Last reference: {function_identifier_references[-1]}")
                                 
                                 execution_result = execute_excel_wizardry_function(
                                     function_code, 
                                     extracted_content, 
                                     identifier_targets, 
-                                    incoming_identifier_references
+                                    function_identifier_references
                                 )
                                 
                                 if isinstance(execution_result, dict) and "error" not in execution_result:
