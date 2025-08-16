@@ -37,10 +37,19 @@ export default function CreateToolDialog() {
 
   const createFunction = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("/api/excel-functions", {
+      console.log("=== CREATING EXCEL FUNCTION ===");
+      console.log("Function Data:", data);
+      
+      const result = await apiRequest("/api/excel-functions", {
         method: "POST",
         body: JSON.stringify(data)
       });
+      
+      console.log("=== FUNCTION CREATION RESULT ===");
+      console.log("Created Function:", result);
+      console.log("=== END FUNCTION CREATION ===");
+      
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/excel-functions"] });
