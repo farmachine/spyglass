@@ -4579,8 +4579,11 @@ print(json.dumps(results))
   // Create Excel wizardry function
   app.post("/api/excel-functions", authenticateToken, async (req: AuthRequest, res) => {
     try {
+      console.log('🆕 Creating new Excel function with data:', JSON.stringify(req.body, null, 2));
+      
       const result = insertExcelWizardryFunctionSchema.safeParse(req.body);
       if (!result.success) {
+        console.log('❌ Validation failed for Excel function creation:', result.error.errors);
         return res.status(400).json({ 
           message: "Invalid Excel wizardry function data", 
           errors: result.error.errors 
@@ -4588,6 +4591,8 @@ print(json.dumps(results))
       }
 
       const func = await storage.createExcelWizardryFunction(result.data);
+      console.log('✅ Successfully created Excel function:', JSON.stringify(func, null, 2));
+      
       res.status(201).json(func);
     } catch (error) {
       console.error("Error creating Excel wizardry function:", error);
@@ -4599,8 +4604,11 @@ print(json.dumps(results))
   app.put("/api/excel-functions/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = req.params.id;
+      console.log(`🔄 Updating Excel function ${id} with data:`, JSON.stringify(req.body, null, 2));
+      
       const result = insertExcelWizardryFunctionSchema.partial().safeParse(req.body);
       if (!result.success) {
+        console.log('❌ Validation failed for Excel function update:', result.error.errors);
         return res.status(400).json({ 
           message: "Invalid Excel wizardry function data", 
           errors: result.error.errors 
@@ -4609,8 +4617,11 @@ print(json.dumps(results))
 
       const func = await storage.updateExcelWizardryFunction(id, result.data);
       if (!func) {
+        console.log(`❌ Excel function ${id} not found for update`);
         return res.status(404).json({ message: "Excel wizardry function not found" });
       }
+      
+      console.log('✅ Successfully updated Excel function (PUT):', JSON.stringify(func, null, 2));
       
       res.json(func);
     } catch (error) {
@@ -4624,7 +4635,7 @@ print(json.dumps(results))
     try {
       const id = req.params.id;
       
-      console.log('🔧 Updating Excel function with data:', JSON.stringify(req.body, null, 2));
+      console.log(`🔧 Patching Excel function ${id} with data:`, JSON.stringify(req.body, null, 2));
       
       const result = insertExcelWizardryFunctionSchema.partial().safeParse(req.body);
       if (!result.success) {
@@ -4639,7 +4650,7 @@ print(json.dumps(results))
         return res.status(404).json({ message: "Excel wizardry function not found" });
       }
       
-      console.log('✅ Successfully updated Excel function:', JSON.stringify(func, null, 2));
+      console.log('✅ Successfully updated Excel function (PATCH):', JSON.stringify(func, null, 2));
       
       res.json(func);
     } catch (error) {
