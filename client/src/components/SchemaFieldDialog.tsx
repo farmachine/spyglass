@@ -41,26 +41,10 @@ const fieldTypes = ["TEXT", "NUMBER", "DATE", "CHOICE"] as const;
 const schemaFieldFormSchema = z.object({
   fieldName: z.string().min(1, "Field name is required"),
   fieldType: z.enum(fieldTypes),
-  description: z.string().optional(),
+  functionId: z.string().min(1, "Function selection is required"),
+  functionParameters: z.record(z.string(), z.any()).optional(),
   autoVerificationConfidence: z.number().min(0).max(100).default(80),
-  choiceOptions: z.array(z.string()).optional(),
   orderIndex: z.number().default(0),
-  // New extraction configuration fields
-  extractionType: z.enum(["AI", "FUNCTION"]).default("AI"),
-  knowledgeDocumentIds: z.array(z.string()).optional(),
-  extractionRuleIds: z.array(z.string()).optional(),
-  documentsRequired: z.boolean().default(true),
-  functionId: z.string().optional(),
-  requiredDocumentType: z.enum(["Excel", "Word", "PDF"]).optional(),
-}).refine((data) => {
-  // Only require description for AI extraction
-  if (data.extractionType === "AI" && !data.description?.trim()) {
-    return false;
-  }
-  return true;
-}, {
-  message: "Prompt is required for AI extraction",
-  path: ["description"],
 });
 
 type SchemaFieldForm = z.infer<typeof schemaFieldFormSchema>;
@@ -91,16 +75,10 @@ export default function SchemaFieldDialog({
     defaultValues: {
       fieldName: "",
       fieldType: "TEXT",
-      description: "",
+      functionId: "",
+      functionParameters: {},
       autoVerificationConfidence: 80,
-      choiceOptions: [],
       orderIndex: 0,
-      extractionType: "AI",
-      knowledgeDocumentIds: [],
-      extractionRuleIds: [],
-      documentsRequired: true,
-      functionId: undefined,
-      requiredDocumentType: undefined,
     },
   });
 
@@ -110,15 +88,9 @@ export default function SchemaFieldDialog({
       form.reset({
         fieldName: field?.fieldName || "",
         fieldType: (field?.fieldType as typeof fieldTypes[number]) || "TEXT",
-        description: field?.description || "",
+        functionId: field?.functionId || "",
+        functionParameters: (field as any)?.functionParameters || {},
         autoVerificationConfidence: field?.autoVerificationConfidence || 80,
-        choiceOptions: field?.choiceOptions as string[] || [],
-        extractionType: (field?.extractionType as "AI" | "FUNCTION") || "AI",
-        knowledgeDocumentIds: field?.knowledgeDocumentIds as string[] || [],
-        extractionRuleIds: field?.extractionRuleIds as string[] || [],
-        documentsRequired: field?.documentsRequired ?? true,
-        functionId: field?.functionId || undefined,
-        requiredDocumentType: field?.requiredDocumentType as "Excel" | "Word" | "PDF" || undefined,
         orderIndex: field?.orderIndex || 0,
       });
     }
@@ -126,37 +98,28 @@ export default function SchemaFieldDialog({
 
   const handleSubmit = async (data: SchemaFieldForm) => {
     try {
-      // Process @-key references in description/prompt field for AI extraction
-      let processedData = { ...data };
-      
-      if (data.extractionType === 'AI' && data.description) {
-        // Build reference context for prompt processing
-        const referenceContext = {
-          knowledgeDocuments: knowledgeDocuments?.filter(doc => 
-            data.knowledgeDocumentIds?.includes(doc.id)
-          ),
-          extractionRules: extractionRules?.filter(rule => 
-            data.extractionRuleIds?.includes(rule.id)
-          )
-        };
-
-        // Process the prompt with reference context
-        processedData.description = processPromptReferences(data.description, referenceContext);
-        
-        // Validate references (optional - could show warnings)
-        const validationErrors = validateReferences(data.description, referenceContext);
-        if (validationErrors.length > 0) {
-          console.warn('Reference validation warnings:', validationErrors);
-        }
-      }
-
-      await onSave(processedData);
+      // Add the extracted metadata from the selected function
+      const selectedFunction = wizardryFunctions.find(f => f.id === data.functionId);
+      const enhancedData = {
+        ...data,
+        extractionType: "FUNCTION" as const,
+        requiredDocumentType: selectedFunction?.functionType === "AI_ONLY" ? undefined : "Excel" as const,
+        description: selectedFunction?.description || "",
+        documentsRequired: true,
+      };
+      await onSave(enhancedData);
       form.reset();
       onOpenChange(false);
     } catch (error) {
       // Error handling is done in parent component
     }
   };
+
+  // Get selected function details
+  const selectedFunction = wizardryFunctions.find(f => f.id === form.watch("functionId"));
+  const inputParameters = Array.isArray(selectedFunction?.inputParameters) 
+    ? selectedFunction.inputParameters 
+    : [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -166,437 +129,223 @@ export default function SchemaFieldDialog({
             {field ? "Edit Schema Field" : "Add Schema Field"}
           </DialogTitle>
           <DialogDescription>
-            Define a global field that applies to the entire document set. The description helps the AI understand what to look for during extraction.
+            Configure a global field that uses function-based extraction
           </DialogDescription>
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            {/* Extraction Type - Moved to top for easy toggling */}
-            <FormField
-              control={form.control}
-              name="extractionType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Extraction Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select extraction type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="AI">
-                        <div className="flex items-center gap-2">
-                          <Brain className="h-4 w-4" />
-                          AI Extraction
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="FUNCTION">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4" />
-                          Function-based Extraction
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="fieldName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Field Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., Company Name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="fieldType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Field Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select field type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="TEXT">Text</SelectItem>
-                      <SelectItem value="NUMBER">Number</SelectItem>
-                      <SelectItem value="DATE">Date</SelectItem>
-                      <SelectItem value="CHOICE">Choice</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {/* Choice Options - only show for CHOICE field type */}
-            {form.watch("fieldType") === "CHOICE" && (
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+            {/* Step 1: Function Selection - Primary Field */}
+            <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-sm font-medium flex items-center justify-center">1</div>
+                <h3 className="text-lg font-semibold text-gray-800">Select Function</h3>
+              </div>
+              
               <FormField
                 control={form.control}
-                name="choiceOptions"
+                name="functionId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Choice Options</FormLabel>
+                    <FormLabel>Available Functions</FormLabel>
                     <FormControl>
                       <div className="space-y-2">
-                        <div className="flex flex-wrap gap-2">
-                          {field.value?.map((option, index) => (
-                            <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                              {option}
-                              <X 
-                                className="h-3 w-3 cursor-pointer" 
-                                onClick={() => {
-                                  const newOptions = [...(field.value || [])];
-                                  newOptions.splice(index, 1);
-                                  field.onChange(newOptions);
-                                }}
-                              />
-                            </Badge>
-                          ))}
-                        </div>
-                        <div className="flex gap-2">
-                          <Input
-                            placeholder="Add choice option..."
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                const input = e.target as HTMLInputElement;
-                                const newOption = input.value.trim();
-                                if (newOption && !field.value?.includes(newOption)) {
-                                  field.onChange([...(field.value || []), newOption]);
-                                  input.value = '';
-                                }
-                              }
-                            }}
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              const input = (e.target as HTMLElement).previousElementSibling as HTMLInputElement;
-                              const newOption = input?.value.trim();
-                              if (newOption && !field.value?.includes(newOption)) {
-                                field.onChange([...(field.value || []), newOption]);
-                                input.value = '';
-                              }
-                            }}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        {wizardryFunctions.length > 0 ? (
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <SelectTrigger className="h-auto min-h-[60px] border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500">
+                              <SelectValue placeholder="Choose a function for data extraction..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {wizardryFunctions.map((func) => (
+                                <SelectItem key={func.id} value={func.id}>
+                                  {func.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <div className="border rounded p-4 text-center">
+                            <p className="text-gray-500">No functions available</p>
+                            <p className="text-sm text-gray-400 mt-1">Create functions in the Tools section first</p>
+                          </div>
+                        )}
                       </div>
                     </FormControl>
-                    <p className="text-sm text-muted-foreground">
-                      Define the possible values for this choice field. Press Enter or click + to add options.
-                    </p>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+            </div>
+
+            {/* Step 2: Function Parameters - Dynamic based on selected function */}
+            {selectedFunction && inputParameters.length > 0 && (
+              <div className="space-y-4 p-4 border rounded-lg bg-blue-50">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-sm font-medium flex items-center justify-center">2</div>
+                  <h3 className="text-lg font-semibold text-gray-800">Configure Parameters</h3>
+                </div>
+                <p className="text-sm text-gray-600">
+                  Configure the input parameters for "{selectedFunction.name}"
+                </p>
+                
+                <div className="space-y-4">
+                  {inputParameters.map((param: any, index: number) => (
+                    <div key={param.name || index} className="space-y-2 p-3 bg-white rounded border">
+                      <div className="flex items-center gap-2">
+                        <code className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">@{param.name}</code>
+                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">{param.type}</span>
+                      </div>
+                      <p className="text-sm text-gray-600">{param.description}</p>
+                      
+                      {param.type === "text" ? (
+                        <Input
+                          value={(form.watch("functionParameters") || {})[param.name] || ""}
+                          onChange={(e) => {
+                            const current = form.watch("functionParameters") || {};
+                            form.setValue("functionParameters", {
+                              ...current,
+                              [param.name]: e.target.value
+                            });
+                          }}
+                          placeholder={`Enter value for ${param.name}`}
+                          className="w-full"
+                        />
+                      ) : param.type === "document" ? (
+                        <Select 
+                          value={(form.watch("functionParameters") || {})[param.name] || ""} 
+                          onValueChange={(val) => {
+                            const current = form.watch("functionParameters") || {};
+                            form.setValue("functionParameters", {
+                              ...current,
+                              [param.name]: val
+                            });
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={`Select document source for ${param.name}`} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="uploaded_document">Use Uploaded Document</SelectItem>
+                            <SelectItem value="field_reference">Reference Another Field</SelectItem>
+                            <SelectItem value="previous_extraction">Use Previous Extraction Results</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Textarea
+                          value={(form.watch("functionParameters") || {})[param.name] || ""}
+                          onChange={(e) => {
+                            const current = form.watch("functionParameters") || {};
+                            form.setValue("functionParameters", {
+                              ...current,
+                              [param.name]: e.target.value
+                            });
+                          }}
+                          placeholder={`Enter value for ${param.name}`}
+                          rows={2}
+                          className="w-full resize-none"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
-            
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{form.watch("extractionType") === "FUNCTION" ? "Description" : "Prompt *"}</FormLabel>
-                  <FormControl>
-                    {form.watch("extractionType") === "AI" ? (
-                      <PromptTextarea
-                        value={field.value || ''}
-                        onChange={field.onChange}
-                        placeholder="Tell the AI what to look for in this field. Use @-key referencing to reference available resources."
-                        rows={5}
-                        className="resize-none"
-                        knowledgeDocuments={knowledgeDocuments.filter(doc => 
-                          form.watch("knowledgeDocumentIds")?.includes(doc.id)
-                        )}
-                        previousCollectionProperties={[]}
-                      />
-                    ) : (
-                      <Textarea 
-                        placeholder="Optional description of this field for documentation"
-                        className="resize-none"
-                        rows={3}
-                        {...field}
-                      />
-                    )}
-                  </FormControl>
-                  <p className="text-sm text-muted-foreground">
-                    {form.watch("extractionType") === "FUNCTION" 
-                      ? "Optional field description for documentation purposes"
-                      : "This prompt guides the AI during data extraction. Use @-key references to reference knowledge documents, rules, and supplied documents."
-                    }
-                  </p>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
-            {/* Extraction Configuration */}
-            <div className="space-y-4 border-t pt-4">
-              {/* AI Extraction Configuration */}
-              {form.watch("extractionType") === "AI" && (
-                <>
-                  {/* Knowledge Documents */}
+            {/* Step 3: Basic Field Configuration */}
+            {selectedFunction && (
+              <div className="space-y-4 p-4 border rounded-lg bg-green-50">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-green-600 text-white text-sm font-medium flex items-center justify-center">3</div>
+                  <h3 className="text-lg font-semibold text-gray-800">Field Settings</h3>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="knowledgeDocumentIds"
+                    name="fieldName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Knowledge Documents (Optional)</FormLabel>
+                        <FormLabel>Field Name</FormLabel>
                         <FormControl>
-                          <div className="space-y-2">
-                            {knowledgeDocuments.length > 0 ? (
-                              <>
-                                <div className="flex flex-wrap gap-2">
-                                  {field.value?.map((docId) => {
-                                    const doc = knowledgeDocuments.find(d => d.id === docId);
-                                    return doc ? (
-                                      <Badge key={docId} variant="outline" className="flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-300">
-                                        {doc.displayName}
-                                        <X 
-                                          className="h-3 w-3 cursor-pointer hover:text-red-600" 
-                                          onClick={() => {
-                                            const newDocs = field.value?.filter(id => id !== docId) || [];
-                                            field.onChange(newDocs);
-                                          }}
-                                        />
-                                      </Badge>
-                                    ) : null;
-                                  })}
-                                </div>
-                                <Select onValueChange={(value) => {
-                                  if (!field.value?.includes(value)) {
-                                    field.onChange([...(field.value || []), value]);
-                                  }
-                                }}>
-                                  <SelectTrigger className="border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500">
-                                    <SelectValue placeholder="Select knowledge documents..." />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {knowledgeDocuments.filter(doc => !field.value?.includes(doc.id)).map((doc) => (
-                                      <SelectItem key={doc.id} value={doc.id}>
-                                        {doc.displayName}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </>
-                            ) : (
-                              <p className="text-sm text-muted-foreground border rounded p-3 bg-gray-50">
-                                No knowledge documents available. Create knowledge documents in project settings for additional AI context.
-                              </p>
-                            )}
-                          </div>
+                          <Input placeholder="e.g., Pension Scheme Name" {...field} />
                         </FormControl>
-                        <p className="text-sm text-muted-foreground">
-                          Reference documents to guide AI extraction for this field
-                        </p>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-
-                  {/* Extraction Rules */}
+                  
                   <FormField
                     control={form.control}
-                    name="extractionRuleIds"
+                    name="fieldType"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Extraction Rules (Optional)</FormLabel>
-                        <FormControl>
-                          <div className="space-y-2">
-                            {extractionRules.length > 0 ? (
-                              <>
-                                <div className="flex flex-wrap gap-2">
-                                  {field.value?.map((ruleId) => {
-                                    const rule = extractionRules.find(r => r.id === ruleId);
-                                    return rule ? (
-                                      <Badge key={ruleId} variant="outline" className="flex items-center gap-1 bg-green-50 text-green-700 border-green-300">
-                                        {rule.ruleName}
-                                        <X 
-                                          className="h-3 w-3 cursor-pointer hover:text-red-600" 
-                                          onClick={() => {
-                                            const newRules = field.value?.filter(id => id !== ruleId) || [];
-                                            field.onChange(newRules);
-                                          }}
-                                        />
-                                      </Badge>
-                                    ) : null;
-                                  })}
-                                </div>
-                                <Select onValueChange={(value) => {
-                                  if (!field.value?.includes(value)) {
-                                    field.onChange([...(field.value || []), value]);
-                                  }
-                                }}>
-                                  <SelectTrigger className="border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500">
-                                    <SelectValue placeholder="Select extraction rules..." />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {extractionRules.filter(rule => !field.value?.includes(rule.id)).map((rule) => (
-                                      <SelectItem key={rule.id} value={rule.id}>
-                                        {rule.ruleName}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </>
-                            ) : (
-                              <p className="text-sm text-muted-foreground border rounded p-3 bg-gray-50">
-                                No extraction rules available. Create rules in project settings to define specific AI guidelines.
-                              </p>
-                            )}
-                          </div>
-                        </FormControl>
-                        <p className="text-sm text-muted-foreground">
-                          Apply specific extraction rules to this field
-                        </p>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Source Documents Required */}
-                  <FormField
-                    control={form.control}
-                    name="documentsRequired"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border-2 border-gray-200 p-4 bg-gray-50 hover:bg-gray-100 transition-colors">
-                        <div className="space-y-1">
-                          <FormLabel className="font-medium">Source Documents Required</FormLabel>
-                          <p className="text-sm text-gray-600">
-                            Require source documents for this field's extraction
-                          </p>
-                        </div>
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            className="border-2 border-gray-400 data-[state=checked]:bg-gray-700 data-[state=checked]:border-gray-700"
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </>
-              )}
-
-              {/* Function Extraction Configuration */}
-              {form.watch("extractionType") === "FUNCTION" && (
-                <>
-                  {/* Required Document Type */}
-                  <FormField
-                    control={form.control}
-                    name="requiredDocumentType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Required Document Type</FormLabel>
+                        <FormLabel>Data Type</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select document type" />
+                              <SelectValue placeholder="Select data type" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="Excel">Excel (.xlsx, .xls)</SelectItem>
-                            <SelectItem value="Word">Word (.docx, .doc)</SelectItem>
-                            <SelectItem value="PDF">PDF (.pdf)</SelectItem>
+                            <SelectItem value="TEXT">Text</SelectItem>
+                            <SelectItem value="NUMBER">Number</SelectItem>
+                            <SelectItem value="DATE">Date</SelectItem>
+                            <SelectItem value="CHOICE">Choice</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+                </div>
 
-                  {/* Function Selection */}
-                  <FormField
-                    control={form.control}
-                    name="functionId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Function</FormLabel>
-                        <FormControl>
-                          <div className="space-y-2">
-                            {wizardryFunctions.length > 0 ? (
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <SelectTrigger className="h-auto min-h-[50px] border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500">
-                                  <SelectValue placeholder="Select a pre-built function..." className="text-gray-500" />
-                                </SelectTrigger>
-                                <SelectContent className="max-w-[450px]">
-                                  {wizardryFunctions.map((func) => (
-                                    <SelectItem key={func.id} value={func.id} className="h-auto py-4 px-3 cursor-pointer hover:bg-blue-50 focus:bg-blue-50">
-                                      <div className="space-y-2">
-                                        <div className="font-semibold text-base text-blue-900 flex items-center gap-2">
-                                          <FileText className="h-4 w-4 text-blue-600" />
-                                          {func.name}
-                                        </div>
-                                        <div className="text-sm text-gray-600 whitespace-normal leading-relaxed max-w-[400px] pl-6">
-                                          {func.description}
-                                        </div>
-                                      </div>
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            ) : (
-                              <p className="text-sm text-muted-foreground border rounded p-3">
-                                No functions available. Functions are created automatically during the extraction process.
-                              </p>
-                            )}
-                          </div>
-                        </FormControl>
-                        <p className="text-sm text-muted-foreground">
-                          Select a pre-built function for data extraction
-                        </p>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </>
-              )}
-            </div>
-            
-            <FormField
-              control={form.control}
-              name="autoVerificationConfidence"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Auto Verification Confidence Level (%)</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      min={0} 
-                      max={100} 
-                      placeholder="80"
-                      {...field}
-                      onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : '')}
-                    />
-                  </FormControl>
-                  <p className="text-sm text-muted-foreground">
-                    Fields with confidence at or above this threshold will be automatically verified after extraction
-                  </p>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="autoVerificationConfidence"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Auto Verification Confidence (%)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          min={0} 
+                          max={100} 
+                          placeholder="80"
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : '')}
+                        />
+                      </FormControl>
+                      <p className="text-sm text-muted-foreground">
+                        Fields with confidence at or above this threshold will be automatically verified
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
+
+            {/* Show function info when selected */}
+            {selectedFunction && (
+              <div className="p-4 bg-gray-50 border rounded-lg">
+                <h4 className="font-medium text-gray-800 mb-2">Selected Function Summary</h4>
+                <div className="space-y-2 text-sm">
+                  <div><strong>Name:</strong> {selectedFunction.name}</div>
+                  <div><strong>Type:</strong> {selectedFunction.functionType}</div>
+                  <div><strong>Description:</strong> {selectedFunction.description}</div>
+                  {selectedFunction.tags && (
+                    <div className="flex items-center gap-2">
+                      <strong>Tags:</strong>
+                      <div className="flex gap-1">
+                        {selectedFunction.tags.map(tag => (
+                          <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
             
             <DialogFooter>
               <Button
@@ -608,8 +357,8 @@ export default function SchemaFieldDialog({
               </Button>
               <Button
                 type="submit"
-                disabled={isLoading}
-                className="bg-gray-700 hover:bg-gray-800"
+                disabled={isLoading || !selectedFunction}
+                className="bg-blue-600 hover:bg-blue-700"
               >
                 {isLoading ? "Saving..." : field ? "Update Field" : "Add Field"}
               </Button>
