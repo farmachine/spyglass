@@ -43,6 +43,8 @@ const schemaFieldFormSchema = z.object({
   fieldType: z.enum(fieldTypes),
   functionId: z.string().min(1, "Function selection is required"),
   functionParameters: z.record(z.string(), z.any()).optional(),
+  knowledgeDocumentIds: z.array(z.string()).optional(),
+  extractionRuleIds: z.array(z.string()).optional(),
   autoVerificationConfidence: z.number().min(0).max(100).default(80),
   orderIndex: z.number().default(0),
 });
@@ -77,6 +79,8 @@ export default function SchemaFieldDialog({
       fieldType: "TEXT",
       functionId: "",
       functionParameters: {},
+      knowledgeDocumentIds: [],
+      extractionRuleIds: [],
       autoVerificationConfidence: 80,
       orderIndex: 0,
     },
@@ -90,6 +94,8 @@ export default function SchemaFieldDialog({
         fieldType: (field?.fieldType as typeof fieldTypes[number]) || "TEXT",
         functionId: field?.functionId || "",
         functionParameters: (field as any)?.functionParameters || {},
+        knowledgeDocumentIds: field?.knowledgeDocumentIds as string[] || [],
+        extractionRuleIds: field?.extractionRuleIds as string[] || [],
         autoVerificationConfidence: field?.autoVerificationConfidence || 80,
         orderIndex: field?.orderIndex || 0,
       });
@@ -211,25 +217,38 @@ export default function SchemaFieldDialog({
                           className="w-full"
                         />
                       ) : param.type === "document" ? (
-                        <Select 
-                          value={(form.watch("functionParameters") || {})[param.name] || ""} 
-                          onValueChange={(val) => {
-                            const current = form.watch("functionParameters") || {};
-                            form.setValue("functionParameters", {
-                              ...current,
-                              [param.name]: val
-                            });
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder={`Select document source for ${param.name}`} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="uploaded_document">Use Uploaded Document</SelectItem>
-                            <SelectItem value="field_reference">Reference Another Field</SelectItem>
-                            <SelectItem value="previous_extraction">Use Previous Extraction Results</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <div className="space-y-3">
+                          <Select 
+                            value={(form.watch("functionParameters") || {})[param.name] || ""} 
+                            onValueChange={(val) => {
+                              const current = form.watch("functionParameters") || {};
+                              form.setValue("functionParameters", {
+                                ...current,
+                                [param.name]: val
+                              });
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder={`Any documents used as reference for the results.`} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="uploaded_document">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                  User Uploaded Documents
+                                </div>
+                              </SelectItem>
+                              {knowledgeDocuments?.map((doc) => (
+                                <SelectItem key={doc.id} value={doc.id}>
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                    {doc.fileName}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       ) : (
                         <Textarea
                           value={(form.watch("functionParameters") || {})[param.name] || ""}
@@ -251,11 +270,127 @@ export default function SchemaFieldDialog({
               </div>
             )}
 
-            {/* Step 3: Basic Field Configuration */}
+            {/* Step 3: Knowledge Documents and Extraction Rules */}
+            {selectedFunction && (
+              <div className="space-y-4 p-4 border rounded-lg bg-purple-50">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-purple-600 text-white text-sm font-medium flex items-center justify-center">3</div>
+                  <h3 className="text-lg font-semibold text-gray-800">Reference Documents & Rules</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="knowledgeDocumentIds"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Knowledge Documents (Multiple Selection)</FormLabel>
+                        <FormControl>
+                          <div className="space-y-2">
+                            <div className="text-sm text-gray-600">Select one or more knowledge documents:</div>
+                            <div className="space-y-2 max-h-32 overflow-y-auto border rounded p-2 bg-white">
+                              <label className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  checked={field.value?.includes("uploaded_document") || false}
+                                  onChange={(e) => {
+                                    const current = field.value || [];
+                                    if (e.target.checked) {
+                                      field.onChange([...current, "uploaded_document"]);
+                                    } else {
+                                      field.onChange(current.filter(id => id !== "uploaded_document"));
+                                    }
+                                  }}
+                                  className="rounded"
+                                />
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                  <span>User Uploaded Documents</span>
+                                </div>
+                              </label>
+                              {knowledgeDocuments?.map((doc) => (
+                                <label key={doc.id} className="flex items-center space-x-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={field.value?.includes(doc.id) || false}
+                                    onChange={(e) => {
+                                      const current = field.value || [];
+                                      if (e.target.checked) {
+                                        field.onChange([...current, doc.id]);
+                                      } else {
+                                        field.onChange(current.filter(id => id !== doc.id));
+                                      }
+                                    }}
+                                    className="rounded"
+                                  />
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                    <span className="text-sm">{doc.fileName}</span>
+                                  </div>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="extractionRuleIds"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Extraction Rules (Multiple Selection)</FormLabel>
+                        <FormControl>
+                          <div className="space-y-2">
+                            <div className="text-sm text-gray-600">Select one or more extraction rules:</div>
+                            {extractionRules && extractionRules.length > 0 ? (
+                              <div className="space-y-2 max-h-32 overflow-y-auto border rounded p-2 bg-white">
+                                {extractionRules.map((rule) => (
+                                  <label key={rule.id} className="flex items-center space-x-2">
+                                    <input
+                                      type="checkbox"
+                                      checked={field.value?.includes(rule.id) || false}
+                                      onChange={(e) => {
+                                        const current = field.value || [];
+                                        if (e.target.checked) {
+                                          field.onChange([...current, rule.id]);
+                                        } else {
+                                          field.onChange(current.filter(id => id !== rule.id));
+                                        }
+                                      }}
+                                      className="rounded"
+                                    />
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                                      <span className="text-sm">{rule.ruleName}</span>
+                                    </div>
+                                  </label>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="border rounded p-4 text-center text-gray-500">
+                                <p>No extraction rules available</p>
+                                <p className="text-sm text-gray-400 mt-1">Create extraction rules first</p>
+                              </div>
+                            )}
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Basic Field Configuration */}
             {selectedFunction && (
               <div className="space-y-4 p-4 border rounded-lg bg-green-50">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-green-600 text-white text-sm font-medium flex items-center justify-center">3</div>
+                  <div className="w-6 h-6 rounded-full bg-green-600 text-white text-sm font-medium flex items-center justify-center">4</div>
                   <h3 className="text-lg font-semibold text-gray-800">Field Settings</h3>
                 </div>
                 
