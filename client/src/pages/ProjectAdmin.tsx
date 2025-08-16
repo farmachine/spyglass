@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ArrowLeft, Settings, Database, Brain, Upload, User, List, Wrench } from "lucide-react";
+import { useState, useRef } from "react";
+import { ArrowLeft, Settings, Database, Brain, Upload, User, List, Wrench, Plus } from "lucide-react";
 import { TideIcon, StreamIcon, ShipIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,6 +24,7 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<AdminTab>("define");
   const [schemaActiveTab, setSchemaActiveTab] = useState<string>("main-data");
+  const addCollectionCallbackRef = useRef<(() => void) | null>(null);
   const { data: project, isLoading, error } = useProject(projectId);
   const { user } = useAuth();
 
@@ -117,13 +118,13 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
       case "knowledge":
         return <KnowledgeRules project={project} />;
       case "define":
-        return <DefineData project={project} activeTab={schemaActiveTab} onTabChange={setSchemaActiveTab} onSetAddCollectionCallback={() => {}} />;
+        return <DefineData project={project} activeTab={schemaActiveTab} onTabChange={setSchemaActiveTab} onSetAddCollectionCallback={(callback) => { addCollectionCallbackRef.current = callback; }} />;
       case "publishing":
         return <Publishing project={project} />;
       case "tools":
         return <ExcelFunctionTools />;
       default:
-        return <DefineData project={project} activeTab={schemaActiveTab} onTabChange={setSchemaActiveTab} onSetAddCollectionCallback={() => {}} />;
+        return <DefineData project={project} activeTab={schemaActiveTab} onTabChange={setSchemaActiveTab} onSetAddCollectionCallback={(callback) => { addCollectionCallbackRef.current = callback; }} />;
     }
   };
 
@@ -241,6 +242,22 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
                       {collection.collectionName}
                     </button>
                   ))}
+
+                  {/* Add List Button */}
+                  <button
+                    onClick={() => {
+                      console.log('🔧 Add List button clicked in ProjectAdmin, callback available:', !!addCollectionCallbackRef.current);
+                      if (addCollectionCallbackRef.current) {
+                        addCollectionCallbackRef.current();
+                      } else {
+                        console.warn('Add List callback not available - DefineData may not have set it up');
+                      }
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-600 transition-all duration-200"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add List
+                  </button>
                 </nav>
               </div>
             )}
