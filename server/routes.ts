@@ -843,17 +843,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/collections/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = req.params.id;
+      console.log('Updating collection:', id, 'with data:', req.body);
       const result = insertObjectCollectionSchema.partial().safeParse(req.body);
       if (!result.success) {
+        console.log('Validation failed:', result.error.errors);
         return res.status(400).json({ message: "Invalid collection data", errors: result.error.errors });
       }
       
       const collection = await storage.updateObjectCollection(id, result.data);
       if (!collection) {
+        console.log('Collection not found:', id);
         return res.status(404).json({ message: "Collection not found" });
       }
+      console.log('Collection updated successfully:', collection);
       res.json(collection);
     } catch (error) {
+      console.error('Failed to update collection:', error);
       res.status(500).json({ message: "Failed to update collection" });
     }
   });
