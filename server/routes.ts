@@ -4623,6 +4623,9 @@ print(json.dumps(results))
   app.patch("/api/excel-functions/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = req.params.id;
+      
+      console.log('🔧 Updating Excel function with data:', JSON.stringify(req.body, null, 2));
+      
       const result = insertExcelWizardryFunctionSchema.partial().safeParse(req.body);
       if (!result.success) {
         return res.status(400).json({ 
@@ -4635,6 +4638,8 @@ print(json.dumps(results))
       if (!func) {
         return res.status(404).json({ message: "Excel wizardry function not found" });
       }
+      
+      console.log('✅ Successfully updated Excel function:', JSON.stringify(func, null, 2));
       
       res.json(func);
     } catch (error) {

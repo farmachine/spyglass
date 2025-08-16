@@ -33,7 +33,8 @@ export default function ExcelFunctionTools() {
     name: "",
     description: "",
     functionCode: "",
-    tags: ""
+    tags: "",
+    inputParameters: [] as Array<{ id?: string; name: string; type: string; description: string }>
   });
 
   const queryClient = useQueryClient();
@@ -46,14 +47,20 @@ export default function ExcelFunctionTools() {
 
   // Update function mutation
   const updateFunction = useMutation({
-    mutationFn: async (data: { id: string; description: string; functionCode: string; tags: string[] }) => {
+    mutationFn: async (data: { id: string; description: string; functionCode: string; tags: string[]; inputParameters?: any[] }) => {
+      const updateData: any = {
+        description: data.description,
+        functionCode: data.functionCode,
+        tags: data.tags
+      };
+      
+      if (data.inputParameters) {
+        updateData.inputParameters = data.inputParameters;
+      }
+      
       return apiRequest(`/api/excel-functions/${data.id}`, {
         method: "PATCH",
-        body: JSON.stringify({
-          description: data.description,
-          functionCode: data.functionCode,
-          tags: data.tags
-        })
+        body: JSON.stringify(updateData)
       });
     },
     onSuccess: () => {
@@ -113,7 +120,15 @@ export default function ExcelFunctionTools() {
       name: func.name,
       description: func.description,
       functionCode: func.functionCode,
-      tags: func.tags?.join(", ") || ""
+      tags: func.tags?.join(", ") || "",
+      inputParameters: Array.isArray((func as any).inputParameters) 
+        ? (func as any).inputParameters.map((param: any, index: number) => ({
+            id: param.id || `param_${index}`,
+            name: param.name || "",
+            type: param.type || "text",
+            description: param.description || ""
+          }))
+        : []
     });
   };
 
@@ -123,7 +138,15 @@ export default function ExcelFunctionTools() {
       name: func.name,
       description: func.description,
       functionCode: func.functionCode,
-      tags: func.tags?.join(", ") || ""
+      tags: func.tags?.join(", ") || "",
+      inputParameters: Array.isArray((func as any).inputParameters) 
+        ? (func as any).inputParameters.map((param: any, index: number) => ({
+            id: param.id || `param_${index}`,
+            name: param.name || "",
+            type: param.type || "text",
+            description: param.description || ""
+          }))
+        : []
     });
     setCodeModalOpen(true);
   };
@@ -143,7 +166,8 @@ export default function ExcelFunctionTools() {
       id: func.id,
       description: formData.description,
       functionCode: formData.functionCode,
-      tags: tagsArray
+      tags: tagsArray,
+      inputParameters: formData.inputParameters
     });
   };
 
@@ -151,7 +175,7 @@ export default function ExcelFunctionTools() {
     setEditingFunction(null);
     setSelectedFunction(null);
     setCodeModalOpen(false);
-    setFormData({ name: "", description: "", functionCode: "", tags: "" });
+    setFormData({ name: "", description: "", functionCode: "", tags: "", inputParameters: [] });
   };
 
   const handleDelete = (functionId: string) => {
@@ -273,6 +297,82 @@ export default function ExcelFunctionTools() {
                             placeholder="date, financial, text_extraction"
                             className="mt-1"
                           />
+                        </div>
+                        
+                        {/* Input Parameters Section */}
+                        <div>
+                          <Label className="text-sm font-medium">Input Parameters</Label>
+                          <div className="space-y-3 mt-2">
+                            {formData.inputParameters.map((param, index) => (
+                              <div key={param.id || index} className="p-3 border rounded-lg bg-gray-50">
+                                <div className="grid grid-cols-3 gap-2 mb-2">
+                                  <Input
+                                    placeholder="Parameter name"
+                                    value={param.name}
+                                    onChange={(e) => {
+                                      const newParams = [...formData.inputParameters];
+                                      newParams[index].name = e.target.value;
+                                      setFormData({ ...formData, inputParameters: newParams });
+                                    }}
+                                  />
+                                  <select
+                                    className="px-3 py-2 border rounded-md text-sm"
+                                    value={param.type}
+                                    onChange={(e) => {
+                                      const newParams = [...formData.inputParameters];
+                                      newParams[index].type = e.target.value;
+                                      setFormData({ ...formData, inputParameters: newParams });
+                                    }}
+                                  >
+                                    <option value="text">Text</option>
+                                    <option value="document">Document</option>
+                                    <option value="number">Number</option>
+                                  </select>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      const newParams = formData.inputParameters.filter((_, i) => i !== index);
+                                      setFormData({ ...formData, inputParameters: newParams });
+                                    }}
+                                    className="text-red-600 hover:text-red-700"
+                                  >
+                                    Remove
+                                  </Button>
+                                </div>
+                                <Input
+                                  placeholder="Parameter description"
+                                  value={param.description}
+                                  onChange={(e) => {
+                                    const newParams = [...formData.inputParameters];
+                                    newParams[index].description = e.target.value;
+                                    setFormData({ ...formData, inputParameters: newParams });
+                                  }}
+                                />
+                              </div>
+                            ))}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const newParam = {
+                                  id: `param_${Date.now()}`,
+                                  name: "",
+                                  type: "text",
+                                  description: ""
+                                };
+                                setFormData({ 
+                                  ...formData, 
+                                  inputParameters: [...formData.inputParameters, newParam]
+                                });
+                              }}
+                              className="w-full"
+                            >
+                              + Add Parameter
+                            </Button>
+                          </div>
                         </div>
                         <div className="flex gap-2 pt-2">
                           <Button 
