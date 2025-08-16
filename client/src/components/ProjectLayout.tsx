@@ -33,6 +33,9 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<ActiveTab>("data");
   const [schemaActiveTab, setSchemaActiveTab] = useState<string>("main-data");
+  
+  // Debug logging for tab state
+  console.log('🔧 ProjectLayout activeTab:', activeTab, 'schemaActiveTab:', schemaActiveTab);
   const addCollectionCallbackRef = useRef<(() => void) | null>(null);
   const { data: project, isLoading, error } = useProject(projectId);
   const { user } = useAuth();
@@ -486,11 +489,13 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                   <button
                     key={item.id}
                     onClick={() => {
+                      console.log('🔧 Main nav clicked:', item.id, 'isDisabled:', isDisabled);
                       if (!isDisabled) {
                         userNavigatedRef.current = true;
                         // Mark that user has interacted with this project when they navigate manually
                         sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
                         setActiveTab(item.id);
+                        console.log('🔧 Set activeTab to:', item.id);
                       }
                     }}
                     disabled={isDisabled}
