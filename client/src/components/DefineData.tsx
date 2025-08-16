@@ -217,14 +217,12 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
   const handleUpdateCollection = async (data: any) => {
     if (!collectionDialog.collection) return;
     try {
-      console.log('Updating collection:', collectionDialog.collection.id, 'with data:', data);
       await updateCollection.mutateAsync({ 
         id: collectionDialog.collection.id, 
         collection: data
       });
       setCollectionDialog({ open: false });
     } catch (error) {
-      console.error('Failed to update collection:', error);
     }
   };
 
