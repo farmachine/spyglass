@@ -207,6 +207,11 @@ export default function PropertyDialog({
   const inputParameters = Array.isArray(selectedFunction?.inputParameters) 
     ? selectedFunction.inputParameters 
     : [];
+  
+  // Debug logging for function parameters
+  console.log('📋 [PropertyDialog] Selected function:', selectedFunction?.name);
+  console.log('📋 [PropertyDialog] Input parameters:', inputParameters);
+  console.log('📋 [PropertyDialog] Raw inputParameters from function:', selectedFunction?.inputParameters);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
