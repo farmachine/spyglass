@@ -354,7 +354,11 @@ export default function PropertyDialog({
   // Debug logging for available fields data
   console.log('📋 [PropertyDialog] Schema fields:', schemaFields);
   console.log('📋 [PropertyDialog] Collections:', collections);
-  console.log('📋 [PropertyDialog] All properties:', allProperties);
+  console.log('📋 [PropertyDialog] All properties preview:', allProperties?.slice(0,5)?.map(p => ({
+    propertyName: p.propertyName,
+    collectionName: p.collectionName,
+    collectionId: p.collectionId
+  })));
   console.log('📋 [PropertyDialog] Current collection index:', currentCollectionIndex);
   console.log('📋 [PropertyDialog] Current collection name:', collectionName);
 
@@ -374,24 +378,37 @@ export default function PropertyDialog({
     // Add properties from collections with lower or equal index
     // First, find the current collection's index correctly
     const currentIndex = collections.findIndex(c => c.collectionName === collectionName);
-    console.log('📋 [PropertyDialog] Calculated current index:', currentIndex);
+    console.log('📋 [PropertyDialog] Calculated current index:', currentIndex, 'for collection:', collectionName);
     
-    // Add properties from collections that come before or at the current collection
-    collections.forEach((collection, collectionIndex) => {
-      if (collectionIndex <= currentIndex) {
-        // Get properties for this collection from allProperties
-        const collectionProperties = allProperties.filter(prop => prop.collectionName === collection.collectionName);
-        console.log(`📋 [PropertyDialog] Properties for ${collection.collectionName}:`, collectionProperties);
-        
-        collectionProperties.forEach((prop: any) => {
-          fields.push({
-            key: prop.propertyName,
-            label: prop.propertyName,
-            source: `${collection.collectionName} Collection`
-          });
+    // If we can't find the collection by name, include all properties from all collections as available references
+    // This ensures that even when collection name matching fails, properties are still available
+    if (currentIndex === -1) {
+      console.log('📋 [PropertyDialog] Collection not found, including all properties as references');
+      allProperties.forEach((prop: any) => {
+        fields.push({
+          key: prop.propertyName,
+          label: prop.propertyName,
+          source: `${prop.collectionName} Collection`
         });
-      }
-    });
+      });
+    } else {
+      // Add properties from collections that come before or at the current collection
+      collections.forEach((collection, collectionIndex) => {
+        if (collectionIndex <= currentIndex) {
+          // Get properties for this collection from allProperties
+          const collectionProperties = allProperties.filter(prop => prop.collectionName === collection.collectionName);
+          console.log(`📋 [PropertyDialog] Properties for ${collection.collectionName}:`, collectionProperties?.map(p => p.propertyName));
+          
+          collectionProperties.forEach((prop: any) => {
+            fields.push({
+              key: prop.propertyName,
+              label: prop.propertyName,
+              source: `${collection.collectionName} Collection`
+            });
+          });
+        }
+      });
+    }
     
     console.log('📋 [PropertyDialog] Built available fields:', fields);
     return fields;
