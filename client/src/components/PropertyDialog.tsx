@@ -33,6 +33,91 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, X, Key, FileText, Brain, Settings } from "lucide-react";
 import type { CollectionProperty, KnowledgeDocument, ExtractionRule, ExcelWizardryFunction } from "@shared/schema";
 
+// Dynamic Function Parameters Component
+interface DynamicFunctionParametersProps {
+  functionId: string;
+  wizardryFunctions: ExcelWizardryFunction[];
+  value: Record<string, any>;
+  onChange: (params: Record<string, any>) => void;
+}
+
+function DynamicFunctionParameters({ functionId, wizardryFunctions, value, onChange }: DynamicFunctionParametersProps) {
+  const selectedFunction = wizardryFunctions.find(f => f.id === functionId);
+  
+  if (!selectedFunction || !selectedFunction.inputParameters) {
+    return null;
+  }
+
+  const inputParameters = Array.isArray(selectedFunction.inputParameters) 
+    ? selectedFunction.inputParameters 
+    : [];
+
+  if (inputParameters.length === 0) {
+    return null;
+  }
+
+  const handleParameterChange = (paramName: string, paramValue: any) => {
+    onChange({
+      ...value,
+      [paramName]: paramValue
+    });
+  };
+
+  return (
+    <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+      <div className="flex items-center gap-2">
+        <Settings className="h-4 w-4 text-gray-600" />
+        <h4 className="font-medium text-gray-800">Function Parameters</h4>
+      </div>
+      <p className="text-sm text-gray-600">
+        Configure the input parameters for "{selectedFunction.name}"
+      </p>
+      
+      <div className="space-y-3">
+        {inputParameters.map((param: any, index: number) => (
+          <div key={param.name || index} className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              @{param.name}
+              <span className="text-xs text-gray-500 ml-2">({param.type})</span>
+            </label>
+            <p className="text-xs text-gray-600 mb-2">{param.description}</p>
+            
+            {param.type === "text" ? (
+              <Input
+                value={value[param.name] || ""}
+                onChange={(e) => handleParameterChange(param.name, e.target.value)}
+                placeholder={`Enter value for ${param.name}`}
+                className="w-full"
+              />
+            ) : param.type === "document" ? (
+              <Select 
+                value={value[param.name] || ""} 
+                onValueChange={(val) => handleParameterChange(param.name, val)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={`Select document for ${param.name}`} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="uploaded_document">Use Uploaded Document</SelectItem>
+                  <SelectItem value="field_reference">Reference Another Field</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : (
+              <Textarea
+                value={value[param.name] || ""}
+                onChange={(e) => handleParameterChange(param.name, e.target.value)}
+                placeholder={`Enter value for ${param.name}`}
+                rows={2}
+                className="w-full resize-none"
+              />
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const propertyTypes = ["TEXT", "NUMBER", "DATE", "CHOICE"] as const;
 
 const propertyFormSchema = z.object({
@@ -49,6 +134,7 @@ const propertyFormSchema = z.object({
   documentsRequired: z.boolean().default(true),
   functionId: z.string().optional(),
   requiredDocumentType: z.enum(["Excel", "Word", "PDF"]).optional(),
+  functionParameters: z.record(z.string(), z.any()).optional(), // Dynamic parameters based on function metadata
 }).refine((data) => {
   // Only require description for AI extraction
   if (data.extractionType === "AI" && !data.description?.trim()) {
@@ -100,6 +186,7 @@ export default function PropertyDialog({
       documentsRequired: true,
       functionId: undefined,
       requiredDocumentType: undefined,
+      functionParameters: {},
     },
   });
 
@@ -116,6 +203,7 @@ export default function PropertyDialog({
         documentsRequired: property?.documentsRequired ?? true,
         functionId: property?.functionId || undefined,
         requiredDocumentType: property?.requiredDocumentType as "Excel" | "Word" | "PDF" || undefined,
+        functionParameters: (property as any)?.functionParameters || {},
         autoVerificationConfidence: property?.autoVerificationConfidence || 80,
         choiceOptions: property?.choiceOptions as string[] || [],
         orderIndex: property?.orderIndex || 0,
@@ -549,6 +637,16 @@ export default function PropertyDialog({
                       </FormItem>
                     )}
                   />
+
+                  {/* Dynamic Function Parameters */}
+                  {form.watch("functionId") && (
+                    <DynamicFunctionParameters
+                      functionId={form.watch("functionId")}
+                      wizardryFunctions={wizardryFunctions}
+                      value={form.watch("functionParameters") || {}}
+                      onChange={(params) => form.setValue("functionParameters", params)}
+                    />
+                  )}
                 </>
               )}
             </div>
