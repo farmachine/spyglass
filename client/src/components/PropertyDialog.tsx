@@ -248,21 +248,10 @@ export default function PropertyDialog({
                             <SelectTrigger className="h-auto min-h-[60px] border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500">
                               <SelectValue placeholder="Choose a function for data extraction..." />
                             </SelectTrigger>
-                            <SelectContent className="max-w-[500px]">
+                            <SelectContent>
                               {wizardryFunctions.map((func) => (
-                                <SelectItem key={func.id} value={func.id} className="h-auto py-4 px-3 cursor-pointer hover:bg-blue-50">
-                                  <div className="space-y-2">
-                                    <div className="font-semibold text-base text-blue-900 flex items-center gap-2">
-                                      <FileText className="h-4 w-4 text-blue-600" />
-                                      {func.name}
-                                      <Badge variant="outline" className="text-xs">
-                                        {func.functionType}
-                                      </Badge>
-                                    </div>
-                                    <div className="text-sm text-gray-600 whitespace-normal leading-relaxed max-w-[450px] pl-6">
-                                      {func.description}
-                                    </div>
-                                  </div>
+                                <SelectItem key={func.id} value={func.id}>
+                                  {func.name}
                                 </SelectItem>
                               ))}
                             </SelectContent>
