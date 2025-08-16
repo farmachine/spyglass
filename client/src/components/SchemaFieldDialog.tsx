@@ -129,12 +129,12 @@ export default function SchemaFieldDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-gray-800 border-gray-700">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-white">
+          <DialogTitle>
             {field ? "Edit Schema Field" : "Add Schema Field"}
           </DialogTitle>
-          <DialogDescription className="text-gray-300">
+          <DialogDescription>
             Configure a global field that uses function-based extraction
           </DialogDescription>
         </DialogHeader>
@@ -142,10 +142,10 @@ export default function SchemaFieldDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
             {/* Step 1: Function Selection - Primary Field */}
-            <div className="space-y-4 p-4 border border-gray-600 rounded-lg bg-gray-700">
+            <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-sm font-medium flex items-center justify-center">1</div>
-                <h3 className="text-lg font-semibold text-white">Select Function</h3>
+                <h3 className="text-lg font-semibold text-gray-800">Select Function</h3>
               </div>
               
               <FormField
@@ -153,7 +153,7 @@ export default function SchemaFieldDialog({
                 name="functionId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-gray-200">Available Functions</FormLabel>
+                    <FormLabel>Available Functions</FormLabel>
                     <FormControl>
                       <div className="space-y-2">
                         {wizardryFunctions.length > 0 ? (
@@ -185,12 +185,12 @@ export default function SchemaFieldDialog({
 
             {/* Step 2: Function Parameters - Dynamic based on selected function */}
             {selectedFunction && inputParameters.length > 0 && (
-              <div className="space-y-4 p-4 border border-gray-600 rounded-lg bg-gray-700">
+              <div className="space-y-4 p-4 border rounded-lg bg-blue-50">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-sm font-medium flex items-center justify-center">2</div>
-                  <h3 className="text-lg font-semibold text-white">Configure Parameters</h3>
+                  <h3 className="text-lg font-semibold text-gray-800">Configure Parameters</h3>
                 </div>
-                <p className="text-sm text-gray-300">
+                <p className="text-sm text-gray-600">
                   Configure the input parameters for "{selectedFunction.name}"
                 </p>
                 
@@ -198,11 +198,7 @@ export default function SchemaFieldDialog({
                   {inputParameters.map((param: any, index: number) => (
                     <div key={param.name || index} className="space-y-2 p-3 bg-white rounded border">
                       <div className="flex items-center gap-2">
-                        <code className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
-                          {param.name === "Reference Data" ? "Source Data" : 
-                           param.name === "Reference Documents" ? "Source Documents" : 
-                           param.name}
-                        </code>
+                        <code className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">@{param.name}</code>
                         <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">{param.type}</span>
                       </div>
                       <p className="text-sm text-gray-600">{param.description}</p>
@@ -217,35 +213,41 @@ export default function SchemaFieldDialog({
                               [param.name]: e.target.value
                             });
                           }}
-                          placeholder={`Enter value for ${param.name === "Reference Data" ? "Source Data" : param.name}`}
+                          placeholder={`Enter value for ${param.name}`}
                           className="w-full"
                         />
                       ) : param.type === "document" ? (
                         <div className="space-y-3">
-                          <div className="flex items-center space-x-2 p-3 border rounded bg-gray-50">
-                            <input
-                              type="checkbox"
-                              id={`document-required-${param.name}`}
-                              checked={(form.watch("functionParameters") || {})[param.name] === "uploaded_document"}
-                              onChange={(e) => {
-                                const current = form.watch("functionParameters") || {};
-                                form.setValue("functionParameters", {
-                                  ...current,
-                                  [param.name]: e.target.checked ? "uploaded_document" : ""
-                                });
-                              }}
-                              className="rounded"
-                            />
-                            <label htmlFor={`document-required-${param.name}`} className="text-sm font-medium text-gray-700">
-                              User is required to upload a document
-                            </label>
-                          </div>
-                          <p className="text-xs text-gray-500 px-3">
-                            {param.name === "Reference Documents" ? 
-                              "Any documents used as reference for the results." :
-                              "Check this box if users must upload a document for this parameter."
-                            }
-                          </p>
+                          <Select 
+                            value={(form.watch("functionParameters") || {})[param.name] || ""} 
+                            onValueChange={(val) => {
+                              const current = form.watch("functionParameters") || {};
+                              form.setValue("functionParameters", {
+                                ...current,
+                                [param.name]: val
+                              });
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder={`Any documents used as reference for the results.`} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="uploaded_document">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                  User Uploaded Documents
+                                </div>
+                              </SelectItem>
+                              {knowledgeDocuments?.map((doc) => (
+                                <SelectItem key={doc.id} value={doc.id}>
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                    {doc.fileName}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       ) : (
                         <Textarea
@@ -270,10 +272,10 @@ export default function SchemaFieldDialog({
 
             {/* Step 3: Knowledge Documents and Extraction Rules */}
             {selectedFunction && (
-              <div className="space-y-4 p-4 border border-gray-600 rounded-lg bg-gray-700">
+              <div className="space-y-4 p-4 border rounded-lg bg-purple-50">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-full bg-purple-600 text-white text-sm font-medium flex items-center justify-center">3</div>
-                  <h3 className="text-lg font-semibold text-white">Reference Documents & Rules</h3>
+                  <h3 className="text-lg font-semibold text-gray-800">Reference Documents & Rules</h3>
                 </div>
                 
                 <div className="grid grid-cols-1 gap-4">
@@ -282,12 +284,31 @@ export default function SchemaFieldDialog({
                     name="knowledgeDocumentIds"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-200">Knowledge Documents (Multiple Selection)</FormLabel>
+                        <FormLabel>Knowledge Documents (Multiple Selection)</FormLabel>
                         <FormControl>
                           <div className="space-y-2">
-                            <div className="text-sm text-gray-300">Select one or more knowledge documents:</div>
+                            <div className="text-sm text-gray-600">Select one or more knowledge documents:</div>
                             <div className="space-y-2 max-h-32 overflow-y-auto border rounded p-2 bg-white">
-                              {knowledgeDocuments?.filter(doc => doc.documentType === 'knowledge').map((doc) => (
+                              <label className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  checked={field.value?.includes("uploaded_document") || false}
+                                  onChange={(e) => {
+                                    const current = field.value || [];
+                                    if (e.target.checked) {
+                                      field.onChange([...current, "uploaded_document"]);
+                                    } else {
+                                      field.onChange(current.filter(id => id !== "uploaded_document"));
+                                    }
+                                  }}
+                                  className="rounded"
+                                />
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                  <span>User Uploaded Documents</span>
+                                </div>
+                              </label>
+                              {knowledgeDocuments?.map((doc) => (
                                 <label key={doc.id} className="flex items-center space-x-2">
                                   <input
                                     type="checkbox"
@@ -321,10 +342,10 @@ export default function SchemaFieldDialog({
                     name="extractionRuleIds"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-200">Extraction Rules (Multiple Selection)</FormLabel>
+                        <FormLabel>Extraction Rules (Multiple Selection)</FormLabel>
                         <FormControl>
                           <div className="space-y-2">
-                            <div className="text-sm text-gray-300">Select one or more extraction rules:</div>
+                            <div className="text-sm text-gray-600">Select one or more extraction rules:</div>
                             {extractionRules && extractionRules.length > 0 ? (
                               <div className="space-y-2 max-h-32 overflow-y-auto border rounded p-2 bg-white">
                                 {extractionRules.map((rule) => (

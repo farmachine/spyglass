@@ -207,9 +207,9 @@ export default function PropertyDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-gray-800 border-gray-700">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-white">
+          <DialogTitle className="flex items-center gap-2">
             {property ? "Edit Property" : "Add Property"}
             {property?.isIdentifier && (
               <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
@@ -218,7 +218,7 @@ export default function PropertyDialog({
               </Badge>
             )}
           </DialogTitle>
-          <DialogDescription className="text-gray-300">
+          <DialogDescription>
             {property?.isIdentifier 
               ? `Editing the identifier field for "${collectionName}" collection. This field uniquely identifies items in the collection and must remain as TEXT type.`
               : `Add a property to the "${collectionName}" collection. The description helps the AI understand what data to extract for this property.`
@@ -229,10 +229,10 @@ export default function PropertyDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
             {/* Step 1: Function Selection - Primary Field */}
-            <div className="space-y-4 p-4 border border-gray-600 rounded-lg bg-gray-700">
+            <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-sm font-medium flex items-center justify-center">1</div>
-                <h3 className="text-lg font-semibold text-white">Select Function</h3>
+                <h3 className="text-lg font-semibold text-gray-800">Select Function</h3>
               </div>
               
               <FormField
@@ -240,7 +240,7 @@ export default function PropertyDialog({
                 name="functionId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-gray-200">Available Functions</FormLabel>
+                    <FormLabel>Available Functions</FormLabel>
                     <FormControl>
                       <div className="space-y-2">
                         {wizardryFunctions.length > 0 ? (
@@ -272,12 +272,12 @@ export default function PropertyDialog({
 
             {/* Step 2: Function Parameters - Dynamic based on selected function */}
             {selectedFunction && inputParameters.length > 0 && (
-              <div className="space-y-4 p-4 border border-gray-600 rounded-lg bg-gray-700">
+              <div className="space-y-4 p-4 border rounded-lg bg-blue-50">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-sm font-medium flex items-center justify-center">2</div>
-                  <h3 className="text-lg font-semibold text-white">Configure Parameters</h3>
+                  <h3 className="text-lg font-semibold text-gray-800">Configure Parameters</h3>
                 </div>
-                <p className="text-sm text-gray-300">
+                <p className="text-sm text-gray-600">
                   Configure the input parameters for "{selectedFunction.name}"
                 </p>
                 
@@ -285,11 +285,7 @@ export default function PropertyDialog({
                   {inputParameters.map((param: any, index: number) => (
                     <div key={param.name || index} className="space-y-2 p-3 bg-white rounded border">
                       <div className="flex items-center gap-2">
-                        <code className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
-                          {param.name === "Reference Data" ? "Source Data" : 
-                           param.name === "Reference Documents" ? "Source Documents" : 
-                           param.name}
-                        </code>
+                        <code className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">@{param.name}</code>
                         <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">{param.type}</span>
                       </div>
                       <p className="text-sm text-gray-600">{param.description}</p>
@@ -304,36 +300,29 @@ export default function PropertyDialog({
                               [param.name]: e.target.value
                             });
                           }}
-                          placeholder={`Enter value for ${param.name === "Reference Data" ? "Source Data" : param.name}`}
+                          placeholder={`Enter value for ${param.name}`}
                           className="w-full"
                         />
                       ) : param.type === "document" ? (
-                        <div className="space-y-3">
-                          <div className="flex items-center space-x-2 p-3 border rounded bg-gray-50">
-                            <input
-                              type="checkbox"
-                              id={`document-required-${param.name}`}
-                              checked={(form.watch("functionParameters") || {})[param.name] === "uploaded_document"}
-                              onChange={(e) => {
-                                const current = form.watch("functionParameters") || {};
-                                form.setValue("functionParameters", {
-                                  ...current,
-                                  [param.name]: e.target.checked ? "uploaded_document" : ""
-                                });
-                              }}
-                              className="rounded"
-                            />
-                            <label htmlFor={`document-required-${param.name}`} className="text-sm font-medium text-gray-700">
-                              User is required to upload a document
-                            </label>
-                          </div>
-                          <p className="text-xs text-gray-500 px-3">
-                            {param.name === "Reference Documents" ? 
-                              "Any documents used as reference for the results." :
-                              "Check this box if users must upload a document for this parameter."
-                            }
-                          </p>
-                        </div>
+                        <Select 
+                          value={(form.watch("functionParameters") || {})[param.name] || ""} 
+                          onValueChange={(val) => {
+                            const current = form.watch("functionParameters") || {};
+                            form.setValue("functionParameters", {
+                              ...current,
+                              [param.name]: val
+                            });
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={`Select document source for ${param.name}`} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="uploaded_document">Use Uploaded Document</SelectItem>
+                            <SelectItem value="field_reference">Reference Another Field</SelectItem>
+                            <SelectItem value="previous_extraction">Use Previous Extraction Results</SelectItem>
+                          </SelectContent>
+                        </Select>
                       ) : (
                         <Textarea
                           value={(form.watch("functionParameters") || {})[param.name] || ""}
