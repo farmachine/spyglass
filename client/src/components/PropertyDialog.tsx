@@ -228,11 +228,11 @@ export default function PropertyDialog({
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-            {/* Step 1: Function Selection - Primary Field */}
+            {/* Step 1: Function Configuration & Data Sources */}
             <div className="space-y-4 p-4 border rounded-lg bg-slate-50">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full bg-slate-600 text-white text-sm font-medium flex items-center justify-center">1</div>
-                <h3 className="text-lg font-semibold text-slate-800">Select Function</h3>
+                <h3 className="text-lg font-semibold text-slate-800">Function & Data Sources</h3>
               </div>
               
               <FormField
@@ -268,116 +268,113 @@ export default function PropertyDialog({
                   </FormItem>
                 )}
               />
-            </div>
 
-            {/* Step 2: Function Parameters - Dynamic based on selected function */}
-            {selectedFunction && inputParameters.length > 0 && (
-              <div className="space-y-4 p-4 border rounded-lg bg-slate-100">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-slate-700 text-white text-sm font-medium flex items-center justify-center">2</div>
-                  <h3 className="text-lg font-semibold text-slate-800">Configure Parameters</h3>
-                </div>
-                <p className="text-sm text-gray-600">
-                  Configure the input parameters for "{selectedFunction.name}"
-                </p>
-                
-                <div className="space-y-4">
-                  {inputParameters.map((param: any, index: number) => (
-                    <div key={param.name || index} className="space-y-2 p-3 bg-white rounded border">
-                      <div className="flex items-center gap-2">
-                        <code className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">{param.name}</code>
-                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">{param.type}</span>
-                      </div>
-                      <p className="text-sm text-gray-600">{param.description}</p>
-                      
-                      {param.type === "text" ? (
-                        <Input
-                          value={(form.watch("functionParameters") || {})[param.name] || ""}
-                          onChange={(e) => {
-                            const current = form.watch("functionParameters") || {};
-                            form.setValue("functionParameters", {
-                              ...current,
-                              [param.name]: e.target.value
-                            });
-                          }}
-                          placeholder={`Enter value for ${param.name}`}
-                          className="w-full"
-                        />
-                      ) : param.type === "document" ? (
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2 p-3 border rounded-lg bg-slate-50">
-                            <input
-                              type="checkbox"
-                              checked={(form.watch("functionParameters") || {})[param.name] === "user_required"}
-                              onChange={(e) => {
-                                const current = form.watch("functionParameters") || {};
-                                form.setValue("functionParameters", {
-                                  ...current,
-                                  [param.name]: e.target.checked ? "user_required" : ""
-                                });
-                              }}
-                              className="rounded"
-                            />
-                            <div className="flex-1">
-                              <div className="font-medium text-sm">User document upload required</div>
-                              <div className="text-xs text-gray-600">Users must upload a document for this property to work</div>
+              {/* Function Parameters - Dynamic based on selected function */}
+              {selectedFunction && inputParameters.length > 0 && (
+                <div className="space-y-4 mt-4">
+                  <h4 className="font-medium text-gray-800">Configure Parameters</h4>
+                  <p className="text-sm text-gray-600">
+                    Configure the input parameters for "{selectedFunction.name}"
+                  </p>
+                  
+                  <div className="space-y-4">
+                    {inputParameters.map((param: any, index: number) => (
+                      <div key={param.name || index} className="space-y-2 p-3 bg-white rounded border">
+                        <div className="flex items-center gap-2">
+                          <code className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">{param.name}</code>
+                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">{param.type}</span>
+                        </div>
+                        <p className="text-sm text-gray-600">{param.description}</p>
+                        
+                        {param.type === "text" ? (
+                          <Input
+                            value={(form.watch("functionParameters") || {})[param.name] || ""}
+                            onChange={(e) => {
+                              const current = form.watch("functionParameters") || {};
+                              form.setValue("functionParameters", {
+                                ...current,
+                                [param.name]: e.target.value
+                              });
+                            }}
+                            placeholder={`Enter value for ${param.name}`}
+                            className="w-full"
+                          />
+                        ) : param.type === "document" ? (
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 p-3 border rounded-lg bg-slate-50">
+                              <input
+                                type="checkbox"
+                                checked={(form.watch("functionParameters") || {})[param.name] === "user_required"}
+                                onChange={(e) => {
+                                  const current = form.watch("functionParameters") || {};
+                                  form.setValue("functionParameters", {
+                                    ...current,
+                                    [param.name]: e.target.checked ? "user_required" : ""
+                                  });
+                                }}
+                                className="rounded"
+                              />
+                              <div className="flex-1">
+                                <div className="font-medium text-sm">User document upload required</div>
+                                <div className="text-xs text-gray-600">Users must upload a document for this property to work</div>
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Source documents (knowledge base only)</label>
+                              <Select 
+                                value={(form.watch("functionParameters") || {})[param.name + "_knowledge"] || ""} 
+                                onValueChange={(val) => {
+                                  const current = form.watch("functionParameters") || {};
+                                  form.setValue("functionParameters", {
+                                    ...current,
+                                    [param.name + "_knowledge"]: val
+                                  });
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select knowledge document (optional)" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {knowledgeDocuments?.map((doc) => (
+                                    <SelectItem key={doc.id} value={doc.id}>
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                        {doc.fileName}
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </div>
                           </div>
-                          
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium">Source documents (knowledge base only)</label>
-                            <Select 
-                              value={(form.watch("functionParameters") || {})[param.name + "_knowledge"] || ""} 
-                              onValueChange={(val) => {
-                                const current = form.watch("functionParameters") || {};
-                                form.setValue("functionParameters", {
-                                  ...current,
-                                  [param.name + "_knowledge"]: val
-                                });
-                              }}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select knowledge document (optional)" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {knowledgeDocuments?.map((doc) => (
-                                  <SelectItem key={doc.id} value={doc.id}>
-                                    <div className="flex items-center gap-2">
-                                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                      {doc.fileName}
-                                    </div>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                      ) : (
-                        <Textarea
-                          value={(form.watch("functionParameters") || {})[param.name] || ""}
-                          onChange={(e) => {
-                            const current = form.watch("functionParameters") || {};
-                            form.setValue("functionParameters", {
-                              ...current,
-                              [param.name]: e.target.value
-                            });
-                          }}
-                          placeholder={`Enter value for ${param.name}`}
-                          rows={2}
-                          className="w-full resize-none"
-                        />
-                      )}
-                    </div>
-                  ))}
+                        ) : (
+                          <Textarea
+                            value={(form.watch("functionParameters") || {})[param.name] || ""}
+                            onChange={(e) => {
+                              const current = form.watch("functionParameters") || {};
+                              form.setValue("functionParameters", {
+                                ...current,
+                                [param.name]: e.target.value
+                              });
+                            }}
+                            placeholder={`Enter value for ${param.name}`}
+                            rows={2}
+                            className="w-full resize-none"
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
-            {/* Step 3: Basic Property Configuration */}
+            {/* Step 2: Basic Property Configuration */}
             {selectedFunction && (
               <div className="space-y-4 p-4 border rounded-lg bg-slate-50">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-slate-600 text-white text-sm font-medium flex items-center justify-center">3</div>
+                  <div className="w-6 h-6 rounded-full bg-slate-600 text-white text-sm font-medium flex items-center justify-center">2</div>
                   <h3 className="text-lg font-semibold text-slate-800">Property Settings</h3>
                 </div>
                 
