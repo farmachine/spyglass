@@ -333,194 +333,25 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
         </div>
       </div>
 
-      {/* Extraction Type Section */}
+      {/* Simplified Property Description */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold text-white" style={{backgroundColor: '#6b7280'}}>2</div>
-          <h5 className="text-sm font-semibold text-gray-900">Extraction Type</h5>
+          <h5 className="text-sm font-semibold text-gray-900">Property Configuration</h5>
         </div>
         <div className="space-y-3 pl-8">
           <div>
-            <Label className="text-sm font-medium">Method</Label>
-            <Select value={formData.extractionType} onValueChange={(value) => setFormData(prev => ({...prev, extractionType: value as 'AI' | 'FUNCTION'}))}>
-              <SelectTrigger className="mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="AI">AI-based Extraction</SelectItem>
-                <SelectItem value="FUNCTION">Function-based Extraction</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label className="text-sm font-medium">Description</Label>
+            <Textarea
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({...prev, description: e.target.value}))}
+              placeholder="Brief description of this property"
+              rows={2}
+              className="mt-1"
+            />
           </div>
-
-          {formData.extractionType === 'AI' && (
-            <>
-              <div>
-                <Label className="text-sm font-medium">AI Instructions</Label>
-                <PromptTextarea
-                  value={formData.aiInstructions}
-                  onChange={(value) => setFormData(prev => ({...prev, aiInstructions: value}))}
-                  placeholder="Enter specific instructions for the AI extraction process. Use @-key referencing to reference available resources."
-                  rows={5}
-                  className="mt-1"
-                  knowledgeDocuments={knowledgeDocuments}
-                  referencedFields={selectedReferences.filter(ref => {
-                    const option = previousStepOptions.find(opt => opt.id === ref);
-                    return option?.category === 'Schema Field';
-                  }).map(id => {
-                    const option = previousStepOptions.find(opt => opt.id === id);
-                    return {
-                      id,
-                      name: option?.name || 'Unknown Field',
-                      type: option?.type || 'TEXT',
-                      description: option?.description
-                    };
-                  })}
-                  referencedCollections={selectedReferences.filter(ref => {
-                    const option = previousStepOptions.find(opt => opt.id === ref);
-                    return option?.category === 'Collection';
-                  }).map(id => {
-                    const option = previousStepOptions.find(opt => opt.id === id);
-                    return {
-                      id,
-                      name: option?.name || 'Unknown Collection',
-                      description: option?.description
-                    };
-                  })}
-                  previousCollectionProperties={allProperties
-                    .filter(prop => 
-                      prop.id !== property.id && 
-                      (prop.orderIndex || 0) < (property.orderIndex || 0)
-                    )
-                    .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-                    .map(prop => ({
-                      id: prop.id,
-                      propertyName: prop.propertyName,
-                      propertyType: prop.propertyType,
-                      description: prop.description
-                    }))
-                  }
-                />
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium">Extraction Rules (Optional)</Label>
-                <Select 
-                  value=""
-                  onValueChange={(value) => {
-                    if (value && !(formData.extractionRuleIds as string[]).includes(value)) {
-                      setFormData(prev => ({
-                        ...prev, 
-                        extractionRuleIds: [...(prev.extractionRuleIds as string[]), value]
-                      }));
-                    }
-                  }}
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select extraction rules to apply (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {extractionRules && extractionRules.length > 0 ? (
-                      extractionRules.map((rule: any) => (
-                        <SelectItem key={rule.id} value={rule.id}>
-                          {rule.ruleName || rule.name || 'Unnamed Rule'}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="no-rules" disabled>
-                        No extraction rules available
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-
-                {/* Selected Extraction Rules Display */}
-                {(formData.extractionRuleIds as string[]).length > 0 && (
-                  <div className="mt-3 space-y-2">
-                    <p className="text-xs text-gray-600">Selected extraction rules:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {(formData.extractionRuleIds as string[]).map((ruleId: string) => {
-                        const rule = extractionRules.find((r: any) => r.id === ruleId);
-                        return rule ? (
-                          <div key={ruleId} className="flex items-center gap-1 bg-purple-100 text-purple-800 px-2 py-1 rounded-md text-sm">
-                            <span>{rule.ruleName || rule.name}</span>
-                            <button
-                              type="button"
-                              onClick={() => setFormData(prev => ({
-                                ...prev,
-                                extractionRuleIds: (prev.extractionRuleIds as string[]).filter((id: string) => id !== ruleId)
-                              }))}
-                              className="text-purple-600 hover:text-purple-800 ml-1"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </div>
-                        ) : null;
-                      })}
-                    </div>
-                    {/* Show rule descriptions */}
-                    <div className="mt-2">
-                      {(formData.extractionRuleIds as string[]).map((ruleId: string) => {
-                        const rule = extractionRules.find((r: any) => r.id === ruleId);
-                        return rule && (rule.description || rule.ruleContent) ? (
-                          <div key={`desc-${ruleId}`} className="mt-2 p-3 bg-purple-50 border border-purple-200 rounded-md">
-                            <p className="text-sm font-medium text-purple-900">{rule.ruleName || rule.name}</p>
-                            <p className="text-sm text-purple-700 mt-1">{rule.ruleContent || rule.description}</p>
-                          </div>
-                        ) : null;
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-
-          {formData.extractionType === 'FUNCTION' && (
-            <>
-              <div>
-                <Label htmlFor="documentType" className="text-sm font-medium">Required Document Type</Label>
-                <Select value={formData.requiredDocumentType} onValueChange={(value) => setFormData(prev => ({...prev, requiredDocumentType: value}))}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Any">Any</SelectItem>
-                    <SelectItem value="Excel">Excel (.xlsx, .xls)</SelectItem>
-                    <SelectItem value="Word">Word (.docx, .doc)</SelectItem>
-                    <SelectItem value="PDF">PDF (.pdf)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="function" className="text-sm font-medium">Function</Label>
-                <Select value={formData.functionId || ''} onValueChange={(value) => setFormData(prev => ({...prev, functionId: value}))}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select a pre-built function" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {excelFunctions.map((func: any) => (
-                      <SelectItem key={func.id} value={func.id}>
-                        {func.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {formData.functionId && (
-                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                    <p className="text-sm text-gray-700">
-                      {excelFunctions.find((f: any) => f.id === formData.functionId)?.description || 'No description available'}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
         </div>
       </div>
-
-
 
       {/* Output Section */}
       <div className="space-y-3">
