@@ -125,6 +125,7 @@ const propertyFormSchema = z.object({
   propertyType: z.enum(propertyTypes),
   functionId: z.string().min(1, "Function selection is required"),
   functionParameters: z.record(z.string(), z.any()).optional(),
+  choices: z.array(z.string()).optional(),
   autoVerificationConfidence: z.number().min(0).max(100).default(80),
   orderIndex: z.number().default(0),
 });
@@ -161,6 +162,7 @@ export default function PropertyDialog({
       propertyType: "TEXT",
       functionId: "",
       functionParameters: {},
+      choices: [],
       autoVerificationConfidence: 80,
       orderIndex: 0,
     },
@@ -174,6 +176,7 @@ export default function PropertyDialog({
         propertyType: (property?.propertyType as typeof propertyTypes[number]) || "TEXT",
         functionId: property?.functionId || "",
         functionParameters: (property as any)?.functionParameters || {},
+        choices: (property as any)?.choices || [],
         autoVerificationConfidence: property?.autoVerificationConfidence || 80,
         orderIndex: property?.orderIndex || 0,
       });
@@ -399,6 +402,67 @@ export default function PropertyDialog({
                     )}
                   />
                 </div>
+
+                {/* Choices field for CHOICE type */}
+                {form.watch("propertyType") === "CHOICE" && (
+                  <FormField
+                    control={form.control}
+                    name="choices"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Available Choices</FormLabel>
+                        <FormControl>
+                          <div className="space-y-2">
+                            <div className="space-y-2">
+                              {(field.value || []).map((choice: string, index: number) => (
+                                <div key={index} className="flex items-center gap-2">
+                                  <Input
+                                    value={choice}
+                                    onChange={(e) => {
+                                      const newChoices = [...(field.value || [])];
+                                      newChoices[index] = e.target.value;
+                                      field.onChange(newChoices);
+                                    }}
+                                    placeholder={`Choice ${index + 1}`}
+                                    className="flex-1"
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      const newChoices = (field.value || []).filter((_: string, i: number) => i !== index);
+                                      field.onChange(newChoices);
+                                    }}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const currentChoices = field.value || [];
+                                field.onChange([...currentChoices, ""]);
+                              }}
+                              className="w-full"
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Choice
+                            </Button>
+                          </div>
+                        </FormControl>
+                        <p className="text-sm text-muted-foreground">
+                          Define the available options for this choice field
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 <FormField
                   control={form.control}
