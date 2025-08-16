@@ -92,6 +92,14 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
   const { data: knowledgeDocuments = [] } = useKnowledgeDocuments(project.id);
   const { data: extractionRules = [] } = useExtractionRules(project.id);
   
+  // Debug logging for schema fields visibility
+  console.log('📝 DefineData debug:', {
+    activeTab,
+    schemaFieldsCount: schemaFields?.length || 0,
+    schemaFieldsLoading,
+    showingSchemaTab: activeTab === 'Session Fields',
+  });
+  
 
   
 
@@ -703,17 +711,19 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
                   </div>
                 )}
 
-                {/* Add Field Button */}
-                <div className="mt-6 pt-6 border-t">
-                  <Button 
-                    variant="outline"
-                    onClick={() => setSchemaFieldDialog({ open: true, field: null })}
-                    className="w-full"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Field
-                  </Button>
-                </div>
+                {/* Add Field Button - Always show when not loading */}
+                {!schemaFieldsLoading && (
+                  <div className="mt-6 pt-6 border-t">
+                    <Button 
+                      variant="outline"
+                      onClick={() => setSchemaFieldDialog({ open: true, field: null })}
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Field
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
