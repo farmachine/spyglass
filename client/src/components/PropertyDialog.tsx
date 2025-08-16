@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -30,8 +30,126 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, X, Key, FileText, Brain, Settings } from "lucide-react";
+import { Plus, X, Key, FileText, Brain, Settings, ChevronDown } from "lucide-react";
 import type { CollectionProperty, KnowledgeDocument, ExtractionRule, ExcelWizardryFunction, ProjectSchemaField, ObjectCollection } from "@shared/schema";
+
+// Multi-Select Document Component
+interface MultiSelectDocumentProps {
+  value: string[];
+  onChange: (value: string[]) => void;
+  placeholder?: string;
+  knowledgeDocuments: KnowledgeDocument[];
+}
+
+function MultiSelectDocument({ value = [], onChange, placeholder, knowledgeDocuments }: MultiSelectDocumentProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+  
+  const selectedDocs = knowledgeDocuments.filter(doc => value.includes(doc.id));
+  const hasUserProvided = value.includes("user_provided");
+  const availableOptions = [
+    { id: "user_provided", displayName: "User Provided Document" },
+    ...knowledgeDocuments
+  ];
+  
+  const handleDocumentToggle = (docId: string) => {
+    const newValue = value.includes(docId) 
+      ? value.filter(id => id !== docId)
+      : [...value, docId];
+    onChange(newValue);
+  };
+  
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <div 
+        className="min-h-10 p-3 border border-gray-200 rounded-md cursor-pointer bg-white flex items-center justify-between hover:border-gray-300 transition-colors"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <div className="flex flex-wrap gap-1 min-h-6">
+          {hasUserProvided && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-green-500 rounded-full" />
+              User Provided Document
+              <X 
+                className="h-3 w-3 cursor-pointer hover:text-red-500" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDocumentToggle("user_provided");
+                }}
+              />
+            </Badge>
+          )}
+          {selectedDocs.length > 0 && selectedDocs.map(doc => (
+            <Badge key={doc.id} variant="secondary" className="flex items-center gap-1">
+              <FileText className="h-3 w-3" />
+              {doc.displayName}
+              <X 
+                className="h-3 w-3 cursor-pointer hover:text-red-500" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDocumentToggle(doc.id);
+                }}
+              />
+            </Badge>
+          ))}
+          {!hasUserProvided && selectedDocs.length === 0 && (
+            <span className="text-gray-500 text-sm">{placeholder || "Select documents..."}</span>
+          )}
+        </div>
+        <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </div>
+      
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto">
+          {availableOptions.map((option) => {
+            const isSelected = value.includes(option.id);
+            return (
+              <div
+                key={option.id}
+                className={`px-3 py-2 cursor-pointer hover:bg-gray-50 flex items-center gap-2 ${
+                  isSelected ? 'bg-blue-50 text-blue-700' : ''
+                }`}
+                onClick={() => {
+                  handleDocumentToggle(option.id);
+                  // Don't close dropdown on selection to allow multiple selections
+                }}
+              >
+                <div className={`w-4 h-4 border rounded flex-shrink-0 ${
+                  isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-300'
+                }`}>
+                  {isSelected && <div className="w-2 h-2 bg-white rounded-sm m-0.5" />}
+                </div>
+                {option.id === "user_provided" ? (
+                  <div className="w-2 h-2 bg-green-500 rounded-full" />
+                ) : (
+                  <FileText className="h-4 w-4 text-gray-500" />
+                )}
+                <span className="text-sm">{option.displayName}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Autocomplete Input Component for @-key references
 interface AutocompleteInputProps {
@@ -124,9 +242,10 @@ interface DynamicFunctionParametersProps {
   value: Record<string, any>;
   onChange: (params: Record<string, any>) => void;
   availableFields: Array<{ key: string; label: string; source: string }>;
+  knowledgeDocuments: KnowledgeDocument[];
 }
 
-function DynamicFunctionParameters({ functionId, wizardryFunctions, value, onChange, availableFields }: DynamicFunctionParametersProps) {
+function DynamicFunctionParameters({ functionId, wizardryFunctions, value, onChange, availableFields, knowledgeDocuments }: DynamicFunctionParametersProps) {
   const selectedFunction = wizardryFunctions.find(f => f.id === functionId);
   
   if (!selectedFunction || !selectedFunction.inputParameters) {
@@ -175,18 +294,12 @@ function DynamicFunctionParameters({ functionId, wizardryFunctions, value, onCha
                 availableFields={availableFields}
               />
             ) : param.type === "document" ? (
-              <Select 
-                value={value[param.name] || ""} 
-                onValueChange={(val) => handleParameterChange(param.name, val)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={`Select document for ${param.name}`} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="uploaded_document">Use Uploaded Document</SelectItem>
-                  <SelectItem value="field_reference">Reference Another Field</SelectItem>
-                </SelectContent>
-              </Select>
+              <MultiSelectDocument
+                value={Array.isArray(value[param.name]) ? value[param.name] : (value[param.name] ? [value[param.name]] : [])}
+                onChange={(docs) => handleParameterChange(param.name, docs)}
+                placeholder={`Select documents for ${param.name}`}
+                knowledgeDocuments={knowledgeDocuments}
+              />
             ) : (
               <Textarea
                 value={value[param.name] || ""}
@@ -431,36 +544,20 @@ export default function PropertyDialog({
                             availableFields={availableFields}
                           />
                         ) : param.type === "document" ? (
-                          <Select 
-                            value={(form.watch("functionParameters") || {})[param.name] || ""} 
-                            onValueChange={(val) => {
+                          <MultiSelectDocument
+                            value={Array.isArray((form.watch("functionParameters") || {})[param.name]) 
+                              ? (form.watch("functionParameters") || {})[param.name] 
+                              : ((form.watch("functionParameters") || {})[param.name] ? [(form.watch("functionParameters") || {})[param.name]] : [])}
+                            onChange={(docs) => {
                               const current = form.watch("functionParameters") || {};
                               form.setValue("functionParameters", {
                                 ...current,
-                                [param.name]: val
+                                [param.name]: docs
                               });
                             }}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder={`Select document source for ${param.name}`} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="user_provided_document">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                  User Provided Document
-                                </div>
-                              </SelectItem>
-                              {knowledgeDocuments?.map((doc) => (
-                                <SelectItem key={doc.id} value={doc.id}>
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                    {doc.fileName}
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            placeholder={`Select documents for ${param.name}`}
+                            knowledgeDocuments={knowledgeDocuments || []}
+                          />
                         ) : (
                           <Textarea
                             value={(form.watch("functionParameters") || {})[param.name] || ""}
