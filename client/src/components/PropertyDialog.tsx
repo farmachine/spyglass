@@ -338,6 +338,11 @@ export default function PropertyDialog({
   console.log('📋 [PropertyDialog] Selected function:', selectedFunction?.name);
   console.log('📋 [PropertyDialog] Input parameters:', inputParameters);
   console.log('📋 [PropertyDialog] Raw inputParameters from function:', selectedFunction?.inputParameters);
+  
+  // Debug logging for available fields data
+  console.log('📋 [PropertyDialog] Schema fields:', schemaFields);
+  console.log('📋 [PropertyDialog] Collections:', collections);
+  console.log('📋 [PropertyDialog] Current collection index:', currentCollectionIndex);
 
   // Build available fields for @-key referencing
   const buildAvailableFields = () => {
@@ -365,6 +370,7 @@ export default function PropertyDialog({
       }
     });
     
+    console.log('📋 [PropertyDialog] Built available fields:', fields);
     return fields;
   };
   
