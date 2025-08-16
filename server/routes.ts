@@ -4617,6 +4617,7 @@ print(json.dumps(results))
   });
 
   // Update Excel wizardry function
+  console.log("🔧 REGISTERING PUT ROUTE FOR /api/excel-functions/:id");
   app.put("/api/excel-functions/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = req.params.id;
@@ -4656,6 +4657,7 @@ print(json.dumps(results))
   });
 
   // PATCH route for partial updates
+  console.log("🔧 REGISTERING PATCH ROUTE FOR /api/excel-functions/:id");
   app.patch("/api/excel-functions/:id", authenticateToken, async (req: AuthRequest, res) => {
     console.log("🚨🚨🚨 PATCH ROUTE HIT - STARTING 🚨🚨🚨");
     try {
