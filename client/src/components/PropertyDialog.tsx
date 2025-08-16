@@ -229,10 +229,10 @@ export default function PropertyDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
             {/* Step 1: Function Selection - Primary Field */}
-            <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+            <div className="space-y-4 p-4 border rounded-lg bg-slate-50">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-sm font-medium flex items-center justify-center">1</div>
-                <h3 className="text-lg font-semibold text-gray-800">Select Function</h3>
+                <div className="w-6 h-6 rounded-full bg-slate-600 text-white text-sm font-medium flex items-center justify-center">1</div>
+                <h3 className="text-lg font-semibold text-slate-800">Select Function</h3>
               </div>
               
               <FormField
@@ -272,10 +272,10 @@ export default function PropertyDialog({
 
             {/* Step 2: Function Parameters - Dynamic based on selected function */}
             {selectedFunction && inputParameters.length > 0 && (
-              <div className="space-y-4 p-4 border rounded-lg bg-blue-50">
+              <div className="space-y-4 p-4 border rounded-lg bg-slate-100">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-sm font-medium flex items-center justify-center">2</div>
-                  <h3 className="text-lg font-semibold text-gray-800">Configure Parameters</h3>
+                  <div className="w-6 h-6 rounded-full bg-slate-700 text-white text-sm font-medium flex items-center justify-center">2</div>
+                  <h3 className="text-lg font-semibold text-slate-800">Configure Parameters</h3>
                 </div>
                 <p className="text-sm text-gray-600">
                   Configure the input parameters for "{selectedFunction.name}"
@@ -285,7 +285,7 @@ export default function PropertyDialog({
                   {inputParameters.map((param: any, index: number) => (
                     <div key={param.name || index} className="space-y-2 p-3 bg-white rounded border">
                       <div className="flex items-center gap-2">
-                        <code className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">@{param.name}</code>
+                        <code className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">{param.name}</code>
                         <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">{param.type}</span>
                       </div>
                       <p className="text-sm text-gray-600">{param.description}</p>
@@ -304,25 +304,54 @@ export default function PropertyDialog({
                           className="w-full"
                         />
                       ) : param.type === "document" ? (
-                        <Select 
-                          value={(form.watch("functionParameters") || {})[param.name] || ""} 
-                          onValueChange={(val) => {
-                            const current = form.watch("functionParameters") || {};
-                            form.setValue("functionParameters", {
-                              ...current,
-                              [param.name]: val
-                            });
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder={`Select document source for ${param.name}`} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="uploaded_document">Use Uploaded Document</SelectItem>
-                            <SelectItem value="field_reference">Reference Another Field</SelectItem>
-                            <SelectItem value="previous_extraction">Use Previous Extraction Results</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 p-3 border rounded-lg bg-slate-50">
+                            <input
+                              type="checkbox"
+                              checked={(form.watch("functionParameters") || {})[param.name] === "user_required"}
+                              onChange={(e) => {
+                                const current = form.watch("functionParameters") || {};
+                                form.setValue("functionParameters", {
+                                  ...current,
+                                  [param.name]: e.target.checked ? "user_required" : ""
+                                });
+                              }}
+                              className="rounded"
+                            />
+                            <div className="flex-1">
+                              <div className="font-medium text-sm">User document upload required</div>
+                              <div className="text-xs text-gray-600">Users must upload a document for this property to work</div>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Source documents (knowledge base only)</label>
+                            <Select 
+                              value={(form.watch("functionParameters") || {})[param.name + "_knowledge"] || ""} 
+                              onValueChange={(val) => {
+                                const current = form.watch("functionParameters") || {};
+                                form.setValue("functionParameters", {
+                                  ...current,
+                                  [param.name + "_knowledge"]: val
+                                });
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select knowledge document (optional)" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {knowledgeDocuments?.map((doc) => (
+                                  <SelectItem key={doc.id} value={doc.id}>
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                      {doc.fileName}
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
                       ) : (
                         <Textarea
                           value={(form.watch("functionParameters") || {})[param.name] || ""}
@@ -346,10 +375,10 @@ export default function PropertyDialog({
 
             {/* Step 3: Basic Property Configuration */}
             {selectedFunction && (
-              <div className="space-y-4 p-4 border rounded-lg bg-green-50">
+              <div className="space-y-4 p-4 border rounded-lg bg-slate-50">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-green-600 text-white text-sm font-medium flex items-center justify-center">3</div>
-                  <h3 className="text-lg font-semibold text-gray-800">Property Settings</h3>
+                  <div className="w-6 h-6 rounded-full bg-slate-600 text-white text-sm font-medium flex items-center justify-center">3</div>
+                  <h3 className="text-lg font-semibold text-slate-800">Property Settings</h3>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -445,13 +474,14 @@ export default function PropertyDialog({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
+                className="border-gray-400 text-gray-600 hover:bg-gray-50"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={isLoading || !selectedFunction}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-slate-600 hover:bg-slate-700 text-white"
               >
                 {isLoading ? "Saving..." : property ? "Update Property" : "Add Property"}
               </Button>
