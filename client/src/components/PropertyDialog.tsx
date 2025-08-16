@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -31,7 +31,91 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, X, Key, FileText, Brain, Settings } from "lucide-react";
-import type { CollectionProperty, KnowledgeDocument, ExtractionRule, ExcelWizardryFunction } from "@shared/schema";
+import type { CollectionProperty, KnowledgeDocument, ExtractionRule, ExcelWizardryFunction, ProjectSchemaField, ObjectCollection } from "@shared/schema";
+
+// Autocomplete Input Component for @-key references
+interface AutocompleteInputProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  availableFields: Array<{ key: string; label: string; source: string }>;
+}
+
+function AutocompleteInput({ value, onChange, placeholder, availableFields }: AutocompleteInputProps) {
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [filteredFields, setFilteredFields] = useState(availableFields);
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value;
+    onChange(inputValue);
+    
+    // Check if user is typing @
+    const lastAtIndex = inputValue.lastIndexOf('@');
+    if (lastAtIndex !== -1) {
+      const query = inputValue.substring(lastAtIndex + 1);
+      const filtered = availableFields.filter(field => 
+        field.key.toLowerCase().includes(query.toLowerCase()) ||
+        field.label.toLowerCase().includes(query.toLowerCase())
+      );
+      setFilteredFields(filtered);
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+  
+  const handleSuggestionClick = (fieldKey: string) => {
+    const lastAtIndex = value.lastIndexOf('@');
+    if (lastAtIndex !== -1) {
+      const beforeAt = value.substring(0, lastAtIndex);
+      const newValue = beforeAt + '@' + fieldKey;
+      onChange(newValue);
+    } else {
+      onChange(value + '@' + fieldKey);
+    }
+    setShowSuggestions(false);
+  };
+  
+  return (
+    <div className="relative">
+      <Input
+        value={value}
+        onChange={handleInputChange}
+        placeholder={placeholder}
+        className="w-full"
+        onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+        onFocus={() => {
+          if (value.includes('@')) {
+            const lastAtIndex = value.lastIndexOf('@');
+            const query = value.substring(lastAtIndex + 1);
+            const filtered = availableFields.filter(field => 
+              field.key.toLowerCase().includes(query.toLowerCase()) ||
+              field.label.toLowerCase().includes(query.toLowerCase())
+            );
+            setFilteredFields(filtered);
+            setShowSuggestions(true);
+          }
+        }}
+      />
+      
+      {showSuggestions && filteredFields.length > 0 && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto">
+          {filteredFields.map((field) => (
+            <button
+              key={field.key}
+              type="button"
+              className="w-full px-3 py-2 text-left hover:bg-gray-50 flex justify-between items-center"
+              onClick={() => handleSuggestionClick(field.key)}
+            >
+              <span className="font-medium">@{field.key}</span>
+              <span className="text-xs text-gray-500">{field.source}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Dynamic Function Parameters Component
 interface DynamicFunctionParametersProps {
@@ -39,9 +123,10 @@ interface DynamicFunctionParametersProps {
   wizardryFunctions: ExcelWizardryFunction[];
   value: Record<string, any>;
   onChange: (params: Record<string, any>) => void;
+  availableFields: Array<{ key: string; label: string; source: string }>;
 }
 
-function DynamicFunctionParameters({ functionId, wizardryFunctions, value, onChange }: DynamicFunctionParametersProps) {
+function DynamicFunctionParameters({ functionId, wizardryFunctions, value, onChange, availableFields }: DynamicFunctionParametersProps) {
   const selectedFunction = wizardryFunctions.find(f => f.id === functionId);
   
   if (!selectedFunction || !selectedFunction.inputParameters) {
@@ -83,11 +168,11 @@ function DynamicFunctionParameters({ functionId, wizardryFunctions, value, onCha
             <p className="text-xs text-gray-600 mb-2">{param.description}</p>
             
             {param.type === "text" ? (
-              <Input
+              <AutocompleteInput
                 value={value[param.name] || ""}
-                onChange={(e) => handleParameterChange(param.name, e.target.value)}
-                placeholder={`Enter value for ${param.name}`}
-                className="w-full"
+                onChange={(val) => handleParameterChange(param.name, val)}
+                placeholder={`Enter value for ${param.name} (use @ to reference other fields)`}
+                availableFields={availableFields}
               />
             ) : param.type === "document" ? (
               <Select 
@@ -142,6 +227,10 @@ interface PropertyDialogProps {
   knowledgeDocuments?: KnowledgeDocument[];
   extractionRules?: ExtractionRule[];
   wizardryFunctions?: ExcelWizardryFunction[];
+  // Project schema data for @-key references
+  schemaFields?: ProjectSchemaField[];
+  collections?: ObjectCollection[];
+  currentCollectionIndex?: number;
 }
 
 export default function PropertyDialog({ 
@@ -153,7 +242,10 @@ export default function PropertyDialog({
   collectionName = "Collection",
   knowledgeDocuments = [],
   extractionRules = [],
-  wizardryFunctions = []
+  wizardryFunctions = [],
+  schemaFields = [],
+  collections = [],
+  currentCollectionIndex = 0
 }: PropertyDialogProps) {
   const form = useForm<PropertyForm>({
     resolver: zodResolver(propertyFormSchema),
@@ -212,6 +304,37 @@ export default function PropertyDialog({
   console.log('📋 [PropertyDialog] Selected function:', selectedFunction?.name);
   console.log('📋 [PropertyDialog] Input parameters:', inputParameters);
   console.log('📋 [PropertyDialog] Raw inputParameters from function:', selectedFunction?.inputParameters);
+
+  // Build available fields for @-key referencing
+  const buildAvailableFields = () => {
+    const fields: Array<{ key: string; label: string; source: string }> = [];
+    
+    // Add main schema fields
+    schemaFields.forEach(field => {
+      fields.push({
+        key: field.fieldName,
+        label: field.fieldName,
+        source: 'Main Schema'
+      });
+    });
+    
+    // Add properties from collections with lower or equal index
+    collections.forEach((collection, collectionIndex) => {
+      if (collectionIndex <= currentCollectionIndex && (collection as any).properties) {
+        (collection as any).properties.forEach((prop: any) => {
+          fields.push({
+            key: prop.propertyName,
+            label: prop.propertyName,
+            source: `${collection.collectionName} Collection`
+          });
+        });
+      }
+    });
+    
+    return fields;
+  };
+  
+  const availableFields = buildAvailableFields();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -295,17 +418,17 @@ export default function PropertyDialog({
                         <p className="text-sm text-gray-600">{param.description}</p>
                         
                         {param.type === "text" ? (
-                          <Input
+                          <AutocompleteInput
                             value={(form.watch("functionParameters") || {})[param.name] || ""}
-                            onChange={(e) => {
+                            onChange={(val) => {
                               const current = form.watch("functionParameters") || {};
                               form.setValue("functionParameters", {
                                 ...current,
-                                [param.name]: e.target.value
+                                [param.name]: val
                               });
                             }}
-                            placeholder={`Enter value for ${param.name}`}
-                            className="w-full"
+                            placeholder={`Enter value for ${param.name} (use @ to reference other fields)`}
+                            availableFields={availableFields}
                           />
                         ) : param.type === "document" ? (
                           <Select 

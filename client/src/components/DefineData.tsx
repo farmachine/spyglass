@@ -850,6 +850,9 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
         knowledgeDocuments={knowledgeDocuments}
         extractionRules={extractionRules}
         wizardryFunctions={wizardryFunctions}
+        schemaFields={schemaFields || []}
+        collections={collections || []}
+        currentCollectionIndex={collections?.findIndex(c => c.collectionName === propertyDialog.collectionName) || 0}
       />
 
       <DeleteDialog
