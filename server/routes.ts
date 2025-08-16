@@ -4620,6 +4620,7 @@ print(json.dumps(results))
   app.put("/api/excel-functions/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = req.params.id;
+      console.log("🚨🚨🚨 PUT ROUTE HIT - STARTING 🚨🚨🚨");
       console.log(`🔄 Updating Excel function ${id} with data:`, JSON.stringify(req.body, null, 2));
       
       const result = insertExcelWizardryFunctionSchema.partial().safeParse(req.body);
@@ -4656,8 +4657,10 @@ print(json.dumps(results))
 
   // PATCH route for partial updates
   app.patch("/api/excel-functions/:id", authenticateToken, async (req: AuthRequest, res) => {
+    console.log("🚨🚨🚨 PATCH ROUTE HIT - STARTING 🚨🚨🚨");
     try {
       const id = req.params.id;
+      console.log("PATCH ROUTE - ID:", id);
       
       console.log("=== PATCH REQUEST START ===");
       console.log("FUNCTION ID:", id);
@@ -4672,8 +4675,12 @@ print(json.dumps(results))
         });
       }
 
+      console.log("PATCH ROUTE - CALLING STORAGE UPDATE");
       const func = await storage.updateExcelWizardryFunction(id, result.data);
+      console.log("PATCH ROUTE - STORAGE UPDATE COMPLETE, RESULT:", !!func);
+      
       if (!func) {
+        console.log("PATCH ROUTE - FUNCTION NOT FOUND");
         return res.status(404).json({ message: "Excel wizardry function not found" });
       }
       
