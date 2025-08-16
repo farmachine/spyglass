@@ -4697,7 +4697,7 @@ print(json.dumps(results))
       }
 
       // Import the Gemini function
-      const { generateFunctionCode } = await import("../gemini");
+      const { generateFunctionCode } = await import("./gemini");
       
       // Generate the function code using AI
       const { functionCode, metadata } = await generateFunctionCode(
