@@ -30,12 +30,15 @@ def save_identifier_references_to_db(session_id, extraction_number, identifier_r
         if identifier_references:
             for idx, ref in enumerate(identifier_references):
                 for field_name, extracted_value in ref.items():
+                    # Remove any index suffix from field_name when saving to database
+                    import re
+                    clean_field_name = re.sub(r'\[\d+\]$', '', field_name)
                     insert_query = """
                     INSERT INTO extraction_identifier_references 
                     (session_id, extraction_number, record_index, field_name, extracted_value)
                     VALUES (%s, %s, %s, %s, %s)
                     """
-                    cursor.execute(insert_query, (session_id, extraction_number, idx, field_name, str(extracted_value)))
+                    cursor.execute(insert_query, (session_id, extraction_number, idx, clean_field_name, str(extracted_value)))
         
         conn.commit()
         cursor.close()
@@ -72,19 +75,31 @@ def load_merged_identifier_references_from_db(session_id, up_to_extraction_numbe
         cursor.close()
         conn.close()
         
-        # Group by record index and merge fields
+        # Group by record index and merge fields from all extractions
         merged = {}
         for extraction_number, record_index, field_name, extracted_value in results:
             if record_index not in merged:
                 merged[record_index] = {}
-            merged[record_index][f"{field_name}[{record_index}]"] = extracted_value
+            # Store field values without the index suffix for proper merging
+            merged[record_index][field_name] = extracted_value
         
-        # Convert to array format
+        # Convert to array format with proper indexing
         merged_array = []
         for record_index in sorted(merged.keys()):
-            merged_array.append(merged[record_index])
+            # Create the final format: {Field1[index]: value, Field2[index]: value}
+            record_obj = {}
+            for field_name, value in merged[record_index].items():
+                record_obj[f"{field_name}[{record_index}]"] = value
+            merged_array.append(record_obj)
         
         print(f"✅ Loaded {len(merged_array)} merged identifier references from database")
+        
+        # Debug output: show first few merged records
+        if merged_array and len(merged_array) > 0:
+            print(f"🔍 DEBUG: First merged record: {merged_array[0]}")
+            if len(merged_array) > 1:
+                print(f"🔍 DEBUG: Second merged record: {merged_array[1]}")
+        
         return merged_array
         
     except Exception as e:
