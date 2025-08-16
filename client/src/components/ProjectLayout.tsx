@@ -552,8 +552,11 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                   {/* Add List Button */}
                   <button
                     onClick={() => {
+                      console.log('🔧 Add List button clicked, callback available:', !!addCollectionCallbackRef.current);
                       if (addCollectionCallbackRef.current) {
                         addCollectionCallbackRef.current();
+                      } else {
+                        console.warn('Add List callback not available - DefineData may not have set it up');
                       }
                     }}
                     className="w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-600 transition-all duration-200"
