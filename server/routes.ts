@@ -4685,6 +4685,52 @@ print(json.dumps(results))
     }
   });
 
+  // Generate Excel wizardry function code
+  app.post("/api/excel-functions/generate", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { name, description, functionType, inputParameters, aiAssistanceRequired, aiAssistancePrompt, tags } = req.body;
+      
+      if (!name || !description || !inputParameters || !Array.isArray(inputParameters)) {
+        return res.status(400).json({ 
+          message: "Invalid function generation data. Name, description, and inputParameters are required." 
+        });
+      }
+
+      // Import the Gemini function
+      const { generateFunctionCode } = await import("../gemini");
+      
+      // Generate the function code using AI
+      const { functionCode, metadata } = await generateFunctionCode(
+        name,
+        description, 
+        inputParameters,
+        functionType,
+        aiAssistanceRequired,
+        aiAssistancePrompt
+      );
+
+      // Create the complete function object
+      const functionData = {
+        name,
+        description,
+        functionCode,
+        functionType: functionType || "SCRIPT",
+        inputParameters,
+        aiAssistanceRequired: aiAssistanceRequired || false,
+        aiAssistancePrompt: aiAssistancePrompt || null,
+        metadata,
+        inputSchema: { parameters: inputParameters }, // Basic input schema
+        outputSchema: { format: "field_validations_compatible" }, // Basic output schema
+        tags: tags || []
+      };
+
+      res.json(functionData);
+    } catch (error) {
+      console.error("Error generating Excel wizardry function:", error);
+      res.status(500).json({ message: "Failed to generate Excel wizardry function" });
+    }
+  });
+
   // Chat Routes
   
   // Get chat messages for a session

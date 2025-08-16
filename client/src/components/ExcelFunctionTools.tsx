@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Code, Edit3, ChevronDown, ChevronRight, Trash2, Plus } from "lucide-react";
+import { Code, Edit3, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import CreateToolDialog from "./CreateToolDialog";
 
 interface ExcelWizardryFunction {
   id: string;
@@ -186,8 +187,11 @@ export default function ExcelFunctionTools() {
           <h1 className="text-3xl font-bold text-gray-800">Tools</h1>
           <p className="text-gray-600 mt-1">Manage reusable extraction functions</p>
         </div>
-        <div className="text-sm text-gray-500">
-          {functions?.length || 0} functions available
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-gray-500">
+            {functions?.length || 0} functions available
+          </div>
+          <CreateToolDialog />
         </div>
       </div>
 

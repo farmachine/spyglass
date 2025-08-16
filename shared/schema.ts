@@ -187,7 +187,12 @@ export const excelWizardryFunctions = pgTable("excel_wizardry_functions", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
   description: text("description").notNull(),
-  functionCode: text("function_code").notNull(), // Python function code
+  functionCode: text("function_code").notNull(), // Python function code or AI prompt depending on functionType
+  functionType: text("function_type", { enum: ["SCRIPT", "AI_ONLY"] }).notNull().default("SCRIPT"), // Type of function
+  inputParameters: jsonb("input_parameters").notNull(), // Array of input parameter definitions { name, type, description }
+  aiAssistanceRequired: boolean("ai_assistance_required").default(false).notNull(), // Whether AI assistance is needed
+  aiAssistancePrompt: text("ai_assistance_prompt"), // AI assistance instructions
+  metadata: jsonb("metadata").notNull(), // Function metadata for field_validations schema compatibility
   inputSchema: jsonb("input_schema").notNull(), // Expected input format/parameters
   outputSchema: jsonb("output_schema").notNull(), // Expected output format
   tags: text("tags").array(), // Searchable tags for matching (e.g., "date", "financial", "text_extraction")
