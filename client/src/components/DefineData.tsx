@@ -845,7 +845,12 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
 
       <PropertyDialog
         open={propertyDialog.open}
-        onOpenChange={(open) => setPropertyDialog({ open, property: null, collectionId: undefined, collectionName: "" })}
+        onOpenChange={(open) => setPropertyDialog({ 
+          open, 
+          property: null, 
+          collectionId: open ? propertyDialog.collectionId : undefined, 
+          collectionName: open ? propertyDialog.collectionName : "" 
+        })}
         onSave={propertyDialog.property ? handleUpdateProperty : handleCreateProperty}
         property={propertyDialog.property}
         collectionName={propertyDialog.collectionName}

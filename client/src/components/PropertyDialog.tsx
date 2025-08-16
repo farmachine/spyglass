@@ -283,6 +283,16 @@ export default function PropertyDialog({
   allProperties = [],
   currentCollectionIndex = 0
 }: PropertyDialogProps) {
+  
+  // Debug the prop values being passed
+  console.log('📋 [PropertyDialog] Props received:', {
+    open,
+    collectionName,
+    allProperties: allProperties?.length,
+    collections: collections?.length,
+    currentCollectionIndex
+  });
+
   const form = useForm<PropertyForm>({
     resolver: zodResolver(propertyFormSchema),
     defaultValues: {
