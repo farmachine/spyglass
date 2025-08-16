@@ -4601,6 +4601,11 @@ print(json.dumps(results))
       const func = await storage.createExcelWizardryFunction(result.data);
       
       console.log("=== FUNCTION CREATED ===");
+      console.log("FUNCTION ID:", func.id);
+      console.log("FUNCTION NAME:", func.name);
+      console.log("FUNCTION DESCRIPTION LENGTH:", func.description?.length || 0);
+      console.log("INPUT PARAMETERS COUNT:", func.inputParameters?.length || 0);
+      console.log("COMPLETE FUNCTION OBJECT:");
       console.log(JSON.stringify(func, null, 2));
       console.log("=== END FUNCTION CREATED ===");
       
@@ -4633,6 +4638,12 @@ print(json.dumps(results))
       }
       
       console.log("=== FUNCTION UPDATED (PUT) ===");
+      console.log("FUNCTION ID:", func.id);
+      console.log("FUNCTION NAME:", func.name);
+      console.log("FUNCTION DESCRIPTION LENGTH:", func.description?.length || 0);
+      console.log("INPUT PARAMETERS COUNT:", func.inputParameters?.length || 0);
+      console.log("UPDATED AT:", func.updatedAt);
+      console.log("COMPLETE FUNCTION OBJECT:");
       console.log(JSON.stringify(func, null, 2));
       console.log("=== END FUNCTION UPDATED (PUT) ===");
       
@@ -4667,6 +4678,12 @@ print(json.dumps(results))
       }
       
       console.log("=== FUNCTION UPDATED (PATCH) ===");
+      console.log("FUNCTION ID:", func.id);
+      console.log("FUNCTION NAME:", func.name);
+      console.log("FUNCTION DESCRIPTION LENGTH:", func.description?.length || 0);
+      console.log("INPUT PARAMETERS COUNT:", func.inputParameters?.length || 0);
+      console.log("UPDATED AT:", func.updatedAt);
+      console.log("COMPLETE FUNCTION OBJECT:");
       console.log(JSON.stringify(func, null, 2));
       console.log("=== END FUNCTION UPDATED (PATCH) ===");
       
