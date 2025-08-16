@@ -522,7 +522,10 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                 <nav className="space-y-0.5">
                   {/* Main Data Section */}
                   <button
-                    onClick={() => setSchemaActiveTab('main-data')}
+                    onClick={() => {
+                      console.log('🔧 General Information clicked, setting tab to main-data');
+                      setSchemaActiveTab('main-data');
+                    }}
                     className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
                       schemaActiveTab === 'main-data'
                         ? "bg-primary text-white font-medium shadow-sm"
@@ -537,7 +540,10 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                   {project.collections?.map((collection) => (
                     <button
                       key={collection.id}
-                      onClick={() => setSchemaActiveTab(collection.collectionName)}
+                      onClick={() => {
+                        console.log('🔧 Collection clicked:', collection.collectionName);
+                        setSchemaActiveTab(collection.collectionName);
+                      }}
                       className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
                         schemaActiveTab === collection.collectionName
                           ? "bg-primary text-white font-medium shadow-sm"
@@ -549,7 +555,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                     </button>
                   ))}
 
-                  {/* Add List Button */}
+                  {/* Add List Button - Always visible */}
                   <button
                     onClick={() => {
                       console.log('🔧 Add List button clicked, callback available:', !!addCollectionCallbackRef.current);
@@ -565,6 +571,11 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                     Add List
                   </button>
                 </nav>
+                
+                {/* Debug info */}
+                <div className="mt-2 px-3 text-xs text-gray-400">
+                  Debug: activeTab={activeTab}, schemaActiveTab={schemaActiveTab}, collections={project.collections?.length || 0}
+                </div>
               </div>
             )}
 
