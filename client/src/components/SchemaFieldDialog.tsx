@@ -207,18 +207,36 @@ export default function SchemaFieldDialog({
                             className="w-full"
                           />
                         ) : param.type === "document" ? (
-                          <Input
-                            value={(form.watch("functionParameters") || {})[param.name] || ""}
-                            onChange={(e) => {
+                          <Select 
+                            value={(form.watch("functionParameters") || {})[param.name] || ""} 
+                            onValueChange={(val) => {
                               const current = form.watch("functionParameters") || {};
                               form.setValue("functionParameters", {
                                 ...current,
-                                [param.name]: e.target.value
+                                [param.name]: val
                               });
                             }}
-                            placeholder={`Enter document identifier for ${param.name}`}
-                            className="w-full"
-                          />
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder={`Select document source for ${param.name}`} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="user_provided_document">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                  User Provided Document
+                                </div>
+                              </SelectItem>
+                              {knowledgeDocuments?.map((doc) => (
+                                <SelectItem key={doc.id} value={doc.id}>
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                    {doc.fileName}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         ) : (
                           <Textarea
                             value={(form.watch("functionParameters") || {})[param.name] || ""}
