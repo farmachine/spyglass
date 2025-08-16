@@ -4668,6 +4668,23 @@ print(json.dumps(results))
     }
   });
 
+  // Delete Excel wizardry function
+  app.delete("/api/excel-functions/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = req.params.id;
+      const deleted = await storage.deleteExcelWizardryFunction(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Excel wizardry function not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting Excel wizardry function:", error);
+      res.status(500).json({ message: "Failed to delete Excel wizardry function" });
+    }
+  });
+
   // Chat Routes
   
   // Get chat messages for a session

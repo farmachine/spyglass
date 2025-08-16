@@ -163,6 +163,7 @@ export interface IStorage {
   updateExcelWizardryFunction(id: string, func: Partial<InsertExcelWizardryFunction>): Promise<ExcelWizardryFunction | undefined>;
   incrementFunctionUsage(id: string): Promise<ExcelWizardryFunction | undefined>;
   searchExcelWizardryFunctions(tags: string[]): Promise<ExcelWizardryFunction[]>;
+  deleteExcelWizardryFunction(id: string): Promise<boolean>;
 
   // Extraction Identifier References
   getExtractionIdentifierReferences(sessionId: string, extractionNumber?: number): Promise<ExtractionIdentifierReference[]>;
@@ -1622,6 +1623,10 @@ export class MemStorage implements IStorage {
       .sort((a, b) => (b.usageCount || 0) - (a.usageCount || 0));
   }
 
+  async deleteExcelWizardryFunction(id: string): Promise<boolean> {
+    return this.excelWizardryFunctions.delete(id);
+  }
+
   // Extraction Identifier References (MemStorage implementation)
   async getExtractionIdentifierReferences(sessionId: string, extractionNumber?: number): Promise<ExtractionIdentifierReference[]> {
     return Array.from(this.extractionIdentifierReferences.values())
@@ -2957,6 +2962,15 @@ class PostgreSQLStorage implements IStorage {
         .where(sql`${excelWizardryFunctions.tags} && ${tags}`) // PostgreSQL array overlap operator
         .orderBy(excelWizardryFunctions.usageCount, excelWizardryFunctions.createdAt);
       return result;
+    });
+  }
+
+  async deleteExcelWizardryFunction(id: string): Promise<boolean> {
+    return this.retryOperation(async () => {
+      const result = await this.db
+        .delete(excelWizardryFunctions)
+        .where(eq(excelWizardryFunctions.id, id));
+      return result.rowCount > 0;
     });
   }
 

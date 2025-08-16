@@ -73,6 +73,29 @@ export default function ExcelFunctionTools() {
     }
   });
 
+  // Delete function mutation
+  const deleteFunction = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest(`/api/excel-functions/${id}`, {
+        method: "DELETE"
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/excel-functions"] });
+      toast({
+        title: "Function Deleted",
+        description: "Function has been deleted successfully."
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete the function. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
   const toggleExpanded = (functionId: string) => {
     const newExpanded = new Set(expandedFunctions);
     if (newExpanded.has(functionId)) {
@@ -128,6 +151,12 @@ export default function ExcelFunctionTools() {
     setSelectedFunction(null);
     setCodeModalOpen(false);
     setFormData({ name: "", description: "", functionCode: "", tags: "" });
+  };
+
+  const handleDelete = (functionId: string) => {
+    if (confirm("Are you sure you want to delete this function? This action cannot be undone.")) {
+      deleteFunction.mutate(functionId);
+    }
   };
 
   if (isLoading) {
@@ -280,6 +309,16 @@ export default function ExcelFunctionTools() {
                             >
                               <Code className="h-4 w-4 mr-1" />
                               Edit Code
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline" 
+                              onClick={() => handleDelete(func.id)}
+                              disabled={deleteFunction.isPending}
+                              className="border-red-300 text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Delete
                             </Button>
                           </div>
                         </div>
