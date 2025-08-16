@@ -30,7 +30,8 @@ import {
   useDeleteCollection,
   useUpdateProperty,
   useDeleteProperty,
-  useExcelWizardryFunctions
+  useExcelWizardryFunctions,
+  useAllProjectProperties
 } from "@/hooks/useSchema";
 import { useKnowledgeDocuments, useExtractionRules } from "@/hooks/useKnowledge";
 import { useUpdateProject } from "@/hooks/useProjects";
@@ -91,6 +92,7 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
   // Query for live data instead of using static props
   const { data: schemaFields = [], isLoading: schemaFieldsLoading } = useProjectSchemaFields(project.id);
   const { data: collections = [], isLoading: collectionsLoading } = useObjectCollections(project.id);
+  const { data: allProperties = [] } = useAllProjectProperties(project.id);
   const { data: knowledgeDocuments = [] } = useKnowledgeDocuments(project.id);
   const { data: extractionRules = [] } = useExtractionRules(project.id);
   
@@ -852,6 +854,7 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
         wizardryFunctions={wizardryFunctions}
         schemaFields={schemaFields || []}
         collections={collections || []}
+        allProperties={allProperties || []}
         currentCollectionIndex={collections?.findIndex((c: ObjectCollection) => c.collectionName === propertyDialog.collectionName) || 0}
       />
 

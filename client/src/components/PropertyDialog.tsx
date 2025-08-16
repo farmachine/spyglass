@@ -264,6 +264,7 @@ interface PropertyDialogProps {
   // Project schema data for @-key references
   schemaFields?: ProjectSchemaField[];
   collections?: ObjectCollection[];
+  allProperties?: any[];
   currentCollectionIndex?: number;
 }
 
@@ -279,6 +280,7 @@ export default function PropertyDialog({
   wizardryFunctions = [],
   schemaFields = [],
   collections = [],
+  allProperties = [],
   currentCollectionIndex = 0
 }: PropertyDialogProps) {
   const form = useForm<PropertyForm>({
@@ -342,7 +344,9 @@ export default function PropertyDialog({
   // Debug logging for available fields data
   console.log('📋 [PropertyDialog] Schema fields:', schemaFields);
   console.log('📋 [PropertyDialog] Collections:', collections);
+  console.log('📋 [PropertyDialog] All properties:', allProperties);
   console.log('📋 [PropertyDialog] Current collection index:', currentCollectionIndex);
+  console.log('📋 [PropertyDialog] Current collection name:', collectionName);
 
   // Build available fields for @-key referencing
   const buildAvailableFields = () => {
@@ -358,9 +362,18 @@ export default function PropertyDialog({
     });
     
     // Add properties from collections with lower or equal index
+    // First, find the current collection's index correctly
+    const currentIndex = collections.findIndex(c => c.collectionName === collectionName);
+    console.log('📋 [PropertyDialog] Calculated current index:', currentIndex);
+    
+    // Add properties from collections that come before or at the current collection
     collections.forEach((collection, collectionIndex) => {
-      if (collectionIndex <= currentCollectionIndex && (collection as any).properties) {
-        (collection as any).properties.forEach((prop: any) => {
+      if (collectionIndex <= currentIndex) {
+        // Get properties for this collection from allProperties
+        const collectionProperties = allProperties.filter(prop => prop.collectionName === collection.collectionName);
+        console.log(`📋 [PropertyDialog] Properties for ${collection.collectionName}:`, collectionProperties);
+        
+        collectionProperties.forEach((prop: any) => {
           fields.push({
             key: prop.propertyName,
             label: prop.propertyName,
