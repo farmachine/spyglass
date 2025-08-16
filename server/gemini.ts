@@ -53,7 +53,15 @@ Respond with JSON in this format:
             type: "object",
             properties: {
               functionCode: { type: "string" },
-              metadata: { type: "object" }
+              metadata: { 
+                type: "object",
+                properties: {
+                  outputFormat: { type: "string" },
+                  inputValidation: { type: "string" },
+                  errorHandling: { type: "string" }
+                },
+                required: ["outputFormat", "inputValidation", "errorHandling"]
+              }
             },
             required: ["functionCode", "metadata"]
           }
@@ -104,7 +112,19 @@ Respond with JSON in this format:
             type: "object",
             properties: {
               functionCode: { type: "string" },
-              metadata: { type: "object" }
+              metadata: { 
+                type: "object",
+                properties: {
+                  inputValidation: { type: "string" },
+                  outputFormat: { type: "string" }, 
+                  dependencies: { 
+                    type: "array",
+                    items: { type: "string" }
+                  },
+                  errorHandling: { type: "string" }
+                },
+                required: ["inputValidation", "outputFormat", "dependencies", "errorHandling"]
+              }
             },
             required: ["functionCode", "metadata"]
           }
