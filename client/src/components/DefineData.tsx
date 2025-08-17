@@ -416,6 +416,15 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
 
   return (
     <div className="space-y-6">
+      {/* Page Heading */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-800">
+          extrapl <span className="text-blue-600">•</span> data
+        </h1>
+        <p className="text-gray-600 mt-1">
+          Define your data structure and extraction schema
+        </p>
+      </div>
       {/* Welcome Banner - Show only when no data items exist */}
       {allDataItems.length === 0 && (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">

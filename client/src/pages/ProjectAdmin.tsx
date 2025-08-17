@@ -18,11 +18,11 @@ interface ProjectAdminProps {
   projectId: string;
 }
 
-type AdminTab = "knowledge" | "define" | "publishing" | "tools";
+type AdminTab = "data" | "knowledge" | "rules" | "tools" | "publish";
 
 export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
   const [, setLocation] = useLocation();
-  const [activeTab, setActiveTab] = useState<AdminTab>("define");
+  const [activeTab, setActiveTab] = useState<AdminTab>("data");
   const [schemaActiveTab, setSchemaActiveTab] = useState<string>("main-data");
   const addCollectionCallbackRef = useRef<(() => void) | null>(null);
   const { data: project, isLoading, error } = useProject(projectId);
@@ -103,26 +103,29 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
   }
 
   const adminNavItems = [
-    { id: "define" as const, label: "Define Data", icon: StreamIcon, disabled: false },
+    { id: "data" as const, label: "extrapl • data", icon: StreamIcon, disabled: false },
     ...(canAccessConfigTabs ? [
-      { id: "knowledge" as const, label: "Knowledge/Rules", icon: TideIcon, disabled: false },
-      { id: "tools" as const, label: "Tools", icon: Wrench, disabled: false },
+      { id: "knowledge" as const, label: "extrapl • knowledge", icon: TideIcon, disabled: false },
+      { id: "rules" as const, label: "extrapl • rules", icon: Brain, disabled: false },
+      { id: "tools" as const, label: "extrapl • tools", icon: Wrench, disabled: false },
     ] : []),
     ...(canAccessPublishing ? [
-      { id: "publishing" as const, label: "Publishing", icon: ShipIcon, disabled: false },
+      { id: "publish" as const, label: "extrapl • publish", icon: ShipIcon, disabled: false },
     ] : []),
   ];
 
   const renderActiveContent = () => {
     switch (activeTab) {
-      case "knowledge":
-        return <KnowledgeRules project={project} />;
-      case "define":
+      case "data":
         return <DefineData project={project} activeTab={schemaActiveTab} onTabChange={setSchemaActiveTab} onSetAddCollectionCallback={(callback) => { addCollectionCallbackRef.current = callback; }} />;
-      case "publishing":
-        return <Publishing project={project} />;
+      case "knowledge":
+        return <KnowledgeRules project={project} mode="knowledge" />;
+      case "rules":
+        return <KnowledgeRules project={project} mode="rules" />;
       case "tools":
         return <ExcelFunctionTools projectId={projectId} />;
+      case "publish":
+        return <Publishing project={project} />;
       default:
         return <DefineData project={project} activeTab={schemaActiveTab} onTabChange={setSchemaActiveTab} onSetAddCollectionCallback={(callback) => { addCollectionCallbackRef.current = callback; }} />;
     }

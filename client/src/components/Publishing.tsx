@@ -108,8 +108,10 @@ export default function Publishing({ project }: PublishingProps) {
   return (
     <div className="space-y-8">
       <div className="mb-8">
-        <h2 className="text-2xl font-semibold text-gray-900">Project Publishing</h2>
-        <p className="text-sm text-gray-600 mt-1">
+        <h1 className="text-3xl font-bold text-gray-800">
+          extrapl <span className="text-blue-600">•</span> publish
+        </h1>
+        <p className="text-gray-600 mt-1">
           Manage which organizations have access to this project
         </p>
       </div>
