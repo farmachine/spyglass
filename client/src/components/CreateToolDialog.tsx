@@ -32,8 +32,7 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    aiAssistancePrompt: "",
-    tags: ""
+    aiAssistancePrompt: ""
   });
 
   const queryClient = useQueryClient();
@@ -110,8 +109,7 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
     setFormData({
       name: "",
       description: "",
-      aiAssistancePrompt: "",
-      tags: ""
+      aiAssistancePrompt: ""
     });
     setInputParameters([]);
     setFunctionType("SCRIPT");
@@ -139,11 +137,6 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
       return;
     }
 
-    const tagsArray = formData.tags
-      .split(",")
-      .map(tag => tag.trim())
-      .filter(tag => tag.length > 0);
-
     const functionData = {
       projectId,
       name: formData.name,
@@ -152,7 +145,7 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
       inputParameters,
       aiAssistanceRequired: functionType === "SCRIPT" ? aiAssistanceRequired : false,
       aiAssistancePrompt: aiAssistanceRequired ? formData.aiAssistancePrompt : null,
-      tags: tagsArray
+      tags: [] // Default to empty tags array since we removed the tags field
     };
 
     generateCode.mutate(functionData);
@@ -203,25 +196,14 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
                   className="mt-1"
                 />
               </div>
-              <div>
-                <Label htmlFor="tags" className="text-sm font-medium text-gray-700">
-                  Tags (comma-separated)
-                </Label>
-                <Input
-                  id="tags"
-                  value={formData.tags}
-                  onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                  placeholder="financial, data-extraction, excel"
-                  className="mt-1"
-                />
-              </div>
+
             </CardContent>
           </Card>
 
-          {/* Function Type */}
+          {/* Tool Type */}
           <Card className="border-gray-200">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg text-gray-800">Function Type</CardTitle>
+              <CardTitle className="text-lg text-gray-800">Tool Type</CardTitle>
             </CardHeader>
             <CardContent>
               <Select value={functionType} onValueChange={(value: "SCRIPT" | "AI_ONLY") => setFunctionType(value)}>
@@ -229,8 +211,8 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="SCRIPT">Script Function</SelectItem>
-                  <SelectItem value="AI_ONLY">AI-Only Function</SelectItem>
+                  <SelectItem value="SCRIPT">Code</SelectItem>
+                  <SelectItem value="AI_ONLY">AI</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-sm text-gray-600 mt-2">
