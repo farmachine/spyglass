@@ -138,7 +138,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     };
     setInputParameters([...inputParameters, newParam]);
     // Default new inputs to expanded
-    setExpandedInputs(prev => new Set([...prev, newParam.id]));
+    setExpandedInputs(prev => new Set([...Array.from(prev), newParam.id]));
   };
 
   const updateInputParameter = (id: string, field: keyof InputParameter, value: string | boolean) => {
@@ -608,7 +608,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                                     <input
                                       type="file"
                                       accept=".xlsx,.xls,.docx,.doc,.pdf,.json,.csv,.txt"
-                                      onChange={(e) => handleSampleFileUpload(e, param.id)}
+                                      onChange={(e) => handleSampleFileUpload(param.id, e.target.files?.[0])}
                                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                     />
                                     <div className="flex items-center justify-center w-full h-10 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors cursor-pointer">
