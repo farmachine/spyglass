@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, X, FileText, Database, FolderOpen, Files } from "lucide-react";
+import { Plus, X, FileText, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -301,7 +301,7 @@ export default function CreateToolDialog() {
                             </SelectItem>
                             <SelectItem value="document">
                               <div className="flex items-center gap-2">
-                                <Database className="h-4 w-4" />
+                                <FileText className="h-4 w-4" />
                                 Document
                               </div>
                             </SelectItem>
