@@ -119,29 +119,19 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
   const generateSampleData = (description: string): string => {
     // Generate sample JSON data based on the description
     const sampleData = {
-      "example_array": [
-        {
-          "field_1": "Sample value based on description",
-          "field_2": 123,
-          "field_3": true,
-          "nested_object": {
-            "property": "Sample nested data"
-          }
-        },
-        {
-          "field_1": "Another sample value",
-          "field_2": 456,
-          "field_3": false,
-          "nested_object": {
-            "property": "More nested data"
-          }
-        }
-      ],
-      "metadata": {
-        "total_records": 2,
-        "generated_from": description || "input description",
-        "sample_note": "This is sample data structure - replace with actual data matching your input description"
-      }
+      "Collection Name": [
+        { "Column Name": "Column Example" },
+        { "Column Name": "Other Column" },
+        { "Column Name": "Another Example Column 2" },
+        { "Column Name": "Another Example Column 3" },
+        { "Column Name": "Another Example Column 4" },
+        { "Column Name": "Another Example Column 5" },
+        { "Column Name": "Another Example Column 6" },
+        { "Column Name": "Another Example Column 7" },
+        { "Column Name": "Another Example Column 8" },
+        { "Column Name": "Another Example Column 9" },
+        { "Column Name": "Another Example Column 10" }
+      ]
     };
     
     return JSON.stringify(sampleData, null, 2);
