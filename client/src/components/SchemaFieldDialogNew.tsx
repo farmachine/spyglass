@@ -377,167 +377,185 @@ export function SchemaFieldDialogNew({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSave)} className="space-y-4">
             
-            {/* Step 1: Function & Data Sources */}
-            <div className="space-y-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
-              <h3 className="font-medium text-gray-900 flex items-center gap-2">
-                <Settings className="h-4 w-4" />
-                Function & Data Sources
-              </h3>
+            {/* Field Settings Section - Always First */}
+            <div className="space-y-4 p-4 border rounded-lg">
+              <div className="flex items-center gap-2">
+                <Settings className="h-5 w-5 text-gray-600" />
+                <h5 className="font-medium text-gray-800">Field Settings</h5>
+              </div>
               
-              {/* Dynamic Parameter Inputs */}
-              {inputParameters.map((param) => (
-                <div key={param.id} className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    {param.name}
-                  </label>
-                  {param.description && (
-                    <p className="text-xs text-gray-500 mt-1">{param.description}</p>
-                  )}
-                  
-                  {param.type === "textarea" ? (
-                    <Textarea
-                      placeholder={`Enter ${param.name.toLowerCase()}...`}
-                      value={form.watch(`functionParameters.${param.id}`) || ""}
-                      onChange={(e) => form.setValue(`functionParameters.${param.id}`, e.target.value)}
-                      rows={3}
-                      className="w-full"
-                    />
-                  ) : param.type === "documents" || param.name === "Reference Documents" ? (
-                    <MultiSelectDocument
-                      value={form.watch(`functionParameters.${param.id}`) || []}
-                      onChange={(docs) => form.setValue(`functionParameters.${param.id}`, docs)}
-                      placeholder="Select knowledge documents..."
-                      knowledgeDocuments={knowledgeDocuments}
-                    />
-                  ) : (
-                    <ReferenceDataDropdown
-                      value={form.watch(`functionParameters.${param.id}`) || ""}
-                      onChange={(val) => form.setValue(`functionParameters.${param.id}`, val)}
-                      placeholder={`Select ${param.name.toLowerCase()}...`}
-                      availableFields={availableFields}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Step 2: Field Settings */}
-            <div className="space-y-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
-              <h3 className="font-medium text-gray-900 flex items-center gap-2">
-                <Key className="h-4 w-4" />
-                Field Settings
-              </h3>
-              
-              <FormField
-                control={form.control}
-                name="fieldName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Field Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Employee Name, Department" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="fieldType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Data Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="fieldName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Field Name</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select field type" />
-                        </SelectTrigger>
+                        <Input placeholder="e.g., Employee Name, Department" {...field} />
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="TEXT">Text</SelectItem>
-                        <SelectItem value="NUMBER">Number</SelectItem>
-                        <SelectItem value="DATE">Date</SelectItem>
-                        <SelectItem value="CHOICE">Choice</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="fieldType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Data Type</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select data type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="TEXT">Text</SelectItem>
+                          <SelectItem value="NUMBER">Number</SelectItem>
+                          <SelectItem value="DATE">Date</SelectItem>
+                          <SelectItem value="CHOICE">Choice</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               {/* Dynamic Choices for CHOICE type */}
               {form.watch("fieldType") === "CHOICE" && (
-                <div className="space-y-2">
-                  <FormLabel>Choice Options</FormLabel>
-                  {(form.watch("choices") || []).map((choice, index) => (
-                    <div key={index} className="flex gap-2 items-center">
-                      <Input
-                        value={choice}
-                        onChange={(e) => {
-                          const newChoices = [...(form.watch("choices") || [])];
-                          newChoices[index] = e.target.value;
-                          form.setValue("choices", newChoices);
-                        }}
-                        placeholder={`Choice ${index + 1}`}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const newChoices = (form.watch("choices") || []).filter((_, i) => i !== index);
-                          form.setValue("choices", newChoices);
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const currentChoices = form.watch("choices") || [];
-                      form.setValue("choices", [...currentChoices, ""]);
-                    }}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Choice
-                  </Button>
-                </div>
+                <FormField
+                  control={form.control}
+                  name="choices"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Available Choices</FormLabel>
+                      <FormControl>
+                        <div className="space-y-2">
+                          {(field.value || []).map((choice: string, index: number) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <Input
+                                value={choice}
+                                onChange={(e) => {
+                                  const newChoices = [...(field.value || [])];
+                                  newChoices[index] = e.target.value;
+                                  field.onChange(newChoices);
+                                }}
+                                placeholder={`Choice ${index + 1}`}
+                                className="flex-1"
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const newChoices = (field.value || []).filter((_: string, i: number) => i !== index);
+                                  field.onChange(newChoices);
+                                }}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const currentChoices = field.value || [];
+                              field.onChange([...currentChoices, ""]);
+                            }}
+                            className="w-full"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Choice
+                          </Button>
+                        </div>
+                      </FormControl>
+                      <p className="text-sm text-muted-foreground">
+                        Define the available options for this choice field
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               )}
-
-              <FormField
-                control={form.control}
-                name="autoVerificationConfidence"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Auto-Verification Confidence (%)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min="0"
-                        max="100"
-                        {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            {/* Data Sources Section - Only show when function is selected */}
+            {selectedFunctionId && (
+              <div className="space-y-6">
+                {/* Function Description */}
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Brain className="h-5 w-5 text-blue-600" />
+                    <h4 className="font-medium text-blue-900">{wizardryFunctions.find(f => f.id === selectedFunctionId)?.name}</h4>
+                  </div>
+                  <p className="text-sm text-blue-800">{wizardryFunctions.find(f => f.id === selectedFunctionId)?.description}</p>
+                </div>
+
+                {/* Function parameters if any */}
+                {inputParameters.length > 0 && (
+                  <div className="space-y-4 p-4 border rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Settings className="h-5 w-5 text-gray-600" />
+                      <h5 className="font-medium text-gray-800">Data Sources</h5>
+                    </div>
+                    {inputParameters.map((param) => (
+                      <div key={param.id} className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                          {param.name}
+                          <span className="text-xs text-gray-500 ml-2">({param.type})</span>
+                        </label>
+                        <p className="text-xs text-gray-600 mb-2">{param.description}</p>
+                        
+                        {param.type === "textarea" ? (
+                          <Textarea
+                            placeholder={`Enter ${param.name.toLowerCase()}...`}
+                            value={form.watch(`functionParameters.${param.id}`) || ""}
+                            onChange={(e) => form.setValue(`functionParameters.${param.id}`, e.target.value)}
+                            rows={3}
+                            className="w-full"
+                          />
+                        ) : param.type === "documents" || param.name === "Reference Documents" ? (
+                          <MultiSelectDocument
+                            value={form.watch(`functionParameters.${param.id}`) || []}
+                            onChange={(docs) => form.setValue(`functionParameters.${param.id}`, docs)}
+                            placeholder="Select knowledge documents..."
+                            knowledgeDocuments={knowledgeDocuments}
+                          />
+                        ) : (
+                          <ReferenceDataDropdown
+                            value={form.watch(`functionParameters.${param.id}`) || ""}
+                            onChange={(val) => form.setValue(`functionParameters.${param.id}`, val)}
+                            placeholder={`Select ${param.name.toLowerCase()}...`}
+                            availableFields={availableFields}
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                type="button" 
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? "Saving..." : field ? "Update Field" : "Add Field"}
+              <Button
+                type="submit"
+                disabled={!selectedFunctionId || !form.watch("fieldName")}
+              >
+                {field ? "Update" : "Add"} Field
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         </Form>
       </DialogContent>
