@@ -34,7 +34,7 @@ import {
 } from "@/hooks/useSchema";
 import { useKnowledgeDocuments, useExtractionRules } from "@/hooks/useKnowledge";
 import { useUpdateProject } from "@/hooks/useProjects";
-import SchemaFieldDialog from "@/components/SchemaFieldDialog";
+import { SchemaFieldDialogNew } from "@/components/SchemaFieldDialogNew";
 import CollectionDialog from "@/components/CollectionDialog";
 import { PropertyDialogNew } from "@/components/PropertyDialogNew";
 import DeleteDialog from "@/components/DeleteDialog";
@@ -824,13 +824,12 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
       )}
 
       {/* Dialogs */}
-      <SchemaFieldDialog
+      <SchemaFieldDialogNew
         open={schemaFieldDialog.open}
         onOpenChange={(open) => setSchemaFieldDialog({ open, field: null })}
         onSave={schemaFieldDialog.field ? handleUpdateSchemaField : handleCreateSchemaField}
         field={schemaFieldDialog.field}
         knowledgeDocuments={knowledgeDocuments}
-        extractionRules={extractionRules}
         wizardryFunctions={wizardryFunctions}
       />
 
