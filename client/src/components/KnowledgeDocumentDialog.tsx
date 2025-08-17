@@ -304,9 +304,6 @@ export default function KnowledgeDocumentDialog({
                       {...field}
                     />
                   </FormControl>
-                  <p className="text-sm text-gray-500">
-                    Required. This description explains how to use this document during extraction.
-                  </p>
                   <FormMessage />
                 </FormItem>
               )}
