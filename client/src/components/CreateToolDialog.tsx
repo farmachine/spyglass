@@ -120,7 +120,7 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
     if (!formData.name || !formData.description || inputParameters.length === 0) {
       toast({
         title: "Validation Error",
-        description: "Please fill in all required fields and add at least one input parameter.",
+        description: "Please fill in all required fields and add at least one input.",
         variant: "destructive"
       });
       return;
@@ -131,7 +131,7 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
     if (invalidParams.length > 0) {
       toast({
         title: "Validation Error",
-        description: "All input parameters must have a name and description.",
+        description: "All inputs must have a name and description.",
         variant: "destructive"
       });
       return;
@@ -224,25 +224,25 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
             </CardContent>
           </Card>
 
-          {/* Input Parameters */}
+          {/* Inputs */}
           <Card className="border-gray-200">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg text-gray-800 flex items-center justify-between">
-                Input Parameters *
+                Inputs *
                 <Button 
                   size="sm" 
                   onClick={addInputParameter}
                   className="bg-gray-600 hover:bg-gray-700"
                 >
                   <Plus className="h-4 w-4 mr-1" />
-                  Add Parameter
+                  Add Input
                 </Button>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {inputParameters.length === 0 ? (
                 <p className="text-gray-500 text-center py-8">
-                  No input parameters defined. Click "Add Parameter" to start.
+                  No inputs defined. Click "Add Input" to start.
                 </p>
               ) : (
                 inputParameters.map((param) => (
@@ -262,7 +262,7 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label className="text-sm font-medium text-gray-700">Parameter Name</Label>
+                        <Label className="text-sm font-medium text-gray-700">Input Name</Label>
                         <Input
                           value={param.name}
                           onChange={(e) => updateInputParameter(param.id, "name", e.target.value)}
@@ -367,7 +367,7 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
               disabled={generateCode.isPending || createFunction.isPending}
               className="bg-gray-700 hover:bg-gray-800 text-white"
             >
-              {generateCode.isPending ? "Generating..." : "Generate Code"}
+              {generateCode.isPending ? "Generating..." : "Generate Tool"}
             </Button>
           </div>
         </div>
