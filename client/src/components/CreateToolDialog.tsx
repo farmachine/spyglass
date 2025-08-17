@@ -616,20 +616,17 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
                             </div>
                           </div>
                           {param.sampleFile && (
-                            <div className="space-y-2">
-                              <div className="text-sm text-green-600">
-                                ✓ Sample file uploaded: {param.sampleFile}
+                            <div className="flex items-center gap-2 mt-2">
+                              <div className="inline-flex items-center gap-2 bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs">
+                                <span>{param.sampleFile}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => clearSampleFile(param.id)}
+                                  className="hover:bg-green-200 rounded-full p-0.5 transition-colors"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
                               </div>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={() => clearSampleFile(param.id)}
-                                className="text-xs h-7 border-red-200 text-red-600 hover:bg-red-50"
-                              >
-                                <X className="h-3 w-3 mr-1" />
-                                Replace File
-                              </Button>
                             </div>
                           )}
                         </div>
