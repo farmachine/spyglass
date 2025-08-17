@@ -84,8 +84,7 @@ export function SchemaFieldDialogNew({
     },
   });
 
-  console.log("🔧 Selected function:", selectedFunctionId);
-  console.log("📋 Input parameters:", inputParameters);
+
 
   // Update form when field prop changes
   useEffect(() => {
@@ -120,7 +119,6 @@ export function SchemaFieldDialogNew({
 
   // Load input parameters when function changes
   useEffect(() => {
-    console.log("📋 Raw inputParameters from function:", selectedFunction?.inputParameters);
     
     if (selectedFunction?.inputParameters) {
       try {
@@ -162,7 +160,7 @@ export function SchemaFieldDialogNew({
   // Fetch all collections across all projects for @-key referencing
   const { data: allCollections = [], isLoading: collectionsLoading } = useAllCollectionsForReferences();
 
-  console.log('📝 All collections data:', allCollections);
+
 
   const buildAvailableFields = () => {
     const fields: Array<{ key: string; label: string; source: string }> = [];
@@ -186,7 +184,7 @@ export function SchemaFieldDialogNew({
   };
   
   const availableFields = buildAvailableFields();
-  console.log('📝 Available fields for autocomplete (schema field - current project only):', availableFields);
+
 
   // Simple Dropdown component for reference data with clear button
   function ReferenceDataDropdown({ value, onChange, placeholder, availableFields }: {

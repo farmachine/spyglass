@@ -421,9 +421,7 @@ export default function PropertyDialog({
     : [];
   
   // Debug logging for function parameters
-  console.log('📋 [PropertyDialog] Selected function:', selectedFunction?.name);
-  console.log('📋 [PropertyDialog] Input parameters:', inputParameters);
-  console.log('📋 [PropertyDialog] Raw inputParameters from function:', selectedFunction?.inputParameters);
+
 
   // Build available fields for @-key referencing
   const buildAvailableFields = () => {

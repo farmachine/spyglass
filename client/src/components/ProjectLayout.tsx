@@ -35,7 +35,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const [schemaActiveTab, setSchemaActiveTab] = useState<string>("main-data");
   
   // Debug logging for tab state
-  console.log('🔧 ProjectLayout activeTab:', activeTab, 'schemaActiveTab:', schemaActiveTab);
+
   const addCollectionCallbackRef = useRef<(() => void) | null>(null);
   const { data: project, isLoading, error } = useProject(projectId);
   const { user } = useAuth();
@@ -489,13 +489,13 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                   <button
                     key={item.id}
                     onClick={() => {
-                      console.log('🔧 Main nav clicked:', item.id, 'isDisabled:', isDisabled);
+
                       if (!isDisabled) {
                         userNavigatedRef.current = true;
                         // Mark that user has interacted with this project when they navigate manually
                         sessionStorage.setItem(`project-${project.id}-interacted`, 'true');
                         setActiveTab(item.id);
-                        console.log('🔧 Set activeTab to:', item.id);
+
                       }
                     }}
                     disabled={isDisabled}
@@ -528,7 +528,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                   {/* Main Data Section */}
                   <button
                     onClick={() => {
-                      console.log('🔧 General Information clicked, setting tab to main-data');
+
                       setSchemaActiveTab('main-data');
                     }}
                     className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
@@ -546,7 +546,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                     <button
                       key={collection.id}
                       onClick={() => {
-                        console.log('🔧 Collection clicked:', collection.collectionName);
+
                         setSchemaActiveTab(collection.collectionName);
                       }}
                       className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
@@ -563,7 +563,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                   {/* Add List Button - Always visible */}
                   <button
                     onClick={() => {
-                      console.log('🔧 Add List button clicked, callback available:', !!addCollectionCallbackRef.current);
+
                       if (addCollectionCallbackRef.current) {
                         addCollectionCallbackRef.current();
                       } else {

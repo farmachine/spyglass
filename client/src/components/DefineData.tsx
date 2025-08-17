@@ -72,10 +72,10 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
 
   // Set up the add collection callback for the sidebar
   useEffect(() => {
-    console.log('🔧 DefineData setting up add collection callback:', !!onSetAddCollectionCallback);
+
     if (onSetAddCollectionCallback) {
       const handleAddCollection = () => {
-        console.log('🔧 Add collection callback triggered from sidebar');
+
         setCollectionDialog({ open: true, collection: null });
       };
       onSetAddCollectionCallback(handleAddCollection);
@@ -95,12 +95,13 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
   const { data: extractionRules = [] } = useExtractionRules(project.id);
   
   // Debug logging for schema fields visibility
-  console.log('📝 DefineData debug:', {
+  // Debug info available if needed
+  const debugInfo = {
     activeTab,
     schemaFieldsCount: schemaFields?.length || 0,
     schemaFieldsLoading,
     showingSchemaTab: activeTab === 'Session Fields',
-  });
+  };
   
 
   

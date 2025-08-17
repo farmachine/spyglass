@@ -125,9 +125,7 @@ export default function SchemaFieldDialog({
     : [];
   
   // Debug logging for function parameters
-  console.log('📋 Selected function:', selectedFunction?.name);
-  console.log('📋 Input parameters:', inputParameters);
-  console.log('📋 Raw inputParameters from function:', selectedFunction?.inputParameters);
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
