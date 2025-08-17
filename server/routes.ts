@@ -4969,15 +4969,36 @@ print(json.dumps(results))
       }
 
       console.log('📥 Downloading sample file from object storage:', fileURL);
-      // Download the file from object storage
-      const fileResponse = await fetch(fileURL);
-      if (!fileResponse.ok) {
-        throw new Error("Failed to download uploaded file");
-      }
-
-      const fileBuffer = await fileResponse.arrayBuffer();
-      const base64Content = Buffer.from(fileBuffer).toString('base64');
-      const dataURL = `data:${fileResponse.headers.get('content-type') || 'application/octet-stream'};base64,${base64Content}`;
+      
+      // Extract the relative path from the object storage URL
+      // URL format: https://storage.googleapis.com/bucket-name/.private/sample-files/uuid
+      const urlParts = new URL(fileURL);
+      const pathParts = urlParts.pathname.split('/');
+      const bucketName = pathParts[1]; // First part after domain
+      const objectName = pathParts.slice(2).join('/'); // Everything after bucket name
+      
+      console.log('📁 Bucket:', bucketName, 'Object:', objectName);
+      
+      // Use ObjectStorageService with the Google Cloud Storage client directly
+      const { ObjectStorageService, objectStorageClient } = await import("./objectStorage");
+      const bucket = objectStorageClient.bucket(bucketName);
+      const objectFile = bucket.file(objectName);
+      
+      // Stream the file content to a buffer
+      const chunks: Buffer[] = [];
+      const stream = objectFile.createReadStream();
+      
+      await new Promise((resolve, reject) => {
+        stream.on('data', (chunk) => chunks.push(chunk));
+        stream.on('end', resolve);
+        stream.on('error', reject);
+      });
+      
+      const fileBuffer = Buffer.concat(chunks);
+      const [metadata] = await objectFile.getMetadata();
+      const mimeType = metadata.contentType || 'application/octet-stream';
+      const base64Content = fileBuffer.toString('base64');
+      const dataURL = `data:${mimeType};base64,${base64Content}`;
 
       // Use the SAME document extraction process as session documents
       const extractionData = {
