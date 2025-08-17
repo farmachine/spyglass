@@ -19,7 +19,8 @@ interface InputParameter {
   type: "text" | "data" | "document";
   description: string;
   multiline?: boolean; // Only applies to text type
-  sampleFile?: string; // Sample file path for documents/data
+  sampleFile?: string; // Sample file name for documents/data
+  sampleFileURL?: string; // Sample file URL for documents/data
   sampleText?: string; // Sample text for text type
 }
 
@@ -44,16 +45,21 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
 
   const createFunction = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("/api/excel-functions", {
+      const response = await apiRequest("/api/excel-functions", {
         method: "POST",
         body: JSON.stringify(data)
       });
+      
+      // Process sample documents after function creation
+      await processSampleDocuments(response.id, data.inputParameters);
+      
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
       toast({
         title: "Function Created",
-        description: "Tool has been created successfully."
+        description: "Tool has been created successfully with sample documents processed."
       });
       setOpen(false);
       resetForm();
@@ -162,6 +168,38 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
     }
   };
 
+  const processSampleDocuments = async (functionId: string, parameters: InputParameter[]) => {
+    for (const param of parameters) {
+      try {
+        if (param.sampleText) {
+          // Process text sample
+          await apiRequest("/api/sample-documents/process", {
+            method: "POST",
+            body: JSON.stringify({
+              functionId,
+              parameterName: param.name,
+              sampleText: param.sampleText
+            })
+          });
+        } else if (param.sampleFileURL && param.sampleFile) {
+          // Process file sample using the SAME extraction process as session documents
+          await apiRequest("/api/sample-documents/process", {
+            method: "POST", 
+            body: JSON.stringify({
+              functionId,
+              parameterName: param.name,
+              fileName: param.sampleFile,
+              fileURL: param.sampleFileURL
+            })
+          });
+        }
+      } catch (error) {
+        console.error(`Failed to process sample for parameter ${param.name}:`, error);
+        // Don't throw error to prevent function creation failure
+      }
+    }
+  };
+
   const handleSampleFileUpload = async (paramId: string, file: File | undefined) => {
     if (!file) return;
 
@@ -194,12 +232,13 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
         throw new Error("Failed to upload file");
       }
 
-      // Update the parameter with the file path
+      // Update the parameter with the uploaded file info temporarily
       updateInputParameter(paramId, "sampleFile", file.name);
+      updateInputParameter(paramId, "sampleFileURL", uploadURL.split('?')[0]); // Store the base URL without query params
       
       toast({
         title: "Sample File Uploaded",
-        description: `Sample file "${file.name}" has been uploaded successfully.`,
+        description: `Sample file "${file.name}" has been uploaded and will be processed when the tool is created.`,
       });
     } catch (error) {
       console.error("Upload error:", error);

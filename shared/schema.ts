@@ -214,6 +214,20 @@ export const extractionIdentifierReferences = pgTable("extraction_identifier_ref
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Sample documents for Excel wizardry function testing
+export const sampleDocuments = pgTable("sample_documents", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  functionId: uuid("function_id").notNull().references(() => excelWizardryFunctions.id, { onDelete: "cascade" }),
+  parameterName: text("parameter_name").notNull(), // Which input parameter this sample is for
+  fileName: text("file_name").notNull(),
+  fileSize: integer("file_size"),
+  mimeType: text("mime_type"),
+  filePath: text("file_path"), // Object storage path
+  extractedContent: text("extracted_content"), // Text content extracted from the document (same as sessionDocuments)
+  sampleText: text("sample_text"), // For text parameters
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({
   id: true,
@@ -296,6 +310,11 @@ export const insertExtractionIdentifierReferenceSchema = createInsertSchema(extr
   createdAt: true,
 });
 
+export const insertSampleDocumentSchema = createInsertSchema(sampleDocuments).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type Organization = typeof organizations.$inferSelect;
 export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
@@ -334,6 +353,8 @@ export type ExcelWizardryFunction = typeof excelWizardryFunctions.$inferSelect;
 export type InsertExcelWizardryFunction = z.infer<typeof insertExcelWizardryFunctionSchema>;
 export type ExtractionIdentifierReference = typeof extractionIdentifierReferences.$inferSelect;
 export type InsertExtractionIdentifierReference = z.infer<typeof insertExtractionIdentifierReferenceSchema>;
+export type SampleDocument = typeof sampleDocuments.$inferSelect;
+export type InsertSampleDocument = z.infer<typeof insertSampleDocumentSchema>;
 
 // Validation status types
 export type ValidationStatus = 'valid' | 'invalid' | 'pending' | 'manual';

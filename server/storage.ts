@@ -14,6 +14,7 @@ import {
   chatMessages,
   excelWizardryFunctions,
   extractionIdentifierReferences,
+  sampleDocuments,
   type Project, 
   type InsertProject,
   type ProjectSchemaField,
@@ -47,7 +48,9 @@ import {
   type ExcelWizardryFunction,
   type InsertExcelWizardryFunction,
   type ExtractionIdentifierReference,
-  type InsertExtractionIdentifierReference
+  type InsertExtractionIdentifierReference,
+  type SampleDocument,
+  type InsertSampleDocument
 } from "@shared/schema";
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
@@ -172,6 +175,12 @@ export interface IStorage {
   createExtractionIdentifierReferences(references: InsertExtractionIdentifierReference[]): Promise<ExtractionIdentifierReference[]>;
   deleteExtractionIdentifierReferences(sessionId: string, extractionNumber: number): Promise<boolean>;
   getMergedIdentifierReferences(sessionId: string, upToExtractionNumber: number): Promise<Record<string, any>[]>;
+
+  // Sample Documents
+  getSampleDocuments(functionId: string): Promise<SampleDocument[]>;
+  createSampleDocument(document: InsertSampleDocument): Promise<SampleDocument>;
+  updateSampleDocument(id: string, document: Partial<InsertSampleDocument>): Promise<SampleDocument | undefined>;
+  deleteSampleDocument(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -190,6 +199,7 @@ export class MemStorage implements IStorage {
   private chatMessages: Map<string, ChatMessage>;
   private excelWizardryFunctions: Map<string, ExcelWizardryFunction>;
   private extractionIdentifierReferences: Map<string, ExtractionIdentifierReference>;
+  private sampleDocuments: Map<string, SampleDocument>;
 
   constructor() {
     this.organizations = new Map();
@@ -207,6 +217,7 @@ export class MemStorage implements IStorage {
     this.chatMessages = new Map();
     this.excelWizardryFunctions = new Map();
     this.extractionIdentifierReferences = new Map();
+    this.sampleDocuments = new Map();
     
     // Initialize with sample data for development
     this.initializeSampleData();
@@ -1749,6 +1760,34 @@ export class MemStorage implements IStorage {
       .sort((a, b) => parseInt(a) - parseInt(b))
       .map(key => merged[parseInt(key)]);
   }
+
+  // Sample Documents
+  async getSampleDocuments(functionId: string): Promise<SampleDocument[]> {
+    return Array.from(this.sampleDocuments.values()).filter(doc => doc.functionId === functionId);
+  }
+
+  async createSampleDocument(document: InsertSampleDocument): Promise<SampleDocument> {
+    const sampleDocument: SampleDocument = {
+      id: this.generateUUID(),
+      ...document,
+      createdAt: new Date()
+    };
+    this.sampleDocuments.set(sampleDocument.id, sampleDocument);
+    return sampleDocument;
+  }
+
+  async updateSampleDocument(id: string, document: Partial<InsertSampleDocument>): Promise<SampleDocument | undefined> {
+    const existing = this.sampleDocuments.get(id);
+    if (!existing) return undefined;
+    
+    const updated = { ...existing, ...document };
+    this.sampleDocuments.set(id, updated);
+    return updated;
+  }
+
+  async deleteSampleDocument(id: string): Promise<boolean> {
+    return this.sampleDocuments.delete(id);
+  }
 }
 
 // PostgreSQL Storage Implementation
@@ -3159,6 +3198,34 @@ class PostgreSQLStorage implements IStorage {
       return Object.keys(merged)
         .sort((a, b) => parseInt(a) - parseInt(b))
         .map(key => merged[parseInt(key)]);
+    });
+  }
+
+  // Sample Documents
+  async getSampleDocuments(functionId: string): Promise<SampleDocument[]> {
+    return this.retryOperation(async () => {
+      return await this.db.select().from(sampleDocuments).where(eq(sampleDocuments.functionId, functionId));
+    });
+  }
+
+  async createSampleDocument(document: InsertSampleDocument): Promise<SampleDocument> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.insert(sampleDocuments).values(document).returning();
+      return result;
+    });
+  }
+
+  async updateSampleDocument(id: string, document: Partial<InsertSampleDocument>): Promise<SampleDocument | undefined> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.update(sampleDocuments).set(document).where(eq(sampleDocuments.id, id)).returning();
+      return result;
+    });
+  }
+
+  async deleteSampleDocument(id: string): Promise<boolean> {
+    return this.retryOperation(async () => {
+      const result = await this.db.delete(sampleDocuments).where(eq(sampleDocuments.id, id));
+      return result.rowCount > 0;
     });
   }
 }

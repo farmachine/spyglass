@@ -4926,6 +4926,122 @@ print(json.dumps(results))
     }
   });
 
+  // Sample Document Processing Route - uses the same extraction process as session documents
+  app.post("/api/sample-documents/process", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { functionId, parameterName, fileName, fileURL, sampleText } = req.body;
+
+      if (sampleText) {
+        // For text parameters, just save the text directly
+        const sampleDocument = await storage.createSampleDocument({
+          functionId,
+          parameterName,
+          fileName: `${parameterName}_sample_text.txt`,
+          sampleText,
+          mimeType: "text/plain"
+        });
+        return res.json({ success: true, document: sampleDocument });
+      }
+
+      if (!fileURL) {
+        return res.status(400).json({ error: "File URL is required for document processing" });
+      }
+
+      // Download the file from object storage
+      const fileResponse = await fetch(fileURL);
+      if (!fileResponse.ok) {
+        throw new Error("Failed to download uploaded file");
+      }
+
+      const fileBuffer = await fileResponse.arrayBuffer();
+      const base64Content = Buffer.from(fileBuffer).toString('base64');
+      const dataURL = `data:${fileResponse.headers.get('content-type') || 'application/octet-stream'};base64,${base64Content}`;
+
+      // Use the SAME document extraction process as session documents
+      const extractionData = {
+        step: "extract_text_only",
+        documents: [{
+          file_name: fileName,
+          file_content: dataURL,
+          mime_type: fileResponse.headers.get('content-type') || 'application/octet-stream'
+        }]
+      };
+
+      const { spawn } = await import('child_process');
+      const python = spawn('python3', ['document_extractor.py']);
+      
+      python.stdin.write(JSON.stringify(extractionData));
+      python.stdin.end();
+      
+      let output = '';
+      let error = '';
+      
+      python.stdout.on('data', (data) => {
+        output += data.toString();
+      });
+      
+      python.stderr.on('data', (data) => {
+        error += data.toString();
+      });
+      
+      python.on('close', async (code) => {
+        if (code !== 0) {
+          console.error('Sample document extraction error:', error);
+          return res.status(500).json({ 
+            success: false,
+            error: "Document extraction failed",
+            message: error || "Unknown error"
+          });
+        }
+        
+        try {
+          const result = JSON.parse(output);
+          
+          if (!result.extracted_texts || result.extracted_texts.length === 0) {
+            throw new Error("No text extracted from document");
+          }
+
+          const extractedText = result.extracted_texts[0];
+          
+          // Save the sample document with extracted content (same as session documents)
+          const sampleDocument = await storage.createSampleDocument({
+            functionId,
+            parameterName,
+            fileName,
+            filePath: fileURL,
+            extractedContent: extractedText.text_content,
+            mimeType: fileResponse.headers.get('content-type') || 'application/octet-stream',
+            fileSize: parseInt(fileResponse.headers.get('content-length') || '0')
+          });
+
+          console.log(`Sample document processed: ${fileName} - content length: ${extractedText.text_content?.length || 0}`);
+          
+          res.json({ 
+            success: true, 
+            document: sampleDocument,
+            extractedContent: extractedText.text_content 
+          });
+          
+        } catch (parseError) {
+          console.error("Error parsing extraction result:", parseError);
+          res.status(500).json({ 
+            success: false,
+            error: "Failed to parse extraction result",
+            message: parseError instanceof Error ? parseError.message : "Unknown error"
+          });
+        }
+      });
+      
+    } catch (error) {
+      console.error("Error processing sample document:", error);
+      res.status(500).json({ 
+        success: false,
+        error: "Sample document processing failed", 
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Chat Routes
   
   // Get chat messages for a session
