@@ -497,7 +497,36 @@ export function PropertyDialogNew({
                         </label>
                         <p className="text-xs text-gray-600 mb-2">{param.description}</p>
                         
-                        {param.type === "text" && param.name !== "Reference Documents" ? (
+                        {param.type === "text" ? (
+                          param.multiline ? (
+                            <Textarea
+                              value={(form.watch("functionParameters") || {})[param.name] || ""}
+                              onChange={(e) => {
+                                const current = form.watch("functionParameters") || {};
+                                form.setValue("functionParameters", {
+                                  ...current,
+                                  [param.name]: e.target.value
+                                });
+                              }}
+                              placeholder={`Enter value for ${param.name}`}
+                              rows={4}
+                              className="w-full resize-none"
+                            />
+                          ) : (
+                            <Input
+                              value={(form.watch("functionParameters") || {})[param.name] || ""}
+                              onChange={(e) => {
+                                const current = form.watch("functionParameters") || {};
+                                form.setValue("functionParameters", {
+                                  ...current,
+                                  [param.name]: e.target.value
+                                });
+                              }}
+                              placeholder={`Enter value for ${param.name}`}
+                              className="w-full"
+                            />
+                          )
+                        ) : param.type === "data" ? (
                           <ReferenceDataDropdown
                             value={(form.watch("functionParameters") || {})[param.name] || ""}
                             onChange={(val: any) => {

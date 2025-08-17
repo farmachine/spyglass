@@ -511,15 +511,31 @@ export function SchemaFieldDialogNew({
                         </label>
                         <p className="text-xs text-gray-600 mb-2">{param.description}</p>
                         
-                        {param.type === "textarea" ? (
-                          <Textarea
-                            placeholder={`Enter ${param.name.toLowerCase()}...`}
+                        {param.type === "text" ? (
+                          param.multiline ? (
+                            <Textarea
+                              placeholder={`Enter ${param.name.toLowerCase()}...`}
+                              value={form.watch(`functionParameters.${param.id}`) || ""}
+                              onChange={(e) => form.setValue(`functionParameters.${param.id}`, e.target.value)}
+                              rows={4}
+                              className="w-full resize-none"
+                            />
+                          ) : (
+                            <Input
+                              placeholder={`Enter ${param.name.toLowerCase()}...`}
+                              value={form.watch(`functionParameters.${param.id}`) || ""}
+                              onChange={(e) => form.setValue(`functionParameters.${param.id}`, e.target.value)}
+                              className="w-full"
+                            />
+                          )
+                        ) : param.type === "data" ? (
+                          <ReferenceDataDropdown
                             value={form.watch(`functionParameters.${param.id}`) || ""}
-                            onChange={(e) => form.setValue(`functionParameters.${param.id}`, e.target.value)}
-                            rows={3}
-                            className="w-full"
+                            onChange={(val) => form.setValue(`functionParameters.${param.id}`, val)}
+                            placeholder={`Select ${param.name.toLowerCase()}...`}
+                            availableFields={availableFields}
                           />
-                        ) : param.type === "documents" || param.name === "Reference Documents" ? (
+                        ) : param.type === "document" || param.name === "Reference Documents" ? (
                           <MultiSelectDocument
                             value={form.watch(`functionParameters.${param.id}`) || []}
                             onChange={(docs) => form.setValue(`functionParameters.${param.id}`, docs)}
@@ -527,11 +543,12 @@ export function SchemaFieldDialogNew({
                             knowledgeDocuments={knowledgeDocuments}
                           />
                         ) : (
-                          <ReferenceDataDropdown
+                          <Textarea
+                            placeholder={`Enter ${param.name.toLowerCase()}...`}
                             value={form.watch(`functionParameters.${param.id}`) || ""}
-                            onChange={(val) => form.setValue(`functionParameters.${param.id}`, val)}
-                            placeholder={`Select ${param.name.toLowerCase()}...`}
-                            availableFields={availableFields}
+                            onChange={(e) => form.setValue(`functionParameters.${param.id}`, e.target.value)}
+                            rows={3}
+                            className="w-full"
                           />
                         )}
                       </div>
