@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Code, Edit3, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import { Code, Edit3, ChevronDown, ChevronRight, Trash2, Plus, X, FileText, Database, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { apiRequest } from "@/lib/queryClient";
@@ -33,16 +35,60 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
   const [codeModalOpen, setCodeModalOpen] = useState(false);
   const [selectedFunction, setSelectedFunction] = useState<ExcelWizardryFunction | null>(null);
   const [editingFunction, setEditingFunction] = useState<ExcelWizardryFunction | null>(null);
+  interface InputParameter {
+    id: string;
+    name: string;
+    type: "text" | "data" | "document";
+    description: string;
+    multiline?: boolean; // Only applies to text type
+  }
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     functionCode: "",
     tags: "",
-    inputParameters: [] as Array<{ id?: string; name: string; type: string; description: string }>
+    inputParameters: [] as InputParameter[]
   });
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Helper functions for input parameters
+  const addInputParameter = () => {
+    const newParam: InputParameter = {
+      id: Math.random().toString(36),
+      name: "",
+      type: "text",
+      description: "",
+      multiline: false
+    };
+    setFormData(prev => ({ ...prev, inputParameters: [...prev.inputParameters, newParam] }));
+  };
+
+  const updateInputParameter = (id: string, field: keyof InputParameter, value: string | boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      inputParameters: prev.inputParameters.map(param => {
+        if (param.id === id) {
+          const updatedParam = { ...param, [field]: value };
+          // Reset multiline to false when type changes away from "text"
+          if (field === "type" && value !== "text") {
+            updatedParam.multiline = false;
+          }
+          return updatedParam;
+        }
+        return param;
+      })
+    }));
+  };
+
+  const removeInputParameter = (id: string) => {
+    setFormData(prev => ({
+      ...prev,
+      inputParameters: prev.inputParameters.filter(param => param.id !== id)
+    }));
+  };
 
   // Fetch Excel wizardry functions for this project
   const { data: functions, isLoading } = useQuery<ExcelWizardryFunction[]>({
@@ -129,8 +175,9 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
         ? (func as any).inputParameters.map((param: any, index: number) => ({
             id: param.id || `param_${index}`,
             name: param.name || "",
-            type: param.type || "text",
-            description: param.description || ""
+            type: (param.type as "text" | "data" | "document") || "text",
+            description: param.description || "",
+            multiline: param.multiline || false
           }))
         : []
     });
@@ -147,8 +194,9 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
         ? (func as any).inputParameters.map((param: any, index: number) => ({
             id: param.id || `param_${index}`,
             name: param.name || "",
-            type: param.type || "text",
-            description: param.description || ""
+            type: (param.type as "text" | "data" | "document") || "text",
+            description: param.description || "",
+            multiline: param.multiline || false
           }))
         : []
     });
@@ -303,81 +351,113 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                           />
                         </div>
                         
-                        {/* Input Parameters Section */}
-                        <div>
-                          <Label className="text-sm font-medium">Input Parameters</Label>
-                          <div className="space-y-3 mt-2">
-                            {formData.inputParameters.map((param, index) => (
-                              <div key={param.id || index} className="p-3 border rounded-lg bg-gray-50">
-                                <div className="grid grid-cols-3 gap-2 mb-2">
-                                  <Input
-                                    placeholder="Parameter name"
-                                    value={param.name}
-                                    onChange={(e) => {
-                                      const newParams = [...formData.inputParameters];
-                                      newParams[index].name = e.target.value;
-                                      setFormData({ ...formData, inputParameters: newParams });
-                                    }}
-                                  />
-                                  <select
-                                    className="px-3 py-2 border rounded-md text-sm"
-                                    value={param.type}
-                                    onChange={(e) => {
-                                      const newParams = [...formData.inputParameters];
-                                      newParams[index].type = e.target.value;
-                                      setFormData({ ...formData, inputParameters: newParams });
-                                    }}
-                                  >
-                                    <option value="text">Text</option>
-                                    <option value="document">Document</option>
-                                    <option value="number">Number</option>
-                                  </select>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      const newParams = formData.inputParameters.filter((_, i) => i !== index);
-                                      setFormData({ ...formData, inputParameters: newParams });
-                                    }}
-                                    className="text-red-600 hover:text-red-700"
-                                  >
-                                    Remove
-                                  </Button>
+                        {/* Inputs */}
+                        <Card className="border-gray-200">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-lg text-gray-800 flex items-center justify-between">
+                              Inputs *
+                              <Button 
+                                size="sm" 
+                                onClick={addInputParameter}
+                                className="bg-gray-600 hover:bg-gray-700"
+                              >
+                                <Plus className="h-4 w-4 mr-1" />
+                                Add Input
+                              </Button>
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            {formData.inputParameters.length === 0 ? (
+                              <p className="text-gray-500 text-center py-8">
+                                No inputs defined. Click "Add Input" to start.
+                              </p>
+                            ) : (
+                              formData.inputParameters.map((param) => (
+                                <div key={param.id} className="border border-gray-200 rounded-lg p-4 space-y-3">
+                                  <div className="flex items-center justify-between">
+                                    <Badge variant="outline" className="border-gray-300">
+                                      @{param.name || "parameter-name"}
+                                    </Badge>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => removeInputParameter(param.id)}
+                                      className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <Label className="text-sm font-medium text-gray-700">Input Name</Label>
+                                      <Input
+                                        value={param.name}
+                                        onChange={(e) => updateInputParameter(param.id, "name", e.target.value)}
+                                        placeholder="parameter_name"
+                                        className="mt-1"
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label className="text-sm font-medium text-gray-700">Type</Label>
+                                      <Select 
+                                        value={param.type} 
+                                        onValueChange={(value: "text" | "data" | "document") => updateInputParameter(param.id, "type", value)}
+                                      >
+                                        <SelectTrigger className="mt-1">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="text">
+                                            <div className="flex items-center gap-2">
+                                              <Type className="h-4 w-4" />
+                                              Text
+                                            </div>
+                                          </SelectItem>
+                                          <SelectItem value="data">
+                                            <div className="flex items-center gap-2">
+                                              <Database className="h-4 w-4" />
+                                              Data
+                                            </div>
+                                          </SelectItem>
+                                          <SelectItem value="document">
+                                            <div className="flex items-center gap-2">
+                                              <FileText className="h-4 w-4" />
+                                              Document
+                                            </div>
+                                          </SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  </div>
+                                  {param.type === "text" && (
+                                    <div>
+                                      <div className="flex items-center space-x-2">
+                                        <Switch
+                                          id={`multiline-${param.id}`}
+                                          checked={param.multiline || false}
+                                          onCheckedChange={(checked) => updateInputParameter(param.id, "multiline", checked)}
+                                        />
+                                        <Label htmlFor={`multiline-${param.id}`} className="text-sm font-medium text-gray-700">
+                                          Multi-line text input
+                                        </Label>
+                                      </div>
+                                    </div>
+                                  )}
+                                  <div>
+                                    <Label className="text-sm font-medium text-gray-700">Description</Label>
+                                    <Textarea
+                                      value={param.description}
+                                      onChange={(e) => updateInputParameter(param.id, "description", e.target.value)}
+                                      placeholder="Describe what this parameter is used for"
+                                      rows={2}
+                                      className="mt-1"
+                                    />
+                                  </div>
                                 </div>
-                                <Input
-                                  placeholder="Parameter description"
-                                  value={param.description}
-                                  onChange={(e) => {
-                                    const newParams = [...formData.inputParameters];
-                                    newParams[index].description = e.target.value;
-                                    setFormData({ ...formData, inputParameters: newParams });
-                                  }}
-                                />
-                              </div>
-                            ))}
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                const newParam = {
-                                  id: `param_${Date.now()}`,
-                                  name: "",
-                                  type: "text",
-                                  description: ""
-                                };
-                                setFormData({ 
-                                  ...formData, 
-                                  inputParameters: [...formData.inputParameters, newParam]
-                                });
-                              }}
-                              className="w-full"
-                            >
-                              + Add Parameter
-                            </Button>
-                          </div>
-                        </div>
+                              ))
+                            )}
+                          </CardContent>
+                        </Card>
                         <div className="flex gap-2 pt-2">
                           <Button 
                             size="sm" 
