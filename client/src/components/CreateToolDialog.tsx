@@ -30,7 +30,7 @@ interface CreateToolDialogProps {
 
 export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
   const [open, setOpen] = useState(false);
-  const [functionType, setFunctionType] = useState<"SCRIPT" | "AI_ONLY" | null>(null);
+  const [toolType, setToolType] = useState<"SCRIPT" | "AI_ONLY" | null>(null);
   const [aiAssistanceRequired, setAiAssistanceRequired] = useState(false);
   const [outputType, setOutputType] = useState<"single" | "multiple">("single");
   const [inputParameters, setInputParameters] = useState<InputParameter[]>([]);
@@ -44,14 +44,14 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const createFunction = useMutation({
+  const createTool = useMutation({
     mutationFn: async (data: any) => {
       const response = await apiRequest("/api/excel-functions", {
         method: "POST",
         body: JSON.stringify(data)
       });
       
-      // Process sample documents after function creation
+      // Process sample documents after tool creation
       await processSampleDocuments(response.id, data.inputParameters);
       
       return response;
@@ -59,7 +59,7 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
       toast({
-        title: "Function Created",
+        title: "Tool Created",
         description: "Tool has been created successfully with sample documents processed."
       });
       setOpen(false);
@@ -74,7 +74,7 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
     }
   });
 
-  const generateCode = useMutation({
+  const generateToolCode = useMutation({
     mutationFn: async (data: any) => {
       return apiRequest("/api/excel-functions/generate", {
         method: "POST",
@@ -82,13 +82,13 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
       });
     },
     onSuccess: (response) => {
-      // Use the response to create the function with generated code
-      createFunction.mutate(response);
+      // Use the response to create the tool with generated code
+      createTool.mutate(response);
     },
     onError: () => {
       toast({
         title: "Code Generation Failed",
-        description: "Failed to generate function code. Please try again.",
+        description: "Failed to generate tool code. Please try again.",
         variant: "destructive"
       });
     }
@@ -261,7 +261,7 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
       aiAssistancePrompt: ""
     });
     setInputParameters([]);
-    setFunctionType(null);
+    setToolType(null);
     setAiAssistanceRequired(false);
     setOutputType("single");
   };
@@ -287,19 +287,19 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
       return;
     }
 
-    const functionData = {
+    const toolData = {
       projectId,
       name: formData.name,
       description: formData.description,
-      functionType,
+      toolType,
       outputType,
       inputParameters,
-      aiAssistanceRequired: functionType === "SCRIPT" ? aiAssistanceRequired : false,
+      aiAssistanceRequired: toolType === "SCRIPT" ? aiAssistanceRequired : false,
       aiAssistancePrompt: aiAssistanceRequired ? formData.aiAssistancePrompt : null,
       tags: [] // Default to empty tags array since we removed the tags field
     };
 
-    generateCode.mutate(functionData);
+    generateToolCode.mutate(toolData);
   };
 
   return (
@@ -346,7 +346,7 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Describe what this function does and how to use @-key references for parameters"
+                  placeholder="Describe what this tool does and how to use @-key references for parameters"
                   rows={3}
                   className="mt-1"
                 />
@@ -361,7 +361,7 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
               <CardTitle className="text-lg text-gray-800">Tool Type</CardTitle>
             </CardHeader>
             <CardContent>
-              <Select value={functionType || ""} onValueChange={(value: "SCRIPT" | "AI_ONLY") => setFunctionType(value)}>
+              <Select value={toolType || ""} onValueChange={(value: "SCRIPT" | "AI_ONLY") => setToolType(value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select tool type" />
                 </SelectTrigger>
@@ -371,9 +371,9 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
                 </SelectContent>
               </Select>
               <p className="text-sm text-gray-600 mt-2">
-                {functionType === "SCRIPT" 
+                {toolType === "SCRIPT" 
                   ? "Python script that processes data with optional AI assistance"
-                  : "AI-powered function that uses prompts to analyze and extract data"
+                  : "AI-powered tool that uses prompts to analyze and extract data"
                 }
               </p>
             </CardContent>
@@ -390,7 +390,7 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
                 {/* Output Type Toggle - Top Right */}
                 <div className="flex items-center gap-3">
                   <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">
-                    This function is to create:
+                    This tool is to create:
                   </Label>
                   <div className="flex gap-2">
                     <Button
@@ -541,7 +541,7 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
           </Card>
 
           {/* AI Assistance (only for SCRIPT functions) */}
-          {functionType === "SCRIPT" && (
+          {toolType === "SCRIPT" && (
             <Card className="border-gray-200">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg text-gray-800">AI Assistance</CardTitle>
@@ -565,7 +565,7 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
                     <Textarea
                       value={formData.aiAssistancePrompt}
                       onChange={(e) => setFormData({ ...formData, aiAssistancePrompt: e.target.value })}
-                      placeholder="Describe how AI should process the function results to generate the final output"
+                      placeholder="Describe how AI should process the tool results to generate the final output"
                       rows={3}
                       className="mt-1"
                     />
@@ -586,10 +586,10 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
             </Button>
             <Button 
               onClick={handleSubmit}
-              disabled={generateCode.isPending || createFunction.isPending}
+              disabled={generateToolCode.isPending || createTool.isPending}
               className="bg-gray-700 hover:bg-gray-800 text-white"
             >
-              {generateCode.isPending ? "Generating..." : "Generate Tool"}
+              {generateToolCode.isPending ? "Generating..." : "Generate Tool"}
             </Button>
           </div>
         </div>

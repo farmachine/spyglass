@@ -38,7 +38,7 @@ const fieldTypes = ["TEXT", "NUMBER", "DATE", "CHOICE"] as const;
 const formSchema = z.object({
   fieldName: z.string().min(1, "Field name is required"),
   fieldType: z.enum(fieldTypes),
-  functionId: z.string().min(1, "Function selection is required"),
+  functionId: z.string().min(1, "Tool selection is required"),
   functionParameters: z.record(z.any()).optional(),
   choices: z.array(z.string()).optional(),
   autoVerificationConfidence: z.number().min(0).max(100).default(80),
@@ -68,7 +68,7 @@ export function SchemaFieldDialogNew({
   wizardryFunctions = [],
   projectId
 }: SchemaFieldDialogNewProps) {
-  const [selectedFunctionId, setSelectedFunctionId] = useState<string>("");
+  const [selectedToolId, setSelectedToolId] = useState<string>("");
   const [inputParameters, setInputParameters] = useState<any[]>([]);
   
   const form = useForm<SchemaFieldForm>({
@@ -89,8 +89,8 @@ export function SchemaFieldDialogNew({
   // Update form when field prop changes
   useEffect(() => {
     if (field) {
-      const functionId = field.functionId || "ai_extraction";
-      setSelectedFunctionId(functionId);
+      const toolId = field.functionId || "ai_extraction";
+      setSelectedToolId(toolId);
       
       form.reset({
         fieldName: field.fieldName || "",
@@ -102,7 +102,7 @@ export function SchemaFieldDialogNew({
         orderIndex: field.orderIndex || 0,
       });
     } else {
-      setSelectedFunctionId("");
+      setSelectedToolId("");
       form.reset({
         fieldName: "",
         fieldType: "TEXT", 
@@ -115,22 +115,22 @@ export function SchemaFieldDialogNew({
     }
   }, [field, form]);
 
-  const selectedFunction = wizardryFunctions.find(f => f.id === selectedFunctionId);
+  const selectedTool = wizardryFunctions.find(f => f.id === selectedToolId);
 
-  // Load input parameters when function changes
+  // Load input parameters when tool changes
   useEffect(() => {
     
-    if (selectedFunction?.inputParameters) {
+    if (selectedTool?.inputParameters) {
       try {
-        const params = typeof selectedFunction.inputParameters === 'string' 
-          ? JSON.parse(selectedFunction.inputParameters)
-          : selectedFunction.inputParameters;
+        const params = typeof selectedTool.inputParameters === 'string' 
+          ? JSON.parse(selectedTool.inputParameters)
+          : selectedTool.inputParameters;
         setInputParameters(Array.isArray(params) ? params : []);
       } catch (error) {
         console.error("Error parsing input parameters:", error);
         setInputParameters([]);
       }
-    } else if (selectedFunctionId === "" || !selectedFunction) {
+    } else if (selectedToolId === "" || !selectedTool) {
       // Default AI extraction parameters
       setInputParameters([
         {
@@ -155,7 +155,7 @@ export function SchemaFieldDialogNew({
     } else {
       setInputParameters([]);
     }
-  }, [selectedFunctionId, selectedFunction]);
+  }, [selectedToolId, selectedTool]);
 
   // Fetch all collections across all projects for @-key referencing
   const { data: allCollections = [], isLoading: collectionsLoading } = useAllCollectionsForReferences();
@@ -340,13 +340,13 @@ export function SchemaFieldDialogNew({
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
-            {selectedFunctionId && wizardryFunctions.find(f => f.id === selectedFunctionId) ? (
+            {selectedToolId && wizardryFunctions.find(f => f.id === selectedToolId) ? (
               <div>
                 <DialogTitle className="flex items-center gap-2">
-                  {wizardryFunctions.find(f => f.id === selectedFunctionId)?.name}
+                  {wizardryFunctions.find(f => f.id === selectedToolId)?.name}
                 </DialogTitle>
                 <p className="text-sm text-gray-600 mt-1">
-                  {wizardryFunctions.find(f => f.id === selectedFunctionId)?.description}
+                  {wizardryFunctions.find(f => f.id === selectedToolId)?.description}
                 </p>
               </div>
             ) : (
@@ -355,13 +355,13 @@ export function SchemaFieldDialogNew({
               </DialogTitle>
             )}
             
-            {/* Global Function Selector */}
+            {/* Global Tool Selector */}
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-600">Extraction Method:</span>
               <Select
-                value={selectedFunctionId}
+                value={selectedToolId}
                 onValueChange={(value) => {
-                  setSelectedFunctionId(value);
+                  setSelectedToolId(value);
                   form.setValue("functionId", value);
                 }}
               >
@@ -369,11 +369,11 @@ export function SchemaFieldDialogNew({
                   <SelectValue placeholder="Select method" />
                 </SelectTrigger>
                 <SelectContent>
-                  {[...wizardryFunctions].sort((a, b) => a.name.localeCompare(b.name)).map((func) => (
-                    <SelectItem key={func.id} value={func.id}>
+                  {[...wizardryFunctions].sort((a, b) => a.name.localeCompare(b.name)).map((tool) => (
+                    <SelectItem key={tool.id} value={tool.id}>
                       <div className="flex items-center gap-2">
-                        {func.functionType === "AI_ONLY" ? <Brain className="h-4 w-4" /> : <Settings className="h-4 w-4" />}
-                        {func.name}
+                        {tool.functionType === "AI_ONLY" ? <Brain className="h-4 w-4" /> : <Settings className="h-4 w-4" />}
+                        {tool.name}
                       </div>
                     </SelectItem>
                   ))}
@@ -562,7 +562,7 @@ export function SchemaFieldDialogNew({
               </Button>
               <Button
                 type="submit"
-                disabled={!selectedFunctionId || !form.watch("fieldName")}
+                disabled={!selectedToolId || !form.watch("fieldName")}
               >
                 {field ? "Update" : "Add"} Field
               </Button>

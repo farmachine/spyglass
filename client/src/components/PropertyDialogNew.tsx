@@ -36,7 +36,7 @@ const propertyTypes = ["TEXT", "NUMBER", "DATE", "CHOICE"] as const;
 const formSchema = z.object({
   propertyName: z.string().min(1, "Property name is required"),
   propertyType: z.enum(propertyTypes),
-  functionId: z.string().min(1, "Function selection is required"),
+  functionId: z.string().min(1, "Tool selection is required"),
   functionParameters: z.record(z.any()).optional(),
   choices: z.array(z.string()).optional(),
   autoVerificationConfidence: z.number().min(0).max(100).default(80),
@@ -120,10 +120,10 @@ export function PropertyDialogNew({
     }
   };
 
-  // Get selected function details
-  const selectedFunction = wizardryFunctions.find(f => f.id === form.watch("functionId"));
-  const inputParameters = Array.isArray(selectedFunction?.inputParameters) 
-    ? selectedFunction.inputParameters 
+  // Get selected tool details
+  const selectedTool = wizardryFunctions.find(f => f.id === form.watch("functionId"));
+  const inputParameters = Array.isArray(selectedTool?.inputParameters) 
+    ? selectedTool.inputParameters 
     : [];
 
   // Build available fields for @-key referencing
@@ -311,10 +311,10 @@ export function PropertyDialogNew({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          {form.watch("functionId") && selectedFunction ? (
+          {form.watch("functionId") && selectedTool ? (
             <>
               <DialogTitle className="flex items-center gap-2">
-                {selectedFunction.name}
+                {selectedTool.name}
                 {property?.isIdentifier && (
                   <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
                     <Key className="h-3 w-3 mr-1" />
@@ -323,7 +323,7 @@ export function PropertyDialogNew({
                 )}
               </DialogTitle>
               <DialogDescription>
-                {selectedFunction.description}
+                {selectedTool.description}
               </DialogDescription>
             </>
           ) : (
@@ -360,7 +360,7 @@ export function PropertyDialogNew({
                 value={form.watch("functionId") || ""} 
                 onValueChange={(value) => {
                   form.setValue("functionId", value);
-                  // Reset function parameters when function changes
+                  // Reset tool parameters when tool changes
                   form.setValue("functionParameters", {});
                 }}
               >
@@ -368,17 +368,17 @@ export function PropertyDialogNew({
                   <SelectValue placeholder="Select method..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {[...wizardryFunctions].sort((a, b) => a.name.localeCompare(b.name)).map((func) => (
-                    <SelectItem key={func.id} value={func.id}>
-                      {func.name}
+                  {[...wizardryFunctions].sort((a, b) => a.name.localeCompare(b.name)).map((tool) => (
+                    <SelectItem key={tool.id} value={tool.id}>
+                      {tool.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             ) : (
               <div className="border rounded p-3 text-center text-sm">
-                <p className="text-gray-500">No functions available</p>
-                <p className="text-xs text-gray-400 mt-1">Create functions in Tools section</p>
+                <p className="text-gray-500">No tools available</p>
+                <p className="text-xs text-gray-400 mt-1">Create tools in Tools section</p>
               </div>
             )}
           </div>
@@ -489,8 +489,8 @@ export function PropertyDialogNew({
               )}
             </div>
 
-            {/* Data Sources Section - Only show when function is selected */}
-            {selectedFunction && inputParameters.length > 0 && (
+            {/* Data Sources Section - Only show when tool is selected */}
+            {selectedTool && inputParameters.length > 0 && (
               <div className="space-y-4 p-4 border rounded-lg">
                 <div className="flex items-center gap-2">
                   <Settings className="h-5 w-5 text-gray-600" />
