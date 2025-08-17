@@ -4663,15 +4663,20 @@ print(json.dumps(results))
   // Create Excel wizardry function
   app.post("/api/excel-functions", authenticateToken, async (req: AuthRequest, res) => {
     try {
+      console.log('🔧 Creating new Excel function with data:', JSON.stringify(req.body, null, 2));
+      
       const result = insertExcelWizardryFunctionSchema.safeParse(req.body);
       if (!result.success) {
+        console.error('❌ Schema validation failed for Excel function creation:', result.error.errors);
         return res.status(400).json({ 
           message: "Invalid Excel wizardry function data", 
           errors: result.error.errors 
         });
       }
 
+      console.log('✅ Schema validation passed, creating function...');
       const func = await storage.createExcelWizardryFunction(result.data);
+      console.log('🎉 Successfully created Excel function:', JSON.stringify(func, null, 2));
       res.status(201).json(func);
     } catch (error) {
       console.error("Error creating Excel wizardry function:", error);
@@ -4683,8 +4688,11 @@ print(json.dumps(results))
   app.put("/api/excel-functions/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = req.params.id;
+      console.log(`🔧 Full update Excel function ${id} with data:`, JSON.stringify(req.body, null, 2));
+      
       const result = insertExcelWizardryFunctionSchema.partial().safeParse(req.body);
       if (!result.success) {
+        console.error('❌ Schema validation failed for Excel function update:', result.error.errors);
         return res.status(400).json({ 
           message: "Invalid Excel wizardry function data", 
           errors: result.error.errors 
@@ -4693,9 +4701,11 @@ print(json.dumps(results))
 
       const func = await storage.updateExcelWizardryFunction(id, result.data);
       if (!func) {
+        console.log(`❌ Excel function ${id} not found for update`);
         return res.status(404).json({ message: "Excel wizardry function not found" });
       }
       
+      console.log('✅ Successfully updated Excel function:', JSON.stringify(func, null, 2));
       res.json(func);
     } catch (error) {
       console.error("Error updating Excel wizardry function:", error);
@@ -4786,9 +4796,12 @@ print(json.dumps(results))
   // Generate Excel wizardry function code
   app.post("/api/excel-functions/generate", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const { projectId, name, description, functionType, inputParameters, aiAssistanceRequired, aiAssistancePrompt, tags } = req.body;
+      console.log('🤖 Generating Excel function code with input:', JSON.stringify(req.body, null, 2));
+      
+      const { projectId, name, description, functionType, inputParameters, aiAssistanceRequired, aiAssistancePrompt, tags, outputType } = req.body;
       
       if (!name || !description || !inputParameters || !Array.isArray(inputParameters)) {
+        console.error('❌ Missing required fields for function generation');
         return res.status(400).json({ 
           message: "Invalid function generation data. Name, description, and inputParameters are required." 
         });
@@ -4797,6 +4810,7 @@ print(json.dumps(results))
       // Import the Gemini function
       const { generateFunctionCode } = await import("./gemini");
       
+      console.log('🧠 Starting AI function code generation...');
       // Generate the function code using AI
       const { functionCode, metadata } = await generateFunctionCode(
         name,
@@ -4814,6 +4828,7 @@ print(json.dumps(results))
         description,
         functionCode,
         functionType: functionType || "SCRIPT",
+        outputType: outputType || "single",
         inputParameters,
         aiAssistanceRequired: aiAssistanceRequired || false,
         aiAssistancePrompt: aiAssistancePrompt || null,
@@ -4823,6 +4838,7 @@ print(json.dumps(results))
         tags: tags || []
       };
 
+      console.log('🎉 Generated function data:', JSON.stringify(functionData, null, 2));
       res.json(functionData);
     } catch (error) {
       console.error("Error generating Excel wizardry function:", error);
@@ -4929,9 +4945,11 @@ print(json.dumps(results))
   // Sample Document Processing Route - uses the same extraction process as session documents
   app.post("/api/sample-documents/process", authenticateToken, async (req: AuthRequest, res) => {
     try {
+      console.log('📄 Processing sample document with data:', JSON.stringify(req.body, null, 2));
       const { functionId, parameterName, fileName, fileURL, sampleText } = req.body;
 
       if (sampleText) {
+        console.log('📝 Processing sample text for parameter:', parameterName);
         // For text parameters, just save the text directly
         const sampleDocument = await storage.createSampleDocument({
           functionId,
@@ -4940,13 +4958,16 @@ print(json.dumps(results))
           sampleText,
           mimeType: "text/plain"
         });
+        console.log('✅ Successfully saved sample text:', JSON.stringify(sampleDocument, null, 2));
         return res.json({ success: true, document: sampleDocument });
       }
 
       if (!fileURL) {
+        console.error('❌ No file URL provided for document processing');
         return res.status(400).json({ error: "File URL is required for document processing" });
       }
 
+      console.log('📥 Downloading sample file from object storage:', fileURL);
       // Download the file from object storage
       const fileResponse = await fetch(fileURL);
       if (!fileResponse.ok) {
@@ -5003,6 +5024,7 @@ print(json.dumps(results))
 
           const extractedText = result.extracted_texts[0];
           
+          console.log('💾 Saving processed sample document to database...');
           // Save the sample document with extracted content (same as session documents)
           const sampleDocument = await storage.createSampleDocument({
             functionId,
@@ -5014,7 +5036,8 @@ print(json.dumps(results))
             fileSize: parseInt(fileResponse.headers.get('content-length') || '0')
           });
 
-          console.log(`Sample document processed: ${fileName} - content length: ${extractedText.text_content?.length || 0}`);
+          console.log('✅ Successfully processed and saved sample document:', JSON.stringify(sampleDocument, null, 2));
+          console.log(`📊 Sample document extracted content length: ${extractedText.text_content?.length || 0} characters`);
           
           res.json({ 
             success: true, 
