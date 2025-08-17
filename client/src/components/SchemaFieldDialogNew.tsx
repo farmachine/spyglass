@@ -165,7 +165,8 @@ export function SchemaFieldDialogNew({
   const buildAvailableFields = () => {
     const fields: Array<{ key: string; label: string; source: string }> = [];
     
-    // Add all collection properties from all projects
+    // For schema fields: Show ALL collections from ALL projects
+    // (This is a general field, so it can reference any collection)
     allCollections.forEach((collection: any) => {
       collection.properties.forEach((property: any) => {
         fields.push({
@@ -180,7 +181,7 @@ export function SchemaFieldDialogNew({
   };
   
   const availableFields = buildAvailableFields();
-  console.log('📝 Available fields for autocomplete:', availableFields);
+  console.log('📝 Available fields for autocomplete (schema field - all collections):', availableFields);
 
   // Inline AutocompleteInput component
   function AutocompleteInput({ value, onChange, placeholder, availableFields }: {

@@ -803,7 +803,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // For now, use a default organization for development
       // TODO: Restore authenticateToken middleware after fixing auth issues
-      const defaultOrgId = "f794639e-3fd0-4f9c-ac6f-13e754b31c3b"; // Using admin org ID
+      const defaultOrgId = "550e8400-e29b-41d4-a716-446655440000"; // Using sample org ID from MemStorage
       console.log("📝 Using default org ID for collections:", defaultOrgId);
       const collections = await storage.getAllCollectionsForReferences(defaultOrgId);
       console.log("📝 Collections found:", collections.length);

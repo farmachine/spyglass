@@ -130,29 +130,30 @@ export function PropertyDialogNew({
   const buildAvailableFields = () => {
     const fields: Array<{ key: string; label: string; source: string }> = [];
     
-    // Add main schema fields
+    // Add main schema fields with @ prefix
     schemaFields.forEach(field => {
       fields.push({
-        key: field.fieldName,
+        key: `@${field.fieldName}`,
         label: field.fieldName,
         source: 'Main Schema'
       });
     });
     
-    // Add properties from collections with lower or equal index
+    // For collection properties: Only show properties from collections with LOWER index (previous collections)
+    // This prevents circular references and maintains proper order dependency
     collections.forEach((collection, collectionIndex) => {
-      if (collectionIndex <= currentCollectionIndex && (collection as any).properties) {
+      if (collectionIndex < currentCollectionIndex && (collection as any).properties) {
         (collection as any).properties.forEach((prop: any) => {
           fields.push({
-            key: prop.propertyName,
-            label: prop.propertyName,
-            source: `${collection.collectionName} Collection`
+            key: `@${collection.collectionName}.${prop.propertyName}`,
+            label: `${collection.collectionName}.${prop.propertyName}`,
+            source: `Previous Collection - ${collection.collectionName}`
           });
         });
       }
     });
     
-    return fields;
+    return fields.sort((a, b) => a.label.localeCompare(b.label));
   };
   
   const availableFields = buildAvailableFields();
