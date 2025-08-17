@@ -298,16 +298,16 @@ export default function KnowledgeDocumentDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>AI Guidance Description *</FormLabel>
+                  <FormLabel>Description *</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Describe how this document should guide AI extraction. Example: 'This policy document contains standard formats for employee information, use it to understand proper data structure for personnel records.'"
+                      placeholder="Describe the purpose and content of this document. Example: 'This policy document contains standard formats for employee information, use it to understand proper data structure for personnel records.'"
                       className="min-h-[120px]"
                       {...field}
                     />
                   </FormControl>
                   <p className="text-sm text-gray-500">
-                    Required. This description tells the AI how to use this document during extraction.
+                    Required. This description explains how to use this document during extraction.
                   </p>
                   <FormMessage />
                 </FormItem>
