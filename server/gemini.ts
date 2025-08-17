@@ -18,32 +18,61 @@ export async function generateFunctionCode(
   aiAssistancePrompt?: string
 ): Promise<{ functionCode: string; metadata: any }> {
   try {
+    console.log('🧠 Starting AI function generation process...');
+    console.log('📋 Function generation parameters:', {
+      name,
+      description,
+      functionType,
+      aiAssistanceRequired,
+      inputParametersCount: inputParameters.length,
+      inputParameters: inputParameters.map(p => ({ name: p.name, type: p.type }))
+    });
+
     if (functionType === "AI_ONLY") {
-      // Generate AI-only prompt
+      console.log('🤖 Generating AI-only prompt function...');
+      // Generate AI-only prompt with field_validations compatibility
       const systemPrompt = `You are an expert at creating AI prompts for data extraction tasks.
 Generate a comprehensive AI prompt that will be used to extract data from documents.
 
+CRITICAL: The output MUST be compatible with the field_validations database schema format.
+
 Requirements:
 - The prompt should be detailed and specific
-- It should reference the input parameters using @-key syntax
-- It should always output valid JSON format
+- It should reference ALL input parameters using @-key syntax: ${inputParameters.map(p => `@${p.name}`).join(', ')}
+- It should always output valid JSON in field_validations format
 - It should handle edge cases and missing data gracefully
+- Output format MUST be field_validations compatible array
 
-Input Parameters:
+Field Validations Output Format:
+The function must return an array of objects with this exact structure:
+[
+  {
+    "extractedValue": "the extracted value",
+    "validationStatus": "valid|invalid|pending",
+    "aiReasoning": "explanation of extraction logic",
+    "confidenceScore": 95,
+    "documentSource": "source identifier"
+  }
+]
+
+All Input Parameters (use ALL of these in your prompt):
 ${inputParameters.map(p => `- @${p.name} (${p.type}): ${p.description}`).join('\n')}
 
+Function Name: ${name}
 Function Description: ${description}
 
 Respond with JSON in this format:
 {
-  "functionCode": "the AI prompt as a string",
+  "functionCode": "the AI prompt as a string that outputs field_validations format",
   "metadata": {
-    "outputFormat": "description of expected output format",
+    "outputFormat": "field_validations_array",
     "inputValidation": "validation rules for inputs",
-    "errorHandling": "how errors are handled"
+    "errorHandling": "how errors are handled",
+    "parametersUsed": ["list", "of", "all", "parameter", "names"]
   }
 }`;
 
+      console.log('📤 Sending AI prompt generation request to Gemini...');
       const response = await ai.models.generateContent({
         model: "gemini-2.5-pro",
         config: {
@@ -58,51 +87,81 @@ Respond with JSON in this format:
                 properties: {
                   outputFormat: { type: "string" },
                   inputValidation: { type: "string" },
-                  errorHandling: { type: "string" }
+                  errorHandling: { type: "string" },
+                  parametersUsed: { 
+                    type: "array",
+                    items: { type: "string" }
+                  }
                 },
-                required: ["outputFormat", "inputValidation", "errorHandling"]
+                required: ["outputFormat", "inputValidation", "errorHandling", "parametersUsed"]
               }
             },
             required: ["functionCode", "metadata"]
           }
         },
-        contents: `Generate an AI prompt for: ${name}`
+        contents: `Generate an AI prompt for: ${name}\n\nMust use all these parameters: ${inputParameters.map(p => p.name).join(', ')}`
       });
 
+      console.log('✅ AI prompt generation completed');
       const result = JSON.parse(response.text || "{}");
+      console.log('🎯 Generated AI prompt metadata:', result.metadata);
       return result;
     } else {
-      // Generate Python script
+      console.log('🐍 Generating Python script function...');
+      // Generate Python script with field_validations compatibility
       const systemPrompt = `You are an expert Python developer creating data extraction functions.
 Generate a Python function that processes data and outputs to the field_validations database schema.
+
+CRITICAL: The output MUST be exactly compatible with the field_validations database schema format.
 
 Requirements:
 - Function must be named "extract_function"
 - Must accept parameters: document_content, target_fields, identifier_references
-- Must use the input parameters defined by the user
-- Must output data compatible with field_validations schema
-- Must handle errors gracefully
-- Must return structured data as JSON
+- Must use ALL input parameters defined by the user: ${inputParameters.map(p => `@${p.name}`).join(', ')}
+- Must output data compatible with field_validations schema (array of objects)
+- Must handle errors gracefully and return valid JSON
+- Must include comprehensive error handling for all edge cases
+- Function should be fully self-contained and executable
 ${aiAssistanceRequired ? '- Must include AI assistance as the final step using the provided prompt' : ''}
 
-Input Parameters:
+Field Validations Output Schema (EXACT format required):
+[
+  {
+    "extractedValue": "string - the actual extracted value",
+    "validationStatus": "string - valid|invalid|pending", 
+    "aiReasoning": "string - explanation of extraction logic",
+    "confidenceScore": "number - 0-100 confidence percentage",
+    "documentSource": "string - source identifier"
+  }
+]
+
+All Input Parameters (use ALL of these in your function):
 ${inputParameters.map(p => `- @${p.name} (${p.type}): ${p.description}`).join('\n')}
 
+Function Name: ${name}
 Function Description: ${description}
 
 ${aiAssistanceRequired ? `AI Assistance Prompt: ${aiAssistancePrompt}` : ''}
 
+The function should:
+1. Process the document_content using all provided parameters
+2. Extract relevant data based on target_fields and identifier_references
+3. Return results in the exact field_validations format shown above
+4. Handle missing data gracefully with appropriate validation status
+
 Respond with JSON in this format:
 {
-  "functionCode": "complete Python function code as a string",
+  "functionCode": "complete Python function code as a string that returns field_validations format",
   "metadata": {
     "inputValidation": "validation rules",
-    "outputFormat": "expected output format", 
+    "outputFormat": "field_validations_array", 
     "dependencies": ["list", "of", "required", "libraries"],
-    "errorHandling": "error handling approach"
+    "errorHandling": "error handling approach",
+    "parametersUsed": ["list", "of", "all", "parameter", "names"]
   }
 }`;
 
+      console.log('📤 Sending Python script generation request to Gemini...');
       const response = await ai.models.generateContent({
         model: "gemini-2.5-pro",
         config: {
@@ -121,22 +180,29 @@ Respond with JSON in this format:
                     type: "array",
                     items: { type: "string" }
                   },
-                  errorHandling: { type: "string" }
+                  errorHandling: { type: "string" },
+                  parametersUsed: { 
+                    type: "array",
+                    items: { type: "string" }
+                  }
                 },
-                required: ["inputValidation", "outputFormat", "dependencies", "errorHandling"]
+                required: ["inputValidation", "outputFormat", "dependencies", "errorHandling", "parametersUsed"]
               }
             },
             required: ["functionCode", "metadata"]
           }
         },
-        contents: `Generate Python function for: ${name}`
+        contents: `Generate a Python function for: ${name}\n\nMust use all these parameters: ${inputParameters.map(p => p.name).join(', ')}\n\nOutput must be field_validations compatible array format.`
       });
 
+      console.log('✅ Python script generation completed');
       const result = JSON.parse(response.text || "{}");
+      console.log('🎯 Generated Python function metadata:', result.metadata);
       return result;
     }
   } catch (error) {
-    throw new Error(`Failed to generate function code: ${error}`);
+    console.error('❌ Error generating function code:', error);
+    throw error;
   }
 }
 
