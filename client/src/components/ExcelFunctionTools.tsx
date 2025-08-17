@@ -300,41 +300,26 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                 <div>
                   <CardTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                     {func.functionType === 'AI_ONLY' ? (
-                      <Brain className="h-5 w-5 text-blue-600" />
+                      <Brain className="h-5 w-5 text-gray-600" />
                     ) : (
-                      <Code className="h-5 w-5 text-green-600" />
+                      <Code className="h-5 w-5 text-gray-600" />
                     )}
                     {func.name}
                   </CardTitle>
-                  <div className="flex gap-1 mt-1">
-                    {/* Function type badge */}
-                    <Badge 
-                      variant="secondary" 
-                      className={`text-xs ${
-                        func.functionType === 'AI_ONLY' 
-                          ? 'bg-blue-100 text-blue-800 border-blue-200' 
-                          : 'bg-green-100 text-green-800 border-green-200'
-                      }`}
-                    >
-                      {func.functionType === 'AI_ONLY' ? 'AI Extraction' : 'Code Function'}
-                    </Badge>
-                    
-                    {/* Regular tags */}
-                    {func.tags && func.tags.length > 0 && (
-                      <>
-                        {func.tags.slice(0, 2).map(tag => (
-                          <Badge key={tag} variant="outline" className="text-xs border-gray-300 text-gray-600">
-                            {tag}
-                          </Badge>
-                        ))}
-                        {func.tags.length > 2 && (
-                          <Badge variant="outline" className="text-xs border-gray-300 text-gray-600">
-                            +{func.tags.length - 2} more
-                          </Badge>
-                        )}
-                      </>
-                    )}
-                  </div>
+                  {func.tags && func.tags.length > 0 && (
+                    <div className="flex gap-1 mt-1">
+                      {func.tags.slice(0, 3).map(tag => (
+                        <Badge key={tag} variant="outline" className="text-xs border-gray-300 text-gray-600">
+                          {tag}
+                        </Badge>
+                      ))}
+                      {func.tags.length > 3 && (
+                        <Badge variant="outline" className="text-xs border-gray-300 text-gray-600">
+                          +{func.tags.length - 3} more
+                        </Badge>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </CardHeader>
