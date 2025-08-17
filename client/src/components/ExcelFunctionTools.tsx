@@ -209,7 +209,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
 
   // Update function mutation
   const updateFunction = useMutation({
-    mutationFn: async (data: { id: string; description: string; functionCode: string; inputParameters?: any[] }) => {
+    mutationFn: async (data: { id: string; description: string; functionCode: string; inputParameters?: any[]; functionType?: string }) => {
       const updateData: any = {
         description: data.description,
         functionCode: data.functionCode
@@ -217,6 +217,10 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
       
       if (data.inputParameters) {
         updateData.inputParameters = data.inputParameters;
+      }
+      
+      if (data.functionType) {
+        updateData.functionType = data.functionType;
       }
       
       return apiRequest(`/api/projects/${projectId}/excel-functions/${data.id}`, {
@@ -352,7 +356,8 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
       id: editingFunction.id,
       description: formData.description,
       functionCode: formData.functionCode,
-      inputParameters: formData.inputParameters
+      inputParameters: formData.inputParameters,
+      functionType: editingFunction.functionType
     });
   };
 
@@ -437,7 +442,37 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                       />
                     </div>
 
-                    
+                    {/* Extraction Type */}
+                    <div>
+                      <Label className="text-sm font-medium">Extraction Type</Label>
+                      <Select
+                        value={editingFunction?.functionType || 'FUNCTION'}
+                        onValueChange={(value: 'AI_ONLY' | 'FUNCTION') => {
+                          if (editingFunction) {
+                            setEditingFunction({ ...editingFunction, functionType: value });
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="FUNCTION">
+                            <div className="flex items-center gap-2">
+                              <Code className="h-4 w-4" />
+                              Function
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="AI_ONLY">
+                            <div className="flex items-center gap-2">
+                              <Brain className="h-4 w-4" />
+                              AI Only
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     {/* Inputs */}
                     <Card className="border-gray-200">
                       <CardHeader className="pb-3">
@@ -516,20 +551,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                                       </Select>
                                     </div>
                                   </div>
-                                  {param.type === "text" && (
-                                    <div>
-                                      <div className="flex items-center space-x-2">
-                                        <Switch
-                                          id={`multiline-${param.id}`}
-                                          checked={param.multiline || false}
-                                          onCheckedChange={(checked) => updateInputParameter(param.id, "multiline", checked)}
-                                        />
-                                        <Label htmlFor={`multiline-${param.id}`} className="text-sm font-medium text-gray-700">
-                                          Multi-line text input
-                                        </Label>
-                                      </div>
-                                    </div>
-                                  )}
+                                  
                                   <div>
                                     <div className="flex items-center justify-between">
                                       <Label className="text-sm font-medium text-gray-700">Description</Label>
@@ -571,13 +593,6 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                                   {/* Sample Content Management */}
                                   {param.type === "text" && (
                                     <div className="space-y-3">
-                                      <div className="flex items-center space-x-2">
-                                        <Switch
-                                          checked={param.multiline}
-                                          onCheckedChange={(checked) => updateInputParameter(param.id, "multiline", checked)}
-                                        />
-                                        <Label className="text-sm text-gray-600">Multi-line text input</Label>
-                                      </div>
                                       
                                       {/* Sample text input */}
                                       <div className="p-3 bg-gray-50 rounded border space-y-3">
