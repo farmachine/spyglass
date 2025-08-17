@@ -492,8 +492,8 @@ export function SchemaFieldDialogNew({
               )}
             </div>
 
-            {/* Data Sources Section - Only show when function is selected */}
-            {selectedFunctionId && inputParameters.length > 0 && (
+            {/* Data Sources Section - Only show when tool is selected */}
+            {selectedToolId && inputParameters.length > 0 && (
               <div className="space-y-4 p-4 border rounded-lg">
                 <div className="flex items-center gap-2">
                   <Settings className="h-5 w-5 text-gray-600" />
