@@ -209,7 +209,7 @@ export default function KnowledgeDocumentDialog({
             {!document && (
               <div className="space-y-4">
                 <div
-                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors min-h-[180px] flex items-center justify-center ${
                     dragActive 
                       ? "border-primary bg-primary/5" 
                       : "border-gray-300 hover:border-gray-400"
@@ -220,24 +220,22 @@ export default function KnowledgeDocumentDialog({
                   onDrop={handleDrop}
                 >
                   {selectedFile ? (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-center gap-3">
-                        <FileText className="h-8 w-8 text-blue-600" />
-                        <div className="text-left">
-                          <p className="font-medium text-gray-900">{selectedFile.name}</p>
-                          <p className="text-sm text-gray-500">
-                            {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                          </p>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={removeFile}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
+                    <div className="flex items-center justify-center gap-3">
+                      <FileText className="h-8 w-8 text-blue-600" />
+                      <div className="text-left">
+                        <p className="font-medium text-gray-900">{selectedFile.name}</p>
+                        <p className="text-sm text-gray-500">
+                          {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
                       </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={removeFile}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
                   ) : (
                     <div className="space-y-4">
