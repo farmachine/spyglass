@@ -293,7 +293,21 @@ function DynamicFunctionParameters({ functionId, wizardryFunctions, value, onCha
                 placeholder={`Enter value for ${param.name} (use @ to reference other fields)`}
                 availableFields={availableFields}
               />
+            ) : param.type === "data" ? (
+              <AutocompleteInput
+                value={value[param.name] || ""}
+                onChange={(val) => handleParameterChange(param.name, val)}
+                placeholder={`Reference data field for ${param.name} (use @ to reference other fields)`}
+                availableFields={availableFields}
+              />
             ) : param.type === "document" ? (
+              <MultiSelectDocument
+                value={Array.isArray(value[param.name]) ? value[param.name] : (value[param.name] ? [value[param.name]] : [])}
+                onChange={(docs) => handleParameterChange(param.name, docs)}
+                placeholder={`Select document for ${param.name}`}
+                knowledgeDocuments={knowledgeDocuments}
+              />
+            ) : param.type === "documents" ? (
               <MultiSelectDocument
                 value={Array.isArray(value[param.name]) ? value[param.name] : (value[param.name] ? [value[param.name]] : [])}
                 onChange={(docs) => handleParameterChange(param.name, docs)}
