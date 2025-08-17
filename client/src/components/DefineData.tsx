@@ -831,6 +831,7 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
         field={schemaFieldDialog.field}
         knowledgeDocuments={knowledgeDocuments}
         wizardryFunctions={wizardryFunctions}
+        projectId={project.id}
       />
 
       <CollectionDialog

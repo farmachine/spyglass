@@ -55,6 +55,7 @@ interface SchemaFieldDialogNewProps {
   isLoading?: boolean;
   knowledgeDocuments?: KnowledgeDocument[];
   wizardryFunctions?: ExcelWizardryFunction[];
+  projectId?: string;
 }
 
 export function SchemaFieldDialogNew({ 
@@ -64,7 +65,8 @@ export function SchemaFieldDialogNew({
   field, 
   isLoading = false,
   knowledgeDocuments = [],
-  wizardryFunctions = []
+  wizardryFunctions = [],
+  projectId
 }: SchemaFieldDialogNewProps) {
   const [selectedFunctionId, setSelectedFunctionId] = useState<string>("");
   const [inputParameters, setInputParameters] = useState<any[]>([]);
