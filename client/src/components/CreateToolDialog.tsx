@@ -408,7 +408,6 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
                       }`}
                     >
                       Single Value
-                      <span className="ml-1 text-xs opacity-75">(Main Field)</span>
                     </Button>
                     <Button
                       type="button"
@@ -421,7 +420,6 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
                       }`}
                     >
                       Multiple Records
-                      <span className="ml-1 text-xs opacity-75">(Collection)</span>
                     </Button>
                   </div>
                 </div>
