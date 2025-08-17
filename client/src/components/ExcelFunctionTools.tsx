@@ -278,6 +278,8 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
       });
     },
     onSuccess: (response) => {
+      console.log("🧪 Tool Test Results:", response.results);
+      console.log("📊 Full Test Response:", response);
       setTestResults(response.results);
       setTestLoading(false);
       toast({
@@ -286,6 +288,8 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
       });
     },
     onError: (error: any) => {
+      console.error("❌ Tool Test Failed:", error);
+      console.error("📋 Error Details:", error.message || error);
       setTestLoading(false);
       toast({
         title: "Test Failed", 
@@ -303,6 +307,9 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
 
   const handleRunTest = () => {
     if (!testingFunction) return;
+    
+    console.log("🚀 Starting tool test for:", testingFunction.name);
+    console.log("📥 Test inputs:", testInputs);
     
     setTestLoading(true);
     testFunction.mutate({
