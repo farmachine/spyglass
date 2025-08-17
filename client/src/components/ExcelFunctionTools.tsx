@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 
 import { apiRequest } from "@/lib/queryClient";
@@ -39,6 +40,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
   const [testInputs, setTestInputs] = useState<Record<string, any>>({});
   const [testResults, setTestResults] = useState<any[] | null>(null);
   const [testLoading, setTestLoading] = useState(false);
+  const [testSampleDocuments, setTestSampleDocuments] = useState<any[]>([]);
   interface InputParameter {
     id: string;
     name: string;
@@ -299,10 +301,22 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
     }
   });
 
-  const handleTest = (func: ExcelWizardryFunction) => {
+  const handleTest = async (func: ExcelWizardryFunction) => {
     setTestingFunction(func);
     setTestInputs({});
     setTestResults(null);
+    
+    // Load sample documents for this function
+    try {
+      const sampleDocuments = await apiRequest(`/api/sample-documents/${func.id}`, {
+        method: "GET"
+      });
+      console.log("📁 Loaded sample documents for testing:", sampleDocuments);
+      setTestSampleDocuments(sampleDocuments);
+    } catch (error) {
+      console.log("No sample documents found for testing:", error);
+      setTestSampleDocuments([]);
+    }
   };
 
   const handleRunTest = () => {
@@ -785,17 +799,45 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                           className="mt-1 font-mono"
                         />
                       ) : (
-                        <Input
-                          id={`test-${param.id}`}
-                          type="file"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              setTestInputs(prev => ({ ...prev, [param.name]: file.name }));
-                            }
-                          }}
-                          className="mt-1"
-                        />
+                        <div className="space-y-2">
+                          <div className="text-sm text-gray-600 mb-2">
+                            Select sample documents for testing:
+                          </div>
+                          <div className="border rounded-lg p-3 max-h-32 overflow-y-auto">
+                            {testSampleDocuments.filter(doc => doc.parameterName === param.name).length > 0 ? (
+                              testSampleDocuments
+                                .filter(doc => doc.parameterName === param.name)
+                                .map((doc) => (
+                                  <div key={doc.id} className="flex items-center space-x-2 py-1">
+                                    <Checkbox
+                                      id={`doc-${doc.id}`}
+                                      checked={(testInputs[param.name] as string[])?.includes(doc.id) || false}
+                                      onCheckedChange={(checked) => {
+                                        setTestInputs(prev => {
+                                          const currentSelection = (prev[param.name] as string[]) || [];
+                                          if (checked) {
+                                            return { ...prev, [param.name]: [...currentSelection, doc.id] };
+                                          } else {
+                                            return { ...prev, [param.name]: currentSelection.filter(id => id !== doc.id) };
+                                          }
+                                        });
+                                      }}
+                                    />
+                                    <Label 
+                                      htmlFor={`doc-${doc.id}`} 
+                                      className="text-sm font-medium cursor-pointer flex-1"
+                                    >
+                                      {doc.fileName || `Sample text (${doc.sampleText?.substring(0, 30)}...)`}
+                                    </Label>
+                                  </div>
+                                ))
+                            ) : (
+                              <div className="text-sm text-gray-500 italic">
+                                No sample documents available for this parameter. Upload sample documents when editing the tool.
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       )}
                     </div>
                   ))}
