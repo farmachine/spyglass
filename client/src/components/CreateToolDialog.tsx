@@ -312,7 +312,14 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-gray-800">Create new extrapl. tool</DialogTitle>
+          <DialogTitle className="text-gray-800 flex items-center gap-2">
+            Create new 
+            <span className="flex items-center">
+              extrapl
+              <span className="w-2 h-2 bg-blue-500 rounded-full ml-1 mr-2"></span>
+            </span>
+            tool
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
