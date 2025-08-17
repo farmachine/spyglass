@@ -20,7 +20,11 @@ interface InputParameter {
   description: string;
 }
 
-export default function CreateToolDialog() {
+interface CreateToolDialogProps {
+  projectId: string;
+}
+
+export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
   const [open, setOpen] = useState(false);
   const [functionType, setFunctionType] = useState<"SCRIPT" | "AI_ONLY">("SCRIPT");
   const [aiAssistanceRequired, setAiAssistanceRequired] = useState(false);
@@ -43,7 +47,7 @@ export default function CreateToolDialog() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/excel-functions"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
       toast({
         title: "Function Created",
         description: "Tool has been created successfully."
@@ -141,6 +145,7 @@ export default function CreateToolDialog() {
       .filter(tag => tag.length > 0);
 
     const functionData = {
+      projectId,
       name: formData.name,
       description: formData.description,
       functionType,

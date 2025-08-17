@@ -4575,6 +4575,18 @@ print(json.dumps(results))
     }
   });
 
+  // Get Excel wizardry functions by project
+  app.get("/api/projects/:projectId/excel-functions", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { projectId } = req.params;
+      const functions = await storage.getExcelWizardryFunctionsByProject(projectId);
+      res.json(functions);
+    } catch (error) {
+      console.error("Error getting Excel wizardry functions by project:", error);
+      res.status(500).json({ message: "Failed to get Excel wizardry functions" });
+    }
+  });
+
   // Get specific Excel wizardry function
   app.get("/api/excel-functions/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -4718,7 +4730,7 @@ print(json.dumps(results))
   // Generate Excel wizardry function code
   app.post("/api/excel-functions/generate", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const { name, description, functionType, inputParameters, aiAssistanceRequired, aiAssistancePrompt, tags } = req.body;
+      const { projectId, name, description, functionType, inputParameters, aiAssistanceRequired, aiAssistancePrompt, tags } = req.body;
       
       if (!name || !description || !inputParameters || !Array.isArray(inputParameters)) {
         return res.status(400).json({ 
@@ -4741,6 +4753,7 @@ print(json.dumps(results))
 
       // Create the complete function object
       const functionData = {
+        projectId,
         name,
         description,
         functionCode,

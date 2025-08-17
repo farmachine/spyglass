@@ -186,6 +186,7 @@ export const chatMessages = pgTable("chat_messages", {
 // Excel wizardry functions for AI-generated dynamic extraction
 export const excelWizardryFunctions = pgTable("excel_wizardry_functions", {
   id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   description: text("description").notNull(),
   functionCode: text("function_code").notNull(), // Python function code or AI prompt depending on functionType

@@ -24,7 +24,11 @@ interface ExcelWizardryFunction {
   updatedAt: string;
 }
 
-export default function ExcelFunctionTools() {
+interface ExcelFunctionToolsProps {
+  projectId: string;
+}
+
+export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProps) {
   const [expandedFunctions, setExpandedFunctions] = useState<Set<string>>(new Set());
   const [codeModalOpen, setCodeModalOpen] = useState(false);
   const [selectedFunction, setSelectedFunction] = useState<ExcelWizardryFunction | null>(null);
@@ -40,9 +44,9 @@ export default function ExcelFunctionTools() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Fetch all Excel wizardry functions
+  // Fetch Excel wizardry functions for this project
   const { data: functions, isLoading } = useQuery<ExcelWizardryFunction[]>({
-    queryKey: ["/api/excel-functions"],
+    queryKey: [`/api/projects/${projectId}/excel-functions`],
   });
 
   // Update function mutation
@@ -58,13 +62,13 @@ export default function ExcelFunctionTools() {
         updateData.inputParameters = data.inputParameters;
       }
       
-      return apiRequest(`/api/excel-functions/${data.id}`, {
+      return apiRequest(`/api/projects/${projectId}/excel-functions/${data.id}`, {
         method: "PATCH",
         body: JSON.stringify(updateData)
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/excel-functions"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
       toast({
         title: "Function Updated",
         description: "Excel function has been updated successfully."
@@ -84,12 +88,12 @@ export default function ExcelFunctionTools() {
   // Delete function mutation
   const deleteFunction = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest(`/api/excel-functions/${id}`, {
+      return apiRequest(`/api/projects/${projectId}/excel-functions/${id}`, {
         method: "DELETE"
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/excel-functions"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
       toast({
         title: "Function Deleted",
         description: "Function has been deleted successfully."
@@ -215,7 +219,7 @@ export default function ExcelFunctionTools() {
           <div className="text-sm text-gray-500">
             {functions?.length || 0} functions available
           </div>
-          <CreateToolDialog />
+          <CreateToolDialog projectId={projectId} />
         </div>
       </div>
 

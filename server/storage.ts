@@ -159,6 +159,7 @@ export interface IStorage {
 
   // Excel Wizardry Functions
   getExcelWizardryFunctions(): Promise<ExcelWizardryFunction[]>;
+  getExcelWizardryFunctionsByProject(projectId: string): Promise<ExcelWizardryFunction[]>;
   getExcelWizardryFunction(id: string): Promise<ExcelWizardryFunction | undefined>;
   createExcelWizardryFunction(func: InsertExcelWizardryFunction): Promise<ExcelWizardryFunction>;
   updateExcelWizardryFunction(id: string, func: Partial<InsertExcelWizardryFunction>): Promise<ExcelWizardryFunction | undefined>;
@@ -1604,6 +1605,12 @@ export class MemStorage implements IStorage {
       .sort((a, b) => (b.usageCount || 0) - (a.usageCount || 0));
   }
 
+  async getExcelWizardryFunctionsByProject(projectId: string): Promise<ExcelWizardryFunction[]> {
+    return Array.from(this.excelWizardryFunctions.values())
+      .filter(func => func.projectId === projectId)
+      .sort((a, b) => (b.usageCount || 0) - (a.usageCount || 0));
+  }
+
   async getExcelWizardryFunction(id: string): Promise<ExcelWizardryFunction | undefined> {
     return this.excelWizardryFunctions.get(id);
   }
@@ -2975,6 +2982,17 @@ class PostgreSQLStorage implements IStorage {
       const result = await this.db
         .select()
         .from(excelWizardryFunctions)
+        .orderBy(excelWizardryFunctions.usageCount, excelWizardryFunctions.createdAt);
+      return result;
+    });
+  }
+
+  async getExcelWizardryFunctionsByProject(projectId: string): Promise<ExcelWizardryFunction[]> {
+    return this.retryOperation(async () => {
+      const result = await this.db
+        .select()
+        .from(excelWizardryFunctions)
+        .where(eq(excelWizardryFunctions.projectId, projectId))
         .orderBy(excelWizardryFunctions.usageCount, excelWizardryFunctions.createdAt);
       return result;
     });

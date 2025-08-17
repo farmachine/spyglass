@@ -122,7 +122,7 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
       case "publishing":
         return <Publishing project={project} />;
       case "tools":
-        return <ExcelFunctionTools />;
+        return <ExcelFunctionTools projectId={projectId} />;
       default:
         return <DefineData project={project} activeTab={schemaActiveTab} onTabChange={setSchemaActiveTab} onSetAddCollectionCallback={(callback) => { addCollectionCallbackRef.current = callback; }} />;
     }
