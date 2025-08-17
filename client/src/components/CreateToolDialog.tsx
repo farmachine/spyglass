@@ -346,7 +346,7 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Describe what this tool does and how to use @-key references for parameters"
+                  placeholder="Describe how this tool works."
                   rows={3}
                   className="mt-1"
                 />
