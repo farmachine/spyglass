@@ -5052,10 +5052,13 @@ try:
     print(f"DEBUG: Function parameter count: {param_count}", file=sys.stderr)
     print(f"DEBUG: Function parameter names: {param_names}", file=sys.stderr)
     
-    # Build function arguments based ONLY on the tool's input parameters metadata
+    # This function was generated to expect specific parameters, but the actual tool 
+    # should only receive the extracted content as strings, not the raw binary document
+    # Let's regenerate the function execution based on input parameters only
+    
     function_args = []
     if input_parameters:
-        # Use the tool's defined input parameters
+        # Use the tool's defined input parameters - pass extracted content as strings
         for param_config in input_parameters:
             param_name = param_config.get('name', '')
             param_type = param_config.get('type', '')
@@ -5069,28 +5072,30 @@ try:
                     break
             
             if matching_content:
-                function_args.append(matching_content)
+                function_args.append(str(matching_content))  # Ensure it's a string
             else:
                 print(f"DEBUG: No content found for parameter '{param_name}', using empty string", file=sys.stderr)
                 function_args.append("")
+        
+        print(f"DEBUG: Using {len(function_args)} arguments based on input parameters", file=sys.stderr)
+        # Execute with the correct number of arguments
+        results = main_function(*function_args)
     else:
-        # Fallback: if no input parameters defined, try to match function signature names  
-        for param_name in param_names:
-            # Find matching content from processed inputs  
-            matching_content = None
-            for input_key, content in processed_inputs.items():
-                if input_key.lower().replace(' ', '_') == param_name.lower():
-                    matching_content = content
-                    break
-            # For fallback, use first available content if no exact match
-            if not matching_content and processed_inputs:
-                matching_content = next(iter(processed_inputs.values()))
-            function_args.append(matching_content or "")
+        # Fallback: Use just the Excel content if no parameters defined
+        excel_content = None
+        for content in processed_inputs.values():
+            if isinstance(content, str) and len(content) > 100:
+                excel_content = content
+                break
+        
+        if excel_content and param_count == 1:
+            print(f"DEBUG: Using single Excel content argument", file=sys.stderr)
+            results = main_function(excel_content)
+        else:
+            print(f"DEBUG: Cannot determine correct arguments", file=sys.stderr)
+            results = [{"error": "Could not determine correct function arguments"}]
     
-    print(f"DEBUG: Final function arguments count: {len(function_args)}", file=sys.stderr)
-    
-    # Execute the function with the mapped arguments
-    results = main_function(*function_args)
+    print(f"DEBUG: Function execution completed", file=sys.stderr)
     
     print(f"DEBUG: Function execution completed, result type: {type(results)}", file=sys.stderr)
     
