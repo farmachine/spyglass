@@ -286,7 +286,14 @@ function DynamicFunctionParameters({ functionId, wizardryFunctions, value, onCha
             </label>
             <p className="text-xs text-gray-600 mb-2">{param.description}</p>
             
-            {param.type === "data" ? (
+            {param.type === "text" ? (
+              <Input
+                value={value[param.name] || ""}
+                onChange={(e) => handleParameterChange(param.name, e.target.value)}
+                placeholder={`Enter text value for ${param.name}`}
+                className="w-full"
+              />
+            ) : param.type === "data" ? (
               <AutocompleteInput
                 value={value[param.name] || ""}
                 onChange={(val) => handleParameterChange(param.name, val)}

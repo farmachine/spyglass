@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, X, FileText, Database } from "lucide-react";
+import { Plus, X, FileText, Database, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 interface InputParameter {
   id: string;
   name: string;
-  type: "data" | "document";
+  type: "text" | "data" | "document";
   description: string;
 }
 
@@ -84,7 +84,7 @@ export default function CreateToolDialog() {
     const newParam: InputParameter = {
       id: Math.random().toString(36),
       name: "",
-      type: "data",
+      type: "text",
       description: ""
     };
     setInputParameters([...inputParameters, newParam]);
@@ -287,12 +287,18 @@ export default function CreateToolDialog() {
                         <Label className="text-sm font-medium text-gray-700">Type</Label>
                         <Select 
                           value={param.type} 
-                          onValueChange={(value: "data" | "document") => updateInputParameter(param.id, "type", value)}
+                          onValueChange={(value: "text" | "data" | "document") => updateInputParameter(param.id, "type", value)}
                         >
                           <SelectTrigger className="mt-1">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="text">
+                              <div className="flex items-center gap-2">
+                                <Type className="h-4 w-4" />
+                                Text
+                              </div>
+                            </SelectItem>
                             <SelectItem value="data">
                               <div className="flex items-center gap-2">
                                 <Database className="h-4 w-4" />
