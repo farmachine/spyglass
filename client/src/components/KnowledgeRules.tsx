@@ -109,9 +109,9 @@ export default function KnowledgeRules({ project, mode }: KnowledgeRulesProps) {
   const getHeading = () => {
     switch (mode) {
       case "knowledge":
-        return "extrapl • knowledge";
+        return "extrapl • Knowledge";
       case "rules":
-        return "extrapl • rules";
+        return "extrapl • Rules";
       default:
         return "Knowledge & Rules";
     }

@@ -103,14 +103,14 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
   }
 
   const adminNavItems = [
-    { id: "data" as const, label: "extrapl • data", icon: StreamIcon, disabled: false },
+    { id: "data" as const, label: "Data", icon: StreamIcon, disabled: false },
     ...(canAccessConfigTabs ? [
-      { id: "knowledge" as const, label: "extrapl • knowledge", icon: TideIcon, disabled: false },
-      { id: "rules" as const, label: "extrapl • rules", icon: Brain, disabled: false },
-      { id: "tools" as const, label: "extrapl • tools", icon: Wrench, disabled: false },
+      { id: "knowledge" as const, label: "Knowledge", icon: TideIcon, disabled: false },
+      { id: "rules" as const, label: "Rules", icon: Brain, disabled: false },
+      { id: "tools" as const, label: "Tools", icon: Wrench, disabled: false },
     ] : []),
     ...(canAccessPublishing ? [
-      { id: "publish" as const, label: "extrapl • publish", icon: ShipIcon, disabled: false },
+      { id: "publish" as const, label: "Publish", icon: ShipIcon, disabled: false },
     ] : []),
   ];
 

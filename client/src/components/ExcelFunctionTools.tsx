@@ -226,7 +226,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">extrapl <span style={{ color: '#4F63A4' }}>•</span> tools</h1>
+          <h1 className="text-3xl font-bold text-gray-800">extrapl <span style={{ color: '#4F63A4' }}>•</span> Tools</h1>
           <p className="text-gray-600 mt-1">Manage reusable extraction functions</p>
         </div>
         <div className="flex items-center gap-4">

@@ -419,7 +419,7 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
       {/* Page Heading */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-800">
-          extrapl <span style={{ color: '#4F63A4' }}>•</span> data
+          extrapl <span style={{ color: '#4F63A4' }}>•</span> Data
         </h1>
         <p className="text-gray-600 mt-1">
           Define your data structure and extraction schema
