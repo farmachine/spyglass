@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Code, Edit3, Trash2, Plus, X, FileText, Database, Type, Copy, Check, Brain, Settings } from "lucide-react";
+import { Code, Edit3, Trash2, Plus, X, FileText, Database, Type, Copy, Check, Brain, Settings, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 
 import { apiRequest } from "@/lib/queryClient";
@@ -34,6 +35,10 @@ interface ExcelFunctionToolsProps {
 export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProps) {
 
   const [editingFunction, setEditingFunction] = useState<ExcelWizardryFunction | null>(null);
+  const [testingFunction, setTestingFunction] = useState<ExcelWizardryFunction | null>(null);
+  const [testInputs, setTestInputs] = useState<Record<string, any>>({});
+  const [testResults, setTestResults] = useState<any[] | null>(null);
+  const [testLoading, setTestLoading] = useState(false);
   interface InputParameter {
     id: string;
     name: string;
@@ -162,7 +167,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
         description: "Excel function has been updated successfully."
       });
       setEditingFunction(null);
-      setFormData({ name: "", description: "", functionCode: "", tags: "", inputParameters: [] });
+      setFormData({ name: "", description: "", functionCode: "", inputParameters: [] });
     },
     onError: () => {
       toast({
@@ -196,7 +201,47 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
     }
   });
 
+  // Test function mutation
+  const testFunction = useMutation({
+    mutationFn: async (data: { functionId: string; inputs: Record<string, any> }) => {
+      return apiRequest("/api/excel-functions/test", {
+        method: "POST",
+        body: JSON.stringify(data)
+      });
+    },
+    onSuccess: (response) => {
+      setTestResults(response.results);
+      setTestLoading(false);
+      toast({
+        title: "Test Completed",
+        description: "Function test completed successfully."
+      });
+    },
+    onError: (error: any) => {
+      setTestLoading(false);
+      toast({
+        title: "Test Failed", 
+        description: error.message || "Failed to test the function. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
 
+  const handleTest = (func: ExcelWizardryFunction) => {
+    setTestingFunction(func);
+    setTestInputs({});
+    setTestResults(null);
+  };
+
+  const handleRunTest = () => {
+    if (!testingFunction) return;
+    
+    setTestLoading(true);
+    testFunction.mutate({
+      functionId: testingFunction.id,
+      inputs: testInputs
+    });
+  };
 
   const handleEdit = (func: ExcelWizardryFunction) => {
     setEditingFunction(func);
@@ -229,7 +274,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
 
   const handleCancel = () => {
     setEditingFunction(null);
-    setFormData({ name: "", description: "", functionCode: "", tags: "", inputParameters: [] });
+    setFormData({ name: "", description: "", functionCode: "", inputParameters: [] });
   };
 
   const handleDelete = (functionId: string) => {
@@ -491,6 +536,15 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                           <div className="flex gap-2">
                             <Button 
                               size="sm" 
+                              variant="outline"
+                              onClick={() => handleTest(func)}
+                              className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                            >
+                              <Play className="h-4 w-4 mr-1" />
+                              Test
+                            </Button>
+                            <Button 
+                              size="sm" 
                               onClick={() => handleEdit(func)}
                               className="bg-gray-700 hover:bg-gray-800 text-white"
                             >
@@ -527,6 +581,119 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
         )}
       </div>
 
+      {/* Test Function Modal */}
+      <Dialog open={!!testingFunction} onOpenChange={() => setTestingFunction(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-gray-800">Test Function: {testingFunction?.name}</DialogTitle>
+          </DialogHeader>
+          
+          {testingFunction && (
+            <div className="space-y-6">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium text-gray-800 mb-2">Function Description</h4>
+                <p className="text-gray-600">{testingFunction.description}</p>
+              </div>
+
+              {/* Input Parameters */}
+              <Card className="border-gray-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg text-gray-800">Test Inputs</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {((testingFunction as any).inputParameters || []).map((param: any) => (
+                    <div key={param.id}>
+                      <Label htmlFor={`test-${param.id}`} className="text-sm font-medium text-gray-700">
+                        {param.name} ({param.type})
+                      </Label>
+                      <p className="text-xs text-gray-500 mb-2">{param.description}</p>
+                      
+                      {param.type === "text" ? (
+                        param.multiline ? (
+                          <Textarea
+                            id={`test-${param.id}`}
+                            value={testInputs[param.name] || ""}
+                            onChange={(e) => setTestInputs(prev => ({ ...prev, [param.name]: e.target.value }))}
+                            placeholder={`Enter ${param.name.toLowerCase()}`}
+                            rows={4}
+                            className="mt-1"
+                          />
+                        ) : (
+                          <Input
+                            id={`test-${param.id}`}
+                            value={testInputs[param.name] || ""}
+                            onChange={(e) => setTestInputs(prev => ({ ...prev, [param.name]: e.target.value }))}
+                            placeholder={`Enter ${param.name.toLowerCase()}`}
+                            className="mt-1"
+                          />
+                        )
+                      ) : param.type === "data" ? (
+                        <Textarea
+                          id={`test-${param.id}`}
+                          value={testInputs[param.name] || ""}
+                          onChange={(e) => setTestInputs(prev => ({ ...prev, [param.name]: e.target.value }))}
+                          placeholder="Enter JSON data"
+                          rows={6}
+                          className="mt-1 font-mono"
+                        />
+                      ) : (
+                        <Input
+                          id={`test-${param.id}`}
+                          type="file"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setTestInputs(prev => ({ ...prev, [param.name]: file.name }));
+                            }
+                          }}
+                          className="mt-1"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* Run Test Button */}
+              <div className="flex justify-center">
+                <Button 
+                  onClick={handleRunTest}
+                  disabled={testLoading}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {testLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                      Running Test...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-4 w-4 mr-2" />
+                      Run Test
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {/* Test Results */}
+              {testResults && (
+                <Card className="border-gray-200">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg text-gray-800">Test Results</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <pre className="text-sm overflow-x-auto">
+                        {JSON.stringify(testResults, null, 2)}
+                      </pre>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
     </div>
   );
