@@ -315,7 +315,7 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
           <DialogTitle className="text-gray-800 flex items-center">
             Create new extrapl
             <span className="w-2 h-2 rounded-full mx-2" style={{ backgroundColor: '#4F63A4' }}></span>
-            tool
+            Tool
           </DialogTitle>
         </DialogHeader>
 
