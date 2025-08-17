@@ -538,9 +538,9 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                               size="sm" 
                               variant="outline"
                               onClick={() => handleTest(func)}
-                              className="border-gray-400 bg-gray-100 text-gray-600 hover:bg-gray-200"
+                              className="border-gray-400 bg-gray-100 text-gray-600 hover:bg-gray-200 font-bold"
                             >
-                              <Play className="h-4 w-4 mr-1" />
+                              <Play className="h-4 w-4 mr-1 fill-gray-600" />
                               Test
                             </Button>
                             <Button 
