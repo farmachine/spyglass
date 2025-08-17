@@ -3045,6 +3045,18 @@ class PostgreSQLStorage implements IStorage {
 
   async deleteExcelWizardryFunction(id: string): Promise<boolean> {
     return this.retryOperation(async () => {
+      // First, remove function references from collection_properties and project_schema_fields
+      await this.db
+        .update(collectionProperties)
+        .set({ functionId: null })
+        .where(eq(collectionProperties.functionId, id));
+      
+      await this.db
+        .update(projectSchemaFields)
+        .set({ functionId: null })
+        .where(eq(projectSchemaFields.functionId, id));
+      
+      // Then delete the function
       const result = await this.db
         .delete(excelWizardryFunctions)
         .where(eq(excelWizardryFunctions.id, id));
