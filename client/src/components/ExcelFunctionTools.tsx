@@ -534,20 +534,11 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                           <div className="flex gap-2">
                             <Button 
                               size="sm" 
-                              variant="outline"
-                              onClick={() => handleEdit(func)}
-                              className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                            >
-                              <Edit3 className="h-4 w-4 mr-1" />
-                              Edit Details
-                            </Button>
-                            <Button 
-                              size="sm" 
                               onClick={() => handleEdit(func)}
                               className="bg-gray-700 hover:bg-gray-800 text-white"
                             >
-                              <Code className="h-4 w-4 mr-1" />
-                              {func.functionType === 'AI_ONLY' ? 'Edit Prompt' : 'Edit Code'}
+                              <Edit3 className="h-4 w-4 mr-1" />
+                              Edit
                             </Button>
                             <Button
                               size="sm"
