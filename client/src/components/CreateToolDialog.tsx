@@ -378,21 +378,13 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
           {/* Inputs */}
           <Card className="border-gray-200">
             <CardHeader className="pb-3">
-              <div className="space-y-4">
-                <CardTitle className="text-lg text-gray-800 flex items-center justify-between">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg text-gray-800">
                   Inputs *
-                  <Button 
-                    size="sm" 
-                    onClick={addInputParameter}
-                    className="bg-gray-600 hover:bg-gray-700"
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add Input
-                  </Button>
                 </CardTitle>
                 
-                {/* Output Type Toggle */}
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border">
+                {/* Output Type Toggle - Top Right */}
+                <div className="flex items-center gap-3">
                   <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">
                     This function is to create:
                   </Label>
@@ -427,160 +419,119 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
             </CardHeader>
             <CardContent className="space-y-4">
               {inputParameters.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">
-                  No inputs defined. Click "Add Input" to start.
-                </p>
+                <div className="text-center py-8">
+                  <p className="text-gray-500 mb-4">
+                    No inputs defined. Click "Add Input" to start.
+                  </p>
+                  <Button 
+                    size="sm" 
+                    onClick={addInputParameter}
+                    className="bg-gray-600 hover:bg-gray-700"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Input
+                  </Button>
+                </div>
               ) : (
-                inputParameters.map((param) => (
-                  <div key={param.id} className="border border-gray-200 rounded-lg p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Badge variant="outline" className="border-gray-300">
-                        @{param.name || "parameter-name"}
-                      </Badge>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => removeInputParameter(param.id)}
-                        className="text-red-600 hover:text-red-800 hover:bg-red-50"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
+                <>
+                  {inputParameters.map((param, index) => (
+                    <div key={param.id} className="border border-gray-200 rounded-lg p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Badge variant="outline" className="border-gray-300">
+                          @{param.name || "parameter-name"}
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => removeInputParameter(param.id)}
+                          className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-sm font-medium text-gray-700">Input Name</Label>
+                          <Input
+                            value={param.name}
+                            onChange={(e) => updateInputParameter(param.id, "name", e.target.value)}
+                            placeholder="parameter_name"
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium text-gray-700">Type</Label>
+                          <Select 
+                            value={param.type} 
+                            onValueChange={(value: "text" | "data" | "document") => updateInputParameter(param.id, "type", value)}
+                          >
+                            <SelectTrigger className="mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="text">
+                                <div className="flex items-center gap-2">
+                                  <Type className="h-4 w-4" />
+                                  Text
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="data">
+                                <div className="flex items-center gap-2">
+                                  <Database className="h-4 w-4" />
+                                  Data
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="document">
+                                <div className="flex items-center gap-2">
+                                  <FileText className="h-4 w-4" />
+                                  Document
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
                       <div>
-                        <Label className="text-sm font-medium text-gray-700">Input Name</Label>
-                        <Input
-                          value={param.name}
-                          onChange={(e) => updateInputParameter(param.id, "name", e.target.value)}
-                          placeholder="parameter_name"
-                          className="mt-1"
+                        <Label className="text-sm font-medium text-gray-700">Description</Label>
+                        <Textarea
+                          value={param.description}
+                          onChange={(e) => updateInputParameter(param.id, "description", e.target.value)}
+                          placeholder="Describe this input parameter..."
+                          className="mt-1 resize-none"
+                          rows={2}
                         />
                       </div>
-                      <div>
-                        <Label className="text-sm font-medium text-gray-700">Type</Label>
-                        <Select 
-                          value={param.type} 
-                          onValueChange={(value: "text" | "data" | "document") => updateInputParameter(param.id, "type", value)}
-                        >
-                          <SelectTrigger className="mt-1">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="text">
-                              <div className="flex items-center gap-2">
-                                <Type className="h-4 w-4" />
-                                Text
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="data">
-                              <div className="flex items-center gap-2">
-                                <Database className="h-4 w-4" />
-                                Data
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="document">
-                              <div className="flex items-center gap-2">
-                                <FileText className="h-4 w-4" />
-                                Document
-                              </div>
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    {param.type === "text" && (
-                      <div>
+                      {param.type === "text" && (
                         <div className="flex items-center space-x-2">
                           <Switch
-                            id={`multiline-${param.id}`}
-                            checked={param.multiline || false}
+                            checked={param.multiline}
                             onCheckedChange={(checked) => updateInputParameter(param.id, "multiline", checked)}
                           />
-                          <Label htmlFor={`multiline-${param.id}`} className="text-sm font-medium text-gray-700">
-                            Multi-line text input
-                          </Label>
+                          <Label className="text-sm text-gray-600">Multi-line text input</Label>
                         </div>
-                      </div>
-                    )}
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium text-gray-700">Description</Label>
-                        {param.type === "data" && param.description && param.description.trim().length > 0 && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => copySampleDataToClipboard(param.id, param.description, param.name)}
-                            className="text-xs h-7 px-2"
+                      )}
+                      {param.type !== "text" && (
+                        <div className="text-sm text-gray-600 p-3 bg-gray-50 rounded border">
+                          Upload a sample {param.type === "document" ? "document" : "data file"} to test this function.
+                        </div>
+                      )}
+                      
+                      {/* Add Input button after first input */}
+                      {index === 0 && inputParameters.length >= 1 && (
+                        <div className="text-center py-2 border-t pt-4">
+                          <Button 
+                            size="sm" 
+                            onClick={addInputParameter}
+                            className="bg-gray-600 hover:bg-gray-700"
                           >
-                            {copiedSampleData === param.id ? (
-                              <>
-                                <Check className="h-3 w-3 mr-1" />
-                                Copied
-                              </>
-                            ) : (
-                              <>
-                                <Copy className="h-3 w-3 mr-1" />
-                                Copy Sample Data
-                              </>
-                            )}
+                            <Plus className="h-4 w-4 mr-1" />
+                            Add Input
                           </Button>
-                        )}
-                      </div>
-                      <Textarea
-                        value={param.description}
-                        onChange={(e) => updateInputParameter(param.id, "description", e.target.value)}
-                        placeholder="Describe what this parameter is used for"
-                        rows={2}
-                        className="mt-1"
-                      />
-                      {param.type === "data" && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          For data type inputs, describe the expected data structure. Use "Copy Sample Data" to generate JSON sample based on your description.
-                        </p>
-                      )}
-                    </div>
-                    
-                    {/* Sample Upload Section */}
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700">
-                        {param.type === "text" ? "Sample Text" : 
-                         param.type === "data" ? "Sample Data" : 
-                         "Sample Document"}
-                      </Label>
-                      {param.type === "text" ? (
-                        <Textarea
-                          value={param.sampleText || ""}
-                          onChange={(e) => updateInputParameter(param.id, "sampleText", e.target.value)}
-                          placeholder="Enter sample text for testing this parameter"
-                          rows={3}
-                          className="mt-1"
-                        />
-                      ) : (
-                        <div className="mt-1 space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <Input
-                              type="file"
-                              accept={param.type === "document" ? 
-                                "*" : 
-                                "*"
-                              }
-                              onChange={(e) => handleSampleFileUpload(param.id, e.target.files?.[0])}
-                              className="text-sm"
-                            />
-                          </div>
-                          {param.sampleFile && (
-                            <div className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
-                              Sample file uploaded: {param.sampleFile}
-                            </div>
-                          )}
-                          <p className="text-xs text-gray-500">
-                            Upload a sample {param.type === "document" ? "document" : "data file"} for testing this parameter
-                          </p>
                         </div>
                       )}
                     </div>
-                  </div>
-                ))
+                  ))}
+                </>
               )}
             </CardContent>
           </Card>
