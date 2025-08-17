@@ -32,6 +32,7 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
   const [open, setOpen] = useState(false);
   const [functionType, setFunctionType] = useState<"SCRIPT" | "AI_ONLY">("SCRIPT");
   const [aiAssistanceRequired, setAiAssistanceRequired] = useState(false);
+  const [outputType, setOutputType] = useState<"single" | "multiple">("single");
   const [inputParameters, setInputParameters] = useState<InputParameter[]>([]);
   const [formData, setFormData] = useState({
     name: "",
@@ -259,6 +260,7 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
     setInputParameters([]);
     setFunctionType("SCRIPT");
     setAiAssistanceRequired(false);
+    setOutputType("single");
   };
 
   const handleSubmit = () => {
@@ -287,6 +289,7 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
       name: formData.name,
       description: formData.description,
       functionType,
+      outputType,
       inputParameters,
       aiAssistanceRequired: functionType === "SCRIPT" ? aiAssistanceRequired : false,
       aiAssistancePrompt: aiAssistanceRequired ? formData.aiAssistancePrompt : null,
@@ -372,17 +375,46 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
           {/* Inputs */}
           <Card className="border-gray-200">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg text-gray-800 flex items-center justify-between">
-                Inputs *
-                <Button 
-                  size="sm" 
-                  onClick={addInputParameter}
-                  className="bg-gray-600 hover:bg-gray-700"
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Input
-                </Button>
-              </CardTitle>
+              <div className="space-y-4">
+                <CardTitle className="text-lg text-gray-800 flex items-center justify-between">
+                  Inputs *
+                  <Button 
+                    size="sm" 
+                    onClick={addInputParameter}
+                    className="bg-gray-600 hover:bg-gray-700"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Input
+                  </Button>
+                </CardTitle>
+                
+                {/* Output Type Toggle */}
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border">
+                  <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                    This function is to create:
+                  </Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={outputType === "single" ? "default" : "outline"}
+                      onClick={() => setOutputType("single")}
+                      className="h-8 px-3 text-xs"
+                    >
+                      Single Value
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={outputType === "multiple" ? "default" : "outline"}
+                      onClick={() => setOutputType("multiple")}
+                      className="h-8 px-3 text-xs"
+                    >
+                      Multiple Records
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {inputParameters.length === 0 ? (
