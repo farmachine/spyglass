@@ -14,8 +14,6 @@ import {
   chatMessages,
   excelWizardryFunctions,
   extractionIdentifierReferences,
-  testDocuments,
-  testDataSets,
   type Project, 
   type InsertProject,
   type ProjectSchemaField,
@@ -49,11 +47,7 @@ import {
   type ExcelWizardryFunction,
   type InsertExcelWizardryFunction,
   type ExtractionIdentifierReference,
-  type InsertExtractionIdentifierReference,
-  type TestDocument,
-  type InsertTestDocument,
-  type TestDataSet,
-  type InsertTestDataSet
+  type InsertExtractionIdentifierReference
 } from "@shared/schema";
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
@@ -178,20 +172,6 @@ export interface IStorage {
   createExtractionIdentifierReferences(references: InsertExtractionIdentifierReference[]): Promise<ExtractionIdentifierReference[]>;
   deleteExtractionIdentifierReferences(sessionId: string, extractionNumber: number): Promise<boolean>;
   getMergedIdentifierReferences(sessionId: string, upToExtractionNumber: number): Promise<Record<string, any>[]>;
-
-  // Test Documents
-  getTestDocuments(projectId: string): Promise<TestDocument[]>;
-  getTestDocument(id: string): Promise<TestDocument | undefined>;
-  createTestDocument(document: InsertTestDocument): Promise<TestDocument>;
-  updateTestDocument(id: string, document: Partial<InsertTestDocument>): Promise<TestDocument | undefined>;
-  deleteTestDocument(id: string): Promise<boolean>;
-
-  // Test Data Sets
-  getTestDataSets(projectId: string): Promise<TestDataSet[]>;
-  getTestDataSet(id: string): Promise<TestDataSet | undefined>;
-  createTestDataSet(dataSet: InsertTestDataSet): Promise<TestDataSet>;
-  updateTestDataSet(id: string, dataSet: Partial<InsertTestDataSet>): Promise<TestDataSet | undefined>;
-  deleteTestDataSet(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -210,8 +190,6 @@ export class MemStorage implements IStorage {
   private chatMessages: Map<string, ChatMessage>;
   private excelWizardryFunctions: Map<string, ExcelWizardryFunction>;
   private extractionIdentifierReferences: Map<string, ExtractionIdentifierReference>;
-  private testDocuments: Map<string, TestDocument>;
-  private testDataSets: Map<string, TestDataSet>;
 
   constructor() {
     this.organizations = new Map();
@@ -229,8 +207,6 @@ export class MemStorage implements IStorage {
     this.chatMessages = new Map();
     this.excelWizardryFunctions = new Map();
     this.extractionIdentifierReferences = new Map();
-    this.testDocuments = new Map();
-    this.testDataSets = new Map();
     
     // Initialize with sample data for development
     this.initializeSampleData();
@@ -1773,82 +1749,6 @@ export class MemStorage implements IStorage {
       .sort((a, b) => parseInt(a) - parseInt(b))
       .map(key => merged[parseInt(key)]);
   }
-
-  // Test Documents (MemStorage implementation)
-  async getTestDocuments(projectId: string): Promise<TestDocument[]> {
-    return Array.from(this.testDocuments.values())
-      .filter(doc => doc.projectId === projectId)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  }
-
-  async getTestDocument(id: string): Promise<TestDocument | undefined> {
-    return this.testDocuments.get(id);
-  }
-
-  async createTestDocument(document: InsertTestDocument): Promise<TestDocument> {
-    const id = this.generateUUID();
-    const testDoc: TestDocument = {
-      ...document,
-      id,
-      createdAt: new Date(),
-    };
-    this.testDocuments.set(id, testDoc);
-    return testDoc;
-  }
-
-  async updateTestDocument(id: string, document: Partial<InsertTestDocument>): Promise<TestDocument | undefined> {
-    const existing = this.testDocuments.get(id);
-    if (!existing) return undefined;
-
-    const updated: TestDocument = {
-      ...existing,
-      ...document,
-    };
-    this.testDocuments.set(id, updated);
-    return updated;
-  }
-
-  async deleteTestDocument(id: string): Promise<boolean> {
-    return this.testDocuments.delete(id);
-  }
-
-  // Test Data Sets (MemStorage implementation)
-  async getTestDataSets(projectId: string): Promise<TestDataSet[]> {
-    return Array.from(this.testDataSets.values())
-      .filter(dataSet => dataSet.projectId === projectId)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  }
-
-  async getTestDataSet(id: string): Promise<TestDataSet | undefined> {
-    return this.testDataSets.get(id);
-  }
-
-  async createTestDataSet(dataSet: InsertTestDataSet): Promise<TestDataSet> {
-    const id = this.generateUUID();
-    const testDataSet: TestDataSet = {
-      ...dataSet,
-      id,
-      createdAt: new Date(),
-    };
-    this.testDataSets.set(id, testDataSet);
-    return testDataSet;
-  }
-
-  async updateTestDataSet(id: string, dataSet: Partial<InsertTestDataSet>): Promise<TestDataSet | undefined> {
-    const existing = this.testDataSets.get(id);
-    if (!existing) return undefined;
-
-    const updated: TestDataSet = {
-      ...existing,
-      ...dataSet,
-    };
-    this.testDataSets.set(id, updated);
-    return updated;
-  }
-
-  async deleteTestDataSet(id: string): Promise<boolean> {
-    return this.testDataSets.delete(id);
-  }
 }
 
 // PostgreSQL Storage Implementation
@@ -3259,106 +3159,6 @@ class PostgreSQLStorage implements IStorage {
       return Object.keys(merged)
         .sort((a, b) => parseInt(a) - parseInt(b))
         .map(key => merged[parseInt(key)]);
-    });
-  }
-
-  // Test Documents
-  async getTestDocuments(projectId: string): Promise<TestDocument[]> {
-    return this.retryOperation(async () => {
-      const result = await this.db
-        .select()
-        .from(testDocuments)
-        .where(eq(testDocuments.projectId, projectId))
-        .orderBy(testDocuments.createdAt);
-      return result;
-    });
-  }
-
-  async getTestDocument(id: string): Promise<TestDocument | undefined> {
-    return this.retryOperation(async () => {
-      const result = await this.db
-        .select()
-        .from(testDocuments)
-        .where(eq(testDocuments.id, id))
-        .limit(1);
-      return result[0];
-    });
-  }
-
-  async createTestDocument(document: InsertTestDocument): Promise<TestDocument> {
-    return this.retryOperation(async () => {
-      const result = await this.db.insert(testDocuments).values(document).returning();
-      return result[0];
-    });
-  }
-
-  async updateTestDocument(id: string, document: Partial<InsertTestDocument>): Promise<TestDocument | undefined> {
-    return this.retryOperation(async () => {
-      const result = await this.db
-        .update(testDocuments)
-        .set(document)
-        .where(eq(testDocuments.id, id))
-        .returning();
-      return result[0];
-    });
-  }
-
-  async deleteTestDocument(id: string): Promise<boolean> {
-    return this.retryOperation(async () => {
-      const result = await this.db
-        .delete(testDocuments)
-        .where(eq(testDocuments.id, id));
-      return result.rowCount > 0;
-    });
-  }
-
-  // Test Data Sets
-  async getTestDataSets(projectId: string): Promise<TestDataSet[]> {
-    return this.retryOperation(async () => {
-      const result = await this.db
-        .select()
-        .from(testDataSets)
-        .where(eq(testDataSets.projectId, projectId))
-        .orderBy(testDataSets.createdAt);
-      return result;
-    });
-  }
-
-  async getTestDataSet(id: string): Promise<TestDataSet | undefined> {
-    return this.retryOperation(async () => {
-      const result = await this.db
-        .select()
-        .from(testDataSets)
-        .where(eq(testDataSets.id, id))
-        .limit(1);
-      return result[0];
-    });
-  }
-
-  async createTestDataSet(dataSet: InsertTestDataSet): Promise<TestDataSet> {
-    return this.retryOperation(async () => {
-      const result = await this.db.insert(testDataSets).values(dataSet).returning();
-      return result[0];
-    });
-  }
-
-  async updateTestDataSet(id: string, dataSet: Partial<InsertTestDataSet>): Promise<TestDataSet | undefined> {
-    return this.retryOperation(async () => {
-      const result = await this.db
-        .update(testDataSets)
-        .set(dataSet)
-        .where(eq(testDataSets.id, id))
-        .returning();
-      return result[0];
-    });
-  }
-
-  async deleteTestDataSet(id: string): Promise<boolean> {
-    return this.retryOperation(async () => {
-      const result = await this.db
-        .delete(testDataSets)
-        .where(eq(testDataSets.id, id));
-      return result.rowCount > 0;
     });
   }
 }

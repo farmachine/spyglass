@@ -125,31 +125,6 @@ export const sessionDocuments = pgTable("session_documents", {
   extractedAt: timestamp("extracted_at").defaultNow().notNull(),
 });
 
-// Test documents for function testing
-export const testDocuments = pgTable("test_documents", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
-  name: text("name").notNull(), // User-defined name for the test document
-  fileName: text("file_name").notNull(),
-  fileSize: integer("file_size"),
-  mimeType: text("mime_type"),
-  extractedContent: text("extracted_content"), // Text content extracted from the document
-  documentType: text("document_type", { enum: ["Excel", "Word", "PDF"] }).notNull(),
-  uploadedBy: uuid("uploaded_by").notNull().references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-// Test data sets for function testing
-export const testDataSets = pgTable("test_data_sets", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
-  name: text("name").notNull(), // User-defined name for the test data set
-  description: text("description"),
-  jsonData: jsonb("json_data").notNull(), // Raw JSON data
-  uploadedBy: uuid("uploaded_by").notNull().references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
 // New table for field-level validation tracking
 export const fieldValidations = pgTable("field_validations", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -321,16 +296,6 @@ export const insertExtractionIdentifierReferenceSchema = createInsertSchema(extr
   createdAt: true,
 });
 
-export const insertTestDocumentSchema = createInsertSchema(testDocuments).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertTestDataSetSchema = createInsertSchema(testDataSets).omit({
-  id: true,
-  createdAt: true,
-});
-
 // Types
 export type Organization = typeof organizations.$inferSelect;
 export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
@@ -369,10 +334,6 @@ export type ExcelWizardryFunction = typeof excelWizardryFunctions.$inferSelect;
 export type InsertExcelWizardryFunction = z.infer<typeof insertExcelWizardryFunctionSchema>;
 export type ExtractionIdentifierReference = typeof extractionIdentifierReferences.$inferSelect;
 export type InsertExtractionIdentifierReference = z.infer<typeof insertExtractionIdentifierReferenceSchema>;
-export type TestDocument = typeof testDocuments.$inferSelect;
-export type InsertTestDocument = z.infer<typeof insertTestDocumentSchema>;
-export type TestDataSet = typeof testDataSets.$inferSelect;
-export type InsertTestDataSet = z.infer<typeof insertTestDataSetSchema>;
 
 // Validation status types
 export type ValidationStatus = 'valid' | 'invalid' | 'pending' | 'manual';

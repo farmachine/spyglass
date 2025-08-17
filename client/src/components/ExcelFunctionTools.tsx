@@ -39,13 +39,6 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
   const [testInputs, setTestInputs] = useState<Record<string, any>>({});
   const [testResults, setTestResults] = useState<any[] | null>(null);
   const [testLoading, setTestLoading] = useState(false);
-  const [showUploadDocumentModal, setShowUploadDocumentModal] = useState(false);
-  const [showUploadDataSetModal, setShowUploadDataSetModal] = useState(false);
-  const [uploadDocumentName, setUploadDocumentName] = useState("");
-  const [uploadDataSetName, setUploadDataSetName] = useState("");
-  const [uploadDataSetDescription, setUploadDataSetDescription] = useState("");
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [uploadJsonData, setUploadJsonData] = useState("");
   interface InputParameter {
     id: string;
     name: string;
@@ -150,18 +143,6 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
     queryKey: [`/api/projects/${projectId}/excel-functions`],
   });
 
-  // Fetch test documents for the project
-  const { data: testDocuments = [] } = useQuery({
-    queryKey: [`/api/projects/${projectId}/test-documents`],
-    enabled: !!projectId,
-  });
-
-  // Fetch test data sets for the project
-  const { data: testDataSets = [] } = useQuery({
-    queryKey: [`/api/projects/${projectId}/test-data-sets`],
-    enabled: !!projectId,
-  });
-
   // Update function mutation
   const updateFunction = useMutation({
     mutationFn: async (data: { id: string; description: string; functionCode: string; inputParameters?: any[] }) => {
@@ -246,54 +227,6 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
     }
   });
 
-  // Upload test document mutation
-  const uploadTestDocument = useMutation({
-    mutationFn: async (data: { name: string; fileName: string; fileSize: number; mimeType: string; file: string }) => {
-      return apiRequest(`/api/projects/${projectId}/test-documents`, {
-        method: "POST",
-        body: JSON.stringify(data)
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/test-documents`] });
-      toast({
-        title: "Document Uploaded",
-        description: "Test document has been uploaded successfully."
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Upload Failed",
-        description: "Failed to upload test document. Please try again.",
-        variant: "destructive"
-      });
-    }
-  });
-
-  // Upload test data set mutation
-  const uploadTestDataSet = useMutation({
-    mutationFn: async (data: { name: string; description?: string; jsonData: any }) => {
-      return apiRequest(`/api/projects/${projectId}/test-data-sets`, {
-        method: "POST",
-        body: JSON.stringify(data)
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/test-data-sets`] });
-      toast({
-        title: "Data Set Uploaded",
-        description: "Test data set has been uploaded successfully."
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Upload Failed",
-        description: "Failed to upload test data set. Please try again.",
-        variant: "destructive"
-      });
-    }
-  });
-
   const handleTest = (func: ExcelWizardryFunction) => {
     setTestingFunction(func);
     setTestInputs({});
@@ -308,74 +241,6 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
       functionId: testingFunction.id,
       inputs: testInputs
     });
-  };
-
-  const handleUploadDocument = async () => {
-    if (!uploadFile || !uploadDocumentName.trim()) {
-      toast({
-        title: "Missing Information",
-        description: "Please provide both a name and select a file.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      const fileContent = await uploadFile.arrayBuffer();
-      const base64Content = btoa(String.fromCharCode(...new Uint8Array(fileContent)));
-      
-      uploadTestDocument.mutate({
-        name: uploadDocumentName,
-        fileName: uploadFile.name,
-        fileSize: uploadFile.size,
-        mimeType: uploadFile.type,
-        file: base64Content
-      });
-      
-      // Reset form
-      setUploadDocumentName("");
-      setUploadFile(null);
-      setShowUploadDocumentModal(false);
-    } catch (error) {
-      console.error("Upload failed:", error);
-      toast({ 
-        title: "Error", 
-        description: "Failed to process file for upload", 
-        variant: "destructive" 
-      });
-    }
-  };
-
-  const handleUploadDataSet = () => {
-    if (!uploadDataSetName.trim() || !uploadJsonData.trim()) {
-      toast({
-        title: "Missing Information",
-        description: "Please provide both a name and JSON data.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      const jsonData = JSON.parse(uploadJsonData);
-      uploadTestDataSet.mutate({
-        name: uploadDataSetName,
-        description: uploadDataSetDescription,
-        jsonData
-      });
-      
-      // Reset form
-      setUploadDataSetName("");
-      setUploadDataSetDescription("");
-      setUploadJsonData("");
-      setShowUploadDataSetModal(false);
-    } catch (error) {
-      toast({
-        title: "Invalid JSON",
-        description: "Please provide valid JSON data.",
-        variant: "destructive"
-      });
-    }
   };
 
   const handleEdit = (func: ExcelWizardryFunction) => {
@@ -763,74 +628,26 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                           />
                         )
                       ) : param.type === "data" ? (
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">Select from test data sets:</span>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setShowUploadDataSetModal(true)}
-                              className="text-xs"
-                            >
-                              <Plus className="h-3 w-3 mr-1" />
-                              Upload New
-                            </Button>
-                          </div>
-                          <Select
-                            value={testInputs[param.name] || ""}
-                            onValueChange={(value) => setTestInputs(prev => ({ ...prev, [param.name]: value }))}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select test data set" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {testDataSets.map((dataSet: any) => (
-                                <SelectItem key={dataSet.id} value={JSON.stringify(dataSet.jsonData)}>
-                                  {dataSet.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {testInputs[param.name] && (
-                            <div className="bg-gray-50 p-3 rounded border">
-                              <pre className="text-xs overflow-x-auto max-h-32">
-                                {JSON.stringify(JSON.parse(testInputs[param.name]), null, 2)}
-                              </pre>
-                            </div>
-                          )}
-                        </div>
+                        <Textarea
+                          id={`test-${param.id}`}
+                          value={testInputs[param.name] || ""}
+                          onChange={(e) => setTestInputs(prev => ({ ...prev, [param.name]: e.target.value }))}
+                          placeholder="Enter JSON data"
+                          rows={6}
+                          className="mt-1 font-mono"
+                        />
                       ) : (
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">Select from test documents:</span>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setShowUploadDocumentModal(true)}
-                              className="text-xs"
-                            >
-                              <Plus className="h-3 w-3 mr-1" />
-                              Upload New
-                            </Button>
-                          </div>
-                          <Select
-                            value={testInputs[param.name] || ""}
-                            onValueChange={(value) => setTestInputs(prev => ({ ...prev, [param.name]: value }))}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select test document" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {testDocuments.map((doc: any) => (
-                                <SelectItem key={doc.id} value={doc.extractedContent || ""}>
-                                  {doc.name} ({doc.documentType})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                        <Input
+                          id={`test-${param.id}`}
+                          type="file"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setTestInputs(prev => ({ ...prev, [param.name]: file.name }));
+                            }
+                          }}
+                          className="mt-1"
+                        />
                       )}
                     </div>
                   ))}
@@ -875,132 +692,6 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
               )}
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Upload Test Document Modal */}
-      <Dialog open={showUploadDocumentModal} onOpenChange={setShowUploadDocumentModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-gray-800">Upload Test Document</DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="doc-name" className="text-sm font-medium text-gray-700">
-                Document Name
-              </Label>
-              <Input
-                id="doc-name"
-                value={uploadDocumentName}
-                onChange={(e) => setUploadDocumentName(e.target.value)}
-                placeholder="Enter document name"
-                className="mt-1"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="doc-file" className="text-sm font-medium text-gray-700">
-                Select File
-              </Label>
-              <Input
-                id="doc-file"
-                type="file"
-                accept=".xlsx,.xls,.docx,.doc,.pdf"
-                onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
-                className="mt-1"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Supported formats: Excel (.xlsx, .xls), Word (.docx, .doc), PDF (.pdf)
-              </p>
-            </div>
-            
-            <div className="flex justify-end gap-2 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => setShowUploadDocumentModal(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleUploadDocument}
-                disabled={!uploadFile || !uploadDocumentName.trim() || uploadTestDocument.isPending}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                {uploadTestDocument.isPending ? "Uploading..." : "Upload"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Upload Test Data Set Modal */}
-      <Dialog open={showUploadDataSetModal} onOpenChange={setShowUploadDataSetModal}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-gray-800">Upload Test Data Set</DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="data-name" className="text-sm font-medium text-gray-700">
-                Data Set Name
-              </Label>
-              <Input
-                id="data-name"
-                value={uploadDataSetName}
-                onChange={(e) => setUploadDataSetName(e.target.value)}
-                placeholder="Enter data set name"
-                className="mt-1"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="data-description" className="text-sm font-medium text-gray-700">
-                Description (optional)
-              </Label>
-              <Input
-                id="data-description"
-                value={uploadDataSetDescription}
-                onChange={(e) => setUploadDataSetDescription(e.target.value)}
-                placeholder="Enter description"
-                className="mt-1"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="data-json" className="text-sm font-medium text-gray-700">
-                JSON Data
-              </Label>
-              <Textarea
-                id="data-json"
-                value={uploadJsonData}
-                onChange={(e) => setUploadJsonData(e.target.value)}
-                placeholder='{"example": ["data", "goes", "here"]}'
-                rows={8}
-                className="mt-1 font-mono text-sm"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Enter valid JSON data for testing functions
-              </p>
-            </div>
-            
-            <div className="flex justify-end gap-2 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => setShowUploadDataSetModal(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleUploadDataSet}
-                disabled={!uploadDataSetName.trim() || !uploadJsonData.trim() || uploadTestDataSet.isPending}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                {uploadTestDataSet.isPending ? "Uploading..." : "Upload"}
-              </Button>
-            </div>
-          </div>
         </DialogContent>
       </Dialog>
 
