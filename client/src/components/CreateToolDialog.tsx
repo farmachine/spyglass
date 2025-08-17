@@ -505,81 +505,76 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                     const isExpanded = expandedInputs.has(param.id);
                     return (
                       <div key={param.id} className="border border-gray-200 rounded-lg">
-                        <div 
-                          className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50"
-                          onClick={() => toggleInputExpanded(param.id)}
-                        >
-                          <div className="flex items-center gap-3">
-                            {isExpanded ? (
-                              <ChevronDown className="h-4 w-4 text-gray-500" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4 text-gray-500" />
-                            )}
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-gray-900">
-                                {param.name || "Unnamed Input"}
-                              </span>
-                              <Badge variant="secondary" className="text-xs">
-                                {param.type}
-                              </Badge>
+                        <div className="p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => toggleInputExpanded(param.id)}
+                              className="flex items-center gap-2 p-1 h-auto text-gray-600 hover:text-gray-800"
+                            >
+                              {isExpanded ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
+                              <span className="text-sm">{isExpanded ? "Collapse" : "Expand"}</span>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => removeInputParameter(param.id)}
+                              className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label className="text-sm font-medium text-gray-700">Input Name</Label>
+                              <Input
+                                value={param.name}
+                                onChange={(e) => updateInputParameter(param.id, "name", e.target.value)}
+                                placeholder="parameter_name"
+                                className="mt-1"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-sm font-medium text-gray-700">Type</Label>
+                              <Select 
+                                value={param.type} 
+                                onValueChange={(value: "text" | "data" | "document") => updateInputParameter(param.id, "type", value)}
+                              >
+                                <SelectTrigger className="mt-1">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="text">
+                                    <div className="flex items-center gap-2">
+                                      <Type className="h-4 w-4" />
+                                      Text
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value="data">
+                                    <div className="flex items-center gap-2">
+                                      <Database className="h-4 w-4" />
+                                      Data
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value="document">
+                                    <div className="flex items-center gap-2">
+                                      <FileText className="h-4 w-4" />
+                                      Document
+                                    </div>
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
                             </div>
                           </div>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeInputParameter(param.id);
-                            }}
-                            className="text-red-600 hover:text-red-800 hover:bg-red-50"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
                         </div>
                         {isExpanded && (
-                          <div className="px-4 pb-4 space-y-3 border-t border-gray-100">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <Label className="text-sm font-medium text-gray-700">Input Name</Label>
-                                <Input
-                                  value={param.name}
-                                  onChange={(e) => updateInputParameter(param.id, "name", e.target.value)}
-                                  placeholder="parameter_name"
-                                  className="mt-1"
-                                />
-                              </div>
-                              <div>
-                                <Label className="text-sm font-medium text-gray-700">Type</Label>
-                                <Select 
-                                  value={param.type} 
-                                  onValueChange={(value: "text" | "data" | "document") => updateInputParameter(param.id, "type", value)}
-                                >
-                                  <SelectTrigger className="mt-1">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="text">
-                                      <div className="flex items-center gap-2">
-                                        <Type className="h-4 w-4" />
-                                        Text
-                                      </div>
-                                    </SelectItem>
-                                    <SelectItem value="data">
-                                      <div className="flex items-center gap-2">
-                                        <Database className="h-4 w-4" />
-                                        Data
-                                      </div>
-                                    </SelectItem>
-                                    <SelectItem value="document">
-                                      <div className="flex items-center gap-2">
-                                        <FileText className="h-4 w-4" />
-                                        Document
-                                      </div>
-                                    </SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
+                          <div className="px-4 pb-4 pt-3 space-y-3 border-t border-gray-100">
                             <div>
                               <Label className="text-sm font-medium text-gray-700">Description</Label>
                               <Textarea
@@ -636,25 +631,23 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                                 </div>
                               </div>
                             )}
-                            
-                            {/* Add Input button after first input */}
-                            {index === 0 && inputParameters.length >= 1 && (
-                              <div className="text-center py-2 border-t pt-4">
-                                <Button 
-                                  size="sm" 
-                                  onClick={addInputParameter}
-                                  className="bg-gray-600 hover:bg-gray-700"
-                                >
-                                  <Plus className="h-4 w-4 mr-1" />
-                                  Add Input
-                                </Button>
-                              </div>
-                            )}
                           </div>
                         )}
                       </div>
                     );
                   })}
+                  
+                  {/* Add Input button */}
+                  <div className="text-center py-4">
+                    <Button 
+                      size="sm" 
+                      onClick={addInputParameter}
+                      className="bg-gray-600 hover:bg-gray-700"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Input
+                    </Button>
+                  </div>
                 </>
               )}
             </CardContent>
