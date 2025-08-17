@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Code, Edit3, ChevronDown, ChevronRight, Trash2, Plus, X, FileText, Database, Type } from "lucide-react";
+import { Code, Edit3, Trash2, Plus, X, FileText, Database, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+
 
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -33,8 +33,6 @@ interface ExcelFunctionToolsProps {
 
 export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProps) {
 
-  const [codeModalOpen, setCodeModalOpen] = useState(false);
-  const [selectedFunction, setSelectedFunction] = useState<ExcelWizardryFunction | null>(null);
   const [editingFunction, setEditingFunction] = useState<ExcelWizardryFunction | null>(null);
   interface InputParameter {
     id: string;
@@ -121,7 +119,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
         description: "Excel function has been updated successfully."
       });
       setEditingFunction(null);
-      setCodeModalOpen(false);
+      setFormData({ name: "", description: "", functionCode: "", tags: "", inputParameters: [] });
     },
     onError: () => {
       toast({
@@ -176,62 +174,25 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
     });
   };
 
-  const handleCodeEdit = (func: ExcelWizardryFunction) => {
-    setSelectedFunction(func);
-    setFormData({
-      name: func.name,
-      description: func.description,
-      functionCode: func.functionCode,
-      tags: func.tags?.join(", ") || "",
-      inputParameters: Array.isArray((func as any).inputParameters) 
-        ? (func as any).inputParameters.map((param: any, index: number) => ({
-            id: param.id || `param_${index}`,
-            name: param.name || "",
-            type: (param.type as "text" | "data" | "document") || "text",
-            description: param.description || "",
-            multiline: param.multiline || false
-          }))
-        : []
-    });
-    setCodeModalOpen(true);
-  };
-
   const handleSave = () => {
-    if (!editingFunction && !selectedFunction) return;
-    
-    const func = editingFunction || selectedFunction;
-    if (!func) return;
+    if (!editingFunction) return;
 
-    // For modal editing (selectedFunction), only update functionCode
-    if (selectedFunction) {
-      updateFunction.mutate({
-        id: func.id,
-        description: func.description, // Keep existing description
-        functionCode: formData.functionCode,
-        tags: func.tags || [], // Keep existing tags
-        inputParameters: func.inputParameters || []
-      });
-    } else {
-      // For inline editing (editingFunction), update all fields
-      const tagsArray = formData.tags
-        .split(",")
-        .map(tag => tag.trim())
-        .filter(tag => tag.length > 0);
+    const tagsArray = formData.tags
+      .split(",")
+      .map(tag => tag.trim())
+      .filter(tag => tag.length > 0);
 
-      updateFunction.mutate({
-        id: func.id,
-        description: formData.description,
-        functionCode: formData.functionCode,
-        tags: tagsArray,
-        inputParameters: formData.inputParameters
-      });
-    }
+    updateFunction.mutate({
+      id: editingFunction.id,
+      description: formData.description,
+      functionCode: formData.functionCode,
+      tags: tagsArray,
+      inputParameters: formData.inputParameters
+    });
   };
 
   const handleCancel = () => {
     setEditingFunction(null);
-    setSelectedFunction(null);
-    setCodeModalOpen(false);
     setFormData({ name: "", description: "", functionCode: "", tags: "", inputParameters: [] });
   };
 
@@ -448,6 +409,29 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                             )}
                           </CardContent>
                         </Card>
+                        
+                        {/* Code/Prompt Section */}
+                        <Card className="border-gray-200">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-lg text-gray-800">
+                              {editingFunction?.functionType === 'AI_ONLY' ? 'Prompt' : 'Python Function Code'} *
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <Textarea
+                              value={formData.functionCode}
+                              onChange={(e) => setFormData({ ...formData, functionCode: e.target.value })}
+                              rows={20}
+                              className="font-mono text-sm"
+                              placeholder={
+                                editingFunction?.functionType === 'AI_ONLY' 
+                                  ? "Enter your AI prompt instructions here..."
+                                  : "def extract_function(document_content, target_fields, identifier_references):"
+                              }
+                            />
+                          </CardContent>
+                        </Card>
+                        
                         <div className="flex gap-2 pt-2">
                           <Button 
                             size="sm" 
@@ -482,7 +466,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                             </Button>
                             <Button 
                               size="sm" 
-                              onClick={() => handleCodeEdit(func)}
+                              onClick={() => handleEdit(func)}
                               className="bg-gray-700 hover:bg-gray-800 text-white"
                             >
                               <Code className="h-4 w-4 mr-1" />
@@ -518,47 +502,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
         )}
       </div>
 
-      {/* Code Edit Modal */}
-      <Dialog open={codeModalOpen} onOpenChange={setCodeModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedFunction?.functionType === 'AI_ONLY' ? 'Edit Prompt' : 'Edit Function Code'}: {selectedFunction?.name}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="function-code" className="text-sm font-medium">
-                {selectedFunction?.functionType === 'AI_ONLY' ? 'Prompt' : 'Python Function Code'}
-              </Label>
-              <Textarea
-                id="function-code"
-                value={formData.functionCode}
-                onChange={(e) => setFormData({ ...formData, functionCode: e.target.value })}
-                rows={20}
-                className="mt-1 font-mono text-sm"
-                placeholder={
-                  selectedFunction?.functionType === 'AI_ONLY' 
-                    ? "Enter your AI prompt instructions here..."
-                    : "def extract_function(document_content, target_fields, identifier_references):"
-                }
-              />
-            </div>
-            <div className="flex justify-end gap-2 pt-4">
-              <Button variant="outline" onClick={handleCancel} className="border-gray-300 text-gray-700 hover:bg-gray-50">
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleSave}
-                disabled={updateFunction.isPending}
-                className="bg-gray-700 hover:bg-gray-800 text-white"
-              >
-                {updateFunction.isPending ? "Saving..." : "Save Changes"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+
     </div>
   );
 }
