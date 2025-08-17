@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Code, Edit3, Trash2, Plus, X, FileText, Database, Type } from "lucide-react";
+import { Code, Edit3, Trash2, Plus, X, FileText, Database, Type, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +42,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
     multiline?: boolean; // Only applies to text type
   }
 
+  const [copiedSampleData, setCopiedSampleData] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -87,6 +88,60 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
       ...prev,
       inputParameters: prev.inputParameters.filter(param => param.id !== id)
     }));
+  };
+
+  const generateSampleData = (description: string): string => {
+    // Generate sample JSON data based on the description
+    const sampleData = {
+      "example_array": [
+        {
+          "field_1": "Sample value based on description",
+          "field_2": 123,
+          "field_3": true,
+          "nested_object": {
+            "property": "Sample nested data"
+          }
+        },
+        {
+          "field_1": "Another sample value",
+          "field_2": 456,
+          "field_3": false,
+          "nested_object": {
+            "property": "More nested data"
+          }
+        }
+      ],
+      "metadata": {
+        "total_records": 2,
+        "generated_from": description || "input description",
+        "sample_note": "This is sample data structure - replace with actual data matching your input description"
+      }
+    };
+    
+    return JSON.stringify(sampleData, null, 2);
+  };
+
+  const copySampleDataToClipboard = async (paramId: string, description: string) => {
+    const sampleData = generateSampleData(description);
+    try {
+      await navigator.clipboard.writeText(sampleData);
+      setCopiedSampleData(paramId);
+      toast({
+        title: "Sample Data Copied",
+        description: "Sample JSON data has been copied to your clipboard",
+      });
+      
+      // Reset the copied state after 2 seconds
+      setTimeout(() => {
+        setCopiedSampleData(null);
+      }, 2000);
+    } catch (err) {
+      toast({
+        title: "Copy Failed",
+        description: "Failed to copy sample data to clipboard",
+        variant: "destructive"
+      });
+    }
   };
 
   // Fetch Excel wizardry functions for this project
@@ -385,7 +440,29 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                                     </div>
                                   )}
                                   <div>
-                                    <Label className="text-sm font-medium text-gray-700">Description</Label>
+                                    <div className="flex items-center justify-between">
+                                      <Label className="text-sm font-medium text-gray-700">Description</Label>
+                                      {param.type === "data" && param.description && (
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => copySampleDataToClipboard(param.id, param.description)}
+                                          className="text-xs h-7 px-2"
+                                        >
+                                          {copiedSampleData === param.id ? (
+                                            <>
+                                              <Check className="h-3 w-3 mr-1" />
+                                              Copied
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Copy className="h-3 w-3 mr-1" />
+                                              Copy Sample Data
+                                            </>
+                                          )}
+                                        </Button>
+                                      )}
+                                    </div>
                                     <Textarea
                                       value={param.description}
                                       onChange={(e) => updateInputParameter(param.id, "description", e.target.value)}
@@ -393,6 +470,11 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                                       rows={2}
                                       className="mt-1"
                                     />
+                                    {param.type === "data" && (
+                                      <p className="text-xs text-gray-500 mt-1">
+                                        For data type inputs, describe the expected data structure. Use "Copy Sample Data" to generate JSON sample based on your description.
+                                      </p>
+                                    )}
                                   </div>
                                 </div>
                               ))
