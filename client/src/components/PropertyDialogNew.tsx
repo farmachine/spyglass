@@ -247,7 +247,7 @@ export function PropertyDialogNew({
         >
           <div className="flex flex-wrap gap-1 min-h-6">
             {hasUserProvided && (
-              <Badge variant="secondary" className="flex items-center gap-1">
+              <Badge variant="outline" className="flex items-center gap-1 bg-gray-100 border-gray-400 text-gray-700 rounded-md">
                 <div className="w-2 h-2 bg-green-500 rounded-full" />
                 User Uploaded Documents
                 <X 
@@ -260,7 +260,7 @@ export function PropertyDialogNew({
               </Badge>
             )}
             {selectedDocs.length > 0 && selectedDocs.map(doc => (
-              <Badge key={doc.id} variant="secondary" className="flex items-center gap-1">
+              <Badge key={doc.id} variant="outline" className="flex items-center gap-1 bg-gray-100 border-gray-400 text-gray-700 rounded-md">
                 <FileText className="h-3 w-3" />
                 {doc.displayName}
                 <X 
