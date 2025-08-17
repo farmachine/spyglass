@@ -158,85 +158,32 @@ export function PropertyDialogNew({
   
   const availableFields = buildAvailableFields();
 
-  // Inline AutocompleteInput component
-  function AutocompleteInput({ value, onChange, placeholder, availableFields }: {
+  // Simple Dropdown component for reference data
+  function ReferenceDataDropdown({ value, onChange, placeholder, availableFields }: {
     value: string;
     onChange: (val: string) => void;
     placeholder: string;
     availableFields: Array<{ key: string; label: string; source: string }>;
   }) {
-    const [showSuggestions, setShowSuggestions] = useState(false);
-    const [filteredFields, setFilteredFields] = useState(availableFields);
-    
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const inputValue = e.target.value;
-      onChange(inputValue);
-      
-      // Check if user is typing @
-      const lastAtIndex = inputValue.lastIndexOf('@');
-      if (lastAtIndex !== -1) {
-        const query = inputValue.substring(lastAtIndex + 1);
-        const filtered = availableFields.filter(field => 
-          field.key.toLowerCase().includes(query.toLowerCase()) ||
-          field.label.toLowerCase().includes(query.toLowerCase())
-        );
-        setFilteredFields(filtered);
-        setShowSuggestions(true);
-      } else {
-        setShowSuggestions(false);
-      }
-    };
-    
-    const handleSuggestionClick = (fieldKey: string) => {
-      const lastAtIndex = value.lastIndexOf('@');
-      if (lastAtIndex !== -1) {
-        const beforeAt = value.substring(0, lastAtIndex);
-        const newValue = beforeAt + fieldKey;
-        onChange(newValue);
-      } else {
-        onChange(value + fieldKey);
-      }
-      setShowSuggestions(false);
-    };
-    
     return (
-      <div className="relative">
-        <Input
-          value={value}
-          onChange={handleInputChange}
-          placeholder={placeholder}
-          className="w-full"
-          onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-          onFocus={() => {
-            if (value.includes('@')) {
-              const lastAtIndex = value.lastIndexOf('@');
-              const query = value.substring(lastAtIndex + 1);
-              const filtered = availableFields.filter(field => 
-                field.key.toLowerCase().includes(query.toLowerCase()) ||
-                field.label.toLowerCase().includes(query.toLowerCase())
-              );
-              setFilteredFields(filtered);
-              setShowSuggestions(true);
-            }
-          }}
-        />
-        
-        {showSuggestions && filteredFields.length > 0 && (
-          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto">
-            {filteredFields.map((field) => (
-              <button
-                key={field.key}
-                type="button"
-                className="w-full px-3 py-2 text-left hover:bg-gray-50 flex justify-between items-center"
-                onClick={() => handleSuggestionClick(field.key)}
-              >
-                <span className="font-medium">{field.label}</span>
-                <span className="text-xs text-gray-500">{field.source}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder={placeholder || "Select reference data..."} />
+        </SelectTrigger>
+        <SelectContent>
+          {availableFields.length === 0 && (
+            <SelectItem value="none" disabled>No reference data available</SelectItem>
+          )}
+          {availableFields.map((field) => (
+            <SelectItem key={field.key} value={field.key}>
+              <div className="flex justify-between items-center w-full">
+                <span>{field.label}</span>
+                <span className="text-xs text-gray-500 ml-2">{field.source}</span>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     );
   }
 
@@ -434,7 +381,7 @@ export function PropertyDialogNew({
                         <p className="text-xs text-gray-600 mb-2">{param.description}</p>
                         
                         {param.type === "text" ? (
-                          <AutocompleteInput
+                          <ReferenceDataDropdown
                             value={(form.watch("functionParameters") || {})[param.name] || ""}
                             onChange={(val: any) => {
                               const current = form.watch("functionParameters") || {};
