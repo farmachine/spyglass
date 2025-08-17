@@ -531,23 +531,21 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                             </Button>
                           </div>
                           
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Label className="text-sm font-medium text-gray-700">Input Name</Label>
+                          <div className="flex items-center gap-4">
+                            <div className="flex-1">
                               <Input
                                 value={param.name}
                                 onChange={(e) => updateInputParameter(param.id, "name", e.target.value)}
-                                placeholder="parameter_name"
-                                className="mt-1"
+                                placeholder="Input name"
+                                className="text-sm"
                               />
                             </div>
-                            <div>
-                              <Label className="text-sm font-medium text-gray-700">Type</Label>
+                            <div className="w-40">
                               <Select 
                                 value={param.type} 
                                 onValueChange={(value: "text" | "data" | "document") => updateInputParameter(param.id, "type", value)}
                               >
-                                <SelectTrigger className="mt-1">
+                                <SelectTrigger className="text-sm">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
