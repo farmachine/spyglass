@@ -24,7 +24,7 @@ export default function ExtraplLogo({ className = "", showText = true, size = 60
           <span className="text-sm font-bold text-slate-700">extrapl</span>
           <div className="w-1 h-1 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
           {showAdmin && (
-            <span className="text-sm font-bold text-slate-700">admin</span>
+            <span className="text-sm font-bold text-slate-700">Admin</span>
           )}
         </div>
       </div>
@@ -42,7 +42,7 @@ export default function ExtraplLogo({ className = "", showText = true, size = 60
         <span className="text-3xl font-bold dark:text-slate-300 text-[#071e54]">extrapl</span>
         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
         {showAdmin && (
-          <span className="text-3xl font-bold dark:text-slate-300 text-[#071e54]">admin</span>
+          <span className="text-3xl font-bold dark:text-slate-300 text-[#071e54]">Admin</span>
         )}
       </div>
     </button>
