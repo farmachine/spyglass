@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, X, FileText, Database, Type, Copy, Check, Upload } from "lucide-react";
+import { Plus, X, FileText, Database, Type, Copy, Check, Upload, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -40,6 +41,8 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
     aiAssistancePrompt: ""
   });
   const [copiedSampleData, setCopiedSampleData] = useState<string | null>(null);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadingMessage, setLoadingMessage] = useState("");
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -52,7 +55,12 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
       });
       
       // Process sample documents after tool creation
-      await processSampleDocuments(response.id, data.inputParameters);
+      if (response.id && data.inputParameters && data.inputParameters.some((p: any) => p.sampleFile || p.sampleText)) {
+        await processSampleDocuments(response.id, data.inputParameters);
+      }
+      
+      setLoadingProgress(100);
+      setLoadingMessage("Tool creation complete!");
       
       return response;
     },
@@ -62,8 +70,12 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
         title: "Tool Created",
         description: "Tool has been created successfully with sample documents processed."
       });
-      setOpen(false);
-      resetForm();
+      setTimeout(() => {
+        setOpen(false);
+        resetForm();
+        setLoadingProgress(0);
+        setLoadingMessage("");
+      }, 1000);
     },
     onError: () => {
       toast({
@@ -71,17 +83,34 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
         description: "Failed to create the tool. Please try again.",
         variant: "destructive"
       });
+      setLoadingProgress(0);
+      setLoadingMessage("");
     }
   });
 
   const generateToolCode = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("/api/excel-functions/generate", {
+      setLoadingProgress(10);
+      setLoadingMessage("Initializing tool generation...");
+      console.log('🔧 Creating tool with data:', JSON.stringify(data, null, 2));
+      
+      setLoadingProgress(30);
+      setLoadingMessage("Sending data to AI system...");
+      
+      const response = await apiRequest("/api/excel-functions/generate", {
         method: "POST",
         body: JSON.stringify(data)
       });
+      
+      setLoadingProgress(70);
+      setLoadingMessage("Processing sample documents...");
+      
+      return response;
     },
     onSuccess: (response) => {
+      setLoadingProgress(90);
+      setLoadingMessage("Finalizing tool creation...");
+      
       // Use the response to create the tool with generated code
       createTool.mutate(response);
     },
@@ -91,6 +120,8 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
         description: "Failed to generate tool code. Please try again.",
         variant: "destructive"
       });
+      setLoadingProgress(0);
+      setLoadingMessage("");
     }
   });
 
@@ -264,6 +295,9 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
     setToolType(null);
     setAiAssistanceRequired(false);
     setOutputType("single");
+    setCopiedSampleData(null);
+    setLoadingProgress(0);
+    setLoadingMessage("");
   };
 
   const handleSubmit = () => {
@@ -593,11 +627,32 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
             </Card>
           )}
 
+          {/* Loading Progress */}
+          {(generateToolCode.isPending || createTool.isPending) && (
+            <Card className="border-blue-200 bg-blue-50">
+              <CardContent className="pt-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                    <span className="text-sm font-medium text-blue-900">
+                      {loadingMessage || "Processing..."}
+                    </span>
+                  </div>
+                  <Progress value={loadingProgress} className="w-full" />
+                  <div className="text-xs text-blue-700">
+                    {loadingProgress}% complete
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Action Buttons */}
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
             <Button 
               variant="outline" 
               onClick={() => setOpen(false)}
+              disabled={generateToolCode.isPending || createTool.isPending}
               className="border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               Cancel
@@ -607,7 +662,14 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
               disabled={generateToolCode.isPending || createTool.isPending}
               className="bg-gray-700 hover:bg-gray-800 text-white"
             >
-              {generateToolCode.isPending ? "Generating..." : "Generate Tool"}
+              {generateToolCode.isPending || createTool.isPending ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Generating...
+                </div>
+              ) : (
+                "Generate Tool"
+              )}
             </Button>
           </div>
         </div>
