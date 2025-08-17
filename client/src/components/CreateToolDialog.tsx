@@ -267,7 +267,7 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
   };
 
   const handleSubmit = () => {
-    if (!formData.name || !formData.description || !functionType || inputParameters.length === 0) {
+    if (!formData.name || !formData.description || !toolType || inputParameters.length === 0) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields, select a tool type, and add at least one input.",
@@ -515,8 +515,23 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
                         </div>
                       )}
                       {param.type !== "text" && (
-                        <div className="text-sm text-gray-600 p-3 bg-gray-50 rounded border">
-                          Upload a sample {param.type === "document" ? "document" : "data file"} to test this function.
+                        <div className="space-y-2">
+                          <div className="text-sm text-gray-600 p-3 bg-gray-50 rounded border">
+                            Upload a sample {param.type === "document" ? "document" : "data file"} to test this tool.
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="file"
+                              accept={param.type === "document" ? ".pdf,.docx,.doc,.txt" : ".xlsx,.xls,.csv,.json"}
+                              onChange={(e) => handleSampleFileUpload(param.id, e.target.files?.[0])}
+                              className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                            />
+                          </div>
+                          {param.sampleFile && (
+                            <div className="text-sm text-green-600 bg-green-50 p-2 rounded border">
+                              ✓ Sample file uploaded: {param.sampleFile}
+                            </div>
+                          )}
                         </div>
                       )}
                       
