@@ -580,20 +580,17 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
                               />
                             )}
                             {param.sampleText && (
-                              <div className="flex items-center justify-between">
-                                <div className="text-sm text-green-600">
-                                  ✓ Sample text added ({param.sampleText.length} characters)
+                              <div className="flex items-center gap-2 mt-2">
+                                <div className="inline-flex items-center gap-2 bg-gray-700 text-gray-100 px-3 py-1 rounded text-xs">
+                                  <span>Sample text ({param.sampleText.length} chars)</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => updateInputParameter(param.id, "sampleText", "")}
+                                    className="hover:bg-gray-600 rounded p-0.5 transition-colors"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
                                 </div>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => updateInputParameter(param.id, "sampleText", "")}
-                                  className="text-xs h-7 border-red-200 text-red-600 hover:bg-red-50"
-                                >
-                                  <X className="h-3 w-3 mr-1" />
-                                  Clear
-                                </Button>
                               </div>
                             )}
                           </div>
@@ -617,12 +614,12 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
                           </div>
                           {param.sampleFile && (
                             <div className="flex items-center gap-2 mt-2">
-                              <div className="inline-flex items-center gap-2 bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs">
+                              <div className="inline-flex items-center gap-2 bg-gray-700 text-gray-100 px-3 py-1 rounded text-xs">
                                 <span>{param.sampleFile}</span>
                                 <button
                                   type="button"
                                   onClick={() => clearSampleFile(param.id)}
-                                  className="hover:bg-green-200 rounded-full p-0.5 transition-colors"
+                                  className="hover:bg-gray-600 rounded p-0.5 transition-colors"
                                 >
                                   <X className="h-3 w-3" />
                                 </button>
@@ -689,17 +686,22 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
 
           {/* Loading Progress */}
           {(generateToolCode.isPending || createTool.isPending) && (
-            <Card className="border-blue-200 bg-blue-50">
+            <Card className="border-gray-200 bg-gray-50">
               <CardContent className="pt-6">
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
-                    <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-                    <span className="text-sm font-medium text-blue-900">
-                      {loadingMessage || "Processing..."}
+                    <Loader2 className="h-5 w-5 animate-spin text-gray-600" />
+                    <span className="text-sm font-medium text-gray-900">
+                      Generating function
                     </span>
                   </div>
-                  <Progress value={loadingProgress} className="w-full" />
-                  <div className="text-xs text-blue-700">
+                  <div className="relative h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                    <div 
+                      className="h-full bg-gray-600 transition-all duration-300 ease-out" 
+                      style={{ width: `${loadingProgress}%` }}
+                    />
+                  </div>
+                  <div className="text-xs text-gray-700">
                     {loadingProgress}% complete
                   </div>
                 </div>
