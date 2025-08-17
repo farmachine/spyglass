@@ -5054,8 +5054,8 @@ print(json.dumps(results))
             fileName,
             filePath: fileURL,
             extractedContent: extractedText.text_content,
-            mimeType: fileResponse.headers.get('content-type') || 'application/octet-stream',
-            fileSize: parseInt(fileResponse.headers.get('content-length') || '0')
+            mimeType: mimeType,
+            fileSize: fileBuffer.length
           });
 
           console.log('✅ Successfully processed and saved sample document:', JSON.stringify(sampleDocument, null, 2));
