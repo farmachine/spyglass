@@ -849,16 +849,17 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                 <Button 
                   onClick={handleRunTest}
                   disabled={testLoading}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  variant="outline"
+                  className="border-gray-400 bg-gray-100 text-gray-600 hover:bg-gray-200 font-bold"
                 >
                   {testLoading ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2" />
                       Running Test...
                     </>
                   ) : (
                     <>
-                      <Play className="h-4 w-4 mr-2" />
+                      <Play className="h-4 w-4 mr-2 fill-gray-600" />
                       Run Test
                     </>
                   )}
