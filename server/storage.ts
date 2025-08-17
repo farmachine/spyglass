@@ -2389,41 +2389,47 @@ class PostgreSQLStorage implements IStorage {
   }
 
   async getAllCollectionsForReferences(organizationId: string): Promise<(ObjectCollection & { properties: CollectionProperty[], projectName: string })[]> {
-    // First get all projects for the organization
-    const projectsResult = await this.db
-      .select({
-        id: projects.id,
-        name: projects.name
-      })
-      .from(projects)
-      .where(eq(projects.organizationId, organizationId));
+    return this.retryOperation(async () => {
+      // Get ALL projects from ALL organizations for cross-project referencing
+      const projectsResult = await this.db
+        .select({
+          id: projects.id,
+          name: projects.name
+        })
+        .from(projects);
 
-    const allCollections: (ObjectCollection & { properties: CollectionProperty[], projectName: string })[] = [];
+      console.log(`📝 Found ${projectsResult.length} projects in database`);
 
-    // Get collections for each project
-    for (const project of projectsResult) {
-      const collections = await this.db
-        .select()
-        .from(objectCollections)
-        .where(eq(objectCollections.projectId, project.id))
-        .orderBy(objectCollections.orderIndex);
+      const allCollections: (ObjectCollection & { properties: CollectionProperty[], projectName: string })[] = [];
 
-      // Fetch properties for each collection
-      for (const collection of collections) {
-        const properties = await this.getCollectionProperties(collection.id);
-        allCollections.push({
-          ...collection,
-          projectName: project.name,
-          properties
-        });
+      // Get collections for each project
+      for (const project of projectsResult) {
+        const collections = await this.db
+          .select()
+          .from(objectCollections)
+          .where(eq(objectCollections.projectId, project.id))
+          .orderBy(objectCollections.orderIndex);
+
+        console.log(`📝 Project "${project.name}" has ${collections.length} collections`);
+
+        // Fetch properties for each collection
+        for (const collection of collections) {
+          const properties = await this.getCollectionProperties(collection.id);
+          console.log(`📝 Collection "${collection.collectionName}" has ${properties.length} properties`);
+          allCollections.push({
+            ...collection,
+            projectName: project.name,
+            properties
+          });
+        }
       }
-    }
 
-    // Sort by project name, then collection name
-    return allCollections.sort((a, b) => {
-      const projectComparison = a.projectName.localeCompare(b.projectName);
-      if (projectComparison !== 0) return projectComparison;
-      return a.collectionName.localeCompare(b.collectionName);
+      // Sort by project name, then collection name
+      return allCollections.sort((a, b) => {
+        const projectComparison = a.projectName.localeCompare(b.projectName);
+        if (projectComparison !== 0) return projectComparison;
+        return a.collectionName.localeCompare(b.collectionName);
+      });
     });
   }
 
