@@ -31,86 +31,35 @@ export async function generateFunctionCode(
     });
 
     if (functionType === "AI_ONLY") {
-      console.log('🤖 Generating AI-only prompt function...');
-      // Generate AI-only prompt with field_validations compatibility
-      const systemPrompt = `You are an expert at creating AI prompts for data extraction tasks.
-Generate a comprehensive AI prompt that will be used to extract data from documents.
+      console.log('🤖 Creating AI-only tool (no Python code generation)...');
+      
+      // For AI_ONLY tools, create a descriptive prompt instead of Python code
+      const aiPrompt = `Extract data from the provided document using the following parameters:
 
-CRITICAL: The output MUST be compatible with the field_validations database schema format.
-
-This function is designed to create: ${outputType === "single" ? "MAIN SCHEMA FIELDS (single values)" : "COLLECTION PROPERTIES (multiple records)"}
-
-Requirements:
-- The prompt should be detailed and specific
-- It should reference ALL input parameters using @-key syntax: ${inputParameters.map(p => `@${p.name}`).join(', ')}
-- It should always output valid JSON in field_validations format
-- It should handle edge cases and missing data gracefully
-- Output format MUST be field_validations compatible array
-- ${outputType === "single" ? "Design for extracting single values that will become main schema fields" : "Design for extracting multiple records that will populate a collection"}
-
-Field Validations Output Format:
-The function must return an array of objects with this exact structure:
-[
-  {
-    "extractedValue": "the extracted value",
-    "validationStatus": "valid|invalid|pending",
-    "aiReasoning": "explanation of extraction logic",
-    "confidenceScore": 95,
-    "documentSource": "source identifier"
-  }
-]
-
-All Input Parameters (use ALL of these in your prompt):
+Parameters:
 ${inputParameters.map(p => `- @${p.name} (${p.type}): ${p.description}`).join('\n')}
 
-Function Name: ${name}
-Function Description: ${description}
+Tool Description: ${description}
+Output Type: ${outputType === "single" ? "MAIN SCHEMA FIELDS (single values)" : "COLLECTION PROPERTIES (multiple records)"}
 
-Respond with JSON in this format:
-{
-  "functionCode": "the AI prompt as a string that outputs field_validations format",
-  "metadata": {
-    "outputFormat": "field_validations_array",
-    "inputValidation": "validation rules for inputs",
-    "errorHandling": "how errors are handled",
-    "parametersUsed": ["list", "of", "all", "parameter", "names"]
-  }
-}`;
+Instructions:
+- Use all the provided parameters to guide your extraction
+- Extract relevant data based on the document content
+- Return results in valid JSON format
+- Handle missing data gracefully with appropriate status indicators
+${aiAssistanceRequired ? `\nAdditional AI Instructions: ${aiAssistancePrompt}` : ''}`;
 
-      console.log('📤 Sending AI prompt generation request to Gemini...');
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-pro",
-        config: {
-          systemInstruction: systemPrompt,
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: "object",
-            properties: {
-              functionCode: { type: "string" },
-              metadata: { 
-                type: "object",
-                properties: {
-                  outputFormat: { type: "string" },
-                  inputValidation: { type: "string" },
-                  errorHandling: { type: "string" },
-                  parametersUsed: { 
-                    type: "array",
-                    items: { type: "string" }
-                  }
-                },
-                required: ["outputFormat", "inputValidation", "errorHandling", "parametersUsed"]
-              }
-            },
-            required: ["functionCode", "metadata"]
-          }
-        },
-        contents: `Generate an AI prompt for: ${name}\n\nMust use all these parameters: ${inputParameters.map(p => p.name).join(', ')}`
-      });
-
-      console.log('✅ AI prompt generation completed');
-      const result = JSON.parse(response.text || "{}");
-      console.log('🎯 Generated AI prompt metadata:', result.metadata);
-      return result;
+      return {
+        functionCode: aiPrompt,
+        metadata: {
+          outputFormat: "field_validations_array",
+          inputValidation: "AI will validate all input parameters during extraction",
+          errorHandling: "AI handles missing data gracefully with appropriate status indicators",
+          parametersUsed: inputParameters.map(p => p.name),
+          toolType: "AI_ONLY",
+          description: description
+        }
+      };
     } else {
       console.log('🐍 Generating Python script function...');
       // Generate Python script with field_validations compatibility

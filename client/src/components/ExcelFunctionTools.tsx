@@ -446,8 +446,8 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                     <div>
                       <Label className="text-sm font-medium">Extraction Type</Label>
                       <Select
-                        value={editingFunction?.functionType || 'FUNCTION'}
-                        onValueChange={(value: 'AI_ONLY' | 'FUNCTION') => {
+                        value={editingFunction?.functionType || 'SCRIPT'}
+                        onValueChange={(value: 'AI_ONLY' | 'SCRIPT') => {
                           if (editingFunction) {
                             setEditingFunction({ ...editingFunction, functionType: value });
                           }
@@ -457,7 +457,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="FUNCTION">
+                          <SelectItem value="SCRIPT">
                             <div className="flex items-center gap-2">
                               <Code className="h-4 w-4" />
                               Function
