@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 interface InputParameter {
   id: string;
   name: string;
-  type: "text" | "document" | "data" | "documents";
+  type: "data" | "document";
   description: string;
 }
 
@@ -84,7 +84,7 @@ export default function CreateToolDialog() {
     const newParam: InputParameter = {
       id: Math.random().toString(36),
       name: "",
-      type: "text",
+      type: "data",
       description: ""
     };
     setInputParameters([...inputParameters, newParam]);
@@ -287,34 +287,22 @@ export default function CreateToolDialog() {
                         <Label className="text-sm font-medium text-gray-700">Type</Label>
                         <Select 
                           value={param.type} 
-                          onValueChange={(value: "text" | "document" | "data" | "documents") => updateInputParameter(param.id, "type", value)}
+                          onValueChange={(value: "data" | "document") => updateInputParameter(param.id, "type", value)}
                         >
                           <SelectTrigger className="mt-1">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="text">
-                              <div className="flex items-center gap-2">
-                                <FileText className="h-4 w-4" />
-                                Text
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="document">
-                              <div className="flex items-center gap-2">
-                                <Database className="h-4 w-4" />
-                                Document
-                              </div>
-                            </SelectItem>
                             <SelectItem value="data">
                               <div className="flex items-center gap-2">
                                 <FolderOpen className="h-4 w-4" />
                                 Data
                               </div>
                             </SelectItem>
-                            <SelectItem value="documents">
+                            <SelectItem value="document">
                               <div className="flex items-center gap-2">
-                                <Files className="h-4 w-4" />
-                                Documents
+                                <Database className="h-4 w-4" />
+                                Document
                               </div>
                             </SelectItem>
                           </SelectContent>
