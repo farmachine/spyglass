@@ -551,7 +551,10 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
                           <div className="flex items-center space-x-2">
                             <Input
                               type="file"
-                              accept={param.type === "document" ? ".pdf,.docx,.doc,.txt" : ".xlsx,.xls,.csv,.json"}
+                              accept={param.type === "document" ? 
+                                ".pdf,.docx,.doc,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,text/plain" : 
+                                ".xlsx,.xls,.csv,.json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,application/json"
+                              }
                               onChange={(e) => handleSampleFileUpload(param.id, e.target.files?.[0])}
                               className="text-sm"
                             />
