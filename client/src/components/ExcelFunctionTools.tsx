@@ -242,34 +242,24 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
           <Card key={func.id} className="border-gray-200 hover:shadow-md transition-shadow bg-white">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="bg-gray-100 text-gray-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-semibold">
-                    {func.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg font-semibold text-gray-800">
-                      {func.name}
-                    </CardTitle>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-700">
-                        Used {func.usageCount} times
-                      </Badge>
-                      {func.tags && func.tags.length > 0 && (
-                        <div className="flex gap-1">
-                          {func.tags.slice(0, 3).map(tag => (
-                            <Badge key={tag} variant="outline" className="text-xs border-gray-300 text-gray-600">
-                              {tag}
-                            </Badge>
-                          ))}
-                          {func.tags.length > 3 && (
-                            <Badge variant="outline" className="text-xs border-gray-300 text-gray-600">
-                              +{func.tags.length - 3} more
-                            </Badge>
-                          )}
-                        </div>
+                <div>
+                  <CardTitle className="text-lg font-semibold text-gray-800">
+                    {func.name}
+                  </CardTitle>
+                  {func.tags && func.tags.length > 0 && (
+                    <div className="flex gap-1 mt-1">
+                      {func.tags.slice(0, 3).map(tag => (
+                        <Badge key={tag} variant="outline" className="text-xs border-gray-300 text-gray-600">
+                          {tag}
+                        </Badge>
+                      ))}
+                      {func.tags.length > 3 && (
+                        <Badge variant="outline" className="text-xs border-gray-300 text-gray-600">
+                          +{func.tags.length - 3} more
+                        </Badge>
                       )}
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </CardHeader>
