@@ -4973,9 +4973,12 @@ try:
     inputs_data = json.loads(sys.stdin.read())
     function_code = inputs_data['function_code']
     processed_inputs = inputs_data['processed_inputs']
+    function_metadata = inputs_data.get('function_metadata', {})
+    input_parameters = function_metadata.get('inputParameters', [])
     
     print(f"DEBUG: Function code length: {len(function_code)}", file=sys.stderr)
     print(f"DEBUG: Processed inputs keys: {list(processed_inputs.keys())}", file=sys.stderr)
+    print(f"DEBUG: Tool input parameters: {input_parameters}", file=sys.stderr)
     
     # Create a safe execution environment
     exec_globals = {
@@ -5049,41 +5052,42 @@ try:
     print(f"DEBUG: Function parameter count: {param_count}", file=sys.stderr)
     print(f"DEBUG: Function parameter names: {param_names}", file=sys.stderr)
     
-    # Build function arguments based on the parameter names and processed inputs
+    # Build function arguments based ONLY on the tool's input parameters metadata
     function_args = []
-    for param_name in param_names:
-        if param_name.lower() == 'document_content' or 'document' in param_name.lower() or 'content' in param_name.lower():
-            # Use the Excel content for document parameters
-            function_args.append(excel_content)
-            print(f"DEBUG: Using Excel content for parameter '{param_name}'", file=sys.stderr)
-        elif param_name.lower() == 'target_fields' or 'target' in param_name.lower() or 'fields' in param_name.lower():
-            # Provide empty target fields for testing
-            function_args.append([])
-            print(f"DEBUG: Using empty list for parameter '{param_name}'", file=sys.stderr)
-        elif param_name.lower() == 'identifier_references' or 'identifier' in param_name.lower() or 'references' in param_name.lower():
-            # Provide empty identifier references for testing
-            function_args.append([])
-            print(f"DEBUG: Using empty list for parameter '{param_name}'", file=sys.stderr)
-        else:
-            # Find matching input parameter (case-insensitive)
+    if input_parameters:
+        # Use the tool's defined input parameters
+        for param_config in input_parameters:
+            param_name = param_config.get('name', '')
+            param_type = param_config.get('type', '')
+            
+            # Find matching content from processed inputs
             matching_content = None
-            for input_param, content in processed_inputs.items():
-                if input_param.lower().replace(' ', '_') == param_name.lower() or input_param.lower() == param_name.lower():
+            for input_key, content in processed_inputs.items():
+                if input_key.lower() == param_name.lower() or input_key.lower().replace(' ', '_') == param_name.lower():
                     matching_content = content
-                    print(f"DEBUG: Mapping parameter '{param_name}' to input '{input_param}'", file=sys.stderr)
+                    print(f"DEBUG: Found content for parameter '{param_name}': {len(str(content))} chars", file=sys.stderr)
                     break
             
             if matching_content:
                 function_args.append(matching_content)
             else:
-                # Use Excel content as fallback for any unmatched parameter
-                function_args.append(excel_content)
-                print(f"DEBUG: Using Excel content as fallback for parameter '{param_name}'", file=sys.stderr)
+                print(f"DEBUG: No content found for parameter '{param_name}', using empty string", file=sys.stderr)
+                function_args.append("")
+    else:
+        # Fallback: if no input parameters defined, try to match function signature names  
+        for param_name in param_names:
+            # Find matching content from processed inputs  
+            matching_content = None
+            for input_key, content in processed_inputs.items():
+                if input_key.lower().replace(' ', '_') == param_name.lower():
+                    matching_content = content
+                    break
+            # For fallback, use first available content if no exact match
+            if not matching_content and processed_inputs:
+                matching_content = next(iter(processed_inputs.values()))
+            function_args.append(matching_content or "")
     
     print(f"DEBUG: Final function arguments count: {len(function_args)}", file=sys.stderr)
-    
-    # Add Exception to globals for sandbox compatibility
-    exec_globals['Exception'] = type('Exception', (BaseException,), {})
     
     # Execute the function with the mapped arguments
     results = main_function(*function_args)
@@ -5107,7 +5111,10 @@ except Exception as e:
 
           const inputData = {
             function_code: func.functionCode,
-            processed_inputs: processedInputs
+            processed_inputs: processedInputs,
+            function_metadata: {
+              inputParameters: func.inputParameters || []
+            }
           };
 
           pythonProcess.stdin.write(JSON.stringify(inputData));

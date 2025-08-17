@@ -1,0 +1,58 @@
+import pandas as pd
+import io
+
+def extract_function(document_content, target_fields, identifier_references):
+    """Gets all the column names from an excel file across all worksheets."""
+    results = []
+    document_source = "Excel File"
+    if not document_content:
+        results.append({
+            "extractedValue": None,
+            "validationStatus": "invalid",
+            "aiReasoning": "Input document_content is empty or null.",
+            "confidenceScore": 0,
+            "documentSource": document_source
+        })
+        return results
+    try:
+        excel_file = io.BytesIO(document_content)
+        xls = pd.ExcelFile(excel_file, engine='openpyxl')
+        sheet_names = xls.sheet_names
+        if not sheet_names:
+            results.append({
+                "extractedValue": None,
+                "validationStatus": "pending",
+                "aiReasoning": "The Excel file contains no worksheets.",
+                "confidenceScore": 50,
+                "documentSource": document_source
+            })
+            return results
+        for sheet_name in sheet_names:
+            df = pd.read_excel(xls, sheet_name=sheet_name)
+            for column_name in df.columns:
+                extracted_val = str(column_name)
+                if 'Unnamed:' in extracted_val:
+                    reason = f"Found a column with a default name '{extracted_val}' in worksheet '{sheet_name}'. This may indicate a missing header."
+                    status = "pending"
+                    score = 75
+                else:
+                    reason = f"Successfully extracted column name from worksheet '{sheet_name}'."
+                    status = "valid"
+                    score = 100
+                results.append({
+                    "extractedValue": extracted_val,
+                    "validationStatus": status,
+                    "aiReasoning": reason,
+                    "confidenceScore": score,
+                    "documentSource": document_source
+                })
+    except Exception as e:
+        error_message = f"Error processing the Excel file: {str(e)}. Ensure the file is a valid .xlsx file."
+        results.append({
+            "extractedValue": None,
+            "validationStatus": "invalid",
+            "aiReasoning": error_message,
+            "confidenceScore": 0,
+            "documentSource": document_source
+        })
+    return results
