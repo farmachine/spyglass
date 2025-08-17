@@ -13,6 +13,7 @@ import Publishing from "@/components/Publishing";
 import ExtraplLogo from "@/components/ExtraplLogo";
 import UserProfile from "@/components/UserProfile";
 import ExcelFunctionTools from "@/components/ExcelFunctionTools";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface ProjectAdminProps {
   projectId: string;
@@ -27,6 +28,9 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
   const addCollectionCallbackRef = useRef<(() => void) | null>(null);
   const { data: project, isLoading, error } = useProject(projectId);
   const { user } = useAuth();
+
+  // Set dynamic page title for admin pages
+  usePageTitle(project?.name ? `Admin - ${project.name}` : "Admin");
 
   // Check user role for access control
   const isAdmin = user?.role === 'admin';

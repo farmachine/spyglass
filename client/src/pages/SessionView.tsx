@@ -38,6 +38,7 @@ import type {
   FieldValidation,
   ValidationStatus 
 } from "@shared/schema";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // AI Reasoning and Verification Modal Component
 const AIReasoningModal = ({ 
@@ -1324,6 +1325,12 @@ export default function SessionView() {
     queryFn: () => apiRequest(`/api/projects/${projectId}`),
     enabled: !!projectId // Only run this query when we have a projectId
   });
+
+  // Set dynamic page title based on session and project data
+  usePageTitle(session?.sessionName && project?.name ? 
+    `${session.sessionName} - ${project.name}` : 
+    session?.sessionName || project?.name || "Session"
+  );
 
   const { data: validations = [], isLoading: validationsLoading } = useQuery<FieldValidation[]>({
     queryKey: ['/api/sessions', sessionId, 'validations'],

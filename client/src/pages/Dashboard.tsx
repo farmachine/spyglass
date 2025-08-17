@@ -13,6 +13,7 @@ import { useDashboardStatistics } from "@/hooks/useDashboardStatistics";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 import ProjectCard from "@/components/ProjectCard";
 import CreateProjectDialog from "@/components/CreateProjectDialog";
@@ -21,6 +22,8 @@ import ExtraplLogo from "@/components/ExtraplLogo";
 
 
 export default function Dashboard() {
+  usePageTitle("Dashboard");
+  
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [showDeactivated, setShowDeactivated] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");

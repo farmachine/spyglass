@@ -21,6 +21,7 @@ import Publishing from "./Publishing";
 import UserProfile from "./UserProfile";
 import Breadcrumb from "./Breadcrumb";
 import ExtraplLogo from "./ExtraplLogo";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 
 interface ProjectLayoutProps {
@@ -43,6 +44,9 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const queryClient = useQueryClient();
   const userNavigatedRef = useRef(false);
   const initialTabSetRef = useRef(false);
+  
+  // Set dynamic page title based on project name
+  usePageTitle(project?.name || "Project");
   
   // Editing states
   const [isEditingTitle, setIsEditingTitle] = useState(false);

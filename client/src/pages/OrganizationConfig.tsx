@@ -20,6 +20,7 @@ import { z } from "zod";
 import { toast } from "@/hooks/use-toast";
 import Breadcrumb from "@/components/Breadcrumb";
 import React from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const userSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -55,12 +56,20 @@ export default function OrganizationConfig() {
 
   const organizationId = id || "";
 
+  // Fetch organization data to get name for page title
+  const { data: organization } = useQuery({
+    queryKey: ["/api/organizations", organizationId],
+    queryFn: () => apiRequest(`/api/organizations/${organizationId}`),
+    enabled: !!organizationId,
+  });
+
+  // Set dynamic page title
+  usePageTitle(organization?.name ? `Admin - ${organization.name}` : "Organization Admin");
+
   const { data: organizations } = useQuery({
     queryKey: ["/api/organizations"],
     enabled: user?.role === "admin",
   });
-
-  const organization = organizations?.find((org: any) => org.id === organizationId);
 
   const { data: users, isLoading: usersLoading } = useQuery({
     queryKey: ["/api/users", organizationId],
@@ -196,8 +205,8 @@ export default function OrganizationConfig() {
   React.useEffect(() => {
     if (organization) {
       orgForm.reset({
-        name: organization.name,
-        description: organization.description || "",
+        name: organization?.name || "",
+        description: organization?.description || "",
       });
     }
   }, [organization, orgForm]);
@@ -224,12 +233,12 @@ export default function OrganizationConfig() {
             <Breadcrumb 
               items={[
                 { label: "Admin Panel", href: "/admin", icon: <Settings className="h-4 w-4" /> },
-                { label: organization.name }
+                { label: organization?.name || "Organization" }
               ]} 
             />
             <div>
               <h1 className="text-2xl font-semibold text-gray-900">
-                {organization.name}
+                {organization?.name || "Organization"}
               </h1>
               <p className="text-sm text-gray-600 mt-1">
                 Organization configuration
@@ -322,7 +331,7 @@ export default function OrganizationConfig() {
                           </DialogHeader>
                           <div className="space-y-4">
                             <p className="text-sm text-gray-600">
-                              This action cannot be undone. This will permanently delete the organization "{organization.name}" and all associated users.
+                              This action cannot be undone. This will permanently delete the organization "{organization?.name}" and all associated users.
                             </p>
                             <div className="flex justify-end space-x-2">
                               <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
@@ -359,7 +368,7 @@ export default function OrganizationConfig() {
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Add User to {organization.name}</DialogTitle>
+                      <DialogTitle>Add User to {organization?.name || "Organization"}</DialogTitle>
                       <DialogDescription>
                         Create a new user account for this organization.
                       </DialogDescription>

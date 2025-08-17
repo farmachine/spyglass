@@ -16,6 +16,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const organizationSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -23,6 +24,8 @@ const organizationSchema = z.object({
 });
 
 export default function AdminPanel() {
+  usePageTitle("Admin");
+  
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const [createOrgOpen, setCreateOrgOpen] = useState(false);
