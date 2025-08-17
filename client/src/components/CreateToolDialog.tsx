@@ -18,6 +18,7 @@ interface InputParameter {
   name: string;
   type: "text" | "data" | "document";
   description: string;
+  multiline?: boolean; // Only applies to text type
 }
 
 interface CreateToolDialogProps {
@@ -88,16 +89,25 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
       id: Math.random().toString(36),
       name: "",
       type: "text",
-      description: ""
+      description: "",
+      multiline: false
     };
     setInputParameters([...inputParameters, newParam]);
   };
 
-  const updateInputParameter = (id: string, field: keyof InputParameter, value: string) => {
+  const updateInputParameter = (id: string, field: keyof InputParameter, value: string | boolean) => {
     setInputParameters(prev => 
-      prev.map(param => 
-        param.id === id ? { ...param, [field]: value } : param
-      )
+      prev.map(param => {
+        if (param.id === id) {
+          const updatedParam = { ...param, [field]: value };
+          // Reset multiline to false when type changes away from "text"
+          if (field === "type" && value !== "text") {
+            updatedParam.multiline = false;
+          }
+          return updatedParam;
+        }
+        return param;
+      })
     );
   };
 
@@ -302,6 +312,20 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
                         </Select>
                       </div>
                     </div>
+                    {param.type === "text" && (
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id={`multiline-${param.id}`}
+                            checked={param.multiline || false}
+                            onCheckedChange={(checked) => updateInputParameter(param.id, "multiline", checked)}
+                          />
+                          <Label htmlFor={`multiline-${param.id}`} className="text-sm font-medium text-gray-700">
+                            Multi-line text input
+                          </Label>
+                        </div>
+                      </div>
+                    )}
                     <div>
                       <Label className="text-sm font-medium text-gray-700">Description</Label>
                       <Textarea
