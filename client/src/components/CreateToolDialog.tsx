@@ -508,29 +508,6 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                     return (
                       <div key={param.id} className="border border-gray-200 rounded-lg">
                         <div className="p-4">
-                          <div className="flex items-center justify-end gap-1 mb-3">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => toggleInputExpanded(param.id)}
-                              className="p-1 h-auto text-gray-600 hover:text-gray-800"
-                            >
-                              {isExpanded ? (
-                                <ChevronDown className="h-4 w-4" />
-                              ) : (
-                                <ChevronRight className="h-4 w-4" />
-                              )}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => removeInputParameter(param.id)}
-                              className="text-red-600 hover:text-red-800 hover:bg-red-50"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          
                           <div className="flex items-center gap-4">
                             <div className="flex-1">
                               <Input
@@ -569,6 +546,28 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                                   </SelectItem>
                                 </SelectContent>
                               </Select>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => toggleInputExpanded(param.id)}
+                                className="p-1 h-auto text-gray-600 hover:text-gray-800"
+                              >
+                                {isExpanded ? (
+                                  <ChevronDown className="h-4 w-4" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4" />
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => removeInputParameter(param.id)}
+                                className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
                             </div>
                           </div>
                         </div>
