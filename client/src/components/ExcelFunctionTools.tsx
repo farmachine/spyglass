@@ -47,7 +47,6 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
     name: "",
     description: "",
     functionCode: "",
-    tags: "",
     inputParameters: [] as InputParameter[]
   });
 
@@ -141,11 +140,10 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
 
   // Update function mutation
   const updateFunction = useMutation({
-    mutationFn: async (data: { id: string; description: string; functionCode: string; tags: string[]; inputParameters?: any[] }) => {
+    mutationFn: async (data: { id: string; description: string; functionCode: string; inputParameters?: any[] }) => {
       const updateData: any = {
         description: data.description,
-        functionCode: data.functionCode,
-        tags: data.tags
+        functionCode: data.functionCode
       };
       
       if (data.inputParameters) {
@@ -206,7 +204,6 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
       name: func.name,
       description: func.description,
       functionCode: func.functionCode,
-      tags: func.tags?.join(", ") || "",
       inputParameters: Array.isArray((func as any).inputParameters) 
         ? (func as any).inputParameters.map((param: any, index: number) => ({
             id: param.id || `param_${index}`,
@@ -222,16 +219,10 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
   const handleSave = () => {
     if (!editingFunction) return;
 
-    const tagsArray = formData.tags
-      .split(",")
-      .map(tag => tag.trim())
-      .filter(tag => tag.length > 0);
-
     updateFunction.mutate({
       id: editingFunction.id,
       description: formData.description,
       functionCode: formData.functionCode,
-      tags: tagsArray,
       inputParameters: formData.inputParameters
     });
   };
@@ -296,20 +287,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                     )}
                     {func.name}
                   </CardTitle>
-                  {func.tags && func.tags.length > 0 && (
-                    <div className="flex gap-1 mt-1">
-                      {func.tags.slice(0, 3).map(tag => (
-                        <Badge key={tag} variant="outline" className="text-xs border-gray-300 text-gray-600">
-                          {tag}
-                        </Badge>
-                      ))}
-                      {func.tags.length > 3 && (
-                        <Badge variant="outline" className="text-xs border-gray-300 text-gray-600">
-                          +{func.tags.length - 3} more
-                        </Badge>
-                      )}
-                    </div>
-                  )}
+
                 </div>
               </div>
             </CardHeader>
@@ -329,18 +307,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                         className="mt-1"
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="tags" className="text-sm font-medium">
-                        Tags (comma-separated)
-                      </Label>
-                      <Input
-                        id="tags"
-                        value={formData.tags}
-                        onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                        placeholder="date, financial, text_extraction"
-                        className="mt-1"
-                      />
-                    </div>
+
                     
                     {/* Inputs */}
                     <Card className="border-gray-200">
