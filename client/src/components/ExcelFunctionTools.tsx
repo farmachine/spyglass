@@ -442,7 +442,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                                   <div>
                                     <div className="flex items-center justify-between">
                                       <Label className="text-sm font-medium text-gray-700">Description</Label>
-                                      {param.type === "data" && param.description && (
+                                      {param.type === "data" && param.description && param.description.trim().length > 0 && (
                                         <Button
                                           size="sm"
                                           variant="outline"
