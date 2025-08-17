@@ -5010,7 +5010,7 @@ try:
     
     # Try to find the main function - check for different possible names
     main_function = None
-    function_names = ['main', 'extract_data', 'process_data', 'extract_excel_data']
+    function_names = ['main', 'extract_data', 'process_data', 'extract_excel_data', 'extract_function']
     
     for name in function_names:
         if name in exec_globals:
@@ -5019,9 +5019,14 @@ try:
             break
     
     if not main_function:
+        # If no standard function names found, try to use any callable function
         available_functions = [key for key in exec_globals.keys() if callable(exec_globals[key]) and not key.startswith('_')]
-        print(json.dumps({"error": f"No main function found. Available functions: {available_functions}"}))
-        sys.exit(0)
+        if available_functions:
+            main_function = exec_globals[available_functions[0]]
+            print(f"DEBUG: Using first available function: {available_functions[0]}", file=sys.stderr)
+        else:
+            print(json.dumps({"error": f"No callable functions found. Available keys: {list(exec_globals.keys())}"}))
+            sys.exit(0)
     
     # Get the Excel content from processed inputs
     excel_content = None
