@@ -4922,34 +4922,167 @@ print(json.dumps(results))
         });
       }
 
-      // If it's a script function, try to execute it (simplified for testing)
+      // If it's a script function, execute it with real sample document content
       if (func.functionType === 'SCRIPT' && func.functionCode) {
         try {
-          // For testing, we'll simulate execution results
-          testResults.push({
-            id: `test-result-${Date.now()}`,
-            sessionId: `test-session-${Date.now()}`,
-            validationType: 'schema_field',
-            dataType: 'TEXT',
-            fieldId: 'function-output',
-            extractedValue: JSON.stringify(inputs),
-            validationStatus: 'valid',
-            aiReasoning: 'Function executed successfully in test mode',
-            confidenceScore: 90,
-            documentSource: 'function-execution',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+          // Get sample documents for this function
+          let sampleDocuments = [];
+          try {
+            sampleDocuments = await storage.getSampleDocuments(functionId);
+            console.log(`📁 Found ${sampleDocuments.length} sample documents`);
+          } catch (error) {
+            console.log("No sample documents found:", error);
+          }
+
+          // Process inputs to replace document IDs with actual content
+          const processedInputs = {};
+          for (const [paramName, inputValue] of Object.entries(inputs)) {
+            if (Array.isArray(inputValue)) {
+              // This is likely document IDs, replace with actual content
+              const documentContents = [];
+              for (const docId of inputValue) {
+                const sampleDoc = sampleDocuments.find(doc => doc.id === docId);
+                if (sampleDoc && sampleDoc.extractedContent) {
+                  documentContents.push(sampleDoc.extractedContent);
+                } else {
+                  console.log(`Warning: No content found for document ID: ${docId}`);
+                  documentContents.push(`Document ID: ${docId} (content not found)`);
+                }
+              }
+              processedInputs[paramName] = documentContents.length === 1 ? documentContents[0] : documentContents;
+            } else {
+              processedInputs[paramName] = inputValue;
+            }
+          }
+
+          console.log("📋 Processed inputs for function execution:", Object.keys(processedInputs));
+
+          // Execute the function using the extraction wizardry system
+          const { spawn } = await import('child_process');
+          const pythonProcess = spawn('python3', ['-c', `
+import sys
+import json
+import os
+
+# Add current directory to Python path for imports
+sys.path.insert(0, os.getcwd())
+
+try:
+    from extraction_wizardry import execute_excel_wizardry_function
+    
+    # Read inputs from stdin
+    inputs_data = json.loads(sys.stdin.read())
+    function_code = inputs_data['function_code']
+    processed_inputs = inputs_data['processed_inputs']
+    
+    # Execute the function
+    result = execute_excel_wizardry_function(
+        function_code,
+        processed_inputs,
+        [{"name": "test_field", "description": "Test execution"}],
+        None
+    )
+    
+    print(json.dumps(result))
+except Exception as e:
+    print(json.dumps({"error": str(e)}))
+`], {
+            stdio: ['pipe', 'pipe', 'pipe']
           });
+
+          const inputData = {
+            function_code: func.functionCode,
+            processed_inputs: processedInputs
+          };
+
+          pythonProcess.stdin.write(JSON.stringify(inputData));
+          pythonProcess.stdin.end();
+
+          let output = '';
+          let errorOutput = '';
+
+          pythonProcess.stdout.on('data', (data) => {
+            output += data.toString();
+          });
+
+          pythonProcess.stderr.on('data', (data) => {
+            errorOutput += data.toString();
+          });
+
+          await new Promise((resolve) => {
+            pythonProcess.on('close', (code) => {
+              console.log(`Python execution completed with code: ${code}`);
+              if (errorOutput) {
+                console.log(`Error output: ${errorOutput}`);
+              }
+
+              try {
+                const result = JSON.parse(output);
+                if (result.error) {
+                  testResults.push({
+                    id: `test-error-${Date.now()}`,
+                    sessionId: `test-session-${Date.now()}`,
+                    validationType: 'schema_field',
+                    dataType: 'TEXT',
+                    fieldId: 'function-error',
+                    extractedValue: `Execution Error: ${result.error}`,
+                    validationStatus: 'invalid',
+                    aiReasoning: 'Function execution failed',
+                    confidenceScore: 0,
+                    documentSource: 'function-execution',
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                  });
+                } else if (result.results) {
+                  // Convert the function results to field validation format
+                  result.results.forEach((item, index) => {
+                    testResults.push({
+                      id: `test-result-${Date.now()}-${index}`,
+                      sessionId: `test-session-${Date.now()}`,
+                      validationType: 'schema_field',
+                      dataType: 'TEXT',
+                      fieldId: 'function-output',
+                      extractedValue: typeof item === 'object' ? JSON.stringify(item) : String(item),
+                      validationStatus: 'valid',
+                      aiReasoning: 'Function executed successfully with real content',
+                      confidenceScore: 95,
+                      documentSource: 'function-execution',
+                      createdAt: new Date().toISOString(),
+                      updatedAt: new Date().toISOString()
+                    });
+                  });
+                }
+              } catch (parseError) {
+                testResults.push({
+                  id: `test-parse-error-${Date.now()}`,
+                  sessionId: `test-session-${Date.now()}`,
+                  validationType: 'schema_field',
+                  dataType: 'TEXT',
+                  fieldId: 'function-error',
+                  extractedValue: `Parse Error: ${parseError.message}, Raw output: ${output}`,
+                  validationStatus: 'invalid',
+                  aiReasoning: 'Failed to parse function output',
+                  confidenceScore: 0,
+                  documentSource: 'function-execution',
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString()
+                });
+              }
+
+              resolve(true);
+            });
+          });
+
         } catch (execError) {
           testResults.push({
-            id: `test-error-${Date.now()}`,
+            id: `test-execution-error-${Date.now()}`,
             sessionId: `test-session-${Date.now()}`,
             validationType: 'schema_field',
             dataType: 'TEXT',
             fieldId: 'function-error',
-            extractedValue: `Error: ${execError}`,
+            extractedValue: `Execution Error: ${execError.message}`,
             validationStatus: 'invalid',
-            aiReasoning: 'Function execution failed in test mode',
+            aiReasoning: 'Function execution setup failed',
             confidenceScore: 0,
             documentSource: 'function-execution',
             createdAt: new Date().toISOString(),
