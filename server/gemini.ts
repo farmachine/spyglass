@@ -162,7 +162,10 @@ This function is designed to create: ${outputType === "single" ? "MAIN SCHEMA FI
 
 Requirements:
 - Function must be named "extract_function"
-- Must accept parameters: document_content, target_fields, identifier_references
+- Must accept parameters based on the user-defined input parameters: ${inputParameters.map(p => p.name).join(', ')}
+- CRITICAL: All input parameters are STRING VALUES of already-extracted document content, NOT binary document data
+- Input parameters contain pre-processed text content from documents (Excel, Word, PDF, etc.) that has already been extracted
+- Do NOT use pandas, openpyxl, or any document parsing libraries - work with the string content provided
 - Must use ALL input parameters defined by the user: ${inputParameters.map(p => `@${p.name}`).join(', ')}
 - Must output data compatible with field_validations schema (array of objects)
 - Must handle errors gracefully and return valid JSON
@@ -191,10 +194,11 @@ Function Description: ${description}
 ${aiAssistanceRequired ? `AI Assistance Prompt: ${aiAssistancePrompt}` : ''}
 
 The function should:
-1. Process the document_content using all provided parameters
-2. Extract relevant data based on target_fields and identifier_references
+1. Process the input string parameters (which contain already-extracted document content)
+2. Extract relevant data by analyzing the string content using pattern matching, text processing, or data parsing
 3. Return results in the exact field_validations format shown above
 4. Handle missing data gracefully with appropriate validation status
+5. IMPORTANT: Do NOT attempt to read binary files or use document parsing libraries - work only with the provided string content
 
 Respond with JSON in this format:
 {
@@ -239,7 +243,18 @@ Respond with JSON in this format:
             required: ["functionCode", "metadata"]
           }
         },
-        contents: `Generate a Python function for: ${name}\n\nMust use all these parameters: ${inputParameters.map(p => p.name).join(', ')}\n\nOutput must be field_validations compatible array format.`
+        contents: `Generate a Python function for: ${name}
+
+Function signature should be: def extract_function(${inputParameters.map(p => p.name).join(', ')}):
+
+CRITICAL: All parameters are STRING VALUES containing already-extracted document content.
+- Do NOT use pandas, openpyxl, or document parsing libraries
+- Work only with the provided string content
+- Use pattern matching, text processing, or JSON/CSV parsing on strings
+
+Must use all these parameters: ${inputParameters.map(p => p.name).join(', ')}
+
+Output must be field_validations compatible array format.`
       });
 
       console.log('✅ Python script generation completed');
