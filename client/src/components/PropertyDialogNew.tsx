@@ -165,12 +165,23 @@ export function PropertyDialogNew({
     placeholder: string;
     availableFields: Array<{ key: string; label: string; source: string }>;
   }) {
+    const handleValueChange = (val: string) => {
+      if (val === "__CLEAR__") {
+        onChange("");
+      } else {
+        onChange(val);
+      }
+    };
+
     return (
-      <Select value={value} onValueChange={onChange}>
+      <Select value={value} onValueChange={handleValueChange}>
         <SelectTrigger className="w-full">
           <SelectValue placeholder={placeholder || "Select reference data..."} />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value="__CLEAR__">
+            <span className="text-gray-500 italic">Clear selection</span>
+          </SelectItem>
           {availableFields.length === 0 && (
             <SelectItem value="none" disabled>No reference data available</SelectItem>
           )}
