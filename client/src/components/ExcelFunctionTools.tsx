@@ -745,13 +745,13 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
 
       {/* Test Function Modal */}
       <Dialog open={!!testingFunction} onOpenChange={() => setTestingFunction(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle className="text-gray-800">Test Function: {testingFunction?.name}</DialogTitle>
           </DialogHeader>
           
           {testingFunction && (
-            <div className="space-y-6">
+            <div className="space-y-6 overflow-y-auto flex-1 pr-2">
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h4 className="font-medium text-gray-800 mb-2">Function Description</h4>
                 <p className="text-gray-600">{testingFunction.description}</p>
@@ -764,11 +764,11 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {((testingFunction as any).inputParameters || []).map((param: any) => (
-                    <div key={param.id}>
+                    <div key={param.id} className="w-full">
                       <Label htmlFor={`test-${param.id}`} className="text-sm font-medium text-gray-700">
                         {param.name} ({param.type})
                       </Label>
-                      <p className="text-xs text-gray-500 mb-2">{param.description}</p>
+                      <p className="text-xs text-gray-500 mb-2 break-words">{param.description}</p>
                       
                       {param.type === "text" ? (
                         param.multiline ? (
@@ -799,16 +799,16 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                           className="mt-1 font-mono"
                         />
                       ) : (
-                        <div className="space-y-2">
+                        <div className="space-y-2 w-full">
                           <div className="text-sm text-gray-600 mb-2">
                             Select sample documents for testing:
                           </div>
-                          <div className="border rounded-lg p-3 max-h-32 overflow-y-auto">
+                          <div className="border rounded-lg p-3 max-h-32 overflow-y-auto w-full">
                             {testSampleDocuments.filter(doc => doc.parameterName === param.name).length > 0 ? (
                               testSampleDocuments
                                 .filter(doc => doc.parameterName === param.name)
                                 .map((doc) => (
-                                  <div key={doc.id} className="flex items-center space-x-2 py-1">
+                                  <div key={doc.id} className="flex items-center space-x-2 py-1 w-full">
                                     <Checkbox
                                       id={`doc-${doc.id}`}
                                       checked={(testInputs[param.name] as string[])?.includes(doc.id) || false}
@@ -825,7 +825,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                                     />
                                     <Label 
                                       htmlFor={`doc-${doc.id}`} 
-                                      className="text-sm font-medium cursor-pointer flex-1"
+                                      className="text-sm font-medium cursor-pointer flex-1 truncate"
                                     >
                                       {doc.fileName || `Sample text (${doc.sampleText?.substring(0, 30)}...)`}
                                     </Label>
@@ -873,8 +873,8 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                     <CardTitle className="text-lg text-gray-800">Test Results</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <pre className="text-sm overflow-x-auto">
+                    <div className="bg-gray-50 p-4 rounded-lg overflow-hidden">
+                      <pre className="text-sm overflow-x-auto whitespace-pre-wrap break-words max-w-full">
                         {JSON.stringify(testResults, null, 2)}
                       </pre>
                     </div>
