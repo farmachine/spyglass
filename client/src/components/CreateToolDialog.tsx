@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, X, FileText, Database, Type, Copy, Check, Upload, Loader2 } from "lucide-react";
+import { Plus, X, FileText, Database, Type, Copy, Check, Upload, Loader2, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -45,6 +45,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   const [copiedSampleData, setCopiedSampleData] = useState<string | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingMessage, setLoadingMessage] = useState("");
+  const [expandedInputs, setExpandedInputs] = useState<Set<string>>(new Set());
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -156,6 +157,23 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
   const removeInputParameter = (id: string) => {
     setInputParameters(prev => prev.filter(param => param.id !== id));
+    setExpandedInputs(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(id);
+      return newSet;
+    });
+  };
+
+  const toggleInputExpanded = (id: string) => {
+    setExpandedInputs(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
   };
 
   const generateSampleData = (description: string, paramName: string): string => {
@@ -483,133 +501,160 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                 </div>
               ) : (
                 <>
-                  {inputParameters.map((param, index) => (
-                    <div key={param.id} className="border border-gray-200 rounded-lg p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Badge variant="outline" className="border-gray-300">
-                          @{param.name || "parameter-name"}
-                        </Badge>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => removeInputParameter(param.id)}
-                          className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                  {inputParameters.map((param, index) => {
+                    const isExpanded = expandedInputs.has(param.id);
+                    return (
+                      <div key={param.id} className="border border-gray-200 rounded-lg">
+                        <div 
+                          className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50"
+                          onClick={() => toggleInputExpanded(param.id)}
                         >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label className="text-sm font-medium text-gray-700">Input Name</Label>
-                          <Input
-                            value={param.name}
-                            onChange={(e) => updateInputParameter(param.id, "name", e.target.value)}
-                            placeholder="parameter_name"
-                            className="mt-1"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-sm font-medium text-gray-700">Type</Label>
-                          <Select 
-                            value={param.type} 
-                            onValueChange={(value: "text" | "data" | "document") => updateInputParameter(param.id, "type", value)}
-                          >
-                            <SelectTrigger className="mt-1">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="text">
-                                <div className="flex items-center gap-2">
-                                  <Type className="h-4 w-4" />
-                                  Text
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="data">
-                                <div className="flex items-center gap-2">
-                                  <Database className="h-4 w-4" />
-                                  Data
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="document">
-                                <div className="flex items-center gap-2">
-                                  <FileText className="h-4 w-4" />
-                                  Document
-                                </div>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <div>
-                        <Label className="text-sm font-medium text-gray-700">Description</Label>
-                        <Textarea
-                          value={param.description}
-                          onChange={(e) => updateInputParameter(param.id, "description", e.target.value)}
-                          placeholder="Describe this input parameter..."
-                          className="mt-1 resize-none"
-                          rows={2}
-                        />
-                      </div>
-
-                      {param.type === "text" && (
-                        <div className="space-y-3">
-                          <div className="flex items-center space-x-2">
-                            <Switch
-                              checked={param.multiline}
-                              onCheckedChange={(checked) => updateInputParameter(param.id, "multiline", checked)}
-                            />
-                            <Label className="text-sm text-gray-600">Multi-line text input</Label>
-                          </div>
-                        </div>
-                      )}
-                      {param.type !== "text" && (
-                        <div className="p-3 bg-gray-50 rounded border space-y-3">
-                          <div className="text-sm text-gray-600">
-                            Upload a sample {param.type === "document" ? "document" : "data file"} to test this tool.
-                          </div>
-                          <div className="relative">
-                            <Input
-                              type="file"
-                              accept={param.type === "document" ? ".pdf,.docx,.doc,.txt,.xlsx,.xls" : ".xlsx,.xls,.csv,.json"}
-                              onChange={(e) => handleSampleFileUpload(param.id, e.target.files?.[0])}
-                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                            />
-                            <div className="flex items-center justify-center w-full h-10 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors cursor-pointer">
-                              <Upload className="h-5 w-5 text-gray-400" />
+                          <div className="flex items-center gap-3">
+                            {isExpanded ? (
+                              <ChevronDown className="h-4 w-4 text-gray-500" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-gray-500" />
+                            )}
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-gray-900">
+                                {param.name || "Unnamed Input"}
+                              </span>
+                              <Badge variant="secondary" className="text-xs">
+                                {param.type}
+                              </Badge>
                             </div>
                           </div>
-                          {param.sampleFile && (
-                            <div className="flex items-center gap-2 mt-2">
-                              <div className="inline-flex items-center gap-2 bg-gray-700 text-gray-100 px-3 py-1 rounded text-xs">
-                                <span>{param.sampleFile}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => clearSampleFile(param.id)}
-                                  className="hover:bg-gray-600 rounded p-0.5 transition-colors"
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      
-                      {/* Add Input button after first input */}
-                      {index === 0 && inputParameters.length >= 1 && (
-                        <div className="text-center py-2 border-t pt-4">
-                          <Button 
-                            size="sm" 
-                            onClick={addInputParameter}
-                            className="bg-gray-600 hover:bg-gray-700"
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeInputParameter(param.id);
+                            }}
+                            className="text-red-600 hover:text-red-800 hover:bg-red-50"
                           >
-                            <Plus className="h-4 w-4 mr-1" />
-                            Add Input
+                            <X className="h-4 w-4" />
                           </Button>
                         </div>
-                      )}
-                    </div>
-                  ))}
+                        {isExpanded && (
+                          <div className="px-4 pb-4 space-y-3 border-t border-gray-100">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <Label className="text-sm font-medium text-gray-700">Input Name</Label>
+                                <Input
+                                  value={param.name}
+                                  onChange={(e) => updateInputParameter(param.id, "name", e.target.value)}
+                                  placeholder="parameter_name"
+                                  className="mt-1"
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-sm font-medium text-gray-700">Type</Label>
+                                <Select 
+                                  value={param.type} 
+                                  onValueChange={(value: "text" | "data" | "document") => updateInputParameter(param.id, "type", value)}
+                                >
+                                  <SelectTrigger className="mt-1">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="text">
+                                      <div className="flex items-center gap-2">
+                                        <Type className="h-4 w-4" />
+                                        Text
+                                      </div>
+                                    </SelectItem>
+                                    <SelectItem value="data">
+                                      <div className="flex items-center gap-2">
+                                        <Database className="h-4 w-4" />
+                                        Data
+                                      </div>
+                                    </SelectItem>
+                                    <SelectItem value="document">
+                                      <div className="flex items-center gap-2">
+                                        <FileText className="h-4 w-4" />
+                                        Document
+                                      </div>
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                            <div>
+                              <Label className="text-sm font-medium text-gray-700">Description</Label>
+                              <Textarea
+                                value={param.description}
+                                onChange={(e) => updateInputParameter(param.id, "description", e.target.value)}
+                                placeholder="Describe this input parameter..."
+                                className="mt-1 resize-none"
+                                rows={2}
+                              />
+                            </div>
+
+                            {param.type === "text" && (
+                              <div className="space-y-3">
+                                <div className="flex items-center space-x-2">
+                                  <Switch
+                                    checked={param.multiline}
+                                    onCheckedChange={(checked) => updateInputParameter(param.id, "multiline", checked)}
+                                  />
+                                  <Label className="text-sm text-gray-600">Multi-line text input</Label>
+                                </div>
+                              </div>
+                            )}
+                            {param.type !== "text" && (
+                              <div className="space-y-3">
+                                <div className="space-y-2">
+                                  <Label className="text-sm font-medium text-gray-700">
+                                    Upload a sample document to test this tool.
+                                  </Label>
+                                  <div className="relative">
+                                    <input
+                                      type="file"
+                                      accept=".xlsx,.xls,.docx,.doc,.pdf,.json,.csv,.txt"
+                                      onChange={(e) => handleSampleFileUpload(e, param.id)}
+                                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    />
+                                    <div className="flex items-center justify-center w-full h-10 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors cursor-pointer">
+                                      <Upload className="h-5 w-5 text-gray-400" />
+                                    </div>
+                                  </div>
+                                  {param.sampleFile && (
+                                    <div className="flex items-center gap-2 mt-2">
+                                      <div className="inline-flex items-center gap-2 bg-gray-700 text-gray-100 px-3 py-1 rounded text-xs">
+                                        <span>{param.sampleFile}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => clearSampleFile(param.id)}
+                                          className="hover:bg-gray-600 rounded p-0.5 transition-colors"
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Add Input button after first input */}
+                            {index === 0 && inputParameters.length >= 1 && (
+                              <div className="text-center py-2 border-t pt-4">
+                                <Button 
+                                  size="sm" 
+                                  onClick={addInputParameter}
+                                  className="bg-gray-600 hover:bg-gray-700"
+                                >
+                                  <Plus className="h-4 w-4 mr-1" />
+                                  Add Input
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </>
               )}
             </CardContent>
