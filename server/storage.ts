@@ -2388,6 +2388,45 @@ class PostgreSQLStorage implements IStorage {
     return collectionsWithProperties;
   }
 
+  async getAllCollectionsForReferences(organizationId: string): Promise<(ObjectCollection & { properties: CollectionProperty[], projectName: string })[]> {
+    // First get all projects for the organization
+    const projectsResult = await this.db
+      .select({
+        id: projects.id,
+        name: projects.name
+      })
+      .from(projects)
+      .where(eq(projects.organizationId, organizationId));
+
+    const allCollections: (ObjectCollection & { properties: CollectionProperty[], projectName: string })[] = [];
+
+    // Get collections for each project
+    for (const project of projectsResult) {
+      const collections = await this.db
+        .select()
+        .from(objectCollections)
+        .where(eq(objectCollections.projectId, project.id))
+        .orderBy(objectCollections.orderIndex);
+
+      // Fetch properties for each collection
+      for (const collection of collections) {
+        const properties = await this.getCollectionProperties(collection.id);
+        allCollections.push({
+          ...collection,
+          projectName: project.name,
+          properties
+        });
+      }
+    }
+
+    // Sort by project name, then collection name
+    return allCollections.sort((a, b) => {
+      const projectComparison = a.projectName.localeCompare(b.projectName);
+      if (projectComparison !== 0) return projectComparison;
+      return a.collectionName.localeCompare(b.collectionName);
+    });
+  }
+
   async getObjectCollection(id: string): Promise<ObjectCollection | undefined> {
     const result = await this.db
       .select()

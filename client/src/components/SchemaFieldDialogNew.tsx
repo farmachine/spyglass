@@ -158,7 +158,9 @@ export function SchemaFieldDialogNew({
   }, [selectedFunctionId, selectedFunction]);
 
   // Fetch all collections across all projects for @-key referencing
-  const { data: allCollections = [] } = useAllCollectionsForReferences();
+  const { data: allCollections = [], isLoading: collectionsLoading } = useAllCollectionsForReferences();
+
+  console.log('📝 All collections data:', allCollections);
 
   const buildAvailableFields = () => {
     const fields: Array<{ key: string; label: string; source: string }> = [];
@@ -178,6 +180,7 @@ export function SchemaFieldDialogNew({
   };
   
   const availableFields = buildAvailableFields();
+  console.log('📝 Available fields for autocomplete:', availableFields);
 
   // Inline AutocompleteInput component
   function AutocompleteInput({ value, onChange, placeholder, availableFields }: {

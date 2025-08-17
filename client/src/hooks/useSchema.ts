@@ -175,7 +175,16 @@ export function useAllCollectionsForReferences() {
   return useQuery({
     queryKey: ["/api/collections/all-for-references"],
     queryFn: async () => {
-      return await apiRequest("/api/collections/all-for-references");
+      const token = localStorage.getItem("auth_token");
+      console.log("📝 Token for collections call:", token ? "Present" : "Missing");
+      try {
+        const result = await apiRequest("/api/collections/all-for-references");
+        console.log("📝 Collections API result:", result);
+        return result;
+      } catch (error) {
+        console.error("📝 Collections API error:", error);
+        throw error;
+      }
     },
   });
 }
