@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, X, FileText, Database, Type, Copy, Check } from "lucide-react";
+import { Plus, X, FileText, Database, Type, Copy, Check, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,8 @@ interface InputParameter {
   type: "text" | "data" | "document";
   description: string;
   multiline?: boolean; // Only applies to text type
+  sampleFile?: string; // Sample file path for documents/data
+  sampleText?: string; // Sample text for text type
 }
 
 interface CreateToolDialogProps {
@@ -155,6 +157,55 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
       toast({
         title: "Copy Failed",
         description: "Failed to copy sample data to clipboard",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleSampleFileUpload = async (paramId: string, file: File | undefined) => {
+    if (!file) return;
+
+    try {
+      // Get upload URL for the sample file
+      const response = await fetch("/api/objects/upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to get upload URL");
+      }
+
+      const { uploadURL } = await response.json();
+
+      // Upload the file
+      const uploadResponse = await fetch(uploadURL, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": file.type
+        }
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload file");
+      }
+
+      // Update the parameter with the file path
+      updateInputParameter(paramId, "sampleFile", file.name);
+      
+      toast({
+        title: "Sample File Uploaded",
+        description: `Sample file "${file.name}" has been uploaded successfully.`,
+      });
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload sample file. Please try again.",
         variant: "destructive"
       });
     }
@@ -406,6 +457,43 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
                         <p className="text-xs text-gray-500 mt-1">
                           For data type inputs, describe the expected data structure. Use "Copy Sample Data" to generate JSON sample based on your description.
                         </p>
+                      )}
+                    </div>
+                    
+                    {/* Sample Upload Section */}
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">
+                        {param.type === "text" ? "Sample Text" : 
+                         param.type === "data" ? "Sample Data" : 
+                         "Sample Document"}
+                      </Label>
+                      {param.type === "text" ? (
+                        <Textarea
+                          value={param.sampleText || ""}
+                          onChange={(e) => updateInputParameter(param.id, "sampleText", e.target.value)}
+                          placeholder="Enter sample text for testing this parameter"
+                          rows={3}
+                          className="mt-1"
+                        />
+                      ) : (
+                        <div className="mt-1 space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <Input
+                              type="file"
+                              accept={param.type === "document" ? ".pdf,.docx,.doc,.txt" : ".xlsx,.xls,.csv,.json"}
+                              onChange={(e) => handleSampleFileUpload(param.id, e.target.files?.[0])}
+                              className="text-sm"
+                            />
+                          </div>
+                          {param.sampleFile && (
+                            <div className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                              Sample file uploaded: {param.sampleFile}
+                            </div>
+                          )}
+                          <p className="text-xs text-gray-500">
+                            Upload a sample {param.type === "document" ? "document" : "data file"} for testing this parameter
+                          </p>
+                        </div>
                       )}
                     </div>
                   </div>

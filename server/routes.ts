@@ -4913,6 +4913,19 @@ print(json.dumps(results))
     }
   });
 
+  // Object Storage Routes
+  app.post("/api/objects/upload", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { ObjectStorageService } = await import("./objectStorage");
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ uploadURL });
+    } catch (error) {
+      console.error("Error getting upload URL:", error);
+      res.status(500).json({ message: "Failed to get upload URL" });
+    }
+  });
+
   // Chat Routes
   
   // Get chat messages for a session
