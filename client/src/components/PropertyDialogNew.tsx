@@ -228,7 +228,7 @@ export function PropertyDialogNew({
     const selectedDocs = knowledgeDocuments.filter(doc => value.includes(doc.id));
     const hasUserProvided = value.includes("user_provided");
     const availableOptions = [
-      { id: "user_provided", displayName: "User Provided Document" },
+      { id: "user_provided", displayName: "User Uploaded Documents" },
       ...knowledgeDocuments
     ];
     
@@ -249,7 +249,7 @@ export function PropertyDialogNew({
             {hasUserProvided && (
               <Badge variant="secondary" className="flex items-center gap-1">
                 <div className="w-2 h-2 bg-green-500 rounded-full" />
-                User Provided Document
+                User Uploaded Documents
                 <X 
                   className="h-3 w-3 cursor-pointer hover:text-red-500" 
                   onClick={(e) => {
@@ -391,7 +391,7 @@ export function PropertyDialogNew({
                         </label>
                         <p className="text-xs text-gray-600 mb-2">{param.description}</p>
                         
-                        {param.type === "text" ? (
+                        {param.type === "text" && param.name !== "Reference Documents" ? (
                           <ReferenceDataDropdown
                             value={(form.watch("functionParameters") || {})[param.name] || ""}
                             onChange={(val: any) => {
@@ -404,7 +404,7 @@ export function PropertyDialogNew({
                             placeholder={`Enter value for ${param.name} (use @ to reference other fields)`}
                             availableFields={availableFields}
                           />
-                        ) : param.type === "document" ? (
+                        ) : param.type === "document" || param.name === "Reference Documents" ? (
                           <MultiSelectDocument
                             value={Array.isArray((form.watch("functionParameters") || {})[param.name]) 
                               ? (form.watch("functionParameters") || {})[param.name] 

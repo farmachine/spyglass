@@ -258,7 +258,7 @@ export function SchemaFieldDialogNew({
     const selectedDocs = knowledgeDocuments.filter(doc => value.includes(doc.id));
     const hasUserProvided = value.includes("user_provided");
     const availableOptions = [
-      { id: "user_provided", displayName: "User Provided Document" },
+      { id: "user_provided", displayName: "User Uploaded Documents" },
       ...knowledgeDocuments
     ];
     
@@ -279,7 +279,7 @@ export function SchemaFieldDialogNew({
             {hasUserProvided && (
               <Badge variant="secondary" className="flex items-center gap-1">
                 <div className="w-2 h-2 bg-green-500 rounded-full" />
-                User Provided Document
+                User Uploaded Documents
                 <X 
                   className="h-3 w-3 cursor-pointer hover:text-red-500" 
                   onClick={(e) => {
@@ -402,7 +402,7 @@ export function SchemaFieldDialogNew({
                       rows={3}
                       className="w-full"
                     />
-                  ) : param.type === "documents" ? (
+                  ) : param.type === "documents" || param.name === "Reference Documents" ? (
                     <MultiSelectDocument
                       value={form.watch(`functionParameters.${param.id}`) || []}
                       onChange={(docs) => form.setValue(`functionParameters.${param.id}`, docs)}
