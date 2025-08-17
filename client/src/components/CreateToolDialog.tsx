@@ -515,20 +515,18 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
                         </div>
                       )}
                       {param.type !== "text" && (
-                        <div className="space-y-2">
-                          <div className="text-sm text-gray-600 p-3 bg-gray-50 rounded border">
+                        <div className="p-3 bg-gray-50 rounded border space-y-3">
+                          <div className="text-sm text-gray-600">
                             Upload a sample {param.type === "document" ? "document" : "data file"} to test this tool.
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="file"
-                              accept={param.type === "document" ? ".pdf,.docx,.doc,.txt" : ".xlsx,.xls,.csv,.json"}
-                              onChange={(e) => handleSampleFileUpload(param.id, e.target.files?.[0])}
-                              className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                            />
-                          </div>
+                          <Input
+                            type="file"
+                            accept={param.type === "document" ? ".pdf,.docx,.doc,.txt" : ".xlsx,.xls,.csv,.json"}
+                            onChange={(e) => handleSampleFileUpload(param.id, e.target.files?.[0])}
+                            className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                          />
                           {param.sampleFile && (
-                            <div className="text-sm text-green-600 bg-green-50 p-2 rounded border">
+                            <div className="text-sm text-green-600">
                               ✓ Sample file uploaded: {param.sampleFile}
                             </div>
                           )}
