@@ -137,6 +137,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       multiline: false
     };
     setInputParameters([...inputParameters, newParam]);
+    // Default new inputs to expanded
+    setExpandedInputs(prev => new Set([...prev, newParam.id]));
   };
 
   const updateInputParameter = (id: string, field: keyof InputParameter, value: string | boolean) => {
@@ -506,19 +508,18 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                     return (
                       <div key={param.id} className="border border-gray-200 rounded-lg">
                         <div className="p-4">
-                          <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center justify-end gap-1 mb-3">
                             <Button
                               size="sm"
                               variant="ghost"
                               onClick={() => toggleInputExpanded(param.id)}
-                              className="flex items-center gap-2 p-1 h-auto text-gray-600 hover:text-gray-800"
+                              className="p-1 h-auto text-gray-600 hover:text-gray-800"
                             >
                               {isExpanded ? (
                                 <ChevronDown className="h-4 w-4" />
                               ) : (
                                 <ChevronRight className="h-4 w-4" />
                               )}
-                              <span className="text-sm">{isExpanded ? "Collapse" : "Expand"}</span>
                             </Button>
                             <Button
                               size="sm"
