@@ -202,18 +202,30 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
     const func = editingFunction || selectedFunction;
     if (!func) return;
 
-    const tagsArray = formData.tags
-      .split(",")
-      .map(tag => tag.trim())
-      .filter(tag => tag.length > 0);
+    // For modal editing (selectedFunction), only update functionCode
+    if (selectedFunction) {
+      updateFunction.mutate({
+        id: func.id,
+        description: func.description, // Keep existing description
+        functionCode: formData.functionCode,
+        tags: func.tags || [], // Keep existing tags
+        inputParameters: func.inputParameters || []
+      });
+    } else {
+      // For inline editing (editingFunction), update all fields
+      const tagsArray = formData.tags
+        .split(",")
+        .map(tag => tag.trim())
+        .filter(tag => tag.length > 0);
 
-    updateFunction.mutate({
-      id: func.id,
-      description: formData.description,
-      functionCode: formData.functionCode,
-      tags: tagsArray,
-      inputParameters: formData.inputParameters
-    });
+      updateFunction.mutate({
+        id: func.id,
+        description: formData.description,
+        functionCode: formData.functionCode,
+        tags: tagsArray,
+        inputParameters: formData.inputParameters
+      });
+    }
   };
 
   const handleCancel = () => {
@@ -510,36 +522,14 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
       <Dialog open={codeModalOpen} onOpenChange={setCodeModalOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Function Code: {selectedFunction?.name}</DialogTitle>
+            <DialogTitle>
+              {selectedFunction?.functionType === 'AI_ONLY' ? 'Edit Prompt' : 'Edit Function Code'}: {selectedFunction?.name}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="modal-description" className="text-sm font-medium">
-                Description
-              </Label>
-              <Textarea
-                id="modal-description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={2}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="modal-tags" className="text-sm font-medium">
-                Tags (comma-separated)
-              </Label>
-              <Input
-                id="modal-tags"
-                value={formData.tags}
-                onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                placeholder="date, financial, text_extraction"
-                className="mt-1"
-              />
-            </div>
-            <div>
               <Label htmlFor="function-code" className="text-sm font-medium">
-                Python Function Code
+                {selectedFunction?.functionType === 'AI_ONLY' ? 'Prompt' : 'Python Function Code'}
               </Label>
               <Textarea
                 id="function-code"
@@ -547,7 +537,11 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                 onChange={(e) => setFormData({ ...formData, functionCode: e.target.value })}
                 rows={20}
                 className="mt-1 font-mono text-sm"
-                placeholder="def extract_function(document_content, target_fields, identifier_references):"
+                placeholder={
+                  selectedFunction?.functionType === 'AI_ONLY' 
+                    ? "Enter your AI prompt instructions here..."
+                    : "def extract_function(document_content, target_fields, identifier_references):"
+                }
               />
             </div>
             <div className="flex justify-end gap-2 pt-4">
