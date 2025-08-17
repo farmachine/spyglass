@@ -4963,28 +4963,107 @@ print(json.dumps(results))
 import sys
 import json
 import os
+import re
 
 # Add current directory to Python path for imports
 sys.path.insert(0, os.getcwd())
 
 try:
-    from extraction_wizardry import execute_excel_wizardry_function
-    
     # Read inputs from stdin
     inputs_data = json.loads(sys.stdin.read())
     function_code = inputs_data['function_code']
     processed_inputs = inputs_data['processed_inputs']
     
-    # Execute the function
-    result = execute_excel_wizardry_function(
-        function_code,
-        processed_inputs,
-        [{"name": "test_field", "description": "Test execution"}],
-        None
-    )
+    print(f"DEBUG: Function code length: {len(function_code)}", file=sys.stderr)
+    print(f"DEBUG: Processed inputs keys: {list(processed_inputs.keys())}", file=sys.stderr)
     
-    print(json.dumps(result))
+    # Create a safe execution environment
+    exec_globals = {
+        'json': json,
+        're': re,
+        '__builtins__': {
+            'len': len,
+            'str': str,
+            'int': int,
+            'float': float,
+            'list': list,
+            'dict': dict,
+            'range': range,
+            'enumerate': enumerate,
+            'zip': zip,
+            'print': print,
+            '__import__': __import__,
+            'abs': abs,
+            'any': any,
+            'all': all,
+            'bool': bool,
+            'max': max,
+            'min': min,
+            'sum': sum,
+            'sorted': sorted,
+            'reversed': reversed
+        }
+    }
+    
+    # Execute the function code
+    exec(function_code, exec_globals)
+    
+    # Try to find the main function - check for different possible names
+    main_function = None
+    function_names = ['main', 'extract_data', 'process_data', 'extract_excel_data']
+    
+    for name in function_names:
+        if name in exec_globals:
+            main_function = exec_globals[name]
+            print(f"DEBUG: Found function: {name}", file=sys.stderr)
+            break
+    
+    if not main_function:
+        available_functions = [key for key in exec_globals.keys() if callable(exec_globals[key]) and not key.startswith('_')]
+        print(json.dumps({"error": f"No main function found. Available functions: {available_functions}"}))
+        sys.exit(0)
+    
+    # Get the Excel content from processed inputs
+    excel_content = None
+    for param_name, content in processed_inputs.items():
+        if content and isinstance(content, str) and len(content) > 100:
+            excel_content = content
+            print(f"DEBUG: Using content from parameter: {param_name}, length: {len(content)}", file=sys.stderr)
+            break
+    
+    if not excel_content:
+        print(json.dumps({"error": "No Excel content found in processed inputs"}))
+        sys.exit(0)
+    
+    # Execute the function with the Excel content
+    import inspect
+    func_signature = inspect.signature(main_function)
+    param_count = len(func_signature.parameters)
+    
+    print(f"DEBUG: Function parameter count: {param_count}", file=sys.stderr)
+    
+    if param_count == 1:
+        # Function expects just the Excel content
+        results = main_function(excel_content)
+    elif param_count >= 2:
+        # Function expects content and additional parameters
+        target_fields_data = [{"name": "test_field", "description": "Test execution"}]
+        results = main_function(excel_content, target_fields_data)
+    else:
+        results = main_function()
+    
+    print(f"DEBUG: Function execution completed, result type: {type(results)}", file=sys.stderr)
+    
+    # Ensure results is in the right format
+    if not isinstance(results, list):
+        results = [results] if results is not None else []
+    
+    print(json.dumps({"results": results}))
+    
 except Exception as e:
+    import traceback
+    error_details = traceback.format_exc()
+    print(f"DEBUG: Exception details: {error_details}", file=sys.stderr)
     print(json.dumps({"error": str(e)}))
 `], {
             stdio: ['pipe', 'pipe', 'pipe']
