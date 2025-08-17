@@ -326,7 +326,7 @@ export default function KnowledgeRules({ project, mode }: KnowledgeRulesProps) {
           <h1 className="text-3xl font-bold text-gray-800">
             {getHeading().includes("•") ? (
               <>
-                {getHeading().split(" • ")[0]} <span className="text-blue-600">•</span> {getHeading().split(" • ")[1]}
+                {getHeading().split(" • ")[0]} <span style={{ color: '#4F63A4' }}>•</span> {getHeading().split(" • ")[1]}
               </>
             ) : (
               getHeading()
