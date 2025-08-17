@@ -5040,7 +5040,7 @@ try:
         print(json.dumps({"error": "No Excel content found in processed inputs"}))
         sys.exit(0)
     
-    # Execute the function with the Excel content
+    # Execute the function with the processed inputs
     import inspect
     func_signature = inspect.signature(main_function)
     param_count = len(func_signature.parameters)
@@ -5049,26 +5049,33 @@ try:
     print(f"DEBUG: Function parameter count: {param_count}", file=sys.stderr)
     print(f"DEBUG: Function parameter names: {param_names}", file=sys.stderr)
     
-    if param_count == 1:
-        # Function expects just the Excel content
-        results = main_function(excel_content)
-    elif param_count == 2:
-        # Function expects content and additional parameters
-        target_fields_data = [{"name": "test_field", "description": "Test execution"}]
-        results = main_function(excel_content, target_fields_data)
-    elif param_count == 3:
-        # Function expects content, target fields, and identifier references
-        target_fields_data = [{"name": "test_field", "description": "Test execution"}]
-        identifier_references = []  # Empty for testing
-        results = main_function(excel_content, target_fields_data, identifier_references)
-    elif param_count >= 4:
-        # Function expects multiple parameters - provide defaults
-        target_fields_data = [{"name": "test_field", "description": "Test execution"}]
-        identifier_references = []
-        additional_params = [None] * (param_count - 3)
-        results = main_function(excel_content, target_fields_data, identifier_references, *additional_params)
-    else:
-        results = main_function()
+    # Build function arguments based on the parameter names and processed inputs
+    function_args = []
+    for param_name in param_names:
+        # Find matching input parameter (case-insensitive)
+        matching_content = None
+        for input_param, content in processed_inputs.items():
+            if input_param.lower().replace(' ', '_') == param_name.lower() or input_param.lower() == param_name.lower():
+                matching_content = content
+                print(f"DEBUG: Mapping parameter '{param_name}' to input '{input_param}'", file=sys.stderr)
+                break
+        
+        if matching_content:
+            function_args.append(matching_content)
+        else:
+            # If no matching input found, use the first available content as fallback
+            if processed_inputs:
+                first_content = next(iter(processed_inputs.values()))
+                function_args.append(first_content)
+                print(f"DEBUG: Using fallback content for parameter '{param_name}'", file=sys.stderr)
+            else:
+                function_args.append("")
+                print(f"DEBUG: Using empty string for parameter '{param_name}'", file=sys.stderr)
+    
+    print(f"DEBUG: Final function arguments count: {len(function_args)}", file=sys.stderr)
+    
+    # Execute the function with the mapped arguments
+    results = main_function(*function_args)
     
     print(f"DEBUG: Function execution completed, result type: {type(results)}", file=sys.stderr)
     
