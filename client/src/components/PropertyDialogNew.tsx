@@ -367,7 +367,110 @@ export function PropertyDialogNew({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-            {/* Dynamic Function-Based Form Content */}
+            {/* Field Settings Section - Always First */}
+            <div className="space-y-4 p-4 border rounded-lg">
+              <div className="flex items-center gap-2">
+                <Settings className="h-5 w-5 text-gray-600" />
+                <h5 className="font-medium text-gray-800">Field Settings</h5>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="propertyName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Field Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Employee Name, Department" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="propertyType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Data Type</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select data type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {propertyTypes.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Dynamic Choices for CHOICE type */}
+              {form.watch("propertyType") === "CHOICE" && (
+                <FormField
+                  control={form.control}
+                  name="choices"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Available Choices</FormLabel>
+                      <FormControl>
+                        <div className="space-y-2">
+                          {(field.value || []).map((choice, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <Input
+                                value={choice}
+                                onChange={(e) => {
+                                  const newChoices = [...(field.value || [])];
+                                  newChoices[index] = e.target.value;
+                                  field.onChange(newChoices);
+                                }}
+                                placeholder={`Choice ${index + 1}`}
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const newChoices = (field.value || []).filter((_, i) => i !== index);
+                                  field.onChange(newChoices);
+                                }}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              field.onChange([...(field.value || []), ""]);
+                            }}
+                            className="w-full"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Choice
+                          </Button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
+
+            {/* Data Sources Section - Only show when function is selected */}
             {selectedFunction ? (
               <div className="space-y-6">
                 {/* Function Description */}
@@ -382,7 +485,10 @@ export function PropertyDialogNew({
                 {/* Function parameters if any */}
                 {inputParameters.length > 0 && (
                   <div className="space-y-4 p-4 border rounded-lg">
-                    <h5 className="font-medium text-gray-800">Input Parameters</h5>
+                    <div className="flex items-center gap-2">
+                      <Settings className="h-5 w-5 text-gray-600" />
+                      <h5 className="font-medium text-gray-800">Data Sources</h5>
+                    </div>
                     {inputParameters.map((param: any, index: number) => (
                       <div key={param.name || index} className="space-y-2">
                         <label className="block text-sm font-medium text-gray-700">
@@ -438,114 +544,8 @@ export function PropertyDialogNew({
                     ))}
                   </div>
                 )}
-                
-                {/* Basic Property Configuration */}
-                <div className="space-y-4 p-4 border rounded-lg">
-                  <h5 className="font-medium text-gray-800">Property Settings</h5>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="propertyName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Property Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., Employee Name, Salary" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="propertyType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Data Type</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select data type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {propertyTypes.map((type) => (
-                                <SelectItem key={type} value={type}>
-                                  {type}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  {/* Dynamic Choices for CHOICE type */}
-                  {form.watch("propertyType") === "CHOICE" && (
-                    <FormField
-                      control={form.control}
-                      name="choices"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Available Choices</FormLabel>
-                          <FormControl>
-                            <div className="space-y-2">
-                              {(field.value || []).map((choice, index) => (
-                                <div key={index} className="flex items-center gap-2">
-                                  <Input
-                                    value={choice}
-                                    onChange={(e) => {
-                                      const newChoices = [...(field.value || [])];
-                                      newChoices[index] = e.target.value;
-                                      field.onChange(newChoices);
-                                    }}
-                                    placeholder={`Choice ${index + 1}`}
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      const newChoices = (field.value || []).filter((_, i) => i !== index);
-                                      field.onChange(newChoices);
-                                    }}
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              ))}
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  field.onChange([...(field.value || []), ""]);
-                                }}
-                                className="w-full"
-                              >
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Choice
-                              </Button>
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                </div>
               </div>
-            ) : (
-              <div className="p-8 text-center text-gray-500 border-2 border-dashed border-gray-200 rounded-lg">
-                <Settings className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                <h3 className="font-medium text-gray-700 mb-2">Select an Extraction Method</h3>
-                <p className="text-sm text-gray-500">Choose a function from the dropdown above to configure this property</p>
-              </div>
-            )}
+            ) : null}
 
             <div className="flex justify-end gap-2 pt-4">
               <Button
