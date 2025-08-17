@@ -33,7 +33,7 @@ interface CreateToolDialogProps {
 
 export default function CreateToolDialog({ projectId, editingFunction, setEditingFunction }: CreateToolDialogProps) {
   const [open, setOpen] = useState(false);
-  const [toolType, setToolType] = useState<"SCRIPT" | "AI_ONLY" | null>(null);
+  const [toolType, setToolType] = useState<"SCRIPT" | "AI_ONLY" | "CODE" | null>(null);
   const [aiAssistanceRequired, setAiAssistanceRequired] = useState(false);
   const [outputType, setOutputType] = useState<"single" | "multiple">("single");
   const [inputParameters, setInputParameters] = useState<InputParameter[]>([]);
@@ -426,18 +426,21 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
               <CardTitle className="text-lg text-gray-800">Tool Type</CardTitle>
             </CardHeader>
             <CardContent>
-              <Select value={toolType || ""} onValueChange={(value: "SCRIPT" | "AI_ONLY") => setToolType(value)}>
+              <Select value={toolType || ""} onValueChange={(value: "SCRIPT" | "AI_ONLY" | "CODE") => setToolType(value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select tool type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="AI_ONLY">AI</SelectItem>
-                  <SelectItem value="SCRIPT">Code</SelectItem>
+                  <SelectItem value="SCRIPT">Excel Function</SelectItem>
+                  <SelectItem value="CODE">Code</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-sm text-gray-600 mt-2">
                 {toolType === "SCRIPT" 
                   ? "Python script that processes data with optional AI assistance"
+                  : toolType === "CODE"
+                  ? "User-defined Python code that returns results converted to field_validations format"
                   : "AI-powered tool that uses prompts to analyze and extract data"
                 }
               </p>

@@ -22,7 +22,7 @@ interface ExcelWizardryFunction {
   name: string;
   description: string;
   functionCode: string;
-  functionType: 'SCRIPT' | 'AI_ONLY';
+  functionType: 'SCRIPT' | 'AI_ONLY' | 'CODE';
   tags: string[] | null;
   usageCount: number;
   createdAt: string;
@@ -132,7 +132,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
     try {
       const response = await apiRequest("/api/sample-documents", {
         method: "POST",
-        body: formData
+        body: formData as any
       });
 
       // Update the parameter with the uploaded file info
