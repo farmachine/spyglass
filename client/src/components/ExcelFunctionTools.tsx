@@ -90,29 +90,29 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
     }));
   };
 
-  const generateSampleData = (description: string): string => {
-    // Generate sample JSON data based on the description
+  const generateSampleData = (description: string, paramName: string): string => {
+    // Generate sample JSON data based on the parameter name
     const sampleData = {
       "Collection Name": [
-        { "Column Name": "Column Example" },
-        { "Column Name": "Other Column" },
-        { "Column Name": "Another Example Column 2" },
-        { "Column Name": "Another Example Column 3" },
-        { "Column Name": "Another Example Column 4" },
-        { "Column Name": "Another Example Column 5" },
-        { "Column Name": "Another Example Column 6" },
-        { "Column Name": "Another Example Column 7" },
-        { "Column Name": "Another Example Column 8" },
-        { "Column Name": "Another Example Column 9" },
-        { "Column Name": "Another Example Column 10" }
+        { [paramName]: "Column Example" },
+        { [paramName]: "Other Column" },
+        { [paramName]: "Another Example Column 2" },
+        { [paramName]: "Another Example Column 3" },
+        { [paramName]: "Another Example Column 4" },
+        { [paramName]: "Another Example Column 5" },
+        { [paramName]: "Another Example Column 6" },
+        { [paramName]: "Another Example Column 7" },
+        { [paramName]: "Another Example Column 8" },
+        { [paramName]: "Another Example Column 9" },
+        { [paramName]: "Another Example Column 10" }
       ]
     };
     
     return JSON.stringify(sampleData, null, 2);
   };
 
-  const copySampleDataToClipboard = async (paramId: string, description: string) => {
-    const sampleData = generateSampleData(description);
+  const copySampleDataToClipboard = async (paramId: string, description: string, paramName: string) => {
+    const sampleData = generateSampleData(description, paramName);
     try {
       await navigator.clipboard.writeText(sampleData);
       setCopiedSampleData(paramId);
@@ -441,7 +441,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                                         <Button
                                           size="sm"
                                           variant="outline"
-                                          onClick={() => copySampleDataToClipboard(param.id, param.description)}
+                                          onClick={() => copySampleDataToClipboard(param.id, param.description, param.name)}
                                           className="text-xs h-7 px-2"
                                         >
                                           {copiedSampleData === param.id ? (
