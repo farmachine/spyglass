@@ -194,7 +194,7 @@ export default function KnowledgeDocumentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {document ? "Edit Knowledge Document" : "Upload Knowledge Document"}
@@ -301,8 +301,8 @@ export default function KnowledgeDocumentDialog({
                   <FormLabel>Description *</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Describe the purpose and content of this document. Example: 'This policy document contains standard formats for employee information, use it to understand proper data structure for personnel records.'"
-                      className="min-h-[120px]"
+                      placeholder="Describe the purpose and content of this document..."
+                      className="min-h-[120px] resize-none"
                       {...field}
                     />
                   </FormControl>
