@@ -186,10 +186,10 @@ function AutocompleteInput({ value, onChange, placeholder, availableFields }: Au
     const lastAtIndex = value.lastIndexOf('@');
     if (lastAtIndex !== -1) {
       const beforeAt = value.substring(0, lastAtIndex);
-      const newValue = beforeAt + '@' + fieldKey;
+      const newValue = beforeAt + fieldKey;
       onChange(newValue);
     } else {
-      onChange(value + '@' + fieldKey);
+      onChange(value + fieldKey);
     }
     setShowSuggestions(false);
   };
@@ -225,7 +225,7 @@ function AutocompleteInput({ value, onChange, placeholder, availableFields }: Au
               className="w-full px-3 py-2 text-left hover:bg-gray-50 flex justify-between items-center"
               onClick={() => handleSuggestionClick(field.key)}
             >
-              <span className="font-medium">@{field.key}</span>
+              <span className="font-medium">{field.label}</span>
               <span className="text-xs text-gray-500">{field.source}</span>
             </button>
           ))}
