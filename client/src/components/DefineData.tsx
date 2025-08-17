@@ -846,12 +846,12 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
         onOpenChange={(open) => setPropertyDialog({ open, property: null, collectionId: undefined, collectionName: "" })}
         onSave={propertyDialog.property ? handleUpdateProperty : handleCreateProperty}
         property={propertyDialog.property}
-        collectionName={propertyDialog.collectionName}
+        collectionName={propertyDialog.collectionName || ""}
         knowledgeDocuments={knowledgeDocuments}
         wizardryFunctions={wizardryFunctions}
         schemaFields={schemaFields || []}
         collections={collections || []}
-        currentCollectionIndex={collections?.findIndex(c => c.collectionName === propertyDialog.collectionName) || 0}
+        currentCollectionIndex={collections?.findIndex((c: any) => c.collectionName === propertyDialog.collectionName) || 0}
         collectionId={propertyDialog.collectionId || ""}
       />
 
