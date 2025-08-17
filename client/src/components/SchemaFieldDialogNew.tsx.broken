@@ -496,61 +496,65 @@ export function SchemaFieldDialogNew({
 
             {/* Data Sources Section - Only show when function is selected */}
             {selectedFunctionId && inputParameters.length > 0 && (
-              <div className="space-y-4 p-4 border rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Settings className="h-5 w-5 text-gray-600" />
-                  <h5 className="font-medium text-gray-800">Data Sources</h5>
-                </div>
-                {inputParameters.map((param) => (
-                  <div key={param.id} className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      {param.name}
-                      <span className="text-xs text-gray-500 ml-2">({param.type})</span>
-                    </label>
-                    <p className="text-xs text-gray-600 mb-2">{param.description}</p>
-                    
-                    {param.type === "text" ? (
-                      param.multiline ? (
-                        <Textarea
-                          placeholder={`Enter ${param.name.toLowerCase()}...`}
-                          value={form.watch(`functionParameters.${param.id}`) || ""}
-                          onChange={(e) => form.setValue(`functionParameters.${param.id}`, e.target.value)}
-                          rows={4}
-                          className="w-full resize-none"
-                        />
-                      ) : (
-                        <Input
-                          placeholder={`Enter ${param.name.toLowerCase()}...`}
-                          value={form.watch(`functionParameters.${param.id}`) || ""}
-                          onChange={(e) => form.setValue(`functionParameters.${param.id}`, e.target.value)}
-                          className="w-full"
-                        />
-                      )
-                    ) : param.type === "data" ? (
-                      <ReferenceDataDropdown
-                        value={form.watch(`functionParameters.${param.id}`) || ""}
-                        onChange={(val) => form.setValue(`functionParameters.${param.id}`, val)}
-                        placeholder={`Select ${param.name.toLowerCase()}...`}
-                        availableFields={availableFields}
-                      />
-                    ) : param.type === "document" || param.name === "Reference Documents" ? (
-                      <MultiSelectDocument
-                        value={form.watch(`functionParameters.${param.id}`) || []}
-                        onChange={(docs) => form.setValue(`functionParameters.${param.id}`, docs)}
-                        placeholder="Select knowledge documents..."
-                        knowledgeDocuments={knowledgeDocuments}
-                      />
-                    ) : (
-                      <Textarea
-                        placeholder={`Enter ${param.name.toLowerCase()}...`}
-                        value={form.watch(`functionParameters.${param.id}`) || ""}
-                        onChange={(e) => form.setValue(`functionParameters.${param.id}`, e.target.value)}
-                        rows={3}
-                        className="w-full"
-                      />
-                    )}
+              <div className="space-y-6">
+                {/* Function parameters */}
+                <div className="space-y-4 p-4 border rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Settings className="h-5 w-5 text-gray-600" />
+                    <h5 className="font-medium text-gray-800">Data Sources</h5>
                   </div>
-                ))}
+                    {inputParameters.map((param) => (
+                      <div key={param.id} className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                          {param.name}
+                          <span className="text-xs text-gray-500 ml-2">({param.type})</span>
+                        </label>
+                        <p className="text-xs text-gray-600 mb-2">{param.description}</p>
+                        
+                        {param.type === "text" ? (
+                          param.multiline ? (
+                            <Textarea
+                              placeholder={`Enter ${param.name.toLowerCase()}...`}
+                              value={form.watch(`functionParameters.${param.id}`) || ""}
+                              onChange={(e) => form.setValue(`functionParameters.${param.id}`, e.target.value)}
+                              rows={4}
+                              className="w-full resize-none"
+                            />
+                          ) : (
+                            <Input
+                              placeholder={`Enter ${param.name.toLowerCase()}...`}
+                              value={form.watch(`functionParameters.${param.id}`) || ""}
+                              onChange={(e) => form.setValue(`functionParameters.${param.id}`, e.target.value)}
+                              className="w-full"
+                            />
+                          )
+                        ) : param.type === "data" ? (
+                          <ReferenceDataDropdown
+                            value={form.watch(`functionParameters.${param.id}`) || ""}
+                            onChange={(val) => form.setValue(`functionParameters.${param.id}`, val)}
+                            placeholder={`Select ${param.name.toLowerCase()}...`}
+                            availableFields={availableFields}
+                          />
+                        ) : param.type === "document" || param.name === "Reference Documents" ? (
+                          <MultiSelectDocument
+                            value={form.watch(`functionParameters.${param.id}`) || []}
+                            onChange={(docs) => form.setValue(`functionParameters.${param.id}`, docs)}
+                            placeholder="Select knowledge documents..."
+                            knowledgeDocuments={knowledgeDocuments}
+                          />
+                        ) : (
+                          <Textarea
+                            placeholder={`Enter ${param.name.toLowerCase()}...`}
+                            value={form.watch(`functionParameters.${param.id}`) || ""}
+                            onChange={(e) => form.setValue(`functionParameters.${param.id}`, e.target.value)}
+                            rows={3}
+                            className="w-full"
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
 

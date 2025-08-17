@@ -311,21 +311,40 @@ export function PropertyDialogNew({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {property ? "Edit Property" : "Add Property"}
-            {property?.isIdentifier && (
-              <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
-                <Key className="h-3 w-3 mr-1" />
-                Identifier Field
-              </Badge>
-            )}
-          </DialogTitle>
-          <DialogDescription>
-            {property?.isIdentifier 
-              ? `Editing the identifier field for "${collectionName}" collection. This field uniquely identifies items in the collection and must remain as TEXT type.`
-              : `Add a property to the "${collectionName}" collection. Choose an extraction method and configure the settings.`
-            }
-          </DialogDescription>
+          {form.watch("functionId") && selectedFunction ? (
+            <>
+              <DialogTitle className="flex items-center gap-2">
+                {selectedFunction.name}
+                {property?.isIdentifier && (
+                  <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
+                    <Key className="h-3 w-3 mr-1" />
+                    Identifier Field
+                  </Badge>
+                )}
+              </DialogTitle>
+              <DialogDescription>
+                {selectedFunction.description}
+              </DialogDescription>
+            </>
+          ) : (
+            <>
+              <DialogTitle className="flex items-center gap-2">
+                {property ? "Edit Property" : "Add Property"}
+                {property?.isIdentifier && (
+                  <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
+                    <Key className="h-3 w-3 mr-1" />
+                    Identifier Field
+                  </Badge>
+                )}
+              </DialogTitle>
+              <DialogDescription>
+                {property?.isIdentifier 
+                  ? `Editing the identifier field for "${collectionName}" collection. This field uniquely identifies items in the collection and must remain as TEXT type.`
+                  : `Add a property to the "${collectionName}" collection. Choose an extraction method and configure the settings.`
+                }
+              </DialogDescription>
+            </>
+          )}
         </DialogHeader>
         
         {/* Global Function Selector - Top Right */}
@@ -471,110 +490,96 @@ export function PropertyDialogNew({
             </div>
 
             {/* Data Sources Section - Only show when function is selected */}
-            {selectedFunction ? (
-              <div className="space-y-6">
-                {/* Function Description */}
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Brain className="h-5 w-5 text-blue-600" />
-                    <h4 className="font-medium text-blue-900">{selectedFunction.name}</h4>
-                  </div>
-                  <p className="text-sm text-blue-800">{selectedFunction.description}</p>
+            {selectedFunction && inputParameters.length > 0 && (
+              <div className="space-y-4 p-4 border rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Settings className="h-5 w-5 text-gray-600" />
+                  <h5 className="font-medium text-gray-800">Data Sources</h5>
                 </div>
-                
-                {/* Function parameters if any */}
-                {inputParameters.length > 0 && (
-                  <div className="space-y-4 p-4 border rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Settings className="h-5 w-5 text-gray-600" />
-                      <h5 className="font-medium text-gray-800">Data Sources</h5>
-                    </div>
-                    {inputParameters.map((param: any, index: number) => (
-                      <div key={param.name || index} className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-700">
-                          {param.name}
-                          <span className="text-xs text-gray-500 ml-2">({param.type})</span>
-                        </label>
-                        <p className="text-xs text-gray-600 mb-2">{param.description}</p>
-                        
-                        {param.type === "text" ? (
-                          param.multiline ? (
-                            <Textarea
-                              value={(form.watch("functionParameters") || {})[param.name] || ""}
-                              onChange={(e) => {
-                                const current = form.watch("functionParameters") || {};
-                                form.setValue("functionParameters", {
-                                  ...current,
-                                  [param.name]: e.target.value
-                                });
-                              }}
-                              placeholder={`Enter value for ${param.name}`}
-                              rows={4}
-                              className="w-full resize-none"
-                            />
-                          ) : (
-                            <Input
-                              value={(form.watch("functionParameters") || {})[param.name] || ""}
-                              onChange={(e) => {
-                                const current = form.watch("functionParameters") || {};
-                                form.setValue("functionParameters", {
-                                  ...current,
-                                  [param.name]: e.target.value
-                                });
-                              }}
-                              placeholder={`Enter value for ${param.name}`}
-                              className="w-full"
-                            />
-                          )
-                        ) : param.type === "data" ? (
-                          <ReferenceDataDropdown
-                            value={(form.watch("functionParameters") || {})[param.name] || ""}
-                            onChange={(val: any) => {
-                              const current = form.watch("functionParameters") || {};
-                              form.setValue("functionParameters", {
-                                ...current,
-                                [param.name]: val
-                              });
-                            }}
-                            placeholder={`Enter value for ${param.name} (use @ to reference other fields)`}
-                            availableFields={availableFields}
-                          />
-                        ) : param.type === "document" || param.name === "Reference Documents" ? (
-                          <MultiSelectDocument
-                            value={Array.isArray((form.watch("functionParameters") || {})[param.name]) 
-                              ? (form.watch("functionParameters") || {})[param.name] 
-                              : ((form.watch("functionParameters") || {})[param.name] ? [(form.watch("functionParameters") || {})[param.name]] : [])}
-                            onChange={(docs: any) => {
-                              const current = form.watch("functionParameters") || {};
-                              form.setValue("functionParameters", {
-                                ...current,
-                                [param.name]: docs
-                              });
-                            }}
-                            placeholder={`Select documents for ${param.name}`}
-                            knowledgeDocuments={knowledgeDocuments || []}
-                          />
-                        ) : (
-                          <Textarea
-                            value={(form.watch("functionParameters") || {})[param.name] || ""}
-                            onChange={(e) => {
-                              const current = form.watch("functionParameters") || {};
-                              form.setValue("functionParameters", {
-                                ...current,
-                                [param.name]: e.target.value
-                              });
-                            }}
-                            placeholder={`Enter value for ${param.name}`}
-                            rows={2}
-                            className="w-full resize-none"
-                          />
-                        )}
-                      </div>
-                    ))}
+                {inputParameters.map((param: any, index: number) => (
+                  <div key={param.name || index} className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      {param.name}
+                      <span className="text-xs text-gray-500 ml-2">({param.type})</span>
+                    </label>
+                    <p className="text-xs text-gray-600 mb-2">{param.description}</p>
+                    
+                    {param.type === "text" ? (
+                      param.multiline ? (
+                        <Textarea
+                          value={(form.watch("functionParameters") || {})[param.name] || ""}
+                          onChange={(e) => {
+                            const current = form.watch("functionParameters") || {};
+                            form.setValue("functionParameters", {
+                              ...current,
+                              [param.name]: e.target.value
+                            });
+                          }}
+                          placeholder={`Enter value for ${param.name}`}
+                          rows={4}
+                          className="w-full resize-none"
+                        />
+                      ) : (
+                        <Input
+                          value={(form.watch("functionParameters") || {})[param.name] || ""}
+                          onChange={(e) => {
+                            const current = form.watch("functionParameters") || {};
+                            form.setValue("functionParameters", {
+                              ...current,
+                              [param.name]: e.target.value
+                            });
+                          }}
+                          placeholder={`Enter value for ${param.name}`}
+                          className="w-full"
+                        />
+                      )
+                    ) : param.type === "data" ? (
+                      <ReferenceDataDropdown
+                        value={(form.watch("functionParameters") || {})[param.name] || ""}
+                        onChange={(val: any) => {
+                          const current = form.watch("functionParameters") || {};
+                          form.setValue("functionParameters", {
+                            ...current,
+                            [param.name]: val
+                          });
+                        }}
+                        placeholder={`Enter value for ${param.name} (use @ to reference other fields)`}
+                        availableFields={availableFields}
+                      />
+                    ) : param.type === "document" || param.name === "Reference Documents" ? (
+                      <MultiSelectDocument
+                        value={Array.isArray((form.watch("functionParameters") || {})[param.name]) 
+                          ? (form.watch("functionParameters") || {})[param.name] 
+                          : ((form.watch("functionParameters") || {})[param.name] ? [(form.watch("functionParameters") || {})[param.name]] : [])}
+                        onChange={(docs: any) => {
+                          const current = form.watch("functionParameters") || {};
+                          form.setValue("functionParameters", {
+                            ...current,
+                            [param.name]: docs
+                          });
+                        }}
+                        placeholder={`Select documents for ${param.name}`}
+                        knowledgeDocuments={knowledgeDocuments || []}
+                      />
+                    ) : (
+                      <Textarea
+                        value={(form.watch("functionParameters") || {})[param.name] || ""}
+                        onChange={(e) => {
+                          const current = form.watch("functionParameters") || {};
+                          form.setValue("functionParameters", {
+                            ...current,
+                            [param.name]: e.target.value
+                          });
+                        }}
+                        placeholder={`Enter value for ${param.name}`}
+                        rows={2}
+                        className="w-full resize-none"
+                      />
+                    )}
                   </div>
-                )}
+                ))}
               </div>
-            ) : null}
+            )}
 
             <div className="flex justify-end gap-2 pt-4">
               <Button
