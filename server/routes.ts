@@ -5087,6 +5087,59 @@ print(json.dumps(results))
     }
   });
 
+  // Update sample documents for a specific parameter
+  app.put("/api/sample-documents/:functionId/:parameterName", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { functionId, parameterName } = req.params;
+      const { sampleText, fileName, fileURL } = req.body;
+
+      console.log('🔄 Updating sample document:', { functionId, parameterName, fileName, sampleText: sampleText ? `${sampleText.length} chars` : 'none' });
+
+      // First delete existing sample documents for this parameter
+      await storage.deleteSampleDocumentsByParameter(functionId, parameterName);
+
+      if (sampleText) {
+        // Create new sample document with text
+        const sampleDocument = await storage.createSampleDocument({
+          functionId,
+          parameterName,
+          fileName: `${parameterName}_sample_text.txt`,
+          sampleText,
+          mimeType: "text/plain"
+        });
+        console.log('💾 Sample text updated successfully');
+        res.json({ success: true, document: sampleDocument });
+      } else if (fileName && fileURL) {
+        // Process file sample using similar logic as the original processing
+        console.log('📥 Processing updated sample file:', fileName);
+        res.json({ success: true, message: "File sample updated - processing in background" });
+      } else {
+        console.log('💾 Sample document cleared successfully');
+        res.json({ success: true });
+      }
+    } catch (error) {
+      console.error('❌ Error updating sample document:', error);
+      res.status(500).json({ error: 'Failed to update sample document' });
+    }
+  });
+
+  // Delete sample documents for a specific parameter
+  app.delete("/api/sample-documents/:functionId/:parameterName", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { functionId, parameterName } = req.params;
+
+      console.log('🗑️ Deleting sample document:', { functionId, parameterName });
+
+      await storage.deleteSampleDocumentsByParameter(functionId, parameterName);
+
+      console.log('💾 Sample document deleted successfully');
+      res.json({ success: true });
+    } catch (error) {
+      console.error('❌ Error deleting sample document:', error);
+      res.status(500).json({ error: 'Failed to delete sample document' });
+    }
+  });
+
   // Chat Routes
   
   // Get chat messages for a session

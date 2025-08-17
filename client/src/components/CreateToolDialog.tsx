@@ -285,6 +285,15 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
     }
   };
 
+  const clearSampleFile = (paramId: string) => {
+    updateInputParameter(paramId, "sampleFile", "");
+    updateInputParameter(paramId, "sampleFileURL", "");
+    toast({
+      title: "Sample File Removed",
+      description: "Sample file has been removed from this parameter."
+    });
+  };
+
   const resetForm = () => {
     setFormData({
       name: "",
@@ -540,12 +549,54 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
                         />
                       </div>
                       {param.type === "text" && (
-                        <div className="flex items-center space-x-2">
-                          <Switch
-                            checked={param.multiline}
-                            onCheckedChange={(checked) => updateInputParameter(param.id, "multiline", checked)}
-                          />
-                          <Label className="text-sm text-gray-600">Multi-line text input</Label>
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <Switch
+                              checked={param.multiline}
+                              onCheckedChange={(checked) => updateInputParameter(param.id, "multiline", checked)}
+                            />
+                            <Label className="text-sm text-gray-600">Multi-line text input</Label>
+                          </div>
+                          
+                          {/* Sample text input */}
+                          <div className="p-3 bg-gray-50 rounded border space-y-3">
+                            <div className="text-sm text-gray-600">
+                              Add sample text to test this parameter.
+                            </div>
+                            {param.multiline ? (
+                              <Textarea
+                                value={param.sampleText || ""}
+                                onChange={(e) => updateInputParameter(param.id, "sampleText", e.target.value)}
+                                placeholder="Enter sample text..."
+                                rows={3}
+                                className="bg-white"
+                              />
+                            ) : (
+                              <Input
+                                value={param.sampleText || ""}
+                                onChange={(e) => updateInputParameter(param.id, "sampleText", e.target.value)}
+                                placeholder="Enter sample text..."
+                                className="bg-white"
+                              />
+                            )}
+                            {param.sampleText && (
+                              <div className="flex items-center justify-between">
+                                <div className="text-sm text-green-600">
+                                  ✓ Sample text added ({param.sampleText.length} characters)
+                                </div>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => updateInputParameter(param.id, "sampleText", "")}
+                                  className="text-xs h-7 border-red-200 text-red-600 hover:bg-red-50"
+                                >
+                                  <X className="h-3 w-3 mr-1" />
+                                  Clear
+                                </Button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
                       {param.type !== "text" && (
@@ -565,8 +616,20 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
                             </div>
                           </div>
                           {param.sampleFile && (
-                            <div className="text-sm text-green-600">
-                              ✓ Sample file uploaded: {param.sampleFile}
+                            <div className="space-y-2">
+                              <div className="text-sm text-green-600">
+                                ✓ Sample file uploaded: {param.sampleFile}
+                              </div>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => clearSampleFile(param.id)}
+                                className="text-xs h-7 border-red-200 text-red-600 hover:bg-red-50"
+                              >
+                                <X className="h-3 w-3 mr-1" />
+                                Replace File
+                              </Button>
                             </div>
                           )}
                         </div>

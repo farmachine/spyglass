@@ -181,6 +181,7 @@ export interface IStorage {
   createSampleDocument(document: InsertSampleDocument): Promise<SampleDocument>;
   updateSampleDocument(id: string, document: Partial<InsertSampleDocument>): Promise<SampleDocument | undefined>;
   deleteSampleDocument(id: string): Promise<boolean>;
+  deleteSampleDocumentsByParameter(functionId: string, parameterName: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -1788,6 +1789,17 @@ export class MemStorage implements IStorage {
   async deleteSampleDocument(id: string): Promise<boolean> {
     return this.sampleDocuments.delete(id);
   }
+
+  async deleteSampleDocumentsByParameter(functionId: string, parameterName: string): Promise<boolean> {
+    let deletedCount = 0;
+    for (const [id, doc] of this.sampleDocuments.entries()) {
+      if (doc.functionId === functionId && doc.parameterName === parameterName) {
+        this.sampleDocuments.delete(id);
+        deletedCount++;
+      }
+    }
+    return deletedCount > 0;
+  }
 }
 
 // PostgreSQL Storage Implementation
@@ -3225,6 +3237,18 @@ class PostgreSQLStorage implements IStorage {
   async deleteSampleDocument(id: string): Promise<boolean> {
     return this.retryOperation(async () => {
       const result = await this.db.delete(sampleDocuments).where(eq(sampleDocuments.id, id));
+      return result.rowCount > 0;
+    });
+  }
+
+  async deleteSampleDocumentsByParameter(functionId: string, parameterName: string): Promise<boolean> {
+    return this.retryOperation(async () => {
+      const result = await this.db.delete(sampleDocuments).where(
+        and(
+          eq(sampleDocuments.functionId, functionId),
+          eq(sampleDocuments.parameterName, parameterName)
+        )
+      );
       return result.rowCount > 0;
     });
   }
