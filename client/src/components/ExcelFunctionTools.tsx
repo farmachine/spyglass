@@ -316,6 +316,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
       sampleDocuments = await apiRequest(`/api/sample-documents/${func.id}`, {
         method: "GET"
       });
+      console.log("Loaded sample documents:", sampleDocuments);
     } catch (error) {
       console.log("No sample documents found or error loading them:", error);
     }
@@ -327,7 +328,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
       inputParameters: Array.isArray((func as any).inputParameters) 
         ? (func as any).inputParameters.map((param: any, index: number) => {
             // Find sample document for this parameter
-            const sampleDoc = sampleDocuments.find((doc: any) => doc.parameter_name === param.name);
+            const sampleDoc = sampleDocuments.find((doc: any) => doc.parameterName === param.name);
             
             return {
               id: param.id || `param_${index}`,
@@ -335,9 +336,9 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
               type: (param.type as "text" | "data" | "document") || "text",
               description: param.description || "",
               multiline: param.multiline || false,
-              sampleFile: sampleDoc?.original_filename || "",
-              sampleFileURL: sampleDoc?.file_url || "",
-              sampleText: sampleDoc?.extracted_content || ""
+              sampleFile: sampleDoc?.fileName || "",
+              sampleFileURL: sampleDoc?.filePath || "",
+              sampleText: sampleDoc?.sampleText || sampleDoc?.extractedContent || ""
             };
           })
         : []
