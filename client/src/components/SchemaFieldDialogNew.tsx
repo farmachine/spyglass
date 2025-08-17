@@ -380,7 +380,7 @@ export function SchemaFieldDialogNew({
                   <SelectValue placeholder="Select method" />
                 </SelectTrigger>
                 <SelectContent>
-                  {wizardryFunctions.map((func) => (
+                  {[...wizardryFunctions].sort((a, b) => a.name.localeCompare(b.name)).map((func) => (
                     <SelectItem key={func.id} value={func.id}>
                       <div className="flex items-center gap-2">
                         {func.functionType === "AI_ONLY" ? <Brain className="h-4 w-4" /> : <Settings className="h-4 w-4" />}

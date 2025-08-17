@@ -390,7 +390,7 @@ export function PropertyDialogNew({
                   <SelectValue placeholder="Select method..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {wizardryFunctions.map((func) => (
+                  {[...wizardryFunctions].sort((a, b) => a.name.localeCompare(b.name)).map((func) => (
                     <SelectItem key={func.id} value={func.id}>
                       {func.name}
                     </SelectItem>
