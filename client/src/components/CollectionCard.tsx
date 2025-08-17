@@ -397,7 +397,7 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
                       id: prop.id,
                       propertyName: prop.propertyName,
                       propertyType: prop.propertyType,
-                      description: prop.description
+                      description: prop.description || undefined
                     }))
                   }
                 />

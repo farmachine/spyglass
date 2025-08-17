@@ -36,7 +36,7 @@ import { useKnowledgeDocuments, useExtractionRules } from "@/hooks/useKnowledge"
 import { useUpdateProject } from "@/hooks/useProjects";
 import SchemaFieldDialog from "@/components/SchemaFieldDialog";
 import CollectionDialog from "@/components/CollectionDialog";
-import PropertyDialog from "@/components/PropertyDialog";
+import { PropertyDialogNew } from "@/components/PropertyDialogNew";
 import DeleteDialog from "@/components/DeleteDialog";
 import CollectionCard from "@/components/CollectionCard";
 import type {
@@ -841,18 +841,18 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
         collection={collectionDialog.collection}
       />
 
-      <PropertyDialog
+      <PropertyDialogNew
         open={propertyDialog.open}
         onOpenChange={(open) => setPropertyDialog({ open, property: null, collectionId: undefined, collectionName: "" })}
         onSave={propertyDialog.property ? handleUpdateProperty : handleCreateProperty}
         property={propertyDialog.property}
         collectionName={propertyDialog.collectionName}
         knowledgeDocuments={knowledgeDocuments}
-        extractionRules={extractionRules}
         wizardryFunctions={wizardryFunctions}
         schemaFields={schemaFields || []}
         collections={collections || []}
         currentCollectionIndex={collections?.findIndex(c => c.collectionName === propertyDialog.collectionName) || 0}
+        collectionId={propertyDialog.collectionId || ""}
       />
 
       <DeleteDialog

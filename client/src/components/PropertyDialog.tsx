@@ -470,48 +470,116 @@ export default function PropertyDialog({
           </DialogDescription>
         </DialogHeader>
         
+        {/* Global Function Selector - Top Right */}
+        <div className="flex items-center justify-between mb-6 p-4 bg-gray-50 rounded-lg">
+          <div>
+            <h3 className="font-semibold text-lg">Property Configuration</h3>
+            <p className="text-sm text-gray-600">Configure extraction settings for this property</p>
+          </div>
+          <div className="min-w-[200px]">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Extraction Method</label>
+            {wizardryFunctions && wizardryFunctions.length > 0 ? (
+              <Select 
+                value={form.watch("functionId") || ""} 
+                onValueChange={(value) => {
+                  form.setValue("functionId", value);
+                  // Reset function parameters when function changes
+                  form.setValue("functionParameters", {});
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select method..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {wizardryFunctions.map((func) => (
+                    <SelectItem key={func.id} value={func.id}>
+                      {func.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="border rounded p-3 text-center text-sm">
+                <p className="text-gray-500">No functions available</p>
+                <p className="text-xs text-gray-400 mt-1">Create functions in Tools section</p>
+              </div>
+            )}
+          </div>
+        </div>
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-            {/* Step 1: Function Configuration & Data Sources */}
-            <div className="space-y-4 p-4 border rounded-lg bg-slate-50">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-slate-600 text-white text-sm font-medium flex items-center justify-center">1</div>
-                <h3 className="text-lg font-semibold text-slate-800">Function & Data Sources</h3>
-              </div>
-              
-              <FormField
-                control={form.control}
-                name="functionId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Available Functions</FormLabel>
-                    <FormControl>
-                      <div className="space-y-2">
-                        {wizardryFunctions.length > 0 ? (
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <SelectTrigger className="h-auto min-h-[60px] border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500">
-                              <SelectValue placeholder="Choose a function for data extraction..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {wizardryFunctions.map((func) => (
-                                <SelectItem key={func.id} value={func.id}>
-                                  {func.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+            {/* Dynamic Function-Based Form Content */}
+            {selectedFunction ? (
+              <div className="space-y-6">
+                {/* Function Description */}
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Brain className="h-5 w-5 text-blue-600" />
+                    <h4 className="font-medium text-blue-900">{selectedFunction.name}</h4>
+                  </div>
+                  <p className="text-sm text-blue-800">{selectedFunction.description}</p>
+                </div>
+                
+                {/* Function parameters if any */}
+                {inputParameters.length > 0 && (
+                  <div className="space-y-4 p-4 border rounded-lg">
+                    <h5 className="font-medium text-gray-800">Input Parameters</h5>
+                    {inputParameters.map((param: any, index: number) => (
+                      <div key={param.name || index} className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                          {param.name}
+                          <span className="text-xs text-gray-500 ml-2">({param.type})</span>
+                        </label>
+                        <p className="text-xs text-gray-600 mb-2">{param.description}</p>
+                        
+                        {param.type === "text" ? (
+                          <AutocompleteInput
+                            value={(form.watch("functionParameters") || {})[param.name] || ""}
+                            onChange={(val) => {
+                              const current = form.watch("functionParameters") || {};
+                              form.setValue("functionParameters", {
+                                ...current,
+                                [param.name]: val
+                              });
+                            }}
+                            placeholder={`Enter value for ${param.name} (use @ to reference other fields)`}
+                            availableFields={availableFields}
+                          />
+                        ) : param.type === "document" ? (
+                          <MultiSelectDocument
+                            value={Array.isArray((form.watch("functionParameters") || {})[param.name]) 
+                              ? (form.watch("functionParameters") || {})[param.name] 
+                              : ((form.watch("functionParameters") || {})[param.name] ? [(form.watch("functionParameters") || {})[param.name]] : [])}
+                            onChange={(docs) => {
+                              const current = form.watch("functionParameters") || {};
+                              form.setValue("functionParameters", {
+                                ...current,
+                                [param.name]: docs
+                              });
+                            }}
+                            placeholder={`Select documents for ${param.name}`}
+                            knowledgeDocuments={knowledgeDocuments || []}
+                          />
                         ) : (
-                          <div className="border rounded p-4 text-center">
-                            <p className="text-gray-500">No functions available</p>
-                            <p className="text-sm text-gray-400 mt-1">Create functions in the Tools section first</p>
-                          </div>
+                          <Textarea
+                            value={(form.watch("functionParameters") || {})[param.name] || ""}
+                            onChange={(e) => {
+                              const current = form.watch("functionParameters") || {};
+                              form.setValue("functionParameters", {
+                                ...current,
+                                [param.name]: e.target.value
+                              });
+                            }}
+                            placeholder={`Enter value for ${param.name}`}
+                            rows={2}
+                            className="w-full resize-none"
+                          />
                         )}
                       </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                    ))}
+                  </div>
                 )}
-              />
 
               {/* Function Parameters - Dynamic based on selected function */}
               {selectedFunction && inputParameters.length > 0 && (
@@ -576,45 +644,39 @@ export default function PropertyDialog({
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
-            </div>
-
-            {/* Step 2: Basic Property Configuration */}
-            {selectedFunction && (
-              <div className="space-y-4 p-4 border rounded-lg bg-slate-50">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-slate-600 text-white text-sm font-medium flex items-center justify-center">2</div>
-                  <h3 className="text-lg font-semibold text-slate-800">Property Settings</h3>
-                </div>
+                )}
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="propertyName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Property Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., Employee Name, Salary" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                {/* Basic Property Configuration */}
+                <div className="space-y-4 p-4 border rounded-lg">
+                  <h5 className="font-medium text-gray-800">Property Settings</h5>
                   
-                  <FormField
-                    control={form.control}
-                    name="propertyType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Data Type</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="propertyName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Property Name</FormLabel>
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select data type" />
-                            </SelectTrigger>
+                            <Input placeholder="e.g., Employee Name, Salary" {...field} />
                           </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="propertyType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Data Type</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select data type" />
+                              </SelectTrigger>
+                            </FormControl>
                           <SelectContent>
                             <SelectItem value="TEXT">Text</SelectItem>
                             <SelectItem value="NUMBER">Number</SelectItem>
