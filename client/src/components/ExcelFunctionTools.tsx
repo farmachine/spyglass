@@ -591,47 +591,6 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                                   </div>
 
                                   {/* Sample Content Management */}
-                                  {param.type === "text" && (
-                                    <div className="space-y-3">
-                                      
-                                      {/* Sample text input */}
-                                      <div className="p-3 bg-gray-50 rounded border space-y-3">
-                                        <div className="text-sm text-gray-600">
-                                          Add sample text to test this parameter.
-                                        </div>
-                                        {param.multiline ? (
-                                          <Textarea
-                                            value={param.sampleText || ""}
-                                            onChange={(e) => updateInputParameter(param.id, "sampleText", e.target.value)}
-                                            placeholder="Enter sample text..."
-                                            rows={3}
-                                            className="bg-white"
-                                          />
-                                        ) : (
-                                          <Input
-                                            value={param.sampleText || ""}
-                                            onChange={(e) => updateInputParameter(param.id, "sampleText", e.target.value)}
-                                            placeholder="Enter sample text..."
-                                            className="bg-white"
-                                          />
-                                        )}
-                                        {param.sampleText && (
-                                          <div className="flex items-center gap-2 mt-2">
-                                            <div className="inline-flex items-center gap-2 bg-gray-700 text-gray-100 px-3 py-1 rounded text-xs">
-                                              <span>Sample text ({param.sampleText.length} chars)</span>
-                                              <button
-                                                type="button"
-                                                onClick={() => updateInputParameter(param.id, "sampleText", "")}
-                                                className="hover:bg-gray-600 rounded p-0.5 transition-colors"
-                                              >
-                                                <X className="h-3 w-3" />
-                                              </button>
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  )}
                                   {param.type !== "text" && (
                                     <div className="p-3 bg-gray-50 rounded border space-y-3">
                                       <div className="text-sm text-gray-600">
