@@ -4831,7 +4831,7 @@ print(json.dumps(results))
         name,
         description,
         functionCode,
-        functionType: actualFunctionType || "SCRIPT",
+        functionType: actualFunctionType || "CODE",
         outputType: outputType || "single",
         inputParameters,
         aiAssistanceRequired: aiAssistanceRequired || false,
@@ -4897,7 +4897,7 @@ print(json.dumps(results))
         return res.json({ results: aiResults });
       }
 
-      // For SCRIPT functions, use the existing simulation logic
+      // For CODE functions, use the existing simulation logic
       const testResults = [];
       const inputParams = func.inputParameters || [];
 
@@ -4923,7 +4923,7 @@ print(json.dumps(results))
       }
 
       // If it's a script function, execute it with real sample document content
-      if (func.functionType === 'SCRIPT' && func.functionCode) {
+      if ((func.functionType === 'SCRIPT' || func.functionType === 'CODE') && func.functionCode) {
         try {
           // Get sample documents for this function
           let sampleDocuments = [];

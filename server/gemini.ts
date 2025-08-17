@@ -103,7 +103,7 @@ export async function generateFunctionCode(
   name: string,
   description: string,
   inputParameters: Array<{ name: string; type: string; description: string }>,
-  functionType: "SCRIPT" | "AI_ONLY",
+  functionType: "SCRIPT" | "AI_ONLY" | "CODE",
   aiAssistanceRequired: boolean,
   aiAssistancePrompt?: string,
   outputType?: "single" | "multiple"
@@ -151,7 +151,7 @@ ${aiAssistanceRequired ? `\nAdditional AI Instructions: ${aiAssistancePrompt}` :
         }
       };
     } else {
-      console.log('🐍 Generating Python script function...');
+      console.log('🐍 Generating Python code function...');
       // Generate Python script with field_validations compatibility
       const systemPrompt = `You are an expert Python developer creating data extraction functions.
 Generate a Python function that processes data and outputs to the field_validations database schema.
