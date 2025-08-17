@@ -430,61 +430,59 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
             To start extracting data from your {project.mainObjectName || "Session"} documents, you'll need to define what information you want to capture.
           </p>
           
-          {/* AI Schema Generation Section */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4 mx-auto max-w-2xl">
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="h-5 w-5 text-purple-600" />
-              <h4 className="font-semibold text-purple-900">Generate with AI</h4>
+          {/* AI Schema Generation Section - Hidden temporarily but functionality preserved */}
+          {false && (
+            <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4 mx-auto max-w-2xl">
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="h-5 w-5 text-purple-600" />
+                <h4 className="font-semibold text-purple-900">Generate with AI</h4>
+              </div>
+              <p className="text-sm text-gray-600 mb-3">
+                Describe what data you want to collect and AI will create the complete schema for you.
+              </p>
+              <div className="space-y-3">
+                <Textarea
+                  placeholder="e.g., I need to collect party information from NDAs including company names, addresses, and contact details"
+                  value={aiQuery}
+                  onChange={(e) => setAiQuery(e.target.value)}
+                  rows={3}
+                  className="resize-none"
+                  disabled={isGenerating}
+                />
+                <Button
+                  onClick={handleGenerateSchema}
+                  disabled={isGenerating || !aiQuery.trim()}
+                  className="w-full bg-purple-600 hover:bg-purple-700"
+                >
+                  {isGenerating ? (
+                    <>
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                      Generating Schema...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Generate with AI
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
-            <p className="text-sm text-gray-600 mb-3">
-              Describe what data you want to collect and AI will create the complete schema for you.
-            </p>
-            <div className="space-y-3">
-              <Textarea
-                placeholder="e.g., I need to collect party information from NDAs including company names, addresses, and contact details"
-                value={aiQuery}
-                onChange={(e) => setAiQuery(e.target.value)}
-                rows={3}
-                className="resize-none"
-                disabled={isGenerating}
-              />
-              <Button
-                onClick={handleGenerateSchema}
-                disabled={isGenerating || !aiQuery.trim()}
-                className="w-full bg-purple-600 hover:bg-purple-700"
-              >
-                {isGenerating ? (
-                  <>
-                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                    Generating Schema...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Generate with AI
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
+          )}
           
-          <div className="text-center mb-4">
-            <span className="text-gray-500 text-sm">or build manually</span>
-          </div>
+          {/* Removed "or build manually" text since AI section is now hidden */}
           
           <div className="flex justify-center gap-3">
             <Button 
-              variant="outline"
               onClick={() => setSchemaFieldDialog({ open: true, field: null })}
-              className="bg-white hover:bg-blue-50"
+              className="bg-gray-600 hover:bg-gray-700 text-white border-gray-600"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Field
             </Button>
             <Button 
-              variant="outline"
               onClick={() => setCollectionDialog({ open: true, collection: null })}
-              className="bg-white hover:bg-blue-50"
+              className="bg-gray-600 hover:bg-gray-700 text-white border-gray-600"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add List
