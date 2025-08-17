@@ -400,20 +400,28 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
                     <Button
                       type="button"
                       size="sm"
-                      variant={outputType === "single" ? "default" : "outline"}
                       onClick={() => setOutputType("single")}
-                      className="h-8 px-3 text-xs"
+                      className={`h-8 px-3 text-xs border transition-colors ${
+                        outputType === "single" 
+                          ? "bg-gray-800 text-white border-gray-800 hover:bg-gray-700" 
+                          : "bg-gray-200 text-gray-700 border-gray-300 hover:bg-gray-300"
+                      }`}
                     >
                       Single Value
+                      <span className="ml-1 text-xs opacity-75">(Main Field)</span>
                     </Button>
                     <Button
                       type="button"
                       size="sm"
-                      variant={outputType === "multiple" ? "default" : "outline"}
                       onClick={() => setOutputType("multiple")}
-                      className="h-8 px-3 text-xs"
+                      className={`h-8 px-3 text-xs border transition-colors ${
+                        outputType === "multiple" 
+                          ? "bg-gray-800 text-white border-gray-800 hover:bg-gray-700" 
+                          : "bg-gray-200 text-gray-700 border-gray-300 hover:bg-gray-300"
+                      }`}
                     >
                       Multiple Records
+                      <span className="ml-1 text-xs opacity-75">(Collection)</span>
                     </Button>
                   </div>
                 </div>

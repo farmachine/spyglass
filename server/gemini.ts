@@ -15,7 +15,8 @@ export async function generateFunctionCode(
   inputParameters: Array<{ name: string; type: string; description: string }>,
   functionType: "SCRIPT" | "AI_ONLY",
   aiAssistanceRequired: boolean,
-  aiAssistancePrompt?: string
+  aiAssistancePrompt?: string,
+  outputType?: "single" | "multiple"
 ): Promise<{ functionCode: string; metadata: any }> {
   try {
     console.log('🧠 Starting AI function generation process...');
@@ -23,6 +24,7 @@ export async function generateFunctionCode(
       name,
       description,
       functionType,
+      outputType,
       aiAssistanceRequired,
       inputParametersCount: inputParameters.length,
       inputParameters: inputParameters.map(p => ({ name: p.name, type: p.type }))
@@ -36,12 +38,15 @@ Generate a comprehensive AI prompt that will be used to extract data from docume
 
 CRITICAL: The output MUST be compatible with the field_validations database schema format.
 
+This function is designed to create: ${outputType === "single" ? "MAIN SCHEMA FIELDS (single values)" : "COLLECTION PROPERTIES (multiple records)"}
+
 Requirements:
 - The prompt should be detailed and specific
 - It should reference ALL input parameters using @-key syntax: ${inputParameters.map(p => `@${p.name}`).join(', ')}
 - It should always output valid JSON in field_validations format
 - It should handle edge cases and missing data gracefully
 - Output format MUST be field_validations compatible array
+- ${outputType === "single" ? "Design for extracting single values that will become main schema fields" : "Design for extracting multiple records that will populate a collection"}
 
 Field Validations Output Format:
 The function must return an array of objects with this exact structure:
@@ -114,6 +119,8 @@ Generate a Python function that processes data and outputs to the field_validati
 
 CRITICAL: The output MUST be exactly compatible with the field_validations database schema format.
 
+This function is designed to create: ${outputType === "single" ? "MAIN SCHEMA FIELDS (single values)" : "COLLECTION PROPERTIES (multiple records)"}
+
 Requirements:
 - Function must be named "extract_function"
 - Must accept parameters: document_content, target_fields, identifier_references
@@ -122,6 +129,7 @@ Requirements:
 - Must handle errors gracefully and return valid JSON
 - Must include comprehensive error handling for all edge cases
 - Function should be fully self-contained and executable
+- ${outputType === "single" ? "Design for extracting single values that will become main schema fields" : "Design for extracting multiple records that will populate a collection"}
 ${aiAssistanceRequired ? '- Must include AI assistance as the final step using the provided prompt' : ''}
 
 Field Validations Output Schema (EXACT format required):

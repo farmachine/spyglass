@@ -4818,7 +4818,8 @@ print(json.dumps(results))
         inputParameters,
         functionType,
         aiAssistanceRequired,
-        aiAssistancePrompt
+        aiAssistancePrompt,
+        outputType
       );
 
       // Create the complete function object
