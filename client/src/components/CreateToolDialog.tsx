@@ -30,7 +30,7 @@ interface CreateToolDialogProps {
 
 export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
   const [open, setOpen] = useState(false);
-  const [functionType, setFunctionType] = useState<"SCRIPT" | "AI_ONLY">("SCRIPT");
+  const [functionType, setFunctionType] = useState<"SCRIPT" | "AI_ONLY" | null>(null);
   const [aiAssistanceRequired, setAiAssistanceRequired] = useState(false);
   const [outputType, setOutputType] = useState<"single" | "multiple">("single");
   const [inputParameters, setInputParameters] = useState<InputParameter[]>([]);
@@ -261,16 +261,16 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
       aiAssistancePrompt: ""
     });
     setInputParameters([]);
-    setFunctionType("SCRIPT");
+    setFunctionType(null);
     setAiAssistanceRequired(false);
     setOutputType("single");
   };
 
   const handleSubmit = () => {
-    if (!formData.name || !formData.description || inputParameters.length === 0) {
+    if (!formData.name || !formData.description || !functionType || inputParameters.length === 0) {
       toast({
         title: "Validation Error",
-        description: "Please fill in all required fields and add at least one input.",
+        description: "Please fill in all required fields, select a tool type, and add at least one input.",
         variant: "destructive"
       });
       return;
@@ -357,9 +357,9 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
               <CardTitle className="text-lg text-gray-800">Tool Type</CardTitle>
             </CardHeader>
             <CardContent>
-              <Select value={functionType} onValueChange={(value: "SCRIPT" | "AI_ONLY") => setFunctionType(value)}>
+              <Select value={functionType || ""} onValueChange={(value: "SCRIPT" | "AI_ONLY") => setFunctionType(value)}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select tool type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="AI_ONLY">AI</SelectItem>
