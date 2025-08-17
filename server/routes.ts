@@ -4859,13 +4859,45 @@ print(json.dumps(results))
         return res.status(400).json({ message: "Function ID and inputs are required" });
       }
 
+      console.log("🧪 Testing tool:", functionId);
+      console.log("📥 Test inputs:", inputs);
+
       // Get the function
       const func = await storage.getExcelWizardryFunction(functionId);
       if (!func) {
         return res.status(404).json({ message: "Function not found" });
       }
 
-      // Create test results in field_validations format
+      console.log("🔧 Tool type:", func.functionType);
+
+      // Handle AI ONLY tools differently
+      if (func.functionType === 'AI_ONLY') {
+        console.log("🤖 Processing AI ONLY tool with Gemini...");
+        
+        // Get sample documents for this function
+        let sampleDocuments = [];
+        try {
+          sampleDocuments = await storage.getSampleDocuments(functionId);
+          console.log(`📁 Found ${sampleDocuments.length} sample documents`);
+        } catch (error) {
+          console.log("No sample documents found:", error);
+        }
+
+        // Import and use the Gemini AI function
+        const { testAIOnlyTool } = await import("./gemini");
+        
+        const aiResults = await testAIOnlyTool(
+          func.description,
+          func.inputParameters || [],
+          inputs,
+          sampleDocuments
+        );
+
+        console.log("🎯 AI test results:", aiResults);
+        return res.json({ results: aiResults });
+      }
+
+      // For SCRIPT functions, use the existing simulation logic
       const testResults = [];
       const inputParams = func.inputParameters || [];
 

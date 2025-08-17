@@ -9,6 +9,96 @@ import { GoogleGenAI, Modality } from "@google/genai";
 // This API key is from Gemini Developer API Key, not vertex AI API Key
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
+export async function testAIOnlyTool(
+  toolDescription: string,
+  inputParameters: Array<{ name: string; type: string; description: string }>,
+  testInputs: Record<string, any>,
+  sampleDocuments: any[]
+): Promise<any[]> {
+  try {
+    console.log('🤖 Testing AI ONLY tool with Gemini...');
+    
+    // Build system prompt explaining input types
+    const systemPrompt = `You are an AI data extraction tool that processes inputs and returns results in field_validations JSON format.
+
+Input Type Understanding:
+- text inputs: These are instructions/prompts that guide your extraction
+- document inputs: These are source documents from which to extract data
+- data inputs: These are source data structures from which to extract data
+
+Tool Description: ${toolDescription}
+
+You must return an array of field_validation objects with this exact structure:
+[{
+  "id": "unique-id",
+  "sessionId": "test-session",
+  "validationType": "schema_field",
+  "dataType": "TEXT",
+  "fieldId": "extracted-field-name",
+  "extractedValue": "extracted value",
+  "validationStatus": "valid|pending|invalid",
+  "aiReasoning": "explanation of extraction reasoning",
+  "confidenceScore": 0-100,
+  "documentSource": "source document name",
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-01T00:00:00.000Z"
+}]
+
+IMPORTANT: Return ONLY valid JSON array, no additional text.`;
+
+    // Build user prompt with inputs
+    let userPrompt = `Process the following inputs:\n\n`;
+    
+    // Process each input parameter
+    for (const param of inputParameters) {
+      const inputValue = testInputs[param.name];
+      
+      if (param.type === "text") {
+        userPrompt += `${param.name} (instruction): ${inputValue || "Not provided"}\n`;
+      } else if (param.type === "document") {
+        // For document inputs, get content from selected sample documents
+        const selectedDocIds = Array.isArray(inputValue) ? inputValue : [];
+        const selectedDocs = sampleDocuments.filter(doc => selectedDocIds.includes(doc.id));
+        
+        if (selectedDocs.length > 0) {
+          userPrompt += `${param.name} (documents):\n`;
+          selectedDocs.forEach((doc, index) => {
+            userPrompt += `Document ${index + 1}: ${doc.fileName || 'Sample Document'}\n`;
+            userPrompt += `Content: ${doc.extractedContent || doc.sampleText || 'No content available'}\n\n`;
+          });
+        } else {
+          userPrompt += `${param.name} (documents): No documents selected\n`;
+        }
+      } else if (param.type === "data") {
+        userPrompt += `${param.name} (source data): ${inputValue || "Not provided"}\n`;
+      }
+    }
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-pro",
+      config: {
+        systemInstruction: systemPrompt,
+        responseMimeType: "application/json"
+      },
+      contents: userPrompt
+    });
+
+    const result = JSON.parse(response.text || "[]");
+    
+    // Ensure result is an array
+    if (!Array.isArray(result)) {
+      throw new Error("AI response is not an array");
+    }
+
+    console.log('✅ AI tool test completed successfully');
+    return result;
+
+  } catch (error) {
+    console.error("Error testing AI tool:", error);
+    throw error;
+  }
+}
+
 export async function generateFunctionCode(
   name: string,
   description: string,
