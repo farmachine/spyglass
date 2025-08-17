@@ -548,6 +548,10 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
                           rows={2}
                         />
                       </div>
+                      {/* Debug: Show param type */}
+                      <div className="text-xs text-red-500 bg-red-50 p-1 rounded">
+                        Debug: param.type = "{param.type}" (length: {param.type.length})
+                      </div>
                       {param.type === "text" && (
                         <div className="space-y-3">
                           <div className="flex items-center space-x-2">
