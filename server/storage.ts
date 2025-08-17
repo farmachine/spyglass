@@ -95,6 +95,7 @@ export interface IStorage {
 
   // Object Collections
   getObjectCollections(projectId: string): Promise<(ObjectCollection & { properties: CollectionProperty[] })[]>;
+  getAllCollectionsForReferences(organizationId: string): Promise<(ObjectCollection & { properties: CollectionProperty[], projectName: string })[]>;
   getObjectCollection(id: string): Promise<ObjectCollection | undefined>;
   createObjectCollection(collection: InsertObjectCollection): Promise<ObjectCollection>;
   updateObjectCollection(id: string, collection: Partial<InsertObjectCollection>): Promise<ObjectCollection | undefined>;
@@ -1106,6 +1107,38 @@ export class MemStorage implements IStorage {
         .filter(property => property.collectionId === collection.id)
         .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
     }));
+  }
+
+  async getAllCollectionsForReferences(organizationId: string): Promise<(ObjectCollection & { properties: CollectionProperty[], projectName: string })[]> {
+    // Get all projects for the organization
+    const projects = Array.from(this.projects.values())
+      .filter(project => project.organizationId === organizationId);
+
+    // Get all collections from all projects
+    const allCollections: (ObjectCollection & { properties: CollectionProperty[], projectName: string })[] = [];
+    
+    for (const project of projects) {
+      const collections = Array.from(this.objectCollections.values())
+        .filter(collection => collection.projectId === project.id)
+        .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+
+      const collectionsWithProperties = collections.map(collection => ({
+        ...collection,
+        projectName: project.projectName,
+        properties: Array.from(this.collectionProperties.values())
+          .filter(property => property.collectionId === collection.id)
+          .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+      }));
+
+      allCollections.push(...collectionsWithProperties);
+    }
+
+    // Sort by project name, then collection name
+    return allCollections.sort((a, b) => {
+      const projectComparison = a.projectName.localeCompare(b.projectName);
+      if (projectComparison !== 0) return projectComparison;
+      return a.collectionName.localeCompare(b.collectionName);
+    });
   }
 
   async getObjectCollection(id: string): Promise<ObjectCollection | undefined> {

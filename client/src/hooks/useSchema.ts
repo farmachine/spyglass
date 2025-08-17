@@ -170,6 +170,16 @@ export function useAllProjectProperties(projectId: string) {
   });
 }
 
+// Get all collections across all projects for schema field referencing
+export function useAllCollectionsForReferences() {
+  return useQuery({
+    queryKey: ["/api/collections/all-for-references"],
+    queryFn: async () => {
+      return await apiRequest("/api/collections/all-for-references");
+    },
+  });
+}
+
 export function useCreateProperty(collectionId: string) {
   const queryClient = useQueryClient();
   

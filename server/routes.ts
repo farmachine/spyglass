@@ -798,6 +798,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all collections across all projects for referencing
+  app.get("/api/collections/all-for-references", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const collections = await storage.getAllCollectionsForReferences(req.user!.organizationId);
+      res.json(collections);
+    } catch (error) {
+      console.error("Failed to fetch all collections for references:", error);
+      res.status(500).json({ message: "Failed to fetch collections for references" });
+    }
+  });
+
   app.post("/api/projects/:projectId/collections", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const projectId = req.params.projectId;

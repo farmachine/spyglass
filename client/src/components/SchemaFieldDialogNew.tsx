@@ -31,6 +31,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Brain, Key, Settings, Plus, X, ChevronDown, FileText } from "lucide-react";
 import type { ProjectSchemaField, KnowledgeDocument, ExcelWizardryFunction } from "@shared/schema";
+import { useAllCollectionsForReferences } from "@/hooks/useSchema";
 
 const fieldTypes = ["TEXT", "NUMBER", "DATE", "CHOICE"] as const;
 
@@ -156,12 +157,24 @@ export function SchemaFieldDialogNew({
     }
   }, [selectedFunctionId, selectedFunction]);
 
+  // Fetch all collections across all projects for @-key referencing
+  const { data: allCollections = [] } = useAllCollectionsForReferences();
+
   const buildAvailableFields = () => {
     const fields: Array<{ key: string; label: string; source: string }> = [];
     
-    // Add any schema field references here if needed in the future
+    // Add all collection properties from all projects
+    allCollections.forEach((collection: any) => {
+      collection.properties.forEach((property: any) => {
+        fields.push({
+          key: `@${collection.collectionName}.${property.propertyName}`,
+          label: `${collection.collectionName}.${property.propertyName}`,
+          source: `${collection.projectName} - ${collection.collectionName}`
+        });
+      });
+    });
     
-    return fields;
+    return fields.sort((a, b) => a.label.localeCompare(b.label));
   };
   
   const availableFields = buildAvailableFields();
