@@ -65,7 +65,7 @@ export function SchemaFieldDialogNew({
   knowledgeDocuments = [],
   wizardryFunctions = []
 }: SchemaFieldDialogNewProps) {
-  const [selectedFunctionId, setSelectedFunctionId] = useState<string>("ai_extraction");
+  const [selectedFunctionId, setSelectedFunctionId] = useState<string>("");
   const [inputParameters, setInputParameters] = useState<any[]>([]);
   
   const form = useForm<SchemaFieldForm>({
@@ -73,7 +73,7 @@ export function SchemaFieldDialogNew({
     defaultValues: {
       fieldName: "",
       fieldType: "TEXT",
-      functionId: "ai_extraction",
+      functionId: "",
       functionParameters: {},
       choices: [],
       autoVerificationConfidence: 80,
@@ -100,11 +100,11 @@ export function SchemaFieldDialogNew({
         orderIndex: field.orderIndex || 0,
       });
     } else {
-      setSelectedFunctionId("ai_extraction");
+      setSelectedFunctionId("");
       form.reset({
         fieldName: "",
         fieldType: "TEXT", 
-        functionId: "ai_extraction",
+        functionId: "",
         functionParameters: {},
         choices: [],
         autoVerificationConfidence: 80,
@@ -129,7 +129,7 @@ export function SchemaFieldDialogNew({
         console.error("Error parsing input parameters:", error);
         setInputParameters([]);
       }
-    } else if (selectedFunctionId === "ai_extraction") {
+    } else if (selectedFunctionId === "" || !selectedFunction) {
       // Default AI extraction parameters
       setInputParameters([
         {
@@ -380,16 +380,10 @@ export function SchemaFieldDialogNew({
                   <SelectValue placeholder="Select method" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ai_extraction">
-                    <div className="flex items-center gap-2">
-                      <Brain className="h-4 w-4" />
-                      AI Extraction
-                    </div>
-                  </SelectItem>
                   {wizardryFunctions.map((func) => (
                     <SelectItem key={func.id} value={func.id}>
                       <div className="flex items-center gap-2">
-                        <Settings className="h-4 w-4" />
+                        {func.functionType === "AI_ONLY" ? <Brain className="h-4 w-4" /> : <Settings className="h-4 w-4" />}
                         {func.name}
                       </div>
                     </SelectItem>
