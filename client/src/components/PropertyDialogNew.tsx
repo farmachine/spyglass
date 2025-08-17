@@ -158,43 +158,43 @@ export function PropertyDialogNew({
   
   const availableFields = buildAvailableFields();
 
-  // Simple Dropdown component for reference data
+  // Simple Dropdown component for reference data with clear button
   function ReferenceDataDropdown({ value, onChange, placeholder, availableFields }: {
     value: string;
     onChange: (val: string) => void;
     placeholder: string;
     availableFields: Array<{ key: string; label: string; source: string }>;
   }) {
-    const handleValueChange = (val: string) => {
-      if (val === "__CLEAR__") {
-        onChange("");
-      } else {
-        onChange(val);
-      }
-    };
-
     return (
-      <Select value={value} onValueChange={handleValueChange}>
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder={placeholder || "Select reference data..."} />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="__CLEAR__">
-            <span className="text-gray-500 italic">Clear selection</span>
-          </SelectItem>
-          {availableFields.length === 0 && (
-            <SelectItem value="none" disabled>No reference data available</SelectItem>
-          )}
-          {availableFields.map((field) => (
-            <SelectItem key={field.key} value={field.key}>
-              <div className="flex justify-between items-center w-full">
-                <span>{field.label}</span>
-                <span className="text-xs text-gray-500 ml-2">{field.source}</span>
-              </div>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div className="relative">
+        <Select value={value} onValueChange={onChange}>
+          <SelectTrigger className="w-full pr-8">
+            <SelectValue placeholder={placeholder || "Select reference data..."} />
+          </SelectTrigger>
+          <SelectContent>
+            {availableFields.length === 0 && (
+              <SelectItem value="none" disabled>No reference data available</SelectItem>
+            )}
+            {availableFields.map((field) => (
+              <SelectItem key={field.key} value={field.key}>
+                <div className="flex justify-between items-center w-full">
+                  <span>{field.label}</span>
+                  <span className="text-xs text-gray-500 ml-2">{field.source}</span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {value && (
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 z-10"
+          >
+            ✕
+          </button>
+        )}
+      </div>
     );
   }
 
