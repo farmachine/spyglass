@@ -240,7 +240,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-gray-900">Excel Function Tools</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Tools</h1>
         </div>
         <div className="space-y-4">
           {[1, 2, 3].map(i => (
