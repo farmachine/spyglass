@@ -165,14 +165,17 @@ export function SchemaFieldDialogNew({
   const buildAvailableFields = () => {
     const fields: Array<{ key: string; label: string; source: string }> = [];
     
-    // For schema fields: Show ALL collections from ALL projects
-    // (This is a general field, so it can reference any collection)
-    allCollections.forEach((collection: any) => {
+    // For schema fields: Show collections from the CURRENT project only
+    const currentProjectCollections = allCollections.filter((collection: any) => 
+      collection.projectId === projectId
+    );
+    
+    currentProjectCollections.forEach((collection: any) => {
       collection.properties.forEach((property: any) => {
         fields.push({
           key: `@${collection.collectionName}.${property.propertyName}`,
           label: `${collection.collectionName}.${property.propertyName}`,
-          source: `${collection.projectName} - ${collection.collectionName}`
+          source: `${collection.collectionName} Collection`
         });
       });
     });
@@ -181,7 +184,7 @@ export function SchemaFieldDialogNew({
   };
   
   const availableFields = buildAvailableFields();
-  console.log('📝 Available fields for autocomplete (schema field - all collections):', availableFields);
+  console.log('📝 Available fields for autocomplete (schema field - current project only):', availableFields);
 
   // Inline AutocompleteInput component
   function AutocompleteInput({ value, onChange, placeholder, availableFields }: {
