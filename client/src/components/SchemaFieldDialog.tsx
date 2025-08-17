@@ -141,65 +141,173 @@ export default function SchemaFieldDialog({
           </DialogDescription>
         </DialogHeader>
         
+        {/* Global Function Selector - Top Right */}
+        <div className="flex items-center justify-between mb-6 p-4 bg-gray-50 rounded-lg">
+          <div>
+            <h3 className="font-semibold text-lg">Schema Field Configuration</h3>
+            <p className="text-sm text-gray-600">Configure extraction settings for this schema field</p>
+          </div>
+          <div className="min-w-[200px]">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Extraction Method</label>
+            {wizardryFunctions && wizardryFunctions.length > 0 ? (
+              <Select 
+                value={form.watch("functionId") || ""} 
+                onValueChange={(value) => {
+                  form.setValue("functionId", value);
+                  // Reset function parameters when function changes
+                  form.setValue("functionParameters", {});
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select method..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {[...wizardryFunctions].sort((a, b) => a.name.localeCompare(b.name)).map((func) => (
+                    <SelectItem key={func.id} value={func.id}>
+                      {func.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="border rounded p-3 text-center text-sm">
+                <p className="text-gray-500">No functions available</p>
+                <p className="text-xs text-gray-400 mt-1">Create functions in Tools section</p>
+              </div>
+            )}
+          </div>
+        </div>
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-            {/* Step 1: Function Configuration & Data Sources */}
-            <div className="space-y-4 p-4 border rounded-lg bg-slate-50">
+            {/* Field Settings Section - Always First */}
+            <div className="space-y-4 p-4 border rounded-lg">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-slate-600 text-white text-sm font-medium flex items-center justify-center">1</div>
-                <h3 className="text-lg font-semibold text-slate-800">Function & Data Sources</h3>
+                <Settings className="h-5 w-5 text-gray-600" />
+                <h5 className="font-medium text-gray-800">Field Settings</h5>
               </div>
               
-              <FormField
-                control={form.control}
-                name="functionId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Available Functions</FormLabel>
-                    <FormControl>
-                      <div className="space-y-2">
-                        {wizardryFunctions.length > 0 ? (
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <SelectTrigger className="h-auto min-h-[60px] border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500">
-                              <SelectValue placeholder="Choose a function for data extraction..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {wizardryFunctions.map((func) => (
-                                <SelectItem key={func.id} value={func.id}>
-                                  {func.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <div className="border rounded p-4 text-center">
-                            <p className="text-gray-500">No functions available</p>
-                            <p className="text-sm text-gray-400 mt-1">Create functions in the Tools section first</p>
-                          </div>
-                        )}
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="fieldName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Field Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Employee Name, Department" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="fieldType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Data Type</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select data type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="TEXT">Text</SelectItem>
+                          <SelectItem value="NUMBER">Number</SelectItem>
+                          <SelectItem value="DATE">Date</SelectItem>
+                          <SelectItem value="CHOICE">Choice</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
-              {/* Function Parameters - Dynamic based on selected function */}
-              {selectedFunction && inputParameters.length > 0 && (
-                <div className="space-y-4 mt-4">
-                  <h4 className="font-medium text-gray-800">Configure Parameters</h4>
-                  <p className="text-sm text-gray-600">
-                    Configure the input parameters for "{selectedFunction.name}"
-                  </p>
-                  
-                  <div className="space-y-4">
-                    {inputParameters.map((param: any, index: number) => (
-                      <div key={param.name || index} className="space-y-2 p-3 bg-white rounded border">
-                        <div className="flex items-center gap-2">
-                          <code className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">{param.name}</code>
-                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">{param.type}</span>
+              {/* Dynamic Choices for CHOICE type */}
+              {form.watch("fieldType") === "CHOICE" && (
+                <FormField
+                  control={form.control}
+                  name="choices"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Available Choices</FormLabel>
+                      <FormControl>
+                        <div className="space-y-2">
+                          {(field.value || []).map((choice: string, index: number) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <Input
+                                value={choice}
+                                onChange={(e) => {
+                                  const newChoices = [...(field.value || [])];
+                                  newChoices[index] = e.target.value;
+                                  field.onChange(newChoices);
+                                }}
+                                placeholder={`Choice ${index + 1}`}
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const newChoices = (field.value || []).filter((_: string, i: number) => i !== index);
+                                  field.onChange(newChoices);
+                                }}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              field.onChange([...(field.value || []), ""]);
+                            }}
+                            className="w-full"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Choice
+                          </Button>
                         </div>
-                        <p className="text-sm text-gray-600">{param.description}</p>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
+
+            {/* Data Sources Section - Only show when function is selected */}
+            {selectedFunction ? (
+              <div className="space-y-6">
+                {/* Function Description */}
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Brain className="h-5 w-5 text-blue-600" />
+                    <h4 className="font-medium text-blue-900">{selectedFunction.name}</h4>
+                  </div>
+                  <p className="text-sm text-blue-800">{selectedFunction.description}</p>
+                </div>
+
+                {/* Function parameters if any */}
+                {inputParameters.length > 0 && (
+                  <div className="space-y-4 p-4 border rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Settings className="h-5 w-5 text-gray-600" />
+                      <h5 className="font-medium text-gray-800">Data Sources</h5>
+                    </div>
+                    {inputParameters.map((param: any, index: number) => (
+                      <div key={param.name || index} className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                          {param.name}
+                          <span className="text-xs text-gray-500 ml-2">({param.type})</span>
+                        </label>
+                        <p className="text-xs text-gray-600 mb-2">{param.description}</p>
                         
                         {param.type === "text" ? (
                           <Input
@@ -226,21 +334,13 @@ export default function SchemaFieldDialog({
                             }}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder={`Select document source for ${param.name}`} />
+                              <SelectValue placeholder={`Select document for ${param.name}`} />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="user_provided_document">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                  User Provided Document
-                                </div>
-                              </SelectItem>
-                              {knowledgeDocuments?.map((doc) => (
+                              <SelectItem value="user_provided">User Uploaded Documents</SelectItem>
+                              {knowledgeDocuments.map((doc) => (
                                 <SelectItem key={doc.id} value={doc.id}>
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                    {doc.fileName}
-                                  </div>
+                                  {doc.displayName}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -269,180 +369,21 @@ export default function SchemaFieldDialog({
 
             </div>
 
-            {/* Step 2: Basic Field Configuration */}
-            {selectedFunction && (
-              <div className="space-y-4 p-4 border rounded-lg bg-slate-50">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-slate-600 text-white text-sm font-medium flex items-center justify-center">2</div>
-                  <h3 className="text-lg font-semibold text-slate-800">Field Settings</h3>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="fieldName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Field Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., Pension Scheme Name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="fieldType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Data Type</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select data type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="TEXT">Text</SelectItem>
-                            <SelectItem value="NUMBER">Number</SelectItem>
-                            <SelectItem value="DATE">Date</SelectItem>
-                            <SelectItem value="CHOICE">Choice</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* Choices field for CHOICE type */}
-                {form.watch("fieldType") === "CHOICE" && (
-                  <FormField
-                    control={form.control}
-                    name="choices"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Available Choices</FormLabel>
-                        <FormControl>
-                          <div className="space-y-2">
-                            <div className="space-y-2">
-                              {(field.value || []).map((choice: string, index: number) => (
-                                <div key={index} className="flex items-center gap-2">
-                                  <Input
-                                    value={choice}
-                                    onChange={(e) => {
-                                      const newChoices = [...(field.value || [])];
-                                      newChoices[index] = e.target.value;
-                                      field.onChange(newChoices);
-                                    }}
-                                    placeholder={`Choice ${index + 1}`}
-                                    className="flex-1"
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      const newChoices = (field.value || []).filter((_: string, i: number) => i !== index);
-                                      field.onChange(newChoices);
-                                    }}
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              ))}
-                            </div>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                const currentChoices = field.value || [];
-                                field.onChange([...currentChoices, ""]);
-                              }}
-                              className="w-full"
-                            >
-                              <Plus className="h-4 w-4 mr-2" />
-                              Add Choice
-                            </Button>
-                          </div>
-                        </FormControl>
-                        <p className="text-sm text-muted-foreground">
-                          Define the available options for this choice field
-                        </p>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-
-                <FormField
-                  control={form.control}
-                  name="autoVerificationConfidence"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Auto Verification Confidence (%)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          min={0} 
-                          max={100} 
-                          placeholder="80"
-                          {...field}
-                          onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : '')}
-                        />
-                      </FormControl>
-                      <p className="text-sm text-muted-foreground">
-                        Fields with confidence at or above this threshold will be automatically verified
-                      </p>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
-
-            {/* Show function info when selected */}
-            {selectedFunction && (
-              <div className="p-4 bg-gray-50 border rounded-lg">
-                <h4 className="font-medium text-gray-800 mb-2">Selected Function Summary</h4>
-                <div className="space-y-2 text-sm">
-                  <div><strong>Name:</strong> {selectedFunction.name}</div>
-                  <div><strong>Type:</strong> {selectedFunction.functionType}</div>
-                  <div><strong>Description:</strong> {selectedFunction.description}</div>
-                  {selectedFunction.tags && (
-                    <div className="flex items-center gap-2">
-                      <strong>Tags:</strong>
-                      <div className="flex gap-1">
-                        {selectedFunction.tags.map(tag => (
-                          <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-            
-            <DialogFooter>
+            <div className="flex justify-end gap-2 pt-4">
               <Button
-                type="button"
+                type="button" 
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="border-gray-400 text-gray-600 hover:bg-gray-50"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                disabled={isLoading || !selectedFunction}
-                className="bg-slate-600 hover:bg-slate-700 text-white"
+                disabled={!form.watch("functionId") || !form.watch("fieldName")}
               >
-                {isLoading ? "Saving..." : field ? "Update Field" : "Add Field"}
+                {field ? "Update" : "Add"} Field
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         </Form>
       </DialogContent>
