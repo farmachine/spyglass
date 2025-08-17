@@ -5044,16 +5044,29 @@ try:
     import inspect
     func_signature = inspect.signature(main_function)
     param_count = len(func_signature.parameters)
+    param_names = list(func_signature.parameters.keys())
     
     print(f"DEBUG: Function parameter count: {param_count}", file=sys.stderr)
+    print(f"DEBUG: Function parameter names: {param_names}", file=sys.stderr)
     
     if param_count == 1:
         # Function expects just the Excel content
         results = main_function(excel_content)
-    elif param_count >= 2:
+    elif param_count == 2:
         # Function expects content and additional parameters
         target_fields_data = [{"name": "test_field", "description": "Test execution"}]
         results = main_function(excel_content, target_fields_data)
+    elif param_count == 3:
+        # Function expects content, target fields, and identifier references
+        target_fields_data = [{"name": "test_field", "description": "Test execution"}]
+        identifier_references = []  # Empty for testing
+        results = main_function(excel_content, target_fields_data, identifier_references)
+    elif param_count >= 4:
+        # Function expects multiple parameters - provide defaults
+        target_fields_data = [{"name": "test_field", "description": "Test execution"}]
+        identifier_references = []
+        additional_params = [None] * (param_count - 3)
+        results = main_function(excel_content, target_fields_data, identifier_references, *additional_params)
     else:
         results = main_function()
     
