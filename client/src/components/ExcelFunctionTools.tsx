@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Code, Edit3, Trash2, Plus, X, FileText, Database, Type, Copy, Check, Brain, Settings, Play } from "lucide-react";
+import { Code, Edit3, Trash2, Plus, X, FileText, Database, Type, Copy, Check, Brain, Settings, Play, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +45,9 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
     type: "text" | "data" | "document";
     description: string;
     multiline?: boolean; // Only applies to text type
+    sampleFile?: string; // Sample file name for documents/data
+    sampleFileURL?: string; // Sample file URL for documents/data
+    sampleText?: string; // Sample text for text type
   }
 
   const [copiedSampleData, setCopiedSampleData] = useState<string | null>(null);
@@ -113,6 +116,67 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
     };
     
     return JSON.stringify(sampleData, null, 2);
+  };
+
+  // Helper functions for sample file management in edit mode
+  const handleSampleFileUploadEdit = async (paramId: string, file?: File) => {
+    if (!file || !editingFunction) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('functionId', editingFunction.id);
+    formData.append('parameterName', paramId);
+
+    try {
+      const response = await apiRequest("/api/sample-documents", {
+        method: "POST",
+        body: formData
+      });
+
+      // Update the parameter with the uploaded file info
+      updateInputParameter(paramId, "sampleFile", file.name);
+      updateInputParameter(paramId, "sampleFileURL", response.url || "");
+
+      toast({
+        title: "Sample Document Uploaded",
+        description: `Successfully uploaded ${file.name}`
+      });
+    } catch (error) {
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload sample document. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const clearSampleFileEdit = async (paramId: string) => {
+    if (!editingFunction) return;
+
+    try {
+      // Find the parameter to get the file info
+      const param = formData.inputParameters.find(p => p.id === paramId);
+      if (param?.sampleFile) {
+        await apiRequest(`/api/sample-documents/${editingFunction.id}/${encodeURIComponent(param.sampleFile)}`, {
+          method: "DELETE"
+        });
+      }
+
+      // Clear the sample file info from the parameter
+      updateInputParameter(paramId, "sampleFile", "");
+      updateInputParameter(paramId, "sampleFileURL", "");
+
+      toast({
+        title: "Sample Document Removed",
+        description: "Sample document has been removed successfully."
+      });
+    } catch (error) {
+      toast({
+        title: "Removal Failed",
+        description: "Failed to remove sample document. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const copySampleDataToClipboard = async (paramId: string, description: string, paramName: string) => {
@@ -243,20 +307,39 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
     });
   };
 
-  const handleEdit = (func: ExcelWizardryFunction) => {
+  const handleEdit = async (func: ExcelWizardryFunction) => {
     setEditingFunction(func);
+    
+    // Load existing sample documents for this function
+    let sampleDocuments: any[] = [];
+    try {
+      sampleDocuments = await apiRequest(`/api/sample-documents/${func.id}`, {
+        method: "GET"
+      });
+    } catch (error) {
+      console.log("No sample documents found or error loading them:", error);
+    }
+
     setFormData({
       name: func.name,
       description: func.description,
       functionCode: func.functionCode,
       inputParameters: Array.isArray((func as any).inputParameters) 
-        ? (func as any).inputParameters.map((param: any, index: number) => ({
-            id: param.id || `param_${index}`,
-            name: param.name || "",
-            type: (param.type as "text" | "data" | "document") || "text",
-            description: param.description || "",
-            multiline: param.multiline || false
-          }))
+        ? (func as any).inputParameters.map((param: any, index: number) => {
+            // Find sample document for this parameter
+            const sampleDoc = sampleDocuments.find((doc: any) => doc.parameter_name === param.name);
+            
+            return {
+              id: param.id || `param_${index}`,
+              name: param.name || "",
+              type: (param.type as "text" | "data" | "document") || "text",
+              description: param.description || "",
+              multiline: param.multiline || false,
+              sampleFile: sampleDoc?.original_filename || "",
+              sampleFileURL: sampleDoc?.file_url || "",
+              sampleText: sampleDoc?.extracted_content || ""
+            };
+          })
         : []
     });
   };
@@ -483,6 +566,89 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                                       </p>
                                     )}
                                   </div>
+
+                                  {/* Sample Content Management */}
+                                  {param.type === "text" && (
+                                    <div className="space-y-3">
+                                      <div className="flex items-center space-x-2">
+                                        <Switch
+                                          checked={param.multiline}
+                                          onCheckedChange={(checked) => updateInputParameter(param.id, "multiline", checked)}
+                                        />
+                                        <Label className="text-sm text-gray-600">Multi-line text input</Label>
+                                      </div>
+                                      
+                                      {/* Sample text input */}
+                                      <div className="p-3 bg-gray-50 rounded border space-y-3">
+                                        <div className="text-sm text-gray-600">
+                                          Add sample text to test this parameter.
+                                        </div>
+                                        {param.multiline ? (
+                                          <Textarea
+                                            value={param.sampleText || ""}
+                                            onChange={(e) => updateInputParameter(param.id, "sampleText", e.target.value)}
+                                            placeholder="Enter sample text..."
+                                            rows={3}
+                                            className="bg-white"
+                                          />
+                                        ) : (
+                                          <Input
+                                            value={param.sampleText || ""}
+                                            onChange={(e) => updateInputParameter(param.id, "sampleText", e.target.value)}
+                                            placeholder="Enter sample text..."
+                                            className="bg-white"
+                                          />
+                                        )}
+                                        {param.sampleText && (
+                                          <div className="flex items-center gap-2 mt-2">
+                                            <div className="inline-flex items-center gap-2 bg-gray-700 text-gray-100 px-3 py-1 rounded text-xs">
+                                              <span>Sample text ({param.sampleText.length} chars)</span>
+                                              <button
+                                                type="button"
+                                                onClick={() => updateInputParameter(param.id, "sampleText", "")}
+                                                className="hover:bg-gray-600 rounded p-0.5 transition-colors"
+                                              >
+                                                <X className="h-3 w-3" />
+                                              </button>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {param.type !== "text" && (
+                                    <div className="p-3 bg-gray-50 rounded border space-y-3">
+                                      <div className="text-sm text-gray-600">
+                                        Upload a sample {param.type === "document" ? "document" : "data file"} to test this tool.
+                                      </div>
+                                      <div className="relative">
+                                        <Input
+                                          type="file"
+                                          accept={param.type === "document" ? ".pdf,.docx,.doc,.txt,.xlsx,.xls" : ".xlsx,.xls,.csv,.json"}
+                                          onChange={(e) => handleSampleFileUploadEdit(param.name, e.target.files?.[0])}
+                                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                        />
+                                        <div className="flex items-center justify-center w-full h-10 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors cursor-pointer">
+                                          <Upload className="h-5 w-5 text-gray-400" />
+                                        </div>
+                                      </div>
+                                      {param.sampleFile && (
+                                        <div className="flex items-center gap-2 mt-2">
+                                          <div className="inline-flex items-center gap-2 bg-gray-700 text-gray-100 px-3 py-1 rounded text-xs">
+                                            <span>{param.sampleFile}</span>
+                                            <button
+                                              type="button"
+                                              onClick={() => clearSampleFileEdit(param.name)}
+                                              className="hover:bg-gray-600 rounded p-0.5 transition-colors"
+                                            >
+                                              <X className="h-3 w-3" />
+                                            </button>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+
                                 </div>
                               ))
                             )}

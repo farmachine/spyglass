@@ -5087,6 +5087,23 @@ print(json.dumps(results))
     }
   });
 
+  // Get sample documents for a specific function
+  app.get("/api/sample-documents/:functionId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { functionId } = req.params;
+      
+      console.log('📋 Getting sample documents for function:', functionId);
+      
+      const sampleDocuments = await storage.getSampleDocuments(functionId);
+      
+      console.log(`💾 Found ${sampleDocuments.length} sample documents`);
+      res.json(sampleDocuments);
+    } catch (error) {
+      console.error('❌ Error getting sample documents:', error);
+      res.status(500).json({ error: 'Failed to get sample documents' });
+    }
+  });
+
   // Update sample documents for a specific parameter
   app.put("/api/sample-documents/:functionId/:parameterName", authenticateToken, async (req: AuthRequest, res) => {
     try {

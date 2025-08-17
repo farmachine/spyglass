@@ -27,9 +27,11 @@ interface InputParameter {
 
 interface CreateToolDialogProps {
   projectId: string;
+  editingFunction?: any;
+  setEditingFunction?: (func: any) => void;
 }
 
-export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
+export default function CreateToolDialog({ projectId, editingFunction, setEditingFunction }: CreateToolDialogProps) {
   const [open, setOpen] = useState(false);
   const [toolType, setToolType] = useState<"SCRIPT" | "AI_ONLY" | null>(null);
   const [aiAssistanceRequired, setAiAssistanceRequired] = useState(false);
@@ -548,10 +550,7 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
                           rows={2}
                         />
                       </div>
-                      {/* Debug: Show param type */}
-                      <div className="text-xs text-red-500 bg-red-50 p-1 rounded">
-                        Debug: param.type = "{param.type}" (length: {param.type.length})
-                      </div>
+
                       {param.type === "text" && (
                         <div className="space-y-3">
                           <div className="flex items-center space-x-2">
