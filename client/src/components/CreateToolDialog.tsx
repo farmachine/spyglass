@@ -211,8 +211,8 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="SCRIPT">Code</SelectItem>
                   <SelectItem value="AI_ONLY">AI</SelectItem>
+                  <SelectItem value="SCRIPT">Code</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-sm text-gray-600 mt-2">
