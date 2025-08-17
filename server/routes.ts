@@ -4798,7 +4798,10 @@ print(json.dumps(results))
     try {
       console.log('🤖 Generating Excel function code with input:', JSON.stringify(req.body, null, 2));
       
-      const { projectId, name, description, functionType, inputParameters, aiAssistanceRequired, aiAssistancePrompt, tags, outputType } = req.body;
+      const { projectId, name, description, toolType, functionType, inputParameters, aiAssistanceRequired, aiAssistancePrompt, tags, outputType } = req.body;
+      
+      // Map toolType to functionType for backward compatibility
+      const actualFunctionType = toolType || functionType;
       
       if (!name || !description || !inputParameters || !Array.isArray(inputParameters)) {
         console.error('❌ Missing required fields for function generation');
@@ -4816,7 +4819,7 @@ print(json.dumps(results))
         name,
         description, 
         inputParameters,
-        functionType,
+        actualFunctionType,
         aiAssistanceRequired,
         aiAssistancePrompt,
         outputType
@@ -4828,7 +4831,7 @@ print(json.dumps(results))
         name,
         description,
         functionCode,
-        functionType: functionType || "SCRIPT",
+        functionType: actualFunctionType || "SCRIPT",
         outputType: outputType || "single",
         inputParameters,
         aiAssistanceRequired: aiAssistanceRequired || false,
