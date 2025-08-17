@@ -519,12 +519,17 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
                           <div className="text-sm text-gray-600">
                             Upload a sample {param.type === "document" ? "document" : "data file"} to test this tool.
                           </div>
-                          <Input
-                            type="file"
-                            accept={param.type === "document" ? ".pdf,.docx,.doc,.txt" : ".xlsx,.xls,.csv,.json"}
-                            onChange={(e) => handleSampleFileUpload(param.id, e.target.files?.[0])}
-                            className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                          />
+                          <div className="relative">
+                            <Input
+                              type="file"
+                              accept={param.type === "document" ? ".pdf,.docx,.doc,.txt" : ".xlsx,.xls,.csv,.json"}
+                              onChange={(e) => handleSampleFileUpload(param.id, e.target.files?.[0])}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            />
+                            <div className="flex items-center justify-center w-full h-10 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors cursor-pointer">
+                              <Upload className="h-5 w-5 text-gray-400" />
+                            </div>
+                          </div>
                           {param.sampleFile && (
                             <div className="text-sm text-green-600">
                               ✓ Sample file uploaded: {param.sampleFile}
