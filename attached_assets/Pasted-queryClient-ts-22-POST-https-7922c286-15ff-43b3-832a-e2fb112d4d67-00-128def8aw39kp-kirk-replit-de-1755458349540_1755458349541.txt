@@ -1,0 +1,38 @@
+queryClient.ts:22  POST https://7922c286-15ff-43b3-832a-e2fb112d4d67-00-128def8aw39kp.kirk.replit.dev/api/sample-documents/process 500 (Internal Server Error)
+apiRequest @ queryClient.ts:22
+processSampleDocuments @ CreateToolDialog.tsx:187
+mutationFn @ CreateToolDialog.tsx:55
+await in mutationFn
+fn @ @tanstack_react-query.js?v=7f1b69d0:1189
+run @ @tanstack_react-query.js?v=7f1b69d0:494
+start @ @tanstack_react-query.js?v=7f1b69d0:536
+execute @ @tanstack_react-query.js?v=7f1b69d0:1225
+await in execute
+mutate @ @tanstack_react-query.js?v=7f1b69d0:2630
+(anonymous) @ @tanstack_react-query.js?v=7f1b69d0:3295
+onSuccess @ CreateToolDialog.tsx:86
+execute @ @tanstack_react-query.js?v=7f1b69d0:1233
+await in execute
+mutate @ @tanstack_react-query.js?v=7f1b69d0:2630
+(anonymous) @ @tanstack_react-query.js?v=7f1b69d0:3295
+handleSubmit @ CreateToolDialog.tsx:302
+callCallback2 @ chunk-RPCDYKBN.js?v=7f1b69d0:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=7f1b69d0:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=7f1b69d0:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=7f1b69d0:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=7f1b69d0:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=7f1b69d0:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=7f1b69d0:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=7f1b69d0:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=7f1b69d0:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=7f1b69d0:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=7f1b69d0:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=7f1b69d0:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=7f1b69d0:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=7f1b69d0:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=7f1b69d0:5449Understand this error
+main.tsx:17 Failed to process sample for parameter Document: Error: 500: {"success":false,"error":"Sample document processing failed","message":"fileResponse is not defined"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:40:5)
+    at async processSampleDocuments (CreateToolDialog.tsx:187:11)
+    at async Object.mutationFn (CreateToolDialog.tsx:55:7)

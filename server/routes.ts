@@ -5006,7 +5006,7 @@ print(json.dumps(results))
         documents: [{
           file_name: fileName,
           file_content: dataURL,
-          mime_type: fileResponse.headers.get('content-type') || 'application/octet-stream'
+          mime_type: mimeType
         }]
       };
 
