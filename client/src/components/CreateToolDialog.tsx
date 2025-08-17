@@ -208,11 +208,12 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
 
     try {
       // Get upload URL for the sample file
+      const token = localStorage.getItem("auth_token");
       const response = await fetch("/api/objects/upload", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
+          ...(token && { Authorization: `Bearer ${token}` })
         }
       });
 
