@@ -522,7 +522,7 @@ export default function CreateToolDialog({ projectId }: CreateToolDialogProps) {
                           <div className="relative">
                             <Input
                               type="file"
-                              accept={param.type === "document" ? ".pdf,.docx,.doc,.txt" : ".xlsx,.xls,.csv,.json"}
+                              accept={param.type === "document" ? ".pdf,.docx,.doc,.txt,.xlsx,.xls" : ".xlsx,.xls,.csv,.json"}
                               onChange={(e) => handleSampleFileUpload(param.id, e.target.files?.[0])}
                               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                             />
