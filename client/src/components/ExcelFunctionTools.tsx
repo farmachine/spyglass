@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import CreateToolDialog from "./CreateToolDialog";
@@ -20,6 +20,7 @@ interface ExcelWizardryFunction {
   name: string;
   description: string;
   functionCode: string;
+  functionType: 'SCRIPT' | 'AI_ONLY';
   tags: string[] | null;
   usageCount: number;
   createdAt: string;
@@ -31,7 +32,7 @@ interface ExcelFunctionToolsProps {
 }
 
 export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProps) {
-  const [expandedFunctions, setExpandedFunctions] = useState<Set<string>>(new Set());
+
   const [codeModalOpen, setCodeModalOpen] = useState(false);
   const [selectedFunction, setSelectedFunction] = useState<ExcelWizardryFunction | null>(null);
   const [editingFunction, setEditingFunction] = useState<ExcelWizardryFunction | null>(null);
@@ -154,15 +155,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
     }
   });
 
-  const toggleExpanded = (functionId: string) => {
-    const newExpanded = new Set(expandedFunctions);
-    if (newExpanded.has(functionId)) {
-      newExpanded.delete(functionId);
-    } else {
-      newExpanded.add(functionId);
-    }
-    setExpandedFunctions(newExpanded);
-  };
+
 
   const handleEdit = (func: ExcelWizardryFunction) => {
     setEditingFunction(func);
@@ -274,99 +267,84 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
       <div className="space-y-4">
         {functions?.map((func) => (
           <Card key={func.id} className="border-gray-200 hover:shadow-md transition-shadow bg-white">
-            <Collapsible 
-              open={expandedFunctions.has(func.id)}
-              onOpenChange={() => toggleExpanded(func.id)}
-            >
-              <CollapsibleTrigger asChild>
-                <CardHeader className="pb-3 cursor-pointer hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2">
-                        {expandedFunctions.has(func.id) ? (
-                          <ChevronDown className="h-4 w-4 text-gray-600" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4 text-gray-600" />
-                        )}
-                        <div className="bg-gray-100 text-gray-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-semibold">
-                          {func.name.charAt(0).toUpperCase()}
-                        </div>
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg font-semibold text-gray-800">
-                          {func.name}
-                        </CardTitle>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-700">
-                            Used {func.usageCount} times
-                          </Badge>
-                          {func.tags && func.tags.length > 0 && (
-                            <div className="flex gap-1">
-                              {func.tags.slice(0, 3).map(tag => (
-                                <Badge key={tag} variant="outline" className="text-xs border-gray-300 text-gray-600">
-                                  {tag}
-                                </Badge>
-                              ))}
-                              {func.tags.length > 3 && (
-                                <Badge variant="outline" className="text-xs border-gray-300 text-gray-600">
-                                  +{func.tags.length - 3} more
-                                </Badge>
-                              )}
-                            </div>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="bg-gray-100 text-gray-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-semibold">
+                    {func.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg font-semibold text-gray-800">
+                      {func.name}
+                    </CardTitle>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-700">
+                        Used {func.usageCount} times
+                      </Badge>
+                      {func.tags && func.tags.length > 0 && (
+                        <div className="flex gap-1">
+                          {func.tags.slice(0, 3).map(tag => (
+                            <Badge key={tag} variant="outline" className="text-xs border-gray-300 text-gray-600">
+                              {tag}
+                            </Badge>
+                          ))}
+                          {func.tags.length > 3 && (
+                            <Badge variant="outline" className="text-xs border-gray-300 text-gray-600">
+                              +{func.tags.length - 3} more
+                            </Badge>
                           )}
                         </div>
-                      </div>
+                      )}
                     </div>
                   </div>
-                </CardHeader>
-              </CollapsibleTrigger>
-
-              <CollapsibleContent>
-                <CardContent className="pt-0">
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-4">
+                {editingFunction?.id === func.id ? (
                   <div className="space-y-4">
-                    {editingFunction?.id === func.id ? (
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="description" className="text-sm font-medium">
-                            Description
-                          </Label>
-                          <Textarea
-                            id="description"
-                            value={formData.description}
-                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                            rows={3}
-                            className="mt-1"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="tags" className="text-sm font-medium">
-                            Tags (comma-separated)
-                          </Label>
-                          <Input
-                            id="tags"
-                            value={formData.tags}
-                            onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                            placeholder="date, financial, text_extraction"
-                            className="mt-1"
-                          />
-                        </div>
-                        
-                        {/* Inputs */}
-                        <Card className="border-gray-200">
-                          <CardHeader className="pb-3">
-                            <CardTitle className="text-lg text-gray-800 flex items-center justify-between">
-                              Inputs *
-                              <Button 
-                                size="sm" 
-                                onClick={addInputParameter}
-                                className="bg-gray-600 hover:bg-gray-700"
-                              >
-                                <Plus className="h-4 w-4 mr-1" />
-                                Add Input
-                              </Button>
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent className="space-y-4">
+                    <div>
+                      <Label htmlFor="description" className="text-sm font-medium">
+                        Description
+                      </Label>
+                      <Textarea
+                        id="description"
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        rows={3}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="tags" className="text-sm font-medium">
+                        Tags (comma-separated)
+                      </Label>
+                      <Input
+                        id="tags"
+                        value={formData.tags}
+                        onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                        placeholder="date, financial, text_extraction"
+                        className="mt-1"
+                      />
+                    </div>
+                    
+                    {/* Inputs */}
+                    <Card className="border-gray-200">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg text-gray-800 flex items-center justify-between">
+                          Inputs *
+                          <Button 
+                            size="sm" 
+                            onClick={addInputParameter}
+                            className="bg-gray-600 hover:bg-gray-700"
+                          >
+                            <Plus className="h-4 w-4 mr-1" />
+                            Add Input
+                          </Button>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
                             {formData.inputParameters.length === 0 ? (
                               <p className="text-gray-500 text-center py-8">
                                 No inputs defined. Click "Add Input" to start.
@@ -496,7 +474,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                               className="bg-gray-700 hover:bg-gray-800 text-white"
                             >
                               <Code className="h-4 w-4 mr-1" />
-                              Edit Code
+                              {func.functionType === 'AI_ONLY' ? 'Edit Prompt' : 'Edit Code'}
                             </Button>
                             <Button
                               size="sm"
@@ -514,8 +492,6 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                     )}
                   </div>
                 </CardContent>
-              </CollapsibleContent>
-            </Collapsible>
           </Card>
         ))}
 
