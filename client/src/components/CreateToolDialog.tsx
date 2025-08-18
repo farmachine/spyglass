@@ -14,6 +14,10 @@ import { Progress } from "@/components/ui/progress";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+interface SampleDataRow {
+  [key: string]: string;
+}
+
 interface InputParameter {
   id: string;
   name: string;
@@ -23,6 +27,10 @@ interface InputParameter {
   sampleFile?: string; // Sample file name for documents/data
   sampleFileURL?: string; // Sample file URL for documents/data
   sampleText?: string; // Sample text for text type
+  sampleData?: {
+    columns: string[];
+    rows: SampleDataRow[];
+  }; // Sample data table for data type
 }
 
 interface CreateToolDialogProps {
@@ -222,6 +230,115 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     }
   };
 
+  // Sample data table functions
+  const addSampleColumn = (paramId: string, columnName: string) => {
+    if (!columnName.trim()) return;
+    
+    setInputParameters(prev => prev.map(param => {
+      if (param.id === paramId) {
+        const currentData = param.sampleData || { columns: [], rows: [] };
+        if (currentData.columns.includes(columnName.trim())) return param;
+        
+        const newColumns = [...currentData.columns, columnName.trim()];
+        const newRows = currentData.rows.map(row => ({
+          ...row,
+          [columnName.trim()]: ""
+        }));
+        
+        return {
+          ...param,
+          sampleData: {
+            columns: newColumns,
+            rows: newRows
+          }
+        };
+      }
+      return param;
+    }));
+  };
+
+  const removeSampleColumn = (paramId: string, columnName: string) => {
+    setInputParameters(prev => prev.map(param => {
+      if (param.id === paramId && param.sampleData) {
+        const newColumns = param.sampleData.columns.filter(col => col !== columnName);
+        const newRows = param.sampleData.rows.map(row => {
+          const { [columnName]: removed, ...rest } = row;
+          return rest;
+        });
+        
+        return {
+          ...param,
+          sampleData: {
+            columns: newColumns,
+            rows: newRows
+          }
+        };
+      }
+      return param;
+    }));
+  };
+
+  const addSampleRow = (paramId: string) => {
+    setInputParameters(prev => prev.map(param => {
+      if (param.id === paramId) {
+        const currentData = param.sampleData || { columns: [], rows: [] };
+        if (currentData.rows.length >= 5) return param; // Max 5 rows
+        
+        const newRow: SampleDataRow = {};
+        currentData.columns.forEach(col => {
+          newRow[col] = "";
+        });
+        
+        return {
+          ...param,
+          sampleData: {
+            columns: currentData.columns,
+            rows: [...currentData.rows, newRow]
+          }
+        };
+      }
+      return param;
+    }));
+  };
+
+  const removeSampleRow = (paramId: string, rowIndex: number) => {
+    setInputParameters(prev => prev.map(param => {
+      if (param.id === paramId && param.sampleData) {
+        const newRows = param.sampleData.rows.filter((_, index) => index !== rowIndex);
+        return {
+          ...param,
+          sampleData: {
+            columns: param.sampleData.columns,
+            rows: newRows
+          }
+        };
+      }
+      return param;
+    }));
+  };
+
+  const updateSampleCellValue = (paramId: string, rowIndex: number, columnName: string, value: string) => {
+    setInputParameters(prev => prev.map(param => {
+      if (param.id === paramId && param.sampleData) {
+        const newRows = param.sampleData.rows.map((row, index) => {
+          if (index === rowIndex) {
+            return { ...row, [columnName]: value };
+          }
+          return row;
+        });
+        
+        return {
+          ...param,
+          sampleData: {
+            columns: param.sampleData.columns,
+            rows: newRows
+          }
+        };
+      }
+      return param;
+    }));
+  };
+
   const processSampleDocuments = async (functionId: string, parameters: InputParameter[]) => {
     for (const param of parameters) {
       try {
@@ -244,6 +361,21 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
               parameterName: param.name,
               fileName: param.sampleFile,
               fileURL: param.sampleFileURL
+            })
+          });
+        } else if (param.sampleData && param.sampleData.columns.length > 0 && param.sampleData.rows.length > 0) {
+          // Process data table sample - convert to JSON string for processing
+          const tableDataAsJSON = JSON.stringify({
+            columns: param.sampleData.columns,
+            rows: param.sampleData.rows
+          }, null, 2);
+          
+          await apiRequest("/api/sample-documents/process", {
+            method: "POST",
+            body: JSON.stringify({
+              functionId,
+              parameterName: param.name,
+              sampleText: tableDataAsJSON
             })
           });
         }
@@ -595,7 +727,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                                 </div>
                               </div>
                             )}
-                            {param.type !== "text" && (
+                            {param.type === "document" && (
                               <div className="space-y-3">
                                 <div className="space-y-2">
                                   <Label className="text-sm font-medium text-gray-700">
@@ -627,6 +759,124 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                                     </div>
                                   )}
                                 </div>
+                              </div>
+                            )}
+
+                            {param.type === "data" && (
+                              <div className="space-y-3">
+                                <Label className="text-sm font-medium text-gray-700">
+                                  Create sample data collection (up to 5 rows)
+                                </Label>
+                                
+                                {/* Add Column Section */}
+                                <div className="flex gap-2">
+                                  <Input
+                                    placeholder="Column name"
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        const input = e.target as HTMLInputElement;
+                                        if (input.value.trim()) {
+                                          addSampleColumn(param.id, input.value.trim());
+                                          input.value = '';
+                                        }
+                                      }
+                                    }}
+                                    className="flex-1 text-sm"
+                                  />
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      const input = (e.target as HTMLElement).closest('div')?.querySelector('input') as HTMLInputElement;
+                                      if (input && input.value.trim()) {
+                                        addSampleColumn(param.id, input.value.trim());
+                                        input.value = '';
+                                      }
+                                    }}
+                                    className="bg-gray-600 hover:bg-gray-700 px-3"
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                  </Button>
+                                </div>
+
+                                {/* Data Table */}
+                                {param.sampleData && param.sampleData.columns.length > 0 && (
+                                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                                    {/* Table Header */}
+                                    <div className="bg-gray-50 border-b border-gray-200">
+                                      <div className="flex">
+                                        {param.sampleData.columns.map((column, colIndex) => (
+                                          <div key={colIndex} className="flex-1 min-w-0 border-r border-gray-200 last:border-r-0">
+                                            <div className="flex items-center justify-between p-2">
+                                              <span className="text-xs font-medium text-gray-700 truncate">{column}</span>
+                                              <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => removeSampleColumn(param.id, column)}
+                                                className="h-5 w-5 p-0 text-gray-400 hover:text-red-600 ml-1"
+                                              >
+                                                <X className="h-3 w-3" />
+                                              </Button>
+                                            </div>
+                                          </div>
+                                        ))}
+                                        <div className="w-8"></div> {/* Space for row delete button */}
+                                      </div>
+                                    </div>
+
+                                    {/* Table Rows */}
+                                    <div className="bg-white">
+                                      {param.sampleData.rows.map((row, rowIndex) => (
+                                        <div key={rowIndex} className="flex border-b border-gray-100 last:border-b-0">
+                                          {param.sampleData!.columns.map((column, colIndex) => (
+                                            <div key={colIndex} className="flex-1 min-w-0 border-r border-gray-200 last:border-r-0">
+                                              <Input
+                                                value={row[column] || ''}
+                                                onChange={(e) => updateSampleCellValue(param.id, rowIndex, column, e.target.value)}
+                                                placeholder={`${column} value`}
+                                                className="border-0 rounded-none text-xs h-8 focus:ring-0"
+                                              />
+                                            </div>
+                                          ))}
+                                          <div className="w-8 flex items-center justify-center">
+                                            <Button
+                                              type="button"
+                                              size="sm"
+                                              variant="ghost"
+                                              onClick={() => removeSampleRow(param.id, rowIndex)}
+                                              className="h-5 w-5 p-0 text-gray-400 hover:text-red-600"
+                                            >
+                                              <X className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+
+                                    {/* Add Row Button */}
+                                    {param.sampleData.rows.length < 5 && (
+                                      <div className="bg-gray-50 border-t border-gray-200 p-2">
+                                        <Button
+                                          type="button"
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => addSampleRow(param.id)}
+                                          className="w-full text-xs text-gray-600 hover:text-gray-800"
+                                        >
+                                          <Plus className="h-3 w-3 mr-1" />
+                                          Add Row ({param.sampleData.rows.length}/5)
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {(!param.sampleData || param.sampleData.columns.length === 0) && (
+                                  <div className="text-center py-6 text-gray-500 text-sm border-2 border-dashed border-gray-200 rounded-lg">
+                                    Add columns above to start creating your sample data collection
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
