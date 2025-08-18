@@ -236,6 +236,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       if (setEditingFunction) {
         setEditingFunction(updatedTool);
       }
+      // Expand the code section to show the regenerated code
+      setCodeExpanded(true);
       console.log('Tool code regenerated successfully');
     },
     onError: (error: any) => {
