@@ -550,8 +550,8 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                                       <td className="p-3 text-gray-600 border-l border-gray-200">
                                         {result.confidenceScore ? `${result.confidenceScore}%` : '-'}
                                       </td>
-                                      <td className="p-3 text-gray-600 border-l border-gray-200 max-w-xs">
-                                        <div className="truncate" title={result.aiReasoning || '-'}>
+                                      <td className="p-3 text-gray-600 border-l border-gray-200 max-w-md">
+                                        <div className="whitespace-pre-wrap break-words">
                                           {result.aiReasoning || '-'}
                                         </div>
                                       </td>
