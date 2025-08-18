@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, X, FileText, Database, Type, Copy, Check, Upload, Loader2, ChevronDown, ChevronRight, Key, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -59,6 +60,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   const [expandedInputs, setExpandedInputs] = useState<Set<string>>(new Set());
   const [showColumnInput, setShowColumnInput] = useState<Set<string>>(new Set());
   const [processingParams, setProcessingParams] = useState<Set<string>>(new Set());
+  const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -663,9 +665,12 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   };
 
   const handleRegenerateCode = () => {
-    if (confirm('This will regenerate the code based on current inputs. Any manual changes will be lost. Continue?')) {
-      regenerateFunctionCode.mutate(editingFunction.id);
-    }
+    setShowRegenerateDialog(true);
+  };
+
+  const confirmRegenerate = () => {
+    regenerateFunctionCode.mutate(editingFunction.id);
+    setShowRegenerateDialog(false);
   };
 
   const handleSubmit = () => {
@@ -961,9 +966,9 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                                         </div>
                                       </>
                                     ) : (
-                                      <div className="flex items-center justify-center w-full h-10 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50">
-                                        <Loader2 className="h-5 w-5 text-blue-600 animate-spin mr-2" />
-                                        <span className="text-sm text-blue-700">Processing document...</span>
+                                      <div className="flex items-center justify-center w-full h-10 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
+                                        <Loader2 className="h-5 w-5 text-gray-600 animate-spin mr-2" />
+                                        <span className="text-sm text-gray-700">Processing document...</span>
                                       </div>
                                     )}
                                   </div>
@@ -1288,6 +1293,26 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           </div>
         </div>
       </DialogContent>
+
+      {/* Regenerate Confirmation Dialog */}
+      <AlertDialog open={showRegenerateDialog} onOpenChange={setShowRegenerateDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Regenerate Code</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will regenerate the code based on current inputs. Any manual changes will be lost. Continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowRegenerateDialog(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRegenerate} className="bg-gray-700 hover:bg-gray-800">
+              Regenerate Code
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

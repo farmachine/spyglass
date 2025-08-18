@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -31,6 +32,8 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
   const [testingFunction, setTestingFunction] = useState<ExcelFunction | null>(null);
   const [testResults, setTestResults] = useState<any>(null);
   const [isRunningTest, setIsRunningTest] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [functionToDelete, setFunctionToDelete] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -126,9 +129,16 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
   };
 
   const handleDelete = async (functionId: string) => {
-    if (confirm('Are you sure you want to delete this tool? This action cannot be undone.')) {
-      deleteFunction.mutate(functionId);
+    setFunctionToDelete(functionId);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = () => {
+    if (functionToDelete) {
+      deleteFunction.mutate(functionToDelete);
     }
+    setShowDeleteDialog(false);
+    setFunctionToDelete(null);
   };
 
   const handleTest = (func: ExcelFunction) => {
@@ -448,6 +458,26 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Tool</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this tool? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowDeleteDialog(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              Delete Tool
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

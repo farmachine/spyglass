@@ -24,9 +24,9 @@ export default function ValidationProcessingDialog({
         </DialogHeader>
         <div className="flex flex-col items-center justify-center p-6">
           <div className="w-16 h-16 mb-6 relative">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-100 border-t-blue-600"></div>
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-gray-600"></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <WaveIcon className="h-6 w-6 text-blue-600" />
+              <WaveIcon className="h-6 w-6 text-gray-600" />
             </div>
           </div>
 
@@ -55,7 +55,7 @@ export default function ValidationProcessingDialog({
           <div className="flex items-center space-x-4 text-xs text-gray-500">
             <div className={`flex items-center ${processingStep !== 'validating' ? 'text-green-600' : ''}`}>
               {processingStep === 'validating' ? (
-                <div className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full mr-1" />
+                <div className="animate-spin h-3 w-3 border border-gray-600 border-t-transparent rounded-full mr-1" />
               ) : (
                 <CheckCircle className="h-3 w-3 mr-1" />
               )}
