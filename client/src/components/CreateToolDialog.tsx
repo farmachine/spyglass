@@ -728,7 +728,9 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   };
 
   const confirmRegenerate = () => {
-    regenerateToolCode.mutate(editingFunction.id);
+    if (editingFunction?.id) {
+      regenerateToolCode.mutate(editingFunction.id);
+    }
     setShowRegenerateDialog(false);
   };
 
