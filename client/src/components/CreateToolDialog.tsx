@@ -1,21 +1,16 @@
-import React, { useState, useEffect } from "react";
-import { Plus, ChevronDown, ChevronRight, Trash2, Upload, FileText, Database, X, Loader2, RefreshCw } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Plus, X, FileText, Database, Type, Copy, Check, Upload, Loader2, ChevronDown, ChevronRight, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -28,16 +23,16 @@ interface InputParameter {
   name: string;
   type: "text" | "data" | "document";
   description: string;
-  multiline?: boolean;
-  sampleFile?: string;
-  sampleFileURL?: string;
-  sampleText?: string;
+  multiline?: boolean; // Only applies to text type
+  sampleFile?: string; // Sample file name for documents/data
+  sampleFileURL?: string; // Sample file URL for documents/data
+  sampleText?: string; // Sample text for text type
   sampleData?: {
     name?: string;
     columns: string[];
     rows: SampleDataRow[];
     identifierColumn?: string;
-  };
+  }; // Sample data table for data type
 }
 
 interface CreateToolDialogProps {
@@ -58,11 +53,11 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     description: "",
     aiAssistancePrompt: ""
   });
+
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [expandedInputs, setExpandedInputs] = useState<Set<string>>(new Set());
   const [showColumnInput, setShowColumnInput] = useState<Set<string>>(new Set());
-  const [codeExpanded, setCodeExpanded] = useState(false);
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -77,7 +72,6 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     setLoadingProgress(0);
     setExpandedInputs(new Set());
     setShowColumnInput(new Set());
-    setCodeExpanded(false);
   };
 
   // Load editing function data when provided
@@ -94,40 +88,32 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     }
   }, [editingFunction]);
 
-  // Update tool mutation for editing
+  // Add update mutation for editing
   const updateTool = useMutation({
     mutationFn: async (data: any) => {
-      // Include the edited code if available
-      const updateData = {
-        name: data.name,
-        description: data.description,
-        inputParameters: data.inputParameters,
-        functionType: data.functionType,
-        outputType: data.outputType,
-        aiAssistancePrompt: data.aiAssistancePrompt,
-        functionCode: editingFunction?.functionCode // Keep existing code unless explicitly changed
-      };
-
       return apiRequest(`/api/excel-functions/${editingFunction.id}`, {
         method: "PUT",
-        body: JSON.stringify(updateData)
+        body: JSON.stringify({
+          name: data.name,
+          description: data.description,
+          functionCode: editingFunction.functionCode, // Keep existing code
+          functionType: data.toolType === 'AI_ONLY' ? 'AI_ONLY' : 'SCRIPT',
+          inputParameters: data.inputParameters,
+          tags: data.tags || []
+        })
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
-      toast({
-        title: "Tool Updated",
-        description: "Tool has been updated successfully."
-      });
-      setTimeout(() => {
-        setOpen(false);
-        resetForm();
-      }, 1000);
+      toast({ title: "Tool Updated", description: "Tool has been updated successfully." });
+      setEditingFunction?.(null);
+      setOpen(false);
+      resetForm();
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         title: "Update Failed",
-        description: "Failed to update the tool. Please try again.",
+        description: error.message || "Failed to update tool.",
         variant: "destructive"
       });
     }
@@ -214,32 +200,28 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       if (!response.functionCode || !response.metadata) {
         console.error('❌ Missing required fields in AI response:', {
           hasFunctionCode: !!response.functionCode,
-          hasMetadata: !!response.metadata
+          hasMetadata: !!response.metadata,
+          response: response
         });
-        throw new Error('Invalid AI response: missing required fields');
+        toast({
+          title: "Generation Error",
+          description: `AI generation incomplete - missing ${!response.functionCode ? 'functionCode' : 'metadata'}`,
+          variant: "destructive"
+        });
+        setLoadingProgress(0);
+        setLoadingMessage("");
+        return;
       }
-
-      // Prepare the data for tool creation
-      const toolData = {
-        projectId,
-        name: formData.name,
-        description: formData.description,
-        functionType: toolType,
-        outputType,
-        functionCode: response.functionCode,
-        metadata: response.metadata,
-        inputParameters,
-        aiAssistancePrompt: aiAssistanceRequired ? formData.aiAssistancePrompt : null
-      };
-
-      // Create the tool with the generated code
-      createTool.mutate(toolData);
+      
+      console.log('✅ AI response validation passed, proceeding with tool creation...');
+      
+      // Use the response to create the tool with generated code
+      createTool.mutate(response);
     },
-    onError: (error: any) => {
-      console.error('❌ AI generation error:', error);
+    onError: () => {
       toast({
-        title: "Generation Failed",
-        description: error.message || "Failed to generate the tool. Please try again.",
+        title: "Code Generation Failed",
+        description: "Failed to generate tool code. Please try again.",
         variant: "destructive"
       });
       setLoadingProgress(0);
@@ -247,45 +229,57 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     }
   });
 
-  const processSampleDocuments = async (functionId: string, parameters: InputParameter[]) => {
-    for (const param of parameters) {
-      if (param.sampleFile || param.sampleText || param.sampleData) {
-        try {
-          const sampleData = {
-            functionId,
-            parameterId: param.id,
-            parameterName: param.name,
-            parameterType: param.type,
-            sampleFile: param.sampleFile,
-            sampleText: param.sampleText,
-            sampleData: param.sampleData
-          };
-
-          await apiRequest('/api/sample-documents', {
-            method: 'POST',
-            body: JSON.stringify(sampleData)
-          });
-
-          console.log(`✅ Sample document processed for parameter: ${param.name}`);
-        } catch (error) {
-          console.error(`❌ Failed to process sample for parameter ${param.name}:`, error);
-        }
-      }
-    }
-  };
-
   const addInputParameter = () => {
     const newParam: InputParameter = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: Math.random().toString(36),
       name: "",
       type: "text",
-      description: ""
+      description: "",
+      multiline: false
     };
+    
+    // If this is a data type parameter, initialize empty sample data
+    if (newParam.type === "data") {
+      newParam.sampleData = {
+        name: "",
+        columns: [],
+        rows: [],
+        identifierColumn: undefined
+      };
+    }
+    
     setInputParameters([...inputParameters, newParam]);
+    // Default new inputs to expanded
+    setExpandedInputs(prev => new Set([...Array.from(prev), newParam.id]));
+  };
+
+  const updateInputParameter = (id: string, field: keyof InputParameter, value: string | boolean) => {
+    setInputParameters(prev => 
+      prev.map(param => {
+        if (param.id === id) {
+          const updatedParam = { ...param, [field]: value };
+          // Reset multiline to false when type changes away from "text"
+          if (field === "type" && value !== "text") {
+            updatedParam.multiline = false;
+          }
+          // If changing to data type, initialize empty sample data
+          if (field === "type" && value === "data" && !updatedParam.sampleData) {
+            updatedParam.sampleData = {
+              name: "",
+              columns: [],
+              rows: [],
+              identifierColumn: undefined
+            };
+          }
+          return updatedParam;
+        }
+        return param;
+      })
+    );
   };
 
   const removeInputParameter = (id: string) => {
-    setInputParameters(inputParameters.filter(p => p.id !== id));
+    setInputParameters(prev => prev.filter(param => param.id !== id));
     setExpandedInputs(prev => {
       const newSet = new Set(prev);
       newSet.delete(id);
@@ -293,13 +287,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     });
   };
 
-  const updateInputParameter = (id: string, field: string, value: any) => {
-    setInputParameters(inputParameters.map(p => 
-      p.id === id ? { ...p, [field]: value } : p
-    ));
-  };
-
-  const toggleExpanded = (id: string) => {
+  const toggleInputExpanded = (id: string) => {
     setExpandedInputs(prev => {
       const newSet = new Set(prev);
       if (newSet.has(id)) {
@@ -311,207 +299,341 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     });
   };
 
-  const handleFileUpload = async (file: File, paramId: string) => {
-    const formData = new FormData();
-    formData.append('file', file);
+
+
+  // Sample data table functions
+  const addSampleColumn = (paramId: string, columnName: string) => {
+    if (!columnName.trim()) return;
+    
+    setInputParameters(prev => prev.map(param => {
+      if (param.id === paramId) {
+        const currentData = param.sampleData || { columns: [], rows: [], identifierColumn: undefined };
+        if (currentData.columns.includes(columnName.trim())) return param;
+        
+        const newColumns = [...currentData.columns, columnName.trim()];
+        
+        // Set identifier column if this is the first column being created
+        const identifierColumn = currentData.columns.length === 0 ? columnName.trim() : currentData.identifierColumn;
+        
+        const newRows = currentData.rows.map(row => ({
+          ...row,
+          [columnName.trim()]: ""
+        }));
+        
+        return {
+          ...param,
+          sampleData: {
+            ...currentData,
+            columns: newColumns,
+            rows: newRows,
+            identifierColumn: identifierColumn
+          }
+        };
+      }
+      return param;
+    }));
+    
+    // Hide the column input after adding
+    setShowColumnInput(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(paramId);
+      return newSet;
+    });
+  };
+
+  const updateSampleDataName = (paramId: string, name: string) => {
+    setInputParameters(prev => prev.map(param => {
+      if (param.id === paramId) {
+        const currentData = param.sampleData || { columns: [], rows: [], identifierColumn: undefined };
+        return {
+          ...param,
+          sampleData: {
+            ...currentData,
+            name: name
+          }
+        };
+      }
+      return param;
+    }));
+  };
+
+  const toggleColumnInput = (paramId: string) => {
+    setShowColumnInput(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(paramId)) {
+        newSet.delete(paramId);
+      } else {
+        newSet.add(paramId);
+      }
+      return newSet;
+    });
+  };
+
+  const removeSampleColumn = (paramId: string, columnName: string) => {
+    setInputParameters(prev => prev.map(param => {
+      if (param.id === paramId && param.sampleData) {
+        const newColumns = param.sampleData.columns.filter(col => col !== columnName);
+        const newRows = param.sampleData.rows.map(row => {
+          const { [columnName]: removed, ...rest } = row;
+          return rest;
+        });
+        
+        // Update identifier column if we're removing it
+        let identifierColumn = param.sampleData.identifierColumn;
+        if (identifierColumn === columnName) {
+          // Set new identifier to first remaining column, or undefined if no columns left
+          identifierColumn = newColumns.length > 0 ? newColumns[0] : undefined;
+        }
+        
+        return {
+          ...param,
+          sampleData: {
+            ...param.sampleData,
+            columns: newColumns,
+            rows: newRows,
+            identifierColumn: identifierColumn
+          }
+        };
+      }
+      return param;
+    }));
+  };
+
+  const addSampleRow = (paramId: string) => {
+    setInputParameters(prev => prev.map(param => {
+      if (param.id === paramId) {
+        const currentData = param.sampleData || { columns: [], rows: [], identifierColumn: undefined };
+        if (currentData.rows.length >= 5) return param; // Max 5 rows
+        
+        const newRow: SampleDataRow = {};
+        currentData.columns.forEach(col => {
+          newRow[col] = "";
+        });
+        
+        return {
+          ...param,
+          sampleData: {
+            ...currentData,
+            columns: currentData.columns,
+            rows: [...currentData.rows, newRow],
+            identifierColumn: currentData.identifierColumn
+          }
+        };
+      }
+      return param;
+    }));
+  };
+
+  const removeSampleRow = (paramId: string, rowIndex: number) => {
+    setInputParameters(prev => prev.map(param => {
+      if (param.id === paramId && param.sampleData) {
+        const newRows = param.sampleData.rows.filter((_, index) => index !== rowIndex);
+        return {
+          ...param,
+          sampleData: {
+            ...param.sampleData,
+            columns: param.sampleData.columns,
+            rows: newRows
+          }
+        };
+      }
+      return param;
+    }));
+  };
+
+  const updateSampleCellValue = (paramId: string, rowIndex: number, columnName: string, value: string) => {
+    setInputParameters(prev => prev.map(param => {
+      if (param.id === paramId && param.sampleData) {
+        const newRows = param.sampleData.rows.map((row, index) => {
+          if (index === rowIndex) {
+            return { ...row, [columnName]: value };
+          }
+          return row;
+        });
+        
+        return {
+          ...param,
+          sampleData: {
+            ...param.sampleData,
+            columns: param.sampleData.columns,
+            rows: newRows
+          }
+        };
+      }
+      return param;
+    }));
+  };
+
+  const processSampleDocuments = async (functionId: string, parameters: InputParameter[]) => {
+    for (const param of parameters) {
+      try {
+        if (param.sampleText) {
+          // Process text sample
+          await apiRequest("/api/sample-documents/process", {
+            method: "POST",
+            body: JSON.stringify({
+              functionId,
+              parameterName: param.name,
+              sampleText: param.sampleText
+            })
+          });
+        } else if (param.sampleFileURL && param.sampleFile) {
+          // Process file sample using the SAME extraction process as session documents
+          await apiRequest("/api/sample-documents/process", {
+            method: "POST", 
+            body: JSON.stringify({
+              functionId,
+              parameterName: param.name,
+              fileName: param.sampleFile,
+              fileURL: param.sampleFileURL
+            })
+          });
+        } else if (param.sampleData && param.sampleData.columns.length > 0 && param.sampleData.rows.length > 0) {
+          // Process data table sample - convert to array of objects format with identifier column info
+          const sampleDataWithIdentifier = {
+            data: param.sampleData.rows,
+            identifierColumn: param.sampleData.identifierColumn || param.sampleData.columns[0]
+          };
+          const tableDataAsJSON = JSON.stringify(sampleDataWithIdentifier, null, 2);
+          
+          await apiRequest("/api/sample-documents/process", {
+            method: "POST",
+            body: JSON.stringify({
+              functionId,
+              parameterName: param.name,
+              sampleText: tableDataAsJSON
+            })
+          });
+        }
+      } catch (error) {
+        console.error(`Failed to process sample for parameter ${param.name}:`, error);
+        // Don't throw error to prevent function creation failure
+      }
+    }
+  };
+
+  const handleSampleFileUpload = async (paramId: string, file: File | undefined) => {
+    if (!file) return;
+    
+    console.log('📁 Sample file selected:', file.name, 'Type:', file.type, 'Size:', file.size);
 
     try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
+      // Get upload URL for the sample file
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch("/api/objects/upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` })
+        }
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        updateInputParameter(paramId, 'sampleFile', result.filename);
-        updateInputParameter(paramId, 'sampleFileURL', result.url);
-        toast({
-          title: "File Uploaded",
-          description: `${file.name} uploaded successfully`
-        });
-      } else {
-        throw new Error('Upload failed');
+      if (!response.ok) {
+        throw new Error("Failed to get upload URL");
       }
-    } catch (error) {
+
+      const { uploadURL } = await response.json();
+
+      // Upload the file
+      const uploadResponse = await fetch(uploadURL, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": file.type
+        }
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload file");
+      }
+
+      // Update the parameter with the uploaded file info temporarily
+      updateInputParameter(paramId, "sampleFile", file.name);
+      updateInputParameter(paramId, "sampleFileURL", uploadURL.split('?')[0]); // Store the base URL without query params
+      
       toast({
-        title: "Upload Failed", 
-        description: "Failed to upload file. Please try again.",
+        title: "Sample File Uploaded",
+        description: `Sample file "${file.name}" has been uploaded and will be processed when the tool is created.`,
+      });
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload sample file. Please try again.",
         variant: "destructive"
       });
     }
   };
 
+  const clearSampleFile = (paramId: string) => {
+    updateInputParameter(paramId, "sampleFile", "");
+    updateInputParameter(paramId, "sampleFileURL", "");
+    toast({
+      title: "Sample File Removed",
+      description: "Sample file has been removed from this parameter."
+    });
+  };
+
   const handleSubmit = () => {
-    if (!formData.name || !formData.description || !toolType) {
+    if (!formData.name || !formData.description || !toolType || inputParameters.length === 0) {
       toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields.",
+        title: "Validation Error",
+        description: "Please fill in all required fields, select a tool type, and add at least one input.",
         variant: "destructive"
       });
       return;
     }
 
-    if (editingFunction) {
-      updateTool.mutate({
-        name: formData.name,
-        description: formData.description,
-        inputParameters,
-        functionType: toolType,
-        outputType,
-        aiAssistancePrompt: aiAssistanceRequired ? formData.aiAssistancePrompt : null
+    // Validate input parameters
+    const invalidParams = inputParameters.filter(p => !p.name || !p.description);
+    if (invalidParams.length > 0) {
+      toast({
+        title: "Validation Error",
+        description: "All inputs must have a name and description.",
+        variant: "destructive"
       });
-    } else {
-      // Generate new tool
-      const toolData = {
-        projectId,
-        name: formData.name,
-        description: formData.description,
-        functionType: toolType,
-        outputType,
-        inputParameters,
-        aiAssistancePrompt: aiAssistanceRequired ? formData.aiAssistancePrompt : null
-      };
-
-      if (toolType === "AI_ONLY") {
-        createTool.mutate(toolData);
-      } else {
-        generateToolCode.mutate(toolData);
-      }
+      return;
     }
-  };
 
-  const addSampleDataColumn = (paramId: string) => {
-    const param = inputParameters.find(p => p.id === paramId);
-    if (param?.sampleData) {
-      const newColumn = `Column ${param.sampleData.columns.length + 1}`;
-      const updatedSampleData = {
-        ...param.sampleData,
-        columns: [...param.sampleData.columns, newColumn]
-      };
-      
-      // Add empty value for new column in all existing rows
-      updatedSampleData.rows = updatedSampleData.rows.map(row => ({
-        ...row,
-        [newColumn]: ""
-      }));
-
-      updateInputParameter(paramId, 'sampleData', updatedSampleData);
-    }
-  };
-
-  const addSampleDataRow = (paramId: string) => {
-    const param = inputParameters.find(p => p.id === paramId);
-    if (param?.sampleData) {
-      const newRow: SampleDataRow = {};
-      param.sampleData.columns.forEach(col => {
-        newRow[col] = "";
-      });
-      
-      const updatedSampleData = {
-        ...param.sampleData,
-        rows: [...param.sampleData.rows, newRow]
-      };
-
-      updateInputParameter(paramId, 'sampleData', updatedSampleData);
-    }
-  };
-
-  const removeSampleDataColumn = (paramId: string, columnIndex: number) => {
-    const param = inputParameters.find(p => p.id === paramId);
-    if (param?.sampleData && param.sampleData.columns.length > 1) {
-      const columnToRemove = param.sampleData.columns[columnIndex];
-      const updatedColumns = param.sampleData.columns.filter((_, index) => index !== columnIndex);
-      
-      // Remove the column from all rows
-      const updatedRows = param.sampleData.rows.map(row => {
-        const newRow = { ...row };
-        delete newRow[columnToRemove];
-        return newRow;
-      });
-
-      const updatedSampleData = {
-        ...param.sampleData,
-        columns: updatedColumns,
-        rows: updatedRows
-      };
-
-      updateInputParameter(paramId, 'sampleData', updatedSampleData);
-    }
-  };
-
-  const removeSampleDataRow = (paramId: string, rowIndex: number) => {
-    const param = inputParameters.find(p => p.id === paramId);
-    if (param?.sampleData && param.sampleData.rows.length > 1) {
-      const updatedSampleData = {
-        ...param.sampleData,
-        rows: param.sampleData.rows.filter((_, index) => index !== rowIndex)
-      };
-
-      updateInputParameter(paramId, 'sampleData', updatedSampleData);
-    }
-  };
-
-  const updateSampleDataCell = (paramId: string, rowIndex: number, column: string, value: string) => {
-    const param = inputParameters.find(p => p.id === paramId);
-    if (param?.sampleData) {
-      const updatedRows = param.sampleData.rows.map((row, index) => 
-        index === rowIndex ? { ...row, [column]: value } : row
-      );
-      
-      const updatedSampleData = {
-        ...param.sampleData,
-        rows: updatedRows
-      };
-
-      updateInputParameter(paramId, 'sampleData', updatedSampleData);
-    }
-  };
-
-  const updateSampleDataColumnName = (paramId: string, oldName: string, newName: string) => {
-    const param = inputParameters.find(p => p.id === paramId);
-    if (param?.sampleData) {
-      const updatedColumns = param.sampleData.columns.map(col => col === oldName ? newName : col);
-      const updatedRows = param.sampleData.rows.map(row => {
-        const newRow = { ...row };
-        if (row.hasOwnProperty(oldName)) {
-          newRow[newName] = row[oldName];
-          delete newRow[oldName];
-        }
-        return newRow;
-      });
-
-      const updatedSampleData = {
-        ...param.sampleData,
-        columns: updatedColumns,
-        rows: updatedRows
-      };
-
-      updateInputParameter(paramId, 'sampleData', updatedSampleData);
-    }
-  };
-
-  const initializeSampleData = (paramId: string) => {
-    const sampleData = {
-      name: "Sample Data",
-      columns: ["Column 1"],
-      rows: [{ "Column 1": "" }],
-      identifierColumn: "Column 1"
+    const toolData = {
+      projectId,
+      name: formData.name,
+      description: formData.description,
+      toolType,
+      outputType,
+      inputParameters,
+      aiAssistanceRequired: toolType === "CODE" ? aiAssistanceRequired : false,
+      aiAssistancePrompt: aiAssistanceRequired ? formData.aiAssistancePrompt : null,
+      tags: [] // Default to empty tags array since we removed the tags field
     };
-    updateInputParameter(paramId, 'sampleData', sampleData);
-    setShowColumnInput(prev => new Set(prev).add(paramId));
+
+    if (editingFunction) {
+      updateTool.mutate(toolData);
+    } else {
+      generateToolCode.mutate(toolData);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+      <DialogTrigger asChild>
+        {trigger || (
+          <Button className="bg-gray-700 hover:bg-gray-800 text-white">
+            <Plus className="h-4 w-4 mr-2" />
+            Create Tool
+          </Button>
+        )}
+      </DialogTrigger>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-gray-900">
-            {editingFunction ? "Edit Tool" : "Create New Tool"}
+          <DialogTitle className="text-gray-800 flex items-center">
+            {editingFunction ? 'Edit' : 'Create new'} extrapl
+            <span className="w-2 h-2 rounded-full mx-2" style={{ backgroundColor: '#4F63A4' }}></span>
+            Tool
           </DialogTitle>
         </DialogHeader>
-        
-        <div className="space-y-6 pt-4">
+
+        <div className="space-y-6">
           {/* Basic Information */}
           <Card className="border-gray-200">
             <CardHeader className="pb-3">
@@ -519,370 +641,428 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="tool-name" className="text-sm font-medium text-gray-700">Tool Name</Label>
+                <Label htmlFor="name" className="text-sm font-medium text-gray-700">
+                  Function Name *
+                </Label>
                 <Input
-                  id="tool-name"
+                  id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Enter tool name"
+                  placeholder="e.g., Extract Financial Data"
                   className="mt-1"
                 />
               </div>
               <div>
-                <Label htmlFor="tool-description" className="text-sm font-medium text-gray-700">Description</Label>
+                <Label htmlFor="description" className="text-sm font-medium text-gray-700">
+                  Description *
+                </Label>
                 <Textarea
-                  id="tool-description"
+                  id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Describe what this tool does"
+                  placeholder="Describe how this tool works."
                   rows={3}
                   className="mt-1"
                 />
               </div>
+
             </CardContent>
           </Card>
 
-          {/* Tool Configuration */}
+          {/* Tool Type */}
           <Card className="border-gray-200">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg text-gray-800">Tool Configuration</CardTitle>
+              <CardTitle className="text-lg text-gray-800">Tool Type</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Tool Type</Label>
-                <RadioGroup
-                  value={toolType || ""}
-                  onValueChange={(value) => setToolType(value as "AI_ONLY" | "CODE")}
-                  className="mt-2"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="AI_ONLY" id="ai-only" />
-                    <Label htmlFor="ai-only" className="text-sm">AI Only (Prompt-based)</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="CODE" id="code" />
-                    <Label htmlFor="code" className="text-sm">Generated Code (Python)</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Output Type</Label>
-                <RadioGroup
-                  value={outputType}
-                  onValueChange={(value) => setOutputType(value as "single" | "multiple")}
-                  className="mt-2"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="single" id="single" />
-                    <Label htmlFor="single" className="text-sm">Single Result</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="multiple" id="multiple" />
-                    <Label htmlFor="multiple" className="text-sm">Multiple Results (List)</Label>
-                  </div>
-                </RadioGroup>
-              </div>
+            <CardContent>
+              <Select value={toolType || ""} onValueChange={(value: "AI_ONLY" | "CODE") => setToolType(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select tool type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="AI_ONLY">AI</SelectItem>
+                  <SelectItem value="CODE">Code</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-gray-600 mt-2">
+                {toolType === "CODE"
+                  ? "User-defined Python code that returns results converted to field_validations format"
+                  : "AI-powered tool that uses prompts to analyze and extract data"
+                }
+              </p>
             </CardContent>
           </Card>
 
-          {/* Code Section - Collapsible when editing */}
-          {editingFunction?.functionCode && (
-            <Collapsible open={codeExpanded} onOpenChange={setCodeExpanded}>
-              <Card className="border-gray-200">
-                <CollapsibleTrigger asChild>
-                  <CardHeader className="pb-3 cursor-pointer hover:bg-gray-50">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg text-gray-800">
-                        {editingFunction.functionType === 'AI_ONLY' ? 'Prompt' : 'Code'}
-                      </CardTitle>
-                      {codeExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                    </div>
-                  </CardHeader>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <CardContent>
-                    <Textarea
-                      value={editingFunction.functionCode || ""}
-                      onChange={(e) => {
-                        if (setEditingFunction) {
-                          setEditingFunction({
-                            ...editingFunction,
-                            functionCode: e.target.value
-                          });
-                        }
-                      }}
-                      rows={15}
-                      className="font-mono text-sm w-full"
-                      placeholder={
-                        editingFunction.functionType === 'AI_ONLY' 
-                          ? "Enter your AI prompt instructions here..."
-                          : "def extract_function(document_content, target_fields, identifier_references):"
-                      }
-                    />
-                  </CardContent>
-                </CollapsibleContent>
-              </Card>
-            </Collapsible>
-          )}
-
-          {/* Input Parameters */}
+          {/* Inputs */}
           <Card className="border-gray-200">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg text-gray-800">Input Parameters</CardTitle>
-                <Button
-                  size="sm"
-                  onClick={addInputParameter}
-                  className="h-8 px-3 bg-gray-700 hover:bg-gray-800 text-white"
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Parameter
-                </Button>
+                <CardTitle className="text-lg text-gray-800">
+                  Inputs *
+                </CardTitle>
+                
+                {/* Output Type Toggle - Top Right */}
+                <div className="flex items-center gap-3">
+                  <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                    This tool is to create:
+                  </Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => setOutputType("single")}
+                      className={`h-8 px-3 text-xs border transition-colors ${
+                        outputType === "single" 
+                          ? "bg-gray-800 text-white border-gray-800 hover:bg-gray-700" 
+                          : "bg-gray-200 text-gray-700 border-gray-300 hover:bg-gray-300"
+                      }`}
+                    >
+                      Single Value
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => setOutputType("multiple")}
+                      className={`h-8 px-3 text-xs border transition-colors ${
+                        outputType === "multiple" 
+                          ? "bg-gray-800 text-white border-gray-800 hover:bg-gray-700" 
+                          : "bg-gray-200 text-gray-700 border-gray-300 hover:bg-gray-300"
+                      }`}
+                    >
+                      Multiple Records
+                    </Button>
+                  </div>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {inputParameters.length === 0 ? (
-                <p className="text-sm text-gray-500 py-4 text-center">No input parameters defined</p>
+                <div className="text-center py-8">
+                  <p className="text-gray-500 mb-4">
+                    No inputs defined. Click "Add Input" to start.
+                  </p>
+                  <Button 
+                    size="sm" 
+                    onClick={addInputParameter}
+                    className="bg-gray-600 hover:bg-gray-700"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Input
+                  </Button>
+                </div>
               ) : (
-                inputParameters.map((param) => (
-                  <div key={param.id} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <button
-                        onClick={() => toggleExpanded(param.id)}
-                        className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900"
-                      >
-                        {expandedInputs.has(param.id) ? (
-                          <ChevronDown className="h-4 w-4" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4" />
-                        )}
-                        {param.name || "New Parameter"}
-                      </button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => removeInputParameter(param.id)}
-                        className="h-7 w-7 p-0 border-red-200 text-red-600 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-
-                    {expandedInputs.has(param.id) && (
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <Label className="text-xs font-medium text-gray-600">Parameter Name</Label>
-                            <Input
-                              value={param.name}
-                              onChange={(e) => updateInputParameter(param.id, 'name', e.target.value)}
-                              placeholder="Parameter name"
-                              className="mt-1 h-8 text-sm"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs font-medium text-gray-600">Type</Label>
-                            <select
-                              value={param.type}
-                              onChange={(e) => updateInputParameter(param.id, 'type', e.target.value)}
-                              className="w-full mt-1 h-8 text-sm border border-gray-300 rounded-md px-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                              <option value="text">Text</option>
-                              <option value="document">Document</option>
-                              <option value="data">Data</option>
-                            </select>
-                          </div>
-                        </div>
-
-                        <div>
-                          <Label className="text-xs font-medium text-gray-600">Description</Label>
-                          <Textarea
-                            value={param.description}
-                            onChange={(e) => updateInputParameter(param.id, 'description', e.target.value)}
-                            placeholder="Describe this parameter"
-                            rows={2}
-                            className="mt-1 text-sm"
-                          />
-                        </div>
-
-                        {param.type === "text" && (
-                          <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
-                              <Switch
-                                checked={param.multiline || false}
-                                onCheckedChange={(checked) => updateInputParameter(param.id, 'multiline', checked)}
+                <>
+                  {inputParameters.map((param, index) => {
+                    const isExpanded = expandedInputs.has(param.id);
+                    return (
+                      <div key={param.id} className="border border-gray-200 rounded-lg">
+                        <div className="p-4">
+                          <div className="flex items-center gap-4">
+                            <div className="flex-1">
+                              <Input
+                                value={param.name}
+                                onChange={(e) => updateInputParameter(param.id, "name", e.target.value)}
+                                placeholder="Input name"
+                                className="text-sm"
                               />
-                              <Label className="text-xs font-medium text-gray-600">Multi-line text</Label>
                             </div>
-                            <div>
-                              <Label className="text-xs font-medium text-gray-600">Sample Text</Label>
-                              {param.multiline ? (
-                                <Textarea
-                                  value={param.sampleText || ""}
-                                  onChange={(e) => updateInputParameter(param.id, 'sampleText', e.target.value)}
-                                  placeholder="Enter sample text content"
-                                  rows={3}
-                                  className="mt-1 text-sm"
-                                />
-                              ) : (
-                                <Input
-                                  value={param.sampleText || ""}
-                                  onChange={(e) => updateInputParameter(param.id, 'sampleText', e.target.value)}
-                                  placeholder="Enter sample text"
-                                  className="mt-1 h-8 text-sm"
-                                />
-                              )}
+                            <div className="w-40">
+                              <Select 
+                                value={param.type} 
+                                onValueChange={(value: "text" | "data" | "document") => updateInputParameter(param.id, "type", value)}
+                              >
+                                <SelectTrigger className="text-sm">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="text">
+                                    <div className="flex items-center gap-2">
+                                      <Type className="h-4 w-4" />
+                                      Text
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value="data">
+                                    <div className="flex items-center gap-2">
+                                      <Database className="h-4 w-4" />
+                                      Data
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value="document">
+                                    <div className="flex items-center gap-2">
+                                      <FileText className="h-4 w-4" />
+                                      Document
+                                    </div>
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
                             </div>
-                          </div>
-                        )}
-
-                        {param.type === "document" && (
-                          <div>
-                            <Label className="text-xs font-medium text-gray-600">Sample Document</Label>
-                            <div className="mt-1 flex items-center gap-2">
-                              <input
-                                type="file"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) handleFileUpload(file, param.id);
-                                }}
-                                accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.json"
-                                className="hidden"
-                                id={`file-${param.id}`}
-                              />
-                              <label htmlFor={`file-${param.id}`}>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-8 text-xs"
-                                  asChild
-                                >
-                                  <span>
-                                    <Upload className="h-3 w-3 mr-1" />
-                                    Upload File
-                                  </span>
-                                </Button>
-                              </label>
-                              {param.sampleFile && (
-                                <span className="text-xs text-gray-600 flex items-center">
-                                  <FileText className="h-3 w-3 mr-1" />
-                                  {param.sampleFile}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {param.type === "data" && (
-                          <div>
-                            <Label className="text-xs font-medium text-gray-600">Sample Data</Label>
-                            {!param.sampleData ? (
+                            <div className="flex items-center gap-1">
                               <Button
                                 size="sm"
-                                variant="outline"
-                                onClick={() => initializeSampleData(param.id)}
-                                className="mt-1 h-8 text-xs"
+                                variant="ghost"
+                                onClick={() => toggleInputExpanded(param.id)}
+                                className="p-1 h-auto text-gray-600 hover:text-gray-800"
                               >
-                                <Database className="h-3 w-3 mr-1" />
-                                Create Data Table
+                                {isExpanded ? (
+                                  <ChevronDown className="h-4 w-4" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4" />
+                                )}
                               </Button>
-                            ) : (
-                              <div className="mt-1 space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <Input
-                                    value={param.sampleData.name || ""}
-                                    onChange={(e) => updateInputParameter(param.id, 'sampleData', { ...param.sampleData, name: e.target.value })}
-                                    placeholder="Table name"
-                                    className="h-7 text-xs flex-1 mr-2"
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => removeInputParameter(param.id)}
+                                className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                        {isExpanded && (
+                          <div className="px-4 pb-4 pt-3 space-y-3 border-t border-gray-100">
+                            <div>
+                              <Label className="text-sm font-medium text-gray-700">Description</Label>
+                              <Textarea
+                                value={param.description}
+                                onChange={(e) => updateInputParameter(param.id, "description", e.target.value)}
+                                placeholder="Describe this input parameter..."
+                                className="mt-1 resize-none"
+                                rows={2}
+                              />
+                            </div>
+
+                            {param.type === "text" && (
+                              <div className="space-y-3">
+                                <div className="flex items-center space-x-2">
+                                  <Switch
+                                    checked={param.multiline}
+                                    onCheckedChange={(checked) => updateInputParameter(param.id, "multiline", checked)}
                                   />
-                                  <div className="flex gap-1">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => addSampleDataColumn(param.id)}
-                                      className="h-7 px-2 text-xs"
-                                    >
-                                      + Column
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => addSampleDataRow(param.id)}
-                                      className="h-7 px-2 text-xs"
-                                    >
-                                      + Row
-                                    </Button>
+                                  <Label className="text-sm text-gray-600">Multi-line text input</Label>
+                                </div>
+                              </div>
+                            )}
+                            {param.type === "document" && (
+                              <div className="space-y-3">
+                                <div className="space-y-2">
+                                  <Label className="text-sm font-medium text-gray-700">
+                                    Upload a sample document to test this tool.
+                                  </Label>
+                                  <div className="relative">
+                                    <input
+                                      type="file"
+                                      accept=".xlsx,.xls,.docx,.doc,.pdf,.json,.csv,.txt"
+                                      onChange={(e) => handleSampleFileUpload(param.id, e.target.files?.[0])}
+                                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    />
+                                    <div className="flex items-center justify-center w-full h-10 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors cursor-pointer">
+                                      <Upload className="h-5 w-5 text-gray-400" />
+                                    </div>
                                   </div>
+                                  {param.sampleFile && (
+                                    <div className="flex items-center gap-2 mt-2">
+                                      <div className="inline-flex items-center gap-2 bg-gray-700 text-gray-100 px-3 py-1 rounded text-xs">
+                                        <span>{param.sampleFile}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => clearSampleFile(param.id)}
+                                          className="hover:bg-gray-600 rounded p-0.5 transition-colors"
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {param.type === "data" && (
+                              <div className="space-y-3">
+                                <Label className="text-sm font-medium text-gray-700">
+                                  Create sample data collection (up to 5 rows)
+                                </Label>
+                                
+                                {/* Sample Data Name */}
+                                <div>
+                                  <Label className="text-xs font-medium text-gray-600">Sample Data Name</Label>
+                                  <Input
+                                    value={param.sampleData?.name || ''}
+                                    onChange={(e) => updateSampleDataName(param.id, e.target.value)}
+                                    placeholder="e.g., Customer List, Product Catalog, etc."
+                                    className="text-sm mt-1"
+                                  />
                                 </div>
 
-                                <div className="border border-gray-200 rounded-md overflow-hidden">
-                                  <table className="w-full text-xs">
-                                    <thead className="bg-gray-50">
-                                      <tr>
+                                {/* Add Column Button */}
+                                {!showColumnInput.has(param.id) && (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={() => toggleColumnInput(param.id)}
+                                    className="bg-gray-600 hover:bg-gray-700"
+                                  >
+                                    <Plus className="h-4 w-4 mr-1" />
+                                    Add Column
+                                  </Button>
+                                )}
+
+                                {/* Column Input (Hidden until Add Column is clicked) */}
+                                {showColumnInput.has(param.id) && (
+                                  <div className="flex gap-2">
+                                    <Input
+                                      placeholder="Column name"
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          const input = e.target as HTMLInputElement;
+                                          if (input.value.trim()) {
+                                            addSampleColumn(param.id, input.value.trim());
+                                            input.value = '';
+                                          }
+                                        }
+                                        if (e.key === 'Escape') {
+                                          toggleColumnInput(param.id);
+                                        }
+                                      }}
+                                      className="flex-1 text-sm"
+                                      autoFocus
+                                    />
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        const input = (e.target as HTMLElement).closest('div')?.querySelector('input') as HTMLInputElement;
+                                        if (input && input.value.trim()) {
+                                          addSampleColumn(param.id, input.value.trim());
+                                          input.value = '';
+                                        }
+                                      }}
+                                      className="bg-gray-600 hover:bg-gray-700 px-3"
+                                    >
+                                      <Plus className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => toggleColumnInput(param.id)}
+                                      className="px-3"
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                )}
+
+                                {/* Data Table */}
+                                {param.sampleData && param.sampleData.columns.length > 0 && (
+                                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                                    {/* Table Header */}
+                                    <div className="bg-gray-50 border-b border-gray-200">
+                                      <div className="flex">
                                         {param.sampleData.columns.map((column, colIndex) => (
-                                          <th key={colIndex} className="p-2 text-left border-r border-gray-200 last:border-r-0 relative group">
-                                            <div className="flex items-center justify-between">
-                                              <Input
-                                                value={column}
-                                                onChange={(e) => updateSampleDataColumnName(param.id, column, e.target.value)}
-                                                className="h-6 text-xs border-none p-0 bg-transparent focus:bg-white focus:border focus:border-gray-300"
-                                              />
-                                              {colIndex === 0 && <span className="text-yellow-600 ml-1" title="Identifier Column">🔑</span>}
-                                              {param.sampleData!.columns.length > 1 && (
-                                                <button
-                                                  onClick={() => removeSampleDataColumn(param.id, colIndex)}
-                                                  className="opacity-0 group-hover:opacity-100 ml-1 text-red-500 hover:text-red-700"
-                                                >
-                                                  <X className="h-3 w-3" />
-                                                </button>
-                                              )}
-                                            </div>
-                                          </th>
-                                        ))}
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {param.sampleData.rows.map((row, rowIndex) => (
-                                        <tr key={rowIndex} className="border-t border-gray-200 group">
-                                          {param.sampleData!.columns.map((column, colIndex) => (
-                                            <td key={colIndex} className="p-2 border-r border-gray-200 last:border-r-0">
-                                              <Input
-                                                value={row[column] || ""}
-                                                onChange={(e) => updateSampleDataCell(param.id, rowIndex, column, e.target.value)}
-                                                className="h-6 text-xs border-none p-0 bg-transparent focus:bg-white focus:border focus:border-gray-300"
-                                                placeholder={`${column} value`}
-                                              />
-                                            </td>
-                                          ))}
-                                          {param.sampleData!.rows.length > 1 && (
-                                            <td className="p-1">
-                                              <button
-                                                onClick={() => removeSampleDataRow(param.id, rowIndex)}
-                                                className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700"
+                                          <div key={colIndex} className="flex-1 min-w-0 border-r border-gray-200 last:border-r-0">
+                                            <div className="flex items-center justify-between p-2">
+                                              <div className="flex items-center gap-1">
+                                                {param.sampleData?.identifierColumn === column && (
+                                                  <Key className="h-3 w-3 text-amber-500" />
+                                                )}
+                                                <span className="text-xs font-medium text-gray-700 truncate">{column}</span>
+                                              </div>
+                                              <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => removeSampleColumn(param.id, column)}
+                                                className="h-5 w-5 p-0 text-gray-400 hover:text-red-600 ml-1"
                                               >
                                                 <X className="h-3 w-3" />
-                                              </button>
-                                            </td>
-                                          )}
-                                        </tr>
+                                              </Button>
+                                            </div>
+                                          </div>
+                                        ))}
+                                        <div className="w-8"></div> {/* Space for row delete button */}
+                                      </div>
+                                    </div>
+
+                                    {/* Table Rows */}
+                                    <div className="bg-white">
+                                      {param.sampleData.rows.map((row, rowIndex) => (
+                                        <div key={rowIndex} className="flex border-b border-gray-100 last:border-b-0">
+                                          {param.sampleData!.columns.map((column, colIndex) => (
+                                            <div key={colIndex} className="flex-1 min-w-0 border-r border-gray-200 last:border-r-0">
+                                              <Input
+                                                value={row[column] || ''}
+                                                onChange={(e) => updateSampleCellValue(param.id, rowIndex, column, e.target.value)}
+                                                placeholder={`${column} value`}
+                                                className="border-0 rounded-none text-xs h-8 focus:ring-0"
+                                              />
+                                            </div>
+                                          ))}
+                                          <div className="w-8 flex items-center justify-center">
+                                            <Button
+                                              type="button"
+                                              size="sm"
+                                              variant="ghost"
+                                              onClick={() => removeSampleRow(param.id, rowIndex)}
+                                              className="h-5 w-5 p-0 text-gray-400 hover:text-red-600"
+                                            >
+                                              <X className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        </div>
                                       ))}
-                                    </tbody>
-                                  </table>
-                                </div>
+                                    </div>
+
+                                    {/* Add Row Button */}
+                                    {param.sampleData.rows.length < 5 && (
+                                      <div className="bg-gray-50 border-t border-gray-200 p-2">
+                                        <Button
+                                          type="button"
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => addSampleRow(param.id)}
+                                          className="w-full text-xs text-gray-600 hover:text-gray-800"
+                                        >
+                                          <Plus className="h-3 w-3 mr-1" />
+                                          Add Row ({param.sampleData.rows.length}/5)
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {(!param.sampleData || param.sampleData.columns.length === 0) && (
+                                  <div className="text-center py-6 text-gray-500 text-sm border-2 border-dashed border-gray-200 rounded-lg">
+                                    Click "Add Column" to start creating your sample data collection
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
                         )}
                       </div>
-                    )}
+                    );
+                  })}
+                  
+                  {/* Add Input button */}
+                  <div className="text-center py-4">
+                    <Button 
+                      size="sm" 
+                      onClick={addInputParameter}
+                      className="bg-gray-600 hover:bg-gray-700"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Input
+                    </Button>
                   </div>
-                ))
+                </>
               )}
             </CardContent>
           </Card>
 
-          {/* AI Assistance (only for CODE functions) */}
+          {/* AI Assistance (only for SCRIPT functions) */}
           {toolType === "CODE" && (
             <Card className="border-gray-200">
               <CardHeader className="pb-3">
@@ -917,6 +1097,25 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
             </Card>
           )}
 
+          {/* Generated Code Section - Only show when editing and code exists */}
+          {editingFunction && editingFunction.functionCode && (
+            <Card className="border-gray-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg text-gray-800">Generated Code</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <pre className="text-sm text-gray-800 whitespace-pre-wrap overflow-x-auto">
+                    {editingFunction.functionCode}
+                  </pre>
+                </div>
+                <p className="text-sm text-gray-600 mt-2">
+                  This code was automatically generated and cannot be edited directly.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Loading Progress */}
           {(generateToolCode.isPending || createTool.isPending || updateTool.isPending) && (
             <Card className="border-gray-200 bg-gray-50">
@@ -925,7 +1124,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                   <div className="flex items-center gap-3">
                     <Loader2 className="h-5 w-5 animate-spin text-gray-600" />
                     <span className="text-sm font-medium text-gray-900">
-                      {loadingMessage || "Processing..."}
+                      Generating function
                     </span>
                   </div>
                   <div className="relative h-2 w-full overflow-hidden rounded-full bg-gray-200">
