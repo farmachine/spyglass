@@ -83,6 +83,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         aiAssistancePrompt: editingFunction.aiAssistancePrompt || ""
       });
       setToolType(editingFunction.functionType === 'AI_ONLY' ? 'AI_ONLY' : 'CODE');
+      setOutputType(editingFunction.outputType || "single");
       setInputParameters(editingFunction.inputParameters || []);
       setOpen(true);
     }
@@ -91,6 +92,16 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   // Add update mutation for editing
   const updateTool = useMutation({
     mutationFn: async (data: any) => {
+      console.log('🔧 Updated Tool Object:', {
+        id: editingFunction.id,
+        name: data.name,
+        description: data.description,
+        functionType: data.toolType === 'AI_ONLY' ? 'AI_ONLY' : 'SCRIPT',
+        outputType: data.outputType,
+        inputParameters: data.inputParameters,
+        tags: data.tags || []
+      });
+      
       return apiRequest(`/api/excel-functions/${editingFunction.id}`, {
         method: "PUT",
         body: JSON.stringify({
@@ -98,6 +109,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           description: data.description,
           functionCode: editingFunction.functionCode, // Use current code (may be regenerated)
           functionType: data.toolType === 'AI_ONLY' ? 'AI_ONLY' : 'SCRIPT',
+          outputType: data.outputType,
           inputParameters: data.inputParameters,
           tags: data.tags || []
         })
@@ -1169,8 +1181,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
             </Card>
           )}
 
-          {/* Loading Progress */}
-          {(generateToolCode.isPending || createTool.isPending || updateTool.isPending) && (
+          {/* Loading Progress - Only show during creation, not updates */}
+          {(generateToolCode.isPending || createTool.isPending) && !editingFunction && (
             <Card className="border-gray-200 bg-gray-50">
               <CardContent className="pt-6">
                 <div className="space-y-3">
