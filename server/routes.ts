@@ -4850,6 +4850,120 @@ print(json.dumps(results))
     }
   });
 
+  // Update Excel function code
+  app.put("/api/excel-functions/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = req.params.id;
+      const { functionCode } = req.body;
+      
+      if (!functionCode || typeof functionCode !== 'string') {
+        return res.status(400).json({ message: "Function code is required" });
+      }
+      
+      const updated = await storage.updateExcelWizardryFunction(id, { functionCode });
+      
+      if (!updated) {
+        return res.status(404).json({ message: "Excel wizardry function not found" });
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating function code:", error);
+      res.status(500).json({ message: "Failed to update function code" });
+    }
+  });
+
+  // Get impact analysis for Excel function
+  app.get("/api/excel-functions/:id/impact", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = req.params.id;
+      
+      // Get the function
+      const func = await storage.getExcelWizardryFunction(id);
+      if (!func) {
+        return res.status(404).json({ message: "Excel wizardry function not found" });
+      }
+      
+      // Find all schema fields and collection properties that use this function
+      const impactedFields: string[] = [];
+      
+      // Check all projects for this organization
+      const projects = await storage.getProjects(req.user!.organizationId);
+      
+      for (const project of projects) {
+        // Check schema fields
+        const schemaFields = await storage.getProjectSchemaFields(project.id);
+        for (const field of schemaFields) {
+          if (field.functionId === id) {
+            impactedFields.push(`${project.name} → ${field.name}`);
+          }
+        }
+        
+        // Check collection properties
+        const collections = await storage.getObjectCollections(project.id);
+        for (const collection of collections) {
+          const properties = await storage.getCollectionProperties(collection.id);
+          for (const property of properties) {
+            if (property.functionId === id) {
+              impactedFields.push(`${project.name} → ${collection.name} → ${property.name}`);
+            }
+          }
+        }
+      }
+      
+      res.json({ impactedFields });
+    } catch (error) {
+      console.error("Error getting function impact:", error);
+      res.status(500).json({ message: "Failed to get function impact" });
+    }
+  });
+
+  // Regenerate Excel function code
+  app.post("/api/excel-functions/:id/regenerate", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = req.params.id;
+      
+      // Get the existing function
+      const existingFunc = await storage.getExcelWizardryFunction(id);
+      if (!existingFunc) {
+        return res.status(404).json({ message: "Excel wizardry function not found" });
+      }
+      
+      // Import the Gemini function
+      const { generateFunctionCode } = await import("./gemini");
+      
+      console.log('🔄 Regenerating function code for:', existingFunc.name);
+      
+      // Regenerate the function code using current parameters
+      const { functionCode, metadata } = await generateFunctionCode(
+        existingFunc.name,
+        existingFunc.description,
+        existingFunc.inputParameters,
+        existingFunc.functionType,
+        existingFunc.aiAssistanceRequired,
+        existingFunc.aiAssistancePrompt,
+        existingFunc.outputType
+      );
+      
+      // Update the function with new code
+      const updated = await storage.updateExcelWizardryFunction(id, {
+        functionCode,
+        metadata,
+        updatedAt: new Date()
+      });
+      
+      if (!updated) {
+        return res.status(404).json({ message: "Failed to update function" });
+      }
+      
+      console.log('✅ Function code regenerated successfully');
+      res.json(updated);
+    } catch (error) {
+      console.error("Error regenerating function code:", error);
+      res.status(500).json({ message: "Failed to regenerate function code" });
+    }
+  });
+
   // Test Excel wizardry function
   app.post("/api/excel-functions/test", authenticateToken, async (req: AuthRequest, res) => {
     try {
