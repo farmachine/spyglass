@@ -688,3 +688,69 @@ Respond with JSON in this format:
     throw new Error(`Failed to analyze sentiment: ${error}`);
   }
 }
+
+export async function debugTool(
+  toolName: string,
+  toolDescription: string,
+  inputParameters: Array<{ name: string; type: string; description: string }>,
+  testInputs: Record<string, any>,
+  testResults: any[],
+  debugInstructions: string,
+  functionType: string,
+  functionCode?: string
+): Promise<string> {
+  try {
+    console.log('🔧 Debugging tool with AI assistance...');
+    
+    const systemPrompt = `You are an expert AI debugging assistant for data extraction tools. Your job is to analyze test results and provide specific recommendations to fix issues.
+
+Tool Information:
+- Name: ${toolName}
+- Description: ${toolDescription}  
+- Function Type: ${functionType}
+- Input Parameters: ${JSON.stringify(inputParameters, null, 2)}
+
+You will analyze the test inputs, current results, and user's debug instructions to provide actionable debugging advice.
+
+Provide your response as a detailed analysis with:
+1. Issue Analysis: What went wrong based on the user's feedback
+2. Root Cause: Why the current results don't match expectations
+3. Specific Recommendations: Concrete steps to fix the tool
+4. Expected Outcome: What the corrected results should look like
+
+Be specific and actionable in your recommendations.`;
+
+    let userPrompt = `Debug Analysis Request:
+
+Test Inputs Used:
+${JSON.stringify(testInputs, null, 2)}
+
+Current Test Results:
+${JSON.stringify(testResults, null, 2)}
+
+User's Debug Instructions:
+${debugInstructions}`;
+
+    if (functionCode) {
+      userPrompt += `\n\nCurrent Function Code:
+${functionCode}`;
+    }
+
+    userPrompt += `\n\nPlease analyze the issue and provide specific debugging recommendations.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-pro",
+      config: {
+        systemInstruction: systemPrompt,
+      },
+      contents: userPrompt,
+    });
+
+    console.log('Debug analysis response:', response.text);
+    return response.text || 'No debugging recommendations available';
+
+  } catch (error) {
+    console.error('Debug tool error:', error);
+    throw error;
+  }
+}

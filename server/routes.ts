@@ -5001,6 +5001,47 @@ print(json.dumps(results))
     }
   });
 
+  // Debug Excel wizardry function
+  app.post("/api/excel-functions/debug", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { functionId, inputs, testResults, debugInstructions } = req.body;
+
+      if (!functionId || !debugInstructions) {
+        return res.status(400).json({ message: "Function ID and debug instructions are required" });
+      }
+
+      console.log("🔧 Debugging tool:", functionId);
+      console.log("🐛 Debug instructions:", debugInstructions);
+
+      // Get the function
+      const func = await storage.getExcelWizardryFunction(functionId);
+      if (!func) {
+        return res.status(404).json({ message: "Function not found" });
+      }
+
+      // Import and use the Gemini AI function for debugging
+      const { debugTool } = await import("./gemini");
+      
+      const debugResponse = await debugTool(
+        func.name,
+        func.description,
+        func.inputParameters || [],
+        inputs || {},
+        testResults || [],
+        debugInstructions,
+        func.functionType,
+        func.functionCode
+      );
+
+      console.log("🎯 Debug response:", debugResponse);
+      return res.json({ success: true, debugResponse });
+
+    } catch (error) {
+      console.error("Debug execution error:", error);
+      res.status(500).json({ message: "Failed to debug function" });
+    }
+  });
+
   // Test Excel wizardry function
   app.post("/api/excel-functions/test", authenticateToken, async (req: AuthRequest, res) => {
     try {

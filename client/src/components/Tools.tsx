@@ -37,6 +37,8 @@ export default function Tools({ projectId }: ExcelToolsProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [toolToDelete, setToolToDelete] = useState<string | null>(null);
   const [testInputs, setTestInputs] = useState<Record<string, any>>({});
+  const [debugText, setDebugText] = useState('');
+  const [isDebugging, setIsDebugging] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -104,6 +106,61 @@ export default function Tools({ projectId }: ExcelToolsProps) {
       console.error('Test execution error:', error);
     } finally {
       setIsRunningTest(false);
+    }
+  };
+
+  const debugTool = async (tool: ExcelTool) => {
+    if (!debugText.trim()) {
+      return;
+    }
+
+    setIsDebugging(true);
+
+    try {
+      // Prepare the same inputs used for testing
+      const inputs: Record<string, any> = {};
+      tool.inputParameters.forEach((param: any) => {
+        const userInput = testInputs[param.name];
+        if (param.type === 'text') {
+          inputs[param.name] = userInput !== undefined ? userInput : (param.sampleText || '');
+        } else if (param.type === 'document' && param.sampleFile) {
+          inputs[param.name] = param.sampleFile;
+        } else if (param.type === 'data' && param.sampleData) {
+          inputs[param.name] = param.sampleData;
+        }
+      });
+
+      const response = await apiRequest(`/api/excel-functions/debug`, {
+        method: 'POST',
+        body: JSON.stringify({
+          functionId: tool.id,
+          inputs: inputs,
+          testResults: testResults,
+          debugInstructions: debugText.trim()
+        })
+      });
+
+      console.log('🔧 Debug Response:', response);
+      
+      // Clear debug text and scroll to top
+      setDebugText('');
+      
+      // Scroll to top of the modal
+      const modalContent = document.querySelector('[aria-describedby="test-dialog-description"]');
+      if (modalContent) {
+        modalContent.scrollTop = 0;
+      }
+
+      // Show success message or handle debug result
+      if (response.success) {
+        console.log('Debug completed successfully');
+        console.log('Debug recommendations:', response.debugResponse);
+      }
+
+    } catch (error) {
+      console.error('Debug execution error:', error);
+    } finally {
+      setIsDebugging(false);
     }
   };
 
@@ -242,7 +299,12 @@ export default function Tools({ projectId }: ExcelToolsProps) {
       </div>
 
       {/* Test Tool Modal */}
-      <Dialog open={!!testingTool} onOpenChange={() => setTestingTool(null)}>
+      <Dialog open={!!testingTool} onOpenChange={() => {
+        setTestingTool(null);
+        setTestResults(null);
+        setDebugText('');
+        // Note: testInputs are preserved to maintain user's original inputs
+      }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" aria-describedby="test-dialog-description">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="text-gray-800">extrapl <span className="text-blue-600">•</span> Test</DialogTitle>
@@ -467,6 +529,39 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     <p className="text-sm">Click "Run Test" to execute the tool with sample data and see the results.</p>
+                  </div>
+                )}
+
+                {/* Debug Section - Only show if we have test results */}
+                {testResults && Array.isArray(testResults) && testResults.length > 0 && (
+                  <div className="border-t border-gray-200 pt-6 space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Debug Tool</h3>
+                    <p className="text-sm text-gray-600">
+                      Having issues with the results? Describe the problem or what you expected, and AI will help debug the tool.
+                    </p>
+                    
+                    <div className="space-y-3">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Debug Instructions
+                      </label>
+                      <Textarea
+                        value={debugText}
+                        onChange={(e) => setDebugText(e.target.value)}
+                        placeholder="Describe what's wrong with the results or what you expected to see..."
+                        className="min-h-[100px] resize-none"
+                        disabled={isDebugging}
+                      />
+                      <div className="flex justify-end">
+                        <Button
+                          onClick={() => debugTool(testingTool)}
+                          disabled={isDebugging || !debugText.trim()}
+                          className="bg-amber-600 hover:bg-amber-700 text-white flex items-center gap-2"
+                        >
+                          <Brain className="h-4 w-4" />
+                          {isDebugging ? 'Debugging...' : 'Debug Tool'}
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
