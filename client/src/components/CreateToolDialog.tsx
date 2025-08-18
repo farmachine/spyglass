@@ -138,6 +138,18 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       
       console.log('🎉 AI generation response:', JSON.stringify(response, null, 2));
       
+      // Ensure the response has the required fields from the AI generation
+      if (!response.functionCode || !response.metadata) {
+        toast({
+          title: "Generation Error",
+          description: "AI generation incomplete - missing functionCode or metadata",
+          variant: "destructive"
+        });
+        setLoadingProgress(0);
+        setLoadingMessage("");
+        return;
+      }
+      
       // Use the response to create the tool with generated code
       createTool.mutate(response);
     },
@@ -167,7 +179,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         name: "",
         columns: [],
         rows: [],
-        identifierColumn: null
+        identifierColumn: undefined
       };
     }
     
@@ -191,7 +203,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
               name: "",
               columns: [],
               rows: [],
-              identifierColumn: null
+              identifierColumn: undefined
             };
           }
           return updatedParam;
@@ -272,7 +284,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     
     setInputParameters(prev => prev.map(param => {
       if (param.id === paramId) {
-        const currentData = param.sampleData || { columns: [], rows: [], identifierColumn: null };
+        const currentData = param.sampleData || { columns: [], rows: [], identifierColumn: undefined };
         if (currentData.columns.includes(columnName.trim())) return param;
         
         const newColumns = [...currentData.columns, columnName.trim()];
@@ -309,7 +321,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   const updateSampleDataName = (paramId: string, name: string) => {
     setInputParameters(prev => prev.map(param => {
       if (param.id === paramId) {
-        const currentData = param.sampleData || { columns: [], rows: [], identifierColumn: null };
+        const currentData = param.sampleData || { columns: [], rows: [], identifierColumn: undefined };
         return {
           ...param,
           sampleData: {
@@ -346,8 +358,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         // Update identifier column if we're removing it
         let identifierColumn = param.sampleData.identifierColumn;
         if (identifierColumn === columnName) {
-          // Set new identifier to first remaining column, or null if no columns left
-          identifierColumn = newColumns.length > 0 ? newColumns[0] : null;
+          // Set new identifier to first remaining column, or undefined if no columns left
+          identifierColumn = newColumns.length > 0 ? newColumns[0] : undefined;
         }
         
         return {
@@ -367,7 +379,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   const addSampleRow = (paramId: string) => {
     setInputParameters(prev => prev.map(param => {
       if (param.id === paramId) {
-        const currentData = param.sampleData || { columns: [], rows: [], identifierColumn: null };
+        const currentData = param.sampleData || { columns: [], rows: [], identifierColumn: undefined };
         if (currentData.rows.length >= 5) return param; // Max 5 rows
         
         const newRow: SampleDataRow = {};
