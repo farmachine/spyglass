@@ -221,6 +221,52 @@ def get_document_properties_from_db(document_ids, session_id):
         return {"error": f"Database query failed: {str(e)}"}
 
 
+def get_sample_document_properties_from_db(document_ids):
+    """Query sample_documents table to get document properties for tool testing"""
+    try:
+        # Get database connection from environment
+        database_url = os.getenv('DATABASE_URL')
+        if not database_url:
+            return {"error": "DATABASE_URL not found"}
+        
+        # Connect to database
+        conn = psycopg2.connect(database_url)
+        cursor = conn.cursor()
+        
+        # Query sample_documents for the given document IDs
+        query = """
+        SELECT id, file_name, mime_type, extracted_content 
+        FROM sample_documents 
+        WHERE id = ANY(%s::uuid[])
+        """
+        
+        cursor.execute(query, (document_ids,))
+        results = cursor.fetchall()
+        
+        # Format results as document properties (same format as session documents)
+        documents = []
+        for row in results:
+            doc_id, file_name, mime_type, extracted_content = row
+            
+            # Store full extracted content for tool testing
+            full_content = extracted_content or ""
+            
+            documents.append({
+                "id": doc_id,
+                "name": file_name,
+                "type": mime_type or "unknown",
+                "contentPreview": full_content  # Full content for tool testing
+            })
+        
+        cursor.close()
+        conn.close()
+        
+        return documents
+        
+    except Exception as e:
+        return {"error": f"Database query failed: {str(e)}"}
+
+
 def analyze_document_format_with_gemini(documents, target_fields_data=None, max_retries=3):
     """Send document properties to Gemini and return raw response with retry logic"""
     # Get API key from environment

@@ -34,6 +34,7 @@ interface InputParameter {
     rows: SampleDataRow[];
     identifierColumn?: string;
   }; // Sample data table for data type
+  sampleDocumentIds?: string[]; // Array of sample document IDs for proper UUID mapping
 }
 
 interface CreateToolDialogProps {
@@ -477,11 +478,16 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   };
 
   const processSampleDocuments = async (functionId: string, parameters: InputParameter[]) => {
+    // Array to collect updated parameters with sample document IDs
+    const updatedParameters: InputParameter[] = [];
+
     for (const param of parameters) {
+      let updatedParam = { ...param };
+      
       try {
         if (param.sampleText) {
           // Process text sample
-          await apiRequest("/api/sample-documents/process", {
+          const response = await apiRequest("/api/sample-documents/process", {
             method: "POST",
             body: JSON.stringify({
               functionId,
@@ -489,9 +495,15 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
               sampleText: param.sampleText
             })
           });
+          
+          // Store the sample document ID in the parameter
+          if (response.document?.id) {
+            updatedParam.sampleDocumentIds = [response.document.id];
+            console.log(`✅ Stored sample document ID for text parameter ${param.name}:`, response.document.id);
+          }
         } else if (param.sampleFileURL && param.sampleFile) {
           // Process file sample using the SAME extraction process as session documents
-          await apiRequest("/api/sample-documents/process", {
+          const response = await apiRequest("/api/sample-documents/process", {
             method: "POST", 
             body: JSON.stringify({
               functionId,
@@ -500,6 +512,12 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
               fileURL: param.sampleFileURL
             })
           });
+          
+          // Store the sample document ID in the parameter
+          if (response.document?.id) {
+            updatedParam.sampleDocumentIds = [response.document.id];
+            console.log(`✅ Stored sample document ID for file parameter ${param.name}:`, response.document.id);
+          }
         } else if (param.sampleData && param.sampleData.columns.length > 0 && param.sampleData.rows.length > 0) {
           // Process data table sample - convert to array of objects format with identifier column info
           const sampleDataWithIdentifier = {
@@ -508,7 +526,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           };
           const tableDataAsJSON = JSON.stringify(sampleDataWithIdentifier, null, 2);
           
-          await apiRequest("/api/sample-documents/process", {
+          const response = await apiRequest("/api/sample-documents/process", {
             method: "POST",
             body: JSON.stringify({
               functionId,
@@ -516,10 +534,34 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
               sampleText: tableDataAsJSON
             })
           });
+          
+          // Store the sample document ID in the parameter
+          if (response.document?.id) {
+            updatedParam.sampleDocumentIds = [response.document.id];
+            console.log(`✅ Stored sample document ID for data parameter ${param.name}:`, response.document.id);
+          }
         }
       } catch (error) {
         console.error(`Failed to process sample for parameter ${param.name}:`, error);
         // Don't throw error to prevent function creation failure
+      }
+      
+      updatedParameters.push(updatedParam);
+    }
+
+    // Update the function with the sample document IDs
+    if (updatedParameters.some(p => p.sampleDocumentIds)) {
+      try {
+        console.log('🔄 Updating function with sample document IDs...');
+        await apiRequest(`/api/excel-functions/${functionId}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            inputParameters: updatedParameters
+          })
+        });
+        console.log('✅ Function updated with sample document IDs');
+      } catch (error) {
+        console.error('Failed to update function with sample document IDs:', error);
       }
     }
   };
@@ -592,6 +634,31 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
           const processResult = await processResponse.json();
           console.log('✅ Sample document processed:', processResult);
+          
+          // Store the sample document ID in the parameter
+          if (processResult.document?.id) {
+            updateInputParameter(paramId, "sampleDocumentIds", [processResult.document.id]);
+            console.log(`✅ Stored sample document ID ${processResult.document.id} for parameter ${param.name}`);
+            
+            // Update the function with the new sample document IDs
+            try {
+              const updatedParams = inputParameters.map(p => 
+                p.id === paramId 
+                  ? { ...p, sampleDocumentIds: [processResult.document.id] }
+                  : p
+              );
+              
+              await apiRequest(`/api/excel-functions/${editingFunction.id}`, {
+                method: "PATCH",
+                body: JSON.stringify({
+                  inputParameters: updatedParams
+                })
+              });
+              console.log('✅ Function updated with new sample document ID');
+            } catch (updateError) {
+              console.error('Failed to update function with sample document ID:', updateError);
+            }
+          }
           
           console.log(`Sample file "${file.name}" has been uploaded and processed for extraction.`);
         } catch (processError) {
