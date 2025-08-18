@@ -96,7 +96,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         body: JSON.stringify({
           name: data.name,
           description: data.description,
-          functionCode: editingFunction.functionCode, // Keep existing code
+          functionCode: editingFunction.functionCode, // Use current code (may be regenerated)
           functionType: data.toolType === 'AI_ONLY' ? 'AI_ONLY' : 'SCRIPT',
           inputParameters: data.inputParameters,
           tags: data.tags || []
@@ -237,15 +237,13 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       });
     },
     onSuccess: (updatedFunction) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'excel-functions'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/excel-functions'] });
-      // Update the editingFunction with new code
+      // Only update the local editing function, don't save to database yet
       if (setEditingFunction) {
         setEditingFunction(updatedFunction);
       }
       toast({
         title: "Success",
-        description: "Code regenerated successfully",
+        description: "Code regenerated. Click 'Update Tool' to save changes.",
       });
     },
     onError: (error: any) => {
@@ -1144,7 +1142,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                     variant="outline"
                     onClick={handleRegenerateCode}
                     disabled={regenerateFunctionCode.isPending}
-                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
                     <RefreshCw className={`h-4 w-4 mr-1 ${regenerateFunctionCode.isPending ? 'animate-spin' : ''}`} />
                     Regenerate
