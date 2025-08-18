@@ -100,6 +100,10 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
         })
       });
 
+      // Log the raw JSON response to console for debugging
+      console.log('🧪 Test Results - Raw JSON Response:', JSON.stringify(response, null, 2));
+      console.log('🧪 Test Results - Parsed Response:', response);
+
       setTestResults(response.results || response);
       toast({
         title: "Test completed",
