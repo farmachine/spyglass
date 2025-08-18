@@ -813,58 +813,36 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
             </CardContent>
           </Card>
 
-          {/* Tool Type - Only show in create mode */}
-          {!isEditMode && (
-            <Card className="border-gray-200">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg text-gray-800">Tool Type</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Select value={toolType || ""} onValueChange={(value: "AI_ONLY" | "CODE") => setToolType(value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select tool type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="AI_ONLY">AI</SelectItem>
-                    <SelectItem value="CODE">Code</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-gray-600 mt-2">
-                  {toolType === "CODE"
-                    ? "Data is processed using a coded function"
-                    : "Data is processed using AI"
-                  }
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Tool Type Display - Only show in edit mode */}
-          {isEditMode && (
-            <Card className="border-gray-200">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg text-gray-800">Tool Type</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2">
-                  {toolType === "AI_ONLY" ? (
-                    <Brain className="h-5 w-5 text-gray-600" />
-                  ) : (
-                    <Code className="h-5 w-5 text-gray-600" />
-                  )}
-                  <span className="text-sm font-medium">
-                    {toolType === "AI_ONLY" ? "AI Tool" : "Code Tool"}
-                  </span>
+          {/* Tool Type - Show in both create and edit mode */}
+          <Card className="border-gray-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg text-gray-800">Tool Type</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Select value={toolType || ""} onValueChange={(value: "AI_ONLY" | "CODE") => setToolType(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select tool type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="AI_ONLY">AI</SelectItem>
+                  <SelectItem value="CODE">Code</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-gray-600 mt-2">
+                {toolType === "CODE"
+                  ? "Data is processed using a coded function"
+                  : "Data is processed using AI"
+                }
+              </p>
+              {isEditMode && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-3">
+                  <p className="text-sm text-amber-800">
+                    <strong>Note:</strong> Changing the tool type will replace the existing {toolType === "CODE" ? "code" : "prompt"} when you save.
+                  </p>
                 </div>
-                <p className="text-sm text-gray-600 mt-2">
-                  {toolType === "CODE"
-                    ? "Data is processed using a coded function"
-                    : "Data is processed using AI"
-                  }
-                </p>
-              </CardContent>
-            </Card>
-          )}
+              )}
+            </CardContent>
+          </Card>
 
           {/* Inputs - Only show when tool type is selected */}
           {(toolType || isEditMode) && (
@@ -1300,7 +1278,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                       )}
                     </Button>
                     <CardTitle className="text-lg text-gray-800">
-                      {editingFunction.functionType === 'AI_ONLY' ? 'Prompt' : 'Generated Code'}
+                      {toolType === 'AI_ONLY' ? 'Tool Prompt' : 'Tool Code'}
                     </CardTitle>
                   </div>
                   <Button
