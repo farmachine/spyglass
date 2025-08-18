@@ -277,12 +277,36 @@ Return proper field validation format with extractedValue, validationStatus, aiR
       // Unescape newlines and other escape sequences for proper formatting
       result.functionCode = result.functionCode.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
       
-      // Validate the function starts with the correct signature
+      // Validate and fix the function signature
       const expectedSignature = `def extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')}):`;
       if (!result.functionCode.includes('def extract_function(')) {
         console.error('❌ AI generated wrong function signature. Expected:', expectedSignature);
         console.error('❌ Generated code starts with:', result.functionCode.substring(0, 100));
-        throw new Error('AI generated incorrect function signature - should be extract_function');
+        
+        // Try to fix common signature issues
+        let fixedCode = result.functionCode;
+        
+        // Replace wrong function names with correct signature
+        const wrongSignaturePatterns = [
+          /def get_worksheet_from_column\([^)]*\):/g,
+          /def \w+\([^)]*\):/g
+        ];
+        
+        for (const pattern of wrongSignaturePatterns) {
+          if (pattern.test(fixedCode)) {
+            fixedCode = fixedCode.replace(pattern, expectedSignature);
+            console.log('🔧 Fixed function signature automatically');
+            break;
+          }
+        }
+        
+        // If still no extract_function, force regeneration with stricter prompt
+        if (!fixedCode.includes('def extract_function(')) {
+          console.error('❌ Cannot fix function signature automatically. Forcing regeneration...');
+          throw new Error('AI generated incorrect function signature - regeneration required');
+        }
+        
+        result.functionCode = fixedCode;
       }
       
       console.log('🎯 Generated Python function metadata:', result.metadata);
