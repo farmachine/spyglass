@@ -695,16 +695,15 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                             ) : (
                               formData.inputParameters.map((param) => (
                                 <div key={param.id} className="border border-gray-200 rounded-lg">
-                                  <div 
-                                    className="flex items-center gap-3 p-4 cursor-pointer"
-                                    onClick={() => toggleInputExpanded(param.id)}
-                                  >
-                                    <div className="flex-1 min-w-0">
-                                      <span className="text-sm font-medium text-gray-900 truncate">
-                                        {param.name || "Unnamed Input"}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-3 p-3">
+                                    <Input
+                                      value={param.name}
+                                      onChange={(e) => updateInputParameter(param.id, "name", e.target.value)}
+                                      placeholder="Input name"
+                                      className="flex-1 border-none bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
+                                    <div className="flex items-center gap-1">
                                       <Select 
                                         value={param.type} 
                                         onValueChange={(value: "text" | "data" | "document") => {
@@ -712,7 +711,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                                         }}
                                       >
                                         <SelectTrigger 
-                                          className="w-32 h-8" 
+                                          className="w-24 h-8 border-none bg-transparent p-1" 
                                           onClick={(e) => e.stopPropagation()}
                                         >
                                           <SelectValue />
@@ -738,11 +737,18 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                                           </SelectItem>
                                         </SelectContent>
                                       </Select>
-                                      {expandedInputs.has(param.id) ? (
-                                        <ChevronDown className="h-4 w-4 text-gray-500" />
-                                      ) : (
-                                        <ChevronRight className="h-4 w-4 text-gray-500" />
-                                      )}
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => toggleInputExpanded(param.id)}
+                                        className="p-1 hover:bg-gray-100"
+                                      >
+                                        {expandedInputs.has(param.id) ? (
+                                          <ChevronDown className="h-4 w-4 text-gray-500" />
+                                        ) : (
+                                          <ChevronRight className="h-4 w-4 text-gray-500" />
+                                        )}
+                                      </Button>
                                       <Button
                                         size="sm"
                                         variant="ghost"
@@ -758,17 +764,6 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                                   </div>
                                   {expandedInputs.has(param.id) && (
                                     <div className="p-4 border-t border-gray-200 space-y-3">
-                                      <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                          <Label className="text-sm font-medium text-gray-700">Input Name</Label>
-                                          <Input
-                                            value={param.name}
-                                            onChange={(e) => updateInputParameter(param.id, "name", e.target.value)}
-                                            placeholder="parameter_name"
-                                            className="mt-1"
-                                          />
-                                        </div>
-                                      </div>
                                   
                                   <div>
                                     <Label className="text-sm font-medium text-gray-700">Description</Label>
