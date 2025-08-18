@@ -307,11 +307,21 @@ ARRAY ITERATION PATTERN (for multiple outputs):
 - Extract the identifier (first property) from each object
 - Generate one result per array item
 - Example structure:
+  # CORRECT: Iterate through array parameter
   for i, record in enumerate(data_array):
       identifier = record[list(record.keys())[0]]  # First property is identifier
-      # Process this individual record
-      result = process_single_record(identifier, other_params)
-      results.append(result)
+      # Process this individual record (e.g., find worksheet containing this column)
+      result = process_single_record(identifier, excel_content)
+      results.append({"extractedValue": result, ...})
+  
+- CRITICAL EXAMPLE - Column Name Processing:
+  # Input: [{"Column Name": "Employer Code"}, {"Column Name": "Date Started"}]
+  # WRONG: search_for_column('[{"Column Name": "Employer Code"}, {"Column Name": "Date Started"}]')
+  # CORRECT:
+  for record in column_data:
+      column_name = record["Column Name"]  # Extract "Employer Code", then "Date Started"
+      worksheet = find_worksheet_with_column(column_name, excel_content)
+      results.append({"extractedValue": worksheet, ...})
 
 SINGLE OBJECT PATTERN (for single outputs):
 - When processing single values or documents, process directly
@@ -328,6 +338,9 @@ Requirements:
 - Document parameters contain pre-processed text content in the exact Excel format shown above
 - Data parameters are arrays of objects where first property is the identifier
 - ALWAYS iterate through array parameters using for loops - never process arrays as single strings
+- ARRAY DETECTION: If parameter value is [{"Key": "Value1"}, {"Key": "Value2"}], iterate through each object
+- COMMON ERROR: Never treat entire array as single value like '[{"Key": "Value1"}, {"Key": "Value2"}]'
+- CORRECT APPROACH: Extract each Value1, Value2, etc. separately using for loop
 - Must use ALL input parameters defined by the user: ${inputParameters.map(p => `@${p.name}`).join(', ')}
 - Must output data compatible with field_validations schema (array of objects)
 - Must handle errors gracefully and return valid JSON
