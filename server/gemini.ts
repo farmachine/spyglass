@@ -697,7 +697,8 @@ export async function debugTool(
   testResults: any[],
   debugInstructions: string,
   functionType: string,
-  functionCode?: string
+  functionCode?: string,
+  metadata?: any
 ): Promise<string> {
   try {
     console.log('🔧 Debugging tool with AI assistance...');
@@ -709,16 +710,23 @@ Tool Information:
 - Description: ${toolDescription}  
 - Function Type: ${functionType}
 - Input Parameters: ${JSON.stringify(inputParameters, null, 2)}
+- Tool Metadata: ${metadata ? JSON.stringify(metadata, null, 2) : 'No metadata available'}
+
+CRITICAL: When analyzing Python functions, pay special attention to:
+1. Parameter usage - ensure all input parameters are properly utilized
+2. Data format compatibility - the output must match the expected schema format
+3. Error handling - functions should handle missing or malformed input gracefully
+4. String parsing logic - especially for Excel file content with "=== Sheet: [Name] ===" delimiters
 
 You will analyze the test inputs, current results, and user's debug instructions to provide actionable debugging advice.
 
 Provide your response as a detailed analysis with:
-1. Issue Analysis: What went wrong based on the user's feedback
-2. Root Cause: Why the current results don't match expectations
-3. Specific Recommendations: Concrete steps to fix the tool
+1. Issue Analysis: What went wrong based on the user's feedback and test results
+2. Root Cause: Why the current results don't match expectations (include technical details)
+3. Specific Recommendations: Concrete steps to fix the tool (include code fixes for Python functions)
 4. Expected Outcome: What the corrected results should look like
 
-Be specific and actionable in your recommendations.`;
+Be specific and actionable in your recommendations, especially for Python code fixes.`;
 
     let userPrompt = `Debug Analysis Request:
 

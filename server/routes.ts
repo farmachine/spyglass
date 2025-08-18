@@ -5024,13 +5024,14 @@ print(json.dumps(results))
       
       const debugResponse = await debugTool(
         func.name,
-        func.description,
+        func.description || '',
         func.inputParameters || [],
         inputs || {},
         testResults || [],
         debugInstructions,
         func.functionType,
-        func.functionCode
+        func.functionCode,
+        func.metadata || {}
       );
 
       console.log("🎯 Debug response:", debugResponse);

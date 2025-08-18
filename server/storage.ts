@@ -166,6 +166,7 @@ export interface IStorage {
   getExcelWizardryFunction(id: string): Promise<ExcelWizardryFunction | undefined>;
   createExcelWizardryFunction(func: InsertExcelWizardryFunction): Promise<ExcelWizardryFunction>;
   updateExcelWizardryFunction(id: string, func: Partial<InsertExcelWizardryFunction>): Promise<ExcelWizardryFunction | undefined>;
+  updateExcelWizardryFunctionCode(id: string, functionCode: string): Promise<ExcelWizardryFunction | undefined>;
   incrementFunctionUsage(id: string): Promise<ExcelWizardryFunction | undefined>;
   searchExcelWizardryFunctions(tags: string[]): Promise<ExcelWizardryFunction[]>;
   deleteExcelWizardryFunction(id: string): Promise<boolean>;
@@ -1653,6 +1654,19 @@ export class MemStorage implements IStorage {
     return updated;
   }
 
+  async updateExcelWizardryFunctionCode(id: string, functionCode: string): Promise<ExcelWizardryFunction | undefined> {
+    const existing = this.excelWizardryFunctions.get(id);
+    if (!existing) return undefined;
+
+    const updated: ExcelWizardryFunction = {
+      ...existing,
+      functionCode,
+      updatedAt: new Date(),
+    };
+    this.excelWizardryFunctions.set(id, updated);
+    return updated;
+  }
+
   async incrementFunctionUsage(id: string): Promise<ExcelWizardryFunction | undefined> {
     const existing = this.excelWizardryFunctions.get(id);
     if (!existing) return undefined;
@@ -3079,6 +3093,20 @@ class PostgreSQLStorage implements IStorage {
         .update(excelWizardryFunctions)
         .set({
           ...func,
+          updatedAt: sql`NOW()`
+        })
+        .where(eq(excelWizardryFunctions.id, id))
+        .returning();
+      return result[0];
+    });
+  }
+
+  async updateExcelWizardryFunctionCode(id: string, functionCode: string): Promise<ExcelWizardryFunction | undefined> {
+    return this.retryOperation(async () => {
+      const result = await this.db
+        .update(excelWizardryFunctions)
+        .set({
+          functionCode,
           updatedAt: sql`NOW()`
         })
         .where(eq(excelWizardryFunctions.id, id))
