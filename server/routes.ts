@@ -4971,6 +4971,36 @@ print(json.dumps(results))
     }
   });
 
+  // Direct update Excel function code
+  app.post("/api/excel-functions/:id/direct-update", async (req, res) => {
+    try {
+      const id = req.params.id;
+      const { functionCode } = req.body;
+      
+      if (!functionCode) {
+        return res.status(400).json({ message: "Function code is required" });
+      }
+      
+      // Get the existing function
+      const existingFunc = await storage.getExcelWizardryFunction(id);
+      if (!existingFunc) {
+        return res.status(404).json({ message: "Excel wizardry function not found" });
+      }
+      
+      // Update just the function code
+      const updatedFunction = await storage.updateExcelWizardryFunction(id, {
+        functionCode,
+        updatedAt: new Date()
+      });
+      
+      console.log('✅ Function code updated directly');
+      res.json({ success: true, functionCode: updatedFunction?.functionCode });
+    } catch (error) {
+      console.error("Error updating function code directly:", error);
+      res.status(500).json({ message: "Failed to update function code" });
+    }
+  });
+
   // Test Excel wizardry function
   app.post("/api/excel-functions/test", authenticateToken, async (req: AuthRequest, res) => {
     try {
