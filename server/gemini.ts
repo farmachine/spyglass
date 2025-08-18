@@ -164,211 +164,60 @@ ${aiAssistanceRequired ? `\nAdditional AI Instructions: ${aiAssistancePrompt}` :
       // Get data input parameters for array iteration examples
       const dataInputs = inputParameters.filter(p => p.type === 'data');
       
-      // MANUAL OVERRIDE: Create correct function for worksheet detection
-      if (name.toLowerCase().includes('worksheet') && name.toLowerCase().includes('column')) {
-        console.log(`🎯 MANUAL OVERRIDE TRIGGERED for ${name} with outputType: ${outputType}`);
-        
-        const columnParam = inputParameters.find(p => p.type === 'data');
-        const excelParam = inputParameters.find(p => p.type === 'document');
-        
-        console.log(`📋 Column param: ${columnParam?.name} (${columnParam?.type})`);
-        console.log(`📋 Excel param: ${excelParam?.name} (${excelParam?.type})`);
-        console.log(`📋 Output type: ${outputType} (should be 'multiple' for iteration)`);
-        
-        const manualFunction = `def extract_function(Column_Name, Excel_File):
-    results = []
-    
-    try:
-        # Column_Name is an array of objects like [{"Column Name": "Employer Code"}, ...]
-        if isinstance(Column_Name, list):
-            for record in Column_Name:
-                if isinstance(record, dict) and "Column Name" in record:
-                    column_name = record["Column Name"]
-                    
-                    # Find worksheet containing this column
-                    found_worksheet = None
-                    current_sheet = None
-                    
-                    for line in Excel_File.splitlines():
-                        line = line.strip()
-                        if "=== Sheet:" in line:
-                            current_sheet = line.split("=== Sheet:")[1].split("===")[0].strip()
-                            continue
-                            
-                        # Check if this line contains the column name (header row)  
-                        if current_sheet and column_name in line:
-                            found_worksheet = current_sheet
-                            break
-                    
-                    # Add result for this column
-                    results.append({
-                        "extractedValue": found_worksheet if found_worksheet else "Not Found",
-                        "validationStatus": "valid" if found_worksheet else "not_found",
-                        "aiReasoning": f"Searched for column '{column_name}' in Excel worksheets",
-                        "confidenceScore": 90,
-                        "documentSource": "input"
-                    })
-        else:
-            results.append({
-                "extractedValue": f"Invalid input format: {type(Column_Name)}",
-                "validationStatus": "invalid", 
-                "aiReasoning": f"Expected list of objects, got {type(Column_Name)}",
-                "confidenceScore": 0,
-                "documentSource": "input"
-            })
-            
-    except Exception as e:
-        results.append({
-            "extractedValue": f"Error: {str(e)}",
-            "validationStatus": "invalid", 
-            "aiReasoning": f"Function execution error: {str(e)}",
-            "confidenceScore": 0,
-            "documentSource": "input"
-        })
-    
-    return results`;
-
-        return {
-          functionCode: manualFunction,
-          inputParameters: inputParameters,
-          outputType: outputType,
-          functionType: "SCRIPT" as const,
-          toolType: "SCRIPT" as const,
-          description: description
-        };
-      }
+      // Removed manual override - using AI generation for all functions
       
-      // COMPLETELY REWRITTEN AI PROMPT FOR EXACT INPUT FORMAT UNDERSTANDING
-      const systemPrompt = `You are an expert Python developer creating data extraction functions for extrapl.
+      // SIMPLIFIED AI PROMPT FOCUSED ON OUTPUT TYPE
+      const systemPrompt = `You are an expert Python developer creating data extraction functions.
 
-EXACT INPUT FORMAT FOR FUNCTION PARAMETERS (DEBUGGING):
-${inputParameters.map(p => {
-  if (p.type === 'data' && p.sampleData) {
-    return `Parameter "${p.name.replace(/\s+/g, '_')}" receives EXACT VALUE: ${JSON.stringify(p.sampleData.rows)}
+CRITICAL: OUTPUT TYPE = "${outputType.toUpperCase()}"
 
-CRITICAL - THIS IS NOT A STRING! IT IS A LIST OF DICTIONARIES!
-- Type: list (Python array)  
-- Length: ${p.sampleData.rows.length}
-- Each item is: dict (Python dictionary)
-- Structure: ${JSON.stringify(p.sampleData.rows[0] || {})}
-
-WRONG CODE (will cause "string indices must be integers" error):
-if isinstance(${p.name.replace(/\s+/g, '_')}, str):  # WRONG - it's not a string!
-
-CORRECT CODE:
-for record in ${p.name.replace(/\s+/g, '_')}:  # Iterate the list
-    column_name = record["${p.sampleData.columns?.[0]}"]  # Extract from dict
-    # Process this column_name...`;
-  } else if (p.type === 'document') {
-    return `Parameter "${p.name.replace(/\s+/g, '_')}" receives EXACT VALUE: STRING with Excel content:
-=== Sheet: SheetName ===
-Header1\tHeader2\tHeader3
-Value1\tValue2\tValue3
-
-CORRECT CODE:
-lines = ${p.name.replace(/\s+/g, '_')}.splitlines()  # Split string by lines`;
-  }
-  return `Parameter "${p.name.replace(/\s+/g, '_')}" receives: ${p.type.toUpperCase()} data`;
-}).join('\n\n')}
-
-DEBUGGING CHECKPOINT - ADD THIS TO YOUR FUNCTION:
-def extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')}):
-    # DEBUG: Print parameter types to identify the issue
-    print(f"DEBUG: {${inputParameters.map(p => `'${p.name.replace(/\s+/g, '_')}': type(${p.name.replace(/\s+/g, '_')})__name__`).join(', ')}")
-    results = []
-
-ITERATION vs SINGLE OBJECT - CRYSTAL CLEAR RULES:
-
-OUTPUT TYPE: ${outputType.toUpperCase()}
 ${outputType === 'multiple' ? `
-THIS IS A MULTIPLE OUTPUT FUNCTION - MUST ITERATE:
-- You MUST create a for loop to process each array item
-- Each array item becomes ONE result in the output
-- Generate MULTIPLE results (one per array item)
-
-MANDATORY ITERATION PATTERN:
-for record in array_parameter:
-    value = record["field_name"]  # Extract the value from THIS record
-    # Process THIS individual value
-    result = process_this_value(value, other_params)
-    results.append(result)  # Add ONE result for THIS array item
+🔄 MULTIPLE OUTPUTS REQUIRED:
+- You MUST iterate through the array parameter
+- Each array item produces ONE result
+- Use for loop: "for record in array_parameter:"
+- Extract field from each record: "value = record['field_name']"
+- Append one result per iteration
 ` : `
-THIS IS A SINGLE OUTPUT FUNCTION - NO ITERATION:
-- Process the input parameter as a whole
-- Generate ONE single result
-- Do NOT use for loops on the main parameter
-- Return a single result in array format
+📋 SINGLE OUTPUT REQUIRED:
+- Process the parameter as a whole (no iteration)
+- Generate ONE result only
+- Return single result wrapped in array
 `}
 
-EXACT ARRAY PROCESSING FOR YOUR FUNCTION:
-${dataInputs.length > 0 ? `
-Parameter ${dataInputs[0].name.replace(/\s+/g, '_')} contains:
-${JSON.stringify(dataInputs[0].sampleData?.rows || [])}
-
-YOU MUST ITERATE LIKE THIS:
-for record in ${dataInputs[0].name.replace(/\s+/g, '_')}:
-    ${dataInputs[0].sampleData?.columns?.[0].toLowerCase().replace(/\s+/g, '_')} = record["${dataInputs[0].sampleData?.columns?.[0]}"]
-    # Now ${dataInputs[0].sampleData?.columns?.[0].toLowerCase().replace(/\s+/g, '_')} contains: "Employer Code", then "Date Pensionable Service Commenced", etc.
-    
-    # Process this ONE ${dataInputs[0].sampleData?.columns?.[0].toLowerCase()}
-    worksheet_found = find_worksheet_containing(${dataInputs[0].sampleData?.columns?.[0].toLowerCase().replace(/\s+/g, '_')}, excel_content)
-    
-    # Add ONE result for THIS ${dataInputs[0].sampleData?.columns?.[0].toLowerCase()}
-    results.append({
-        "extractedValue": worksheet_found,
-        "validationStatus": "valid" if worksheet_found else "not_found",
-        "aiReasoning": f"Searched for column '{${dataInputs[0].sampleData?.columns?.[0].toLowerCase().replace(/\s+/g, '_')}}', found in worksheet: {worksheet_found}",
-        "confidenceScore": 90,
-        "documentSource": "input"
-    })
-
-EXPECTED OUTPUT: ${dataInputs[0].sampleData?.rows?.length || 0} results (one per array item)
-` : `
-NO ARRAY ITERATION NEEDED - Process document parameter directly
-`}
-
-FINAL OUTPUT FORMAT:
-[{
-  "extractedValue": "actual_value_found", 
-  "validationStatus": "valid|invalid|not_found",
-  "aiReasoning": "clear_explanation",
-  "confidenceScore": 85,
-  "documentSource": "input"
-}${outputType === 'multiple' ? ', {...more results...}' : ''}]
-
-Return JSON: {"functionCode": "complete function", "metadata": {"parametersUsed": [${inputParameters.map(p => `"${p.name}"`).join(', ')}]}}`;
-
-      const userPrompt = `Create Python function: ${name}
-Description: ${description}
-
-EXACT INPUT FORMAT:
+INPUT PARAMETERS:
 ${inputParameters.map(p => {
   if (p.type === 'data' && p.sampleData?.rows) {
-    return `${p.name.replace(/\s+/g, '_')} = ${JSON.stringify(p.sampleData.rows)}
-↳ This is an ARRAY with ${p.sampleData.rows.length} objects
-↳ Each object: ${JSON.stringify(p.sampleData.rows[0] || {})}
-↳ MUST iterate: for record in ${p.name.replace(/\s+/g, '_')}:
-↳ MUST extract: ${p.sampleData.columns?.[0]?.toLowerCase().replace(/\s+/g, '_')} = record["${p.sampleData.columns?.[0]}"]`;
+    return `• ${p.name.replace(/\s+/g, '_')}: Array of ${p.sampleData.rows.length} objects like ${JSON.stringify(p.sampleData.rows[0] || {})}`;
+  } else if (p.type === 'document') {
+    return `• ${p.name.replace(/\s+/g, '_')}: String containing Excel data with "=== Sheet: Name ===" format`;
   }
-  return `${p.name.replace(/\s+/g, '_')} = STRING content (${p.type} parameter)`;
-}).join('\n\n')}
-
-ITERATION REQUIREMENT: ${outputType.toUpperCase()}
-${outputType === 'multiple' ? '✓ MUST USE FOR LOOP - Generate multiple results (one per array item)' : '✗ NO ITERATION - Generate single result from document'}
+  return `• ${p.name.replace(/\s+/g, '_')}: ${p.type} data`;
+}).join('\n')}
 
 ${outputType === 'multiple' && dataInputs.length > 0 ? `
-MANDATORY CODE STRUCTURE:
+REQUIRED ITERATION PATTERN:
 def extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')}):
     results = []
     for record in ${dataInputs[0].name.replace(/\s+/g, '_')}:
-        ${dataInputs[0].sampleData?.columns?.[0]?.toLowerCase().replace(/\s+/g, '_')} = record["${dataInputs[0].sampleData?.columns?.[0]}"]
-        # Process THIS ${dataInputs[0].sampleData?.columns?.[0]?.toLowerCase()}
-        # Search for THIS value in the document
-        # Append ONE result for THIS array item
+        field_value = record["${dataInputs[0].sampleData?.columns?.[0] || 'field_name'}"]
+        # Process field_value to get extracted_result
+        results.append({
+            "extractedValue": extracted_result,
+            "validationStatus": "valid|invalid|not_found", 
+            "aiReasoning": "explanation",
+            "confidenceScore": 85,
+            "documentSource": "input"
+        })
     return results
-
-EXPECTED: ${dataInputs[0].sampleData?.rows?.length || 0} results in final array
 ` : ''}
+
+Return JSON: {"functionCode": "complete_python_function", "metadata": {"parametersUsed": [${inputParameters.map(p => `"${p.name}"`).join(', ')}]}}`;
+
+      const userPrompt = `Function: ${name}
+Description: ${description}
+
+${outputType === 'multiple' ? 'Generate code that iterates through the array parameter and produces multiple results.' : 'Generate code that processes the input and produces one result.'}
 
 Python Requirements:
 - Use None not null, True/False not true/false
