@@ -1259,28 +1259,14 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
             </Card>
           )}
 
-          {/* Generated Code Section - Only show when editing and code exists */}
-          {editingFunction && editingFunction.functionCode && (
+          {/* Code/Prompt Section - Always visible when tool type is selected */}
+          {toolType && (
             <Card className="border-gray-200">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setCodeExpanded(!codeExpanded)}
-                      className="p-1 h-auto text-gray-600 hover:text-gray-800"
-                    >
-                      {codeExpanded ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )}
-                    </Button>
-                    <CardTitle className="text-lg text-gray-800">
-                      {toolType === 'AI_ONLY' ? 'Tool Prompt' : 'Tool Code'}
-                    </CardTitle>
-                  </div>
+                  <CardTitle className="text-lg text-gray-800">
+                    {toolType === 'AI_ONLY' ? 'Tool Prompt' : 'Tool Code'}
+                  </CardTitle>
                   <Button
                     size="sm"
                     variant="outline"
@@ -1289,46 +1275,24 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                     className="border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
                     <RefreshCw className={`h-4 w-4 mr-1 ${regenerateToolCode.isPending ? 'animate-spin' : ''}`} />
-                    Regenerate
+                    Generate Code
                   </Button>
                 </div>
               </CardHeader>
-              {codeExpanded && (
-                <CardContent>
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                    <pre className="text-sm text-gray-800 whitespace-pre-wrap overflow-x-auto">
-                      {editingFunction.functionCode}
-                    </pre>
-                  </div>
-                  <p className="text-sm text-gray-600 mt-2">
-                    Use the "Regenerate" button above to update this code based on current inputs.
-                  </p>
-                </CardContent>
-              )}
-            </Card>
-          )}
-
-          {/* Loading Progress - Only show during creation, not updates */}
-          {(generateToolCode.isPending || createTool.isPending) && !editingFunction && (
-            <Card className="border-gray-200 bg-gray-50">
-              <CardContent className="pt-6">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <Loader2 className="h-5 w-5 animate-spin text-gray-600" />
-                    <span className="text-sm font-medium text-gray-900">
-                      Generating function
-                    </span>
-                  </div>
-                  <div className="relative h-2 w-full overflow-hidden rounded-full bg-gray-200">
-                    <div 
-                      className="h-full bg-gray-600 transition-all duration-300 ease-out" 
-                      style={{ width: `${loadingProgress}%` }}
-                    />
-                  </div>
-                  <div className="text-xs text-gray-700">
-                    {loadingMessage || `${loadingProgress}% complete`}
-                  </div>
-                </div>
+              <CardContent>
+                <Textarea
+                  value={formData.functionCode || ''}
+                  onChange={(e) => setFormData({ ...formData, functionCode: e.target.value })}
+                  placeholder={toolType === 'AI_ONLY' 
+                    ? "Enter your prompt here, or click 'Generate Code' to create automatically..."
+                    : "Enter your Python code here, or click 'Generate Code' to create automatically..."
+                  }
+                  rows={12}
+                  className="font-mono text-sm"
+                />
+                <p className="text-sm text-gray-600 mt-2">
+                  You can manually enter {toolType === 'AI_ONLY' ? 'your prompt' : 'Python code'} or use the "Generate Code" button to create it automatically based on your inputs.
+                </p>
               </CardContent>
             </Card>
           )}
@@ -1338,23 +1302,23 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
             <Button 
               variant="outline" 
               onClick={() => setOpen(false)}
-              disabled={generateToolCode.isPending || createTool.isPending || updateTool.isPending}
+              disabled={createTool.isPending || updateTool.isPending}
               className="border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               Cancel
             </Button>
             <Button 
               onClick={handleSubmit}
-              disabled={generateToolCode.isPending || createTool.isPending || updateTool.isPending}
+              disabled={createTool.isPending || updateTool.isPending}
               className="bg-gray-700 hover:bg-gray-800 text-white"
             >
-              {generateToolCode.isPending || createTool.isPending || updateTool.isPending ? (
+              {createTool.isPending || updateTool.isPending ? (
                 <div className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  {editingFunction ? "Updating..." : "Generating..."}
+                  {editingFunction ? "Updating..." : "Creating..."}
                 </div>
               ) : (
-                editingFunction ? "Update Tool" : "Generate Tool"
+                editingFunction ? "Update Tool" : "Create Tool"
               )}
             </Button>
           </div>
