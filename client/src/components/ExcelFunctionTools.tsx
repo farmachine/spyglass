@@ -29,6 +29,8 @@ interface ExcelFunctionToolsProps {
 export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProps) {
   const [editingFunction, setEditingFunction] = useState<ExcelFunction | null>(null);
   const [testingFunction, setTestingFunction] = useState<ExcelFunction | null>(null);
+  const [testResults, setTestResults] = useState<any>(null);
+  const [isRunningTest, setIsRunningTest] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -63,6 +65,58 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
 
 
 
+  // Run test function
+  const runTest = async (func: ExcelFunction) => {
+    if (!func.inputParameters || func.inputParameters.length === 0) {
+      toast({
+        title: "No test data",
+        description: "This tool has no sample input parameters to test with.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsRunningTest(true);
+    setTestResults(null);
+
+    try {
+      // Prepare inputs from sample parameters
+      const inputs = {};
+      func.inputParameters.forEach((param: any) => {
+        if (param.type === 'text' && param.sampleText) {
+          inputs[param.name] = param.sampleText;
+        } else if (param.type === 'document' && param.sampleFile) {
+          inputs[param.name] = param.sampleFile;
+        } else if (param.type === 'data' && param.sampleData) {
+          inputs[param.name] = param.sampleData;
+        }
+      });
+
+      const response = await apiRequest(`/api/excel-functions/test`, {
+        method: 'POST',
+        body: JSON.stringify({
+          functionId: func.id,
+          inputs: inputs
+        })
+      });
+
+      setTestResults(response.results || response);
+      toast({
+        title: "Test completed",
+        description: "Tool test has been executed successfully.",
+      });
+    } catch (error) {
+      console.error('Test execution error:', error);
+      toast({
+        title: "Test failed",
+        description: "Failed to execute the tool test. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRunningTest(false);
+    }
+  };
+
   const handleEdit = (func: ExcelFunction) => {
     setEditingFunction(func);
   };
@@ -75,6 +129,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
 
   const handleTest = (func: ExcelFunction) => {
     setTestingFunction(func);
+    setTestResults(null); // Clear previous results when opening test dialog
   };
 
   if (isLoading) {
@@ -279,8 +334,108 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                 </div>
               </div>
 
-              <div className="text-center py-6 text-gray-500 border-t border-gray-200">
-                <p className="text-sm">Testing functionality will be available soon.</p>
+              <div className="border-t border-gray-200 pt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Test Results</h3>
+                  <Button 
+                    onClick={() => runTest(testingFunction)}
+                    disabled={isRunningTest}
+                    className="flex items-center gap-2"
+                  >
+                    <Play className="h-4 w-4" />
+                    {isRunningTest ? 'Running Test...' : 'Run Test'}
+                  </Button>
+                </div>
+
+                {testResults && Array.isArray(testResults) && testResults.length > 0 ? (
+                  <div className="space-y-4">
+                    {testingFunction?.outputType === 'multiple' ? (
+                      // Multiple records - display as table
+                      <div className="border border-gray-300 rounded overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-gray-50 border-b border-gray-300">
+                              <th className="text-left p-3 font-medium text-gray-700">#</th>
+                              <th className="text-left p-3 font-medium text-gray-700 border-l border-gray-200">Extracted Value</th>
+                              <th className="text-left p-3 font-medium text-gray-700 border-l border-gray-200">Status</th>
+                              <th className="text-left p-3 font-medium text-gray-700 border-l border-gray-200">Confidence</th>
+                              <th className="text-left p-3 font-medium text-gray-700 border-l border-gray-200">Reasoning</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {testResults.map((result: any, rowIndex: number) => (
+                              <tr key={rowIndex} className="border-b border-gray-200 last:border-b-0">
+                                <td className="p-3 text-gray-600 font-medium">{rowIndex + 1}</td>
+                                <td className="p-3 text-gray-600 border-l border-gray-200">
+                                  {result.extractedValue || '-'}
+                                </td>
+                                <td className="p-3 border-l border-gray-200">
+                                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                    result.validationStatus === 'valid' 
+                                      ? 'bg-green-100 text-green-800' 
+                                      : result.validationStatus === 'invalid'
+                                      ? 'bg-red-100 text-red-800'
+                                      : 'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {result.validationStatus || 'unknown'}
+                                  </span>
+                                </td>
+                                <td className="p-3 text-gray-600 border-l border-gray-200">
+                                  {result.confidenceScore ? `${result.confidenceScore}%` : '-'}
+                                </td>
+                                <td className="p-3 text-gray-600 border-l border-gray-200 max-w-xs">
+                                  <div className="truncate" title={result.aiReasoning || '-'}>
+                                    {result.aiReasoning || '-'}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      // Single record - display as object card
+                      <div className="border border-gray-300 rounded-lg p-4 bg-white">
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between py-2 border-b border-gray-100">
+                            <span className="font-medium text-gray-700">Extracted Value</span>
+                            <span className="text-gray-600 ml-4">{testResults[0]?.extractedValue || '-'}</span>
+                          </div>
+                          <div className="flex items-start justify-between py-2 border-b border-gray-100">
+                            <span className="font-medium text-gray-700">Status</span>
+                            <span className="ml-4">
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                testResults[0]?.validationStatus === 'valid' 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : testResults[0]?.validationStatus === 'invalid'
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}>
+                                {testResults[0]?.validationStatus || 'unknown'}
+                              </span>
+                            </span>
+                          </div>
+                          <div className="flex items-start justify-between py-2 border-b border-gray-100">
+                            <span className="font-medium text-gray-700">Confidence</span>
+                            <span className="text-gray-600 ml-4">
+                              {testResults[0]?.confidenceScore ? `${testResults[0].confidenceScore}%` : '-'}
+                            </span>
+                          </div>
+                          <div className="flex items-start justify-between py-2">
+                            <span className="font-medium text-gray-700">Reasoning</span>
+                            <span className="text-gray-600 ml-4 text-right max-w-md">
+                              {testResults[0]?.aiReasoning || '-'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <p className="text-sm">Click "Run Test" to execute the tool with sample data and see the results.</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
