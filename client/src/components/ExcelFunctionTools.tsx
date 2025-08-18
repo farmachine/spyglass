@@ -188,88 +188,65 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
           </DialogHeader>
           
           {testingFunction && (
-            <div className="space-y-6 overflow-y-auto flex-1 pr-2">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-medium text-gray-800 mb-2">Tool Description</h4>
-                <p className="text-gray-600">{testingFunction.description}</p>
+            <div className="space-y-4 overflow-y-auto flex-1 pr-2">
+              <div className="bg-gray-100 p-3 rounded">
+                <h4 className="font-medium text-gray-800 mb-1">Tool Description</h4>
+                <p className="text-gray-700 text-sm">{testingFunction.description}</p>
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                <h4 className="font-medium text-blue-800 mb-4">The tool will be tested using the following inputs:</h4>
+              <div>
+                <h4 className="font-medium text-gray-800 mb-3">The tool will be tested using the following inputs:</h4>
                 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {testingFunction.inputParameters?.map((param: any, index: number) => (
-                    <div key={index} className="bg-white border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="font-medium text-gray-800">{param.name}</span>
-                        <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">
+                    <div key={index} className="bg-gray-700 text-white p-3 rounded">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="font-medium">{param.name}</span>
+                        <span className="text-xs px-2 py-1 bg-gray-600 rounded">
                           {param.type}
                         </span>
                       </div>
                       
                       {param.type === 'text' && param.sampleText && (
-                        <div className="bg-gray-50 p-3 rounded border">
-                          <p className="text-sm text-gray-700">{param.sampleText}</p>
+                        <div className="bg-gray-100 text-gray-800 p-2 rounded text-sm">
+                          {param.sampleText}
                         </div>
                       )}
                       
                       {param.type === 'document' && param.sampleFile && (
-                        <div className="bg-gray-50 p-3 rounded border">
-                          <p className="text-sm text-gray-700">
-                            <span className="font-medium">Document:</span> {param.sampleFile}
-                          </p>
+                        <div className="bg-gray-100 text-gray-800 p-2 rounded text-sm">
+                          <span className="font-medium">Document:</span> {param.sampleFile}
                         </div>
                       )}
                       
                       {param.type === 'data' && param.sampleData && (
-                        <div className="bg-gray-50 p-3 rounded border">
-                          <p className="text-sm font-medium text-gray-700 mb-2">Sample Data:</p>
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full text-xs">
-                              <thead>
-                                <tr className="bg-gray-100">
-                                  {param.sampleData.columns?.map((col: string, colIndex: number) => (
-                                    <th key={colIndex} className="px-2 py-1 text-left font-medium text-gray-700 border border-gray-200">
-                                      {col}
-                                      {param.sampleData.identifierColumn === col && (
-                                        <span className="ml-1 text-yellow-600">🔑</span>
-                                      )}
-                                    </th>
-                                  ))}
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {param.sampleData.rows?.slice(0, 3).map((row: any, rowIndex: number) => (
-                                  <tr key={rowIndex} className="border-b border-gray-200">
-                                    {param.sampleData.columns?.map((col: string, colIndex: number) => (
-                                      <td key={colIndex} className="px-2 py-1 text-gray-600 border border-gray-200">
-                                        {row[col] || '-'}
-                                      </td>
-                                    ))}
-                                  </tr>
+                        <div className="bg-gray-100 text-gray-800 p-2 rounded">
+                          <div className="space-y-1">
+                            {param.sampleData.rows?.map((row: any, rowIndex: number) => (
+                              <div key={rowIndex} className="text-sm">
+                                {param.sampleData.columns?.map((col: string, colIndex: number) => (
+                                  <span key={colIndex} className="mr-3">
+                                    {param.sampleData.identifierColumn === col && (
+                                      <span className="text-yellow-600">🔑 </span>
+                                    )}
+                                    <span className="font-medium">{col}:</span> {row[col] || '-'}
+                                  </span>
                                 ))}
-                                {param.sampleData.rows?.length > 3 && (
-                                  <tr>
-                                    <td colSpan={param.sampleData.columns?.length} className="px-2 py-1 text-center text-gray-500 italic border border-gray-200">
-                                      ... and {param.sampleData.rows.length - 3} more rows
-                                    </td>
-                                  </tr>
-                                )}
-                              </tbody>
-                            </table>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       )}
                       
                       {param.description && (
-                        <p className="text-xs text-gray-500 mt-2">{param.description}</p>
+                        <p className="text-gray-300 text-xs mt-2">{param.description}</p>
                       )}
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-6 text-gray-500">
                 <p>Testing functionality will be available soon.</p>
               </div>
             </div>
