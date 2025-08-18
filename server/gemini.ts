@@ -166,51 +166,61 @@ ${aiAssistanceRequired ? `\nAdditional AI Instructions: ${aiAssistancePrompt}` :
       
       // Removed manual override - using AI generation for all functions
       
-      // MANDATORY FUNCTION SIGNATURE ENFORCEMENT
-      const systemPrompt = `You are an expert Python developer. You MUST create a function with this EXACT signature:
+      // MANDATORY FUNCTION SIGNATURE WITH STRICT FORMAT REQUIREMENTS
+      const systemPrompt = `You are an expert Python developer. Create a function with EXACT requirements:
 
+FUNCTION SIGNATURE (MANDATORY):
 def extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')}):
 
-CRITICAL REQUIREMENTS:
-1. Function name MUST be "extract_function"  
-2. Parameters MUST match exactly: ${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')}
-3. OUTPUT TYPE = "${outputType.toUpperCase()}"
+CRITICAL CONSTRAINTS:
+1. Use ONLY standard Python built-ins (no pandas, no external imports)
+2. NO FileNotFoundError, IOError, or other specialized exceptions
+3. Use only: Exception, ValueError, TypeError, AttributeError
+4. OUTPUT TYPE = "${outputType.toUpperCase()}"
 
 ${outputType === 'multiple' ? `
-MULTIPLE OUTPUTS - MUST ITERATE:
-- Use for loop to process array parameter
-- Generate multiple results (one per array item)
-- Return list of result objects
+MULTIPLE RECORDS MODE:
+- Iterate through array parameter with: for record in ${dataInputs[0]?.name.replace(/\s+/g, '_')}:
+- Extract field: value = record["${dataInputs[0]?.sampleData?.columns?.[0] || 'field_name'}"]
+- Return multiple results (one per array item)
 ` : `
-SINGLE OUTPUT - NO ITERATION:
-- Process parameters as whole
-- Generate one result only
-- Return single result in array
+SINGLE RECORD MODE:
+- Process input as single unit
+- Return one result only
 `}
 
-PARAMETER DETAILS:
+MANDATORY RETURN FORMAT:
+[{
+  "extractedValue": "found_value_or_Not_Found",
+  "validationStatus": "valid|invalid|not_found", 
+  "aiReasoning": "explanation_text",
+  "confidenceScore": 90,
+  "documentSource": "input"
+}]
+
+PARAMETER INFO:
 ${inputParameters.map(p => {
   if (p.type === 'data' && p.sampleData?.rows) {
-    return `${p.name.replace(/\s+/g, '_')}: List of ${p.sampleData.rows.length} objects, each like ${JSON.stringify(p.sampleData.rows[0] || {})}`;
+    return `${p.name.replace(/\s+/g, '_')}: Array of ${p.sampleData.rows.length} objects like ${JSON.stringify(p.sampleData.rows[0] || {})}`;
   } else if (p.type === 'document') {
-    return `${p.name.replace(/\s+/g, '_')}: String with Excel format "=== Sheet: Name ===" followed by data`;
+    return `${p.name.replace(/\s+/g, '_')}: Text string with Excel sheets in format "=== Sheet: Name ===" + tab-separated data`;
   }
-  return `${p.name.replace(/\s+/g, '_')}: ${p.type} parameter`;
+  return `${p.name.replace(/\s+/g, '_')}: ${p.type} data`;
 }).join('\n')}
 
-RETURN FORMAT: List of objects with keys: extractedValue, validationStatus, aiReasoning, confidenceScore, documentSource
+EXCEL PARSING PATTERN:
+- Split by lines: content.splitlines()  
+- Find sheets: if "=== Sheet:" in line
+- Parse sheet name: line.split("=== Sheet:")[1].split("===")[0].strip()
 
-Return JSON: {"functionCode": "complete_function_code", "metadata": {"parametersUsed": [${inputParameters.map(p => `"${p.name}"`).join(', ')}]}}`;
+Return JSON: {"functionCode": "complete_python_code", "metadata": {"parametersUsed": [${inputParameters.map(p => `"${p.name}"`).join(', ')}]}}`;
 
-      const userPrompt = `Generate function: ${name}
+      const userPrompt = `Create: ${name}
 Description: ${description}
 
-Requirements:
-- Function signature: def extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')})
-- ${outputType === 'multiple' ? 'Iterate through array parameter to generate multiple results' : 'Process input to generate single result'}
-- Use Python syntax: None (not null), True/False (not true/false)
-- Handle errors gracefully
-- Return proper field validation format`;
+Generate Python function using only built-in modules.
+${outputType === 'multiple' ? 'Use iteration to process array elements.' : 'Process input as single unit.'}
+Return proper field validation format with extractedValue, validationStatus, aiReasoning, confidenceScore, documentSource.`;
 
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
