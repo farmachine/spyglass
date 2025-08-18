@@ -5074,6 +5074,13 @@ print(json.dumps(results))
           }
 
           console.log("📋 Processed inputs for function execution:", Object.keys(processedInputs));
+          console.log("🔍 Full processed inputs details:");
+          for (const [key, value] of Object.entries(processedInputs)) {
+            console.log(`  - ${key}: ${typeof value === 'string' ? `${value.length} chars` : typeof value}`);
+            if (typeof value === 'string' && value.length > 0) {
+              console.log(`    Preview: ${value.substring(0, 200)}${value.length > 200 ? '...' : ''}`);
+            }
+          }
 
           // Execute the function using the extraction wizardry system
           const { spawn } = await import('child_process');
