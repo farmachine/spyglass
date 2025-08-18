@@ -319,6 +319,158 @@ Return JSON with functionCode and metadata fields.`;
   }
 }
 
+export async function updateFunctionCode(
+  name: string,
+  description: string,
+  inputParameters: Array<{ name: string; type: string; description: string }>,
+  functionType: "SCRIPT" | "AI_ONLY" | "CODE",
+  aiAssistanceRequired: boolean,
+  aiAssistancePrompt: string | undefined,
+  outputType: "single" | "multiple" | undefined,
+  currentCode: string
+): Promise<{ functionCode: string; metadata: any }> {
+  try {
+    console.log('🔄 Starting AI function update process...');
+    console.log('📋 Function update parameters:', {
+      name,
+      description,
+      functionType,
+      outputType,
+      currentCodeLength: currentCode?.length || 0
+    });
+
+    if (functionType === "AI_ONLY") {
+      console.log('🤖 Updating AI-only tool prompt...');
+      
+      // For AI_ONLY tools, update the descriptive prompt
+      const aiPrompt = `Extract data from the provided document using the following parameters:
+
+Parameters:
+${inputParameters.map(p => `- @${p.name} (${p.type}): ${p.description}`).join('\n')}
+
+Tool Description: ${description}
+Output Type: ${outputType === "single" ? "MAIN SCHEMA FIELDS (single values)" : "COLLECTION PROPERTIES (multiple records)"}
+
+Instructions:
+- Use all the provided parameters to guide your extraction
+- Extract relevant data based on the document content
+- Return results in valid JSON format
+- Handle missing data gracefully with appropriate status indicators
+${aiAssistanceRequired ? `\nAdditional AI Instructions: ${aiAssistancePrompt}` : ''}`;
+
+      return {
+        functionCode: aiPrompt,
+        metadata: {
+          outputFormat: "field_validations_array",
+          inputValidation: "AI will validate all input parameters during extraction",
+          errorHandling: "AI handles missing data gracefully with appropriate status indicators",
+          parametersUsed: inputParameters.map(p => p.name),
+          toolType: "AI_ONLY",
+          description: description
+        }
+      };
+    } else {
+      console.log('🐍 Updating Python code function...');
+      
+      // Generate system prompt for updating existing code
+      const systemPrompt = `You are an expert Python developer updating an existing data extraction function.
+You need to modify the current function code based on new requirements while preserving the core functionality.
+
+CRITICAL: The output MUST be exactly compatible with the field_validations database schema format.
+
+This function is designed to create: ${outputType === "single" ? "MAIN SCHEMA FIELDS (single values)" : "COLLECTION PROPERTIES (multiple records)"}
+
+CURRENT FUNCTION CODE TO UPDATE:
+\`\`\`python
+${currentCode}
+\`\`\`
+
+UPDATED REQUIREMENTS:
+- Function Name: ${name}
+- Function Description: ${description}
+- Input Parameters: ${inputParameters.map(p => `@${p.name} (${p.type}): ${p.description}`).join(', ')}
+- Function Type: ${functionType}
+- Output Type: ${outputType}
+
+UPDATE INSTRUCTIONS:
+1. Modify the existing function to match the new name, description, and input parameters
+2. Preserve the core logic where it still applies
+3. Update parameter handling to match the new input parameter list
+4. Ensure the function still outputs field_validations schema format
+5. Improve error handling and validation if needed
+6. Maintain all existing functionality that doesn't conflict with new requirements
+
+Field Validations Output Schema (EXACT format required):
+[
+  {
+    "extractedValue": "string - the actual extracted value",
+    "validationStatus": "string - valid|invalid|pending", 
+    "aiReasoning": "string - explanation of extraction logic",
+    "confidenceScore": "number - 0-100 confidence percentage",
+    "documentSource": "string - source identifier"
+  }
+]
+
+Return JSON with functionCode and metadata fields.`;
+
+      const userPrompt = `Update the existing Python function with these new requirements:
+
+Name: ${name}
+Description: ${description}
+Input Parameters:
+${inputParameters.map(p => `- ${p.name} (${p.type}): ${p.description}`).join('\n')}
+
+Please update the function code while preserving the existing logic where applicable.`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "object",
+            properties: {
+              functionCode: { type: "string" },
+              metadata: { 
+                type: "object",
+                properties: {
+                  outputFormat: { type: "string" },
+                  parametersUsed: { 
+                    type: "array",
+                    items: { type: "string" }
+                  }
+                }
+              }
+            },
+            required: ["functionCode", "metadata"]
+          }
+        },
+        contents: [
+          { role: "user", parts: [{ text: systemPrompt }] },
+          { role: "user", parts: [{ text: userPrompt }] }
+        ]
+      });
+
+      console.log('✅ Python function update completed');
+      
+      if (!response.text) {
+        throw new Error('Empty response from Gemini AI');
+      }
+      
+      const result = JSON.parse(response.text);
+      
+      if (!result.functionCode || !result.metadata) {
+        throw new Error('AI response missing required functionCode or metadata fields');
+      }
+      
+      console.log('🎯 Updated Python function metadata:', result.metadata);
+      return result;
+    }
+  } catch (error) {
+    console.error('❌ Error updating function code:', error);
+    throw error;
+  }
+}
+
 export async function analyzeSentiment(text: string): Promise<any> {
   // Keep existing function for compatibility
   try {

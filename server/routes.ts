@@ -4922,6 +4922,7 @@ print(json.dumps(results))
   app.post("/api/excel-functions/:id/regenerate", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = req.params.id;
+      const { name, description, inputParameters, toolType, currentCode } = req.body;
       
       // Get the existing function
       const existingFunc = await storage.getExcelWizardryFunction(id);
@@ -4930,34 +4931,43 @@ print(json.dumps(results))
       }
       
       // Import the Gemini function
-      const { generateFunctionCode } = await import("./gemini");
+      const { updateFunctionCode } = await import("./gemini");
       
-      console.log('🔄 Regenerating function code for:', existingFunc.name);
+      console.log('🔄 Regenerating function code for:', name || existingFunc.name);
       
-      // Regenerate the function code using current parameters
-      const { functionCode, metadata } = await generateFunctionCode(
-        existingFunc.name,
-        existingFunc.description,
-        existingFunc.inputParameters,
-        existingFunc.functionType,
+      // Use form data if provided, otherwise use existing data
+      const updatedName = name || existingFunc.name;
+      const updatedDescription = description || existingFunc.description;
+      const updatedInputParameters = inputParameters || existingFunc.inputParameters;
+      const updatedFunctionType = toolType === 'AI_ONLY' ? 'AI_ONLY' : 'SCRIPT';
+      const codeToUpdate = currentCode || existingFunc.functionCode;
+      
+      // Regenerate the function code using current form data and existing code
+      const { functionCode, metadata } = await updateFunctionCode(
+        updatedName,
+        updatedDescription,
+        updatedInputParameters,
+        updatedFunctionType,
         existingFunc.aiAssistanceRequired,
         existingFunc.aiAssistancePrompt,
-        existingFunc.outputType
+        existingFunc.outputType,
+        codeToUpdate
       );
       
-      // Update the function with new code
-      const updated = await storage.updateExcelWizardryFunction(id, {
+      // Return the updated function data without saving to database
+      const updatedFunction = {
+        ...existingFunc,
+        name: updatedName,
+        description: updatedDescription,
+        inputParameters: updatedInputParameters,
+        functionType: updatedFunctionType,
         functionCode,
         metadata,
         updatedAt: new Date()
-      });
-      
-      if (!updated) {
-        return res.status(404).json({ message: "Failed to update function" });
-      }
+      };
       
       console.log('✅ Function code regenerated successfully');
-      res.json(updated);
+      res.json(updatedFunction);
     } catch (error) {
       console.error("Error regenerating function code:", error);
       res.status(500).json({ message: "Failed to regenerate function code" });

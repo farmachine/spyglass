@@ -233,7 +233,14 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   const regenerateFunctionCode = useMutation({
     mutationFn: async (functionId: string) => {
       return apiRequest(`/api/excel-functions/${functionId}/regenerate`, {
-        method: 'POST'
+        method: 'POST',
+        body: JSON.stringify({
+          name: formData.name,
+          description: formData.description,
+          inputParameters: inputParameters,
+          toolType: toolType,
+          currentCode: editingFunction?.functionCode
+        })
       });
     },
     onSuccess: (updatedFunction) => {
