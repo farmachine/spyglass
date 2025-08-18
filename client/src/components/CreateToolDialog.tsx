@@ -1275,7 +1275,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                     className="border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
                     <RefreshCw className={`h-4 w-4 mr-1 ${regenerateToolCode.isPending ? 'animate-spin' : ''}`} />
-                    Generate Code
+                    {regenerateToolCode.isPending ? 'Generating Code' : 'Generate Code'}
                   </Button>
                 </div>
               </CardHeader>

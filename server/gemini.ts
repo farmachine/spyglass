@@ -339,24 +339,47 @@ Respond with JSON in this format:
 
       console.log('📤 Sending Python script generation request to Gemini...');
       
-      // Simplified prompt for better reliability
+      // Detailed prompt with explicit array iteration examples
+      const dataInputs = inputParameters.filter(p => p.type === 'data');
+      const hasArrayData = dataInputs.length > 0;
+      
       const userPrompt = `Generate a Python function named "extract_function" for: ${name}
 
 Description: ${description}
 
 Function signature: def extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')}):
 
-Parameters (all are STRING values):
-${inputParameters.map(p => `- ${p.name.replace(/\s+/g, '_')}: ${p.description}`).join('\n')}
+Parameters:
+${inputParameters.map(p => `- ${p.name.replace(/\s+/g, '_')}: ${p.description} (Type: ${p.type})`).join('\n')}
 
-Output Type: ${outputType === "multiple" ? "Multiple records" : "Single values"}
+${hasArrayData ? `
+CRITICAL - ARRAY ITERATION REQUIREMENTS:
+- Data parameters are provided as ARRAYS OF OBJECTS like: [{"Column Name": "Employer Code"}, {"Column Name": "Date Started"}]
+- ALWAYS iterate through each object in the array using a for loop
+- Extract the value from each object (e.g., record["Column Name"])
+- Process each value individually
+- Generate one result per array item
 
-Requirements:
-1. Function processes STRING input parameters (pre-extracted document content)
-2. Returns array of objects in field_validations format:
-   [{"extractedValue": "value", "validationStatus": "valid", "aiReasoning": "explanation", "confidenceScore": 85, "documentSource": "input"}]
-3. Use standard Python libraries only (re, json, etc.)
-4. Handle errors gracefully
+CORRECT PATTERN:
+for record in ${dataInputs[0].name.replace(/\s+/g, '_')}:
+    ${dataInputs[0].name.split(' ').map(word => word.toLowerCase()).join('_')} = record["${dataInputs[0].sampleData?.columns?.[0] || 'Column Name'}"]
+    # Process this individual value
+    result = process_single_value(${dataInputs[0].name.split(' ').map(word => word.toLowerCase()).join('_')}, other_params)
+    results.append(result)
+
+WRONG APPROACH:
+- Never treat the entire array as a single string
+- Never pass the whole array like: process_data('[{"Column Name": "Value"}]')
+` : ''}
+
+Output Format: Array of objects in field_validations format
+[{"extractedValue": "value", "validationStatus": "valid", "aiReasoning": "explanation", "confidenceScore": 85, "documentSource": "input"}]
+
+Python Requirements:
+- Use None instead of null
+- Use True/False instead of true/false  
+- Use standard Python libraries only (re, json, etc.)
+- Handle errors gracefully with try/except
 
 Return JSON with functionCode and metadata fields.`;
 
