@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 
-import { Play, Edit3, Trash2, Brain } from "lucide-react";
+import { Play, Edit3, Trash2, Brain, Code } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import CreateToolDialog from "./CreateToolDialog";
 
@@ -370,8 +370,18 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                     <div className="flex items-center gap-1 text-xs text-gray-500">
                       <span>Used {tool.usageCount} times</span>
                     </div>
-                    <Badge variant="outline" className="text-xs">
-                      {tool.functionType === 'AI_ONLY' ? 'AI' : 'Script'}
+                    <Badge variant="outline" className="text-xs flex items-center gap-1">
+                      {tool.functionType === 'AI_ONLY' ? (
+                        <>
+                          <Brain className="h-3 w-3" />
+                          AI
+                        </>
+                      ) : (
+                        <>
+                          <Code className="h-3 w-3" />
+                          Script
+                        </>
+                      )}
                     </Badge>
                   </div>
                   
