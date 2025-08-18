@@ -59,6 +59,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [expandedInputs, setExpandedInputs] = useState<Set<string>>(new Set());
+  const [codeExpanded, setCodeExpanded] = useState(false);
   const [showColumnInput, setShowColumnInput] = useState<Set<string>>(new Set());
   const [processingParams, setProcessingParams] = useState<Set<string>>(new Set());
   const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
@@ -1228,9 +1229,23 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
             <Card className="border-gray-200">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg text-gray-800">
-                    {editingFunction.functionType === 'AI_ONLY' ? 'Prompt' : 'Generated Code'}
-                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setCodeExpanded(!codeExpanded)}
+                      className="p-1 h-auto text-gray-600 hover:text-gray-800"
+                    >
+                      {codeExpanded ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <CardTitle className="text-lg text-gray-800">
+                      {editingFunction.functionType === 'AI_ONLY' ? 'Prompt' : 'Generated Code'}
+                    </CardTitle>
+                  </div>
                   <Button
                     size="sm"
                     variant="outline"
@@ -1243,16 +1258,18 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <pre className="text-sm text-gray-800 whitespace-pre-wrap overflow-x-auto">
-                    {editingFunction.functionCode}
-                  </pre>
-                </div>
-                <p className="text-sm text-gray-600 mt-2">
-                  Use the "Regenerate" button above to update this code based on current inputs.
-                </p>
-              </CardContent>
+              {codeExpanded && (
+                <CardContent>
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <pre className="text-sm text-gray-800 whitespace-pre-wrap overflow-x-auto">
+                      {editingFunction.functionCode}
+                    </pre>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">
+                    Use the "Regenerate" button above to update this code based on current inputs.
+                  </p>
+                </CardContent>
+              )}
             </Card>
           )}
 
