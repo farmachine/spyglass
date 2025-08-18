@@ -600,7 +600,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                         className="min-h-[100px] resize-none"
                         disabled={isDebugging}
                       />
-                      <div className="flex justify-end">
+                      <div className="flex justify-end gap-2">
                         <Button
                           onClick={() => debugTool(testingTool)}
                           disabled={isDebugging || !debugText.trim()}
@@ -608,6 +608,13 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                         >
                           <Brain className="h-4 w-4" />
                           {isDebugging ? 'Debugging...' : 'Debug Tool'}
+                        </Button>
+                        <Button
+                          onClick={() => setTestingTool(null)}
+                          variant="outline"
+                          className="text-gray-600 border-gray-300"
+                        >
+                          Close
                         </Button>
                       </div>
                     </div>
