@@ -786,7 +786,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="name" className="text-sm font-medium text-gray-700">
-                  Function Name *
+                  Tool Name *
                 </Label>
                 <Input
                   id="name"
