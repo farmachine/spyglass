@@ -281,7 +281,31 @@ Output must be field_validations compatible array format.`
       });
 
       console.log('✅ Python script generation completed');
-      const result = JSON.parse(response.text || "{}");
+      console.log('📄 Raw AI response:', response.text);
+      
+      if (!response.text) {
+        console.error('❌ Empty response from Gemini');
+        throw new Error('Empty response from Gemini AI');
+      }
+      
+      let result;
+      try {
+        result = JSON.parse(response.text);
+      } catch (parseError) {
+        console.error('❌ Failed to parse Gemini response as JSON:', parseError);
+        console.error('❌ Raw response was:', response.text);
+        throw new Error('Invalid JSON response from Gemini AI');
+      }
+      
+      if (!result.functionCode || !result.metadata) {
+        console.error('❌ Missing required fields in AI response:', {
+          hasFunctionCode: !!result.functionCode,
+          hasMetadata: !!result.metadata,
+          result: result
+        });
+        throw new Error('AI response missing required functionCode or metadata fields');
+      }
+      
       console.log('🎯 Generated Python function metadata:', result.metadata);
       return result;
     }
