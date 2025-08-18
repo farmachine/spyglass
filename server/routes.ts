@@ -4922,9 +4922,18 @@ print(json.dumps(results))
   app.put("/api/excel-functions/:id/regenerate", async (req, res) => {
     try {
       const id = req.params.id;
-      const { name, description, inputParameters, toolType, currentCode } = req.body;
+      const { name, description, inputParameters, toolType, outputType, aiAssistanceRequired, aiAssistancePrompt } = req.body;
       
-      // Get the existing function
+      console.log('🔄 Regenerating function code with form values:', {
+        name,
+        description,
+        toolType,
+        outputType,
+        inputParametersCount: inputParameters?.length,
+        aiAssistanceRequired
+      });
+      
+      // Get the existing function only for fallback values
       const existingFunc = await storage.getExcelWizardryFunction(id);
       if (!existingFunc) {
         return res.status(404).json({ message: "Excel wizardry function not found" });
@@ -4933,31 +4942,43 @@ print(json.dumps(results))
       // Import the Gemini function
       const { generateFunctionCode } = await import("./gemini");
       
-      console.log('🔄 Regenerating function code for:', name || existingFunc.name);
-      
-      // Use form data if provided, otherwise use existing data
+      // PRIORITIZE FORM DATA - use current form values, fallback to existing only if not provided
       const updatedName = name || existingFunc.name;
       const updatedDescription = description || existingFunc.description;
       const updatedInputParameters = inputParameters || existingFunc.inputParameters;
+      const updatedOutputType = outputType || existingFunc.outputType;
       const updatedFunctionType = toolType === 'AI_ONLY' ? 'AI_ONLY' : 'SCRIPT';
+      const updatedAiAssistanceRequired = aiAssistanceRequired !== undefined ? aiAssistanceRequired : existingFunc.aiAssistanceRequired;
+      const updatedAiAssistancePrompt = aiAssistancePrompt !== undefined ? aiAssistancePrompt : existingFunc.aiAssistancePrompt;
       
-      // Regenerate the function code using generateFunctionCode for worksheet extraction
+      console.log('📋 Final regeneration parameters:', {
+        name: updatedName,
+        functionType: updatedFunctionType,
+        outputType: updatedOutputType,
+        inputParameters: updatedInputParameters?.map(p => ({ name: p.name, type: p.type })),
+        aiAssistanceRequired: updatedAiAssistanceRequired
+      });
+      
+      // Regenerate the function code using current form values
       const { functionCode, metadata } = await generateFunctionCode(
         updatedName,
         updatedDescription,
         updatedInputParameters,
         updatedFunctionType,
-        existingFunc.aiAssistanceRequired,
-        existingFunc.aiAssistancePrompt,
-        existingFunc.outputType
+        updatedAiAssistanceRequired,
+        updatedAiAssistancePrompt,
+        updatedOutputType
       );
       
-      // Save the updated function to database
+      // Save the updated function to database using current form values
       const updatedFunction = await storage.updateExcelWizardryFunction(id, {
         name: updatedName,
         description: updatedDescription,
         inputParameters: updatedInputParameters,
+        outputType: updatedOutputType,
         functionType: updatedFunctionType,
+        aiAssistanceRequired: updatedAiAssistanceRequired,
+        aiAssistancePrompt: updatedAiAssistancePrompt,
         functionCode,
         metadata,
         updatedAt: new Date()

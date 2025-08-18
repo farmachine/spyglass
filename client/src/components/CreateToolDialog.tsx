@@ -253,6 +253,9 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           description: formData.description,
           inputParameters: inputParameters,
           toolType: toolType,
+          outputType: outputType,
+          aiAssistanceRequired: formData.aiAssistanceRequired,
+          aiAssistancePrompt: formData.aiAssistancePrompt,
           currentCode: editingFunction?.functionCode
         })
       });
