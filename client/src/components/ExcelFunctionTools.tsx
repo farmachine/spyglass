@@ -197,77 +197,66 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
               <div>
                 <h4 className="font-medium text-gray-800 mb-3">The tool will be tested using the following inputs:</h4>
                 
-                <div className="border border-gray-300 rounded overflow-hidden">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="bg-gray-50 border-b border-gray-300">
-                        <th className="text-left p-3 font-medium text-gray-800">Input Name</th>
-                        <th className="text-left p-3 font-medium text-gray-800">Type</th>
-                        <th className="text-left p-3 font-medium text-gray-800">Sample Content</th>
-                        <th className="text-left p-3 font-medium text-gray-800">Description</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {testingFunction.inputParameters?.map((param: any, index: number) => (
-                        <tr key={index} className="border-b border-gray-200 last:border-b-0">
-                          <td className="p-3 font-medium text-gray-800">{param.name}</td>
-                          <td className="p-3">
-                            <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">
-                              {param.type}
-                            </span>
-                          </td>
-                          <td className="p-3">
-                            {param.type === 'text' && param.sampleText && (
-                              <div className="text-sm text-gray-700 max-w-xs">
-                                {param.sampleText}
-                              </div>
-                            )}
-                            
-                            {param.type === 'document' && param.sampleFile && (
-                              <div className="text-sm text-gray-700">
-                                {param.sampleFile}
-                              </div>
-                            )}
-                            
-                            {param.type === 'data' && param.sampleData && (
-                              <div className="text-sm">
-                                <div className="border border-gray-200 rounded overflow-hidden">
-                                  <table className="w-full text-xs">
-                                    <thead>
-                                      <tr className="bg-gray-50">
-                                        {param.sampleData.columns?.map((col: string, colIndex: number) => (
-                                          <th key={colIndex} className="text-left p-2 font-medium text-gray-700 border-r border-gray-200 last:border-r-0">
-                                            {param.sampleData.identifierColumn === col && (
-                                              <span className="text-yellow-600 mr-1">🔑</span>
-                                            )}
-                                            {col}
-                                          </th>
-                                        ))}
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {param.sampleData.rows?.map((row: any, rowIndex: number) => (
-                                        <tr key={rowIndex} className="border-t border-gray-200">
-                                          {param.sampleData.columns?.map((col: string, colIndex: number) => (
-                                            <td key={colIndex} className="p-2 text-gray-600 border-r border-gray-200 last:border-r-0">
-                                              {row[col] || '-'}
-                                            </td>
-                                          ))}
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              </div>
-                            )}
-                          </td>
-                          <td className="p-3 text-sm text-gray-600 max-w-xs">
-                            {param.description || '-'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="space-y-4">
+                  {testingFunction.inputParameters?.map((param: any, index: number) => (
+                    <div key={index} className="border border-gray-300 p-3 rounded">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="font-medium text-gray-800">{param.name}</span>
+                        <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">
+                          {param.type}
+                        </span>
+                      </div>
+                      
+                      {param.type === 'text' && param.sampleText && (
+                        <div className="bg-gray-50 p-3 rounded border text-sm text-gray-700">
+                          {param.sampleText}
+                        </div>
+                      )}
+                      
+                      {param.type === 'document' && param.sampleFile && (
+                        <div className="bg-gray-50 p-3 rounded border text-sm text-gray-700">
+                          <span className="font-medium">Document:</span> {param.sampleFile}
+                        </div>
+                      )}
+                      
+                      {param.type === 'data' && param.sampleData && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 mb-2">Sample Data:</p>
+                          <div className="border border-gray-300 rounded overflow-hidden">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="bg-gray-50 border-b border-gray-300">
+                                  {param.sampleData.columns?.map((col: string, colIndex: number) => (
+                                    <th key={colIndex} className="text-left p-3 font-medium text-gray-700 border-r border-gray-200 last:border-r-0">
+                                      {param.sampleData.identifierColumn === col && (
+                                        <span className="text-yellow-600 mr-1">🔑</span>
+                                      )}
+                                      {col}
+                                    </th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {param.sampleData.rows?.map((row: any, rowIndex: number) => (
+                                  <tr key={rowIndex} className="border-b border-gray-200 last:border-b-0">
+                                    {param.sampleData.columns?.map((col: string, colIndex: number) => (
+                                      <td key={colIndex} className="p-3 text-gray-600 border-r border-gray-200 last:border-r-0">
+                                        {row[col] || '-'}
+                                      </td>
+                                    ))}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {param.description && (
+                        <p className="text-xs text-gray-500 mt-2">{param.description}</p>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
 
