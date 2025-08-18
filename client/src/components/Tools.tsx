@@ -690,13 +690,13 @@ export default function Tools({ projectId }: ExcelToolsProps) {
 
                     {/* Debug Recommendations Section */}
                     {debugRecommendations && !showChangeManagement && (
-                      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                        <h4 className="text-sm font-semibold text-blue-900 mb-3">AI Debug Analysis</h4>
+                      <div className="mt-6 p-4 bg-gray-50 border border-gray-300 rounded-lg">
+                        <h4 className="text-sm font-semibold text-gray-800 mb-3">AI Debug Analysis</h4>
                         <div className="bg-white p-3 rounded border text-sm text-gray-700 whitespace-pre-wrap mb-4">
                           {debugRecommendations}
                         </div>
                         <div className="flex items-center justify-between">
-                          <p className="text-xs text-blue-700">
+                          <p className="text-xs text-gray-600">
                             Would you like to apply the AI's suggested improvements to this tool?
                           </p>
                           <div className="flex gap-2">
@@ -711,10 +711,10 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                             <Button
                               onClick={() => applyDebugFixes(testingTool)}
                               size="sm"
-                              className="bg-blue-600 hover:bg-blue-700 text-white"
+                              className="bg-gray-600 hover:bg-gray-700 text-white"
                               disabled={isDebugging}
                             >
-                              Apply Fixes
+                              Test Fixes
                             </Button>
                           </div>
                         </div>
