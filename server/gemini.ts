@@ -166,8 +166,14 @@ ${aiAssistanceRequired ? `\nAdditional AI Instructions: ${aiAssistancePrompt}` :
       
       // MANUAL OVERRIDE: Create correct function for worksheet detection
       if (name.toLowerCase().includes('worksheet') && name.toLowerCase().includes('column')) {
+        console.log(`🎯 MANUAL OVERRIDE TRIGGERED for ${name} with outputType: ${outputType}`);
+        
         const columnParam = inputParameters.find(p => p.type === 'data');
         const excelParam = inputParameters.find(p => p.type === 'document');
+        
+        console.log(`📋 Column param: ${columnParam?.name} (${columnParam?.type})`);
+        console.log(`📋 Excel param: ${excelParam?.name} (${excelParam?.type})`);
+        console.log(`📋 Output type: ${outputType} (should be 'multiple' for iteration)`);
         
         const manualFunction = `def extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')}):
     results = []
