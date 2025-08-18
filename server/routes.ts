@@ -4919,7 +4919,7 @@ print(json.dumps(results))
   });
 
   // Regenerate Excel function code
-  app.post("/api/excel-functions/:id/regenerate", authenticateToken, async (req: AuthRequest, res) => {
+  app.put("/api/excel-functions/:id/regenerate", async (req, res) => {
     try {
       const id = req.params.id;
       const { name, description, inputParameters, toolType, currentCode } = req.body;
@@ -4931,7 +4931,7 @@ print(json.dumps(results))
       }
       
       // Import the Gemini function
-      const { updateFunctionCode } = await import("./gemini");
+      const { generateFunctionCode } = await import("./gemini");
       
       console.log('🔄 Regenerating function code for:', name || existingFunc.name);
       
@@ -4940,23 +4940,20 @@ print(json.dumps(results))
       const updatedDescription = description || existingFunc.description;
       const updatedInputParameters = inputParameters || existingFunc.inputParameters;
       const updatedFunctionType = toolType === 'AI_ONLY' ? 'AI_ONLY' : 'SCRIPT';
-      const codeToUpdate = currentCode || existingFunc.functionCode;
       
-      // Regenerate the function code using current form data and existing code
-      const { functionCode, metadata } = await updateFunctionCode(
+      // Regenerate the function code using generateFunctionCode for worksheet extraction
+      const { functionCode, metadata } = await generateFunctionCode(
         updatedName,
         updatedDescription,
         updatedInputParameters,
         updatedFunctionType,
         existingFunc.aiAssistanceRequired,
         existingFunc.aiAssistancePrompt,
-        existingFunc.outputType,
-        codeToUpdate
+        existingFunc.outputType
       );
       
-      // Return the updated function data without saving to database
-      const updatedFunction = {
-        ...existingFunc,
+      // Save the updated function to database
+      const updatedFunction = await storage.updateExcelWizardryFunction(id, {
         name: updatedName,
         description: updatedDescription,
         inputParameters: updatedInputParameters,
@@ -4964,9 +4961,9 @@ print(json.dumps(results))
         functionCode,
         metadata,
         updatedAt: new Date()
-      };
+      });
       
-      console.log('✅ Function code regenerated successfully');
+      console.log('✅ Function code regenerated and saved successfully');
       res.json(updatedFunction);
     } catch (error) {
       console.error("Error regenerating function code:", error);
