@@ -831,8 +831,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                 </Select>
                 <p className="text-sm text-gray-600 mt-2">
                   {toolType === "CODE"
-                    ? "User-defined Python code that returns results converted to field_validations format"
-                    : "AI-powered tool that uses prompts to analyze and extract data"
+                    ? "Data is processed using a coded function"
+                    : "Data is processed using AI"
                   }
                 </p>
               </CardContent>
@@ -858,8 +858,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                 </div>
                 <p className="text-sm text-gray-600 mt-2">
                   {toolType === "CODE"
-                    ? "User-defined Python code that returns results converted to field_validations format"
-                    : "AI-powered tool that uses prompts to analyze and extract data"
+                    ? "Data is processed using a coded function"
+                    : "Data is processed using AI"
                   }
                 </p>
               </CardContent>
