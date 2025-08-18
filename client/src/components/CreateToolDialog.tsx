@@ -60,13 +60,26 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
   const createTool = useMutation({
     mutationFn: async (data: any) => {
+      // Log data input parameters with their JSON arrays
+      const dataInputs = data.inputParameters?.filter((p: any) => p.type === 'data' && p.sampleData);
+      if (dataInputs && dataInputs.length > 0) {
+        console.log("📊 Data Input Parameters with JSON Arrays:");
+        dataInputs.forEach((param: any) => {
+          console.log(`Parameter: ${param.name}`);
+          console.log(`JSON Array:`, JSON.stringify({
+            columns: param.sampleData.columns,
+            rows: param.sampleData.rows
+          }, null, 2));
+        });
+      }
+
       const response = await apiRequest("/api/excel-functions", {
         method: "POST",
         body: JSON.stringify(data)
       });
       
       // Process sample documents after tool creation
-      if (response.id && data.inputParameters && data.inputParameters.some((p: any) => p.sampleFile || p.sampleText)) {
+      if (response.id && data.inputParameters && data.inputParameters.some((p: any) => p.sampleFile || p.sampleText || p.sampleData)) {
         await processSampleDocuments(response.id, data.inputParameters);
       }
       

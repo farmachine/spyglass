@@ -212,6 +212,21 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
   // Update function mutation
   const updateFunction = useMutation({
     mutationFn: async (data: { id: string; description: string; functionCode: string; inputParameters?: any[]; functionType?: string }) => {
+      // Log data input parameters with their JSON arrays for updates
+      if (data.inputParameters) {
+        const dataInputs = data.inputParameters.filter((p: any) => p.type === 'data' && p.sampleData);
+        if (dataInputs.length > 0) {
+          console.log("📊 Updated Data Input Parameters with JSON Arrays:");
+          dataInputs.forEach((param: any) => {
+            console.log(`Parameter: ${param.name}`);
+            console.log(`JSON Array:`, JSON.stringify({
+              columns: param.sampleData.columns,
+              rows: param.sampleData.rows
+            }, null, 2));
+          });
+        }
+      }
+
       const updateData: any = {
         description: data.description,
         functionCode: data.functionCode
