@@ -1283,6 +1283,33 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                 </div>
               </CardHeader>
               <CardContent>
+                {/* Reference Handles Display */}
+                {toolType === 'CODE' && inputParameters.length > 0 && (
+                  <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <span className="text-sm font-medium text-gray-700">Reference Handles</span>
+                    </div>
+                    <div className="grid grid-cols-1 gap-2 text-xs">
+                      {inputParameters.map(param => {
+                        const handle = `@${param.name.toLowerCase().replace(/\s+/g, '_')}`;
+                        const paramName = param.name.replace(/\s+/g, '_');
+                        return (
+                          <div key={param.id} className="flex items-center justify-between bg-white px-2 py-1 rounded border">
+                            <span className="font-mono text-blue-600">{handle}</span>
+                            <span className="text-gray-500">→</span>
+                            <span className="font-mono text-gray-800">{paramName}</span>
+                            <span className="text-gray-500 text-xs">({param.type})</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="text-xs text-gray-600 mt-2">
+                      Use these @-handles in comments for better code readability. Function signature: extract_function({inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')})
+                    </p>
+                  </div>
+                )}
+                
                 <Textarea
                   value={formData.functionCode || ''}
                   onChange={(e) => setFormData({ ...formData, functionCode: e.target.value })}

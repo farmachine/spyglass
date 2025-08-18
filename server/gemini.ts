@@ -166,51 +166,78 @@ ${aiAssistanceRequired ? `\nAdditional AI Instructions: ${aiAssistancePrompt}` :
       
       // Removed manual override - using AI generation for all functions
       
-      // MANDATORY FUNCTION SIGNATURE ENFORCEMENT
-      const systemPrompt = `You are an expert Python developer. You MUST create a function with this EXACT signature:
+      // REFERENCE HANDLE SYSTEM FOR PARAMETER ACCESS
+      const referenceHandles = inputParameters.map((p, index) => ({
+        handle: `@${p.name.toLowerCase().replace(/\s+/g, '_')}`,
+        paramName: p.name.replace(/\s+/g, '_'),
+        type: p.type,
+        description: p.description || `${p.name} parameter`,
+        sampleData: p.sampleData
+      }));
 
+      const systemPrompt = `You are an expert Python developer creating data extraction functions using REFERENCE HANDLES.
+
+FUNCTION SIGNATURE (MANDATORY):
 def extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')}):
 
-CRITICAL REQUIREMENTS:
-1. Function name MUST be "extract_function"  
-2. Parameters MUST match exactly: ${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')}
-3. OUTPUT TYPE = "${outputType.toUpperCase()}"
+REFERENCE HANDLE SYSTEM:
+Instead of using raw parameter names, use these reference handles for better code readability:
 
+${referenceHandles.map(ref => `
+${ref.handle} → References parameter: ${ref.paramName}
+Type: ${ref.type.toUpperCase()}
+${ref.type === 'data' && ref.sampleData?.rows ? 
+  `Data: Array of ${ref.sampleData.rows.length} objects like ${JSON.stringify(ref.sampleData.rows[0] || {})}` : 
+  ref.type === 'document' ? 
+  `Data: Excel content string with "=== Sheet: Name ===" format` : 
+  `Data: ${ref.type} input`
+}
+Usage: ${ref.paramName} (reference as ${ref.handle} in comments)
+`).join('')}
+
+OUTPUT TYPE: ${outputType.toUpperCase()}
 ${outputType === 'multiple' ? `
-MULTIPLE OUTPUTS - MUST ITERATE:
-- Use for loop to process array parameter
-- Generate multiple results (one per array item)
-- Return list of result objects
+ITERATION REQUIRED: Process each item in the data array
+Pattern: for record in ${referenceHandles.find(r => r.type === 'data')?.paramName || 'data_param'}:
 ` : `
-SINGLE OUTPUT - NO ITERATION:
-- Process parameters as whole
-- Generate one result only
-- Return single result in array
+SINGLE PROCESSING: Process parameters as complete units
+Pattern: Process all ${referenceHandles.find(r => r.type === 'document')?.paramName || 'document_param'} content
 `}
 
-PARAMETER DETAILS:
-${inputParameters.map(p => {
-  if (p.type === 'data' && p.sampleData?.rows) {
-    return `${p.name.replace(/\s+/g, '_')}: List of ${p.sampleData.rows.length} objects, each like ${JSON.stringify(p.sampleData.rows[0] || {})}`;
-  } else if (p.type === 'document') {
-    return `${p.name.replace(/\s+/g, '_')}: String with Excel format "=== Sheet: Name ===" followed by data`;
-  }
-  return `${p.name.replace(/\s+/g, '_')}: ${p.type} parameter`;
-}).join('\n')}
+CODE TEMPLATE WITH REFERENCE HANDLES:
+def extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')}):
+    # Reference handles for clarity:
+    ${referenceHandles.map(ref => `# ${ref.handle} = ${ref.paramName} (${ref.type})`).join('\n    ')}
+    
+    results = []
+    ${outputType === 'multiple' && referenceHandles.find(r => r.type === 'data') ? `
+    # Iterate through ${referenceHandles.find(r => r.type === 'data')?.handle} array
+    for record in ${referenceHandles.find(r => r.type === 'data')?.paramName}:
+        # Extract value from current record
+        # Process using ${referenceHandles.find(r => r.type === 'document')?.handle} content
+        # Append result for this record
+        results.append({...})
+    ` : `
+    # Process ${referenceHandles.find(r => r.type === 'document')?.handle} as single unit
+    # Generate one result
+    results.append({...})
+    `}
+    return results
 
-RETURN FORMAT: List of objects with keys: extractedValue, validationStatus, aiReasoning, confidenceScore, documentSource
+Return JSON: {"functionCode": "complete_function_with_reference_handles", "metadata": {"parametersUsed": [${inputParameters.map(p => `"${p.name}"`).join(', ')}], "referenceHandles": [${referenceHandles.map(ref => `"${ref.handle}"`).join(', ')}]}}`;
 
-Return JSON: {"functionCode": "complete_function_code", "metadata": {"parametersUsed": [${inputParameters.map(p => `"${p.name}"`).join(', ')}]}}`;
-
-      const userPrompt = `Generate function: ${name}
+      const userPrompt = `Create function: ${name}
 Description: ${description}
 
+Use reference handle system for better parameter management:
+${referenceHandles.map(ref => `${ref.handle} = ${ref.paramName}`).join('\n')}
+
 Requirements:
-- Function signature: def extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')})
-- ${outputType === 'multiple' ? 'Iterate through array parameter to generate multiple results' : 'Process input to generate single result'}
-- Use Python syntax: None (not null), True/False (not true/false)
-- Handle errors gracefully
-- Return proper field validation format`;
+- Exact function signature: extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')})
+- ${outputType === 'multiple' ? 'Iterate through data array, generate multiple results' : 'Process inputs as whole, generate single result'}
+- Include reference handle comments for code clarity
+- Use Python syntax: None, True/False
+- Return field validation format`;
 
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
