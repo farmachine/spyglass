@@ -4897,30 +4897,8 @@ print(json.dumps(results))
         return res.json({ results: aiResults });
       }
 
-      // For CODE functions, use the existing simulation logic
+      // For CODE functions, execute with real sample document content
       const testResults = [];
-      const inputParams = func.inputParameters || [];
-
-      // For each input parameter, create a field validation result
-      for (let i = 0; i < inputParams.length; i++) {
-        const param = inputParams[i];
-        const inputValue = inputs[param.name];
-        
-        testResults.push({
-          id: `test-${Date.now()}-${i}`,
-          sessionId: `test-session-${Date.now()}`,
-          validationType: 'schema_field',
-          dataType: param.type === 'text' ? 'TEXT' : param.type === 'data' ? 'TEXT' : 'TEXT',
-          fieldId: `test-field-${i}`,
-          extractedValue: inputValue || '',
-          validationStatus: inputValue ? 'valid' : 'pending',
-          aiReasoning: `Test result for parameter: ${param.name}`,
-          confidenceScore: inputValue ? 95 : 0,
-          documentSource: 'test-input',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        });
-      }
 
       // If it's a script function, execute it with real sample document content
       if ((func.functionType === 'SCRIPT' || func.functionType === 'CODE') && func.functionCode) {
