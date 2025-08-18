@@ -5035,13 +5035,40 @@ print(json.dumps(results))
           console.log("No sample documents found:", error);
         }
 
+        // Process inputs for AI_ONLY tools to handle document content properly
+        const processedInputs = {};
+        for (const [paramName, inputValue] of Object.entries(inputs)) {
+          // Find the input parameter definition
+          const paramDef = (func.inputParameters || []).find(p => p.name === paramName);
+          
+          if (paramDef && paramDef.type === 'document') {
+            // For document parameters, find matching sample document by parameter name or filename
+            const sampleDoc = sampleDocuments.find(doc => 
+              doc.parameterName === paramName || 
+              doc.fileName === inputValue
+            );
+            
+            if (sampleDoc) {
+              // Pass the document ID to the AI function so it can access the content
+              processedInputs[paramName] = [sampleDoc.id];
+              console.log(`🔄 Mapped document ${inputValue} to sample doc ID: ${sampleDoc.id}`);
+            } else {
+              console.log(`⚠️ No sample document found for ${paramName} with value: ${inputValue}`);
+              processedInputs[paramName] = [];
+            }
+          } else {
+            // For non-document parameters, use input as-is
+            processedInputs[paramName] = inputValue;
+          }
+        }
+
         // Import and use the Gemini AI function
         const { testAIOnlyTool } = await import("./gemini");
         
         const aiResults = await testAIOnlyTool(
           func.description,
           func.inputParameters || [],
-          inputs,
+          processedInputs,
           sampleDocuments
         );
 
