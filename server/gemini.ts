@@ -188,64 +188,106 @@ Value1\tValue2\tValue3
   return `Parameter "${p.name.replace(/\s+/g, '_')}" receives: ${p.type.toUpperCase()} data`;
 }).join('\n\n')}
 
-CRITICAL ARRAY PROCESSING RULES:
-- Data parameters are ALWAYS arrays of objects: [{"Key": "Value1"}, {"Key": "Value2"}]
-- NEVER check isinstance(param, list) - the array is the direct parameter value
-- ALWAYS use: for record in parameter_name:
-- ALWAYS extract: value = record["Key_Name"]
-- Generate ONE result per array item
+ITERATION vs SINGLE OBJECT - CRYSTAL CLEAR RULES:
 
-OUTPUT FORMAT - EXACT SCHEMA:
+OUTPUT TYPE: ${outputType.toUpperCase()}
+${outputType === 'multiple' ? `
+THIS IS A MULTIPLE OUTPUT FUNCTION - MUST ITERATE:
+- You MUST create a for loop to process each array item
+- Each array item becomes ONE result in the output
+- Generate MULTIPLE results (one per array item)
+
+MANDATORY ITERATION PATTERN:
+for record in array_parameter:
+    value = record["field_name"]  # Extract the value from THIS record
+    # Process THIS individual value
+    result = process_this_value(value, other_params)
+    results.append(result)  # Add ONE result for THIS array item
+` : `
+THIS IS A SINGLE OUTPUT FUNCTION - NO ITERATION:
+- Process the input parameter as a whole
+- Generate ONE single result
+- Do NOT use for loops on the main parameter
+- Return a single result in array format
+`}
+
+EXACT ARRAY PROCESSING FOR YOUR FUNCTION:
+${dataInputs.length > 0 ? `
+Parameter ${dataInputs[0].name.replace(/\s+/g, '_')} contains:
+${JSON.stringify(dataInputs[0].sampleData?.rows || [])}
+
+YOU MUST ITERATE LIKE THIS:
+for record in ${dataInputs[0].name.replace(/\s+/g, '_')}:
+    ${dataInputs[0].sampleData?.columns?.[0].toLowerCase().replace(/\s+/g, '_')} = record["${dataInputs[0].sampleData?.columns?.[0]}"]
+    # Now ${dataInputs[0].sampleData?.columns?.[0].toLowerCase().replace(/\s+/g, '_')} contains: "Employer Code", then "Date Pensionable Service Commenced", etc.
+    
+    # Process this ONE ${dataInputs[0].sampleData?.columns?.[0].toLowerCase()}
+    worksheet_found = find_worksheet_containing(${dataInputs[0].sampleData?.columns?.[0].toLowerCase().replace(/\s+/g, '_')}, excel_content)
+    
+    # Add ONE result for THIS ${dataInputs[0].sampleData?.columns?.[0].toLowerCase()}
+    results.append({
+        "extractedValue": worksheet_found,
+        "validationStatus": "valid" if worksheet_found else "not_found",
+        "aiReasoning": f"Searched for column '{${dataInputs[0].sampleData?.columns?.[0].toLowerCase().replace(/\s+/g, '_')}}', found in worksheet: {worksheet_found}",
+        "confidenceScore": 90,
+        "documentSource": "input"
+    })
+
+EXPECTED OUTPUT: ${dataInputs[0].sampleData?.rows?.length || 0} results (one per array item)
+` : `
+NO ARRAY ITERATION NEEDED - Process document parameter directly
+`}
+
+FINAL OUTPUT FORMAT:
 [{
-  "extractedValue": "the_actual_value_found", 
+  "extractedValue": "actual_value_found", 
   "validationStatus": "valid|invalid|not_found",
-  "aiReasoning": "explanation_of_what_was_found_or_not_found",
+  "aiReasoning": "clear_explanation",
   "confidenceScore": 85,
   "documentSource": "input"
-}]
-
-FUNCTION TEMPLATE FOR ${name}:
-def extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')}):
-    results = []
-    
-    # Process each record from data parameter
-    ${dataInputs.length > 0 ? `for record in ${dataInputs[0].name.replace(/\s+/g, '_')}:
-        ${dataInputs[0].name.split(' ').map(w => w.toLowerCase()).join('_')} = record["${dataInputs[0].sampleData?.columns?.[0]}"]
-        # Process this individual ${dataInputs[0].sampleData?.columns?.[0].toLowerCase()}
-        found_result = search_in_document(${dataInputs[0].name.split(' ').map(w => w.toLowerCase()).join('_')}, document_parameter)
-        results.append({
-            "extractedValue": found_result,
-            "validationStatus": "valid" if found_result else "not_found",
-            "aiReasoning": f"Searched for {${dataInputs[0].name.split(' ').map(w => w.toLowerCase()).join('_')}}, found: {found_result}",
-            "confidenceScore": 90,
-            "documentSource": "input"
-        })` : `# Single processing logic here
-        result = process_document(document_parameter)
-        results.append({...})`}
-    
-    return results
+}${outputType === 'multiple' ? ', {...more results...}' : ''}]
 
 Return JSON: {"functionCode": "complete function", "metadata": {"parametersUsed": [${inputParameters.map(p => `"${p.name}"`).join(', ')}]}}`;
 
       const userPrompt = `Create Python function: ${name}
 Description: ${description}
 
-EXACT INPUT SPECIFICATION:
+EXACT INPUT FORMAT:
 ${inputParameters.map(p => {
   if (p.type === 'data' && p.sampleData?.rows) {
-    return `${p.name.replace(/\s+/g, '_')} = ${JSON.stringify(p.sampleData.rows)} (ARRAY OF ${p.sampleData.rows.length} OBJECTS)`;
+    return `${p.name.replace(/\s+/g, '_')} = ${JSON.stringify(p.sampleData.rows)}
+↳ This is an ARRAY with ${p.sampleData.rows.length} objects
+↳ Each object: ${JSON.stringify(p.sampleData.rows[0] || {})}
+↳ MUST iterate: for record in ${p.name.replace(/\s+/g, '_')}:
+↳ MUST extract: ${p.sampleData.columns?.[0]?.toLowerCase().replace(/\s+/g, '_')} = record["${p.sampleData.columns?.[0]}"]`;
   }
-  return `${p.name.replace(/\s+/g, '_')} = STRING content (${p.type})`;
-}).join('\n')}
+  return `${p.name.replace(/\s+/g, '_')} = STRING content (${p.type} parameter)`;
+}).join('\n\n')}
 
-Requirements:
-- Use None not null
-- Use True/False not true/false
-- Process arrays by iterating: for record in array_param:
-- Extract from objects: value = record["field_name"]
+ITERATION REQUIREMENT: ${outputType.toUpperCase()}
+${outputType === 'multiple' ? '✓ MUST USE FOR LOOP - Generate multiple results (one per array item)' : '✗ NO ITERATION - Generate single result from document'}
+
+${outputType === 'multiple' && dataInputs.length > 0 ? `
+MANDATORY CODE STRUCTURE:
+def extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')}):
+    results = []
+    for record in ${dataInputs[0].name.replace(/\s+/g, '_')}:
+        ${dataInputs[0].sampleData?.columns?.[0]?.toLowerCase().replace(/\s+/g, '_')} = record["${dataInputs[0].sampleData?.columns?.[0]}"]
+        # Process THIS ${dataInputs[0].sampleData?.columns?.[0]?.toLowerCase()}
+        # Search for THIS value in the document
+        # Append ONE result for THIS array item
+    return results
+
+EXPECTED: ${dataInputs[0].sampleData?.rows?.length || 0} results in final array
+` : ''}
+
+Python Requirements:
+- Use None not null, True/False not true/false
+- Standard libraries only (re, json)
+- Proper error handling
 - Return field_validations format
 
-Generate the complete function.`;
+Generate complete working function.`;
 
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
