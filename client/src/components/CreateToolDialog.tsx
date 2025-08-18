@@ -134,6 +134,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       setLoadingProgress(90);
       setLoadingMessage("Finalizing tool creation...");
       
+      console.log('🎉 AI generation response:', JSON.stringify(response, null, 2));
+      
       // Use the response to create the tool with generated code
       createTool.mutate(response);
     },
@@ -179,6 +181,14 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           // Reset multiline to false when type changes away from "text"
           if (field === "type" && value !== "text") {
             updatedParam.multiline = false;
+          }
+          // If changing to data type, add default identifier column
+          if (field === "type" && value === "data" && !updatedParam.sampleData) {
+            updatedParam.sampleData = {
+              name: "",
+              columns: ["Identifier"],
+              rows: []
+            };
           }
           return updatedParam;
         }
