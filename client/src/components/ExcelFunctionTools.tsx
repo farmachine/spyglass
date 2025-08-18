@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Code, Edit3, Trash2, Plus, X, FileText, Database, Type, Copy, Check, Brain, Settings, Play, Upload } from "lucide-react";
+import { Code, Edit3, Trash2, Plus, X, FileText, Database, Type, Copy, Check, Brain, Settings, Play, Upload, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -64,6 +64,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
 
 
   const [showColumnInput, setShowColumnInput] = useState<Set<string>>(new Set());
+  const [expandedInputs, setExpandedInputs] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -108,6 +109,23 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
       ...prev,
       inputParameters: prev.inputParameters.filter(param => param.id !== id)
     }));
+    setExpandedInputs(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(id);
+      return newSet;
+    });
+  };
+
+  const toggleInputExpanded = (id: string) => {
+    setExpandedInputs(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
   };
 
   // Sample data management functions
@@ -676,20 +694,35 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                               </p>
                             ) : (
                               formData.inputParameters.map((param) => (
-                                <div key={param.id} className="border border-gray-200 rounded-lg p-4 space-y-3">
-                                  <div className="flex items-center justify-between">
-                                    <Badge variant="outline" className="border-gray-300">
-                                      @{param.name || "parameter-name"}
-                                    </Badge>
+                                <div key={param.id} className="border border-gray-200 rounded-lg">
+                                  <div 
+                                    className="flex items-center justify-between p-4 cursor-pointer"
+                                    onClick={() => toggleInputExpanded(param.id)}
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <Badge variant="outline" className="border-gray-300">
+                                        @{param.name || "parameter-name"}
+                                      </Badge>
+                                      {expandedInputs.has(param.id) ? (
+                                        <ChevronDown className="h-4 w-4 text-gray-500" />
+                                      ) : (
+                                        <ChevronRight className="h-4 w-4 text-gray-500" />
+                                      )}
+                                    </div>
                                     <Button
                                       size="sm"
                                       variant="ghost"
-                                      onClick={() => removeInputParameter(param.id)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        removeInputParameter(param.id);
+                                      }}
                                       className="text-red-600 hover:text-red-800 hover:bg-red-50"
                                     >
                                       <X className="h-4 w-4" />
                                     </Button>
                                   </div>
+                                  {expandedInputs.has(param.id) && (
+                                    <div className="p-4 border-t border-gray-200 space-y-3">
                                   <div className="grid grid-cols-2 gap-4">
                                     <div>
                                       <Label className="text-sm font-medium text-gray-700">Input Name</Label>
@@ -941,7 +974,8 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                                       )}
                                     </div>
                                   )}
-
+                                    </div>
+                                  )}
                                 </div>
                               ))
                             )}
