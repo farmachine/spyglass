@@ -604,7 +604,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                         <Button
                           onClick={() => debugTool(testingTool)}
                           disabled={isDebugging || !debugText.trim()}
-                          className="bg-amber-600 hover:bg-amber-700 text-white flex items-center gap-2"
+                          className="bg-gray-600 hover:bg-gray-700 text-white flex items-center gap-2"
                         >
                           <Brain className="h-4 w-4" />
                           {isDebugging ? 'Debugging...' : 'Debug Tool'}
