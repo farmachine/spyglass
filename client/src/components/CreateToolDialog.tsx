@@ -58,6 +58,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   const [loadingMessage, setLoadingMessage] = useState("");
   const [expandedInputs, setExpandedInputs] = useState<Set<string>>(new Set());
   const [showColumnInput, setShowColumnInput] = useState<Set<string>>(new Set());
+  const [processingParams, setProcessingParams] = useState<Set<string>>(new Set());
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -72,6 +73,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     setLoadingProgress(0);
     setExpandedInputs(new Set());
     setShowColumnInput(new Set());
+    setProcessingParams(new Set());
   };
 
   // Load editing function data when provided
@@ -561,6 +563,9 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     if (!file) return;
     
     console.log('📁 Sample file selected:', file.name, 'Type:', file.type, 'Size:', file.size);
+    
+    // Start processing for this parameter
+    setProcessingParams(prev => new Set([...prev, paramId]));
 
     try {
       // Get upload URL for the sample file
@@ -592,20 +597,68 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         throw new Error("Failed to upload file");
       }
 
+      const fileURL = uploadURL.split('?')[0]; // Store the base URL without query params
+      
       // Update the parameter with the uploaded file info temporarily
       updateInputParameter(paramId, "sampleFile", file.name);
-      updateInputParameter(paramId, "sampleFileURL", uploadURL.split('?')[0]); // Store the base URL without query params
+      updateInputParameter(paramId, "sampleFileURL", fileURL);
       
-      toast({
-        title: "Sample File Uploaded",
-        description: `Sample file "${file.name}" has been uploaded and will be processed when the tool is created.`,
-      });
+      // Immediately process the uploaded document for extraction if editing existing function
+      const param = inputParameters.find(p => p.id === paramId);
+      if (param && editingFunction?.id) {
+        try {
+          const processResponse = await fetch("/api/sample-documents/process", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token && { Authorization: `Bearer ${token}` })
+            },
+            body: JSON.stringify({
+              functionId: editingFunction.id,
+              parameterName: param.name,
+              fileName: file.name,
+              fileURL: fileURL
+            })
+          });
+
+          if (!processResponse.ok) {
+            throw new Error("Failed to process document for extraction");
+          }
+
+          const processResult = await processResponse.json();
+          console.log('✅ Sample document processed:', processResult);
+          
+          toast({
+            title: "Sample File Processed",
+            description: `Sample file "${file.name}" has been uploaded and processed for extraction.`,
+          });
+        } catch (processError) {
+          console.error("Processing error:", processError);
+          toast({
+            title: "Processing Warning",
+            description: `File uploaded but processing failed. It will be processed when testing the tool.`,
+            variant: "destructive"
+          });
+        }
+      } else {
+        toast({
+          title: "Sample File Uploaded",
+          description: `Sample file "${file.name}" uploaded. It will be processed when the tool is created.`,
+        });
+      }
     } catch (error) {
       console.error("Upload error:", error);
       toast({
         title: "Upload Failed",
         description: "Failed to upload sample file. Please try again.",
         variant: "destructive"
+      });
+    } finally {
+      // Stop processing for this parameter
+      setProcessingParams(prev => {
+        const newSet = new Set([...prev]);
+        newSet.delete(paramId);
+        return newSet;
       });
     }
   };
@@ -905,15 +958,24 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                                     Upload a sample document to test this tool.
                                   </Label>
                                   <div className="relative">
-                                    <input
-                                      type="file"
-                                      accept=".xlsx,.xls,.docx,.doc,.pdf,.json,.csv,.txt"
-                                      onChange={(e) => handleSampleFileUpload(param.id, e.target.files?.[0])}
-                                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                    />
-                                    <div className="flex items-center justify-center w-full h-10 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors cursor-pointer">
-                                      <Upload className="h-5 w-5 text-gray-400" />
-                                    </div>
+                                    {!processingParams.has(param.id) ? (
+                                      <>
+                                        <input
+                                          type="file"
+                                          accept=".xlsx,.xls,.docx,.doc,.pdf,.json,.csv,.txt"
+                                          onChange={(e) => handleSampleFileUpload(param.id, e.target.files?.[0])}
+                                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                        />
+                                        <div className="flex items-center justify-center w-full h-10 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors cursor-pointer">
+                                          <Upload className="h-5 w-5 text-gray-400" />
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <div className="flex items-center justify-center w-full h-10 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50">
+                                        <Loader2 className="h-5 w-5 text-blue-600 animate-spin mr-2" />
+                                        <span className="text-sm text-blue-700">Processing document...</span>
+                                      </div>
+                                    )}
                                   </div>
                                   {param.sampleFile && (
                                     <div className="flex items-center gap-2 mt-2">
