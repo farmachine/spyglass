@@ -120,7 +120,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'excel-functions'] });
       toast({ title: "Tool Updated", description: "Tool has been updated successfully." });
       setEditingFunction?.(null);
       setOpen(false);
@@ -156,7 +156,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       return response;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'excel-functions'] });
       toast({
         title: "Tool Created",
         description: "Tool has been created successfully."
