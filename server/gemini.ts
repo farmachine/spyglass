@@ -291,12 +291,39 @@ IMPORTANT:
 - Do NOT expect Excel cell references (A1, B2) - work with this text format
 - Do NOT use pandas, openpyxl, or document parsing libraries - process the string content directly
 
+FUNCTION PROCESSING PATTERNS:
+
+ARRAY ITERATION PATTERN (for multiple outputs):
+- When processing data input parameters (arrays of objects), ALWAYS use for loop iteration
+- Process each object in the array individually
+- Extract the identifier (first property) from each object
+- Generate one result per array item
+- Example structure:
+  ```python
+  for i, record in enumerate(data_array):
+      identifier = record[list(record.keys())[0]]  # First property is identifier
+      # Process this individual record
+      result = process_single_record(identifier, other_params)
+      results.append(result)
+  ```
+
+SINGLE OBJECT PATTERN (for single outputs):
+- When processing single values or documents, process directly
+- Extract one primary value or result
+- Return single result in array format for consistency
+- Example structure:
+  ```python
+  single_value = extract_from_document(document_content)
+  results.append({"extractedValue": single_value, ...})
+  ```
+
 Requirements:
 - Function must be named "extract_function"
 - Must accept parameters based on the user-defined input parameters: ${inputParameters.map(p => p.name).join(', ')}
 - CRITICAL: All input parameters are either STRING VALUES (document content) or ARRAYS OF OBJECTS (data inputs)
 - Document parameters contain pre-processed text content in the exact Excel format shown above
 - Data parameters are arrays of objects where first property is the identifier
+- ALWAYS iterate through array parameters using for loops - never process arrays as single strings
 - Must use ALL input parameters defined by the user: ${inputParameters.map(p => `@${p.name}`).join(', ')}
 - Must output data compatible with field_validations schema (array of objects)
 - Must handle errors gracefully and return valid JSON
@@ -329,17 +356,139 @@ Field Validations Output Schema (EXACT format required):
 All Input Parameters (use ALL of these in your function):
 ${inputParameters.map(p => `- @${p.name} (${p.type}): ${p.description}`).join('\n')}
 
+COMMON FUNCTION PATTERNS TO IMPLEMENT:
+
+1. **COLUMN-TO-WORKSHEET MAPPING** (like the current function):
+```python
+def extract_function(column_names, excel_content):
+    results = []
+    for record in column_names:
+        column_name = record[list(record.keys())[0]]
+        worksheet = find_worksheet_for_column(column_name, excel_content)
+        results.append({"extractedValue": worksheet, "validationStatus": "valid" if worksheet else "invalid", ...})
+    return results
+```
+
+2. **VALUE EXTRACTION FROM EXCEL**:
+```python
+def extract_function(row_identifiers, excel_content):
+    results = []
+    for record in row_identifiers:
+        identifier = record[list(record.keys())[0]]
+        value = extract_value_from_excel_by_identifier(identifier, excel_content)
+        results.append({"extractedValue": value, ...})
+    return results
+```
+
+3. **DOCUMENT ANALYSIS** (single result):
+```python
+def extract_function(document_content):
+    results = []
+    analysis_result = analyze_document(document_content)
+    results.append({"extractedValue": analysis_result, "validationStatus": "valid", ...})
+    return results
+```
+
+4. **CROSS-REFERENCE LOOKUP**:
+```python
+def extract_function(identifiers, reference_document):
+    results = []
+    for record in identifiers:
+        identifier = record[list(record.keys())[0]]
+        lookup_result = lookup_in_reference(identifier, reference_document)
+        results.append({"extractedValue": lookup_result, ...})
+    return results
+```
+
 Function Name: ${name}
 Function Description: ${description}
 
 ${aiAssistanceRequired ? `AI Assistance Prompt: ${aiAssistancePrompt}` : ''}
 
+MANDATORY FUNCTION STRUCTURE:
+```python
+def extract_function(${inputParameters.map(p => p.name.toLowerCase().replace(/\s+/g, '_')).join(', ')}):
+    results = []
+    
+    try:
+        # PARAMETER VALIDATION AND NORMALIZATION
+        ${inputParameters.filter(p => p.type === 'data').length > 0 ? `
+        # Handle data input parameters (arrays of objects)
+        ${inputParameters.filter(p => p.type === 'data').map(p => `
+        ${p.name.toLowerCase().replace(/\s+/g, '_')}_records = []
+        if isinstance(${p.name.toLowerCase().replace(/\s+/g, '_')}, list):
+            ${p.name.toLowerCase().replace(/\s+/g, '_')}_records = ${p.name.toLowerCase().replace(/\s+/g, '_')}
+        elif isinstance(${p.name.toLowerCase().replace(/\s+/g, '_')}, str):
+            import json
+            try:
+                parsed = json.loads(${p.name.toLowerCase().replace(/\s+/g, '_')})
+                if isinstance(parsed, list):
+                    ${p.name.toLowerCase().replace(/\s+/g, '_')}_records = parsed
+            except:
+                pass
+        `).join('')}` : ''}
+        
+        # PROCESSING LOGIC
+        ${outputType === 'multiple' ? `
+        # Multiple output: iterate through data records
+        for i, record in enumerate(${inputParameters.find(p => p.type === 'data')?.name.toLowerCase().replace(/\s+/g, '_') || 'data'}_records):
+            # Extract identifier (first property)
+            if isinstance(record, dict) and record:
+                identifier = str(record[list(record.keys())[0]])
+            else:
+                identifier = str(record)
+            
+            # Process individual record here
+            extracted_value = ""  # Your extraction logic
+            status = "valid"      # Your validation logic
+            reasoning = ""        # Your reasoning logic
+            confidence = 70       # Your confidence logic
+            
+            results.append({
+                "extractedValue": extracted_value,
+                "validationStatus": status,
+                "aiReasoning": reasoning,
+                "confidenceScore": confidence,
+                "documentSource": "input"
+            })
+        ` : `
+        # Single output: process directly
+        extracted_value = ""  # Your extraction logic
+        status = "valid"      # Your validation logic
+        reasoning = ""        # Your reasoning logic
+        confidence = 70       # Your confidence logic
+        
+        results.append({
+            "extractedValue": extracted_value,
+            "validationStatus": status,
+            "aiReasoning": reasoning,
+            "confidenceScore": confidence,
+            "documentSource": "input"
+        })
+        `}
+        
+    except Exception as e:
+        results.append({
+            "extractedValue": "",
+            "validationStatus": "error",
+            "aiReasoning": f"Function execution error: {str(e)}",
+            "confidenceScore": 0,
+            "documentSource": "error"
+        })
+    
+    return results
+```
+
 The function should:
-1. Process the input string parameters (which contain already-extracted document content)
-2. Extract relevant data by analyzing the string content using pattern matching, text processing, or data parsing
-3. Return results in the exact field_validations format shown above
-4. Handle missing data gracefully with appropriate validation status
-5. IMPORTANT: Do NOT attempt to read binary files or use document parsing libraries - work only with the provided string content
+1. Use the EXACT parameter names from the user's input definition
+2. Validate and normalize all input parameters properly
+3. For data parameters: Always iterate through arrays using for loops
+4. For document parameters: Parse pre-extracted string content using text processing
+5. Extract relevant data using pattern matching, text processing, or data parsing
+6. Return results in the exact field_validations format shown above
+7. Handle errors gracefully with comprehensive exception handling
+8. NEVER process arrays as single strings - always iterate individual records
+9. ALWAYS extract the identifier from the first property of each record
 
 Respond with JSON in this format:
 {
