@@ -166,221 +166,86 @@ ${aiAssistanceRequired ? `\nAdditional AI Instructions: ${aiAssistancePrompt}` :
       
       // Removed hardcoded worksheet bypass - now using AI generation for all functions
 
-      // Generate Python script with field_validations compatibility
-      const systemPrompt = `You are an expert Python developer creating data extraction functions for the extrapl platform.
-Generate a Python function that processes data and outputs to the field_validations database schema.
+      // COMPLETELY REWRITTEN AI PROMPT FOR EXACT INPUT FORMAT UNDERSTANDING
+      const systemPrompt = `You are an expert Python developer creating data extraction functions for extrapl.
 
-CRITICAL: The output MUST be exactly compatible with the field_validations database schema format.
-
-This function is designed to create: ${outputType === "single" ? "MAIN SCHEMA FIELDS (single values)" : "COLLECTION PROPERTIES (multiple records)"}
-
-${outputType === "multiple" ? `
-ITERATION REQUIREMENTS FOR MULTIPLE OUTPUT:
-- MUST create a 'for each' loop when outputType is 'multiple'
-- Data input parameters are provided as arrays of objects with this exact schema:
-  [
-    {"Identifier": "Value", "Prop 1": "Value", "Prop 2": "Value"},
-    {"Identifier": "Value2", "Prop 1": "Value2", "Prop 2": "Value2"}
-  ]
-- The first property in each object is ALWAYS the IDENTIFIER - this is the main property to process in each iteration
-- Each iteration should process one record from the data array and generate appropriate field validation results
-- Use the identifier as the primary key for each extraction result
-` : ''}
-
-EXCEL DOCUMENT FORMAT:
-Excel documents are ALWAYS provided in this exact format from extrapl's document extraction:
-
-=== Sheet: SheetName1 ===
-Column1 Column2 Column3 Column4
-Value1  Value2  Value3  Value4
-Value5  Value6  Value7  Value8
-
-=== Sheet: SheetName2 ===
-ColA    ColB    ColC
-DataA   DataB   DataC
-
-IMPORTANT: 
-- Excel content is tab-separated (\t) values
-- Sheet names are marked with "=== Sheet: SheetName ===" 
-- First line after sheet marker is headers
-- Subsequent lines are data rows
-- Do NOT expect Excel cell references (A1, B2) - work with this text format
-- Do NOT use pandas, openpyxl, or document parsing libraries - process the string content directly
-
-FUNCTION PROCESSING PATTERNS:
-
-ARRAY ITERATION PATTERN (for multiple outputs):
-- When processing data input parameters (arrays of objects), ALWAYS use for loop iteration
-- Process each object in the array individually
-- Extract the identifier (first property) from each object
-- Generate one result per array item
-- Example structure:
-  # CORRECT: Iterate through array parameter
-  for i, record in enumerate(data_array):
-      identifier = record[list(record.keys())[0]]  # First property is identifier
-      # Process this individual record (e.g., find worksheet containing this column)
-      result = process_single_record(identifier, excel_content)
-      results.append({"extractedValue": result, ...})
-  
-- CRITICAL EXAMPLE - Column Name Processing:
-  # Input: [{"Column Name": "Employer Code"}, {"Column Name": "Date Started"}]
-  # WRONG: search_for_column('[{"Column Name": "Employer Code"}, {"Column Name": "Date Started"}]')
-  # CORRECT:
-  for record in column_data:
-      column_name = record["Column Name"]  # Extract "Employer Code", then "Date Started"
-      worksheet = find_worksheet_with_column(column_name, excel_content)
-      results.append({"extractedValue": worksheet, ...})
-
-SINGLE OBJECT PATTERN (for single outputs):
-- When processing single values or documents, process directly
-- Extract one primary value or result
-- Return single result in array format for consistency
-- Example structure:
-  single_value = extract_from_document(document_content)
-  results.append({"extractedValue": single_value, ...})
-
-Requirements:
-- Function must be named "extract_function"
-- Must accept parameters based on the user-defined input parameters: ${inputParameters.map(p => p.name).join(', ')}
-- CRITICAL: All input parameters are either STRING VALUES (document content) or ARRAYS OF OBJECTS (data inputs)
-- Document parameters contain pre-processed text content in the exact Excel format shown above
-- Data parameters are arrays of objects where first property is the identifier
-- ALWAYS iterate through array parameters using for loops - never process arrays as single strings
-- ARRAY DETECTION: If parameter value is [{"Key": "Value1"}, {"Key": "Value2"}], iterate through each object
-- COMMON ERROR: Never treat entire array as single value like '[{"Key": "Value1"}, {"Key": "Value2"}]'
-- CORRECT APPROACH: Extract each Value1, Value2, etc. separately using for loop
-- Must use ALL input parameters defined by the user: ${inputParameters.map(p => `@${p.name}`).join(', ')}
-- Must output data compatible with field_validations schema (array of objects)
-- Must handle errors gracefully and return valid JSON
-- Must include comprehensive error handling for all edge cases
-- Function should be fully self-contained and executable
-- ${outputType === "single" ? "Design for extracting single values that will become main schema fields" : "Design for extracting multiple records that will populate a collection"}
-${aiAssistanceRequired ? '- Must include AI assistance as the final step using the provided prompt' : ''}
-
-${dataInputs.length > 0 ? `
-DATA INPUT PARAMETERS WITH SAMPLE DATA:
-${dataInputs.map(p => `
-Parameter: ${p.name}
-Sample Data Schema: Array of objects where first property is the identifier
-Sample Records: ${JSON.stringify(p.sampleData?.rows || [], null, 2)}
-Identifier Property: ${p.sampleData?.columns?.[0] || 'N/A'}
-`).join('\n')}
-` : ''}
-
-Field Validations Output Schema (EXACT format required):
-[
-  {
-    "extractedValue": "string - the actual extracted value",
-    "validationStatus": "string - valid|invalid|pending", 
-    "aiReasoning": "string - explanation of extraction logic",
-    "confidenceScore": "number - 0-100 confidence percentage",
-    "documentSource": "string - source identifier"
+EXACT INPUT FORMAT FOR FUNCTION PARAMETERS:
+${inputParameters.map(p => {
+  if (p.type === 'data' && p.sampleData) {
+    return `Parameter "${p.name.replace(/\s+/g, '_')}" receives: ${JSON.stringify(p.sampleData.rows)}
+- This is an ARRAY OF OBJECTS
+- Each object has structure: ${JSON.stringify(p.sampleData.rows[0] || {})}
+- ITERATE through this array with: for record in ${p.name.replace(/\s+/g, '_')}:
+- EXTRACT values with: record["${p.sampleData.columns?.[0] || 'Column Name'}"]`;
+  } else if (p.type === 'document') {
+    return `Parameter "${p.name.replace(/\s+/g, '_')}" receives: STRING containing Excel data in format:
+=== Sheet: SheetName ===
+Header1\tHeader2\tHeader3
+Value1\tValue2\tValue3
+- Use string processing to find worksheets and columns
+- Split by lines and tabs to parse data`;
   }
-]
+  return `Parameter "${p.name.replace(/\s+/g, '_')}" receives: ${p.type.toUpperCase()} data`;
+}).join('\n\n')}
 
-All Input Parameters (use ALL of these in your function):
-${inputParameters.map(p => `- @${p.name} (${p.type}): ${p.description}`).join('\n')}
+CRITICAL ARRAY PROCESSING RULES:
+- Data parameters are ALWAYS arrays of objects: [{"Key": "Value1"}, {"Key": "Value2"}]
+- NEVER check isinstance(param, list) - the array is the direct parameter value
+- ALWAYS use: for record in parameter_name:
+- ALWAYS extract: value = record["Key_Name"]
+- Generate ONE result per array item
 
-COMMON FUNCTION PATTERNS TO IMPLEMENT:
+OUTPUT FORMAT - EXACT SCHEMA:
+[{
+  "extractedValue": "the_actual_value_found", 
+  "validationStatus": "valid|invalid|not_found",
+  "aiReasoning": "explanation_of_what_was_found_or_not_found",
+  "confidenceScore": 85,
+  "documentSource": "input"
+}]
 
-1. COLUMN-TO-WORKSHEET MAPPING (like the current function):
-   - Iterate through column name records
-   - Extract column name from first property
-   - Find worksheet containing that column
-   - Return worksheet name as extracted value
+FUNCTION TEMPLATE FOR ${name}:
+def extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')}):
+    results = []
+    
+    # Process each record from data parameter
+    ${dataInputs.length > 0 ? `for record in ${dataInputs[0].name.replace(/\s+/g, '_')}:
+        ${dataInputs[0].name.split(' ').map(w => w.toLowerCase()).join('_')} = record["${dataInputs[0].sampleData?.columns?.[0]}"]
+        # Process this individual ${dataInputs[0].sampleData?.columns?.[0].toLowerCase()}
+        found_result = search_in_document(${dataInputs[0].name.split(' ').map(w => w.toLowerCase()).join('_')}, document_parameter)
+        results.append({
+            "extractedValue": found_result,
+            "validationStatus": "valid" if found_result else "not_found",
+            "aiReasoning": f"Searched for {${dataInputs[0].name.split(' ').map(w => w.toLowerCase()).join('_')}}, found: {found_result}",
+            "confidenceScore": 90,
+            "documentSource": "input"
+        })` : `# Single processing logic here
+        result = process_document(document_parameter)
+        results.append({...})`}
+    
+    return results
 
-2. VALUE EXTRACTION FROM EXCEL:
-   - Iterate through row identifier records  
-   - Extract identifier from first property
-   - Find matching row in Excel content
-   - Return specific cell value
+Return JSON: {"functionCode": "complete function", "metadata": {"parametersUsed": [${inputParameters.map(p => `"${p.name}"`).join(', ')}]}}`;
 
-3. DOCUMENT ANALYSIS (single result):
-   - Process document content directly
-   - Apply analysis logic
-   - Return single result in array format
-
-4. CROSS-REFERENCE LOOKUP:
-   - Iterate through identifier records
-   - Extract identifier from first property
-   - Look up value in reference document
-   - Return lookup result
-
-Function Name: ${name}
-Function Description: ${description}
-
-${aiAssistanceRequired ? `AI Assistance Prompt: ${aiAssistancePrompt}` : ''}
-
-MANDATORY FUNCTION STRUCTURE PATTERN:
-Your function must follow this exact pattern and use ALL input parameters defined by the user.
-
-The function should:
-1. Use the EXACT parameter names from the user's input definition
-2. Validate and normalize all input parameters properly
-3. For data parameters: Always iterate through arrays using for loops
-4. For document parameters: Parse pre-extracted string content using text processing
-5. Extract relevant data using pattern matching, text processing, or data parsing
-6. Return results in the exact field_validations format shown above
-7. Handle errors gracefully with comprehensive exception handling
-8. NEVER process arrays as single strings - always iterate individual records
-9. ALWAYS extract the identifier from the first property of each record
-
-Respond with JSON in this format:
-{
-  "functionCode": "complete Python function code as a string that returns field_validations format",
-  "metadata": {
-    "inputValidation": "validation rules",
-    "outputFormat": "field_validations_array", 
-    "dependencies": ["list", "of", "required", "libraries"],
-    "errorHandling": "error handling approach",
-    "parametersUsed": ["list", "of", "all", "parameter", "names"]
-  }
-}`;
-
-      console.log('📤 Sending Python script generation request to Gemini...');
-      
-      // Detailed prompt with explicit array iteration examples
-      const hasArrayData = dataInputs.length > 0;
-      
-      const userPrompt = `Generate a Python function named "extract_function" for: ${name}
-
+      const userPrompt = `Create Python function: ${name}
 Description: ${description}
 
-Function signature: def extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')}):
+EXACT INPUT SPECIFICATION:
+${inputParameters.map(p => {
+  if (p.type === 'data' && p.sampleData?.rows) {
+    return `${p.name.replace(/\s+/g, '_')} = ${JSON.stringify(p.sampleData.rows)} (ARRAY OF ${p.sampleData.rows.length} OBJECTS)`;
+  }
+  return `${p.name.replace(/\s+/g, '_')} = STRING content (${p.type})`;
+}).join('\n')}
 
-Parameters:
-${inputParameters.map(p => `- ${p.name.replace(/\s+/g, '_')}: ${p.description} (Type: ${p.type})`).join('\n')}
+Requirements:
+- Use None not null
+- Use True/False not true/false
+- Process arrays by iterating: for record in array_param:
+- Extract from objects: value = record["field_name"]
+- Return field_validations format
 
-${hasArrayData ? `
-CRITICAL - ARRAY ITERATION REQUIREMENTS:
-- Data parameters are provided as ARRAYS OF OBJECTS like: [{"Column Name": "Employer Code"}, {"Column Name": "Date Started"}]
-- ALWAYS iterate through each object in the array using a for loop
-- Extract the value from each object (e.g., record["Column Name"])
-- Process each value individually
-- Generate one result per array item
-
-CORRECT PATTERN:
-for record in ${dataInputs[0].name.replace(/\s+/g, '_')}:
-    ${dataInputs[0].name.split(' ').map(word => word.toLowerCase()).join('_')} = record["${dataInputs[0].sampleData?.columns?.[0] || 'Column Name'}"]
-    # Process this individual value
-    result = process_single_value(${dataInputs[0].name.split(' ').map(word => word.toLowerCase()).join('_')}, other_params)
-    results.append(result)
-
-WRONG APPROACH:
-- Never treat the entire array as a single string
-- Never pass the whole array like: process_data('[{"Column Name": "Value"}]')
-` : ''}
-
-Output Format: Array of objects in field_validations format
-[{"extractedValue": "value", "validationStatus": "valid", "aiReasoning": "explanation", "confidenceScore": 85, "documentSource": "input"}]
-
-Python Requirements:
-- Use None instead of null
-- Use True/False instead of true/false  
-- Use standard Python libraries only (re, json, etc.)
-- Handle errors gracefully with try/except
-
-Return JSON with functionCode and metadata fields.`;
+Generate the complete function.`;
 
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
