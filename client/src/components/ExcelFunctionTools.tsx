@@ -144,7 +144,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
     // Fetch impacted fields for this function
     try {
       const impactData = await apiRequest(`/api/excel-functions/${functionId}/impact`);
-      setImpactedFields(prev => ({ ...prev, [functionId]: impactData.impactedFields || [] }));
+      setImpactedFields(prev => ({ ...prev, [functionId]: impactData?.impactedFields || [] }));
     } catch (error) {
       console.warn('Could not fetch impact data:', error);
       setImpactedFields(prev => ({ ...prev, [functionId]: [] }));
@@ -288,15 +288,15 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                     </div>
 
                     {/* Impact Warning */}
-                    {editingCode[func.id] && impactedFields[func.id] && impactedFields[func.id].length > 0 && (
+                    {editingCode[func.id] && impactedFields[func.id] && Array.isArray(impactedFields[func.id]) && impactedFields[func.id].length > 0 && (
                       <Alert className="m-3 border-orange-200 bg-orange-50">
                         <AlertTriangle className="h-4 w-4 text-orange-600" />
                         <AlertDescription className="text-orange-800">
                           <div className="font-medium mb-1">Warning: Code changes may impact the following extractions:</div>
                           <ul className="text-sm list-disc list-inside">
-                            {impactedFields[func.id].map((field, index) => (
+                            {impactedFields[func.id]?.map((field, index) => (
                               <li key={index}>{field}</li>
-                            ))}
+                            )) || []}
                           </ul>
                         </AlertDescription>
                       </Alert>
