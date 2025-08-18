@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, X, FileText, Database, Type, Copy, Check, Upload, Loader2, ChevronDown, ChevronRight, Key, RefreshCw } from "lucide-react";
+import { Plus, X, FileText, Database, Type, Copy, Check, Upload, Loader2, ChevronDown, ChevronRight, Key, RefreshCw, Brain, Code } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -813,32 +813,62 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
             </CardContent>
           </Card>
 
-          {/* Tool Type */}
-          <Card className="border-gray-200">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg text-gray-800">Tool Type</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Select value={toolType || ""} onValueChange={(value: "AI_ONLY" | "CODE") => setToolType(value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select tool type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="AI_ONLY">AI</SelectItem>
-                  <SelectItem value="CODE">Code</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-sm text-gray-600 mt-2">
-                {toolType === "CODE"
-                  ? "User-defined Python code that returns results converted to field_validations format"
-                  : "AI-powered tool that uses prompts to analyze and extract data"
-                }
-              </p>
-            </CardContent>
-          </Card>
+          {/* Tool Type - Only show in create mode */}
+          {!isEditMode && (
+            <Card className="border-gray-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg text-gray-800">Tool Type</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Select value={toolType || ""} onValueChange={(value: "AI_ONLY" | "CODE") => setToolType(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select tool type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="AI_ONLY">AI</SelectItem>
+                    <SelectItem value="CODE">Code</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-gray-600 mt-2">
+                  {toolType === "CODE"
+                    ? "User-defined Python code that returns results converted to field_validations format"
+                    : "AI-powered tool that uses prompts to analyze and extract data"
+                  }
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Inputs */}
-          <Card className="border-gray-200">
+          {/* Tool Type Display - Only show in edit mode */}
+          {isEditMode && (
+            <Card className="border-gray-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg text-gray-800">Tool Type</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2">
+                  {toolType === "AI_ONLY" ? (
+                    <Brain className="h-5 w-5 text-purple-600" />
+                  ) : (
+                    <Code className="h-5 w-5 text-blue-600" />
+                  )}
+                  <span className="text-sm font-medium">
+                    {toolType === "AI_ONLY" ? "AI Tool" : "Code Tool"}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600 mt-2">
+                  {toolType === "CODE"
+                    ? "User-defined Python code that returns results converted to field_validations format"
+                    : "AI-powered tool that uses prompts to analyze and extract data"
+                  }
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Inputs - Only show when tool type is selected */}
+          {(toolType || isEditMode) && (
+            <Card className="border-gray-200">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg text-gray-800">
@@ -1214,6 +1244,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
               )}
             </CardContent>
           </Card>
+          )}
 
           {/* AI Assistance (only for SCRIPT functions) */}
           {toolType === "CODE" && (
