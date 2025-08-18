@@ -353,7 +353,11 @@ export default function Tools({ projectId }: ExcelToolsProps) {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                    <Brain className="h-5 w-5 text-gray-600" />
+                    {tool.functionType === 'AI_ONLY' ? (
+                      <Brain className="h-5 w-5 text-gray-600" />
+                    ) : (
+                      <Code className="h-5 w-5 text-gray-600" />
+                    )}
                     {tool.name}
                   </CardTitle>
                 </div>
@@ -370,18 +374,8 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                     <div className="flex items-center gap-1 text-xs text-gray-500">
                       <span>Used {tool.usageCount} times</span>
                     </div>
-                    <Badge variant="outline" className="text-xs flex items-center gap-1">
-                      {tool.functionType === 'AI_ONLY' ? (
-                        <>
-                          <Brain className="h-3 w-3" />
-                          AI
-                        </>
-                      ) : (
-                        <>
-                          <Code className="h-3 w-3" />
-                          Script
-                        </>
-                      )}
+                    <Badge variant="outline" className="text-xs">
+                      {tool.functionType === 'AI_ONLY' ? 'AI' : 'Script'}
                     </Badge>
                   </div>
                   
