@@ -675,13 +675,16 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby="create-tool-dialog-description">
         <DialogHeader>
           <DialogTitle className="text-gray-800 flex items-center">
             {editingFunction ? 'Edit' : 'Create new'} extrapl
             <span className="w-2 h-2 rounded-full mx-2" style={{ backgroundColor: '#4F63A4' }}></span>
             Tool
           </DialogTitle>
+          <p id="create-tool-dialog-description" className="sr-only">
+            {editingFunction ? 'Edit existing extraction tool configuration and parameters' : 'Create new extraction tool with AI assistance for document processing'}
+          </p>
         </DialogHeader>
 
         <div className="space-y-6">

@@ -456,7 +456,7 @@ export default function PropertyDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto" aria-describedby="property-dialog-description">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {property ? "Edit Property" : "Add Property"}
@@ -467,7 +467,7 @@ export default function PropertyDialog({
               </Badge>
             )}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription id="property-dialog-description">
             {property?.isIdentifier 
               ? `Editing the identifier field for "${collectionName}" collection. This field uniquely identifies items in the collection and must remain as TEXT type.`
               : `Add a property to the "${collectionName}" collection. The description helps the AI understand what data to extract for this property.`
