@@ -113,11 +113,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                    {func.functionType === 'AI_ONLY' ? (
-                      <Brain className="h-5 w-5 text-gray-600" />
-                    ) : (
-                      <Code className="h-5 w-5 text-gray-600" />
-                    )}
+                    <Brain className="h-5 w-5 text-gray-600" />
                     {func.name}
                   </CardTitle>
                 </div>
@@ -135,7 +131,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                       <span>Used {func.usageCount} times</span>
                     </div>
                     <Badge variant="outline" className="text-xs">
-                      {func.functionType === 'AI_ONLY' ? 'AI' : 'Code'}
+                      {func.functionType === 'AI_ONLY' ? 'AI' : 'Script'}
                     </Badge>
                   </div>
                   
@@ -176,7 +172,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
         {(!functions || functions.length === 0) && (
           <Card className="p-8 text-center border-gray-200 bg-gray-50">
             <div className="text-gray-500">
-              <Code className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <Brain className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <h3 className="text-lg font-semibold mb-2 text-gray-700">No Tools Available</h3>
               <p className="text-gray-600">Tools will appear here after they are generated during extraction processes.</p>
             </div>
