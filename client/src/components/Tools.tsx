@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 
 import { Play, Edit3, Trash2, Brain } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
@@ -34,6 +36,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
   const [isRunningTest, setIsRunningTest] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [toolToDelete, setToolToDelete] = useState<string | null>(null);
+  const [testInputs, setTestInputs] = useState<Record<string, any>>({});
 
   const queryClient = useQueryClient();
 
@@ -71,11 +74,12 @@ export default function Tools({ projectId }: ExcelToolsProps) {
     setTestResults(null);
 
     try {
-      // Prepare inputs from sample parameters
-      const inputs = {};
+      // Prepare inputs from user inputs or sample parameters
+      const inputs: Record<string, any> = {};
       tool.inputParameters.forEach((param: any) => {
-        if (param.type === 'text' && param.sampleText) {
-          inputs[param.name] = param.sampleText;
+        const userInput = testInputs[param.name];
+        if (param.type === 'text') {
+          inputs[param.name] = userInput !== undefined ? userInput : (param.sampleText || '');
         } else if (param.type === 'document' && param.sampleFile) {
           inputs[param.name] = param.sampleFile;
         } else if (param.type === 'data' && param.sampleData) {
@@ -123,6 +127,15 @@ export default function Tools({ projectId }: ExcelToolsProps) {
   const handleTest = (tool: ExcelTool) => {
     setTestingTool(tool);
     setTestResults(null); // Clear previous results when opening test dialog
+    
+    // Initialize test inputs with sample data
+    const initialInputs: Record<string, any> = {};
+    tool.inputParameters?.forEach((param: any) => {
+      if (param.type === 'text') {
+        initialInputs[param.name] = param.sampleText || '';
+      }
+    });
+    setTestInputs(initialInputs);
   };
 
   if (isLoading) {
@@ -274,9 +287,33 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                         </span>
                       </div>
                       
-                      {param.type === 'text' && param.sampleText && (
-                        <div className="bg-gray-50 p-3 rounded border text-sm text-gray-700">
-                          {param.sampleText}
+                      {param.type === 'text' && (
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium text-gray-700">
+                            Input Value
+                          </label>
+                          {param.multiline ? (
+                            <Textarea
+                              value={testInputs[param.name] || ''}
+                              onChange={(e) => setTestInputs(prev => ({
+                                ...prev,
+                                [param.name]: e.target.value
+                              }))}
+                              placeholder="Enter text input..."
+                              className="w-full border-gray-300 rounded-lg"
+                              rows={4}
+                            />
+                          ) : (
+                            <Input
+                              value={testInputs[param.name] || ''}
+                              onChange={(e) => setTestInputs(prev => ({
+                                ...prev,
+                                [param.name]: e.target.value
+                              }))}
+                              placeholder="Enter text input..."
+                              className="w-full border-gray-300 rounded-lg"
+                            />
+                          )}
                         </div>
                       )}
                       
@@ -336,7 +373,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                   <Button 
                     onClick={() => runTest(testingTool)}
                     disabled={isRunningTest}
-                    className="flex items-center gap-2"
+                    className="bg-gray-700 hover:bg-gray-800 text-white flex items-center gap-2"
                   >
                     <Play className="h-4 w-4" />
                     {isRunningTest ? 'Running Test...' : 'Run Test'}
