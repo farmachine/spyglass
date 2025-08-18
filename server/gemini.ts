@@ -161,9 +161,6 @@ ${aiAssistanceRequired ? `\nAdditional AI Instructions: ${aiAssistancePrompt}` :
     } else {
       console.log('🐍 Generating Python code function...');
       
-      // Check for data input parameters with sample data
-      const dataInputs = inputParameters.filter(p => p.type === 'data' && p.sampleData);
-      
       // Removed hardcoded worksheet bypass - now using AI generation for all functions
 
       // Generate Python script with field_validations compatibility
