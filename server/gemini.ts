@@ -277,8 +277,17 @@ Return proper field validation format with extractedValue, validationStatus, aiR
       // Unescape newlines and other escape sequences for proper formatting
       result.functionCode = result.functionCode.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
       
+      // Validate the function starts with the correct signature
+      const expectedSignature = `def extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')}):`;
+      if (!result.functionCode.includes('def extract_function(')) {
+        console.error('❌ AI generated wrong function signature. Expected:', expectedSignature);
+        console.error('❌ Generated code starts with:', result.functionCode.substring(0, 100));
+        throw new Error('AI generated incorrect function signature - should be extract_function');
+      }
+      
       console.log('🎯 Generated Python function metadata:', result.metadata);
-      console.log('📝 Function code preview:', result.functionCode.substring(0, 200) + '...');
+      console.log('📝 Function code preview (first 300 chars):\n' + result.functionCode.substring(0, 300) + '...');
+      console.log('✅ Function signature validation passed');
       return result;
     }
   } catch (error) {
