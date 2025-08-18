@@ -299,23 +299,19 @@ ARRAY ITERATION PATTERN (for multiple outputs):
 - Extract the identifier (first property) from each object
 - Generate one result per array item
 - Example structure:
-  ```python
   for i, record in enumerate(data_array):
       identifier = record[list(record.keys())[0]]  # First property is identifier
       # Process this individual record
       result = process_single_record(identifier, other_params)
       results.append(result)
-  ```
 
 SINGLE OBJECT PATTERN (for single outputs):
 - When processing single values or documents, process directly
 - Extract one primary value or result
 - Return single result in array format for consistency
 - Example structure:
-  ```python
   single_value = extract_from_document(document_content)
   results.append({"extractedValue": single_value, ...})
-  ```
 
 Requirements:
 - Function must be named "extract_function"
@@ -358,126 +354,36 @@ ${inputParameters.map(p => `- @${p.name} (${p.type}): ${p.description}`).join('\
 
 COMMON FUNCTION PATTERNS TO IMPLEMENT:
 
-1. **COLUMN-TO-WORKSHEET MAPPING** (like the current function):
-```python
-def extract_function(column_names, excel_content):
-    results = []
-    for record in column_names:
-        column_name = record[list(record.keys())[0]]
-        worksheet = find_worksheet_for_column(column_name, excel_content)
-        results.append({"extractedValue": worksheet, "validationStatus": "valid" if worksheet else "invalid", ...})
-    return results
-```
+1. COLUMN-TO-WORKSHEET MAPPING (like the current function):
+   - Iterate through column name records
+   - Extract column name from first property
+   - Find worksheet containing that column
+   - Return worksheet name as extracted value
 
-2. **VALUE EXTRACTION FROM EXCEL**:
-```python
-def extract_function(row_identifiers, excel_content):
-    results = []
-    for record in row_identifiers:
-        identifier = record[list(record.keys())[0]]
-        value = extract_value_from_excel_by_identifier(identifier, excel_content)
-        results.append({"extractedValue": value, ...})
-    return results
-```
+2. VALUE EXTRACTION FROM EXCEL:
+   - Iterate through row identifier records  
+   - Extract identifier from first property
+   - Find matching row in Excel content
+   - Return specific cell value
 
-3. **DOCUMENT ANALYSIS** (single result):
-```python
-def extract_function(document_content):
-    results = []
-    analysis_result = analyze_document(document_content)
-    results.append({"extractedValue": analysis_result, "validationStatus": "valid", ...})
-    return results
-```
+3. DOCUMENT ANALYSIS (single result):
+   - Process document content directly
+   - Apply analysis logic
+   - Return single result in array format
 
-4. **CROSS-REFERENCE LOOKUP**:
-```python
-def extract_function(identifiers, reference_document):
-    results = []
-    for record in identifiers:
-        identifier = record[list(record.keys())[0]]
-        lookup_result = lookup_in_reference(identifier, reference_document)
-        results.append({"extractedValue": lookup_result, ...})
-    return results
-```
+4. CROSS-REFERENCE LOOKUP:
+   - Iterate through identifier records
+   - Extract identifier from first property
+   - Look up value in reference document
+   - Return lookup result
 
 Function Name: ${name}
 Function Description: ${description}
 
 ${aiAssistanceRequired ? `AI Assistance Prompt: ${aiAssistancePrompt}` : ''}
 
-MANDATORY FUNCTION STRUCTURE:
-```python
-def extract_function(${inputParameters.map(p => p.name.toLowerCase().replace(/\s+/g, '_')).join(', ')}):
-    results = []
-    
-    try:
-        # PARAMETER VALIDATION AND NORMALIZATION
-        ${inputParameters.filter(p => p.type === 'data').length > 0 ? `
-        # Handle data input parameters (arrays of objects)
-        ${inputParameters.filter(p => p.type === 'data').map(p => `
-        ${p.name.toLowerCase().replace(/\s+/g, '_')}_records = []
-        if isinstance(${p.name.toLowerCase().replace(/\s+/g, '_')}, list):
-            ${p.name.toLowerCase().replace(/\s+/g, '_')}_records = ${p.name.toLowerCase().replace(/\s+/g, '_')}
-        elif isinstance(${p.name.toLowerCase().replace(/\s+/g, '_')}, str):
-            import json
-            try:
-                parsed = json.loads(${p.name.toLowerCase().replace(/\s+/g, '_')})
-                if isinstance(parsed, list):
-                    ${p.name.toLowerCase().replace(/\s+/g, '_')}_records = parsed
-            except:
-                pass
-        `).join('')}` : ''}
-        
-        # PROCESSING LOGIC
-        ${outputType === 'multiple' ? `
-        # Multiple output: iterate through data records
-        for i, record in enumerate(${inputParameters.find(p => p.type === 'data')?.name.toLowerCase().replace(/\s+/g, '_') || 'data'}_records):
-            # Extract identifier (first property)
-            if isinstance(record, dict) and record:
-                identifier = str(record[list(record.keys())[0]])
-            else:
-                identifier = str(record)
-            
-            # Process individual record here
-            extracted_value = ""  # Your extraction logic
-            status = "valid"      # Your validation logic
-            reasoning = ""        # Your reasoning logic
-            confidence = 70       # Your confidence logic
-            
-            results.append({
-                "extractedValue": extracted_value,
-                "validationStatus": status,
-                "aiReasoning": reasoning,
-                "confidenceScore": confidence,
-                "documentSource": "input"
-            })
-        ` : `
-        # Single output: process directly
-        extracted_value = ""  # Your extraction logic
-        status = "valid"      # Your validation logic
-        reasoning = ""        # Your reasoning logic
-        confidence = 70       # Your confidence logic
-        
-        results.append({
-            "extractedValue": extracted_value,
-            "validationStatus": status,
-            "aiReasoning": reasoning,
-            "confidenceScore": confidence,
-            "documentSource": "input"
-        })
-        `}
-        
-    except Exception as e:
-        results.append({
-            "extractedValue": "",
-            "validationStatus": "error",
-            "aiReasoning": f"Function execution error: {str(e)}",
-            "confidenceScore": 0,
-            "documentSource": "error"
-        })
-    
-    return results
-```
+MANDATORY FUNCTION STRUCTURE PATTERN:
+Your function must follow this exact pattern and use ALL input parameters defined by the user.
 
 The function should:
 1. Use the EXACT parameter names from the user's input definition
