@@ -687,20 +687,22 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     }
   };
 
-  const handleEditCode = async () => {
+  const handleEditCode = () => {
     if (!editingFunction?.id) return;
     
-    // Fetch impacted fields for this function
-    try {
-      const impactData = await apiRequest(`/api/excel-functions/${editingFunction.id}/impact`);
-      setImpactedFields(impactData?.impactedFields || []);
-    } catch (error) {
-      console.warn('Could not fetch impact data:', error);
-      setImpactedFields([]);
-    }
-    
+    // Enable edit mode immediately
     setCodeChanges(editingFunction.functionCode || "");
     setEditingCode(true);
+    
+    // Fetch impacted fields asynchronously in the background
+    apiRequest(`/api/excel-functions/${editingFunction.id}/impact`)
+      .then((impactData) => {
+        setImpactedFields(impactData?.impactedFields || []);
+      })
+      .catch((error) => {
+        console.warn('Could not fetch impact data:', error);
+        setImpactedFields([]);
+      });
   };
 
   const handleSaveCode = () => {
