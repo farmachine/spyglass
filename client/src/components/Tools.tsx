@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 
-import { Play, Edit3, Trash2, Brain, Code } from "lucide-react";
+import { Play, Edit3, Trash2, Brain } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import CreateToolDialog from "./CreateToolDialog";
 
@@ -40,9 +40,6 @@ export default function Tools({ projectId }: ExcelToolsProps) {
   const [debugText, setDebugText] = useState('');
   const [isDebugging, setIsDebugging] = useState(false);
   const [debugRecommendations, setDebugRecommendations] = useState<string>('');
-  const [originalTool, setOriginalTool] = useState<ExcelTool | null>(null);
-  const [hasAppliedChanges, setHasAppliedChanges] = useState(false);
-  const [showChangeManagement, setShowChangeManagement] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -187,9 +184,6 @@ export default function Tools({ projectId }: ExcelToolsProps) {
     try {
       console.log('🔧 Applying debug fixes...');
       
-      // Store the original tool state before applying changes
-      setOriginalTool({ ...tool });
-      
       const response = await apiRequest(`/api/excel-functions/apply-debug-fixes`, {
         method: 'POST',
         body: JSON.stringify({
@@ -202,11 +196,12 @@ export default function Tools({ projectId }: ExcelToolsProps) {
 
       if (response.success) {
         console.log('Debug fixes applied successfully');
-        setHasAppliedChanges(true);
-        setShowChangeManagement(true);
-        // Refresh tools list to show updated version
+        // Clear debug state and refresh the tools list
+        setDebugRecommendations('');
+        setDebugText('');
+        setTestResults(null);
         await queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'excel-functions'] });
-        console.log('✅ Changes have been applied. You can now test and accept or revert them.');
+        console.log('✅ Tool has been updated with the suggested fixes!');
       }
 
     } catch (error) {
@@ -214,75 +209,6 @@ export default function Tools({ projectId }: ExcelToolsProps) {
       console.error('❌ Failed to apply debug fixes. Please try again.');
     } finally {
       setIsDebugging(false);
-    }
-  };
-
-  const acceptChanges = () => {
-    // Clear all debug state and keep the changes
-    setDebugRecommendations('');
-    setDebugText('');
-    setOriginalTool(null);
-    setHasAppliedChanges(false);
-    setShowChangeManagement(false);
-    setTestResults(null);
-    console.log('✅ Changes accepted and saved permanently.');
-  };
-
-  const revertChanges = async () => {
-    if (!originalTool) return;
-    
-    setIsDebugging(true);
-    
-    try {
-      console.log('🔄 Reverting changes to original state...');
-      
-      // Restore the original tool by updating it back
-      const response = await apiRequest(`/api/excel-functions/${originalTool.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          name: originalTool.name,
-          description: originalTool.description,
-          functionCode: originalTool.functionCode,
-          functionType: originalTool.functionType,
-          outputType: originalTool.outputType,
-          inputParameters: originalTool.inputParameters,
-          tags: []
-        })
-      });
-
-      if (response.success) {
-        console.log('Changes reverted successfully');
-        // Clear all debug state
-        setDebugRecommendations('');
-        setDebugText('');
-        setOriginalTool(null);
-        setHasAppliedChanges(false);
-        setShowChangeManagement(false);
-        setTestResults(null);
-        // Refresh tools list to show reverted version
-        await queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'excel-functions'] });
-        console.log('✅ Tool reverted to original state.');
-      }
-
-    } catch (error) {
-      console.error('Revert changes error:', error);
-      console.error('❌ Failed to revert changes. Please try again.');
-    } finally {
-      setIsDebugging(false);
-    }
-  };
-
-  const handleCloseTestDialog = () => {
-    if (hasAppliedChanges && originalTool) {
-      // Auto-revert changes when closing modal
-      revertChanges();
-    } else {
-      // Normal close without changes
-      setTestingTool(null);
-      setTestResults(null);
-      setDebugText('');
-      setDebugRecommendations('');
-      setShowChangeManagement(false);
     }
   };
 
@@ -353,11 +279,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                    {tool.functionType === 'AI_ONLY' ? (
-                      <Brain className="h-5 w-5 text-gray-600" />
-                    ) : (
-                      <Code className="h-5 w-5 text-gray-600" />
-                    )}
+                    <Brain className="h-5 w-5 text-gray-600" />
                     {tool.name}
                   </CardTitle>
                 </div>
@@ -425,10 +347,12 @@ export default function Tools({ projectId }: ExcelToolsProps) {
       </div>
 
       {/* Test Tool Modal */}
-      <Dialog open={!!testingTool} onOpenChange={(open) => {
-        if (!open) {
-          handleCloseTestDialog();
-        }
+      <Dialog open={!!testingTool} onOpenChange={() => {
+        setTestingTool(null);
+        setTestResults(null);
+        setDebugText('');
+        setDebugRecommendations('');
+        // Note: testInputs are preserved to maintain user's original inputs
       }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" aria-describedby="test-dialog-description">
           <DialogHeader className="flex-shrink-0">
@@ -689,14 +613,14 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                     </div>
 
                     {/* Debug Recommendations Section */}
-                    {debugRecommendations && !showChangeManagement && (
-                      <div className="mt-6 p-4 bg-gray-50 border border-gray-300 rounded-lg">
-                        <h4 className="text-sm font-semibold text-gray-800 mb-3">AI Debug Analysis</h4>
+                    {debugRecommendations && (
+                      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <h4 className="text-sm font-semibold text-blue-900 mb-3">AI Debug Analysis</h4>
                         <div className="bg-white p-3 rounded border text-sm text-gray-700 whitespace-pre-wrap mb-4">
                           {debugRecommendations}
                         </div>
                         <div className="flex items-center justify-between">
-                          <p className="text-xs text-gray-600">
+                          <p className="text-xs text-blue-700">
                             Would you like to apply the AI's suggested improvements to this tool?
                           </p>
                           <div className="flex gap-2">
@@ -711,45 +635,10 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                             <Button
                               onClick={() => applyDebugFixes(testingTool)}
                               size="sm"
-                              className="bg-gray-600 hover:bg-gray-700 text-white"
+                              className="bg-blue-600 hover:bg-blue-700 text-white"
                               disabled={isDebugging}
                             >
-                              Test Fixes
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Change Management Section */}
-                    {showChangeManagement && hasAppliedChanges && (
-                      <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                        <h4 className="text-sm font-semibold text-green-900 mb-3">Changes Applied</h4>
-                        <div className="bg-white p-3 rounded border text-sm text-gray-700 mb-4">
-                          <p className="mb-2">✅ The AI's suggested improvements have been applied to your tool.</p>
-                          <p className="text-green-800 font-medium">You can now test the changes and decide whether to keep or revert them.</p>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs text-green-700">
-                            Test the tool with the changes. You can always revert back if needed.
-                          </p>
-                          <div className="flex gap-2">
-                            <Button
-                              onClick={revertChanges}
-                              variant="outline"
-                              size="sm"
-                              className="text-red-600 border-red-300 hover:bg-red-50"
-                              disabled={isDebugging}
-                            >
-                              Revert Changes
-                            </Button>
-                            <Button
-                              onClick={acceptChanges}
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700 text-white"
-                              disabled={isDebugging}
-                            >
-                              Accept Changes
+                              Apply Fixes
                             </Button>
                           </div>
                         </div>
