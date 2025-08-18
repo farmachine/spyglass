@@ -236,10 +236,31 @@ Respond with JSON in this format:
 }`;
 
       console.log('📤 Sending Python script generation request to Gemini...');
+      
+      // Simplified prompt for better reliability
+      const userPrompt = `Generate a Python function named "extract_function" for: ${name}
+
+Description: ${description}
+
+Function signature: def extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')}):
+
+Parameters (all are STRING values):
+${inputParameters.map(p => `- ${p.name.replace(/\s+/g, '_')}: ${p.description}`).join('\n')}
+
+Output Type: ${outputType === "multiple" ? "Multiple records" : "Single values"}
+
+Requirements:
+1. Function processes STRING input parameters (pre-extracted document content)
+2. Returns array of objects in field_validations format:
+   [{"extractedValue": "value", "validationStatus": "valid", "aiReasoning": "explanation", "confidenceScore": 85, "documentSource": "input"}]
+3. Use standard Python libraries only (re, json, etc.)
+4. Handle errors gracefully
+
+Return JSON with functionCode and metadata fields.`;
+
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-pro",
+        model: "gemini-2.5-flash",
         config: {
-          systemInstruction: systemPrompt,
           responseMimeType: "application/json",
           responseSchema: {
             type: "object",
@@ -248,40 +269,23 @@ Respond with JSON in this format:
               metadata: { 
                 type: "object",
                 properties: {
-                  inputValidation: { type: "string" },
-                  outputFormat: { type: "string" }, 
-                  dependencies: { 
-                    type: "array",
-                    items: { type: "string" }
-                  },
-                  errorHandling: { type: "string" },
+                  outputFormat: { type: "string" },
                   parametersUsed: { 
                     type: "array",
                     items: { type: "string" }
                   }
-                },
-                required: ["inputValidation", "outputFormat", "dependencies", "errorHandling", "parametersUsed"]
+                }
               }
             },
             required: ["functionCode", "metadata"]
           }
         },
-        contents: `Generate a Python function for: ${name}
-
-Function signature should be: def extract_function(${inputParameters.map(p => p.name).join(', ')}):
-
-CRITICAL: All parameters are STRING VALUES containing already-extracted document content.
-- Do NOT use pandas, openpyxl, or document parsing libraries
-- Work only with the provided string content
-- Use pattern matching, text processing, or JSON/CSV parsing on strings
-
-Must use all these parameters: ${inputParameters.map(p => p.name).join(', ')}
-
-Output must be field_validations compatible array format.`
+        contents: userPrompt
       });
 
       console.log('✅ Python script generation completed');
       console.log('📄 Raw AI response:', response.text);
+      console.log('📄 Full response object:', JSON.stringify(response, null, 2));
       
       if (!response.text) {
         console.error('❌ Empty response from Gemini');
