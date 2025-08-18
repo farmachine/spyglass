@@ -5455,10 +5455,6 @@ print(json.dumps(results))
             console.log(`  - ${key}: ${typeof value === 'string' ? `${value.length} chars` : typeof value}`);
             if (typeof value === 'string' && value.length > 0) {
               console.log(`    Preview: ${value.substring(0, 200)}${value.length > 200 ? '...' : ''}`);
-            } else if (Array.isArray(value)) {
-              console.log(`    Array with ${value.length} items: ${JSON.stringify(value.slice(0, 2))}${value.length > 2 ? '...' : ''}`);
-            } else if (typeof value === 'object' && value !== null) {
-              console.log(`    Object keys: ${Object.keys(value).join(', ')}`);
             }
           }
 

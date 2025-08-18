@@ -79,36 +79,21 @@ export default function Tools({ projectId }: ExcelToolsProps) {
     try {
       // Prepare inputs from user inputs or sample parameters
       const inputs: Record<string, any> = {};
-      console.log('🔍 PREPARING TEST INPUTS FOR:', tool.name);
-      console.log('📋 Tool input parameters:', tool.inputParameters);
-      
       tool.inputParameters.forEach((param: any) => {
         const userInput = testInputs[param.name];
-        console.log(`📝 Processing parameter "${param.name}" (type: ${param.type})`);
-        console.log(`   - User input:`, userInput);
-        console.log(`   - Sample data available:`, !!param.sampleData);
-        console.log(`   - Sample file:`, param.sampleFile);
-        
         if (param.type === 'text') {
           inputs[param.name] = userInput !== undefined ? userInput : (param.sampleText || '');
-          console.log(`   ✓ Set text input:`, inputs[param.name]);
         } else if (param.type === 'document') {
           // For document parameters, use sample document IDs if available, otherwise fall back to filename
           if (param.sampleDocumentIds && param.sampleDocumentIds.length > 0) {
             inputs[param.name] = param.sampleDocumentIds;
-            console.log(`   ✓ Set document IDs:`, inputs[param.name]);
           } else if (param.sampleFile) {
             inputs[param.name] = param.sampleFile;
-            console.log(`   ✓ Set document filename:`, inputs[param.name]);
           }
         } else if (param.type === 'data' && param.sampleData) {
           inputs[param.name] = param.sampleData;
-          console.log(`   ✓ Set sample data with ${param.sampleData.rows?.length || 0} rows:`, param.sampleData);
         }
       });
-      
-      console.log('📤 FINAL TEST INPUTS BEING SENT:');
-      console.log(JSON.stringify(inputs, null, 2));
 
       const response = await apiRequest(`/api/excel-functions/test`, {
         method: 'POST',
