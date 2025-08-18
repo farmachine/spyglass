@@ -256,12 +256,12 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       });
     },
     onSuccess: (updatedTool) => {
-      // Only update the local editing tool, don't save to database yet
+      // Update both the editing function and form data
       if (setEditingFunction) {
         setEditingFunction(updatedTool);
       }
-      // Expand the code section to show the regenerated code
-      setCodeExpanded(true);
+      // Update the form data with the new code
+      setFormData(prev => ({ ...prev, functionCode: updatedTool.functionCode }));
       console.log('Tool code regenerated successfully');
     },
     onError: (error: any) => {
