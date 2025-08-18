@@ -83,8 +83,13 @@ export default function Tools({ projectId }: ExcelToolsProps) {
         const userInput = testInputs[param.name];
         if (param.type === 'text') {
           inputs[param.name] = userInput !== undefined ? userInput : (param.sampleText || '');
-        } else if (param.type === 'document' && param.sampleFile) {
-          inputs[param.name] = param.sampleFile;
+        } else if (param.type === 'document') {
+          // For document parameters, use sample document IDs if available, otherwise fall back to filename
+          if (param.sampleDocumentIds && param.sampleDocumentIds.length > 0) {
+            inputs[param.name] = param.sampleDocumentIds;
+          } else if (param.sampleFile) {
+            inputs[param.name] = param.sampleFile;
+          }
         } else if (param.type === 'data' && param.sampleData) {
           inputs[param.name] = param.sampleData;
         }
@@ -124,8 +129,13 @@ export default function Tools({ projectId }: ExcelToolsProps) {
         const userInput = testInputs[param.name];
         if (param.type === 'text') {
           inputs[param.name] = userInput !== undefined ? userInput : (param.sampleText || '');
-        } else if (param.type === 'document' && param.sampleFile) {
-          inputs[param.name] = param.sampleFile;
+        } else if (param.type === 'document') {
+          // For document parameters, use sample document IDs if available, otherwise fall back to filename
+          if (param.sampleDocumentIds && param.sampleDocumentIds.length > 0) {
+            inputs[param.name] = param.sampleDocumentIds;
+          } else if (param.sampleFile) {
+            inputs[param.name] = param.sampleFile;
+          }
         } else if (param.type === 'data' && param.sampleData) {
           inputs[param.name] = param.sampleData;
         }
