@@ -156,6 +156,16 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       description: "",
       multiline: false
     };
+    
+    // If this is a data type parameter, add default identifier column
+    if (newParam.type === "data") {
+      newParam.sampleData = {
+        name: "",
+        columns: ["Identifier"],
+        rows: []
+      };
+    }
+    
     setInputParameters([...inputParameters, newParam]);
     // Default new inputs to expanded
     setExpandedInputs(prev => new Set([...Array.from(prev), newParam.id]));

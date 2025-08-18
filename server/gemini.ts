@@ -152,6 +152,10 @@ ${aiAssistanceRequired ? `\nAdditional AI Instructions: ${aiAssistancePrompt}` :
       };
     } else {
       console.log('🐍 Generating Python code function...');
+      
+      // Check for data input parameters with sample data
+      const dataInputs = inputParameters.filter(p => p.type === 'data' && p.sampleData);
+      
       // Generate Python script with field_validations compatibility
       const systemPrompt = `You are an expert Python developer creating data extraction functions.
 Generate a Python function that processes data and outputs to the field_validations database schema.
@@ -159,6 +163,16 @@ Generate a Python function that processes data and outputs to the field_validati
 CRITICAL: The output MUST be exactly compatible with the field_validations database schema format.
 
 This function is designed to create: ${outputType === "single" ? "MAIN SCHEMA FIELDS (single values)" : "COLLECTION PROPERTIES (multiple records)"}
+
+${outputType === "multiple" ? `
+ITERATION REQUIREMENTS FOR MULTIPLE OUTPUT:
+- MUST create a 'for each' loop when outputType is 'multiple'
+- If there are data input parameters with sample data, prioritize those records as the primary items to iterate over
+- The first column in sample data is always the IDENTIFIER - this is the main property to process in each iteration
+- Other properties in sample data should be considered for decision making during processing
+- Each iteration should process one record from the sample data and generate appropriate field validation results
+- Use the identifier as the primary key for each extraction result
+` : ''}
 
 Requirements:
 - Function must be named "extract_function"
@@ -173,6 +187,15 @@ Requirements:
 - Function should be fully self-contained and executable
 - ${outputType === "single" ? "Design for extracting single values that will become main schema fields" : "Design for extracting multiple records that will populate a collection"}
 ${aiAssistanceRequired ? '- Must include AI assistance as the final step using the provided prompt' : ''}
+
+${dataInputs.length > 0 ? `
+DATA INPUT PARAMETERS WITH SAMPLE DATA:
+${dataInputs.map(p => `
+Parameter: ${p.name}
+Sample Data: ${JSON.stringify(p.sampleData?.rows || [], null, 2)}
+First Column (IDENTIFIER): ${p.sampleData?.columns?.[0] || 'N/A'}
+`).join('\n')}
+` : ''}
 
 Field Validations Output Schema (EXACT format required):
 [
