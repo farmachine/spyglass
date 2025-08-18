@@ -52,7 +52,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     description: "",
     aiAssistancePrompt: ""
   });
-  const [copiedSampleData, setCopiedSampleData] = useState<string | null>(null);
+
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [expandedInputs, setExpandedInputs] = useState<Set<string>>(new Set());
@@ -241,49 +241,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     });
   };
 
-  const generateSampleData = (description: string, paramName: string): string => {
-    // Generate sample JSON data based on the parameter name
-    const sampleData = {
-      "Collection Name": [
-        { [paramName]: "Column Example" },
-        { [paramName]: "Other Column" },
-        { [paramName]: "Another Example Column 2" },
-        { [paramName]: "Another Example Column 3" },
-        { [paramName]: "Another Example Column 4" },
-        { [paramName]: "Another Example Column 5" },
-        { [paramName]: "Another Example Column 6" },
-        { [paramName]: "Another Example Column 7" },
-        { [paramName]: "Another Example Column 8" },
-        { [paramName]: "Another Example Column 9" },
-        { [paramName]: "Another Example Column 10" }
-      ]
-    };
-    
-    return JSON.stringify(sampleData, null, 2);
-  };
 
-  const copySampleDataToClipboard = async (paramId: string, description: string, paramName: string) => {
-    const sampleData = generateSampleData(description, paramName);
-    try {
-      await navigator.clipboard.writeText(sampleData);
-      setCopiedSampleData(paramId);
-      toast({
-        title: "Sample Data Copied",
-        description: "Sample JSON data has been copied to your clipboard",
-      });
-      
-      // Reset the copied state after 2 seconds
-      setTimeout(() => {
-        setCopiedSampleData(null);
-      }, 2000);
-    } catch (err) {
-      toast({
-        title: "Copy Failed",
-        description: "Failed to copy sample data to clipboard",
-        variant: "destructive"
-      });
-    }
-  };
 
   // Sample data table functions
   const addSampleColumn = (paramId: string, columnName: string) => {
@@ -568,7 +526,6 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     setToolType(null);
     setAiAssistanceRequired(false);
     setOutputType("single");
-    setCopiedSampleData(null);
     setLoadingProgress(0);
     setLoadingMessage("");
   };
