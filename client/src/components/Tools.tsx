@@ -27,7 +27,7 @@ interface ExcelToolsProps {
   projectId: string;
 }
 
-export default function ExcelFunctionTools({ projectId }: ExcelToolsProps) {
+export default function Tools({ projectId }: ExcelToolsProps) {
   const [editingTool, setEditingTool] = useState<ExcelTool | null>(null);
   const [testingTool, setTestingTool] = useState<ExcelTool | null>(null);
   const [testResults, setTestResults] = useState<any>(null);

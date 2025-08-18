@@ -12,7 +12,7 @@ import DefineData from "@/components/DefineData";
 import Publishing from "@/components/Publishing";
 import ExtraplLogo from "@/components/ExtraplLogo";
 import UserProfile from "@/components/UserProfile";
-import ExcelFunctionTools from "@/components/ExcelFunctionTools";
+import Tools from "@/components/Tools";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface ProjectAdminProps {
@@ -127,7 +127,7 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
       case "rules":
         return <KnowledgeRules project={project} mode="rules" />;
       case "tools":
-        return <ExcelFunctionTools projectId={projectId} />;
+        return <Tools projectId={projectId} />;
       case "publish":
         return <Publishing project={project} />;
       default:
@@ -213,7 +213,7 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
             </nav>
 
             {/* Schema Navigation - Only show when Define Data tab is active */}
-            {activeTab === 'define' && (
+            {activeTab === 'data' && (
               <div className="mt-4 pt-4 border-t border-slate-200">
                 <div className="px-3 mb-2">
                   <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wider">
