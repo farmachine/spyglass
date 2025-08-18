@@ -151,28 +151,18 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         body: JSON.stringify(data)
       });
       
-      // Process sample documents after tool creation
-      if (response.id && data.inputParameters && data.inputParameters.some((p: any) => p.sampleFile || p.sampleText || p.sampleData)) {
-        await processSampleDocuments(response.id, data.inputParameters);
-      }
-      
-      setLoadingProgress(100);
-      setLoadingMessage("Tool creation complete!");
-      
       return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
       toast({
         title: "Tool Created",
-        description: "Tool has been created successfully with sample documents processed."
+        description: "Tool has been created successfully."
       });
-      setTimeout(() => {
-        setOpen(false);
-        resetForm();
-        setLoadingProgress(0);
-        setLoadingMessage("");
-      }, 1000);
+      setOpen(false);
+      resetForm();
+      setLoadingProgress(0);
+      setLoadingMessage("");
     },
     onError: () => {
       toast({
@@ -187,26 +177,23 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
   const generateToolCode = useMutation({
     mutationFn: async (data: any) => {
-      setLoadingProgress(10);
-      setLoadingMessage("Initializing tool generation...");
+      setLoadingProgress(25);
+      setLoadingMessage("Generating function");
       console.log('🔧 Creating tool with data:', JSON.stringify(data, null, 2));
       
-      setLoadingProgress(30);
-      setLoadingMessage("Sending data to AI system...");
+      setLoadingProgress(50);
       
       const response = await apiRequest("/api/excel-functions/generate", {
         method: "POST",
         body: JSON.stringify(data)
       });
       
-      setLoadingProgress(70);
-      setLoadingMessage("Processing sample documents...");
+      setLoadingProgress(75);
       
       return response;
     },
     onSuccess: (response) => {
-      setLoadingProgress(90);
-      setLoadingMessage("Finalizing tool creation...");
+      setLoadingProgress(100);
       
       console.log('🎉 AI generation response:', JSON.stringify(response, null, 2));
       
