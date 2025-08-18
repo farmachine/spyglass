@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+
 import { useProjectSchemaFields, useObjectCollections, useAllProjectProperties } from "@/hooks/useSchema";
 import type { ProjectSchemaField, ObjectCollection } from "@shared/schema";
 
@@ -57,7 +57,7 @@ export default function AddDocumentsModal({
   const [schemaFieldsExpanded, setSchemaFieldsExpanded] = useState(true);
   const [collectionsExpanded, setCollectionsExpanded] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
+
 
   // Fetch project schema data
   const { data: schemaFields = [] } = useProjectSchemaFields(projectId);
@@ -106,15 +106,11 @@ export default function AddDocumentsModal({
     });
 
     if (errors.length > 0) {
-      toast({
-        title: "File validation errors",
-        description: errors.join(", "),
-        variant: "destructive",
-      });
+      console.warn('File validation errors:', errors.join(", "));
     }
 
     setSelectedFiles(prev => [...prev, ...newFiles]);
-  }, [selectedFiles, toast]);
+  }, [selectedFiles]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -148,11 +144,7 @@ export default function AddDocumentsModal({
 
   const handleUpload = async () => {
     if (selectedFiles.length === 0) {
-      toast({
-        title: "No files selected",
-        description: "Please select at least one document to upload",
-        variant: "destructive",
-      });
+      console.warn('No files selected for upload');
       return;
     }
 
@@ -264,12 +256,7 @@ export default function AddDocumentsModal({
         ));
       }
 
-      toast({
-        title: mode === 'upload' ? "Documents uploaded successfully" : "Documents added successfully",
-        description: mode === 'upload' 
-          ? `${selectedFiles.length} document(s) have been uploaded and saved to the session`
-          : `${selectedFiles.length} document(s) have been processed and added to the session`,
-      });
+      console.log(`${selectedFiles.length} document(s) have been ${mode === 'upload' ? 'uploaded' : 'processed'} successfully`);
 
       // Clear files, target fields and close modal
       setSelectedFiles([]);
@@ -280,11 +267,7 @@ export default function AddDocumentsModal({
 
     } catch (error) {
       console.error('Upload error:', error);
-      toast({
-        title: "Upload failed",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
-        variant: "destructive",
-      });
+      console.error('Upload failed:', error instanceof Error ? error.message : "An unexpected error occurred");
 
       // Mark failed files as error
       setSelectedFiles(prev => prev.map(file => ({

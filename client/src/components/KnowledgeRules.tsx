@@ -3,7 +3,7 @@ import { Brain, FileText, Plus, BookOpen, Edit, Trash2, Calendar, FileIcon } fro
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
+
 import {
   useKnowledgeDocuments,
   useCreateKnowledgeDocument,
@@ -24,7 +24,7 @@ interface KnowledgeRulesProps {
 }
 
 export default function KnowledgeRules({ project, mode }: KnowledgeRulesProps) {
-  const { toast } = useToast();
+
   const [knowledgeDialogOpen, setKnowledgeDialogOpen] = useState(false);
   const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState<KnowledgeDocument | null>(null);
@@ -54,7 +54,7 @@ export default function KnowledgeRules({ project, mode }: KnowledgeRulesProps) {
       setKnowledgeDialogOpen(false);
       setEditingDocument(null);
     } catch (error) {
-      toast({ title: "Failed to save knowledge document", variant: "destructive" });
+      console.error('Failed to save knowledge document:', error);
     }
   };
 
@@ -65,7 +65,7 @@ export default function KnowledgeRules({ project, mode }: KnowledgeRulesProps) {
     try {
       await deleteKnowledgeDocument.mutateAsync(id);
     } catch (error) {
-      toast({ title: "Failed to delete document", variant: "destructive" });
+      console.error('Failed to delete document:', error);
     } finally {
       setDeletingDocId(null);
     }
@@ -81,7 +81,7 @@ export default function KnowledgeRules({ project, mode }: KnowledgeRulesProps) {
       setRuleDialogOpen(false);
       setEditingRule(null);
     } catch (error) {
-      toast({ title: "Failed to save extraction rule", variant: "destructive" });
+      console.error('Failed to save extraction rule:', error);
     }
   };
 
@@ -92,7 +92,7 @@ export default function KnowledgeRules({ project, mode }: KnowledgeRulesProps) {
     try {
       await deleteExtractionRule.mutateAsync(id);
     } catch (error) {
-      toast({ title: "Failed to delete rule", variant: "destructive" });
+      console.error('Failed to delete rule:', error);
     } finally {
       setDeletingRuleId(null);
     }

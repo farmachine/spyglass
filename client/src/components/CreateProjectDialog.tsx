@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useCreateProject } from "@/hooks/useProjects";
-import { useToast } from "@/hooks/use-toast";
+
 import { useLocation } from "wouter";
 
 interface CreateProjectDialogProps {
@@ -33,7 +33,7 @@ interface CreateProjectDialogProps {
 
 export default function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogProps) {
   const createProject = useCreateProject();
-  const { toast } = useToast();
+
   const [, setLocation] = useLocation();
 
   const form = useForm<InsertProject>({
@@ -49,10 +49,6 @@ export default function CreateProjectDialog({ open, onOpenChange }: CreateProjec
       console.log("Creating project with data:", data);
       const newProject = await createProject.mutateAsync(data);
       console.log("Project created successfully:", newProject);
-      toast({
-        title: "Project created",
-        description: "Your new project has been created successfully.",
-      });
       form.reset();
       onOpenChange(false);
       
@@ -60,11 +56,6 @@ export default function CreateProjectDialog({ open, onOpenChange }: CreateProjec
       setLocation(`/projects/${newProject.id}?tab=define`);
     } catch (error) {
       console.error("Create project error:", error);
-      toast({
-        title: "Error",
-        description: `Failed to create project: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        variant: "destructive",
-      });
     }
   };
 

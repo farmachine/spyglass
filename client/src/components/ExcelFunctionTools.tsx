@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
+
 import { Play, Edit3, Trash2, Brain } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import CreateToolDialog from "./CreateToolDialog";
@@ -34,7 +34,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelToolsProps) {
   const [isRunningTest, setIsRunningTest] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [toolToDelete, setToolToDelete] = useState<string | null>(null);
-  const { toast } = useToast();
+
   const queryClient = useQueryClient();
 
   // Fetch tools for this project
@@ -52,17 +52,9 @@ export default function ExcelFunctionTools({ projectId }: ExcelToolsProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'excel-functions'] });
-      toast({
-        title: "Success",
-        description: "Tool deleted successfully",
-      });
     },
     onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete tool",
-        variant: "destructive",
-      });
+      console.error('Failed to delete tool:', error);
     }
   });
 
@@ -71,11 +63,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelToolsProps) {
   // Run test tool
   const runTest = async (tool: ExcelTool) => {
     if (!tool.inputParameters || tool.inputParameters.length === 0) {
-      toast({
-        title: "No test data",
-        description: "This tool has no sample input parameters to test with.",
-        variant: "destructive",
-      });
+      console.warn('No test data available for tool:', tool.name);
       return;
     }
 
@@ -108,17 +96,8 @@ export default function ExcelFunctionTools({ projectId }: ExcelToolsProps) {
       console.log('🧪 Test Results - Parsed Response:', response);
 
       setTestResults(response.results || response);
-      toast({
-        title: "Test completed",
-        description: "Tool test has been executed successfully.",
-      });
     } catch (error) {
       console.error('Test execution error:', error);
-      toast({
-        title: "Test failed",
-        description: "Failed to execute the tool test. Please try again.",
-        variant: "destructive",
-      });
     } finally {
       setIsRunningTest(false);
     }

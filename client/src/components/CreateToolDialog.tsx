@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+
 
 interface SampleDataRow {
   [key: string]: string;
@@ -63,7 +63,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
 
   const queryClient = useQueryClient();
-  const { toast } = useToast();
+
 
   const resetForm = () => {
     setFormData({ name: "", description: "", aiAssistancePrompt: "" });
@@ -121,17 +121,12 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'excel-functions'] });
-      toast({ title: "Tool Updated", description: "Tool has been updated successfully." });
       setEditingFunction?.(null);
       setOpen(false);
       resetForm();
     },
     onError: (error: any) => {
-      toast({
-        title: "Update Failed",
-        description: error.message || "Failed to update tool.",
-        variant: "destructive"
-      });
+      console.error('Failed to update tool:', error);
     }
   });
 
@@ -157,10 +152,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'excel-functions'] });
-      toast({
-        title: "Tool Created",
-        description: "Tool has been created successfully."
-      });
+      console.log('Tool created successfully');
       setTimeout(() => {
         setOpen(false);
         resetForm();
@@ -168,12 +160,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         setLoadingMessage("");
       }, 1500); // Give time to see completion
     },
-    onError: () => {
-      toast({
-        title: "Creation Failed",
-        description: "Failed to create the tool. Please try again.",
-        variant: "destructive"
-      });
+    onError: (error: any) => {
+      console.error('Failed to create tool:', error);
       setLoadingProgress(0);
       setLoadingMessage("");
     }
@@ -209,11 +197,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           hasMetadata: !!response.metadata,
           response: response
         });
-        toast({
-          title: "Generation Error",
-          description: `AI generation incomplete - missing ${!response.functionCode ? 'functionCode' : 'metadata'}`,
-          variant: "destructive"
-        });
+        console.error(`AI generation incomplete - missing ${!response.functionCode ? 'functionCode' : 'metadata'}`);
         setLoadingProgress(0);
         setLoadingMessage("");
         return;
@@ -224,12 +208,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       // Use the response to create the tool with generated code
       createTool.mutate(response);
     },
-    onError: () => {
-      toast({
-        title: "Code Generation Failed",
-        description: "Failed to generate tool code. Please try again.",
-        variant: "destructive"
-      });
+    onError: (error: any) => {
+      console.error('Code generation failed:', error);
       setLoadingProgress(0);
       setLoadingMessage("");
     }
@@ -254,17 +234,10 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       if (setEditingFunction) {
         setEditingFunction(updatedTool);
       }
-      toast({
-        title: "Success",
-        description: "Tool code regenerated. Click 'Update Tool' to save changes.",
-      });
+      console.log('Tool code regenerated successfully');
     },
     onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to regenerate tool code",
-        variant: "destructive",
-      });
+      console.error('Failed to regenerate tool code:', error);
     }
   });
 
