@@ -261,7 +261,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         setEditingFunction(updatedTool);
       }
       // Update the form data with the new code
-      setFormData(prev => ({ ...prev, functionCode: updatedTool.functionCode }));
+      setFormData(prev => ({ ...prev, functionCode: updatedTool?.functionCode || '' }));
       console.log('Tool code regenerated successfully');
     },
     onError: (error: any) => {
@@ -834,13 +834,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                   : "Data is processed using AI"
                 }
               </p>
-              {isEditMode && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-3">
-                  <p className="text-sm text-amber-800">
-                    <strong>Note:</strong> Changing the tool type will replace the existing {toolType === "CODE" ? "code" : "prompt"} when you save.
-                  </p>
-                </div>
-              )}
+
             </CardContent>
           </Card>
 
