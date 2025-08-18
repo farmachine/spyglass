@@ -487,65 +487,8 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
     });
   };
 
-  const handleEdit = async (func: ExcelWizardryFunction) => {
+  const handleEdit = (func: ExcelWizardryFunction) => {
     setEditingFunction(func);
-    
-    // Load existing sample documents for this function
-    let sampleDocuments: any[] = [];
-    try {
-      sampleDocuments = await apiRequest(`/api/sample-documents/${func.id}`, {
-        method: "GET"
-      });
-      console.log("Loaded sample documents:", sampleDocuments);
-    } catch (error) {
-      console.log("No sample documents found or error loading them:", error);
-    }
-
-    setFormData({
-      name: func.name,
-      description: func.description,
-      functionCode: func.functionCode,
-      inputParameters: Array.isArray((func as any).inputParameters) 
-        ? (func as any).inputParameters.map((param: any, index: number) => {
-            // Find sample document for this parameter
-            const sampleDoc = sampleDocuments.find((doc: any) => doc.parameterName === param.name);
-            
-            // Handle sampleData for data type parameters
-            let sampleData = undefined;
-            if (param.type === "data" && param.sampleData) {
-              sampleData = param.sampleData;
-            } else if (param.type === "data" && sampleDoc?.sampleText) {
-              // Try to parse sample text as JSON for data type
-              try {
-                const parsed = JSON.parse(sampleDoc.sampleText);
-                if (parsed.data && Array.isArray(parsed.data) && parsed.identifierColumn) {
-                  const columns = Object.keys(parsed.data[0] || {});
-                  sampleData = {
-                    name: param.name,
-                    columns: columns,
-                    rows: parsed.data,
-                    identifierColumn: parsed.identifierColumn
-                  };
-                }
-              } catch (e) {
-                console.log("Could not parse sample data as JSON:", e);
-              }
-            }
-            
-            return {
-              id: param.id || `param_${index}`,
-              name: param.name || "",
-              type: (param.type as "text" | "data" | "document") || "text",
-              description: param.description || "",
-              multiline: param.multiline || false,
-              sampleFile: sampleDoc?.fileName || "",
-              sampleFileURL: sampleDoc?.filePath || "",
-              sampleText: sampleDoc?.sampleText || sampleDoc?.extractedContent || "",
-              sampleData: sampleData
-            };
-          })
-        : []
-    });
   };
 
   const handleSave = () => {
@@ -602,7 +545,11 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
           <div className="text-sm text-gray-500">
             {functions?.length || 0} functions available
           </div>
-          <CreateToolDialog projectId={projectId} />
+          <CreateToolDialog 
+            projectId={projectId} 
+            editingFunction={editingFunction} 
+            setEditingFunction={setEditingFunction} 
+          />
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, X, FileText, Database, Type, Copy, Check, Upload, Loader2, ChevronDown, ChevronRight, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -39,9 +39,10 @@ interface CreateToolDialogProps {
   projectId: string;
   editingFunction?: any;
   setEditingFunction?: (func: any) => void;
+  trigger?: React.ReactNode;
 }
 
-export default function CreateToolDialog({ projectId, editingFunction, setEditingFunction }: CreateToolDialogProps) {
+export default function CreateToolDialog({ projectId, editingFunction, setEditingFunction, trigger }: CreateToolDialogProps) {
   const [open, setOpen] = useState(false);
   const [toolType, setToolType] = useState<"AI_ONLY" | "CODE" | null>(null);
   const [aiAssistanceRequired, setAiAssistanceRequired] = useState(false);
@@ -60,6 +61,63 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const resetForm = () => {
+    setFormData({ name: "", description: "", aiAssistancePrompt: "" });
+    setToolType(null);
+    setOutputType("single");
+    setInputParameters([]);
+    setAiAssistanceRequired(false);
+    setLoadingMessage("");
+    setLoadingProgress(0);
+    setExpandedInputs(new Set());
+    setShowColumnInput(new Set());
+  };
+
+  // Load editing function data when provided
+  useEffect(() => {
+    if (editingFunction) {
+      setFormData({
+        name: editingFunction.name || "",
+        description: editingFunction.description || "",
+        aiAssistancePrompt: editingFunction.aiAssistancePrompt || ""
+      });
+      setToolType(editingFunction.functionType === 'AI_ONLY' ? 'AI_ONLY' : 'CODE');
+      setInputParameters(editingFunction.inputParameters || []);
+      setOpen(true);
+    }
+  }, [editingFunction]);
+
+  // Add update mutation for editing
+  const updateTool = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest(`/api/excel-functions/${editingFunction.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          name: data.name,
+          description: data.description,
+          functionCode: editingFunction.functionCode, // Keep existing code
+          functionType: data.toolType === 'AI_ONLY' ? 'AI_ONLY' : 'SCRIPT',
+          inputParameters: data.inputParameters,
+          tags: data.tags || []
+        })
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
+      toast({ title: "Tool Updated", description: "Tool has been updated successfully." });
+      setEditingFunction?.(null);
+      setOpen(false);
+      resetForm();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update tool.",
+        variant: "destructive"
+      });
+    }
+  });
 
   const createTool = useMutation({
     mutationFn: async (data: any) => {
@@ -516,20 +574,6 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     });
   };
 
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      description: "",
-      aiAssistancePrompt: ""
-    });
-    setInputParameters([]);
-    setToolType(null);
-    setAiAssistanceRequired(false);
-    setOutputType("single");
-    setLoadingProgress(0);
-    setLoadingMessage("");
-  };
-
   const handleSubmit = () => {
     if (!formData.name || !formData.description || !toolType || inputParameters.length === 0) {
       toast({
@@ -563,21 +607,27 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       tags: [] // Default to empty tags array since we removed the tags field
     };
 
-    generateToolCode.mutate(toolData);
+    if (editingFunction) {
+      updateTool.mutate(toolData);
+    } else {
+      generateToolCode.mutate(toolData);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-gray-700 hover:bg-gray-800 text-white">
-          <Plus className="h-4 w-4 mr-2" />
-          Create Tool
-        </Button>
+        {trigger || (
+          <Button className="bg-gray-700 hover:bg-gray-800 text-white">
+            <Plus className="h-4 w-4 mr-2" />
+            Create Tool
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-gray-800 flex items-center">
-            Create new extrapl
+            {editingFunction ? 'Edit' : 'Create new'} extrapl
             <span className="w-2 h-2 rounded-full mx-2" style={{ backgroundColor: '#4F63A4' }}></span>
             Tool
           </DialogTitle>
@@ -1047,8 +1097,27 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
             </Card>
           )}
 
+          {/* Generated Code Section - Only show when editing and code exists */}
+          {editingFunction && editingFunction.functionCode && (
+            <Card className="border-gray-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg text-gray-800">Generated Code</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <pre className="text-sm text-gray-800 whitespace-pre-wrap overflow-x-auto">
+                    {editingFunction.functionCode}
+                  </pre>
+                </div>
+                <p className="text-sm text-gray-600 mt-2">
+                  This code was automatically generated and cannot be edited directly.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Loading Progress */}
-          {(generateToolCode.isPending || createTool.isPending) && (
+          {(generateToolCode.isPending || createTool.isPending || updateTool.isPending) && (
             <Card className="border-gray-200 bg-gray-50">
               <CardContent className="pt-6">
                 <div className="space-y-3">
@@ -1077,23 +1146,23 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
             <Button 
               variant="outline" 
               onClick={() => setOpen(false)}
-              disabled={generateToolCode.isPending || createTool.isPending}
+              disabled={generateToolCode.isPending || createTool.isPending || updateTool.isPending}
               className="border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               Cancel
             </Button>
             <Button 
               onClick={handleSubmit}
-              disabled={generateToolCode.isPending || createTool.isPending}
+              disabled={generateToolCode.isPending || createTool.isPending || updateTool.isPending}
               className="bg-gray-700 hover:bg-gray-800 text-white"
             >
-              {generateToolCode.isPending || createTool.isPending ? (
+              {generateToolCode.isPending || createTool.isPending || updateTool.isPending ? (
                 <div className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Generating...
+                  {editingFunction ? "Updating..." : "Generating..."}
                 </div>
               ) : (
-                "Generate Tool"
+                editingFunction ? "Update Tool" : "Generate Tool"
               )}
             </Button>
           </div>
