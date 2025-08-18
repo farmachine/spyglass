@@ -593,31 +593,17 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           const processResult = await processResponse.json();
           console.log('✅ Sample document processed:', processResult);
           
-          toast({
-            title: "Sample File Processed",
-            description: `Sample file "${file.name}" has been uploaded and processed for extraction.`,
-          });
+          console.log(`Sample file "${file.name}" has been uploaded and processed for extraction.`);
         } catch (processError) {
           console.error("Processing error:", processError);
-          toast({
-            title: "Processing Warning",
-            description: `File uploaded but processing failed. It will be processed when testing the tool.`,
-            variant: "destructive"
-          });
+          console.warn(`File uploaded but processing failed. It will be processed when testing the tool.`);
         }
       } else {
-        toast({
-          title: "Sample File Uploaded",
-          description: `Sample file "${file.name}" uploaded. It will be processed when the tool is created.`,
-        });
+        console.log(`Sample file "${file.name}" uploaded. It will be processed when the tool is created.`);
       }
     } catch (error) {
       console.error("Upload error:", error);
-      toast({
-        title: "Upload Failed",
-        description: "Failed to upload sample file. Please try again.",
-        variant: "destructive"
-      });
+      console.error("Upload Failed: Failed to upload sample file. Please try again.");
     } finally {
       // Stop processing for this parameter
       setProcessingParams(prev => {
@@ -631,10 +617,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   const clearSampleFile = (paramId: string) => {
     updateInputParameter(paramId, "sampleFile", "");
     updateInputParameter(paramId, "sampleFileURL", "");
-    toast({
-      title: "Sample File Removed",
-      description: "Sample file has been removed from this parameter."
-    });
+    console.log("Sample file has been removed from this parameter.");
   };
 
   const handleRegenerateCode = () => {
@@ -648,22 +631,14 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
   const handleSubmit = () => {
     if (!formData.name || !formData.description || !toolType || inputParameters.length === 0) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields, select a tool type, and add at least one input.",
-        variant: "destructive"
-      });
+      console.error("Validation Error: Please fill in all required fields, select a tool type, and add at least one input.");
       return;
     }
 
     // Validate input parameters
     const invalidParams = inputParameters.filter(p => !p.name || !p.description);
     if (invalidParams.length > 0) {
-      toast({
-        title: "Validation Error",
-        description: "All inputs must have a name and description.",
-        variant: "destructive"
-      });
+      console.error("Validation Error: All inputs must have a name and description.");
       return;
     }
 
@@ -1193,10 +1168,10 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                     size="sm"
                     variant="outline"
                     onClick={handleRegenerateCode}
-                    disabled={regenerateFunctionCode.isPending}
+                    disabled={regenerateToolCode.isPending}
                     className="border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
-                    <RefreshCw className={`h-4 w-4 mr-1 ${regenerateFunctionCode.isPending ? 'animate-spin' : ''}`} />
+                    <RefreshCw className={`h-4 w-4 mr-1 ${regenerateToolCode.isPending ? 'animate-spin' : ''}`} />
                     Regenerate
                   </Button>
                 </div>
