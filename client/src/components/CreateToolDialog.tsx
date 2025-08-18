@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, X, FileText, Database, Type, Copy, Check, Upload, Loader2, ChevronDown, ChevronRight, Key } from "lucide-react";
+import { Plus, X, FileText, Database, Type, Copy, Check, Upload, Loader2, ChevronDown, ChevronRight, Key, Edit3, Save, RefreshCw, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -58,6 +59,9 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   const [loadingMessage, setLoadingMessage] = useState("");
   const [expandedInputs, setExpandedInputs] = useState<Set<string>>(new Set());
   const [showColumnInput, setShowColumnInput] = useState<Set<string>>(new Set());
+  const [editingCode, setEditingCode] = useState(false);
+  const [codeChanges, setCodeChanges] = useState("");
+  const [impactedFields, setImpactedFields] = useState<string[]>([]);
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -72,6 +76,9 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     setLoadingProgress(0);
     setExpandedInputs(new Set());
     setShowColumnInput(new Set());
+    setEditingCode(false);
+    setCodeChanges("");
+    setImpactedFields([]);
   };
 
   // Load editing function data when provided
@@ -115,6 +122,72 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         title: "Update Failed",
         description: error.message || "Failed to update tool.",
         variant: "destructive"
+      });
+    }
+  });
+
+  // Update function code mutation
+  const updateFunctionCode = useMutation({
+    mutationFn: async ({ functionId, functionCode }: { functionId: string; functionCode: string }) => {
+      return apiRequest(`/api/excel-functions/${functionId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ functionCode }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
+      setEditingCode(false);
+      setCodeChanges("");
+      // Update the local editing function to reflect the change
+      if (editingFunction && setEditingFunction) {
+        setEditingFunction({
+          ...editingFunction,
+          functionCode: codeChanges
+        });
+      }
+      toast({
+        title: "Success",
+        description: "Code updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update code",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Regenerate function code mutation
+  const regenerateFunctionCode = useMutation({
+    mutationFn: async (functionId: string) => {
+      return apiRequest(`/api/excel-functions/${functionId}/regenerate`, {
+        method: 'POST'
+      });
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
+      setEditingCode(false);
+      setCodeChanges("");
+      // Update the local editing function to reflect the regenerated code
+      if (editingFunction && setEditingFunction) {
+        setEditingFunction({
+          ...editingFunction,
+          functionCode: data.functionCode
+        });
+      }
+      toast({
+        title: "Success",
+        description: "Code regenerated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to regenerate code",
+        variant: "destructive",
       });
     }
   });
@@ -614,6 +687,40 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     }
   };
 
+  const handleEditCode = async () => {
+    if (!editingFunction?.id) return;
+    
+    // Fetch impacted fields for this function
+    try {
+      const impactData = await apiRequest(`/api/excel-functions/${editingFunction.id}/impact`);
+      setImpactedFields(impactData?.impactedFields || []);
+    } catch (error) {
+      console.warn('Could not fetch impact data:', error);
+      setImpactedFields([]);
+    }
+    
+    setCodeChanges(editingFunction.functionCode || "");
+    setEditingCode(true);
+  };
+
+  const handleSaveCode = () => {
+    if (!editingFunction?.id) return;
+    updateFunctionCode.mutate({ functionId: editingFunction.id, functionCode: codeChanges });
+  };
+
+  const handleCancelCodeEdit = () => {
+    setEditingCode(false);
+    setCodeChanges("");
+    setImpactedFields([]);
+  };
+
+  const handleRegenerateCode = () => {
+    if (!editingFunction?.id) return;
+    if (confirm('This will regenerate the code based on current inputs. Any manual changes will be lost. Continue?')) {
+      regenerateFunctionCode.mutate(editingFunction.id);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -1101,17 +1208,96 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           {editingFunction && editingFunction.functionCode && (
             <Card className="border-gray-200">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg text-gray-800">Generated Code</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <pre className="text-sm text-gray-800 whitespace-pre-wrap overflow-x-auto">
-                    {editingFunction.functionCode}
-                  </pre>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-lg text-gray-800">
+                      {editingFunction.functionType === 'AI_ONLY' ? 'Prompt' : 'Generated Code'}
+                    </CardTitle>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {!editingCode ? (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleEditCode}
+                          className="h-7 text-xs border-gray-300 text-gray-700 hover:bg-gray-100"
+                        >
+                          <Edit3 className="h-3 w-3 mr-1" />
+                          Edit Code
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleRegenerateCode}
+                          disabled={regenerateFunctionCode.isPending}
+                          className="h-7 text-xs border-blue-300 text-blue-700 hover:bg-blue-50"
+                        >
+                          <RefreshCw className="h-3 w-3 mr-1" />
+                          Regenerate
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          size="sm"
+                          onClick={handleSaveCode}
+                          disabled={updateFunctionCode.isPending}
+                          className="h-7 text-xs bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          <Save className="h-3 w-3 mr-1" />
+                          Save
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleCancelCodeEdit}
+                          className="h-7 text-xs border-gray-300 text-gray-700 hover:bg-gray-100"
+                        >
+                          <X className="h-3 w-3 mr-1" />
+                          Cancel
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
-                <p className="text-sm text-gray-600 mt-2">
-                  This code was automatically generated and cannot be edited directly.
-                </p>
+              </CardHeader>
+
+              <CardContent>
+                {/* Impact Warning */}
+                {editingCode && impactedFields.length > 0 && (
+                  <Alert className="mb-4 border-orange-200 bg-orange-50">
+                    <AlertTriangle className="h-4 w-4 text-orange-600" />
+                    <AlertDescription className="text-orange-800">
+                      <div className="font-medium mb-1">Warning: Code changes may impact the following extractions:</div>
+                      <ul className="text-sm list-disc list-inside">
+                        {impactedFields.map((field, index) => (
+                          <li key={index}>{field}</li>
+                        ))}
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {editingCode ? (
+                  <Textarea
+                    value={codeChanges}
+                    onChange={(e) => setCodeChanges(e.target.value)}
+                    rows={12}
+                    className="font-mono text-sm"
+                    placeholder={
+                      editingFunction.functionType === 'AI_ONLY' 
+                        ? "Enter your AI prompt instructions here..."
+                        : "def extract_function(document_content, target_fields, identifier_references):"
+                    }
+                  />
+                ) : (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <pre className="text-sm text-gray-800 whitespace-pre-wrap overflow-x-auto max-h-48 overflow-y-auto">
+                      {editingFunction.functionCode}
+                    </pre>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
