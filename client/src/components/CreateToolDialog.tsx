@@ -245,7 +245,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   const regenerateToolCode = useMutation({
     mutationFn: async (toolId: string) => {
       return apiRequest(`/api/excel-functions/${toolId}/regenerate`, {
-        method: 'POST',
+        method: 'PUT',
         body: JSON.stringify({
           name: formData.name,
           description: formData.description,
@@ -256,12 +256,16 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       });
     },
     onSuccess: (updatedTool) => {
+      console.log('🎯 Regeneration response:', JSON.stringify(updatedTool, null, 2));
+      console.log('🎯 Function code from response:', updatedTool?.functionCode);
+      
       // Update both the editing function and form data
       if (setEditingFunction) {
         setEditingFunction(updatedTool);
       }
       // Update the form data with the new code
       setFormData(prev => ({ ...prev, functionCode: updatedTool?.functionCode || '' }));
+      console.log('✅ Form data updated with new code:', updatedTool?.functionCode?.substring(0, 100) + '...');
       console.log('Tool code regenerated successfully');
     },
     onError: (error: any) => {
@@ -1323,9 +1327,9 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       <AlertDialog open={showRegenerateDialog} onOpenChange={setShowRegenerateDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Regenerate Code</AlertDialogTitle>
+            <AlertDialogTitle>Generate Code</AlertDialogTitle>
             <AlertDialogDescription>
-              This will regenerate the code based on current inputs. Any manual changes will be lost. Continue?
+              This will generate new {toolType === 'AI_ONLY' ? 'prompt' : 'code'} based on current inputs. Any existing {toolType === 'AI_ONLY' ? 'prompt' : 'code'} will be overwritten. Continue?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1333,7 +1337,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction onClick={confirmRegenerate} className="bg-gray-700 hover:bg-gray-800">
-              Regenerate Code
+              Generate Code
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
