@@ -1,0 +1,88 @@
+Test Results - Raw JSON Response: {
+  "results": [
+    {
+      "id": "e9b74b10-6458-466d-965a-0d8b51d4e0e1",
+      "sessionId": "test-session",
+      "validationType": "schema_field",
+      "dataType": "TEXT",
+      "fieldId": "column_count_New_Pensioners",
+      "extractedValue": "38",
+      "validationStatus": "valid",
+      "aiReasoning": "I have identified the sheet named 'New_Pensioners' and counted the number of columns based on its header row. There are 38 distinct columns in this sheet.",
+      "confidenceScore": 100,
+      "documentSource": "Ersatz eighth (1).xlsx",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "a1c2d3e4-f567-4890-a12b-3c4d5e6f7a8b",
+      "sessionId": "test-session",
+      "validationType": "schema_field",
+      "dataType": "TEXT",
+      "fieldId": "column_count_Active_deferreds",
+      "extractedValue": "36",
+      "validationStatus": "valid",
+      "aiReasoning": "I have identified the sheet named 'Active deferreds' and counted the number of columns based on its header row. There are 36 distinct columns in this sheet.",
+      "confidenceScore": 100,
+      "documentSource": "Ersatz eighth (1).xlsx",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "f9e8d7c6-b5a4-4321-8765-fedcba987654",
+      "sessionId": "test-session",
+      "validationType": "schema_field",
+      "dataType": "TEXT",
+      "fieldId": "column_count_Deferreds",
+      "extractedValue": "38",
+      "validationStatus": "valid",
+      "aiReasoning": "I have identified the sheet named 'Deferreds' and counted the number of columns based on its header row. There are 38 distinct columns in this sheet.",
+      "confidenceScore": 100,
+      "documentSource": "Ersatz eighth (1).xlsx",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "b1a2c3d4-e5f6-4789-a012-b3c4d5e6f7a8",
+      "sessionId": "test-session",
+      "validationType": "schema_field",
+      "dataType": "TEXT",
+      "fieldId": "column_count_Pensioners",
+      "extractedValue": "37",
+      "validationStatus": "valid",
+      "aiReasoning": "I have identified the sheet named 'Pensioners' and counted the number of columns based on its header row. There are 37 distinct columns in this sheet.",
+      "confidenceScore": 100,
+      "documentSource": "Ersatz eighth (1).xlsx",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "e9f8d7c6-b5a4-4321-8765-fedcba987654",
+      "sessionId": "test-session",
+      "validationType": "schema_field",
+      "dataType": "TEXT",
+      "fieldId": "column_count_Widows",
+      "extractedValue": "22",
+      "validationStatus": "valid",
+      "aiReasoning": "I have identified the sheet named 'Widows' and counted the number of columns based on its header row. There are 22 distinct columns in this sheet.",
+      "confidenceScore": 100,
+      "documentSource": "Ersatz eighth (1).xlsx",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "c1b2a3d4-e5f6-4789-a012-b3c4d5e6f7a8",
+      "sessionId": "test-session",
+      "validationType": "schema_field",
+      "dataType": "TEXT",
+      "fieldId": "column_count_Children",
+      "extractedValue": "14",
+      "validationStatus": "valid",
+      "aiReasoning": "I have identified the sheet named 'Children' and counted the number of columns based on its header row. There are 14 distinct columns in this sheet.",
+      "confidenceScore": 100,
+      "documentSource": "Ersatz eighth (1).xlsx",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ]
+}

@@ -13,12 +13,18 @@ export async function testAIOnlyTool(
   toolDescription: string,
   inputParameters: Array<{ name: string; type: string; description: string }>,
   testInputs: Record<string, any>,
-  sampleDocuments: any[]
+  sampleDocuments: any[],
+  outputType: 'single' | 'multiple' = 'single'
 ): Promise<any[]> {
   try {
     console.log('🤖 Testing AI ONLY tool with Gemini...');
+    console.log('📊 Output type:', outputType);
     
-    // Build system prompt explaining input types
+    // Build system prompt explaining input types and output constraints
+    const outputInstruction = outputType === 'single' 
+      ? 'CRITICAL: This tool has outputType="single" - return EXACTLY ONE result object in the array, not multiple results.'
+      : 'This tool has outputType="multiple" - you can return multiple result objects if appropriate.';
+    
     const systemPrompt = `You are an AI data extraction tool that processes inputs and returns results in field_validations JSON format.
 
 Input Type Understanding:
@@ -27,6 +33,8 @@ Input Type Understanding:
 - data inputs: These are source data structures from which to extract data
 
 Tool Description: ${toolDescription}
+
+${outputInstruction}
 
 You must return an array of field_validation objects with this exact structure:
 [{

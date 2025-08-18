@@ -5069,7 +5069,8 @@ print(json.dumps(results))
           func.description,
           func.inputParameters || [],
           processedInputs,
-          sampleDocuments
+          sampleDocuments,
+          func.outputType || 'single'
         );
 
         console.log("🎯 AI test results:", aiResults);
