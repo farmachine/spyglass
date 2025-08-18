@@ -5182,7 +5182,7 @@ print(json.dumps(results))
             console.log("No sample documents found:", error);
           }
 
-          // If no sample documents found, try to process sample files on-the-fly
+          // If no sample documents found, try to process sample files on-the-fly using the existing processing system
           if (sampleDocuments.length === 0) {
             console.log("🔄 No sample documents found, attempting to process sample files on-the-fly...");
             
@@ -5191,97 +5191,101 @@ print(json.dumps(results))
                 console.log(`📥 Processing sample file for parameter: ${param.name}`);
                 
                 try {
-                  // Use the extraction wizardry system to process the document
+                  // Use the SAME extraction process as the /api/sample-documents/process endpoint
+                  console.log('📥 Downloading sample file from object storage:', param.sampleFileURL);
+                  
+                  // Extract the relative path from the object storage URL
+                  const urlParts = new URL(param.sampleFileURL);
+                  const pathParts = urlParts.pathname.split('/');
+                  const bucketName = pathParts[1];
+                  const objectName = pathParts.slice(2).join('/');
+                  
+                  console.log('📁 Bucket:', bucketName, 'Object:', objectName);
+                  
+                  // Use ObjectStorageService with the Google Cloud Storage client directly
+                  const { ObjectStorageService, objectStorageClient } = await import("./objectStorage");
+                  const bucket = objectStorageClient.bucket(bucketName);
+                  const objectFile = bucket.file(objectName);
+                  
+                  // Stream the file content to a buffer
+                  const chunks: Buffer[] = [];
+                  const stream = objectFile.createReadStream();
+                  
+                  await new Promise((resolve, reject) => {
+                    stream.on('data', (chunk) => chunks.push(chunk));
+                    stream.on('end', resolve);
+                    stream.on('error', reject);
+                  });
+                  
+                  const fileBuffer = Buffer.concat(chunks);
+                  const [metadata] = await objectFile.getMetadata();
+                  const mimeType = metadata.contentType || 'application/octet-stream';
+                  const base64Content = fileBuffer.toString('base64');
+                  const dataURL = `data:${mimeType};base64,${base64Content}`;
+
+                  // Use the SAME document extraction process as session documents
+                  const extractionData = {
+                    step: "extract_text_only",
+                    documents: [{
+                      file_name: param.sampleFile || 'sample-file',
+                      file_content: dataURL,
+                      mime_type: mimeType
+                    }]
+                  };
+
                   const { spawn } = await import('child_process');
-                  const pythonProcess = spawn('python3', ['-c', `
-import sys
-import json
-import os
-import requests
-import base64
-
-# Add current directory to Python path for imports
-sys.path.insert(0, os.getcwd())
-
-try:
-    from document_extractor import extract_text_from_document
-    
-    # Get file URL from command line
-    file_url = "${param.sampleFileURL}"
-    file_name = "${param.sampleFile || 'sample-file'}"
-    
-    print(f"DEBUG: Processing file: {file_name} from URL: {file_url}", file=sys.stderr)
-    
-    # Download the file
-    response = requests.get(file_url)
-    if response.status_code != 200:
-        print(json.dumps({"error": f"Failed to download file: {response.status_code}"}))
-        sys.exit(1)
-    
-    # Convert to base64 for document extractor
-    file_content_b64 = base64.b64encode(response.content).decode('utf-8')
-    
-    # Determine MIME type based on file extension
-    mime_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    if file_name.lower().endswith('.xls'):
-        mime_type = "application/vnd.ms-excel"
-    elif file_name.lower().endswith('.pdf'):
-        mime_type = "application/pdf"
-    elif file_name.lower().endswith('.docx'):
-        mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    
-    # Process the document
-    result = extract_text_from_document({
-        'file_name': file_name,
-        'file_content': file_content_b64,
-        'mime_type': mime_type
-    })
-    
-    if result.get('text_content'):
-        print(json.dumps({"content": result['text_content']}))
-    else:
-        print(json.dumps({"error": result.get('error', 'No content extracted')}))
-    
-except Exception as e:
-    print(json.dumps({"error": str(e)}))
-    sys.exit(1)
-`]);
+                  const python = spawn('python3', ['document_extractor.py']);
+                  
+                  python.stdin.write(JSON.stringify(extractionData));
+                  python.stdin.end();
 
                   let stdoutData = '';
                   let stderrData = '';
 
-                  pythonProcess.stdout.on('data', (data) => {
+                  python.stdout.on('data', (data) => {
                     stdoutData += data.toString();
                   });
 
-                  pythonProcess.stderr.on('data', (data) => {
+                  python.stderr.on('data', (data) => {
                     stderrData += data.toString();
                   });
 
                   await new Promise((resolve, reject) => {
-                    pythonProcess.on('close', async (code) => {
+                    python.on('close', async (code) => {
+                      console.log(`Python process exited with code ${code}`);
                       if (stderrData) {
-                        console.log('Python debug output:', stderrData);
+                        console.log('Python stderr:', stderrData);
                       }
                       
                       if (code === 0 && stdoutData) {
                         try {
                           const result = JSON.parse(stdoutData.trim());
-                          if (result.content) {
-                            // Create a sample document record
-                            const sampleDoc = await storage.createSampleDocument({
-                              functionId,
-                              parameterName: param.name,
-                              fileName: param.sampleFile || 'sample-file',
-                              filePath: param.sampleFileURL,
-                              extractedContent: result.content
-                            });
+                          console.log('Document extraction result:', result);
+                          
+                          if (result.success && result.extracted_texts && result.extracted_texts[0]) {
+                            const extractedContent = result.extracted_texts[0].text_content;
                             
-                            sampleDocuments.push(sampleDoc);
-                            console.log(`✅ Successfully processed sample file for ${param.name}, content length: ${result.content.length}`);
+                            if (extractedContent) {
+                              // Create a sample document record using the same pattern as the existing endpoint
+                              const sampleDoc = await storage.createSampleDocument({
+                                functionId,
+                                parameterName: param.name,
+                                fileName: param.sampleFile || 'sample-file',
+                                filePath: param.sampleFileURL,
+                                extractedContent,
+                                mimeType
+                              });
+                              
+                              sampleDocuments.push(sampleDoc);
+                              console.log(`✅ Successfully processed sample file for ${param.name}, content length: ${extractedContent.length}`);
+                            } else {
+                              console.log(`⚠️ No content extracted for ${param.name}`);
+                            }
+                          } else {
+                            console.log(`❌ Extraction failed for ${param.name}:`, result.error || 'Unknown error');
                           }
                         } catch (parseError) {
-                          console.error(`Failed to parse Python output:`, parseError);
+                          console.error(`Failed to parse extraction result:`, parseError);
                         }
                       }
                       resolve(undefined);
