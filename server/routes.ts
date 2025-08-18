@@ -5032,6 +5032,11 @@ print(json.dumps(results))
           try {
             sampleDocuments = await storage.getSampleDocuments(functionId);
             console.log(`📁 Found ${sampleDocuments.length} sample documents`);
+            
+            // Debug: Log all sample documents details
+            for (const doc of sampleDocuments) {
+              console.log(`📄 Sample doc: ID=${doc.id}, paramName=${doc.parameterName}, hasContent=${!!doc.extractedContent}, contentLength=${doc.extractedContent?.length || 0}`);
+            }
           } catch (error) {
             console.log("No sample documents found:", error);
           }
@@ -5039,6 +5044,8 @@ print(json.dumps(results))
           // Process inputs to replace document filenames with actual extracted content
           const processedInputs = {};
           for (const [paramName, inputValue] of Object.entries(inputs)) {
+            console.log(`🔍 Processing input param: ${paramName} = ${typeof inputValue === 'object' ? JSON.stringify(inputValue).substring(0, 100) + '...' : inputValue}`);
+            
             // Check if this parameter has a corresponding sample document by parameter name
             const sampleDoc = sampleDocuments.find(doc => doc.parameterName === paramName);
             
@@ -5062,6 +5069,7 @@ print(json.dumps(results))
             } else {
               // For non-document parameters, use the input value as-is
               processedInputs[paramName] = inputValue;
+              console.log(`📝 Used input as-is for ${paramName}: ${typeof inputValue === 'object' ? 'object' : inputValue}`);
             }
           }
 
