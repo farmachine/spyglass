@@ -166,123 +166,51 @@ ${aiAssistanceRequired ? `\nAdditional AI Instructions: ${aiAssistancePrompt}` :
       
       // Removed manual override - using AI generation for all functions
       
-      // REFERENCE HANDLE SYSTEM FOR PARAMETER ACCESS
-      const referenceHandles = inputParameters.map((p, index) => ({
-        handle: `@${p.name.toLowerCase().replace(/\s+/g, '_')}`,
-        paramName: p.name.replace(/\s+/g, '_'),
-        type: p.type,
-        description: p.description || `${p.name} parameter`,
-        sampleData: p.sampleData
-      }));
+      // MANDATORY FUNCTION SIGNATURE ENFORCEMENT
+      const systemPrompt = `You are an expert Python developer. You MUST create a function with this EXACT signature:
 
-      const systemPrompt = `You are an expert Python developer creating data extraction functions using REFERENCE HANDLES.
-
-FUNCTION SIGNATURE (MANDATORY):
 def extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')}):
 
-REFERENCE HANDLE SYSTEM:
-Instead of using raw parameter names, use these reference handles for better code readability:
+CRITICAL REQUIREMENTS:
+1. Function name MUST be "extract_function"  
+2. Parameters MUST match exactly: ${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')}
+3. OUTPUT TYPE = "${outputType.toUpperCase()}"
 
-${referenceHandles.map(ref => `
-${ref.handle} → References parameter: ${ref.paramName}
-Type: ${ref.type.toUpperCase()}
-${ref.type === 'data' && ref.sampleData?.rows ? 
-  `Data: Array of ${ref.sampleData.rows.length} objects like ${JSON.stringify(ref.sampleData.rows[0] || {})}` : 
-  ref.type === 'document' ? 
-  `Data: Excel content string with "=== Sheet: Name ===" format` : 
-  `Data: ${ref.type} input`
-}
-Usage: ${ref.paramName} (reference as ${ref.handle} in comments)
-`).join('')}
-
-OUTPUT TYPE: ${outputType.toUpperCase()}
 ${outputType === 'multiple' ? `
-ITERATION REQUIRED: Process each item in the data array
-Pattern: for record in ${referenceHandles.find(r => r.type === 'data')?.paramName || 'data_param'}:
+MULTIPLE OUTPUTS - MUST ITERATE:
+- Use for loop to process array parameter
+- Generate multiple results (one per array item)
+- Return list of result objects
 ` : `
-SINGLE PROCESSING: Process parameters as complete units
-Pattern: Process all ${referenceHandles.find(r => r.type === 'document')?.paramName || 'document_param'} content
+SINGLE OUTPUT - NO ITERATION:
+- Process parameters as whole
+- Generate one result only
+- Return single result in array
 `}
 
-CODE TEMPLATE WITH REFERENCE HANDLES:
-def extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')}):
-    # Reference handles for clarity:
-    ${referenceHandles.map(ref => `# ${ref.handle} = ${ref.paramName} (${ref.type})`).join('\n    ')}
-    
-    results = []
-    ${outputType === 'multiple' && referenceHandles.find(r => r.type === 'data') ? `
-    # Iterate through ${referenceHandles.find(r => r.type === 'data')?.handle} array
-    for record in ${referenceHandles.find(r => r.type === 'data')?.paramName}:
-        # Extract value from current record
-        # Process using ${referenceHandles.find(r => r.type === 'document')?.handle} content
-        # Append result for this record
-        results.append({...})
-    ` : `
-    # Process ${referenceHandles.find(r => r.type === 'document')?.handle} as single unit
-    # Generate one result
-    results.append({...})
-    `}
-    return results
+PARAMETER DETAILS:
+${inputParameters.map(p => {
+  if (p.type === 'data' && p.sampleData?.rows) {
+    return `${p.name.replace(/\s+/g, '_')}: List of ${p.sampleData.rows.length} objects, each like ${JSON.stringify(p.sampleData.rows[0] || {})}`;
+  } else if (p.type === 'document') {
+    return `${p.name.replace(/\s+/g, '_')}: String with Excel format "=== Sheet: Name ===" followed by data`;
+  }
+  return `${p.name.replace(/\s+/g, '_')}: ${p.type} parameter`;
+}).join('\n')}
 
-Return JSON: {"functionCode": "complete_function_with_reference_handles", "metadata": {"parametersUsed": [${inputParameters.map(p => `"${p.name}"`).join(', ')}], "referenceHandles": [${referenceHandles.map(ref => `"${ref.handle}"`).join(', ')}]}}`;
+RETURN FORMAT: List of objects with keys: extractedValue, validationStatus, aiReasoning, confidenceScore, documentSource
 
-      const userPrompt = `Create function: ${name}
+Return JSON: {"functionCode": "complete_function_code", "metadata": {"parametersUsed": [${inputParameters.map(p => `"${p.name}"`).join(', ')}]}}`;
+
+      const userPrompt = `Generate function: ${name}
 Description: ${description}
 
-CRITICAL: This is a ${outputType.toUpperCase()} output function!
-
-${outputType === 'multiple' ? `
-MANDATORY ITERATION REQUIREMENTS:
-- Parameter ${referenceHandles.find(r => r.type === 'data')?.paramName} is an ARRAY of objects
-- You MUST use: for record in ${referenceHandles.find(r => r.type === 'data')?.paramName}:
-- Extract field value from EACH record: record["field_name"]
-- Process EACH value individually
-- Return LIST of validation objects (one per array item)
-- Expected output: ${referenceHandles.find(r => r.type === 'data')?.sampleData?.rows?.length || 0} results
-
-REQUIRED STRUCTURE - USE ACTUAL EXCEL DATA:
-def extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')}):
-    # ${referenceHandles.map(ref => `${ref.handle} = ${ref.paramName}`).join('\n    # ')}
-    results = []
-    
-    for record in ${referenceHandles.find(r => r.type === 'data')?.paramName}:
-        field_value = record["${referenceHandles.find(r => r.type === 'data')?.sampleData?.columns?.[0] || 'field_name'}"]
-        
-        # Search in ACTUAL Excel content (NOT mock data)
-        found_worksheet = None
-        current_sheet = None
-        
-        for line in ${referenceHandles.find(r => r.type === 'document')?.paramName}.splitlines():
-            if "=== Sheet:" in line:
-                current_sheet = line.split("=== Sheet:")[1].split("===")[0].strip()
-                continue
-            # Check if this line contains the field_value
-            if current_sheet and field_value in line:
-                found_worksheet = current_sheet
-                break
-        
-        results.append({
-            "extractedValue": found_worksheet if found_worksheet else "Not Found",
-            "validationStatus": "valid" if found_worksheet else "not_found",
-            "aiReasoning": f"Searched for '{field_value}' in Excel sheets",
-            "confidenceScore": 90 if found_worksheet else 10,
-            "documentSource": "input"
-        })
-    
-    return results
-
-CRITICAL: Do NOT create mock_excel_data or any hardcoded mappings. Use the actual Excel_File content provided.
-` : `
-SINGLE OUTPUT REQUIREMENTS:
-- Process parameters as complete units
-- Generate ONE result only
-- Return single validation object in array format
-`}
-
-Reference handles for comments:
-${referenceHandles.map(ref => `${ref.handle} = ${ref.paramName} (${ref.type})`).join('\n')}
-
-RETURN: Array of field validation objects with keys: extractedValue, validationStatus, aiReasoning, confidenceScore, documentSource`;
+Requirements:
+- Function signature: def extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')})
+- ${outputType === 'multiple' ? 'Iterate through array parameter to generate multiple results' : 'Process input to generate single result'}
+- Use Python syntax: None (not null), True/False (not true/false)
+- Handle errors gracefully
+- Return proper field validation format`;
 
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
