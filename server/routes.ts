@@ -5110,7 +5110,7 @@ try:
     print(f"DEBUG: Processed inputs keys: {list(processed_inputs.keys())}", file=sys.stderr)
     print(f"DEBUG: Tool input parameters: {input_parameters}", file=sys.stderr)
     
-    # Create a safe execution environment
+    # Create a safe execution environment with essential built-ins
     exec_globals = {
         'json': json,
         're': re,
@@ -5134,7 +5134,23 @@ try:
             'min': min,
             'sum': sum,
             'sorted': sorted,
-            'reversed': reversed
+            'reversed': reversed,
+            'isinstance': isinstance,
+            'Exception': Exception,
+            'ValueError': ValueError,
+            'TypeError': TypeError,
+            'KeyError': KeyError,
+            'IndexError': IndexError,
+            'AttributeError': AttributeError,
+            'hasattr': hasattr,
+            'getattr': getattr,
+            'setattr': setattr,
+            'type': type,
+            'set': set,
+            'tuple': tuple,
+            'None': None,
+            'True': True,
+            'False': False
         }
     }
     
