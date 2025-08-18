@@ -4971,6 +4971,81 @@ print(json.dumps(results))
     }
   });
 
+  // Quick fix for column-to-worksheet function
+  app.post("/api/excel-functions/:id/fix-array-iteration", async (req, res) => {
+    try {
+      const id = req.params.id;
+      
+      const fixedFunctionCode = `def extract_function(Column_Name, Excel_File):
+    results = []
+    
+    try:
+        # DEBUG: Check parameter types
+        print(f"DEBUG: Column_Name type: {type(Column_Name)}")
+        print(f"DEBUG: Column_Name content: {Column_Name}")
+        
+        # Column_Name is an array of objects like [{"Column Name": "Employer Code"}, ...]
+        if isinstance(Column_Name, list):
+            for record in Column_Name:
+                if isinstance(record, dict) and "Column Name" in record:
+                    column_name = record["Column Name"]
+                    
+                    # Find worksheet containing this column
+                    found_worksheet = None
+                    current_sheet = None
+                    
+                    for line in Excel_File.splitlines():
+                        line = line.strip()
+                        if "=== Sheet:" in line:
+                            current_sheet = line.split("=== Sheet:")[1].split("===")[0].strip()
+                            continue
+                            
+                        # Check if this line contains the column name (header row)
+                        if current_sheet and column_name in line:
+                            found_worksheet = current_sheet
+                            break
+                    
+                    # Add result for this column
+                    results.append({
+                        "extractedValue": found_worksheet if found_worksheet else "Not Found",
+                        "validationStatus": "valid" if found_worksheet else "not_found",
+                        "aiReasoning": f"Searched for column '{column_name}' in Excel worksheets",
+                        "confidenceScore": 90,
+                        "documentSource": "input"
+                    })
+        else:
+            # Handle unexpected parameter format
+            results.append({
+                "extractedValue": f"Invalid input format: {type(Column_Name)}",
+                "validationStatus": "invalid", 
+                "aiReasoning": f"Expected array of objects, got {type(Column_Name)}",
+                "confidenceScore": 0,
+                "documentSource": "input"
+            })
+            
+    except Exception as e:
+        results.append({
+            "extractedValue": f"Error: {str(e)}",
+            "validationStatus": "invalid", 
+            "aiReasoning": f"Function execution error: {str(e)}",
+            "confidenceScore": 0,
+            "documentSource": "input"
+        })
+    
+    return results`;
+
+      const updatedFunction = await storage.updateExcelWizardryFunction(id, {
+        functionCode: fixedFunctionCode,
+        updatedAt: new Date()
+      });
+      
+      res.json(updatedFunction);
+    } catch (error) {
+      console.error("Error applying array fix:", error);
+      res.status(500).json({ message: "Failed to apply array iteration fix" });
+    }
+  });
+
   // Direct update Excel function code
   app.post("/api/excel-functions/:id/direct-update", async (req, res) => {
     try {
