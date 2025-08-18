@@ -1264,7 +1264,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                     />
                   </div>
                   <div className="text-xs text-gray-700">
-                    {loadingProgress}% complete
+                    {loadingMessage || `${loadingProgress}% complete`}
                   </div>
                 </div>
               </CardContent>
