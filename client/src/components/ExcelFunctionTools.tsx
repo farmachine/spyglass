@@ -219,10 +219,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
           console.log("📊 Updated Data Input Parameters with JSON Arrays:");
           dataInputs.forEach((param: any) => {
             console.log(`Parameter: ${param.name}`);
-            console.log(`JSON Array:`, JSON.stringify({
-              columns: param.sampleData.columns,
-              rows: param.sampleData.rows
-            }, null, 2));
+            console.log(`JSON Array:`, JSON.stringify(param.sampleData.rows, null, 2));
           });
         }
       }

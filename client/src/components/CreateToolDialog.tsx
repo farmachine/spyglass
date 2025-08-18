@@ -66,10 +66,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         console.log("📊 Data Input Parameters with JSON Arrays:");
         dataInputs.forEach((param: any) => {
           console.log(`Parameter: ${param.name}`);
-          console.log(`JSON Array:`, JSON.stringify({
-            columns: param.sampleData.columns,
-            rows: param.sampleData.rows
-          }, null, 2));
+          console.log(`JSON Array:`, JSON.stringify(param.sampleData.rows, null, 2));
         });
       }
 
@@ -377,11 +374,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
             })
           });
         } else if (param.sampleData && param.sampleData.columns.length > 0 && param.sampleData.rows.length > 0) {
-          // Process data table sample - convert to JSON string for processing
-          const tableDataAsJSON = JSON.stringify({
-            columns: param.sampleData.columns,
-            rows: param.sampleData.rows
-          }, null, 2);
+          // Process data table sample - convert to array of objects format
+          const tableDataAsJSON = JSON.stringify(param.sampleData.rows, null, 2);
           
           await apiRequest("/api/sample-documents/process", {
             method: "POST",
