@@ -159,10 +159,12 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         title: "Tool Created",
         description: "Tool has been created successfully."
       });
-      setOpen(false);
-      resetForm();
-      setLoadingProgress(0);
-      setLoadingMessage("");
+      setTimeout(() => {
+        setOpen(false);
+        resetForm();
+        setLoadingProgress(0);
+        setLoadingMessage("");
+      }, 1500); // Give time to see completion
     },
     onError: () => {
       toast({
@@ -194,6 +196,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     },
     onSuccess: (response) => {
       setLoadingProgress(100);
+      setLoadingMessage("Tool created successfully!");
       
       console.log('🎉 AI generation response:', JSON.stringify(response, null, 2));
       
