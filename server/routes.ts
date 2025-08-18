@@ -5182,6 +5182,110 @@ print(json.dumps(results))
             console.log("No sample documents found:", error);
           }
 
+          // If no sample documents found, try to process sample files on-the-fly
+          if (sampleDocuments.length === 0) {
+            console.log("🔄 No sample documents found, attempting to process sample files on-the-fly...");
+            
+            for (const param of func.inputParameters || []) {
+              if (param.type === 'document' && param.sampleFileURL) {
+                console.log(`📥 Processing sample file for parameter: ${param.name}`);
+                
+                try {
+                  // Use the extraction wizardry system to process the document
+                  const { spawn } = await import('child_process');
+                  const pythonProcess = spawn('python3', ['-c', `
+import sys
+import json
+import os
+import requests
+from urllib.parse import urlparse
+
+# Add current directory to Python path for imports
+sys.path.insert(0, os.getcwd())
+
+try:
+    from document_extractor import process_document_for_extraction
+    
+    # Get file URL from command line
+    file_url = "${param.sampleFileURL}"
+    file_name = "${param.sampleFile || 'sample-file'}"
+    
+    print(f"DEBUG: Processing file: {file_name} from URL: {file_url}", file=sys.stderr)
+    
+    # Download the file
+    response = requests.get(file_url)
+    if response.status_code != 200:
+        print(json.dumps({"error": f"Failed to download file: {response.status_code}"}))
+        sys.exit(1)
+    
+    # Save temporary file
+    temp_file = f"/tmp/{file_name}"
+    with open(temp_file, 'wb') as f:
+        f.write(response.content)
+    
+    # Process the document
+    extracted_content = process_document_for_extraction(temp_file)
+    
+    # Clean up
+    os.remove(temp_file)
+    
+    # Return the extracted content
+    print(json.dumps({"content": extracted_content}))
+    
+except Exception as e:
+    print(json.dumps({"error": str(e)}))
+    sys.exit(1)
+`]);
+
+                  let stdoutData = '';
+                  let stderrData = '';
+
+                  pythonProcess.stdout.on('data', (data) => {
+                    stdoutData += data.toString();
+                  });
+
+                  pythonProcess.stderr.on('data', (data) => {
+                    stderrData += data.toString();
+                  });
+
+                  await new Promise((resolve, reject) => {
+                    pythonProcess.on('close', async (code) => {
+                      if (stderrData) {
+                        console.log('Python debug output:', stderrData);
+                      }
+                      
+                      if (code === 0 && stdoutData) {
+                        try {
+                          const result = JSON.parse(stdoutData.trim());
+                          if (result.content) {
+                            // Create a sample document record
+                            const sampleDoc = await storage.createSampleDocument({
+                              functionId,
+                              parameterName: param.name,
+                              fileName: param.sampleFile || 'sample-file',
+                              filePath: param.sampleFileURL,
+                              extractedContent: result.content
+                            });
+                            
+                            sampleDocuments.push(sampleDoc);
+                            console.log(`✅ Successfully processed sample file for ${param.name}, content length: ${result.content.length}`);
+                          }
+                        } catch (parseError) {
+                          console.error(`Failed to parse Python output:`, parseError);
+                        }
+                      }
+                      resolve(undefined);
+                    });
+                  });
+                } catch (error) {
+                  console.error(`❌ Failed to process sample file for ${param.name}:`, error);
+                }
+              }
+            }
+            
+            console.log(`📁 After on-the-fly processing: Found ${sampleDocuments.length} sample documents`);
+          }
+
           // Process inputs to replace document filenames with actual extracted content
           const processedInputs = {};
           for (const [paramName, inputValue] of Object.entries(inputs)) {
