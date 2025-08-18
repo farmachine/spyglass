@@ -184,24 +184,40 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
       <Dialog open={!!testingFunction} onOpenChange={() => setTestingFunction(null)}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader className="flex-shrink-0">
-            <DialogTitle className="text-gray-800">Test Tool: {testingFunction?.name}</DialogTitle>
+            <DialogTitle className="text-gray-800">extrapl <span className="text-blue-600">•</span> Test</DialogTitle>
           </DialogHeader>
           
           {testingFunction && (
-            <div className="space-y-4 overflow-y-auto flex-1 pr-2">
-              <div className="border border-gray-300 p-3 rounded">
-                <h4 className="font-medium text-gray-800 mb-1">Tool Description</h4>
-                <p className="text-gray-700 text-sm">{testingFunction.description}</p>
+            <div className="space-y-6 overflow-y-auto flex-1 pr-2">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900">Basic Information</h3>
+                
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Tool Name
+                    </label>
+                    <div className="text-gray-900 font-medium">{testingFunction.name}</div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Description
+                    </label>
+                    <div className="text-gray-700 text-sm">{testingFunction.description}</div>
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <h4 className="font-medium text-gray-800 mb-3">The tool will be tested using the following inputs:</h4>
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900">Test Inputs</h3>
+                <p className="text-sm text-gray-600">The tool will be tested using the following sample inputs:</p>
                 
                 <div className="space-y-4">
                   {testingFunction.inputParameters?.map((param: any, index: number) => (
-                    <div key={index} className="border border-gray-300 p-3 rounded">
+                    <div key={index} className="border border-gray-200 rounded-lg p-4 bg-white">
                       <div className="flex items-center gap-2 mb-3">
-                        <span className="font-medium text-gray-800">{param.name}</span>
+                        <span className="font-medium text-gray-900">{param.name}</span>
                         <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">
                           {param.type}
                         </span>
@@ -253,15 +269,18 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                       )}
                       
                       {param.description && (
-                        <p className="text-xs text-gray-500 mt-2">{param.description}</p>
+                        <div className="mt-3 pt-3 border-t border-gray-100">
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Description</label>
+                          <p className="text-sm text-gray-600">{param.description}</p>
+                        </div>
                       )}
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="text-center py-6 text-gray-500">
-                <p>Testing functionality will be available soon.</p>
+              <div className="text-center py-6 text-gray-500 border-t border-gray-200">
+                <p className="text-sm">Testing functionality will be available soon.</p>
               </div>
             </div>
           )}
