@@ -39,6 +39,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
   const [testInputs, setTestInputs] = useState<Record<string, any>>({});
   const [debugText, setDebugText] = useState('');
   const [isDebugging, setIsDebugging] = useState(false);
+  const [debugRecommendations, setDebugRecommendations] = useState<string>('');
 
   const queryClient = useQueryClient();
 
@@ -151,14 +152,51 @@ export default function Tools({ projectId }: ExcelToolsProps) {
         modalContent.scrollTop = 0;
       }
 
-      // Show success message or handle debug result
+      // Show success message and store debug recommendations
       if (response.success) {
         console.log('Debug completed successfully');
         console.log('Debug recommendations:', response.debugResponse);
+        setDebugRecommendations(response.debugResponse);
       }
 
     } catch (error) {
       console.error('Debug execution error:', error);
+    } finally {
+      setIsDebugging(false);
+    }
+  };
+
+  const applyDebugFixes = async (tool: ExcelTool | null) => {
+    if (!tool || !debugRecommendations) return;
+    
+    setIsDebugging(true);
+    
+    try {
+      console.log('🔧 Applying debug fixes...');
+      
+      const response = await apiRequest(`/api/excel-functions/apply-debug-fixes`, {
+        method: 'POST',
+        body: JSON.stringify({
+          functionId: tool.id,
+          debugRecommendations: debugRecommendations,
+          inputs: testInputs,
+          testResults: testResults
+        })
+      });
+
+      if (response.success) {
+        console.log('Debug fixes applied successfully');
+        // Clear debug state and refresh the tools list
+        setDebugRecommendations('');
+        setDebugText('');
+        setTestResults(null);
+        await queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'excel-functions'] });
+        alert('Tool has been updated with the suggested fixes!');
+      }
+
+    } catch (error) {
+      console.error('Apply debug fixes error:', error);
+      alert('Failed to apply debug fixes. Please try again.');
     } finally {
       setIsDebugging(false);
     }
@@ -303,6 +341,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
         setTestingTool(null);
         setTestResults(null);
         setDebugText('');
+        setDebugRecommendations('');
         // Note: testInputs are preserved to maintain user's original inputs
       }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" aria-describedby="test-dialog-description">
@@ -562,6 +601,39 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                         </Button>
                       </div>
                     </div>
+
+                    {/* Debug Recommendations Section */}
+                    {debugRecommendations && (
+                      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <h4 className="text-sm font-semibold text-blue-900 mb-3">AI Debug Analysis</h4>
+                        <div className="bg-white p-3 rounded border text-sm text-gray-700 whitespace-pre-wrap mb-4">
+                          {debugRecommendations}
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-blue-700">
+                            Would you like to apply the AI's suggested improvements to this tool?
+                          </p>
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => setDebugRecommendations('')}
+                              variant="outline"
+                              size="sm"
+                              className="text-gray-600 border-gray-300"
+                            >
+                              Dismiss
+                            </Button>
+                            <Button
+                              onClick={() => applyDebugFixes(testingTool)}
+                              size="sm"
+                              className="bg-blue-600 hover:bg-blue-700 text-white"
+                              disabled={isDebugging}
+                            >
+                              Apply Fixes
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

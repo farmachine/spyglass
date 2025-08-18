@@ -754,3 +754,150 @@ ${functionCode}`;
     throw error;
   }
 }
+
+export async function generateFunctionCodeFromDebug(
+  toolName: string,
+  toolDescription: string,
+  inputParameters: Array<{ name: string; type: string; description: string }>,
+  functionType: string,
+  debugRecommendations: string,
+  testInputs: Record<string, any>,
+  testResults: any[],
+  currentCode?: string
+): Promise<{ functionCode: string; metadata: any }> {
+  try {
+    console.log('🔧 Generating improved function code based on debug recommendations...');
+    
+    if (functionType === "AI_ONLY") {
+      console.log('🤖 Updating AI-only tool prompt based on debug feedback...');
+      
+      // For AI_ONLY tools, improve the descriptive prompt based on debug recommendations
+      const improvedPrompt = `Extract data from the provided document using the following parameters:
+
+Parameters:
+${inputParameters.map(p => `- @${p.name} (${p.type}): ${p.description}`).join('\n')}
+
+Tool Description: ${toolDescription}
+
+Debug Improvements Applied:
+${debugRecommendations}
+
+Instructions:
+- Use all the provided parameters to guide your extraction
+- Extract relevant data based on the document content
+- Apply the debug improvements to fix previous issues
+- Return results in valid JSON format
+- Handle missing data gracefully with appropriate status indicators`;
+
+      return {
+        functionCode: improvedPrompt,
+        metadata: {
+          outputFormat: "field_validations_array",
+          inputValidation: "AI will validate all input parameters during extraction with improved logic",
+          errorHandling: "AI handles missing data gracefully with debug improvements applied",
+          parametersUsed: inputParameters.map(p => p.name),
+          toolType: "AI_ONLY",
+          description: toolDescription,
+          debugImprovements: "Applied debug recommendations to improve extraction accuracy"
+        }
+      };
+    } else {
+      console.log('🐍 Generating improved Python code based on debug feedback...');
+      
+      const systemPrompt = `You are an expert Python developer fixing a data extraction function based on debug recommendations.
+
+CRITICAL: The output MUST be exactly compatible with the field_validations database schema format.
+
+Current Function Code:
+\`\`\`python
+${currentCode || 'No current code available'}
+\`\`\`
+
+Debug Analysis and Recommendations:
+${debugRecommendations}
+
+Test Inputs That Were Used:
+${JSON.stringify(testInputs, null, 2)}
+
+Current Test Results That Need Improvement:
+${JSON.stringify(testResults, null, 2)}
+
+IMPROVEMENT REQUIREMENTS:
+1. Fix the issues identified in the debug recommendations
+2. Maintain compatibility with field_validations schema format
+3. Use the exact parameter names: ${inputParameters.map(p => p.name).join(', ')}
+4. Improve error handling and validation based on the debug feedback
+5. Ensure the function returns accurate results for the test inputs provided
+
+Field Validations Output Schema (EXACT format required):
+[
+  {
+    "extractedValue": "string - the actual extracted value",
+    "validationStatus": "string - valid|invalid|pending", 
+    "aiReasoning": "string - explanation of extraction logic",
+    "confidenceScore": "number - 0-100 confidence percentage",
+    "documentSource": "string - source identifier"
+  }
+]
+
+Generate an improved Python function that addresses all the issues mentioned in the debug recommendations.`;
+
+      const userPrompt = `Please generate an improved version of the function that fixes the issues identified:
+
+Function Name: ${toolName}
+Description: ${toolDescription}
+Parameters: ${inputParameters.map(p => `${p.name} (${p.type}): ${p.description}`).join(', ')}
+
+Apply the debug recommendations to create a better, more accurate function.`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-pro",
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "object",
+            properties: {
+              functionCode: { type: "string" },
+              metadata: { 
+                type: "object",
+                properties: {
+                  outputFormat: { type: "string" },
+                  parametersUsed: { 
+                    type: "array",
+                    items: { type: "string" }
+                  }
+                }
+              }
+            },
+            required: ["functionCode", "metadata"]
+          }
+        },
+        contents: [
+          { role: "user", parts: [{ text: systemPrompt }] },
+          { role: "user", parts: [{ text: userPrompt }] }
+        ]
+      });
+
+      console.log('✅ Improved Python function generation completed');
+      
+      if (!response.text) {
+        throw new Error('Empty response from Gemini AI');
+      }
+      
+      const result = JSON.parse(response.text);
+      
+      if (!result.functionCode || !result.metadata) {
+        throw new Error('AI response missing required functionCode or metadata fields');
+      }
+      
+      // Add debug improvement metadata
+      result.metadata.debugImprovements = "Applied debug recommendations to fix identified issues";
+      
+      console.log('🎯 Improved function metadata:', result.metadata);
+      return result;
+    }
+  } catch (error) {
+    console.error('❌ Error generating improved function code:', error);
+    throw error;
+  }
+}

@@ -5042,6 +5042,49 @@ print(json.dumps(results))
     }
   });
 
+  // Apply debug fixes to Excel wizardry function
+  app.post("/api/excel-functions/apply-debug-fixes", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { functionId, debugRecommendations, inputs, testResults } = req.body;
+
+      if (!functionId || !debugRecommendations) {
+        return res.status(400).json({ message: "Function ID and debug recommendations are required" });
+      }
+
+      console.log("🔧 Applying debug fixes to tool:", functionId);
+
+      // Get the function
+      const func = await storage.getExcelWizardryFunction(functionId);
+      if (!func) {
+        return res.status(404).json({ message: "Function not found" });
+      }
+
+      // Import and use the Gemini AI function for generating improved code based on debug recommendations
+      const { generateFunctionCodeFromDebug } = await import("./gemini");
+      
+      const { functionCode, metadata } = await generateFunctionCodeFromDebug(
+        func.name,
+        func.description,
+        func.inputParameters || [],
+        func.functionType,
+        debugRecommendations,
+        inputs || {},
+        testResults || [],
+        func.functionCode
+      );
+
+      // Update the function with the new code
+      await storage.updateExcelWizardryFunctionCode(functionId, functionCode);
+
+      console.log("✅ Debug fixes applied successfully to tool:", functionId);
+      return res.json({ success: true, message: "Debug fixes applied successfully" });
+
+    } catch (error) {
+      console.error("Apply debug fixes error:", error);
+      res.status(500).json({ message: "Failed to apply debug fixes" });
+    }
+  });
+
   // Test Excel wizardry function
   app.post("/api/excel-functions/test", authenticateToken, async (req: AuthRequest, res) => {
     try {
