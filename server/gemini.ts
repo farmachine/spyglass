@@ -229,15 +229,47 @@ Return JSON: {"functionCode": "complete_function_with_reference_handles", "metad
       const userPrompt = `Create function: ${name}
 Description: ${description}
 
-Use reference handle system for better parameter management:
-${referenceHandles.map(ref => `${ref.handle} = ${ref.paramName}`).join('\n')}
+CRITICAL: This is a ${outputType.toUpperCase()} output function!
 
-Requirements:
-- Exact function signature: extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')})
-- ${outputType === 'multiple' ? 'Iterate through data array, generate multiple results' : 'Process inputs as whole, generate single result'}
-- Include reference handle comments for code clarity
-- Use Python syntax: None, True/False
-- Return field validation format`;
+${outputType === 'multiple' ? `
+MANDATORY ITERATION REQUIREMENTS:
+- Parameter ${referenceHandles.find(r => r.type === 'data')?.paramName} is an ARRAY of objects
+- You MUST use: for record in ${referenceHandles.find(r => r.type === 'data')?.paramName}:
+- Extract field value from EACH record: record["field_name"]
+- Process EACH value individually
+- Return LIST of validation objects (one per array item)
+- Expected output: ${referenceHandles.find(r => r.type === 'data')?.sampleData?.rows?.length || 0} results
+
+REQUIRED STRUCTURE:
+def extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')}):
+    # ${referenceHandles.map(ref => `${ref.handle} = ${ref.paramName}`).join('\n    # ')}
+    results = []
+    
+    for record in ${referenceHandles.find(r => r.type === 'data')?.paramName}:
+        field_value = record["${referenceHandles.find(r => r.type === 'data')?.sampleData?.columns?.[0] || 'field_name'}"]
+        # Process this individual field_value using ${referenceHandles.find(r => r.type === 'document')?.paramName}
+        extracted_result = "process_value_here"
+        
+        results.append({
+            "extractedValue": extracted_result,
+            "validationStatus": "valid|invalid|not_found",
+            "aiReasoning": f"Processed {field_value}",
+            "confidenceScore": 85,
+            "documentSource": "input"
+        })
+    
+    return results
+` : `
+SINGLE OUTPUT REQUIREMENTS:
+- Process parameters as complete units
+- Generate ONE result only
+- Return single validation object in array format
+`}
+
+Reference handles for comments:
+${referenceHandles.map(ref => `${ref.handle} = ${ref.paramName} (${ref.type})`).join('\n')}
+
+RETURN: Array of field validation objects with keys: extractedValue, validationStatus, aiReasoning, confidenceScore, documentSource`;
 
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
