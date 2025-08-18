@@ -182,7 +182,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   const generateToolCode = useMutation({
     mutationFn: async (data: any) => {
       setLoadingProgress(25);
-      setLoadingMessage("Generating function");
+      setLoadingMessage("Generating tool");
       console.log('🔧 Creating tool with data:', JSON.stringify(data, null, 2));
       
       setLoadingProgress(50);
@@ -236,9 +236,9 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   });
 
   // Regenerate function code mutation
-  const regenerateFunctionCode = useMutation({
-    mutationFn: async (functionId: string) => {
-      return apiRequest(`/api/excel-functions/${functionId}/regenerate`, {
+  const regenerateToolCode = useMutation({
+    mutationFn: async (toolId: string) => {
+      return apiRequest(`/api/excel-functions/${toolId}/regenerate`, {
         method: 'POST',
         body: JSON.stringify({
           name: formData.name,
@@ -249,20 +249,20 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         })
       });
     },
-    onSuccess: (updatedFunction) => {
-      // Only update the local editing function, don't save to database yet
+    onSuccess: (updatedTool) => {
+      // Only update the local editing tool, don't save to database yet
       if (setEditingFunction) {
-        setEditingFunction(updatedFunction);
+        setEditingFunction(updatedTool);
       }
       toast({
         title: "Success",
-        description: "Code regenerated. Click 'Update Tool' to save changes.",
+        description: "Tool code regenerated. Click 'Update Tool' to save changes.",
       });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to regenerate code",
+        description: error.message || "Failed to regenerate tool code",
         variant: "destructive",
       });
     }
@@ -669,7 +669,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   };
 
   const confirmRegenerate = () => {
-    regenerateFunctionCode.mutate(editingFunction.id);
+    regenerateToolCode.mutate(editingFunction.id);
     setShowRegenerateDialog(false);
   };
 

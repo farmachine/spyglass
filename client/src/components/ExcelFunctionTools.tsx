@@ -10,7 +10,7 @@ import { Play, Edit3, Trash2, Brain } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import CreateToolDialog from "./CreateToolDialog";
 
-interface ExcelFunction {
+interface ExcelTool {
   id: string;
   name: string;
   description: string;
@@ -23,30 +23,30 @@ interface ExcelFunction {
   updatedAt: string;
 }
 
-interface ExcelFunctionToolsProps {
+interface ExcelToolsProps {
   projectId: string;
 }
 
-export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProps) {
-  const [editingFunction, setEditingFunction] = useState<ExcelFunction | null>(null);
-  const [testingFunction, setTestingFunction] = useState<ExcelFunction | null>(null);
+export default function ExcelFunctionTools({ projectId }: ExcelToolsProps) {
+  const [editingTool, setEditingTool] = useState<ExcelTool | null>(null);
+  const [testingTool, setTestingTool] = useState<ExcelTool | null>(null);
   const [testResults, setTestResults] = useState<any>(null);
   const [isRunningTest, setIsRunningTest] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [functionToDelete, setFunctionToDelete] = useState<string | null>(null);
+  const [toolToDelete, setToolToDelete] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch functions for this project
-  const { data: functions, isLoading } = useQuery<ExcelFunction[]>({
+  // Fetch tools for this project
+  const { data: tools, isLoading } = useQuery<ExcelTool[]>({
     queryKey: ['/api/projects', projectId, 'excel-functions'],
     enabled: !!projectId,
   });
 
-  // Delete function mutation
-  const deleteFunction = useMutation({
-    mutationFn: async (functionId: string) => {
-      return apiRequest(`/api/excel-functions/${functionId}`, {
+  // Delete tool mutation
+  const deleteTool = useMutation({
+    mutationFn: async (toolId: string) => {
+      return apiRequest(`/api/excel-functions/${toolId}`, {
         method: 'DELETE'
       });
     },
@@ -68,9 +68,9 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
 
 
 
-  // Run test function
-  const runTest = async (func: ExcelFunction) => {
-    if (!func.inputParameters || func.inputParameters.length === 0) {
+  // Run test tool
+  const runTest = async (tool: ExcelTool) => {
+    if (!tool.inputParameters || tool.inputParameters.length === 0) {
       toast({
         title: "No test data",
         description: "This tool has no sample input parameters to test with.",
@@ -85,7 +85,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
     try {
       // Prepare inputs from sample parameters
       const inputs = {};
-      func.inputParameters.forEach((param: any) => {
+      tool.inputParameters.forEach((param: any) => {
         if (param.type === 'text' && param.sampleText) {
           inputs[param.name] = param.sampleText;
         } else if (param.type === 'document' && param.sampleFile) {
@@ -98,7 +98,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
       const response = await apiRequest(`/api/excel-functions/test`, {
         method: 'POST',
         body: JSON.stringify({
-          functionId: func.id,
+          functionId: tool.id,
           inputs: inputs
         })
       });
@@ -124,25 +124,25 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
     }
   };
 
-  const handleEdit = (func: ExcelFunction) => {
-    setEditingFunction(func);
+  const handleEdit = (tool: ExcelTool) => {
+    setEditingTool(tool);
   };
 
-  const handleDelete = async (functionId: string) => {
-    setFunctionToDelete(functionId);
+  const handleDelete = async (toolId: string) => {
+    setToolToDelete(toolId);
     setShowDeleteDialog(true);
   };
 
   const confirmDelete = () => {
-    if (functionToDelete) {
-      deleteFunction.mutate(functionToDelete);
+    if (toolToDelete) {
+      deleteTool.mutate(toolToDelete);
     }
     setShowDeleteDialog(false);
-    setFunctionToDelete(null);
+    setToolToDelete(null);
   };
 
-  const handleTest = (func: ExcelFunction) => {
-    setTestingFunction(func);
+  const handleTest = (tool: ExcelTool) => {
+    setTestingTool(tool);
     setTestResults(null); // Clear previous results when opening test dialog
   };
 
@@ -165,25 +165,25 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
         <h2 className="text-xl font-semibold text-gray-800">Tools</h2>
         <div className="flex items-center gap-4">
           <div className="text-sm text-gray-500">
-            {functions?.length || 0} tools available
+            {tools?.length || 0} tools available
           </div>
           <CreateToolDialog 
             projectId={projectId} 
-            editingFunction={editingFunction} 
-            setEditingFunction={setEditingFunction} 
+            editingFunction={editingTool} 
+            setEditingFunction={setEditingTool} 
           />
         </div>
       </div>
 
       <div className="space-y-4">
-        {functions?.map((func) => (
-          <Card key={func.id} className="border-gray-200 hover:shadow-md transition-shadow bg-white">
+        {tools?.map((tool) => (
+          <Card key={tool.id} className="border-gray-200 hover:shadow-md transition-shadow bg-white">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                     <Brain className="h-5 w-5 text-gray-600" />
-                    {func.name}
+                    {tool.name}
                   </CardTitle>
                 </div>
               </div>
@@ -191,16 +191,16 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
             <CardContent className="pt-0">
               <div className="space-y-4">
                 <p className="text-gray-600 text-sm">
-                  {func.description}
+                  {tool.description}
                 </p>
                 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-1 text-xs text-gray-500">
-                      <span>Used {func.usageCount} times</span>
+                      <span>Used {tool.usageCount} times</span>
                     </div>
                     <Badge variant="outline" className="text-xs">
-                      {func.functionType === 'AI_ONLY' ? 'AI' : 'Script'}
+                      {tool.functionType === 'AI_ONLY' ? 'AI' : 'Script'}
                     </Badge>
                   </div>
                   
@@ -208,7 +208,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                     <Button 
                       size="sm" 
                       variant="outline" 
-                      onClick={() => handleTest(func)}
+                      onClick={() => handleTest(tool)}
                       className="border-gray-300 text-gray-700 hover:bg-gray-50"
                     >
                       <Play className="h-4 w-4 mr-1" />
@@ -216,7 +216,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                     </Button>
                     <Button 
                       size="sm" 
-                      onClick={() => handleEdit(func)}
+                      onClick={() => handleEdit(tool)}
                       className="bg-gray-700 hover:bg-gray-800 text-white"
                     >
                       <Edit3 className="h-4 w-4 mr-1" />
@@ -225,7 +225,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                     <Button 
                       size="sm" 
                       variant="outline" 
-                      onClick={() => handleDelete(func.id)}
+                      onClick={() => handleDelete(tool.id)}
                       className="border-red-300 text-red-700 hover:bg-red-50"
                     >
                       <Trash2 className="h-4 w-4 mr-1" />
@@ -238,7 +238,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
           </Card>
         ))}
 
-        {(!functions || functions.length === 0) && (
+        {(!tools || tools.length === 0) && (
           <Card className="p-8 text-center border-gray-200 bg-gray-50">
             <div className="text-gray-500">
               <Brain className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -249,8 +249,8 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
         )}
       </div>
 
-      {/* Test Function Modal */}
-      <Dialog open={!!testingFunction} onOpenChange={() => setTestingFunction(null)}>
+      {/* Test Tool Modal */}
+      <Dialog open={!!testingTool} onOpenChange={() => setTestingTool(null)}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" aria-describedby="test-dialog-description">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="text-gray-800">extrapl <span className="text-blue-600">•</span> Test</DialogTitle>
@@ -259,7 +259,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
             </p>
           </DialogHeader>
           
-          {testingFunction && (
+          {testingTool && (
             <div className="space-y-6 overflow-y-auto flex-1 pr-2">
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900">Basic Information</h3>
@@ -269,14 +269,14 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Tool Name
                     </label>
-                    <div className="text-gray-900 font-medium">{testingFunction.name}</div>
+                    <div className="text-gray-900 font-medium">{testingTool.name}</div>
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Description
                     </label>
-                    <div className="text-gray-700 text-sm">{testingFunction.description}</div>
+                    <div className="text-gray-700 text-sm">{testingTool.description}</div>
                   </div>
                 </div>
               </div>
@@ -286,7 +286,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                 <p className="text-sm text-gray-600">The tool will be tested using the following sample inputs:</p>
                 
                 <div className="space-y-4">
-                  {testingFunction.inputParameters?.map((param: any, index: number) => (
+                  {testingTool.inputParameters?.map((param: any, index: number) => (
                     <div key={index} className="border border-gray-200 rounded-lg p-4 bg-white">
                       <div className="flex items-center gap-2 mb-3">
                         <span className="font-medium text-gray-900">{param.name}</span>
@@ -355,7 +355,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-900">Test Results</h3>
                   <Button 
-                    onClick={() => runTest(testingFunction)}
+                    onClick={() => runTest(testingTool)}
                     disabled={isRunningTest}
                     className="flex items-center gap-2"
                   >
@@ -366,7 +366,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
 
                 {testResults && Array.isArray(testResults) && testResults.length > 0 ? (
                   <div className="space-y-4">
-                    {testingFunction?.outputType === 'multiple' ? (
+                    {testingTool?.outputType === 'multiple' ? (
                       // Multiple records - display as table
                       <div className="border border-gray-300 rounded overflow-hidden">
                         <table className="w-full text-sm">
