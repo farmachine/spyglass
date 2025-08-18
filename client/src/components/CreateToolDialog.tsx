@@ -28,6 +28,7 @@ interface InputParameter {
   sampleFileURL?: string; // Sample file URL for documents/data
   sampleText?: string; // Sample text for text type
   sampleData?: {
+    name?: string;
     columns: string[];
     rows: SampleDataRow[];
   }; // Sample data table for data type
@@ -54,6 +55,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [expandedInputs, setExpandedInputs] = useState<Set<string>>(new Set());
+  const [showColumnInput, setShowColumnInput] = useState<Set<string>>(new Set());
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -258,6 +260,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         return {
           ...param,
           sampleData: {
+            ...currentData,
             columns: newColumns,
             rows: newRows
           }
@@ -265,6 +268,41 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       }
       return param;
     }));
+    
+    // Hide the column input after adding
+    setShowColumnInput(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(paramId);
+      return newSet;
+    });
+  };
+
+  const updateSampleDataName = (paramId: string, name: string) => {
+    setInputParameters(prev => prev.map(param => {
+      if (param.id === paramId) {
+        const currentData = param.sampleData || { columns: [], rows: [] };
+        return {
+          ...param,
+          sampleData: {
+            ...currentData,
+            name: name
+          }
+        };
+      }
+      return param;
+    }));
+  };
+
+  const toggleColumnInput = (paramId: string) => {
+    setShowColumnInput(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(paramId)) {
+        newSet.delete(paramId);
+      } else {
+        newSet.add(paramId);
+      }
+      return newSet;
+    });
   };
 
   const removeSampleColumn = (paramId: string, columnName: string) => {
@@ -279,6 +317,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         return {
           ...param,
           sampleData: {
+            ...param.sampleData,
             columns: newColumns,
             rows: newRows
           }
@@ -302,6 +341,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         return {
           ...param,
           sampleData: {
+            ...currentData,
             columns: currentData.columns,
             rows: [...currentData.rows, newRow]
           }
@@ -318,6 +358,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         return {
           ...param,
           sampleData: {
+            ...param.sampleData,
             columns: param.sampleData.columns,
             rows: newRows
           }
@@ -340,6 +381,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         return {
           ...param,
           sampleData: {
+            ...param.sampleData,
             columns: param.sampleData.columns,
             rows: newRows
           }
@@ -775,36 +817,75 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                                   Create sample data collection (up to 5 rows)
                                 </Label>
                                 
-                                {/* Add Column Section */}
-                                <div className="flex gap-2">
+                                {/* Sample Data Name */}
+                                <div>
+                                  <Label className="text-xs font-medium text-gray-600">Sample Data Name</Label>
                                   <Input
-                                    placeholder="Column name"
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter') {
-                                        const input = e.target as HTMLInputElement;
-                                        if (input.value.trim()) {
-                                          addSampleColumn(param.id, input.value.trim());
-                                          input.value = '';
-                                        }
-                                      }
-                                    }}
-                                    className="flex-1 text-sm"
+                                    value={param.sampleData?.name || ''}
+                                    onChange={(e) => updateSampleDataName(param.id, e.target.value)}
+                                    placeholder="e.g., Customer List, Product Catalog, etc."
+                                    className="text-sm mt-1"
                                   />
+                                </div>
+
+                                {/* Add Column Button */}
+                                {!showColumnInput.has(param.id) && (
                                   <Button
                                     type="button"
                                     size="sm"
-                                    onClick={(e) => {
-                                      const input = (e.target as HTMLElement).closest('div')?.querySelector('input') as HTMLInputElement;
-                                      if (input && input.value.trim()) {
-                                        addSampleColumn(param.id, input.value.trim());
-                                        input.value = '';
-                                      }
-                                    }}
-                                    className="bg-gray-600 hover:bg-gray-700 px-3"
+                                    onClick={() => toggleColumnInput(param.id)}
+                                    className="bg-gray-600 hover:bg-gray-700"
                                   >
-                                    <Plus className="h-4 w-4" />
+                                    <Plus className="h-4 w-4 mr-1" />
+                                    Add Column
                                   </Button>
-                                </div>
+                                )}
+
+                                {/* Column Input (Hidden until Add Column is clicked) */}
+                                {showColumnInput.has(param.id) && (
+                                  <div className="flex gap-2">
+                                    <Input
+                                      placeholder="Column name"
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          const input = e.target as HTMLInputElement;
+                                          if (input.value.trim()) {
+                                            addSampleColumn(param.id, input.value.trim());
+                                            input.value = '';
+                                          }
+                                        }
+                                        if (e.key === 'Escape') {
+                                          toggleColumnInput(param.id);
+                                        }
+                                      }}
+                                      className="flex-1 text-sm"
+                                      autoFocus
+                                    />
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        const input = (e.target as HTMLElement).closest('div')?.querySelector('input') as HTMLInputElement;
+                                        if (input && input.value.trim()) {
+                                          addSampleColumn(param.id, input.value.trim());
+                                          input.value = '';
+                                        }
+                                      }}
+                                      className="bg-gray-600 hover:bg-gray-700 px-3"
+                                    >
+                                      <Plus className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => toggleColumnInput(param.id)}
+                                      className="px-3"
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                )}
 
                                 {/* Data Table */}
                                 {param.sampleData && param.sampleData.columns.length > 0 && (
@@ -881,7 +962,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
                                 {(!param.sampleData || param.sampleData.columns.length === 0) && (
                                   <div className="text-center py-6 text-gray-500 text-sm border-2 border-dashed border-gray-200 rounded-lg">
-                                    Add columns above to start creating your sample data collection
+                                    Click "Add Column" to start creating your sample data collection
                                   </div>
                                 )}
                               </div>
