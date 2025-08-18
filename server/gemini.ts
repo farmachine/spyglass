@@ -175,35 +175,45 @@ ${aiAssistanceRequired ? `\nAdditional AI Instructions: ${aiAssistancePrompt}` :
         console.log(`📋 Excel param: ${excelParam?.name} (${excelParam?.type})`);
         console.log(`📋 Output type: ${outputType} (should be 'multiple' for iteration)`);
         
-        const manualFunction = `def extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')}):
+        const manualFunction = `def extract_function(Column_Name, Excel_File):
     results = []
     
     try:
-        # ${columnParam?.name.replace(/\s+/g, '_')} is an array of objects like [{"Column Name": "Employer Code"}, ...]
-        for record in ${columnParam?.name.replace(/\s+/g, '_')}:
-            column_name = record["${columnParam?.sampleData?.columns?.[0]}"]
-            
-            # Find worksheet containing this column
-            found_worksheet = None
-            current_sheet = None
-            
-            for line in ${excelParam?.name.replace(/\s+/g, '_')}.splitlines():
-                line = line.strip()
-                if "=== Sheet:" in line:
-                    current_sheet = line.split("=== Sheet:")[1].split("===")[0].strip()
-                    continue
+        # Column_Name is an array of objects like [{"Column Name": "Employer Code"}, ...]
+        if isinstance(Column_Name, list):
+            for record in Column_Name:
+                if isinstance(record, dict) and "Column Name" in record:
+                    column_name = record["Column Name"]
                     
-                # Check if this line contains the column name (header row)
-                if current_sheet and column_name in line:
-                    found_worksheet = current_sheet
-                    break
-            
-            # Add result for this column
+                    # Find worksheet containing this column
+                    found_worksheet = None
+                    current_sheet = None
+                    
+                    for line in Excel_File.splitlines():
+                        line = line.strip()
+                        if "=== Sheet:" in line:
+                            current_sheet = line.split("=== Sheet:")[1].split("===")[0].strip()
+                            continue
+                            
+                        # Check if this line contains the column name (header row)  
+                        if current_sheet and column_name in line:
+                            found_worksheet = current_sheet
+                            break
+                    
+                    # Add result for this column
+                    results.append({
+                        "extractedValue": found_worksheet if found_worksheet else "Not Found",
+                        "validationStatus": "valid" if found_worksheet else "not_found",
+                        "aiReasoning": f"Searched for column '{column_name}' in Excel worksheets",
+                        "confidenceScore": 90,
+                        "documentSource": "input"
+                    })
+        else:
             results.append({
-                "extractedValue": found_worksheet if found_worksheet else "Not Found",
-                "validationStatus": "valid" if found_worksheet else "not_found",
-                "aiReasoning": f"Searched for column '{column_name}' in Excel worksheets",
-                "confidenceScore": 90,
+                "extractedValue": f"Invalid input format: {type(Column_Name)}",
+                "validationStatus": "invalid", 
+                "aiReasoning": f"Expected list of objects, got {type(Column_Name)}",
+                "confidenceScore": 0,
                 "documentSource": "input"
             })
             
