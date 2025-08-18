@@ -53,7 +53,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    aiAssistancePrompt: ""
+    aiAssistancePrompt: "",
+    functionCode: ""
   });
 
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -96,7 +97,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         setFormData({
           name: editingFunction.name || "",
           description: editingFunction.description || "",
-          aiAssistancePrompt: editingFunction.aiAssistancePrompt || ""
+          aiAssistancePrompt: editingFunction.aiAssistancePrompt || "",
+          functionCode: editingFunction.functionCode || ""
         });
         setToolType(editingFunction.functionType === 'AI_ONLY' ? 'AI_ONLY' : 'CODE');
         setOutputType(editingFunction.outputType || "single");
