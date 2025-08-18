@@ -1304,9 +1304,48 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                         );
                       })}
                     </div>
-                    <p className="text-xs text-gray-600 mt-2">
-                      Use these @-handles in comments for better code readability. Function signature: extract_function({inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')})
-                    </p>
+                    <div className="mt-3 p-2 bg-gray-100 rounded border">
+                      <div className="text-xs text-gray-600 mb-1">Function signature:</div>
+                      <div className="font-mono text-sm">
+                        <span className="text-purple-600">def</span>{' '}
+                        <span className="text-blue-700">extract_function</span>(
+                        {inputParameters.map((param, index) => {
+                          const handle = `@${param.name.toLowerCase().replace(/\s+/g, '_')}`;
+                          return (
+                            <span key={param.id}>
+                              <button
+                                type="button"
+                                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-600 text-white hover:bg-gray-700 transition-colors cursor-pointer"
+                                onClick={() => {
+                                  // Insert @handle at cursor position in textarea
+                                  const textarea = document.querySelector('textarea[class*="font-mono"]') as HTMLTextAreaElement;
+                                  if (textarea) {
+                                    const cursorPos = textarea.selectionStart;
+                                    const textBefore = textarea.value.substring(0, cursorPos);
+                                    const textAfter = textarea.value.substring(textarea.selectionEnd);
+                                    const newValue = textBefore + handle + textAfter;
+                                    setFormData({ ...formData, functionCode: newValue });
+                                    // Set cursor position after insertion
+                                    setTimeout(() => {
+                                      textarea.focus();
+                                      textarea.setSelectionRange(cursorPos + handle.length, cursorPos + handle.length);
+                                    }, 0);
+                                  }
+                                }}
+                                title={`Click to insert ${handle} at cursor position`}
+                              >
+                                {handle}
+                              </button>
+                              {index < inputParameters.length - 1 && <span className="text-gray-600">, </span>}
+                            </span>
+                          );
+                        })}
+                        ):
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Click @-handles to insert them at cursor position in code editor
+                      </p>
+                    </div>
                   </div>
                 )}
                 

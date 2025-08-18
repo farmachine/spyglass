@@ -240,25 +240,38 @@ MANDATORY ITERATION REQUIREMENTS:
 - Return LIST of validation objects (one per array item)
 - Expected output: ${referenceHandles.find(r => r.type === 'data')?.sampleData?.rows?.length || 0} results
 
-REQUIRED STRUCTURE:
+REQUIRED STRUCTURE - USE ACTUAL EXCEL DATA:
 def extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')}):
     # ${referenceHandles.map(ref => `${ref.handle} = ${ref.paramName}`).join('\n    # ')}
     results = []
     
     for record in ${referenceHandles.find(r => r.type === 'data')?.paramName}:
         field_value = record["${referenceHandles.find(r => r.type === 'data')?.sampleData?.columns?.[0] || 'field_name'}"]
-        # Process this individual field_value using ${referenceHandles.find(r => r.type === 'document')?.paramName}
-        extracted_result = "process_value_here"
+        
+        # Search in ACTUAL Excel content (NOT mock data)
+        found_worksheet = None
+        current_sheet = None
+        
+        for line in ${referenceHandles.find(r => r.type === 'document')?.paramName}.splitlines():
+            if "=== Sheet:" in line:
+                current_sheet = line.split("=== Sheet:")[1].split("===")[0].strip()
+                continue
+            # Check if this line contains the field_value
+            if current_sheet and field_value in line:
+                found_worksheet = current_sheet
+                break
         
         results.append({
-            "extractedValue": extracted_result,
-            "validationStatus": "valid|invalid|not_found",
-            "aiReasoning": f"Processed {field_value}",
-            "confidenceScore": 85,
+            "extractedValue": found_worksheet if found_worksheet else "Not Found",
+            "validationStatus": "valid" if found_worksheet else "not_found",
+            "aiReasoning": f"Searched for '{field_value}' in Excel sheets",
+            "confidenceScore": 90 if found_worksheet else 10,
             "documentSource": "input"
         })
     
     return results
+
+CRITICAL: Do NOT create mock_excel_data or any hardcoded mappings. Use the actual Excel_File content provided.
 ` : `
 SINGLE OUTPUT REQUIREMENTS:
 - Process parameters as complete units
