@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Play, Edit3, Trash2, Code, Brain } from "lucide-react";
+import { Play, Edit3, Trash2, Brain } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import CreateToolDialog from "./CreateToolDialog";
 
@@ -128,26 +128,6 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                 <p className="text-gray-600 text-sm">
                   {func.description}
                 </p>
-
-                {/* Generated Code Section - Only show if function has code */}
-                {func.functionCode && (
-                  <div className="border border-gray-200 rounded-lg">
-                    <div className="flex items-center justify-between p-3 bg-gray-50 border-b border-gray-200">
-                      <div className="flex items-center gap-2">
-                        <Code className="h-4 w-4 text-gray-600" />
-                        <span className="font-medium text-gray-800 text-sm">
-                          {func.functionType === 'AI_ONLY' ? 'Prompt' : 'Generated Code'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="p-3">
-                      <pre className="font-mono text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-3 rounded border max-h-48 overflow-y-auto">
-                        {func.functionCode}
-                      </pre>
-                    </div>
-                  </div>
-                )}
                 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
