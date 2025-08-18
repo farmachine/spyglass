@@ -4984,7 +4984,8 @@ print(json.dumps(results))
       }
 
       console.log("🧪 Testing tool:", functionId);
-      console.log("📥 Test inputs:", inputs);
+      console.log("📥 Test inputs JSON:");
+      console.log(JSON.stringify(inputs, null, 2));
 
       // Get the function
       const func = await storage.getExcelWizardryFunction(functionId);
@@ -5053,6 +5054,10 @@ print(json.dumps(results))
               // Use the extracted content from the sample document
               processedInputs[paramName] = sampleDoc.extractedContent;
               console.log(`🔄 Replaced ${paramName} with extracted content (${sampleDoc.extractedContent.length} chars)`);
+            } else if (sampleDoc && !sampleDoc.extractedContent && sampleDoc.filePath) {
+              // Sample document exists but no content - try to process it
+              console.log(`⚠️ Sample document for ${paramName} exists but has no extracted content. Skipping processing for now.`);
+              processedInputs[paramName] = inputValue;
             } else if (Array.isArray(inputValue)) {
               // This might be document IDs, try to find matching content
               const documentContents = [];
