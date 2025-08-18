@@ -169,24 +169,41 @@ ${aiAssistanceRequired ? `\nAdditional AI Instructions: ${aiAssistancePrompt}` :
       // COMPLETELY REWRITTEN AI PROMPT FOR EXACT INPUT FORMAT UNDERSTANDING
       const systemPrompt = `You are an expert Python developer creating data extraction functions for extrapl.
 
-EXACT INPUT FORMAT FOR FUNCTION PARAMETERS:
+EXACT INPUT FORMAT FOR FUNCTION PARAMETERS (DEBUGGING):
 ${inputParameters.map(p => {
   if (p.type === 'data' && p.sampleData) {
-    return `Parameter "${p.name.replace(/\s+/g, '_')}" receives: ${JSON.stringify(p.sampleData.rows)}
-- This is an ARRAY OF OBJECTS
-- Each object has structure: ${JSON.stringify(p.sampleData.rows[0] || {})}
-- ITERATE through this array with: for record in ${p.name.replace(/\s+/g, '_')}:
-- EXTRACT values with: record["${p.sampleData.columns?.[0] || 'Column Name'}"]`;
+    return `Parameter "${p.name.replace(/\s+/g, '_')}" receives EXACT VALUE: ${JSON.stringify(p.sampleData.rows)}
+
+CRITICAL - THIS IS NOT A STRING! IT IS A LIST OF DICTIONARIES!
+- Type: list (Python array)  
+- Length: ${p.sampleData.rows.length}
+- Each item is: dict (Python dictionary)
+- Structure: ${JSON.stringify(p.sampleData.rows[0] || {})}
+
+WRONG CODE (will cause "string indices must be integers" error):
+if isinstance(${p.name.replace(/\s+/g, '_')}, str):  # WRONG - it's not a string!
+
+CORRECT CODE:
+for record in ${p.name.replace(/\s+/g, '_')}:  # Iterate the list
+    column_name = record["${p.sampleData.columns?.[0]}"]  # Extract from dict
+    # Process this column_name...`;
   } else if (p.type === 'document') {
-    return `Parameter "${p.name.replace(/\s+/g, '_')}" receives: STRING containing Excel data in format:
+    return `Parameter "${p.name.replace(/\s+/g, '_')}" receives EXACT VALUE: STRING with Excel content:
 === Sheet: SheetName ===
 Header1\tHeader2\tHeader3
 Value1\tValue2\tValue3
-- Use string processing to find worksheets and columns
-- Split by lines and tabs to parse data`;
+
+CORRECT CODE:
+lines = ${p.name.replace(/\s+/g, '_')}.splitlines()  # Split string by lines`;
   }
   return `Parameter "${p.name.replace(/\s+/g, '_')}" receives: ${p.type.toUpperCase()} data`;
 }).join('\n\n')}
+
+DEBUGGING CHECKPOINT - ADD THIS TO YOUR FUNCTION:
+def extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')}):
+    # DEBUG: Print parameter types to identify the issue
+    print(f"DEBUG: {${inputParameters.map(p => `'${p.name.replace(/\s+/g, '_')}': type(${p.name.replace(/\s+/g, '_')})__name__`).join(', ')}")
+    results = []
 
 ITERATION vs SINGLE OBJECT - CRYSTAL CLEAR RULES:
 
