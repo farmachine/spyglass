@@ -5163,16 +5163,33 @@ except Exception as e:
                 } else if (result.results) {
                   // Convert the function results to field validation format
                   result.results.forEach((item, index) => {
+                    // Check if item is already a field validation object
+                    let extractedValue;
+                    let validationStatus = 'valid';
+                    let aiReasoning = 'Function executed successfully with real content';
+                    let confidenceScore = 95;
+                    
+                    if (typeof item === 'object' && item.extractedValue !== undefined) {
+                      // Item is already a field validation object, extract just the value
+                      extractedValue = item.extractedValue;
+                      validationStatus = item.validationStatus || 'valid';
+                      aiReasoning = item.aiReasoning || 'Function executed successfully with real content';
+                      confidenceScore = item.confidenceScore || 95;
+                    } else {
+                      // Item is raw data, use as is
+                      extractedValue = typeof item === 'object' ? JSON.stringify(item) : String(item);
+                    }
+                    
                     testResults.push({
                       id: `test-result-${Date.now()}-${index}`,
                       sessionId: `test-session-${Date.now()}`,
                       validationType: 'schema_field',
                       dataType: 'TEXT',
                       fieldId: 'function-output',
-                      extractedValue: typeof item === 'object' ? JSON.stringify(item) : String(item),
-                      validationStatus: 'valid',
-                      aiReasoning: 'Function executed successfully with real content',
-                      confidenceScore: 95,
+                      extractedValue: extractedValue,
+                      validationStatus: validationStatus,
+                      aiReasoning: aiReasoning,
+                      confidenceScore: confidenceScore,
                       documentSource: 'function-execution',
                       createdAt: new Date().toISOString(),
                       updatedAt: new Date().toISOString()
