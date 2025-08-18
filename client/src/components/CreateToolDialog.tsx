@@ -741,12 +741,13 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Basic Information */}
-          <Card className="border-gray-200">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg text-gray-800">Basic Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          {/* Basic Information - Hide when editing code */}
+          {!(editingFunction && editingCode) && (
+            <Card className="border-gray-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg text-gray-800">Basic Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="name" className="text-sm font-medium text-gray-700">
                   Function Name *
@@ -775,8 +776,10 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
             </CardContent>
           </Card>
+          )}
 
-          {/* Tool Type */}
+          {/* Tool Type - Hide when editing code */}
+          {!(editingFunction && editingCode) && (
           <Card className="border-gray-200">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg text-gray-800">Tool Type</CardTitle>
@@ -799,8 +802,10 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
               </p>
             </CardContent>
           </Card>
+          )}
 
-          {/* Inputs */}
+          {/* Inputs - Hide when editing code */}
+          {!(editingFunction && editingCode) && (
           <Card className="border-gray-200">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
@@ -1168,9 +1173,10 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
               )}
             </CardContent>
           </Card>
+          )}
 
-          {/* AI Assistance (only for SCRIPT functions) */}
-          {toolType === "CODE" && (
+          {/* AI Assistance (only for SCRIPT functions) - Hide when editing code */}
+          {!(editingFunction && editingCode) && toolType === "CODE" && (
             <Card className="border-gray-200">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg text-gray-800">AI Assistance</CardTitle>
@@ -1231,7 +1237,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                           variant="outline"
                           onClick={handleRegenerateCode}
                           disabled={regenerateFunctionCode.isPending}
-                          className="h-7 text-xs border-blue-300 text-blue-700 hover:bg-blue-50"
+                          className="h-7 text-xs bg-gray-700 hover:bg-gray-800 text-white border-gray-700"
                         >
                           <RefreshCw className="h-3 w-3 mr-1" />
                           Regenerate
@@ -1243,7 +1249,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                           size="sm"
                           onClick={handleSaveCode}
                           disabled={updateFunctionCode.isPending}
-                          className="h-7 text-xs bg-green-600 hover:bg-green-700 text-white"
+                          className="h-7 text-xs bg-gray-700 hover:bg-gray-800 text-white"
                         >
                           <Save className="h-3 w-3 mr-1" />
                           Save
@@ -1283,8 +1289,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                   <Textarea
                     value={codeChanges}
                     onChange={(e) => setCodeChanges(e.target.value)}
-                    rows={12}
-                    className="font-mono text-sm"
+                    rows={20}
+                    className="font-mono text-sm w-full"
                     placeholder={
                       editingFunction.functionType === 'AI_ONLY' 
                         ? "Enter your AI prompt instructions here..."
@@ -1327,31 +1333,33 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
             </Card>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-            <Button 
-              variant="outline" 
-              onClick={() => setOpen(false)}
-              disabled={generateToolCode.isPending || createTool.isPending || updateTool.isPending}
-              className="border-gray-300 text-gray-700 hover:bg-gray-50"
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSubmit}
-              disabled={generateToolCode.isPending || createTool.isPending || updateTool.isPending}
-              className="bg-gray-700 hover:bg-gray-800 text-white"
-            >
-              {generateToolCode.isPending || createTool.isPending || updateTool.isPending ? (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  {editingFunction ? "Updating..." : "Generating..."}
-                </div>
-              ) : (
-                editingFunction ? "Update Tool" : "Generate Tool"
-              )}
-            </Button>
-          </div>
+          {/* Action Buttons - Hide when editing code */}
+          {!(editingFunction && editingCode) && (
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+              <Button 
+                variant="outline" 
+                onClick={() => setOpen(false)}
+                disabled={generateToolCode.isPending || createTool.isPending || updateTool.isPending}
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSubmit}
+                disabled={generateToolCode.isPending || createTool.isPending || updateTool.isPending}
+                className="bg-gray-700 hover:bg-gray-800 text-white"
+              >
+                {generateToolCode.isPending || createTool.isPending || updateTool.isPending ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {editingFunction ? "Updating..." : "Generating..."}
+                  </div>
+                ) : (
+                  editingFunction ? "Update Tool" : "Generate Tool"
+                )}
+              </Button>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
