@@ -161,13 +161,13 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       multiline: false
     };
     
-    // If this is a data type parameter, add default identifier column
+    // If this is a data type parameter, initialize empty sample data
     if (newParam.type === "data") {
       newParam.sampleData = {
         name: "",
-        columns: ["Identifier"],
+        columns: [],
         rows: [],
-        identifierColumn: "Identifier"
+        identifierColumn: null
       };
     }
     
@@ -185,13 +185,13 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           if (field === "type" && value !== "text") {
             updatedParam.multiline = false;
           }
-          // If changing to data type, add default identifier column
+          // If changing to data type, initialize empty sample data
           if (field === "type" && value === "data" && !updatedParam.sampleData) {
             updatedParam.sampleData = {
               name: "",
-              columns: ["Identifier"],
+              columns: [],
               rows: [],
-              identifierColumn: "Identifier"
+              identifierColumn: null
             };
           }
           return updatedParam;
@@ -277,7 +277,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         
         const newColumns = [...currentData.columns, columnName.trim()];
         
-        // Set identifier column if this is the first column
+        // Set identifier column if this is the first column being created
         const identifierColumn = currentData.columns.length === 0 ? columnName.trim() : currentData.identifierColumn;
         
         const newRows = currentData.rows.map(row => ({
