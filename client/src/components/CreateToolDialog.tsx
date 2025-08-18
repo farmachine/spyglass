@@ -140,15 +140,22 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       
       // Ensure the response has the required fields from the AI generation
       if (!response.functionCode || !response.metadata) {
+        console.error('❌ Missing required fields in AI response:', {
+          hasFunctionCode: !!response.functionCode,
+          hasMetadata: !!response.metadata,
+          response: response
+        });
         toast({
           title: "Generation Error",
-          description: "AI generation incomplete - missing functionCode or metadata",
+          description: `AI generation incomplete - missing ${!response.functionCode ? 'functionCode' : 'metadata'}`,
           variant: "destructive"
         });
         setLoadingProgress(0);
         setLoadingMessage("");
         return;
       }
+      
+      console.log('✅ AI response validation passed, proceeding with tool creation...');
       
       // Use the response to create the tool with generated code
       createTool.mutate(response);
