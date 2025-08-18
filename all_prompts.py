@@ -106,6 +106,62 @@ Return JSON format:
 
 EXCEL_FUNCTION_GENERATOR = """You must generate a complete Python function that extracts data from Excel content.
 
+CRITICAL ARRAY ITERATION TRAINING:
+When you receive data input parameters, check if they contain arrays of objects that need individual processing:
+
+SINGLE VALUE PROCESSING:
+- If input is single object/string: process once, return one result
+- Example: column_name = "Employee ID" → find this one column
+
+ARRAY ITERATION PROCESSING:
+- If input is array of objects: iterate through each item, return array of results
+- Example: column_names = [{"Column Name": "Employee ID"}, {"Column Name": "Salary"}] 
+- MUST iterate: for each item in column_names, extract item["Column Name"] individually
+- MUST return: separate result for "Employee ID" and separate result for "Salary"
+
+ARRAY DETECTION PATTERNS:
+- Input parameter is list/array: [{"Column Name": "X"}, {"Column Name": "Y"}]
+- Multiple objects with same structure indicates iteration needed
+- Function should loop through array items, not treat entire array as single value
+
+COMMON MISTAKE TO AVOID:
+❌ WRONG: Trying to find entire array '[{"Column Name": "X"}, {"Column Name": "Y"}]' as single column name
+✅ CORRECT: Loop through array, process "X" first, then "Y" separately
+
+REQUIRED CODE PATTERN FOR ARRAY PROCESSING:
+```python
+def extract_excel_data(extracted_content, target_fields_data, identifier_references=None):
+    results = []
+    
+    # Get input parameters
+    column_data = target_fields_data.get('Column Headings', [])  # This might be an array
+    
+    # Check if it's an array and iterate
+    if isinstance(column_data, list):
+        for idx, item in enumerate(column_data):
+            column_name = item.get('Column Name', '')  # Extract individual column name
+            # Process this single column_name
+            worksheet_name = find_worksheet_containing_column(extracted_content, column_name)
+            results.append({
+                "validation_type": "collection_property",
+                "extracted_value": worksheet_name,
+                "record_index": idx
+                # ... other required fields
+            })
+    else:
+        # Handle single value case
+        column_name = column_data.get('Column Name', '') if isinstance(column_data, dict) else str(column_data)
+        worksheet_name = find_worksheet_containing_column(extracted_content, column_name)
+        results.append({
+            "validation_type": "collection_property", 
+            "extracted_value": worksheet_name,
+            "record_index": 0
+            # ... other required fields
+        })
+    
+    return results
+```
+
 TARGET FIELDS TO EXTRACT:
 {target_fields}
 
@@ -130,9 +186,14 @@ Create a descriptive name and description for this function based on the extract
 MANDATORY REQUIREMENTS:
 1. Function name MUST be: extract_excel_data(extracted_content, target_fields_data, identifier_references=None)
 2. Input format: extracted_content has lines like "=== Sheet: Name ===" followed by tab-separated rows (may be empty if no documents selected)
-3. If identifier_references is provided, the function MUST iterate through each identifier and extract the target field for that specific identifier
-4. If no documents are available (empty extracted_content), the function must work purely from identifier_references data
-5. Output format: Return a list of dictionaries, each with these exact keys:
+3. ARRAY ITERATION LOGIC: If any input parameter (from target_fields_data) is an array, you MUST iterate through each array item:
+   - Check if parameter value is list: isinstance(param_value, list)
+   - If list: for item in param_value: process each item individually  
+   - If not list: process single value once
+   - Example: [{"Column Name": "A"}, {"Column Name": "B"}] → process "A", then process "B"
+4. If identifier_references is provided, the function MUST iterate through each identifier and extract the target field for that specific identifier
+5. If no documents are available (empty extracted_content), the function must work purely from identifier_references data
+6. Output format: Return a list of dictionaries, each with these exact keys:
    - "validation_type": "collection_property"
    - "data_type": field's property_type or "TEXT"
    - "field_name": "CollectionName.FieldName[INDEX]" 
