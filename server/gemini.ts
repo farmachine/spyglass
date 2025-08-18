@@ -161,6 +161,9 @@ ${aiAssistanceRequired ? `\nAdditional AI Instructions: ${aiAssistancePrompt}` :
     } else {
       console.log('🐍 Generating Python code function...');
       
+      // Get data input parameters for array iteration examples
+      const dataInputs = inputParameters.filter(p => p.type === 'data');
+      
       // Removed hardcoded worksheet bypass - now using AI generation for all functions
 
       // Generate Python script with field_validations compatibility
@@ -337,7 +340,6 @@ Respond with JSON in this format:
       console.log('📤 Sending Python script generation request to Gemini...');
       
       // Detailed prompt with explicit array iteration examples
-      const dataInputs = inputParameters.filter(p => p.type === 'data');
       const hasArrayData = dataInputs.length > 0;
       
       const userPrompt = `Generate a Python function named "extract_function" for: ${name}
