@@ -5098,6 +5098,23 @@ print(json.dumps(results))
                 }
               }
               processedInputs[paramName] = documentContents.length === 1 ? documentContents[0] : documentContents;
+            } else if (typeof inputValue === 'object' && inputValue.rows && Array.isArray(inputValue.rows)) {
+              // Convert sample data to the correct format: array of objects with identifier as main property
+              const convertedData = inputValue.rows.map(row => {
+                // Find the identifier column (first column or explicitly marked)
+                const identifierColumn = inputValue.identifierColumn || inputValue.columns?.[0];
+                
+                // Create a record where the identifier is the main property
+                const record = {};
+                for (const [key, value] of Object.entries(row)) {
+                  record[key] = value;
+                }
+                return record;
+              });
+              
+              processedInputs[paramName] = convertedData;
+              console.log(`🔄 Converted ${paramName} sample data to array format (${convertedData.length} records)`);
+              console.log(`📋 Sample record structure:`, convertedData[0] || {});
             } else {
               // For non-document parameters, use the input value as-is
               processedInputs[paramName] = inputValue;

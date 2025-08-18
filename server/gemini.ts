@@ -251,7 +251,7 @@ ${aiAssistanceRequired ? `\nAdditional AI Instructions: ${aiAssistancePrompt}` :
       }
 
       // Generate Python script with field_validations compatibility
-      const systemPrompt = `You are an expert Python developer creating data extraction functions.
+      const systemPrompt = `You are an expert Python developer creating data extraction functions for the extrapl platform.
 Generate a Python function that processes data and outputs to the field_validations database schema.
 
 CRITICAL: The output MUST be exactly compatible with the field_validations database schema format.
@@ -261,19 +261,42 @@ This function is designed to create: ${outputType === "single" ? "MAIN SCHEMA FI
 ${outputType === "multiple" ? `
 ITERATION REQUIREMENTS FOR MULTIPLE OUTPUT:
 - MUST create a 'for each' loop when outputType is 'multiple'
-- If there are data input parameters with sample data, prioritize those records as the primary items to iterate over
-- The first column in sample data is always the IDENTIFIER - this is the main property to process in each iteration
-- Other properties in sample data should be considered for decision making during processing
-- Each iteration should process one record from the sample data and generate appropriate field validation results
+- Data input parameters are provided as arrays of objects with this exact schema:
+  [
+    {"Identifier": "Value", "Prop 1": "Value", "Prop 2": "Value"},
+    {"Identifier": "Value2", "Prop 1": "Value2", "Prop 2": "Value2"}
+  ]
+- The first property in each object is ALWAYS the IDENTIFIER - this is the main property to process in each iteration
+- Each iteration should process one record from the data array and generate appropriate field validation results
 - Use the identifier as the primary key for each extraction result
 ` : ''}
+
+EXCEL DOCUMENT FORMAT:
+Excel documents are ALWAYS provided in this exact format from extrapl's document extraction:
+
+=== Sheet: SheetName1 ===
+Column1 Column2 Column3 Column4
+Value1  Value2  Value3  Value4
+Value5  Value6  Value7  Value8
+
+=== Sheet: SheetName2 ===
+ColA    ColB    ColC
+DataA   DataB   DataC
+
+IMPORTANT: 
+- Excel content is tab-separated (\t) values
+- Sheet names are marked with "=== Sheet: SheetName ===" 
+- First line after sheet marker is headers
+- Subsequent lines are data rows
+- Do NOT expect Excel cell references (A1, B2) - work with this text format
+- Do NOT use pandas, openpyxl, or document parsing libraries - process the string content directly
 
 Requirements:
 - Function must be named "extract_function"
 - Must accept parameters based on the user-defined input parameters: ${inputParameters.map(p => p.name).join(', ')}
-- CRITICAL: All input parameters are STRING VALUES of already-extracted document content, NOT binary document data
-- Input parameters contain pre-processed text content from documents (Excel, Word, PDF, etc.) that has already been extracted
-- Do NOT use pandas, openpyxl, or any document parsing libraries - work with the string content provided
+- CRITICAL: All input parameters are either STRING VALUES (document content) or ARRAYS OF OBJECTS (data inputs)
+- Document parameters contain pre-processed text content in the exact Excel format shown above
+- Data parameters are arrays of objects where first property is the identifier
 - Must use ALL input parameters defined by the user: ${inputParameters.map(p => `@${p.name}`).join(', ')}
 - Must output data compatible with field_validations schema (array of objects)
 - Must handle errors gracefully and return valid JSON
@@ -286,8 +309,9 @@ ${dataInputs.length > 0 ? `
 DATA INPUT PARAMETERS WITH SAMPLE DATA:
 ${dataInputs.map(p => `
 Parameter: ${p.name}
-Sample Data: ${JSON.stringify(p.sampleData?.rows || [], null, 2)}
-First Column (IDENTIFIER): ${p.sampleData?.columns?.[0] || 'N/A'}
+Sample Data Schema: Array of objects where first property is the identifier
+Sample Records: ${JSON.stringify(p.sampleData?.rows || [], null, 2)}
+Identifier Property: ${p.sampleData?.columns?.[0] || 'N/A'}
 `).join('\n')}
 ` : ''}
 
