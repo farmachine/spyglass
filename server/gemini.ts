@@ -264,7 +264,11 @@ Requirements:
         throw new Error('AI response missing required functionCode or metadata fields');
       }
       
+      // Unescape newlines and other escape sequences for proper formatting
+      result.functionCode = result.functionCode.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
+      
       console.log('🎯 Generated Python function metadata:', result.metadata);
+      console.log('📝 Function code preview:', result.functionCode.substring(0, 200) + '...');
       return result;
     }
   } catch (error) {
