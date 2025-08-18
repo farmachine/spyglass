@@ -63,6 +63,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   const [showColumnInput, setShowColumnInput] = useState<Set<string>>(new Set());
   const [processingParams, setProcessingParams] = useState<Set<string>>(new Set());
   const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -78,22 +79,36 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     setExpandedInputs(new Set());
     setShowColumnInput(new Set());
     setProcessingParams(new Set());
+    setCodeExpanded(false);
+    setIsEditMode(false); // Reset edit mode state
   };
 
   // Load editing function data when provided
   useEffect(() => {
     if (editingFunction) {
-      setFormData({
-        name: editingFunction.name || "",
-        description: editingFunction.description || "",
-        aiAssistancePrompt: editingFunction.aiAssistancePrompt || ""
-      });
-      setToolType(editingFunction.functionType === 'AI_ONLY' ? 'AI_ONLY' : 'CODE');
-      setOutputType(editingFunction.outputType || "single");
-      setInputParameters(editingFunction.inputParameters || []);
-      setOpen(true);
+      // Only update form state if we're not already in edit mode with the same function
+      // This prevents regeneration from resetting the form state
+      if (!isEditMode) {
+        setFormData({
+          name: editingFunction.name || "",
+          description: editingFunction.description || "",
+          aiAssistancePrompt: editingFunction.aiAssistancePrompt || ""
+        });
+        setToolType(editingFunction.functionType === 'AI_ONLY' ? 'AI_ONLY' : 'CODE');
+        setOutputType(editingFunction.outputType || "single");
+        setInputParameters(editingFunction.inputParameters || []);
+        setIsEditMode(true); // Set edit mode
+        setOpen(true);
+      }
+      // Always keep code section expanded if there's existing code (for regeneration)
+      if (editingFunction.functionCode) {
+        setCodeExpanded(true);
+      }
+      console.log('🔧 Form loaded for editing function:', editingFunction.id, 'Type:', editingFunction.functionType, 'EditMode:', isEditMode);
+    } else {
+      setIsEditMode(false); // Clear edit mode when no editing function
     }
-  }, [editingFunction]);
+  }, [editingFunction, isEditMode]);
 
   // Add update mutation for editing
   const updateTool = useMutation({
