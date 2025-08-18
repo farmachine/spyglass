@@ -201,12 +201,12 @@ export default function Tools({ projectId }: ExcelToolsProps) {
         setDebugText('');
         setTestResults(null);
         await queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'excel-functions'] });
-        alert('Tool has been updated with the suggested fixes!');
+        console.log('✅ Tool has been updated with the suggested fixes!');
       }
 
     } catch (error) {
       console.error('Apply debug fixes error:', error);
-      alert('Failed to apply debug fixes. Please try again.');
+      console.error('❌ Failed to apply debug fixes. Please try again.');
     } finally {
       setIsDebugging(false);
     }
