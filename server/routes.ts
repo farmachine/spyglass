@@ -5036,16 +5036,23 @@ print(json.dumps(results))
             console.log("No sample documents found:", error);
           }
 
-          // Process inputs to replace document IDs with actual content
+          // Process inputs to replace document filenames with actual extracted content
           const processedInputs = {};
           for (const [paramName, inputValue] of Object.entries(inputs)) {
-            if (Array.isArray(inputValue)) {
-              // This is likely document IDs, replace with actual content
+            // Check if this parameter has a corresponding sample document by parameter name
+            const sampleDoc = sampleDocuments.find(doc => doc.parameterName === paramName);
+            
+            if (sampleDoc && sampleDoc.extractedContent) {
+              // Use the extracted content from the sample document
+              processedInputs[paramName] = sampleDoc.extractedContent;
+              console.log(`🔄 Replaced ${paramName} with extracted content (${sampleDoc.extractedContent.length} chars)`);
+            } else if (Array.isArray(inputValue)) {
+              // This might be document IDs, try to find matching content
               const documentContents = [];
               for (const docId of inputValue) {
-                const sampleDoc = sampleDocuments.find(doc => doc.id === docId);
-                if (sampleDoc && sampleDoc.extractedContent) {
-                  documentContents.push(sampleDoc.extractedContent);
+                const sampleDocById = sampleDocuments.find(doc => doc.id === docId);
+                if (sampleDocById && sampleDocById.extractedContent) {
+                  documentContents.push(sampleDocById.extractedContent);
                 } else {
                   console.log(`Warning: No content found for document ID: ${docId}`);
                   documentContents.push(`Document ID: ${docId} (content not found)`);
@@ -5053,6 +5060,7 @@ print(json.dumps(results))
               }
               processedInputs[paramName] = documentContents.length === 1 ? documentContents[0] : documentContents;
             } else {
+              // For non-document parameters, use the input value as-is
               processedInputs[paramName] = inputValue;
             }
           }
