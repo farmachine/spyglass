@@ -499,48 +499,70 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                   <div className="space-y-4">
                     {testingTool?.outputType === 'multiple' ? (
                       // Multiple records - display as table
-                      <div className="border border-gray-300 rounded overflow-hidden">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="bg-gray-50 border-b border-gray-300">
-                              <th className="text-left p-3 font-medium text-gray-700">#</th>
-                              <th className="text-left p-3 font-medium text-gray-700 border-l border-gray-200">Extracted Value</th>
-                              <th className="text-left p-3 font-medium text-gray-700 border-l border-gray-200">Status</th>
-                              <th className="text-left p-3 font-medium text-gray-700 border-l border-gray-200">Confidence</th>
-                              <th className="text-left p-3 font-medium text-gray-700 border-l border-gray-200">Reasoning</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {testResults.map((result: any, rowIndex: number) => (
-                              <tr key={rowIndex} className="border-b border-gray-200 last:border-b-0">
-                                <td className="p-3 text-gray-600 font-medium">{rowIndex + 1}</td>
-                                <td className="p-3 text-gray-600 border-l border-gray-200">
-                                  {result.extractedValue || '-'}
-                                </td>
-                                <td className="p-3 border-l border-gray-200">
-                                  <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                    result.validationStatus === 'valid' 
-                                      ? 'bg-green-100 text-green-800' 
-                                      : result.validationStatus === 'invalid'
-                                      ? 'bg-red-100 text-red-800'
-                                      : 'bg-gray-100 text-gray-800'
-                                  }`}>
-                                    {result.validationStatus || 'unknown'}
-                                  </span>
-                                </td>
-                                <td className="p-3 text-gray-600 border-l border-gray-200">
-                                  {result.confidenceScore ? `${result.confidenceScore}%` : '-'}
-                                </td>
-                                <td className="p-3 text-gray-600 border-l border-gray-200 max-w-xs">
-                                  <div className="truncate" title={result.aiReasoning || '-'}>
-                                    {result.aiReasoning || '-'}
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                      (() => {
+                        // Get sample data columns from the first data input parameter
+                        const dataParam = testingTool?.inputParameters?.find((p: any) => p.type === 'data' && p.sampleData);
+                        const sampleColumns = dataParam?.sampleData?.columns || [];
+                        const sampleRows = dataParam?.sampleData?.rows || [];
+                        
+                        return (
+                          <div className="border border-gray-300 rounded overflow-hidden">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="bg-gray-50 border-b border-gray-300">
+                                  <th className="text-left p-3 font-medium text-gray-700">#</th>
+                                  {sampleColumns.map((column: string) => (
+                                    <th key={column} className="text-left p-3 font-medium text-gray-700 border-l border-gray-200">
+                                      {column}
+                                    </th>
+                                  ))}
+                                  <th className="text-left p-3 font-medium text-gray-700 border-l border-gray-200">Extracted Value</th>
+                                  <th className="text-left p-3 font-medium text-gray-700 border-l border-gray-200">Status</th>
+                                  <th className="text-left p-3 font-medium text-gray-700 border-l border-gray-200">Confidence</th>
+                                  <th className="text-left p-3 font-medium text-gray-700 border-l border-gray-200">Reasoning</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {testResults.map((result: any, rowIndex: number) => {
+                                  const sampleRow = sampleRows[rowIndex] || {};
+                                  return (
+                                    <tr key={rowIndex} className="border-b border-gray-200 last:border-b-0">
+                                      <td className="p-3 text-gray-600 font-medium">{rowIndex + 1}</td>
+                                      {sampleColumns.map((column: string) => (
+                                        <td key={column} className="p-3 text-gray-600 border-l border-gray-200">
+                                          {sampleRow[column] || '-'}
+                                        </td>
+                                      ))}
+                                      <td className="p-3 text-gray-600 border-l border-gray-200">
+                                        {result.extractedValue || '-'}
+                                      </td>
+                                      <td className="p-3 border-l border-gray-200">
+                                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                          result.validationStatus === 'valid' 
+                                            ? 'bg-green-100 text-green-800' 
+                                            : result.validationStatus === 'invalid'
+                                            ? 'bg-red-100 text-red-800'
+                                            : 'bg-gray-100 text-gray-800'
+                                        }`}>
+                                          {result.validationStatus || 'unknown'}
+                                        </span>
+                                      </td>
+                                      <td className="p-3 text-gray-600 border-l border-gray-200">
+                                        {result.confidenceScore ? `${result.confidenceScore}%` : '-'}
+                                      </td>
+                                      <td className="p-3 text-gray-600 border-l border-gray-200 max-w-xs">
+                                        <div className="truncate" title={result.aiReasoning || '-'}>
+                                          {result.aiReasoning || '-'}
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        );
+                      })()
                     ) : (
                       // Single record - display as object card
                       <div className="border border-gray-300 rounded-lg p-4 bg-white">
