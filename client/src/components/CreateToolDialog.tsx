@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, X, FileText, Database, Type, Copy, Check, Upload, Loader2, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, X, FileText, Database, Type, Copy, Check, Upload, Loader2, ChevronDown, ChevronRight, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,7 @@ interface InputParameter {
     name?: string;
     columns: string[];
     rows: SampleDataRow[];
+    identifierColumn?: string;
   }; // Sample data table for data type
 }
 
@@ -68,6 +69,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         console.log("📊 Data Input Parameters with JSON Arrays:");
         dataInputs.forEach((param: any) => {
           console.log(`Parameter: ${param.name}`);
+          console.log(`Identifier Column: ${param.sampleData.identifierColumn || param.sampleData.columns[0]}`);
           console.log(`JSON Array:`, JSON.stringify(param.sampleData.rows, null, 2));
         });
       }
@@ -164,7 +166,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       newParam.sampleData = {
         name: "",
         columns: ["Identifier"],
-        rows: []
+        rows: [],
+        identifierColumn: "Identifier"
       };
     }
     
@@ -187,7 +190,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
             updatedParam.sampleData = {
               name: "",
               columns: ["Identifier"],
-              rows: []
+              rows: [],
+              identifierColumn: "Identifier"
             };
           }
           return updatedParam;
@@ -268,10 +272,14 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     
     setInputParameters(prev => prev.map(param => {
       if (param.id === paramId) {
-        const currentData = param.sampleData || { columns: [], rows: [] };
+        const currentData = param.sampleData || { columns: [], rows: [], identifierColumn: null };
         if (currentData.columns.includes(columnName.trim())) return param;
         
         const newColumns = [...currentData.columns, columnName.trim()];
+        
+        // Set identifier column if this is the first column
+        const identifierColumn = currentData.columns.length === 0 ? columnName.trim() : currentData.identifierColumn;
+        
         const newRows = currentData.rows.map(row => ({
           ...row,
           [columnName.trim()]: ""
@@ -282,7 +290,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           sampleData: {
             ...currentData,
             columns: newColumns,
-            rows: newRows
+            rows: newRows,
+            identifierColumn: identifierColumn
           }
         };
       }
@@ -300,7 +309,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   const updateSampleDataName = (paramId: string, name: string) => {
     setInputParameters(prev => prev.map(param => {
       if (param.id === paramId) {
-        const currentData = param.sampleData || { columns: [], rows: [] };
+        const currentData = param.sampleData || { columns: [], rows: [], identifierColumn: null };
         return {
           ...param,
           sampleData: {
@@ -334,12 +343,20 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           return rest;
         });
         
+        // Update identifier column if we're removing it
+        let identifierColumn = param.sampleData.identifierColumn;
+        if (identifierColumn === columnName) {
+          // Set new identifier to first remaining column, or null if no columns left
+          identifierColumn = newColumns.length > 0 ? newColumns[0] : null;
+        }
+        
         return {
           ...param,
           sampleData: {
             ...param.sampleData,
             columns: newColumns,
-            rows: newRows
+            rows: newRows,
+            identifierColumn: identifierColumn
           }
         };
       }
@@ -350,7 +367,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   const addSampleRow = (paramId: string) => {
     setInputParameters(prev => prev.map(param => {
       if (param.id === paramId) {
-        const currentData = param.sampleData || { columns: [], rows: [] };
+        const currentData = param.sampleData || { columns: [], rows: [], identifierColumn: null };
         if (currentData.rows.length >= 5) return param; // Max 5 rows
         
         const newRow: SampleDataRow = {};
@@ -363,7 +380,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           sampleData: {
             ...currentData,
             columns: currentData.columns,
-            rows: [...currentData.rows, newRow]
+            rows: [...currentData.rows, newRow],
+            identifierColumn: currentData.identifierColumn
           }
         };
       }
@@ -436,8 +454,12 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
             })
           });
         } else if (param.sampleData && param.sampleData.columns.length > 0 && param.sampleData.rows.length > 0) {
-          // Process data table sample - convert to array of objects format
-          const tableDataAsJSON = JSON.stringify(param.sampleData.rows, null, 2);
+          // Process data table sample - convert to array of objects format with identifier column info
+          const sampleDataWithIdentifier = {
+            data: param.sampleData.rows,
+            identifierColumn: param.sampleData.identifierColumn || param.sampleData.columns[0]
+          };
+          const tableDataAsJSON = JSON.stringify(sampleDataWithIdentifier, null, 2);
           
           await apiRequest("/api/sample-documents/process", {
             method: "POST",
@@ -916,7 +938,12 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                                         {param.sampleData.columns.map((column, colIndex) => (
                                           <div key={colIndex} className="flex-1 min-w-0 border-r border-gray-200 last:border-r-0">
                                             <div className="flex items-center justify-between p-2">
-                                              <span className="text-xs font-medium text-gray-700 truncate">{column}</span>
+                                              <div className="flex items-center gap-1">
+                                                {param.sampleData?.identifierColumn === column && (
+                                                  <Key className="h-3 w-3 text-amber-500" />
+                                                )}
+                                                <span className="text-xs font-medium text-gray-700 truncate">{column}</span>
+                                              </div>
                                               <Button
                                                 type="button"
                                                 size="sm"
