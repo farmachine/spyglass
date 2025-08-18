@@ -4,10 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { Play, Edit3, Trash2, Code, Brain, Save, X, AlertTriangle, RefreshCw } from "lucide-react";
+import { Play, Edit3, Trash2, Code, Brain } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import CreateToolDialog from "./CreateToolDialog";
 
@@ -31,9 +29,6 @@ interface ExcelFunctionToolsProps {
 export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProps) {
   const [editingFunction, setEditingFunction] = useState<ExcelFunction | null>(null);
   const [testingFunction, setTestingFunction] = useState<ExcelFunction | null>(null);
-  const [editingCode, setEditingCode] = useState<{ [key: string]: boolean }>({});
-  const [codeChanges, setCodeChanges] = useState<{ [key: string]: string }>({});
-  const [impactedFields, setImpactedFields] = useState<{ [key: string]: string[] }>({});
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -66,65 +61,7 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
     }
   });
 
-  // Update function code mutation
-  const updateFunctionCode = useMutation({
-    mutationFn: async ({ functionId, functionCode }: { functionId: string; functionCode: string }) => {
-      return apiRequest(`/api/excel-functions/${functionId}`, {
-        method: 'PUT',
-        body: JSON.stringify({ functionCode }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-    },
-    onSuccess: (_, { functionId }) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'excel-functions'] });
-      setEditingCode(prev => ({ ...prev, [functionId]: false }));
-      setCodeChanges(prev => {
-        const newChanges = { ...prev };
-        delete newChanges[functionId];
-        return newChanges;
-      });
-      toast({
-        title: "Success",
-        description: "Code updated successfully",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update code",
-        variant: "destructive",
-      });
-    }
-  });
 
-  // Regenerate function code mutation
-  const regenerateFunctionCode = useMutation({
-    mutationFn: async (functionId: string) => {
-      return apiRequest(`/api/excel-functions/${functionId}/regenerate`, {
-        method: 'POST'
-      });
-    },
-    onSuccess: (_, functionId) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'excel-functions'] });
-      setEditingCode(prev => ({ ...prev, [functionId]: false }));
-      setCodeChanges(prev => {
-        const newChanges = { ...prev };
-        delete newChanges[functionId];
-        return newChanges;
-      });
-      toast({
-        title: "Success",
-        description: "Code regenerated successfully",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to regenerate code",
-        variant: "destructive",
-      });
-    }
-  });
 
   const handleEdit = (func: ExcelFunction) => {
     setEditingFunction(func);
@@ -138,44 +75,6 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
 
   const handleTest = (func: ExcelFunction) => {
     setTestingFunction(func);
-  };
-
-  const handleEditCode = async (functionId: string) => {
-    // Fetch impacted fields for this function
-    try {
-      const impactData = await apiRequest(`/api/excel-functions/${functionId}/impact`);
-      setImpactedFields(prev => ({ ...prev, [functionId]: impactData.impactedFields || [] }));
-    } catch (error) {
-      console.warn('Could not fetch impact data:', error);
-      setImpactedFields(prev => ({ ...prev, [functionId]: [] }));
-    }
-    setEditingCode(prev => ({ ...prev, [functionId]: true }));
-  };
-
-  const handleSaveCode = (functionId: string) => {
-    const newCode = codeChanges[functionId];
-    if (newCode !== undefined) {
-      updateFunctionCode.mutate({ functionId, functionCode: newCode });
-    }
-  };
-
-  const handleCancelCodeEdit = (functionId: string) => {
-    setEditingCode(prev => ({ ...prev, [functionId]: false }));
-    setCodeChanges(prev => {
-      const newChanges = { ...prev };
-      delete newChanges[functionId];
-      return newChanges;
-    });
-  };
-
-  const handleCodeChange = (functionId: string, newCode: string) => {
-    setCodeChanges(prev => ({ ...prev, [functionId]: newCode }));
-  };
-
-  const handleRegenerateCode = (functionId: string) => {
-    if (confirm('This will regenerate the code based on current inputs. Any manual changes will be lost. Continue?')) {
-      regenerateFunctionCode.mutate(functionId);
-    }
   };
 
   if (isLoading) {
@@ -240,86 +139,12 @@ export default function ExcelFunctionTools({ projectId }: ExcelFunctionToolsProp
                           {func.functionType === 'AI_ONLY' ? 'Prompt' : 'Generated Code'}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {!editingCode[func.id] ? (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEditCode(func.id)}
-                              className="h-7 text-xs border-gray-300 text-gray-700 hover:bg-gray-100"
-                            >
-                              <Edit3 className="h-3 w-3 mr-1" />
-                              Edit Code
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleRegenerateCode(func.id)}
-                              className="h-7 text-xs border-blue-300 text-blue-700 hover:bg-blue-50"
-                            >
-                              <RefreshCw className="h-3 w-3 mr-1" />
-                              Regenerate
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button
-                              size="sm"
-                              onClick={() => handleSaveCode(func.id)}
-                              disabled={updateFunctionCode.isPending}
-                              className="h-7 text-xs bg-green-600 hover:bg-green-700 text-white"
-                            >
-                              <Save className="h-3 w-3 mr-1" />
-                              Save
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleCancelCodeEdit(func.id)}
-                              className="h-7 text-xs border-gray-300 text-gray-700 hover:bg-gray-100"
-                            >
-                              <X className="h-3 w-3 mr-1" />
-                              Cancel
-                            </Button>
-                          </>
-                        )}
-                      </div>
                     </div>
 
-                    {/* Impact Warning */}
-                    {editingCode[func.id] && impactedFields[func.id] && impactedFields[func.id].length > 0 && (
-                      <Alert className="m-3 border-orange-200 bg-orange-50">
-                        <AlertTriangle className="h-4 w-4 text-orange-600" />
-                        <AlertDescription className="text-orange-800">
-                          <div className="font-medium mb-1">Warning: Code changes may impact the following extractions:</div>
-                          <ul className="text-sm list-disc list-inside">
-                            {impactedFields[func.id].map((field, index) => (
-                              <li key={index}>{field}</li>
-                            ))}
-                          </ul>
-                        </AlertDescription>
-                      </Alert>
-                    )}
-
                     <div className="p-3">
-                      {editingCode[func.id] ? (
-                        <Textarea
-                          value={codeChanges[func.id] ?? func.functionCode}
-                          onChange={(e) => handleCodeChange(func.id, e.target.value)}
-                          rows={12}
-                          className="font-mono text-sm"
-                          placeholder={
-                            func.functionType === 'AI_ONLY' 
-                              ? "Enter your AI prompt instructions here..."
-                              : "def extract_function(document_content, target_fields, identifier_references):"
-                          }
-                        />
-                      ) : (
-                        <pre className="font-mono text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-3 rounded border max-h-48 overflow-y-auto">
-                          {func.functionCode}
-                        </pre>
-                      )}
+                      <pre className="font-mono text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-3 rounded border max-h-48 overflow-y-auto">
+                        {func.functionCode}
+                      </pre>
                     </div>
                   </div>
                 )}

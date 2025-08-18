@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, X, FileText, Database, Type, Copy, Check, Upload, Loader2, ChevronDown, ChevronRight, Key } from "lucide-react";
+import { Plus, X, FileText, Database, Type, Copy, Check, Upload, Loader2, ChevronDown, ChevronRight, Key, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -226,6 +226,34 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       });
       setLoadingProgress(0);
       setLoadingMessage("");
+    }
+  });
+
+  // Regenerate function code mutation
+  const regenerateFunctionCode = useMutation({
+    mutationFn: async (functionId: string) => {
+      return apiRequest(`/api/excel-functions/${functionId}/regenerate`, {
+        method: 'POST'
+      });
+    },
+    onSuccess: (updatedFunction) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'excel-functions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/excel-functions'] });
+      // Update the editingFunction with new code
+      if (setEditingFunction) {
+        setEditingFunction(updatedFunction);
+      }
+      toast({
+        title: "Success",
+        description: "Code regenerated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to regenerate code",
+        variant: "destructive",
+      });
     }
   });
 
@@ -572,6 +600,12 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       title: "Sample File Removed",
       description: "Sample file has been removed from this parameter."
     });
+  };
+
+  const handleRegenerateCode = () => {
+    if (confirm('This will regenerate the code based on current inputs. Any manual changes will be lost. Continue?')) {
+      regenerateFunctionCode.mutate(editingFunction.id);
+    }
   };
 
   const handleSubmit = () => {
@@ -1101,7 +1135,21 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           {editingFunction && editingFunction.functionCode && (
             <Card className="border-gray-200">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg text-gray-800">Generated Code</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg text-gray-800">
+                    {editingFunction.functionType === 'AI_ONLY' ? 'Prompt' : 'Generated Code'}
+                  </CardTitle>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleRegenerateCode}
+                    disabled={regenerateFunctionCode.isPending}
+                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-1 ${regenerateFunctionCode.isPending ? 'animate-spin' : ''}`} />
+                    Regenerate
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
@@ -1110,7 +1158,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                   </pre>
                 </div>
                 <p className="text-sm text-gray-600 mt-2">
-                  This code was automatically generated and cannot be edited directly.
+                  Use the "Regenerate" button above to update this code based on current inputs.
                 </p>
               </CardContent>
             </Card>
