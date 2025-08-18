@@ -5198,13 +5198,13 @@ import sys
 import json
 import os
 import requests
-from urllib.parse import urlparse
+import base64
 
 # Add current directory to Python path for imports
 sys.path.insert(0, os.getcwd())
 
 try:
-    from document_extractor import process_document_for_extraction
+    from document_extractor import extract_text_from_document
     
     # Get file URL from command line
     file_url = "${param.sampleFileURL}"
@@ -5218,19 +5218,29 @@ try:
         print(json.dumps({"error": f"Failed to download file: {response.status_code}"}))
         sys.exit(1)
     
-    # Save temporary file
-    temp_file = f"/tmp/{file_name}"
-    with open(temp_file, 'wb') as f:
-        f.write(response.content)
+    # Convert to base64 for document extractor
+    file_content_b64 = base64.b64encode(response.content).decode('utf-8')
+    
+    # Determine MIME type based on file extension
+    mime_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    if file_name.lower().endswith('.xls'):
+        mime_type = "application/vnd.ms-excel"
+    elif file_name.lower().endswith('.pdf'):
+        mime_type = "application/pdf"
+    elif file_name.lower().endswith('.docx'):
+        mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     
     # Process the document
-    extracted_content = process_document_for_extraction(temp_file)
+    result = extract_text_from_document({
+        'file_name': file_name,
+        'file_content': file_content_b64,
+        'mime_type': mime_type
+    })
     
-    # Clean up
-    os.remove(temp_file)
-    
-    # Return the extracted content
-    print(json.dumps({"content": extracted_content}))
+    if result.get('text_content'):
+        print(json.dumps({"content": result['text_content']}))
+    else:
+        print(json.dumps({"error": result.get('error', 'No content extracted')}))
     
 except Exception as e:
     print(json.dumps({"error": str(e)}))
