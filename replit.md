@@ -67,6 +67,7 @@ Preferred communication style: Simple, everyday language.
 - **Manual Fix System**: Added manual fix endpoints for correcting pandas-based functions when AI generation encounters temporary issues, ensuring system reliability.
 - **Enhanced Sample Data Structure**: Column objects with `identifierId` and `name` properties for improved tracking, backward compatible with legacy string format.
 - **Fixed Excel Function Generation**: Resolved `actualFunctionType` variable definition issue in function generation endpoint.
+- **Complete Tool Testing Workflow Implementation**: Document extraction on tool creation, structured sample data storage in metadata, enhanced test UI with document preview and proper data tables, multiple record iteration support for CODE tools, debug workflow with failure analysis, automatic sample document/data replacement on tool updates.
 
 ### Key Architectural Decisions
 - **Monorepo Structure**: Single repository with shared types.

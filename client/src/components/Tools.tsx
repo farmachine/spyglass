@@ -40,6 +40,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
   const [debugText, setDebugText] = useState('');
   const [isDebugging, setIsDebugging] = useState(false);
   const [debugRecommendations, setDebugRecommendations] = useState<string>('');
+  const [sampleDocuments, setSampleDocuments] = useState<any[]>([]);
 
   const queryClient = useQueryClient();
 
@@ -65,6 +66,42 @@ export default function Tools({ projectId }: ExcelToolsProps) {
   });
 
 
+
+  // Helper function to analyze test failures
+  const analyzeTestFailure = (results: any, inputs: any, tool: ExcelTool) => {
+    const analysis: string[] = [];
+    
+    if (!results || (Array.isArray(results) && results.length === 0)) {
+      analysis.push("No results returned - the tool produced empty output");
+    } else if (Array.isArray(results)) {
+      // Check for common issues in results
+      const emptyFields = results.filter(r => !r.extractedValue || r.extractedValue === '');
+      if (emptyFields.length > 0) {
+        analysis.push(`${emptyFields.length} fields returned empty values`);
+      }
+      
+      const lowConfidence = results.filter(r => r.confidenceScore < 0.5);
+      if (lowConfidence.length > 0) {
+        analysis.push(`${lowConfidence.length} fields have low confidence scores`);
+      }
+      
+      const invalidStatus = results.filter(r => r.validationStatus === 'invalid');
+      if (invalidStatus.length > 0) {
+        analysis.push(`${invalidStatus.length} fields failed validation`);
+      }
+    }
+    
+    // Check input data
+    if (tool.outputType === 'multiple' && inputs) {
+      const dataInputs = Object.values(inputs).filter((v: any) => Array.isArray(v));
+      if (dataInputs.length > 0) {
+        const recordCount = dataInputs[0].length;
+        analysis.push(`Processing ${recordCount} records in multiple mode`);
+      }
+    }
+    
+    return analysis.join('; ');
+  };
 
   // Run test tool
   const runTest = async (tool: ExcelTool) => {
@@ -166,13 +203,17 @@ export default function Tools({ projectId }: ExcelToolsProps) {
             debugText: debugText.trim()
           };
 
-      const response = await apiRequest(endpoint, {
+      // Analyze what went wrong with the test
+      const failureAnalysis = analyzeTestFailure(testResults, inputs, tool);
+      
+      const response = await apiRequest('/api/excel-functions/debug', {
         method: 'POST',
         body: JSON.stringify({
           functionId: tool.id,
           inputs: inputs,
           testResults: testResults,
-          debugInstructions: debugText.trim()
+          debugInstructions: debugText.trim(),
+          failureAnalysis: failureAnalysis
         })
       });
 
@@ -254,7 +295,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
     setToolToDelete(null);
   };
 
-  const handleTest = (tool: ExcelTool) => {
+  const handleTest = async (tool: ExcelTool) => {
     setTestingTool(tool);
     setTestResults(null); // Clear previous results when opening test dialog
     
@@ -266,6 +307,15 @@ export default function Tools({ projectId }: ExcelToolsProps) {
       }
     });
     setTestInputs(initialInputs);
+    
+    // Fetch sample documents for this tool
+    try {
+      const response = await apiRequest(`/api/sample-documents/function/${tool.id}`);
+      setSampleDocuments(response);
+    } catch (error) {
+      console.error('Failed to fetch sample documents:', error);
+      setSampleDocuments([]);
+    }
   };
 
   if (isLoading) {
@@ -458,47 +508,115 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                       )}
                       
                       {param.type === 'document' && param.sampleFile && (
-                        <div className="bg-gray-50 p-3 rounded border text-sm text-gray-700">
-                          <span className="font-medium">Document:</span> {param.sampleFile}
+                        <div className="space-y-3">
+                          <div className="bg-gray-50 p-3 rounded border text-sm text-gray-700">
+                            <span className="font-medium">Document:</span> {param.sampleFile}
+                          </div>
+                          {/* Show extracted content preview from sampleDocuments */}
+                          {(() => {
+                            const sampleDoc = sampleDocuments.find(doc => doc.parameterName === param.name);
+                            if (sampleDoc?.extractedContent) {
+                              return (
+                                <div className="space-y-2">
+                                  <label className="block text-sm font-medium text-gray-700">
+                                    Extracted Content Preview
+                                  </label>
+                                  <div className="bg-gray-50 p-3 rounded border text-xs text-gray-600 max-h-32 overflow-y-auto font-mono">
+                                    <pre className="whitespace-pre-wrap">{sampleDoc.extractedContent.substring(0, 500)}...</pre>
+                                  </div>
+                                  <p className="text-xs text-gray-500">
+                                    {sampleDoc.extractedContent.length} characters extracted
+                                  </p>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
                         </div>
                       )}
                       
                       {param.type === 'data' && param.sampleData && (
                         <div>
                           <p className="text-sm font-medium text-gray-700 mb-2">Sample Data:</p>
-                          <div className="border border-gray-300 rounded overflow-hidden">
-                            <table className="w-full text-sm">
-                              <thead>
-                                <tr className="bg-gray-50 border-b border-gray-300">
-                                  {param.sampleData.columns?.map((col: any, colIndex: number) => {
-                                    const columnName = typeof col === 'string' ? col : col.name;
-                                    return (
-                                      <th key={colIndex} className="text-left p-3 font-medium text-gray-700 border-r border-gray-200 last:border-r-0">
-                                        {param.sampleData.identifierColumn === columnName && (
-                                          <span className="text-yellow-600 mr-1">🔑</span>
-                                        )}
-                                        {columnName}
-                                      </th>
-                                    );
-                                  })}
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {param.sampleData.rows?.map((row: any, rowIndex: number) => (
-                                  <tr key={rowIndex} className="border-b border-gray-200 last:border-b-0">
+                          {/* Check if sampleData is already in structured format */}
+                          {Array.isArray(param.sampleData) ? (
+                            // New structured format with identifierId
+                            <div className="border border-gray-300 rounded overflow-hidden">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="bg-gray-50 border-b border-gray-300">
+                                    <th className="text-left p-3 font-medium text-gray-700 border-r border-gray-200">
+                                      <span className="text-yellow-600 mr-1">🔑</span>
+                                      Identifier ID
+                                    </th>
+                                    {/* Get other column names from first row */}
+                                    {param.sampleData[0] && Object.keys(param.sampleData[0])
+                                      .filter(key => key !== 'identifierId')
+                                      .map((colName, colIndex) => (
+                                        <th key={colIndex} className="text-left p-3 font-medium text-gray-700 border-r border-gray-200 last:border-r-0">
+                                          {colName}
+                                        </th>
+                                      ))
+                                    }
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {param.sampleData.map((row: any, rowIndex: number) => (
+                                    <tr key={rowIndex} className="border-b border-gray-200 last:border-b-0">
+                                      <td className="p-3 text-gray-600 border-r border-gray-200 font-medium">
+                                        {row.identifierId || rowIndex}
+                                      </td>
+                                      {Object.entries(row)
+                                        .filter(([key]) => key !== 'identifierId')
+                                        .map(([key, value], colIndex) => (
+                                          <td key={colIndex} className="p-3 text-gray-600 border-r border-gray-200 last:border-r-0">
+                                            {String(value) || '-'}
+                                          </td>
+                                        ))
+                                      }
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : param.sampleData.columns && param.sampleData.rows ? (
+                            // Legacy format with columns and rows
+                            <div className="border border-gray-300 rounded overflow-hidden">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="bg-gray-50 border-b border-gray-300">
                                     {param.sampleData.columns?.map((col: any, colIndex: number) => {
                                       const columnName = typeof col === 'string' ? col : col.name;
                                       return (
-                                        <td key={colIndex} className="p-3 text-gray-600 border-r border-gray-200 last:border-r-0">
-                                          {row[columnName] || '-'}
-                                        </td>
+                                        <th key={colIndex} className="text-left p-3 font-medium text-gray-700 border-r border-gray-200 last:border-r-0">
+                                          {param.sampleData.identifierColumn === columnName && (
+                                            <span className="text-yellow-600 mr-1">🔑</span>
+                                          )}
+                                          {columnName}
+                                        </th>
                                       );
                                     })}
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
+                                </thead>
+                                <tbody>
+                                  {param.sampleData.rows?.map((row: any, rowIndex: number) => (
+                                    <tr key={rowIndex} className="border-b border-gray-200 last:border-b-0">
+                                      {param.sampleData.columns?.map((col: any, colIndex: number) => {
+                                        const columnName = typeof col === 'string' ? col : col.name;
+                                        return (
+                                          <td key={colIndex} className="p-3 text-gray-600 border-r border-gray-200 last:border-r-0">
+                                            {row[columnName] || '-'}
+                                          </td>
+                                        );
+                                      })}
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <div className="text-sm text-gray-500">No sample data available</div>
+                          )}
                         </div>
                       )}
                       

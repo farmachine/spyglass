@@ -472,6 +472,7 @@ ${inputsText}`;
     
     const inputsPython = toPythonLiteral(inputs);
     const parametersPython = toPythonLiteral(tool.inputParameters);
+    const outputType = tool.outputType || 'single';
     
     const functionCode = tool.functionCode || "";
     return `import json
@@ -497,17 +498,78 @@ try:
     # Get inputs and parameters
     inputs = ${inputsPython}
     parameters = ${parametersPython}
+    output_type = "${outputType}"
     
     # Map inputs to function arguments
     func_to_call = globals()[function_name]
-    args = []
-    for param in parameters:
-        param_name = param['name']
-        if param_name in inputs:
-            args.append(inputs[param_name])
     
-    # Execute function
-    result = func_to_call(*args)
+    # Check if we should iterate over sample data
+    data_params = [p for p in parameters if p.get('type') == 'data']
+    has_sample_data = False
+    sample_data_records = []
+    
+    if output_type == 'multiple' and data_params:
+        # Get the first data parameter's sample data
+        for param in data_params:
+            param_name = param['name']
+            if param_name in inputs and isinstance(inputs[param_name], list):
+                sample_data_records = inputs[param_name]
+                has_sample_data = True
+                break
+    
+    if has_sample_data and output_type == 'multiple':
+        # Iterate over each record in sample data
+        all_results = []
+        for record in sample_data_records:
+            args = []
+            for param in parameters:
+                param_name = param['name']
+                if param['type'] == 'data':
+                    # Pass the current record
+                    args.append(record)
+                elif param_name in inputs:
+                    # Pass other inputs as-is
+                    args.append(inputs[param_name])
+            
+            # Execute function for this record
+            result = func_to_call(*args)
+            
+            # Process result (could be single or multiple values)
+            if isinstance(result, str):
+                try:
+                    parsed = json.loads(result)
+                    if isinstance(parsed, list):
+                        all_results.extend(parsed)
+                    else:
+                        all_results.append(parsed)
+                except:
+                    all_results.append({
+                        "extractedValue": result,
+                        "validationStatus": "valid",
+                        "aiReasoning": f"Extracted for record {record.get('identifierId', 'unknown')}",
+                        "confidenceScore": 95,
+                        "documentSource": f"RECORD_{record.get('identifierId', 'unknown')}"
+                    })
+            else:
+                all_results.append({
+                    "extractedValue": result,
+                    "validationStatus": "valid",
+                    "aiReasoning": f"Extracted for record {record.get('identifierId', 'unknown')}",
+                    "confidenceScore": 95,
+                    "documentSource": f"RECORD_{record.get('identifierId', 'unknown')}"
+                })
+        
+        result = all_results
+    else:
+        # Single execution mode
+        args = []
+        for param in parameters:
+            param_name = param['name']
+            if param_name in inputs:
+                args.append(inputs[param_name])
+        
+        # Execute function once
+        result = func_to_call(*args)
     
     # Check if result is already in the correct format
     if isinstance(result, str):

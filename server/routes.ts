@@ -4691,6 +4691,20 @@ print(json.dumps(results))
       const processedParams = [];
       const metadata = otherData.metadata || {};
       
+      // First create the function to get its ID
+      const toolData = {
+        ...otherData,
+        inputParameters: inputParameters || [],
+        toolType,
+        aiPrompt: toolType === 'AI_ONLY' ? aiPrompt : null,
+        functionCode: toolType === 'CODE' ? functionCode : null,
+        metadata
+      };
+
+      console.log('✅ Custom validation passed, creating function...');
+      const func = await storage.createExcelWizardryFunction(toolData);
+      
+      // Now process parameters and save sample documents/data
       for (const param of inputParameters || []) {
         const processedParam = { ...param };
         
@@ -4766,33 +4780,77 @@ print(json.dumps(results))
             const result = JSON.parse(output);
             const extractedContent = result.extracted_texts?.[0] || '';
             
-            // Store the extracted content in metadata
+            // Save to sampleDocuments table
+            await storage.createSampleDocument({
+              functionId: func.id,
+              parameterName: param.name,
+              fileName: param.sampleFile,
+              filePath: param.sampleFileURL,
+              mimeType: mimeType,
+              extractedContent: extractedContent
+            });
+            
+            // Also store in metadata for backward compatibility
             if (!metadata.sampleDocumentContent) {
               metadata.sampleDocumentContent = {};
             }
             metadata.sampleDocumentContent[param.name] = extractedContent;
             
-            console.log(`✅ Extracted ${extractedContent.length} characters from ${param.sampleFile}`);
+            console.log(`✅ Extracted and saved ${extractedContent.length} characters from ${param.sampleFile}`);
             
           } catch (error) {
             console.error(`Failed to extract content from sample file:`, error);
           }
         }
         
+        // Process sample data to ensure proper structure
+        if (param.type === 'data' && param.sampleData) {
+          // Ensure sample data is in the correct format
+          if (Array.isArray(param.sampleData)) {
+            // Already an array, ensure each item has identifierId
+            const structuredData = param.sampleData.map((item, idx) => {
+              if (typeof item === 'object' && item !== null) {
+                return {
+                  identifierId: item.identifierId || String(idx),
+                  ...item
+                };
+              }
+              return item;
+            });
+            
+            // Store in metadata
+            if (!metadata.sampleData) {
+              metadata.sampleData = {};
+            }
+            metadata.sampleData[param.name] = structuredData;
+            processedParam.sampleData = structuredData;
+            
+            console.log(`✅ Structured sample data for ${param.name}: ${structuredData.length} records`);
+          }
+        }
+        
+        // For text parameters, save sample text
+        if (param.type === 'text' && param.sampleText) {
+          await storage.createSampleDocument({
+            functionId: func.id,
+            parameterName: param.name,
+            fileName: `${param.name}_sample.txt`,
+            sampleText: param.sampleText,
+            mimeType: 'text/plain'
+          });
+          console.log(`✅ Saved sample text for ${param.name}`);
+        }
+        
         processedParams.push(processedParam);
       }
       
-      const toolData = {
-        ...otherData,
-        inputParameters: processedParams,
-        toolType,
-        aiPrompt: toolType === 'AI_ONLY' ? aiPrompt : null,
-        functionCode: toolType === 'CODE' ? functionCode : null,
-        metadata
-      };
-
-      console.log('✅ Custom validation passed, creating function...');
-      const func = await storage.createExcelWizardryFunction(toolData);
+      // Update the function with processed parameters and metadata
+      if (processedParams.length > 0 || Object.keys(metadata).length > 0) {
+        await storage.updateExcelWizardryFunction(func.id, {
+          inputParameters: processedParams,
+          metadata
+        });
+      }
       console.log('🎉 Successfully created Excel function:', JSON.stringify(func, null, 2));
       res.status(201).json(func);
     } catch (error) {
@@ -4814,6 +4872,138 @@ print(json.dumps(results))
           message: "Invalid Excel wizardry function data", 
           errors: result.error.errors 
         });
+      }
+
+      // Process input parameters if they're being updated
+      const { inputParameters } = result.data;
+      const processedParams = [];
+      const metadata = result.data.metadata || {};
+      
+      if (inputParameters) {
+        for (const param of inputParameters) {
+          const processedParam = { ...param };
+          
+          // If document parameter with new sample file, extract content
+          if (param.type === 'document' && param.sampleFileURL && param.sampleFile) {
+            try {
+              // Delete old sample documents for this parameter
+              await storage.deleteSampleDocumentsByParameter(id, param.name);
+              
+              // Extract and save new content
+              const { ObjectStorageService, objectStorageClient } = await import("./objectStorage");
+              const urlParts = new URL(param.sampleFileURL);
+              const pathParts = urlParts.pathname.split('/');
+              const bucketName = pathParts[1];
+              const objectName = pathParts.slice(2).join('/');
+              
+              const bucket = objectStorageClient.bucket(bucketName);
+              const objectFile = bucket.file(objectName);
+              
+              const chunks: Buffer[] = [];
+              const stream = objectFile.createReadStream();
+              
+              await new Promise((resolve, reject) => {
+                stream.on('data', (chunk) => chunks.push(chunk));
+                stream.on('end', resolve);
+                stream.on('error', reject);
+              });
+              
+              const fileBuffer = Buffer.concat(chunks);
+              const [fileMetadata] = await objectFile.getMetadata();
+              const mimeType = fileMetadata.contentType || 'application/octet-stream';
+              const base64Content = fileBuffer.toString('base64');
+              const dataURL = `data:${mimeType};base64,${base64Content}`;
+              
+              // Extract text content
+              const extractionData = {
+                step: "extract_text_only",
+                documents: [{
+                  fileName: param.sampleFile,
+                  mimeType: mimeType,
+                  dataURL: dataURL
+                }]
+              };
+              
+              const { spawn } = require('child_process');
+              const python = spawn('python3', ['document_extractor.py']);
+              
+              python.stdin.write(JSON.stringify(extractionData));
+              python.stdin.end();
+              
+              let output = '';
+              let error = '';
+              
+              await new Promise((resolve, reject) => {
+                python.stdout.on('data', (data: any) => {
+                  output += data.toString();
+                });
+                
+                python.stderr.on('data', (data: any) => {
+                  error += data.toString();
+                });
+                
+                python.on('close', (code: any) => {
+                  if (code !== 0) {
+                    console.error('Document extraction error:', error);
+                    reject(new Error(error));
+                  } else {
+                    resolve(undefined);
+                  }
+                });
+              });
+              
+              const extractResult = JSON.parse(output);
+              const extractedContent = extractResult.extracted_texts?.[0] || '';
+              
+              // Save new sample document
+              await storage.createSampleDocument({
+                functionId: id,
+                parameterName: param.name,
+                fileName: param.sampleFile,
+                filePath: param.sampleFileURL,
+                mimeType: mimeType,
+                extractedContent: extractedContent
+              });
+              
+              // Update metadata
+              if (!metadata.sampleDocumentContent) {
+                metadata.sampleDocumentContent = {};
+              }
+              metadata.sampleDocumentContent[param.name] = extractedContent;
+              
+              console.log(`✅ Updated sample document for ${param.name}`);
+            } catch (error) {
+              console.error(`Failed to update sample document:`, error);
+            }
+          }
+          
+          // Process sample data updates
+          if (param.type === 'data' && param.sampleData) {
+            if (Array.isArray(param.sampleData)) {
+              const structuredData = param.sampleData.map((item, idx) => {
+                if (typeof item === 'object' && item !== null) {
+                  return {
+                    identifierId: item.identifierId || String(idx),
+                    ...item
+                  };
+                }
+                return item;
+              });
+              
+              if (!metadata.sampleData) {
+                metadata.sampleData = {};
+              }
+              metadata.sampleData[param.name] = structuredData;
+              processedParam.sampleData = structuredData;
+            }
+          }
+          
+          processedParams.push(processedParam);
+        }
+        
+        // Update with processed parameters
+        result.data.inputParameters = processedParams;
+        result.data.metadata = metadata;
       }
 
       const func = await storage.updateExcelWizardryFunction(id, result.data);
@@ -5502,6 +5692,18 @@ def extract_function(Column_Name, Excel_File):
   });
 
   // Sample Document Processing Route - uses the same extraction process as session documents
+  // Get sample documents for a function
+  app.get("/api/sample-documents/function/:functionId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { functionId } = req.params;
+      const sampleDocs = await storage.getSampleDocuments(functionId);
+      res.json(sampleDocs);
+    } catch (error) {
+      console.error("Error fetching sample documents:", error);
+      res.status(500).json({ message: "Failed to fetch sample documents" });
+    }
+  });
+
   app.post("/api/sample-documents/process", authenticateToken, async (req: AuthRequest, res) => {
     try {
       console.log('📄 Processing sample document with data:', JSON.stringify(req.body, null, 2));
