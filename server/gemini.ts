@@ -169,11 +169,92 @@ ${aiAssistanceRequired ? `\nAdditional AI Instructions: ${aiAssistancePrompt}` :
       
       // Removed manual override - using AI generation for all functions
       
-      // MANDATORY FUNCTION SIGNATURE ENFORCEMENT
-      // The execution system always expects this exact signature regardless of input parameter names
+      // Import enhanced Excel format training from all_prompts.py
+      const { spawn } = await import('child_process');
+      
+      // Get the enhanced Excel function generator prompt with full training
       const systemPrompt = `You are an expert Python developer. You MUST create a function with this EXACT signature:
-
 def extract_function(Column_Name, Excel_File):
+
+CRITICAL EXCEL DOCUMENT FORMAT TRAINING:
+
+EXCEL FILE FORMAT IN THIS SYSTEM:
+Excel files are NOT provided as file paths or pandas-compatible files. Instead, they are provided as TEXT STRINGS with this exact format:
+
+=== Sheet: SheetName1 ===
+Column1 Column2 Column3 Column4
+value1  value2  value3  value4
+value5  value6  value7  value8
+
+=== Sheet: SheetName2 ===  
+HeaderA HeaderB HeaderC
+dataA1  dataB1  dataC1
+dataA2  dataB2  dataC2
+
+MANDATORY EXCEL PARSING RULES:
+1. NEVER use pandas.ExcelFile() or pd.read_excel() - the input is a TEXT STRING, not a file path
+2. Parse sheets using the delimiter pattern: === Sheet: SheetName ===
+3. Split sheet content by newlines to get rows
+4. Split each row by tab character \\t to get columns
+5. First row after sheet delimiter is the header row with column names
+6. Use regular expressions or string splitting for parsing
+
+CORRECT EXCEL PARSING EXAMPLE:
+import re
+
+def parse_excel_text(excel_text):
+    # Split by sheet delimiter, keeping sheet names
+    sheets_data = re.split(r'===\\s*Sheet:\\s*(.*?)\\s*===', excel_text)
+    sheets = {}
+    
+    # Process pairs of sheet_name, sheet_content
+    for i in range(1, len(sheets_data), 2):
+        sheet_name = sheets_data[i].strip()
+        sheet_content = sheets_data[i+1].strip()
+        
+        if sheet_content:
+            # Split into rows and get headers
+            rows = sheet_content.split('\\n')
+            headers = [h.strip() for h in rows[0].split('\\t')] if rows else []
+            sheets[sheet_name] = {
+                'headers': headers,
+                'rows': rows[1:] if len(rows) > 1 else []
+            }
+    
+    return sheets
+
+FUNCTION SIGNATURE REQUIREMENT:
+def extract_function(parameter1_name, parameter2_name):
+    # Extract column names from data structure
+    if isinstance(parameter1_name, dict) and 'rows' in parameter1_name:
+        identifier = parameter1_name.get('identifierColumn', 'Column Name')
+        column_names = [row[identifier] for row in parameter1_name['rows']]
+    elif isinstance(parameter1_name, list):
+        column_names = parameter1_name
+    else:
+        column_names = [str(parameter1_name)]
+    
+    # Parse Excel text content (NOT a file path!)
+    sheets = parse_excel_text(parameter2_name)
+    
+    # Process each column and find its sheet
+    results = {}
+    for column_name in column_names:
+        for sheet_name, sheet_data in sheets.items():
+            if column_name in sheet_data['headers']:
+                results[column_name] = sheet_name
+                break
+        else:
+            results[column_name] = None
+    
+    return results
+
+COMMON MISTAKES TO AVOID:
+❌ Using pandas.ExcelFile(Excel_File) - will fail because Excel_File is text, not file path
+❌ Trying to read Excel_File as a file - it's a string with sheet delimiters
+❌ Expecting .xlsx/.xls file format - it's already converted to text with === delimiters
+❌ Not handling the specific === Sheet: Name === delimiter format
+❌ Not splitting by tab characters for column separation
 
 CRITICAL REQUIREMENTS:
 1. Function name MUST be "extract_function"  
