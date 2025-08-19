@@ -4796,56 +4796,37 @@ print(json.dumps(results))
   // Generate Excel wizardry function code
   app.post("/api/excel-functions/generate", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      console.log('🤖 Generating Excel function code with input:', JSON.stringify(req.body, null, 2));
+      console.log('🤖 Generating tool content with input:', JSON.stringify(req.body, null, 2));
       
       const { projectId, name, description, toolType, inputParameters, aiAssistanceRequired, aiAssistancePrompt, tags, outputType } = req.body;
       
       if (!name || !description || !inputParameters || !Array.isArray(inputParameters)) {
-        console.error('❌ Missing required fields for function generation');
+        console.error('❌ Missing required fields for tool generation');
         return res.status(400).json({ 
-          message: "Invalid function generation data. Name, description, and inputParameters are required." 
+          message: "Invalid tool generation data. Name, description, and inputParameters are required." 
         });
       }
 
-      // Import the Gemini function
-      const { generateFunctionCode } = await import("./gemini");
+      // Import the unified tool engine
+      const { toolEngine } = await import("./toolEngine");
       
-      // Determine the actual function type based on toolType
-      const actualFunctionType = toolType === 'CODE' ? 'FUNCTION' : 'AI_ONLY';
-      
-      console.log('🧠 Starting AI function code generation...');
-      console.log('🔍 PARAMETERS BEING PASSED TO AI:');
+      console.log('🧠 Starting tool content generation...');
+      console.log('📝 Tool Type:', toolType);
       console.log('📝 Name:', name);
       console.log('📝 Description:', description);
-      console.log('📝 InputParameters:', JSON.stringify(inputParameters, null, 2));
-      console.log('📝 ActualFunctionType:', actualFunctionType);
-      console.log('📝 AiAssistanceRequired:', aiAssistanceRequired);
-      console.log('📝 AiAssistancePrompt:', aiAssistancePrompt);
-      console.log('📝 OutputType:', outputType);
       console.log('='.repeat(80));
       
-      // Generate the function code using AI
-      const functionCode = await generateFunctionCode(
+      // Generate tool content using unified engine
+      const { content } = await toolEngine.generateToolContent({
         name,
-        description, 
-        inputParameters,
-        actualFunctionType,
-        aiAssistanceRequired,
-        aiAssistancePrompt,
-        outputType
-      );
+        description,
+        toolType: toolType as "AI_ONLY" | "CODE",
+        inputParameters
+      });
       
-      const metadata = {
-        generatedAt: new Date().toISOString(),
-        model: "gemini-1.5-flash",
-        functionType: actualFunctionType
-      };
-      
-      console.log('🤖 AI GENERATION COMPLETED');
-      console.log('📄 Generated Function Code:');
-      console.log(functionCode);
-      console.log('📊 Generated Metadata:');
-      console.log(JSON.stringify(metadata, null, 2));
+      console.log('🤖 TOOL GENERATION COMPLETED');
+      console.log('📄 Generated Content:');
+      console.log(content);
       console.log('='.repeat(80));
 
       // Transform input parameters for the schema, converting sample data structure
@@ -4874,13 +4855,13 @@ print(json.dumps(results))
         projectId,
         name,
         description,
-        functionCode,
+        functionCode: toolType === "CODE" ? content : undefined,
+        aiPrompt: toolType === "AI_ONLY" ? content : undefined,
         toolType: toolType || "CODE",
         outputType: outputType || "single",
         inputParameters,
         aiAssistanceRequired: aiAssistanceRequired || false,
         aiAssistancePrompt: aiAssistancePrompt || null,
-        metadata,
         inputSchema: { parameters: transformedParameters }, // Transform sample data for schema
         outputSchema: { format: "field_validations_compatible" }, // Basic output schema
         tags: tags || []
@@ -5343,170 +5324,35 @@ def extract_function(Column_Name, Excel_File):
       await logToBrowser(`Tool: ${func.name} (${func.toolType})`);
       await logToBrowser(`Inputs: ${JSON.stringify(inputs, null, 2)}`);
 
+      // Use unified tool engine for testing
+      await logToBrowser(`🔧 Processing with unified tool engine...`);
+      
       let testResults;
-
-      if (func.toolType === 'AI_ONLY') {
-        // For AI tools, use the simplified Gemini function
-        await logToBrowser('🤖 Processing with AI using prompt...');
+      try {
+        const { toolEngine } = await import("./toolEngine");
         
-        try {
-          const { testAIOnlyTool } = await import("./gemini");
-          
-          // Get sample documents for the function
-          const sampleDocuments = await storage.getSampleDocuments(func.id);
-          
-          await logToBrowser('🧠 Calling AI with prompt...');
-          
-          const aiResults = await testAIOnlyTool(
-            func.description,
-            func.inputParameters || [],
-            inputs,
-            sampleDocuments
-          );
-          
-          testResults = aiResults;
-          await logToBrowser('✅ AI processing completed');
-          
-        } catch (aiError) {
-          await logToBrowser(`❌ AI processing failed: ${aiError.message}`);
-          testResults = [{
-            extractedValue: null,
-            validationStatus: "invalid",
-            aiReasoning: `AI processing failed: ${aiError.message}`,
-            confidenceScore: 0,
-            documentSource: "AI_ERROR"
-          }];
-        }
+        const tool = {
+          id: func.id,
+          name: func.name,
+          description: func.description,
+          toolType: func.toolType,
+          inputParameters: func.inputParameters || [],
+          functionCode: func.functionCode,
+          aiPrompt: func.aiPrompt || func.description
+        };
         
-      } else {
-        // For CODE tools, execute the generated Python function directly
-        await logToBrowser('🐍 Processing with generated Python function...');
+        testResults = await toolEngine.testTool(tool, inputs);
+        await logToBrowser('✅ Tool execution completed');
         
-        const { spawn } = await import('child_process');
-        
-        try {
-          // Get the function code from the database
-          if (!func.functionCode) {
-            throw new Error('Function code not found');
-          }
-          
-          // Create a test script that imports and executes the function
-          const escapedFunctionCode = func.functionCode.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-          const testScript = `
-import sys
-import json
-import traceback
-
-# Function code
-${func.functionCode}
-
-# Test execution
-try:
-    # Get function name from the code
-    function_name = None
-    function_code = "${escapedFunctionCode}"
-    for line in function_code.split('\\n'):
-        if line.strip().startswith('def '):
-            function_name = line.split('def ')[1].split('(')[0].strip()
-            break
-    
-    if not function_name:
-        raise Exception("Could not find function definition")
-    
-    # Test inputs
-    inputs = ${JSON.stringify(inputs)}
-    
-    # Execute the function
-    if function_name in globals():
-        func_to_call = globals()[function_name]
-        
-        # Map inputs to function parameters
-        param_values = []
-        for param in ${JSON.stringify(func.inputParameters)}:
-            param_name = param['name']
-            if param_name in inputs:
-                param_values.append(inputs[param_name])
-        
-        # Call the function
-        result = func_to_call(*param_values)
-        
-        # Format result for testing
-        test_result = {
-            "extractedValue": result,
-            "validationStatus": "valid",
-            "aiReasoning": f"Function {function_name} executed successfully",
-            "confidenceScore": 95,
-            "documentSource": "CODE_FUNCTION"
-        }
-        
-        print(json.dumps([test_result]))
-    else:
-        raise Exception(f"Function {function_name} not found in globals")
-        
-except Exception as e:
-    error_result = {
-        "extractedValue": None,
-        "validationStatus": "invalid", 
-        "aiReasoning": f"Function execution error: {str(e)}",
-        "confidenceScore": 0,
-        "documentSource": "CODE_ERROR"
-    }
-    print(json.dumps([error_result]))
-`;
-          
-          const python = spawn('python3', ['-c', testScript]);
-          
-          let pythonOutput = '';
-          let pythonError = '';
-          
-          python.stdout.on('data', (data) => {
-            pythonOutput += data.toString();
-          });
-          
-          python.stderr.on('data', (data) => {
-            pythonError += data.toString();
-          });
-          
-          await new Promise(async (resolve) => {
-            python.on('close', async (code) => {
-              if (code !== 0) {
-                console.error('Python function execution failed:', pythonError);
-                testResults = [{
-                  extractedValue: null,
-                  validationStatus: "invalid",
-                  aiReasoning: `Python execution failed: ${pythonError}`,
-                  confidenceScore: 0,
-                  documentSource: "PYTHON_ERROR"
-                }];
-              } else {
-                try {
-                  testResults = JSON.parse(pythonOutput.trim());
-                  await logToBrowser('✅ Function execution completed');
-                } catch (parseError) {
-                  console.error('Failed to parse Python output:', parseError);
-                  testResults = [{
-                    extractedValue: pythonOutput.trim(),
-                    validationStatus: "valid",
-                    aiReasoning: 'Function executed but output format may be non-standard',
-                    confidenceScore: 70,
-                    documentSource: "CODE_FUNCTION"
-                  }];
-                }
-              }
-              resolve();
-            });
-          });
-          
-        } catch (codeError) {
-          await logToBrowser(`❌ CODE processing failed: ${codeError.message}`);
-          testResults = [{
-            extractedValue: null,
-            validationStatus: "invalid",
-            aiReasoning: `CODE processing failed: ${codeError.message}`,
-            confidenceScore: 0,
-            documentSource: "CODE_ERROR"
-          }];
-        }
+      } catch (error) {
+        await logToBrowser(`❌ Tool execution failed: ${error.message}`);
+        testResults = [{
+          extractedValue: null,
+          validationStatus: "invalid",
+          aiReasoning: `Tool execution failed: ${error.message}`,
+          confidenceScore: 0,
+          documentSource: "ENGINE_ERROR"
+        }];
       }
 
       await logToBrowser('🎯 ========== TEST RESULTS ==========');
