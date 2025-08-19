@@ -54,7 +54,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     name: "",
     description: "",
     aiAssistancePrompt: "",
-    functionCode: ""
+    functionCode: "",
+    aiPrompt: ""
   });
 
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -71,7 +72,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
 
   const resetForm = () => {
-    setFormData({ name: "", description: "", aiAssistancePrompt: "" });
+    setFormData({ name: "", description: "", aiAssistancePrompt: "", functionCode: "", aiPrompt: "" });
     setToolType(null);
     setOutputType("single");
     setInputParameters([]);
@@ -98,7 +99,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           name: editingFunction.name || "",
           description: editingFunction.description || "",
           aiAssistancePrompt: editingFunction.aiAssistancePrompt || "",
-          functionCode: editingFunction.functionCode || ""
+          functionCode: editingFunction.functionCode || "",
+          aiPrompt: editingFunction.aiPrompt || ""
         });
         setToolType(editingFunction.toolType === 'AI_ONLY' ? 'AI_ONLY' : 'CODE');
         setOutputType(editingFunction.outputType || "single");
@@ -139,10 +141,13 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         body: JSON.stringify({
           name: data.name,
           description: data.description,
-          functionCode: editingFunction.functionCode, // Use current code (may be regenerated)
+          functionCode: data.toolType === 'CODE' ? (data.functionCode || editingFunction.functionCode) : null,
+          aiPrompt: data.toolType === 'AI_ONLY' ? (data.aiPrompt || editingFunction.aiPrompt) : null,
           toolType: data.toolType,
           outputType: data.outputType,
           inputParameters: data.inputParameters,
+          inputSchema: data.inputSchema,
+          outputSchema: data.outputSchema,
           tags: data.tags || []
         })
       });
