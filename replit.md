@@ -68,7 +68,8 @@ Preferred communication style: Simple, everyday language.
 - **Enhanced Sample Data Structure**: Column objects with `identifierId` and `name` properties for improved tracking, backward compatible with legacy string format.
 - **Fixed Excel Function Generation**: Resolved `actualFunctionType` variable definition issue in function generation endpoint.
 - **Complete Tool Testing Workflow Implementation**: Document extraction on tool creation, structured sample data storage in metadata, enhanced test UI with document preview and proper data tables, multiple record iteration support for CODE tools, debug workflow with failure analysis, automatic sample document/data replacement on tool updates.
-- **Fixed Document Extraction for AI Tools** (January 2025): Resolved critical issue where AI tools received placeholder text instead of actual Excel content. Fixed document_extractor.py input format, updated toolEngine.ts to properly use pre-extracted content from metadata, and verified full Excel extraction with all sheets (12,925 characters from 6 sheets).
+- **Fixed Document Extraction for AI Tools** (January 2025): Resolved critical issue where AI tools received placeholder text instead of actual Excel content. Fixed document_extractor.py input format, updated toolEngine.ts to properly use pre-extracted content from sample_documents table instead of metadata, and verified full Excel extraction with all sheets (12,925 characters from 6 sheets).
+- **Enhanced Tool Engine Document Retrieval** (January 2025): Updated toolEngine.ts to fetch pre-extracted content from sample_documents table first, with fallback to metadata. Fixed "Get Worksheet from Column" function to handle structured input and correctly identify sheet locations for all 185 columns across 6 Excel sheets.
 
 ### Key Architectural Decisions
 - **Monorepo Structure**: Single repository with shared types.
