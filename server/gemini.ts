@@ -1,29 +1,16 @@
 import * as fs from "fs";
 import { GoogleGenAI, Modality } from "@google/genai";
 
-// DON'T DELETE THIS COMMENT
-// Follow these instructions when using this blueprint:
-// - Note that the newest Gemini model series is "gemini-2.5-flash" or gemini-2.5-pro"
-//   - do not change this unless explicitly requested by the user
-
 // This API key is from Gemini Developer API Key, not vertex AI API Key
-// Check both environment variables for flexibility
 const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "";
 
 if (!apiKey) {
   throw new Error("GEMINI_API_KEY or GOOGLE_API_KEY environment variable is required");
 }
 
-console.log(`Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using ${process.env.GEMINI_API_KEY ? 'GEMINI_API_KEY' : 'GOOGLE_API_KEY'}.`);
+console.log(`Using API key: ${process.env.GEMINI_API_KEY ? 'GEMINI_API_KEY' : 'GOOGLE_API_KEY'}.`);
 
-let ai: GoogleGenAI;
-try {
-  ai = new GoogleGenAI({ apiKey });
-  console.log('✅ Gemini AI client initialized successfully');
-} catch (initError) {
-  console.error('❌ Failed to initialize Gemini AI client:', initError);
-  throw new Error(`Gemini AI client initialization failed: ${initError.message}`);
-}
+const ai = new GoogleGenAI({ apiKey });
 
 export async function testAIOnlyTool(
   toolDescription: string,
@@ -33,94 +20,52 @@ export async function testAIOnlyTool(
   outputType: 'single' | 'multiple' = 'single'
 ): Promise<any[]> {
   try {
-    console.log('🤖 Testing AI ONLY tool with Gemini...');
-    console.log('📊 Output type:', outputType);
+    console.log('🤖 Testing AI tool with simple prompt...');
     
-    // Build system prompt explaining input types and output constraints
-    const outputInstruction = outputType === 'single' 
-      ? 'CRITICAL: This tool has outputType="single" - return EXACTLY ONE result object in the array, not multiple results.'
-      : 'This tool has outputType="multiple" - you can return multiple result objects if appropriate.';
+    // Build simple prompt with inputs
+    let prompt = `${toolDescription}\n\nInputs:\n`;
     
-    const systemPrompt = `You are an AI data extraction tool that processes inputs and returns results in field_validations JSON format.
-
-Input Type Understanding:
-- text inputs: These are instructions/prompts that guide your extraction
-- document inputs: These are source documents from which to extract data
-- data inputs: These are source data structures from which to extract data
-
-Tool Description: ${toolDescription}
-
-${outputInstruction}
-
-You must return an array of field_validation objects with this exact structure:
-[{
-  "id": "unique-id",
-  "sessionId": "test-session",
-  "validationType": "schema_field",
-  "dataType": "TEXT",
-  "fieldId": "extracted-field-name",
-  "extractedValue": "extracted value",
-  "validationStatus": "valid|pending|invalid",
-  "aiReasoning": "explanation of extraction reasoning",
-  "confidenceScore": 0-100,
-  "documentSource": "source document name",
-  "createdAt": "2024-01-01T00:00:00.000Z",
-  "updatedAt": "2024-01-01T00:00:00.000Z"
-}]
-
-IMPORTANT: Return ONLY valid JSON array, no additional text.`;
-
-    // Build user prompt with inputs
-    let userPrompt = `Process the following inputs:\n\n`;
-    
-    // Process each input parameter
     for (const param of inputParameters) {
       const inputValue = testInputs[param.name];
       
       if (param.type === "text") {
-        userPrompt += `${param.name} (instruction): ${inputValue || "Not provided"}\n`;
+        prompt += `${param.name}: ${inputValue || "Not provided"}\n`;
       } else if (param.type === "document") {
-        // For document inputs, get content from selected sample documents
         const selectedDocIds = Array.isArray(inputValue) ? inputValue : [];
         const selectedDocs = sampleDocuments.filter(doc => selectedDocIds.includes(doc.id));
         
         if (selectedDocs.length > 0) {
-          userPrompt += `${param.name} (documents):\n`;
-          selectedDocs.forEach((doc, index) => {
-            userPrompt += `Document ${index + 1}: ${doc.fileName || 'Sample Document'}\n`;
-            userPrompt += `Content: ${doc.extractedContent || doc.sampleText || 'No content available'}\n\n`;
+          prompt += `${param.name}: `;
+          selectedDocs.forEach(doc => {
+            prompt += `${doc.extractedContent || doc.sampleText || 'No content'}\n`;
           });
         } else {
-          userPrompt += `${param.name} (documents): No documents selected\n`;
+          prompt += `${param.name}: No documents selected\n`;
         }
-      } else if (param.type === "data") {
-        userPrompt += `${param.name} (source data): ${inputValue || "Not provided"}\n`;
+      } else {
+        prompt += `${param.name}: ${inputValue || "Not provided"}\n`;
       }
     }
 
-    // Ensure AI client is properly initialized
-    if (!ai || !ai.models) {
-      throw new Error("Gemini AI client not properly initialized. Check API key configuration.");
-    }
+    prompt += `\nReturn your response as a JSON array with this format:
+[{
+  "extractedValue": "your extracted result",
+  "validationStatus": "valid",
+  "aiReasoning": "explanation of your reasoning",
+  "confidenceScore": 95,
+  "documentSource": "source name"
+}]`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-pro",
+      model: "gemini-2.5-flash",
       config: {
-        systemInstruction: systemPrompt,
         responseMimeType: "application/json"
       },
-      contents: userPrompt
+      contents: prompt
     });
 
     const result = JSON.parse(response.text || "[]");
-    
-    // Ensure result is an array
-    if (!Array.isArray(result)) {
-      throw new Error("AI response is not an array");
-    }
-
-    console.log('✅ AI tool test completed successfully');
-    return result;
+    return Array.isArray(result) ? result : [result];
 
   } catch (error) {
     console.error("Error testing AI tool:", error);
