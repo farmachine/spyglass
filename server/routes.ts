@@ -5048,6 +5048,11 @@ Requirements:
       console.log('Generated Function Code:', result.functionCode);
       console.log('Generated Metadata:', JSON.stringify(result.metadata, null, 2));
 
+      // Format the function code properly by converting escaped newlines to actual newlines
+      if (result.functionCode && typeof result.functionCode === 'string') {
+        result.functionCode = result.functionCode.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+      }
+
       res.json(result);
       
     } catch (error) {
