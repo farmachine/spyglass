@@ -16,7 +16,7 @@ interface ExcelTool {
   id: string;
   name: string;
   description: string;
-  toolType: 'AI' | 'CODE';
+  toolType: 'AI_ONLY' | 'CODE';
   functionCode?: string;
   inputParameters: any[];
   outputType: 'single' | 'multiple';
@@ -96,14 +96,14 @@ export default function Tools({ projectId }: ExcelToolsProps) {
       });
 
       // Use different endpoints based on tool type
-      const endpoint = tool.toolType === 'AI' ? '/api/run/wizardry' : '/api/excel-functions/test';
-      const requestBody = tool.toolType === 'AI' 
+      const endpoint = tool.toolType === 'AI_ONLY' ? '/api/run/wizardry' : '/api/excel-functions/test';
+      const requestBody = tool.toolType === 'AI_ONLY' 
         ? {
             // For AI tools, prepare the request for extraction_wizardry.py
             target_fields: tool.inputParameters.map(param => ({
               id: param.name,
               name: param.name,
-              extractionType: 'AI',
+              extractionType: 'AI_ONLY',
               description: param.description || '',
               prompt: tool.functionCode || ''
             })),
@@ -159,14 +159,14 @@ export default function Tools({ projectId }: ExcelToolsProps) {
       });
 
       // Use different endpoints based on tool type
-      const endpoint = tool.toolType === 'AI' ? '/api/run/wizardry' : '/api/excel-functions/debug';
-      const requestBody = tool.toolType === 'AI' 
+      const endpoint = tool.toolType === 'AI_ONLY' ? '/api/run/wizardry' : '/api/excel-functions/debug';
+      const requestBody = tool.toolType === 'AI_ONLY' 
         ? {
             // For AI tools, prepare the request for extraction_wizardry.py
             target_fields: tool.inputParameters.map(param => ({
               id: param.name,
               name: param.name,
-              extractionType: 'AI',
+              extractionType: 'AI_ONLY',
               description: param.description || '',
               prompt: tool.functionCode || ''
             })),

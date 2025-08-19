@@ -4811,7 +4811,7 @@ print(json.dumps(results))
       const { generateFunctionCode } = await import("./gemini");
       
       // Determine the actual function type based on toolType
-      const actualFunctionType = toolType === 'CODE' ? 'FUNCTION' : toolType;
+      const actualFunctionType = toolType === 'CODE' ? 'FUNCTION' : 'AI_ONLY';
       
       console.log('🧠 Starting AI function code generation...');
       console.log('🔍 PARAMETERS BEING PASSED TO AI:');

@@ -56,7 +56,7 @@ export const projectSchemaFields = pgTable("project_schema_fields", {
   choiceOptions: jsonb("choice_options"), // Array of choice options for CHOICE type fields
   orderIndex: integer("order_index").default(0),
   // New extraction configuration fields
-  extractionType: text("extraction_type", { enum: ["AI", "FUNCTION"] }).default("AI").notNull(),
+  extractionType: text("extraction_type", { enum: ["AI_ONLY", "FUNCTION"] }).default("AI_ONLY").notNull(),
   knowledgeDocumentIds: jsonb("knowledge_document_ids"), // Array of knowledge document IDs for AI extraction
   extractionRuleIds: jsonb("extraction_rule_ids"), // Array of extraction rule IDs for AI extraction
   documentsRequired: boolean("documents_required").default(true).notNull(), // Whether source documents are required for AI extraction
@@ -89,7 +89,7 @@ export const collectionProperties = pgTable("collection_properties", {
   isIdentifier: boolean("is_identifier").default(false).notNull(), // marks this property as the identifier field
   orderIndex: integer("order_index").default(0),
   // New extraction configuration fields
-  extractionType: text("extraction_type", { enum: ["AI", "FUNCTION"] }).default("AI").notNull(),
+  extractionType: text("extraction_type", { enum: ["AI_ONLY", "FUNCTION"] }).default("AI_ONLY").notNull(),
   knowledgeDocumentIds: jsonb("knowledge_document_ids"), // Array of knowledge document IDs for AI extraction
   extractionRuleIds: jsonb("extraction_rule_ids"), // Array of extraction rule IDs for AI extraction
   documentsRequired: boolean("documents_required").default(true).notNull(), // Whether source documents are required for AI extraction
@@ -190,7 +190,7 @@ export const excelWizardryFunctions = pgTable("excel_wizardry_functions", {
   name: text("name").notNull(),
   description: text("description").notNull(),
   functionCode: text("function_code").notNull(), // Python function code or AI prompt depending on functionType
-  toolType: text("tool_type", { enum: ["AI", "CODE"] }).notNull().default("CODE"), // Type of tool
+  toolType: text("tool_type", { enum: ["AI_ONLY", "CODE"] }).notNull().default("CODE"), // Type of tool
   outputType: text("output_type", { enum: ["single", "multiple"] }).notNull().default("single"), // Whether function creates single value or multiple records
   inputParameters: jsonb("input_parameters").notNull(), // Array of input parameter definitions { name, type, description }
   aiAssistanceRequired: boolean("ai_assistance_required").default(false).notNull(), // Whether AI assistance is needed

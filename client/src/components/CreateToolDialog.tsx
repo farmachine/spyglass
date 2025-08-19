@@ -100,7 +100,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           aiAssistancePrompt: editingFunction.aiAssistancePrompt || "",
           functionCode: editingFunction.functionCode || ""
         });
-        setToolType(editingFunction.toolType === 'AI' ? 'AI' : 'CODE');
+        setToolType(editingFunction.toolType === 'AI_ONLY' ? 'AI' : 'CODE');
         setOutputType(editingFunction.outputType || "single");
         setInputParameters(editingFunction.inputParameters || []);
         setIsEditMode(true);
@@ -128,7 +128,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         id: editingFunction.id,
         name: data.name,
         description: data.description,
-        toolType: data.toolType === 'AI' ? 'AI' : 'CODE',
+        toolType: data.toolType === 'AI_ONLY' ? 'AI' : 'CODE',
         outputType: data.outputType,
         inputParameters: data.inputParameters,
         tags: data.tags || []
@@ -140,7 +140,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           name: data.name,
           description: data.description,
           functionCode: editingFunction.functionCode, // Use current code (may be regenerated)
-          toolType: data.toolType === 'AI' ? 'AI' : 'CODE',
+          toolType: data.toolType === 'AI_ONLY' ? 'AI' : 'CODE',
           outputType: data.outputType,
           inputParameters: data.inputParameters,
           tags: data.tags || []

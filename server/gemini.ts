@@ -111,7 +111,7 @@ export async function generateFunctionCode(
   name: string,
   description: string,
   inputParameters: Array<{ name: string; type: string; description: string }>,
-  functionType: "SCRIPT" | "AI" | "CODE",
+  functionType: "SCRIPT" | "AI_ONLY" | "CODE",
   aiAssistanceRequired: boolean,
   aiAssistancePrompt?: string,
   outputType?: "single" | "multiple"
