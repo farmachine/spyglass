@@ -116,6 +116,7 @@ export async function generateFunctionCode(
   aiAssistancePrompt?: string,
   outputType?: "single" | "multiple"
 ): Promise<{ functionCode: string; metadata: any }> {
+  console.log('*** FUNCTION ENTRY TEST ***');
   try {
     console.log('🚀 ========== GENERATE FUNCTION CODE CALLED ==========');
     console.log('🧠 Starting AI function generation process...');
