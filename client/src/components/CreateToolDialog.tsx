@@ -1274,18 +1274,29 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                   <CardTitle className="text-lg text-gray-800">
                     {toolType === 'AI_ONLY' ? 'Tool Prompt' : 'Tool Code'}
                   </CardTitle>
-                  {editingFunction && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleRegenerateCode}
-                      disabled={regenerateToolCode.isPending}
-                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                    >
-                      <RefreshCw className={`h-4 w-4 mr-1 ${regenerateToolCode.isPending ? 'animate-spin' : ''}`} />
-                      {regenerateToolCode.isPending ? 'Generating Code' : 'Generate Code'}
-                    </Button>
-                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={editingFunction ? handleRegenerateCode : () => {
+                      // For new tools, trigger the generation process
+                      const toolData = {
+                        projectId,
+                        name: formData.name,
+                        description: formData.description,
+                        toolType,
+                        outputType,
+                        inputParameters,
+                        aiAssistanceRequired: toolType === "CODE" ? aiAssistanceRequired : false,
+                        aiAssistancePrompt: aiAssistanceRequired ? formData.aiAssistancePrompt : null,
+                      };
+                      generateToolCode.mutate(toolData);
+                    }}
+                    disabled={regenerateToolCode.isPending || generateToolCode.isPending || !formData.name || !formData.description || inputParameters.length === 0}
+                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-1 ${(regenerateToolCode.isPending || generateToolCode.isPending) ? 'animate-spin' : ''}`} />
+                    {(regenerateToolCode.isPending || generateToolCode.isPending) ? 'Generating Code' : 'Generate Code'}
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent>
