@@ -5379,26 +5379,45 @@ Requirements:
     }
   });
 
-  // COMPLETELY NEW TEST ENDPOINT - SIMPLE AND WORKING
+  // TEST ENDPOINT WITH BROWSER CONSOLE LOGGING
   app.post("/api/excel-functions/test", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { functionId } = req.body;
 
-      console.log('\n🚀 ========== TOOL TEST STARTED ==========');
-      console.log('🎯 ========== TEST INPUT PARAMETERS ==========');
-      console.log('🎯 ========== TEST INPUT PARAMETERS ==========');
-      console.log('🎯 ========== TEST INPUT PARAMETERS ==========');
-      console.log('📥 Function ID:', functionId);
+      // Helper function to log both server and browser console
+      const logToBrowser = async (message, level = 'log') => {
+        console.log(message);
+        try {
+          // Forward to browser console via the dev console endpoint
+          await fetch('http://localhost:5000/api/dev/console', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              level,
+              message: message,
+              timestamp: new Date().toISOString()
+            })
+          });
+        } catch (error) {
+          // Ignore fetch errors to avoid breaking the test
+        }
+      };
+
+      await logToBrowser('\n🚀 ========== TOOL TEST STARTED ==========');
+      await logToBrowser('🎯 ========== TEST INPUT PARAMETERS ==========');
+      await logToBrowser('🎯 ========== TEST INPUT PARAMETERS ==========');  
+      await logToBrowser('🎯 ========== TEST INPUT PARAMETERS ==========');
+      await logToBrowser(`📥 Function ID: ${functionId}`);
       
       const func = await storage.getExcelWizardryFunction(functionId);
       if (!func) {
         return res.status(404).json({ message: "Function not found" });
       }
 
-      console.log('📋 Tool Input Parameters:', JSON.stringify(func.inputParameters, null, 2));
-      console.log('🎯 ========== TEST INPUT PARAMETERS ==========');
-      console.log('🎯 ========== TEST INPUT PARAMETERS ==========');
-      console.log('🎯 ========== TEST INPUT PARAMETERS ==========');
+      await logToBrowser(`📋 Tool Input Parameters: ${JSON.stringify(func.inputParameters, null, 2)}`);
+      await logToBrowser('🎯 ========== TEST INPUT PARAMETERS ==========');
+      await logToBrowser('🎯 ========== TEST INPUT PARAMETERS ==========');
+      await logToBrowser('🎯 ========== TEST INPUT PARAMETERS ==========');
       
       // Extract sample data from tool parameters
       const sampleInputs = {};
@@ -5418,7 +5437,7 @@ Requirements:
         }
       }
       
-      console.log('📥 SAMPLE INPUTS:', JSON.stringify(sampleInputs, null, 2));
+      await logToBrowser(`📥 SAMPLE INPUTS: ${JSON.stringify(sampleInputs, null, 2)}`);
       
       // Return simple success result
       const results = [{
@@ -5433,7 +5452,7 @@ Requirements:
         updatedAt: new Date().toISOString()
       }];
       
-      console.log('✅ ========== TEST COMPLETED ==========');
+      await logToBrowser('✅ ========== TEST COMPLETED ==========');
       res.json({ results });
     } catch (error) {
       console.error("Error testing Excel wizardry function:", error);
