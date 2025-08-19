@@ -5391,6 +5391,7 @@ def extract_function(Column_Name, Excel_File):
           }
           
           // Create a test script that imports and executes the function
+          const escapedFunctionCode = func.functionCode.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
           const testScript = `
 import sys
 import json
@@ -5403,7 +5404,8 @@ ${func.functionCode}
 try:
     # Get function name from the code
     function_name = None
-    for line in """${func.functionCode}""".split('\\n'):
+    function_code = "${escapedFunctionCode}"
+    for line in function_code.split('\\n'):
         if line.strip().startswith('def '):
             function_name = line.split('def ')[1].split('(')[0].strip()
             break
