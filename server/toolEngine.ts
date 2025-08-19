@@ -361,9 +361,16 @@ ${paramList}
 Requirements:
 - Use only standard Python libraries (no pandas)
 - Handle Excel files with openpyxl if needed
-- Return results that can be JSON serialized
+- Return a JSON array of field validation objects
+- Each object must have these exact fields:
+  * extractedValue: The extracted data value
+  * validationStatus: "valid" or "invalid" 
+  * aiReasoning: Brief explanation of the extraction
+  * confidenceScore: Number between 0-100
+  * documentSource: Source document/location reference
 - Include proper error handling
 - Function should be self-contained
+- Example return format: [{"extractedValue": "Column1", "validationStatus": "valid", "aiReasoning": "Extracted from first row", "confidenceScore": 100, "documentSource": "Row 1, Column A"}]
 
 Return only the Python function code, no explanations.`;
     }
@@ -436,16 +443,60 @@ try:
     # Execute function
     result = func_to_call(*args)
     
-    # Format output
-    output = {
-        "extractedValue": result,
-        "validationStatus": "valid",
-        "aiReasoning": f"Function {function_name} executed successfully",
-        "confidenceScore": 95,
-        "documentSource": "CODE_FUNCTION"
-    }
-    
-    print(json.dumps([output]))
+    # Check if result is already in the correct format
+    if isinstance(result, str):
+        try:
+            parsed_result = json.loads(result)
+            if isinstance(parsed_result, list) and all(
+                isinstance(item, dict) and 
+                'extractedValue' in item and 
+                'validationStatus' in item 
+                for item in parsed_result
+            ):
+                # Result is already in field validation format
+                print(result)
+            elif isinstance(parsed_result, list):
+                # List but not field validation format - convert each item
+                output = []
+                for idx, item in enumerate(parsed_result):
+                    output.append({
+                        "extractedValue": item,
+                        "validationStatus": "valid",
+                        "aiReasoning": f"Extracted item {idx+1} from {function_name}",
+                        "confidenceScore": 95,
+                        "documentSource": f"CODE_FUNCTION_ITEM_{idx+1}"
+                    })
+                print(json.dumps(output))
+            else:
+                # Single value or dict - wrap in field validation structure
+                output = [{
+                    "extractedValue": parsed_result,
+                    "validationStatus": "valid",
+                    "aiReasoning": f"Function {function_name} executed successfully",
+                    "confidenceScore": 95,
+                    "documentSource": "CODE_FUNCTION"
+                }]
+                print(json.dumps(output))
+        except:
+            # Not JSON, treat as raw value
+            output = [{
+                "extractedValue": result,
+                "validationStatus": "valid",
+                "aiReasoning": f"Function {function_name} executed successfully",
+                "confidenceScore": 95,
+                "documentSource": "CODE_FUNCTION"
+            }]
+            print(json.dumps(output))
+    else:
+        # Non-string result, wrap in field validation structure
+        output = [{
+            "extractedValue": result,
+            "validationStatus": "valid",
+            "aiReasoning": f"Function {function_name} executed successfully",
+            "confidenceScore": 95,
+            "documentSource": "CODE_FUNCTION"
+        }]
+        print(json.dumps(output))
     
 except Exception as e:
     error_output = {
