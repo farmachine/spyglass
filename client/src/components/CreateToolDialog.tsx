@@ -201,6 +201,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       console.log('🚀 NEW CLEAN CODE GENERATION - Using current form data');
       
       const formDataToSend = {
+        projectId: projectId,
         name: formData.name,
         description: formData.description,
         inputParameters: inputParameters,
@@ -212,7 +213,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       
       console.log('📋 Sending form data to new endpoint:', JSON.stringify(formDataToSend, null, 2));
       
-      const response = await apiRequest("/api/excel-functions/generate-code", {
+      const response = await apiRequest("/api/excel-functions/generate", {
         method: "POST",
         body: JSON.stringify(formDataToSend)
       });
