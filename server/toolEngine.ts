@@ -353,43 +353,57 @@ Create a detailed, specific prompt that:
 
 Return only the prompt text, no explanations.`;
     } else {
-      // Build Excel structure training if we have document parameters with sample files
+      // Build Excel structure training - ALWAYS use standard format
       let excelTraining = '';
-      const docParams = tool.inputParameters.filter(p => p.type === 'document' && p.sampleFile);
+      const docParams = tool.inputParameters.filter(p => p.type === 'document');
       if (docParams.length > 0) {
-        // If we have sample data from a previous test, include it
-        const sampleColumns = tool.metadata?.sampleColumns || [];
-        const columnsExample = sampleColumns.length > 0 
-          ? `\nACTUAL COLUMN NAMES FROM SAMPLE FILE:\n${sampleColumns.slice(0, 10).map((col: any, idx: number) => 
-              `  ${idx + 1}. "${typeof col === 'object' ? col.name : col}"`).join('\n')}${
-              sampleColumns.length > 10 ? `\n  ... and ${sampleColumns.length - 10} more columns` : ''}`
-          : '';
-        
+        // Standard Excel format based on our sample files
         excelTraining = `
-EXCEL FILE STRUCTURE TRAINING:
-The Excel files you'll be processing have the following structure:
-- Column headers are typically in the first row
-- Common worksheet names: 'Sheet1', 'Data', or named after the content type
+EXCEL FILE STRUCTURE TRAINING (STANDARD FORMAT):
+All Excel files in this system follow this consistent structure:
+- Column headers are ALWAYS in the first row (row 1)
 - Data rows start from row 2 onwards
-- Some files may have multiple worksheets - check all sheets if needed
+- Files typically have one main worksheet with all data
 - Column names may contain special characters, spaces, or line breaks
-- Empty cells should be handled gracefully
-${columnsExample}
-Example column patterns you might encounter:
-- Date columns: "Date Of Birth", "Date Became Pensioner", etc.
-- Code columns: "Member's Reference No", "Employer Code", "Sex Code"  
-- Numeric columns: "Annual Pension", "Component Amount", percentages
-- Text columns: "Status", "Description", names
 
-Tips for robust extraction:
-- Use openpyxl.load_workbook(filename, data_only=True) to get calculated values
-- Check worksheet.max_row and worksheet.max_column for bounds
-- Use worksheet.iter_rows() or worksheet.iter_cols() for efficient iteration
-- Handle merged cells with worksheet.merged_cells
-- Column letters can be accessed with cell.column_letter
-- Row numbers with cell.row
-- For finding specific columns, use string matching with .strip().lower() to handle variations
-- Consider using fuzzy matching for column names that might have slight variations
+ACTUAL COLUMN NAMES FROM STANDARD EXCEL FORMAT (37 columns):
+  1. "Member's Reference No"
+  2. "Employer Code"
+  3. "Sex Code"
+  4. "Date Of Birth"
+  5. "Date Became Pensioner"
+  6. "Code For Previous Status"
+  7. "Type Of Retirement"
+  8. "Date Of Exit From Active Service"
+  9. "Annual Pre-6.4.1988 GMP Component At Date Of Exit From Active Service"
+  10. "Annual Post-5.4.1988 GMP Component At Date Of Exit From Active Service"
+  11. "Annual Pre-6.4.1988 GMP Component At Date Of This Valuation"
+  12. "Annual Post-5.4.1988 GMP Component At Date Of This Valuation"
+  13. "Total Pension Payable From Scheme At Last Valuation"
+  14. "Total Pension Payable From Scheme At This Valuation"
+  15. "Component Of Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)"
+  ... and more pension-related columns
+
+Column patterns in our standard format:
+- Reference/ID columns: "Member's Reference No", "Employer Code"
+- Date columns: "Date Of Birth", "Date Became Pensioner", "Date Of Exit From Active Service"
+- Code columns: "Sex Code", "Code For Previous Status", "Type Of Retirement"
+- Numeric/Amount columns: Annual pension amounts, components, tax-free cash
+- Status columns: "Status", "Married Indicator", "Section B Indicator"
+- Address columns: "Postcode"
+
+IMPORTANT EXTRACTION RULES:
+- Always use openpyxl.load_workbook(filename, data_only=True) to get calculated values
+- Column headers are in sheet[1] or sheet.iter_rows(min_row=1, max_row=1)
+- To find a specific column, iterate through the headers and match the name
+- Use exact string matching first, then try .strip().lower() for variations
+- Handle None/empty cells gracefully
+- Return field validation format: each extracted value must be an object with:
+  * extractedValue: The actual data value
+  * validationStatus: "valid" or "invalid"
+  * aiReasoning: Brief explanation of the extraction
+  * confidenceScore: 0-100 confidence level  
+  * documentSource: e.g., "Row X, Column Y" or worksheet/cell reference
 `;
       }
 
