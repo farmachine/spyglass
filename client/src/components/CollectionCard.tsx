@@ -266,19 +266,15 @@ function InlinePropertyEditor({
           </Select>
         </div>
         
-        {selectedTool && (
-          <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <p className="text-sm text-gray-700">{selectedTool.description}</p>
-          </div>
-        )}
+
       </div>
 
-      {/* Step 2: Tool Parameters */}
+      {/* Step 2: Information Source - Dynamic based on extraction method */}
       {selectedToolId && inputParameters.length > 0 && (
         <div className="space-y-4 p-4 border rounded-lg">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center text-xs font-semibold text-white">2</div>
-            <h5 className="font-medium">Data Sources & Configuration</h5>
+            <h5 className="font-medium">Information Source</h5>
           </div>
           
           <div className="space-y-4">

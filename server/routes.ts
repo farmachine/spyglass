@@ -838,7 +838,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Automatically create an identifier field for new collections
       const identifierProperty = await storage.createCollectionProperty({
         collectionId: collection.id,
-        propertyName: "ID",
+        propertyName: collection.collectionName + " ID",
         propertyType: "TEXT",
         description: "Unique identifier for items in this collection",
         isIdentifier: true,
