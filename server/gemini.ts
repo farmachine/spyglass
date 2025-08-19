@@ -212,6 +212,15 @@ Requirements:
 - Handle errors gracefully
 - Return proper field validation format`;
 
+      console.log('🤖 FULL AI PROMPT BEING SENT TO GEMINI:');
+      console.log('='.repeat(80));
+      console.log('SYSTEM PROMPT:');
+      console.log(systemPrompt);
+      console.log('='.repeat(80));
+      console.log('USER PROMPT:');
+      console.log(userPrompt);
+      console.log('='.repeat(80));
+
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         config: {
@@ -238,8 +247,14 @@ Requirements:
       });
 
       console.log('✅ Python script generation completed');
-      console.log('📄 Raw AI response:', response.text);
-      console.log('📄 Full response object:', JSON.stringify(response, null, 2));
+      console.log('🤖 GEMINI AI RESPONSE:');
+      console.log('='.repeat(80));
+      console.log('Raw response text:');
+      console.log(response.text);
+      console.log('='.repeat(80));
+      console.log('Full response object:');
+      console.log(JSON.stringify(response, null, 2));
+      console.log('='.repeat(80));
       
       if (!response.text) {
         console.error('❌ Empty response from Gemini');
