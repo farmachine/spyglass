@@ -107,7 +107,8 @@ export default function Tools({ projectId }: ExcelToolsProps) {
               description: param.description || '',
               prompt: tool.functionCode || ''
             })),
-            document_content: inputs.Document || '',
+            // Use the actual document content from inputs, try different parameter names
+            document_content: inputs.Document || inputs.document || inputs['AI Instructions'] || 'Test document content for AI extraction',
             identifier_references: []
           }
         : {

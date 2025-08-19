@@ -5321,9 +5321,11 @@ def extract_function(Column_Name, Excel_File):
       const python = spawn('python3', ['extraction_wizardry.py']);
       
       const inputData = {
+        session_id: 'test-session-' + Date.now(), // Generate a test session ID
         target_fields,
         document_content: document_content || '',
-        identifier_references: identifier_references || []
+        identifier_references: identifier_references || [],
+        extraction_run: 1 // First extraction run for testing
       };
       
       python.stdin.write(JSON.stringify(inputData));
